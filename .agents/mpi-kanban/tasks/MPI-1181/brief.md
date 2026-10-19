@@ -208,6 +208,15 @@ a black image kept, tags renumbered. **Catch:** with no references core's `empty
   resizable box today) rather than a new canvas. Boxes are per-card History state, like a mask.
 - MOSS-Image (MPI-1180) and Ideogram templates use the same box format
   (`image_moss_image_base_t2i_bboxes`), so build the op model-neutral: a model opts in by capability.
+- **DECIDED (Fabio, 2026-10-19) - boxes are a prompt-box SETTINGS BUTTON, not an op or a Flow.** Visible
+  only when the selected op supports boxes (t2i and edit on FLUX.3), else greyed out and disabled. It opens
+  an overlay: RIGHT = big frame (blank at the chosen ratio for t2i, the source image for edit) where boxes
+  are moved and resized; LEFT = list with "add box", each row = colour (= its border), a short prompt, a
+  minus button. Store boxes normalised 0-1 + desc; each model's injection formats them (FLUX.3 0-1000
+  yxyx appended JSON; MOSS absolute-centred layout JSON). Supersedes "a NEW operation" above.
+- Box-capable models checked 2026-10-19: no installed model takes boxes (Qwen-Image 2.1 / Edit 2.1 have no
+  box node, only prompt-text region advice). FLUX.3 = first. MOSS-Image = MPI-1180. Ideogram = trial
+  board, undecided. Ming-Image-01 = dropped (Fabio checked it, did not like it).
 
 ### Bench now (no engine work needed)
 
@@ -289,6 +298,53 @@ Idea to bench: inpaint = edit + a box auto-derived from the mask's bounds (`<obj
 crop/stitch (keeps the rest) - would drop LanPaint. Boxes work for t2i AND edit.
 **DECIDED (Fabio, 2026-10-19): inpaint STAYS on LanPaint** (VAEEncode of crop as the latent). Open: LanPaint_NumSteps
 per mode - Fabio's hypothesis: base works at 1, Turbo may need more. Fabio still to bench: detailing, upscaling.
+**DECIDED (Fabio, 2026-10-19): LanPaint_NumSteps = 1 for base AND Turbo** - both add the dog cleanly at 571x1021
+(no grey plate, no seam). Turbo 41 s, base 174 s (base at NumSteps 2 was 237 s).
+**Detailing: done (Fabio, 2026-10-19).** Upscaling: Fabio benching approaches; he hands back the full workflow
+for the raw folder when done. **Box bench SKIPPED (Fabio, 2026-10-19):** boxes are prompt text only, so no
+pre-build bench - verify they steer during the app test instead.
+**Upscale bench 2026-10-19 (temp pcqmf_00076/77, photo input, 1.5x -> 2304x1536, 1x1 grid):** UltimateSDUpscale
+euler/simple, steps `8 if turbo else 15`, denoise 0.3, `4x_NMKD-Siax_200k`, EMPTY prompt, negative =
+ConditioningZeroOut. Fabio: plastic phone, worse eyes and mouth - 0.3 degrades instead of improving; CFG 3.5 ~= 1.0.
+Read: (1) base at 15 steps x 0.3 = ~4-5 real steps, base wants 50 -> under-sampled mush; (2) empty prompt vs
+zeroed negative gives CFG nothing to push on (why 3.5 = 1.0) -> lock CFG 1 for upscale; (3) Siax smooths skin.
+Refs-as-conditioning per tile: too slow, dropped (Fabio). Bench next: steps first (base 50 @0.3, Turbo 16 @0.3),
+then a prompt (the card's own prompt; generic texture line for imports), then the upscaler model (bench has
+ClearRealityV1 / Remacri / Nomos8kDAT; app ships only Siax + AnimeSharp - a new one = new dep).
+**DECIDED (Fabio, 2026-10-19): upscale + detailer CFG = base 3.5 when the prompt has text, 1.0 when empty;
+Turbo always 1.0.** CFG != 1 runs the negative pass every step (~2x time) even on an empty prompt. Graph
+already has `MpiAnyChecker` on `Input_Positive` (node 374) to key it on - check on hand-back.
+**Upscale steps 15 vs 40 (base, CFG 3.5, denoise 0.3): no visible difference** - the under-sampling read was
+wrong; keep 15 (Fabio). Plastic look comes from elsewhere: next isolate the Siax stage (its output with no
+sampling vs the source) and swap the upscaler model at the same settings.
+**DECIDED (Fabio, 2026-10-19): EVERY FLUX.3 op's prompt goes through the BFL upsampler rules first** - t2i,
+edit, inpaint, detail, upscale (`research/bfl_pup_system_prompts.json`: t2i / i2i / t2i_bbox / i2i_bbox).
+Without it results are really bad. How the app does it (local PUP weight in the graph, the Enhancer recipe,
+or Cosmo) = open, decide before wiring. Upscale rerun: base 15 steps CFG 3.5 + a PUP-t2i-style caption.
+Result: prompt helped a little (catchlights in the eyes, glints in the phone lenses - both named in the caption;
+skin still smooth). Fabio: likely needs more denoise; er_sde on upscale was worse than euler (tried earlier).
+Next: tile upscaler (preferred over grid - no seams), run WITHOUT a prompt (per-tile prompt would lie);
+after that upscale is as good as it gets. **DECIDED (Fabio, 2026-10-19): tile upscale = no prompt, CFG 1.0
+always** (base and Turbo).
+**Tile run (temp frpkh_00055):** `ImageScaleBy` LANCZOS 1.5x (no upscale model in this path) -> `ImpactMakeTileSEGS`
+(bbox 1024, crop 1.5, overlap 200) -> `DetailerForEachPipe` (guide 1024, max 1536, euler/simple, CFG 1, denoise 0.3,
+15 steps, force_inpaint). Fabio: not very good. Read: it REDRAWS - phone camera bump re-laid-out, bigger flash, eyes
+rounder, brows reshaped, warmer beauty makeup = identity drift, so 0.3 is already too much here, not too little.
+Fabio trying 25 steps. **Result: 25 = 15, identity drift confirmed vs the original** (single-pass stays closest).
+Tile math at 2304x1536, bbox 1024, min_overlap 200 = 3x2 = 6 tiles, overlap 384 px across, 512 px down; the face
+sits whole inside one tile but 3-4 overlapping tiles each re-denoise it in turn (DetailerForEach pastes each
+tile back before the next - likely compounding the 0.3). More tiles = more re-passes = more drift.
+Fabio watched it run: one tile holds only HALF her face and re-draws it - the identity loss. More denoise =
+sharper but more drift; the single pass drifts too at 0.3. **DECIDED (Fabio, 2026-10-19): upscale stays as
+benched - this is what the model can do.** Last bench: upscale with Turbo (distilled), then hand-back.
+**Turbo tile upscale: bad** (Fabio) - a different woman: heavier jaw, reshaped eyes, older, harsher oily contrast.
+**Turbo SINGLE-PASS upscale: best identity of every upscale run** (Fabio, 2026-10-19). Upscale bench closed.
+Next phase: Fabio hands back `flux3.json` -> copy to `comfy_workflows/raw/`, run the hand-back checks, wire.
 **Next session topic - boxes for TEXT-TO-IMAGE:** edit-with-boxes already has a home (History workspace op,
 section 3 above); t2i has none. Discuss: a Flow for it? which installed models already take boxes (Fabio thinks
 none; unsure about Qwen-Image(-Edit) 2.1 - check), MOSS-Image (MPI-1180) and Ideogram share the format.
+
+## Noticed
+
+- 2026-10-19 (Fabio, future): a tile-upscaler FLOW that describes each tile with its own prompt - separate from
+  this card's prompt-less tile upscale.
