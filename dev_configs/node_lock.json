@@ -3,12 +3,12 @@
   "_doc": "Single source of truth for ComfyUI core + frontend + custom-node pins. BOTH install paths consume this: the app (js/data/modelConstants/dependencies.js builds node download URLs from it) and the RunPod Pod image build (mpi-ci/cubric-vision-pod). Per-node `source`: registry|git-tag|git-commit. `installRequirements` discriminates BAKED (pip-req nodes \u00e2\u2020\u2019 Pod image at build time) from VOLUME (code-only nodes \u00e2\u2020\u2019 installed on connect via the wrapper). To bump a node, edit its entry here only.",
   "comfyui": {
     "core": {
-      "tag": "v0.41.0",
-      "commit": "98cc0bf84b7cb1383654c5b402e7612d875d6d22"
+      "tag": "v0.42.1",
+      "commit": "63be2f9b82ad0dac88a7ceaa28a9cf3154125a18"
     },
     "frontend": {
-      "comfyui-frontend-package": "1.55.17",
-      "comfyui-workflow-templates": "0.11.84"
+      "comfyui-frontend-package": "1.55.18",
+      "comfyui-workflow-templates": "0.11.89"
     }
   },
   "nodes": {

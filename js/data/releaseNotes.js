@@ -110,7 +110,7 @@ export const RELEASE_NOTES = {
       '**The old CubricVision.exe is gone (Windows).** The update removes it. If a shortcut or a taskbar pin still points at it, pin CubricStudio.exe in the same folder instead.',
     ],
     engineNotes: [
-      '**ComfyUI 0.41.0 (was 0.34.0).** The engine updates itself on first launch in about a minute, with no full re-download, and custom nodes you added yourself stay. Without Krea 2 or the Image Describer plugin, that launch also fetches the 4.88 GB text encoder Enhance and Describe now use (see Fixes).',
+      '**ComfyUI 0.42.1 (was 0.34.0).** The engine updates itself on first launch in about a minute, with no full re-download, and custom nodes you added yourself stay. Without Krea 2 or the Image Describer plugin, that launch also fetches the 4.88 GB text encoder Enhance and Describe now use (see Fixes).',
     ],
   },
   '2.0.1': {
