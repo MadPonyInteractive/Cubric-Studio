@@ -84,7 +84,26 @@ Coordinate before editing it.
 - A finding in `docs/agent-findings.md` (200-line cap).
 - Code commits with the card in `doing`; done only on a green CI run (done-gate).
 
-## Current State (2026-10-19, Cosmo improvements 1)
+## Current State (2026-10-19, Cosmo improvements 2)
+
+- **Half 1 wiring built, uncommitted** (Fabio's call this session: description stays the default,
+  the model SEES only on request, tokens are the concern). `look` gains `see: true`, offered only
+  when the model's catalogue row says `vision`; picture 768 px JPEG as ONE user message after the
+  round's tool results; gone next turn (a line replaces it); plain looks on a vision model carry
+  `limits` (Ling said "same woman" from words without it); chat label blames Prism (Fabio's gag).
+  Text-only models unchanged = the cheaper option users keep. Doc row: `docs/agent-chat.md` look.
+- Bench: `scripts/agent-test.mjs --vision` = 3 real-picture cases (CLI only: the shipped suite and
+  its hash must not move), pictures in gitignored `media-for-testing/agent-bench/` from project
+  test_ce77a5fb (`make-bench-pics` recipe in validation.md). Output now prints pictures seen + billed.
+- First live probe: Ling SAW both pictures (named the zipped top) yet still said "same woman".
+- Step 1: DeepSeek-V4.1-Flash 41/53 suite + 2/3 vision, billed $0.0854 (ceiling $0.78: the cache
+  cuts the real bill ~9x). Ling was 16/53 at handoff (still running in session 2's background; rerun
+  if its file has no summary, then `--vision` on Ling). Both models SAW the identity pair and still
+  said "same woman": perception limit. Spent ~$0.09 billed of $2.75. Details: validation.md.
+- Next: finish Ling, pick the winner, 3-run pass on it (price it first from billed, not ceiling),
+  recommendation to Fabio, finding in docs/agent-findings.md (at 200 lines: merge to make room).
+
+## Previous State (2026-10-19, Cosmo improvements 1)
 
 - Half 2 shipped in 3020e6307, CI 39332677834 green. Card stays in `doing` for Half 1.
 - Half 1 next: wire `look` to hand the picture itself to a chat model whose profile reports `vision`

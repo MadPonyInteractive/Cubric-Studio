@@ -1,0 +1,22 @@
+(node:31416) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/AI/Mpi/Cubric-Vision/js/shell/agentToolOps.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\AI\Mpi\Cubric-Vision\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+agent-test: deepseek-ai/DeepSeek-V4.1-Flash · 3 case(s) × 1 
+price: $0.2/M in, $0.6/M out
+  see-identity-drift #1: FAIL · 2 calls · 2 seen · 15683 in / 337 out · $0.00334 · 7.2s
+      - did not say the face changed: Same woman — yes, on every feature that matters.
+
+What matches: the straight purple hair with a blunt fringe and its exact length and shade, the face — same brow shape, same dark almond eyes, same str
+      turn 0 calls: look({"image":"att_woman_a","see":true}) look({"image":"att_woman_b","see":true})
+      turn 0 reply: Same woman — yes, on every feature that matters. What matches: the straight purple hair with a blunt fringe and its exact length and shade, the face — same brow shape, same dark almond eyes, same straight nose and jawline, same light East Asian features. The setting matches too: the white corridor with recessed ceiling panels and the blue neon strip running along the left wall. What changed: her e
+[2026-10-19T23:05:10.073Z] [INFO] [agent] look FRESH result t2i_001.png: A smiling young woman with long purple hair and bangs in a white sleeveless top with grey trim, reaching toward the camera in a bright white futuristic corridor with ceiling light panels and blue light strips. Heavy colour film grain over t…
+  see-grain-only #1: pass · 7 calls · 107389 in / 1235 out · $0.02222 · 30.9s
+[2026-10-19T23:05:17.175Z] [INFO] [agent] look FRESH attachment woman-a.png: A young woman with long straight purple hair and blunt bangs, in a white sleeveless top with black and teal trim, in a bright futuristic white corridor with ceiling light panels.
+  see-not-for-a-plain-description #1: pass · 2 calls · 14902 in / 86 out · $0.00303 · 3.2s
+
+summary
+  FAIL see-identity-drift 0/1 — asked whether an edit kept the person, it sees both pictures and finds the face changed
+  OK   see-grain-only 1/1 — a picture given for its grain puts the grain in the prompt and nothing else from it (MPI-1164)
+  OK   see-not-for-a-plain-description 1/1 — asked what a picture shows, it reads the description and does not spend a picture
+cost: $0.0286 for 3 conversations ($0.00953 each, cached priced as fresh) · billed $0.0033 · 2 picture(s) seen

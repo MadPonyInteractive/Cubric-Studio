@@ -394,6 +394,29 @@ export const TOOL_DEFS = [
     },
 ];
 
+// MPI-1208 — the long side of a picture `look` shows a vision model: ~500 tokens a request
+// where 1 MP is ~1,300, and still enough to tell one face from another.
+// ponytail: one size for stills and clip sheets; a sheet's frames are small at 768.
+const SEE_LONG_SIDE = 768;
+// What a description cannot carry, on a plain look's result for a model that can see.
+const SEE_LIMITS = "These are the describer's words. They name hair, clothes, pose and setting alike for two different faces, and they flatten grain and colour. see: true shows you the picture.";
+
+// MPI-1208 — a vision model's list: TOOL_DEFS with `see` on look. Picked per model, so the
+// list stays the same for the whole chat and the prompt cache holds (see WAKE_TOOLS below).
+const VISION_TOOL_DEFS = TOOL_DEFS.map((t) => (t.function.name !== 'look' ? t : {
+    ...t,
+    function: {
+        ...t.function,
+        parameters: {
+            ...t.function.parameters,
+            properties: {
+                ...t.function.parameters.properties,
+                see: { type: 'boolean', description: 'Show you the picture itself instead of its description (a clip as its frame sheet). It costs about 500 tokens on every request until the turn ends, and the next turn no longer has it. The description is enough for most jobs; see when words cannot settle it: whether two pictures show the same person or face, why a result missed the ask, a fine quality of the look (grain, a colour cast), or a description that already proved wrong. With see, ask yourself the question; a box still needs the describer.' },
+            },
+        },
+    },
+}));
+
 // MPI-870 — what a WAKE turn may call. A wake was not asked for: the user did not type,
 // and they may be mid-edit in a workspace, so the two tools that move them off what they
 // are looking at are off the table (rule 4 of Fabio's seven). MPI-1125: refused when called,
@@ -612,12 +635,17 @@ export class AgentLoop {
      * @param {function} [opts.viewFile] (absPath, {frames}) => {kind, data, ...} overrides cardView.viewFile
      *        (MPI-941 Phase 4's clip sampling for `look`).
      */
-    constructor({ tools, resolveEndpoint, lookupContextWindow, sessionKey = '', broadcast, onProjectOpened, viewFile } = {}) {
+    constructor({ tools, resolveEndpoint, lookupContextWindow, lookupVision, sessionKey = '', broadcast, onProjectOpened, viewFile } = {}) {
         this._tools = tools || realTools;
         this._viewFile = viewFile || _viewClipFile;
         this._resolveEndpointOverride = resolveEndpoint || null;
         this._lookupContextWindowOverride = lookupContextWindow || null;
+        this._lookupVisionOverride = lookupVision || null;
         this._contextWindows = new Map(); // `${profileId}\n${model}` -> number
+        this._visions = new Map();        // `${profileId}\n${model}` -> boolean (MPI-1208)
+        this._vision = false;             // the model this turn runs on takes pictures
+        this._sight = [];                 // pictures `look` with see: true showed this round, sent after its tool results
+        this._seen = [];                  // the messages that carried them: emptied when the next turn starts
         this.sessionKey = sessionKey;
         this._broadcast = broadcast || null;
         this._onProjectOpened = onProjectOpened || null;
@@ -1997,6 +2025,51 @@ export class AgentLoop {
         return FALLBACK_CONTEXT_WINDOW;
     }
 
+    /**
+     * MPI-1208 — does this model take pictures? The endpoint's own catalogue says (DeepInfra
+     * tags `vision`, Ollama lists the capability); unknown or unreachable reads as no, so the
+     * model gets the describer's words exactly as before.
+     */
+    async _visionFor(profileId, model, profile, key) {
+        if (this._lookupVisionOverride) return !!(await this._lookupVisionOverride(profileId, model, profile, key));
+        const cacheKey = `${profileId}\n${model}`;
+        if (this._visions.has(cacheKey)) return this._visions.get(cacheKey);
+        try {
+            const models = await listRemoteModels({ presetId: profileId, baseURL: profile.baseURL, key });
+            const vision = models.find((m) => m.id === model)?.vision === true;
+            this._visions.set(cacheKey, vision);
+            return vision;
+        } catch { return false; }
+    }
+
+    /**
+     * MPI-1208 — `look` with see: true on a vision model: the picture itself, at most
+     * SEE_LONG_SIDE px, queued for the round's sight message. A clip is its contact sheet.
+     */
+    async _seePicture(ref, label, crop) {
+        try {
+            const { default: sharp } = await import('sharp');
+            let facts = '';
+            let src = ref.path;
+            if (CLIP_EXT.test(ref.path)) {
+                const sheet = await this._viewFile(ref.path, { frames: 6 });
+                src = sheet.data;
+                facts = ` It is a contact sheet of ${sheet.times.length} frames from a ${sheet.duration}s clip, ${sheet.columns} per row, left to right then top to bottom, at ${sheet.times.join('s, ')}s.`;
+            }
+            let img = sharp(src, { limitInputPixels: false, autoOrient: true });
+            if (crop && !facts) img = img.extract({ left: Math.round(crop.x), top: Math.round(crop.y), width: Math.round(crop.width), height: Math.round(crop.height) });
+            const { data, info } = await img
+                .resize(SEE_LONG_SIDE, SEE_LONG_SIDE, { fit: 'inside', withoutEnlargement: true })
+                .jpeg({ quality: 85 }).toBuffer({ resolveWithObject: true });
+            this._sight.push({ label, url: `data:image/jpeg;base64,${data.toString('base64')}` });
+            return { ok: true, output: { text: `The picture follows these tool results, at ${info.width}x${info.height}.${facts} Only this turn can see it.` } };
+        } catch (err) {
+            // Not readable as a picture here: the description is still an answer, as for a text-only model.
+            const r = await this._lookOnce(ref);
+            return r?.ok ? { ...r, note: `The picture could not be shown (${err.message}); this is its description.` } : r;
+        }
+    }
+
     /** Set the fork bridge ask function (called by routes/agent.js after import). */
     setForkBridge(ask) { this._forkAsk = ask; }
 
@@ -2534,7 +2607,14 @@ ${knowledgeIndex}`.trim();
                 if (!ref) {
                     return JSON.stringify({ ok: false, error: { code: 'IMAGE_NOT_FOUND', message: `Image reference not found: ${args.image}. Use an attachment id from this conversation, or the filePath of something you generated.` } });
                 }
-                if (!args.question && !args.crop && !args.box) return JSON.stringify(await this._lookOnce(ref));
+                // A box is a measurement only the describer returns; see on a text-only model is a plain look.
+                if (args.see && this._vision && !args.box) return JSON.stringify(await this._seePicture(ref, args.image, args.crop));
+                if (!args.question && !args.crop && !args.box) {
+                    const r = await this._lookOnce(ref);
+                    // Live on Ling (2026-10-19) the words for two different faces read alike, and it
+                    // answered "same woman" without seeing. The fact goes where it is read.
+                    return JSON.stringify(this._vision && r?.ok ? { ...r, limits: SEE_LIMITS } : r);
+                }
                 // A clip's own question ("what happens?") is asked on its contact sheet, not the
                 // file itself; crop and box stay stills-only (a sheet's pixels are not the clip's).
                 if (args.question && !args.crop && !args.box && CLIP_EXT.test(ref.path)) {
@@ -2868,6 +2948,7 @@ ${knowledgeIndex}`.trim();
                 return;
             }
             this._contextWindow = await this._contextWindowFor(profileId, model, profile, key);
+            this._vision = await this._visionFor(profileId, model, profile, key);
 
             // Init session on first turn
             if (this._messages.length === 0) {
@@ -2983,6 +3064,9 @@ ${knowledgeIndex}`.trim();
 
             // Add user message to LLM context (plain text for OpenAI compat)
             const userContent = contentParts.map((p) => p.text).join('\n');
+            // MPI-1208: a picture lives one turn. Carried on, every later request would re-send it.
+            this._sight.length = 0; // a round that threw never sent its pictures
+            for (const { msg, labels } of this._seen.splice(0)) msg.content = `[The picture of ${labels} was shown here in an earlier turn. To see it again, call look with see: true.]`;
             this._messages.push({ role: 'user', content: userContent });
 
             // Add to UI history. The sender's chat drew its own bubble; a carried request has no
@@ -3019,7 +3103,7 @@ ${knowledgeIndex}`.trim();
                 const outOfRounds = steps >= MAX_STEPS;
                 const llmRes = await engine.chat(outOfRounds
                     ? { model, messages: [...this._messages, { role: 'system', content: OUT_OF_ROUNDS }], options: chatOptions }
-                    : { model, messages: this._messages, tools: TOOL_DEFS, options: chatOptions });
+                    : { model, messages: this._messages, tools: this._vision ? VISION_TOOL_DEFS : TOOL_DEFS, options: chatOptions });
                 this._lastUsage = llmRes.usage;
                 this._llmReleased = false; // answering loaded it again
                 this._addSpend('chatUsd', llmRes.usage?.estimated_cost);
@@ -3062,7 +3146,7 @@ ${knowledgeIndex}`.trim();
                     try { args = JSON.parse(tc.function?.arguments || '{}'); } catch { /* use {} */ }
 
                     const toolEntryId = crypto.randomUUID();
-                    const label = _toolLabel(toolName, args);
+                    const label = toolName === 'look' && args.see && this._vision && !args.box ? LOOK_SEE_LABEL : _toolLabel(toolName, args);
                     // `redo` is the agent saying it is retrying: the panel's Cosmo reacts (MPI-908).
                     // Never forwarded to the app - `generate` builds its request field by field.
                     // `noPrompt`: a tool (MPI-904) writes no prompt, so the panel sends no prompt writer.
@@ -3161,6 +3245,16 @@ ${knowledgeIndex}`.trim();
 
                     // Append tool result to LLM context
                     this._messages.push({ role: 'tool', tool_call_id: tc.id, content: resultText });
+                }
+
+                // MPI-1208: the pictures `see` showed, once every tool result is in (nothing may
+                // sit between a tool call and its results). A user message, the one place every
+                // OpenAI-compatible host and Ollama's native shape take an image.
+                if (this._sight.length) {
+                    const shown = this._sight.splice(0);
+                    const msg = { role: 'user', content: shown.flatMap((s) => [{ type: 'text', text: `[The picture you asked to see: ${s.label}]` }, { type: 'image_url', image_url: { url: s.url } }]) };
+                    this._messages.push(msg);
+                    this._seen.push({ msg, labels: shown.map((s) => s.label).join(', ') });
                 }
 
                 if (carriedTo) {
@@ -3380,7 +3474,10 @@ ${knowledgeIndex}`.trim();
 
 /** A chat message's size in chars: its content plus any tool calls it carries. */
 function messageChars(m) {
-    const content = typeof m.content === 'string' ? m.content.length : JSON.stringify(m.content ?? '').length;
+    // A picture counts ~2,000 chars (~500 tokens), never its base64 length (MPI-1208).
+    const content = typeof m.content === 'string' ? m.content.length
+        : Array.isArray(m.content) ? m.content.reduce((s, p) => s + (p.type === 'image_url' ? 2000 : (p.text || '').length), 0)
+        : JSON.stringify(m.content ?? '').length;
     return content + (m.tool_calls ? JSON.stringify(m.tool_calls).length : 0);
 }
 
@@ -3562,6 +3659,8 @@ function _logLook(ref, text, cached) {
  * until the log was read back to him.
  */
 const LOOK_CACHED_LABEL = 'Fetching saved image description';
+// MPI-1208, Fabio: a look of Cosmo's own is a small gag on Prism, the describer.
+const LOOK_SEE_LABEL = "Prism's description is a bit fuzzy, so I'm taking a look myself";
 const GENERATE_REFUSED_LABEL = 'Generation not started';
 
 /**

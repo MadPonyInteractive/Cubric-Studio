@@ -12,8 +12,8 @@
 - [x] Tests green: model-priority, agent-prompt-budget, agent-loop, agent-tiles, agent-bench
 
 ## Half 1 - vision agent model
-- [ ] look hands the picture to a vision-capable chat model (fallback: describer text)
-- [ ] DeepInfra vision+tools candidates listed
-- [ ] Bench runs priced; Fabio's yes before spending
+- [x] look hands the picture to a vision-capable chat model (fallback: describer text)
+- [x] DeepInfra vision+tools candidates listed
+- [x] Bench runs priced; Fabio's yes before spending
 - [ ] Recommendation with score and cost per chat
 - [ ] Finding in docs/agent-findings.md

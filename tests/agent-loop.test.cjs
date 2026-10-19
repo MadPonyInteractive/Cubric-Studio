@@ -129,7 +129,7 @@ async function loadAgentLoop() {
 }
 
 /** Create an AgentLoop with injected fake engine and tools. */
-async function makeLoop({ engineResponses = [], toolOpts = {}, resolveEndpointOverride, contextWindow = 1_048_576 } = {}) {
+async function makeLoop({ engineResponses = [], toolOpts = {}, resolveEndpointOverride, contextWindow = 1_048_576, vision = false } = {}) {
     const AgentLoop = await loadAgentLoop();
     const tools = makeFakeTools(toolOpts);
     const engine = makeFakeEngine(engineResponses);
@@ -146,6 +146,7 @@ async function makeLoop({ engineResponses = [], toolOpts = {}, resolveEndpointOv
         tools,
         resolveEndpoint: resolveEndpointOverride || (async () => ({ profile: endpointProfile, key: 'fake-key' })),
         lookupContextWindow: async () => contextWindow,
+        lookupVision: async () => vision,
     });
     // MPI-1053: upscale is the batch tests' sample op; the app:upscaling gate has its own test.
     loop._readIds.add('app:upscaling');
@@ -4142,5 +4143,110 @@ describe('MPI-1012 — the voice card on a model op', () => {
         }]);
         assert.equal(tools.calls.generate.length, 0);
         assert.equal(engine.calls.length, 1, 'the click did the job');
+    });
+});
+
+// ---------------------------------------------------------------------------
+// (v) MPI-1208 Half 1 — a vision model SEES a picture, but only when it asks.
+// ---------------------------------------------------------------------------
+// Fabio, 2026-10-19: the kept description stays the default ("we shouldn't lose that"); the
+// model looks itself only when words cannot settle it, and token use is the main concern. So
+// `see` is opt-in per call, the picture is small, and it lives for ONE turn.
+
+describe('(v) a vision model sees the picture only when it asks', () => {
+    const os = require('node:os');
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const call = (id, name, args) => ({ text: '', toolCalls: [{ id, type: 'function', function: { name, arguments: JSON.stringify(args) } }] });
+    const project = { folderPath: '/project', name: 'Test' };
+    const imageParts = (msgs) => msgs.flatMap((m) => (Array.isArray(m.content) ? m.content : [])).filter((p) => p.type === 'image_url');
+    let att;
+
+    test('setup: a real 1600x1200 picture to look at', async () => {
+        const { default: sharp } = await import('sharp');
+        const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'mpi1208-')), 'fox.png');
+        await sharp({ create: { width: 1600, height: 1200, channels: 3, background: '#c86428' } }).png().toFile(file);
+        att = { id: 'att_fox', name: 'fox.png', filePath: file };
+    });
+
+    test('only a vision model is offered `see`', async () => {
+        for (const vision of [true, false]) {
+            const { loop, engine } = await makeLoop({ vision, engineResponses: [{ text: 'Hi.' }] });
+            await loop.runTurn('Hi', [], project, 'auto', 'deepinfra', `t-offer-${vision}`);
+            const look = engine.calls[0].tools.find((t) => t.function.name === 'look');
+            assert.equal('see' in look.function.parameters.properties, vision);
+        }
+    });
+
+    test('see: the picture itself rides after the tool result, small, and the describer is never called', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({ vision: true, engineResponses: [
+            call('l1', 'look', { image: 'att_fox', see: true }),
+            { text: 'Same woman.' },
+        ] });
+        await loop.runTurn('Is she the same woman?', [att], project, 'auto', 'deepinfra', 't-see');
+
+        assert.equal(tools.calls.look.length, 0, 'no describer call');
+        const i = loop._messages.findIndex((m) => m.role === 'tool' && m.tool_call_id === 'l1');
+        assert.equal(JSON.parse(loop._messages[i].content).ok, true);
+        const parts = imageParts([loop._messages[i + 1]]);
+        assert.equal(parts.length, 1, 'the picture follows its tool result');
+        assert.match(parts[0].image_url.url, /^data:image\/jpeg;base64,/);
+        const { default: sharp } = await import('sharp');
+        const meta = await sharp(Buffer.from(parts[0].image_url.url.split(',')[1], 'base64')).metadata();
+        assert.ok(Math.max(meta.width, meta.height) <= 768, `sent at ${meta.width}x${meta.height}`);
+        assert.equal(typeof loop._messages[0].content, 'string', 'never in the system prompt (prefix cache)');
+        const started = fakeRes.events.find((e) => e.event === 'agent:tool' && e.data.tool === 'look' && e.data.status === 'started');
+        assert.match(started.data.label, /Prism/, 'the chat line owns up to looking itself');
+    });
+
+    test('the picture lives one turn: the next turn carries a line in its place', async () => {
+        const { loop } = await makeLoop({ vision: true, engineResponses: [
+            call('l1', 'look', { image: 'att_fox', see: true }),
+            { text: 'Same woman.' },
+            { text: 'Sure.' },
+        ] });
+        await loop.runTurn('Is she the same woman?', [att], project, 'auto', 'deepinfra', 't-life-1');
+        assert.equal(imageParts(loop._messages).length, 1);
+        await loop.runTurn('Thanks', [], project, 'auto', 'deepinfra', 't-life-2');
+        assert.equal(imageParts(loop._messages).length, 0, 'not re-sent with every later request');
+        assert.ok(loop._messages.some((m) => typeof m.content === 'string' && m.content.includes('see: true')), 'the model is told how to see it again');
+    });
+
+    test('a plain look on a vision model still reads the description; a box still measures', async () => {
+        const { loop, tools } = await makeLoop({ vision: true, engineResponses: [
+            call('l1', 'look', { image: 'att_fox' }),
+            call('l2', 'look', { image: 'att_fox', see: true, box: true, question: 'the head' }),
+            { text: 'A fox.' },
+        ] });
+        await loop.runTurn('What is this?', [att], project, 'auto', 'deepinfra', 't-plain');
+        assert.equal(tools.calls.look.length, 2);
+        assert.equal(tools.calls.look[1].box, true);
+        assert.equal(imageParts(loop._messages).length, 0);
+        const plain = JSON.parse(loop._messages.find((m) => m.tool_call_id === 'l1').content);
+        assert.match(plain.limits, /two different faces/, 'the description says what it cannot tell');
+    });
+
+    test('see on a text-only model falls back to the describer', async () => {
+        const { loop, tools } = await makeLoop({ vision: false, engineResponses: [
+            call('l1', 'look', { image: 'att_fox', see: true }),
+            { text: 'A fox.' },
+        ] });
+        await loop.runTurn('Look closely', [att], project, 'auto', 'deepinfra', 't-blind');
+        assert.equal(tools.calls.look.length, 1);
+        assert.equal(imageParts(loop._messages).length, 0);
+        assert.equal(JSON.parse(loop._messages.find((m) => m.tool_call_id === 'l1').content).limits, undefined, 'nothing a blind model can act on');
+    });
+
+    test('a picture that cannot be shown is described instead', async () => {
+        const { loop, tools } = await makeLoop({ vision: true, engineResponses: [
+            call('l1', 'look', { image: 'att_gone', see: true }),
+            { text: 'A fox.' },
+        ] });
+        await loop.runTurn('Look closely', [{ id: 'att_gone', name: 'gone.png', filePath: path.join(os.tmpdir(), 'mpi1208-missing.png') }], project, 'auto', 'deepinfra', 't-gone');
+        assert.equal(tools.calls.look.length, 1);
+        const r = JSON.parse(loop._messages.find((m) => m.tool_call_id === 'l1').content);
+        assert.equal(r.output.text, 'A generated image showing a fox.');
+        assert.match(r.note, /could not be shown/);
+        assert.equal(imageParts(loop._messages).length, 0);
     });
 });

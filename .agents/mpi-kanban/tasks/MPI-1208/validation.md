@@ -25,3 +25,34 @@ Evidence:
   edit-only fail).
 - NOT run: the live bench case against a model. It bills DeepInfra; waits for Fabio's yes with the Half 1 runs.
 - CI: run 39332677834 (Tests) green on 3020e6307.
+
+## Half 1 - vision wiring (2026-10-19/20, Cosmo improvements 2)
+
+Fabio: description stays the default, Cosmo sees only on request, tokens are the concern; text-only
+models stay as the cheaper option; chat label is a gag on Prism.
+
+Built (uncommitted at handoff): `look` `see: true` (vision models only, `_visionFor`), 768 px JPEG
+as one user message after the round's tool results, gone next turn, `SEE_LIMITS` on plain looks for
+vision models, unreadable picture -> description, `messageChars` counts a picture as 2,000 chars.
+`scripts/agent-test.mjs --vision` (3 CLI-only cases) + seen/billed in its output.
+Pictures: `media-for-testing/agent-bench/` (gitignored), made by
+`node <scratch>/make-bench-pics.cjs` from test_ce77a5fb edit_002 / edit_005 / i2i_002 (+ gaussian
+noise sigma 60, overlay). Re-make if missing.
+
+Evidence:
+- `node --test tests/agent-loop.test.cjs`: 203 pass, 0 fail (7 new in block (v)).
+- agent-prompt-budget 7/7, agent-bench 17/17, agent-tiles 8/8, model-priority 16/16.
+- Live: DeepInfra accepts the picture message (Ling and DeepSeek-V4.1 both named details only
+  the pixels carry). DeepSeek-V4-Flash-0731 is `vision: false` in the catalogue, V4.1 and Ling `true`.
+
+Bench step 1 (one run each, `research/bench/`):
+- DeepSeek-V4.1-Flash: suite 41/53; vision 2/3 (identity FAIL: saw both, said "Same woman").
+  Ceiling $0.7814, **billed $0.0854** (cache!); vision ceiling $0.0286, billed $0.0033.
+  Fails: picks-installed-model (invented "flux2"/"text_to_image"), install-needed, ask-first,
+  video-limit, several-subjects-reference-whole, look-grade-into-prompt, 4x video-edit routing,
+  sheet-from-body-picture, options-ideas.
+- Ling-3.0-flash-VL: INCOMPLETE at handoff, 16/53 done, 2 fail (look-refusal, video-limit); its
+  --vision run had not started. Rerun if the file has no summary.
+- Probe runs before step 1: ceiling $0.0026, billed $0.0014.
+- **Spent so far: billed ~$0.09 (ceiling ~$0.82) of Fabio's $2.75.**
+- Identity drift fails on BOTH models after seeing: a perception limit, not wiring.
