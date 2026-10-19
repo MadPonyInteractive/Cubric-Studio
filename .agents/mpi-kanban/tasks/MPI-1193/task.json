@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1193",
+  "title": "2.1 blocker: pin ComfyUI to 7db08fe50 so a mid-sampling Stop no longer kills the engine",
+  "description": "v0.41.0 dynamic VRAM aborts with CUDA illegal memory access on a Stop mid-sampler (Comfy-Org/ComfyUI#17115). Fix #17178 is one commit past v0.42.0, no tag carries it: pin the commit and make every install path honour it.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-19T02:04:23+01:00",
+  "updated_at": "2026-10-19T02:35:11+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

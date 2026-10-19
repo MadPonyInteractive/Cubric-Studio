@@ -47,6 +47,15 @@ The OpenMOSS ComfyUI Manager plugin loads a diffusers folder instead; ignore it,
    Does it earn a UI, or is it agent-only?
 5. Base vs SFT: which one (if either) would ship.
 
+## Engine pin for the bump (MPI-1193, 2026-10-19)
+
+Bump to the first tag AFTER v0.42.0, not v0.42.0 itself. v0.42.0 still has the Stop crash
+(a mid-sampling Stop on Qwen-Image 2.1 / LTX 2.3 / MiniMax H3 aborts ComfyUI with "CUDA error:
+an illegal memory access", Comfy-Org/ComfyUI#17115). The fix, PR #17178 (7db08fe50), merged
+one commit after the v0.42.0 tag. A commit pin does not work: fresh installs download the
+tag's portable, and the in-place upgrade needs host git on Windows. 2.1 ships on 0.41.0 with
+the crash (Fabio, 2026-10-19); the restart is automatic.
+
 ## Done when
 
 A verdict in `validation.md`: wire it (open an `/mpi-add-model` card) or drop it, with the
