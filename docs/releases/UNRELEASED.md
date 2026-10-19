@@ -6,6 +6,11 @@
 > archival `docs/releases/YYYY-MM-DD-v<newVersion>.md`, then clear this file
 > back to the header.
 >
+> **RELEASE BLOCKER for 2.1.2 (Fabio, 2026-10-19): do not stamp or tag 2.1.2 until MPI-1204 is
+> `done`.** A second `POST /engine/upgrade` while one runs collides on a git lock and the fallback
+> WIPES the engine (found at the 2.1.1 update test, present since 2.1.0). 2.1.2 is planned to ship
+> FLUX.3 Klein (MPI-1181). Delete this line when MPI-1204 closes.
+>
 > **Cleared 2026-10-19 at the 2.1.1 bump (MPI-1044).** MPI-1199 (the RunPod volume create) was
 > folded into `RELEASE_NOTES['2.1.1']` and `docs/releases/2026-10-19-v2.1.1.md`; the re-cut added
 > MPI-1201, MPI-1202, MPI-1203, MPI-1205 and MPI-1206 straight from their commits (none passed through this file).

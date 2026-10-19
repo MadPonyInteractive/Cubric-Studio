@@ -1,5 +1,11 @@
 # MPI-1204 - engine upgrade has no re-entry guard
 
+**RELEASE BLOCKER for 2.1.2 (Fabio, 2026-10-19).** 2.1.2 is planned to ship FLUX.3 Klein (MPI-1181)
+and must not be cut until this card is `done`; the blocker line sits at the top of
+`docs/releases/UNRELEASED.md`, remove it there when this closes. Same shape as MPI-1206 (one
+`/comfy/start` at a time, `_oneStartAtATime` in `routes/comfy.js`), which shipped in 2.1.1: reuse
+that pattern for `/engine/upgrade`.
+
 Found 2026-10-19 during the 2.1.1 update test (Version 2.1 readiness 10). Present in 2.1.0; not
 caused by 2.1.1.
 
