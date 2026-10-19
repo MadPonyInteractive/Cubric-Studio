@@ -372,6 +372,8 @@ texture. Small flaws: one extra copy of the sign further up the street, hair end
 `routes/comfy.js` `_cudaModeArgs`). Coherent at 8.4 MP, one sign only, natural skin with pores and no oily
 sheen, more of the prompt's "ordinary specifics" (crate, peel in the gutter, parking sign). 4k = 2k x2 holds
 for both checkpoints; the cost is time (~11 min base on a 16 GB card).
+**DECIDED (Fabio, 2026-10-19): ship `qualityTiers: ['1k', '2k', '4k']`; 1k/2k = the Qwen 2.1 table, 4k = 2k x2
+per edge, for Turbo and base alike.** Big-tier time goes in a hint/warning, never a cap.
 Pinned: MpiNodes 3d00c16 pushed + pinned (`b6dabd2e1`, 2026-10-19). 2.1.1 already shipped (MPI-1044 closed),
 so FLUX.3 lands in the NEXT release.
 
