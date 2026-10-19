@@ -365,6 +365,66 @@
       "title": "Source audio on the grid"
     }
   },
+  "36": {
+    "class_type": "MpiMath",
+    "inputs": {
+      "a": [
+        "27",
+        0
+      ],
+      "b": [
+        "24",
+        0
+      ],
+      "math_expression": "17 * a * (1 - b)"
+    },
+    "_meta": {
+      "title": "Lead-in frames (template 6, whole frame)"
+    }
+  },
+  "37": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "31",
+        0
+      ],
+      "batch_index": 0,
+      "length": 1
+    },
+    "_meta": {
+      "title": "Clip frame 0"
+    }
+  },
+  "38": {
+    "class_type": "RepeatImageBatch",
+    "inputs": {
+      "image": [
+        "37",
+        0
+      ],
+      "amount": 17
+    },
+    "_meta": {
+      "title": "Frame 0, held 17 frames"
+    }
+  },
+  "39": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": [
+        "38",
+        0
+      ],
+      "image2": [
+        "31",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Still lead-in + clip"
+    }
+  },
   "40": {
     "inputs": {
       "math_expression": "floor(sqrt(c * a / b) / 32 + 0.5) * 32",
@@ -416,7 +476,7 @@
       "divisible_by": 32,
       "device": "cpu",
       "image": [
-        "31",
+        "46",
         0
       ],
       "width": [
@@ -469,6 +529,56 @@
     "class_type": "MpiMath",
     "_meta": {
       "title": "Clip height (~0.75, the render's shape)"
+    }
+  },
+  "45": {
+    "class_type": "MpiMath",
+    "inputs": {
+      "a": [
+        "36",
+        0
+      ],
+      "math_expression": "a > 0"
+    },
+    "_meta": {
+      "title": "Lead-in?"
+    }
+  },
+  "46": {
+    "class_type": "MpiIfElse",
+    "inputs": {
+      "boolean": [
+        "45",
+        0
+      ],
+      "true": [
+        "39",
+        0
+      ],
+      "false": [
+        "31",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "lead-in ? padded clip : clip"
+    }
+  },
+  "47": {
+    "class_type": "MpiMath",
+    "inputs": {
+      "a": [
+        "30",
+        0
+      ],
+      "b": [
+        "36",
+        0
+      ],
+      "math_expression": "a + b"
+    },
+    "_meta": {
+      "title": "H3 length (clip + lead-in)"
     }
   },
   "50": {
@@ -1153,7 +1263,7 @@
         0
       ],
       "length": [
-        "30",
+        "47",
         0
       ]
     },
@@ -1327,6 +1437,26 @@
       "title": "masked ? stitched : whole frame"
     }
   },
+  "123": {
+    "class_type": "GetImageRangeFromBatch",
+    "inputs": {
+      "images": [
+        "122",
+        0
+      ],
+      "start_index": [
+        "36",
+        0
+      ],
+      "num_frames": [
+        "30",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Drop the lead-in"
+    }
+  },
   "130": {
     "inputs": {
       "fps": 24,
@@ -1334,7 +1464,7 @@
       "use_audio": true,
       "truncate_to_audio": false,
       "images": [
-        "122",
+        "123",
         0
       ],
       "audio": [

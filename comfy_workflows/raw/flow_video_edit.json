@@ -2,7 +2,7 @@
   "id": "37be4ca2-e290-4d63-8872-09074f90f856",
   "revision": 0,
   "last_node_id": 185,
-  "last_link_id": 316,
+  "last_link_id": 334,
   "nodes": [
     {
       "id": 10,
@@ -975,7 +975,8 @@
             209,
             212,
             233,
-            279
+            279,
+            318
           ]
         }
       ],
@@ -1164,7 +1165,8 @@
           "links": [
             170,
             175,
-            259
+            327,
+            331
           ]
         }
       ],
@@ -1235,9 +1237,11 @@
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
-            185,
             196,
-            199
+            199,
+            319,
+            322,
+            326
           ]
         },
         {
@@ -1695,7 +1699,7 @@
           "localized_name": "image",
           "name": "image",
           "type": "IMAGE",
-          "link": 185
+          "link": 332
         },
         {
           "localized_name": "mask",
@@ -5112,7 +5116,7 @@
           "widget": {
             "name": "length"
           },
-          "link": 259
+          "link": 333
         },
         {
           "localized_name": "ref_image_size",
@@ -5690,7 +5694,7 @@
           "name": "output",
           "type": "*",
           "links": [
-            282
+            329
           ]
         }
       ],
@@ -5726,7 +5730,7 @@
           "localized_name": "images",
           "name": "images",
           "type": "IMAGE",
-          "link": 282
+          "link": 334
         },
         {
           "localized_name": "audio",
@@ -6957,7 +6961,8 @@
           "name": "result",
           "type": "*",
           "links": [
-            315
+            315,
+            317
           ]
         }
       ],
@@ -7189,6 +7194,501 @@
       ],
       "widgets_values_named": {
         "boolean": true
+      }
+    },
+    {
+      "id": 36,
+      "type": "MpiMath",
+      "pos": [
+        1500,
+        1300
+      ],
+      "size": [
+        270,
+        100
+      ],
+      "flags": {},
+      "order": 99,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "a",
+          "name": "a",
+          "type": "*",
+          "link": 317
+        },
+        {
+          "localized_name": "math_expression",
+          "name": "math_expression",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "math_expression"
+          }
+        },
+        {
+          "localized_name": "b",
+          "name": "b",
+          "type": "*",
+          "link": 318,
+          "shape": 7
+        },
+        {
+          "localized_name": "c",
+          "name": "c",
+          "type": "*",
+          "link": null,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "result",
+          "name": "result",
+          "type": "*",
+          "links": [
+            323,
+            328,
+            330
+          ]
+        }
+      ],
+      "title": "Lead-in frames (template 6, whole frame)",
+      "properties": {
+        "Node name for S&R": "MpiMath"
+      },
+      "widgets_values": [
+        "17 * a * (1 - b)"
+      ],
+      "widgets_values_named": {
+        "math_expression": "17 * a * (1 - b)"
+      }
+    },
+    {
+      "id": 37,
+      "type": "ImageFromBatch",
+      "pos": [
+        1800,
+        1300
+      ],
+      "size": [
+        270,
+        100
+      ],
+      "flags": {},
+      "order": 100,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "image",
+          "name": "image",
+          "type": "IMAGE",
+          "link": 319
+        },
+        {
+          "localized_name": "batch_index",
+          "name": "batch_index",
+          "type": "INT",
+          "link": null,
+          "widget": {
+            "name": "batch_index"
+          }
+        },
+        {
+          "localized_name": "length",
+          "name": "length",
+          "type": "INT",
+          "link": null,
+          "widget": {
+            "name": "length"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "IMAGE",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            320
+          ]
+        }
+      ],
+      "title": "Clip frame 0",
+      "properties": {
+        "Node name for S&R": "ImageFromBatch"
+      },
+      "widgets_values": [
+        0,
+        1
+      ],
+      "widgets_values_named": {
+        "batch_index": 0,
+        "length": 1
+      }
+    },
+    {
+      "id": 38,
+      "type": "RepeatImageBatch",
+      "pos": [
+        2100,
+        1300
+      ],
+      "size": [
+        270,
+        100
+      ],
+      "flags": {},
+      "order": 101,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "image",
+          "name": "image",
+          "type": "IMAGE",
+          "link": 320
+        },
+        {
+          "localized_name": "amount",
+          "name": "amount",
+          "type": "INT",
+          "link": null,
+          "widget": {
+            "name": "amount"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "IMAGE",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            321
+          ]
+        }
+      ],
+      "title": "Frame 0, held 17 frames",
+      "properties": {
+        "Node name for S&R": "RepeatImageBatch"
+      },
+      "widgets_values": [
+        17
+      ],
+      "widgets_values_named": {
+        "amount": 17
+      }
+    },
+    {
+      "id": 39,
+      "type": "ImageBatch",
+      "pos": [
+        2400,
+        1300
+      ],
+      "size": [
+        270,
+        100
+      ],
+      "flags": {},
+      "order": 102,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "image1",
+          "name": "image1",
+          "type": "IMAGE",
+          "link": 321
+        },
+        {
+          "localized_name": "image2",
+          "name": "image2",
+          "type": "IMAGE",
+          "link": 322
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "IMAGE",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            325
+          ]
+        }
+      ],
+      "title": "Still lead-in + clip",
+      "properties": {
+        "Node name for S&R": "ImageBatch"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
+    },
+    {
+      "id": 45,
+      "type": "MpiMath",
+      "pos": [
+        2700,
+        1300
+      ],
+      "size": [
+        270,
+        100
+      ],
+      "flags": {},
+      "order": 103,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "a",
+          "name": "a",
+          "type": "*",
+          "link": 323
+        },
+        {
+          "localized_name": "math_expression",
+          "name": "math_expression",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "math_expression"
+          }
+        },
+        {
+          "localized_name": "b",
+          "name": "b",
+          "type": "*",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "localized_name": "c",
+          "name": "c",
+          "type": "*",
+          "link": null,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "result",
+          "name": "result",
+          "type": "*",
+          "links": [
+            324
+          ]
+        }
+      ],
+      "title": "Lead-in?",
+      "properties": {
+        "Node name for S&R": "MpiMath"
+      },
+      "widgets_values": [
+        "a > 0"
+      ],
+      "widgets_values_named": {
+        "math_expression": "a > 0"
+      }
+    },
+    {
+      "id": 46,
+      "type": "MpiIfElse",
+      "pos": [
+        3000,
+        1300
+      ],
+      "size": [
+        270,
+        100
+      ],
+      "flags": {},
+      "order": 104,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "boolean",
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "link": 324,
+          "widget": {
+            "name": "boolean"
+          }
+        },
+        {
+          "localized_name": "true",
+          "name": "true",
+          "type": "*",
+          "link": 325
+        },
+        {
+          "localized_name": "false",
+          "name": "false",
+          "type": "*",
+          "link": 326
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "output",
+          "name": "output",
+          "type": "*",
+          "links": [
+            332
+          ]
+        }
+      ],
+      "title": "lead-in ? padded clip : clip",
+      "properties": {
+        "Node name for S&R": "MpiIfElse"
+      },
+      "widgets_values": [
+        true
+      ],
+      "widgets_values_named": {
+        "boolean": true
+      }
+    },
+    {
+      "id": 47,
+      "type": "MpiMath",
+      "pos": [
+        3300,
+        1300
+      ],
+      "size": [
+        270,
+        100
+      ],
+      "flags": {},
+      "order": 105,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "a",
+          "name": "a",
+          "type": "*",
+          "link": 327
+        },
+        {
+          "localized_name": "math_expression",
+          "name": "math_expression",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "math_expression"
+          }
+        },
+        {
+          "localized_name": "b",
+          "name": "b",
+          "type": "*",
+          "link": 328,
+          "shape": 7
+        },
+        {
+          "localized_name": "c",
+          "name": "c",
+          "type": "*",
+          "link": null,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "result",
+          "name": "result",
+          "type": "*",
+          "links": [
+            333
+          ]
+        }
+      ],
+      "title": "H3 length (clip + lead-in)",
+      "properties": {
+        "Node name for S&R": "MpiMath"
+      },
+      "widgets_values": [
+        "a + b"
+      ],
+      "widgets_values_named": {
+        "math_expression": "a + b"
+      }
+    },
+    {
+      "id": 123,
+      "type": "GetImageRangeFromBatch",
+      "pos": [
+        3600,
+        1300
+      ],
+      "size": [
+        270,
+        100
+      ],
+      "flags": {},
+      "order": 106,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "start_index",
+          "name": "start_index",
+          "type": "INT",
+          "link": 330,
+          "widget": {
+            "name": "start_index"
+          }
+        },
+        {
+          "localized_name": "num_frames",
+          "name": "num_frames",
+          "type": "INT",
+          "link": 331,
+          "widget": {
+            "name": "num_frames"
+          }
+        },
+        {
+          "localized_name": "images",
+          "name": "images",
+          "type": "IMAGE",
+          "link": 329,
+          "shape": 7
+        },
+        {
+          "localized_name": "masks",
+          "name": "masks",
+          "type": "MASK",
+          "link": null,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "IMAGE",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            334
+          ]
+        },
+        {
+          "localized_name": "MASK",
+          "name": "MASK",
+          "type": "MASK",
+          "links": []
+        }
+      ],
+      "title": "Drop the lead-in",
+      "properties": {
+        "Node name for S&R": "GetImageRangeFromBatch"
+      },
+      "widgets_values": [
+        0,
+        1
+      ],
+      "widgets_values_named": {
+        "start_index": 0,
+        "num_frames": 1
       }
     }
   ],
@@ -7432,14 +7932,6 @@
       41,
       2,
       "INT"
-    ],
-    [
-      185,
-      31,
-      0,
-      42,
-      0,
-      "IMAGE"
     ],
     [
       186,
@@ -8026,14 +8518,6 @@
       "INT"
     ],
     [
-      259,
-      30,
-      0,
-      110,
-      24,
-      "INT"
-    ],
-    [
       261,
       60,
       0,
@@ -8200,14 +8684,6 @@
       122,
       1,
       "*"
-    ],
-    [
-      282,
-      122,
-      0,
-      130,
-      0,
-      "IMAGE"
     ],
     [
       283,
@@ -8479,6 +8955,150 @@
       0,
       110,
       3,
+      "IMAGE"
+    ],
+    [
+      317,
+      27,
+      0,
+      36,
+      0,
+      "*"
+    ],
+    [
+      318,
+      24,
+      0,
+      36,
+      2,
+      "*"
+    ],
+    [
+      319,
+      31,
+      0,
+      37,
+      0,
+      "IMAGE"
+    ],
+    [
+      320,
+      37,
+      0,
+      38,
+      0,
+      "IMAGE"
+    ],
+    [
+      321,
+      38,
+      0,
+      39,
+      0,
+      "IMAGE"
+    ],
+    [
+      322,
+      31,
+      0,
+      39,
+      1,
+      "IMAGE"
+    ],
+    [
+      323,
+      36,
+      0,
+      45,
+      0,
+      "*"
+    ],
+    [
+      324,
+      45,
+      0,
+      46,
+      0,
+      "*"
+    ],
+    [
+      325,
+      39,
+      0,
+      46,
+      1,
+      "IMAGE"
+    ],
+    [
+      326,
+      31,
+      0,
+      46,
+      2,
+      "IMAGE"
+    ],
+    [
+      327,
+      30,
+      0,
+      47,
+      0,
+      "*"
+    ],
+    [
+      328,
+      36,
+      0,
+      47,
+      2,
+      "*"
+    ],
+    [
+      329,
+      122,
+      0,
+      123,
+      2,
+      "*"
+    ],
+    [
+      330,
+      36,
+      0,
+      123,
+      0,
+      "*"
+    ],
+    [
+      331,
+      30,
+      0,
+      123,
+      1,
+      "*"
+    ],
+    [
+      332,
+      46,
+      0,
+      42,
+      0,
+      "*"
+    ],
+    [
+      333,
+      47,
+      0,
+      110,
+      24,
+      "*"
+    ],
+    [
+      334,
+      123,
+      0,
+      130,
+      0,
       "IMAGE"
     ]
   ],

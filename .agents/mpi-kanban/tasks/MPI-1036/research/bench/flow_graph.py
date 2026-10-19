@@ -303,6 +303,19 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
     g['33'] = node('MpiIfElse', 'has_audio ? source audio : silence', boolean=['10', 7], true=['10', 1], false=['32', 0])
     g['34'] = node('MpiMath', 'Last frame', a=['30', 0], math_expression='a - 1')
     g['35'] = node('MpiAudioRange', 'Source audio on the grid', audio=['33', 0], fps=['10', 2], start=0, end=['34', 0])
+    # Template 6 holds the picture's own pose ~0.5-0.7 s, then plays the whole performance from its first move, so
+    # every move landed late against the music and the clip's last moves never came (MPI-1197: 12-16 frames on real
+    # footage and on a re-fed result alike; not the swap LoRA, grain or the background). 17 stills of frame 0 in front
+    # of the clip give that hold somewhere to go, and are cut from the result (bench L: within ~2 frames). Whole frame
+    # only: the masked route stitches into the source and reads node 31 itself.
+    g['36'] = node('MpiMath', 'Lead-in frames (template 6, whole frame)', a=['27', 0], b=['24', 0],
+                   math_expression='17 * a * (1 - b)')
+    g['37'] = node('ImageFromBatch', 'Clip frame 0', image=['31', 0], batch_index=0, length=1)
+    g['38'] = node('RepeatImageBatch', 'Frame 0, held 17 frames', image=['37', 0], amount=17)
+    g['39'] = node('ImageBatch', 'Still lead-in + clip', image1=['38', 0], image2=['31', 0])
+    g['45'] = node('MpiMath', 'Lead-in?', a=['36', 0], math_expression='a > 0')
+    g['46'] = node('MpiIfElse', 'lead-in ? padded clip : clip', boolean=['45', 0], true=['39', 0], false=['31', 0])
+    g['47'] = node('MpiMath', 'H3 length (clip + lead-in)', a=['30', 0], b=['36', 0], math_expression='a + b')
 
     # ---- whole frame: resized to the render area, aspect kept, 32-divisible
     g['40'] = node('MpiMath', 'Render width', a=['10', 5], b=['10', 6], c=['26', 0],
@@ -326,7 +339,7 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
     g['44'] = node('MpiMath', 'Clip height (~0.75, the render\'s shape)', a=['40', 0], b=['41', 0], math_expression=pick)
     g['43'] = node('MpiMath', 'Clip width (follows the height)', a=['40', 0], b=['41', 0], c=['44', 0],
                    math_expression=width_at('c'))
-    g['42'] = node('ImageResizeKJv2', 'Whole frame at 0.75 of the render size', image=['31', 0], width=['43', 0],
+    g['42'] = node('ImageResizeKJv2', 'Whole frame at 0.75 of the render size', image=['46', 0], width=['43', 0],
                    height=['44', 0], upscale_method='lanczos', keep_proportion='crop', pad_color='0, 0, 0', crop_position='center',
                    divisible_by=32, device='cpu')
 
@@ -457,7 +470,7 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
     g['108'] = node('MpiVideoSamplingPreview', 'Mpi Video Sampling Preview', model=['106', 0], vae=['107', 0], preview_rate=24)
     g['110'] = node('MpiH3References', 'H3 references (<Video 1> the clip, <Picture 1> the picture)',
                     clip=base[1], vae=['102', 0], audio_vae=['103', 0], prompt=prompt, width=['61', 0],
-                    height=['62', 0], length=['30', 0], ref_image_size='match', ref_image_1=['29', 0],
+                    height=['62', 0], length=['47', 0], ref_image_size='match', ref_image_1=['29', 0],
                     ref_video_1=['60', 0])
     g['111'] = node('RandomNoise', 'RandomNoise', noise_seed=['17', 0])
     g['112'] = node('KSamplerSelect', 'KSamplerSelect', sampler_name='res_multistep')
@@ -473,6 +486,8 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
                     mask=['54', 2], band=48)
     g['121'] = node('InpaintStitchImproved', 'Stitch back into the source', stitcher=['54', 0], inpainted_image=['120', 0])
     g['122'] = node('MpiIfElse', 'masked ? stitched : whole frame', boolean=['24', 0], true=['121', 0], false=['117', 0])
-    g['130'] = node('MpiSaveVideo', 'Output_Video', images=['122', 0], audio=['35', 0], fps=24, filename_prefix=prefix,
+    g['123'] = node('GetImageRangeFromBatch', 'Drop the lead-in', images=['122', 0], start_index=['36', 0],
+                    num_frames=['30', 0])
+    g['130'] = node('MpiSaveVideo', 'Output_Video', images=['123', 0], audio=['35', 0], fps=24, filename_prefix=prefix,
                     use_audio=True, truncate_to_audio=False)
     return g

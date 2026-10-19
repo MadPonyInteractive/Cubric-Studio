@@ -39,6 +39,13 @@ as `<Video 1>` at **~0.75 of that size**. Both trim the clip to H3's 17k+5 frame
   narrower (frame 0 matched the picture squeezed to 576x1024, not cropped). Nodes 27-29 centre-crop
   it to the render's shape (nodes 61/62) on that route only; every other option takes only a look
   from the picture, which `MpiH3References` reads aspect-kept, so it goes in whole.
+- **Template 6 gets a 17-frame still lead-in, cut from the result** (MPI-1197). H3 holds the picture's
+  own pose ~0.5-0.7 s and then plays the whole performance from its first move, so every move landed
+  late against the music and the clip's last moves never came (12-16 frames, on real footage and a
+  re-fed result alike; the swap LoRA, grain and a cut-out background changed nothing). A picture
+  posed like the clip's frame 0 hid it. Nodes 36-47 put 17 stills of frame 0 in front of the clip
+  (length + 17, still on the 17k+5 grid) and node 123 drops them before the save: both test runs in
+  step (lag 0 / -1). Whole frame only (the masked route reads node 31 itself); ~20% slower.
 - **The user's LoRA rack** (`Input_Lora_Phase1_1..6`, nodes 180-185, the slot's `loras: true`) sits
   between the loader and the Flow's own swap / Faceswap / turbo LoRAs; H3's encoder reads its CLIP.
 
