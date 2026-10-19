@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1207", "at": "2026-10-19T22:50:26+01:00", "actor": "Flux.3 integration 5", "column": "todo", "title": "Custom output size on edit for every model: investigate viability first"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1207", "at": "2026-10-19T22:53:40+01:00", "actor": "MPI-1207 session", "from": "todo", "to": "doing", "reason": "phase 1 investigation started"}

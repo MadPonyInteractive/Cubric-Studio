@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1207",
+  "title": "Custom output size on edit for every model: investigate viability first",
+  "description": "Fabio 2026-10-19: let every edit-capable model take the ratio + quality picker on an unmasked edit, like FLUX.3 Klein (MPI-1181), for flexibility and consistency. FIRST STEP: an investigation of which models can honour a chosen frame. See brief.md.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-19T22:50:26+01:00",
+  "updated_at": "2026-10-19T22:53:40+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

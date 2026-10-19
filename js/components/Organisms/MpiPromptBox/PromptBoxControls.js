@@ -20,7 +20,7 @@ import { MpiRadioGroup } from '../../Primitives/MpiRadioGroup/MpiRadioGroup.js';
 import { qsa } from '../../../utils/dom.js';
 import { state } from '../../../state.js';
 import { getOpSettings, getSharedSettings, getModelSettings } from '../../../data/projectModel.js';
-import { getCommandComponents, modelShowsStyleRack, modelShowsRatio, modelShowsBatch, CONTROL_TYPES, modelControlTypes, AUDIO_CATEGORIES, AUDIO_LENGTH, TTS_LANGUAGES, ttsLanguageValue, ttsLanguageParams, TTS_KNOBS, ttsKnobParams } from '../../../data/commandRegistry.js';
+import { commands, getCommandComponents, modelShowsStyleRack, modelShowsRatio, modelShowsBatch, CONTROL_TYPES, modelControlTypes, AUDIO_CATEGORIES, AUDIO_LENGTH, TTS_LANGUAGES, ttsLanguageValue, ttsLanguageParams, TTS_KNOBS, ttsKnobParams } from '../../../data/commandRegistry.js';
 import { PROMPT_CONTROL_DEFAULTS } from '../../../data/promptControlDefaults.js';
 import { Events } from '../../../events.js';
 import { getModelRatios, usesQualityTier } from '../../../utils/ratios.js';
@@ -2063,6 +2063,9 @@ export function visibleControlIds(model, operation, ctx = {}) {
         // the ratio table already states it, and a second source would drift.
         // Without this, an orientation model (SDXL) would render Wan's tiers.
         if (id === 'qualityTier' && !usesQualityTier(model?.type)) return false;
+        // On a source-sized op (`sizeOptIn`, edit) the tier is part of the size picker:
+        // it mounts with the ratio or not at all (MPI-1181).
+        if (id === 'qualityTier' && commands[operation]?.sizeOptIn && !modelShowsRatio(model, operation)) return false;
 
         // Qwen-Edit tier radio (Input_Tier) mounts only for models that ship a
         // runtime accelerator-tier switch (Qwen-Image-Edit). Capability-gated so

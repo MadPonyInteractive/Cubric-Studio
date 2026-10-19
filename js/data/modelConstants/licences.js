@@ -525,6 +525,66 @@ const QWEN_IMAGE_21 = {
     ],
 };
 
+// FLUX.3 Klein — FLUX Kommunity License v1.0 (MPI-1181). A NEW agreement, not Klein 9B's:
+// different id, so accepting one never covers the other.
+//
+// What changed against the Non-Commercial License (read 2026-10-19, bundled below at
+// 19,593 bytes, byte-identical to black-forest-labs/flux-3-image-klein-comfy LICENSE.md):
+//   - A "Qualifying User" (under US$5M gross annual revenue, with affiliates) may use the
+//     OUTPUTS commercially and run the model in production to make them (§1.e, §2.a.ii).
+//     Above that line, outputs are not covered: the bar moved from the model to the user.
+//   - §2.e content filtering is a CONDITION of that output grant. The child-safety gate is
+//     our filter; `docs/child-safety.md` is what discharges it.
+//   - §3 still allows redistribution with the licence + Attribution Notice passed on, so
+//     the weights are on R2 like Klein 9B's. `NOTICE.txt` carries §3.b verbatim.
+// No `nonCommercial` flag, as on Klein 9B: the tile flag reads "not for commercial use"
+// and most users CAN sell what they make. The gate's text says who cannot.
+/** @type {LicenceDescriptor} */
+const FLUX_KOMMUNITY = {
+    id: 'flux-kommunity-v1.0',
+    version: 1,
+    name: 'FLUX Kommunity License v1.0',
+    modelName: 'FLUX.3 Klein',
+    summary: 'FLUX.3 Klein is licensed by Black Forest Labs for non-commercial use, and for '
+           + 'commercial use of the images you make only if you (with your affiliates) earn under '
+           + 'US$5 million a year. Access is granted under your own Hugging Face account. This step '
+           + 'shows you the terms and then proves that access before the download starts.',
+    licenceUrl: '/licences/flux3-klein/LICENSE.txt',
+    poweredBy: 'Licensed by Black Forest Labs Inc. under the FLUX Kommunity License',
+    verify: {
+        repoId: 'black-forest-labs/flux-3-image-klein-comfy',
+        // Gated (401 unauthenticated, 2026-10-19) and not LFS. Never LICENSE.md or README.md:
+        // both answer 200 with no token.
+        probePath: 'workflows/README.md',
+    },
+    sections: [
+        {
+            heading: 'Sections 1 and 2 — Who may do what',
+            items: [
+                '“Non-Commercial Purpose” means any of the following uses, but only so far as you do not receive any direct or indirect payment arising from the use of the FLUX Model, Derivatives, or Content Filters (as defined below): (i) personal use for research, experimentation, and testing for the benefit of public knowledge, personal study, private entertainment, hobby projects, or otherwise not directly or indirectly connected to any commercial activities, business operations, or employment responsibilities; (ii) use by commercial or for-profit entities for testing, evaluation, or non-commercial research and development in a non-production environment; and (iii) use by any charitable organization for charitable purposes, or for testing or evaluation. For clarity, use (a) for revenue-generating activity (including but not limited to in a production environment), (b) in direct interactions with or that has impact on end users, or (c) to train, fine tune, or distill other models for commercial use, in each case, is not a Non-Commercial Purpose.',
+                '“Qualifying User” means you, if at any time you together with your affiliates’ gross annualized revenue is less than US$5,000,000.',
+                'Company grants you a non-exclusive, worldwide, non-transferable, non-sublicensable, revocable, royalty free, and limited license to access, use, create Derivatives of, and Distribute the FLUX Model and Derivatives solely for: (i) your Non-Commercial Purposes, including non-commercial Robotics Uses; and (ii) solely if you are a Qualifying User, use Outputs, including Outputs from Derivatives, for commercial purposes, and you may access and use the FLUX Model and Derivatives in a production environment solely for the purpose of generating such Outputs, except as expressly prohibited herein.',
+                'You may access, use, Distribute, or create Output of the FLUX Model or Derivatives pursuant to Section 2.a as a Qualifying User if you: (i) (A) implement and maintain content filtering measures (“Content Filters”) for your use of the FLUX Model or Derivatives to prevent the creation, display, transmission, generation, or dissemination of unlawful, unsafe or infringing content, which may include Content Filters that we may make available for use with the FLUX Model (“Provided Content Filters”), or (B) ensure Output undergoes review for unlawful or infringing content before public or non-public distribution, display, transmission or dissemination; and (ii) ensure Output includes disclosures (or other indications) that the Output was generated or modified using artificial intelligence technologies to the extent required under applicable law.',
+                'You must make available a copy of this License to third-party recipients of the FLUX Model and/or Derivatives you Distribute, and specify that any rights to use the FLUX Model and/or Derivatives shall be directly granted by Company to said third-party recipients pursuant to this License.',
+            ],
+        },
+        {
+            heading: 'Section 4 — Restrictions',
+            intro: 'You will not, and will not permit, assist or cause any third party to:',
+            items: [
+                'use, modify, copy, reproduce, create Derivatives of, or Distribute the FLUX Model (or any Derivative thereof, or any data produced by the FLUX Model), in whole or in part, (i) for any commercial or production purposes (except as set forth in Section 2.a), (ii) military purposes, (iii) purposes of surveillance, including any research or development relating to surveillance, (iv) biometric processing, (v) in any manner that infringes, misappropriates, or otherwise violates (or is likely to infringe, misappropriate, or otherwise violate) any third party’s legal rights, including rights of publicity or “digital replica” rights, (vi) in any unlawful, unsafe, fraudulent, defamatory, or abusive activity, (vii) to generate unlawful content, including child sexual abuse material, or non-consensual intimate images; or (viii) in any manner that violates any applicable law and any privacy or security laws, rules, regulations, directives, or governmental requirements (including the General Data Privacy Regulation (Regulation (EU) 2016/679), the California Consumer Privacy Act, any and all laws governing the processing of biometric information, and the EU Artificial Intelligence Act (Regulation (EU) 2024/1689), as well as all amendments and successor laws to any of the foregoing);',
+                'use the FLUX Model, any Derivatives, or any Output or results from the FLUX Model or Derivative to improve any other artificial intelligence model that performs any function similar to a FLUX Model or Derivative;',
+                'utilize any equipment, device, software, or other means to circumvent or remove any security or protection used by Company in connection with the FLUX Model, or to circumvent or remove any usage restrictions, or to enable functionality disabled by FLUX  Model;',
+                'directly or indirectly Distribute, export, or otherwise transfer FLUX Model (i) to any individual, entity, or country prohibited by Export Laws; (ii) to anyone on U.S. or non-U.S. government restricted parties lists; (iii) for any purpose prohibited by Export Laws, including nuclear, chemical or biological weapons, or missile technology applications; (iv) use or download FLUX Model if you or they are (a) located in a comprehensively sanctioned jurisdiction, (b) currently listed on any U.S. or non-U.S. restricted parties list, or (c) for any purpose prohibited by Export Laws; and (v) will not disguise your location through IP proxying or other methods.',
+            ],
+        },
+    ],
+    acknowledgements: [
+        'I will use FLUX.3 Klein only for Non-Commercial Purposes, or, if I am a Qualifying User (under US$5 million a year with my affiliates), to make images I may use commercially.',
+        'I accept the Restrictions in Section 4, and I understand my licence is granted directly by Black Forest Labs — Cubric only distributes the weights under Section 3.',
+    ],
+};
+
 /** @type {Record<string, LicenceDescriptor>} */
 export const MODEL_LICENCES = {
     'minimax-h3':        MINIMAX_H3,   // first/last-frame to video+audio
@@ -549,6 +609,7 @@ export const MODEL_LICENCES = {
     // weights install with nothing shown (tests/audio-models.test.cjs pins it).
     'stable-audio-3':    STABLE_AUDIO_3,
     'qwen-image-2-1':    QWEN_IMAGE_21,  // MPI-936; the ModelDef id must match or the gate never fires
+    'flux3-klein':       FLUX_KOMMUNITY, // MPI-1181; same rule: the ModelDef id must match
 };
 
 /** Where a user requests access to a `verify` licence — the licensor's own model page. */

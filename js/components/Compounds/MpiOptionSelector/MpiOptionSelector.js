@@ -169,6 +169,12 @@ const QUALITY_TIER_HINT = {
         '2k': 'Experimental - High VRAM',
         '4k': 'Experimental - High VRAM',
     },
+    // MPI-1181: 4k is 2k x2 per edge (~8.4 MP). Benched 130 s Turbo / 681 s base on a 16 GB
+    // card. A hint, never a cap. '' keeps the _default text off 2k.
+    flux3: {
+        '2k': '',
+        '4k': 'slow, minutes per image',
+    },
 };
 
 const _tierHint = (modelType, tier) =>

@@ -20,6 +20,7 @@
  * @property {string[]} [qualityTiers] - Ordered quality-tier ids for a NEW `type` (MPI-174), e.g. ['low','medium','high']. Presence ⇒ quality UI mode (tier radio); absent + `ratios` present ⇒ orientation mode. Consumed via qualityTiersFor() in js/utils/ratios.js and the v3 project migration.
  * @property {Record<string, Object>} [opInject] - Per-OP constant workflow params THIS model always injects, keyed by operation id then node title (MPI-354). For a model whose ops are branches of ONE master graph selected by a value private to that model — FLUX.2 Klein maps each op to an `Input_wf_type` int, a numbering no shared op could own. Merged in commandExecutor._buildParams AFTER the op's own `injectParams` and BEFORE the user's controls. A model that declares this MUST cover every op in `supportedOps`: a missing entry does not error, it runs the graph's default branch and returns the wrong operation's output, so the executor warns on a gap. Prefer the op's `injectParams` when the constant is a property of the OP rather than of this model.
  * @property {string[]} [styleOps] - Operations where this model's style rack is live (MPI-354). REQUIRED for any model with `capabilities.styleLoras` — the old DEFAULT_STYLE_OPS fallback was deleted in MPI-365 once all six style models declared their own, so an undeclared model now shows no rack anywhere (loud and one line to fix, rather than silently inheriting a reach wrong for its graph). Only consulted when `capabilities.styleLoras` is true; the op's `components` still decides whether the control exists at all.
+ * @property {string[]} [customSizeOps] - The inverse, for an op that follows its source on every other model (a command with `sizeOptIn`, today `edit`): this model takes the ratio + tier picker there and sizes the output from `Input_Width`/`Input_Height` (MPI-1181, FLUX.3 Klein).
  * @property {string[]} [imageSizedOps] - Operations whose OUTPUT SHAPE comes from the input image rather than from `Input_Width`/`Input_Height` (MPI-354) — typically because the graph scales the input to a megapixel target. The ratio picker is hidden on these ops (see modelShowsRatio in commandRegistry.js); everything else about them is unchanged. Defaults to none, so every model that does not declare it keeps the picker on every op exactly as before. This is a property of the MODEL's graph, not of the op: every model's `control` now derives its size from the input, but each does so through a different node and SDXL's did NOT until the MPI-365 master template swapped its ControlNet branch onto ImageScaleToTotalPixels. VERIFY IN THE GRAPH, never from the op name — Chroma's depth was mis-declared for exactly that reason until 2026-08-02, and the symptom was a padded gallery card, not an error.
  * @property {Record<string, *>} [controlDefaults] - Per-MODEL starting values for PromptBox controls, keyed by control id (MPI-365) — e.g. `{ stylization: 0.6 }`. Resolved in PromptBoxControls._resolveDefault AFTER an op default and BEFORE the global PROMPT_CONTROL_DEFAULTS, so an op-specific default still wins and every undeclared model is unaffected. Use this when the right starting value is a property of the MODEL's weights rather than of the op: a heavily distilled checkpoint whose style LoRAs artefact at full strength wants one number across its whole rack, which an op default (shared by every model running that op) cannot express. This sets only the STARTING value; where an edited value is stored is still the control's `scope`.
  * @property {string[]} [controlTypes] - Which structures this model's `control` op can copy, as CONTROL_TYPES ids, in PICKER ORDER (MPI-365). The value injected into `Input_Control_Net` comes from CONTROL_TYPES in commandRegistry.js, NOT from this list's order, so display order is free — SDXL lists depth first while its graph numbers pose first. A list of ONE (Klein/Krea2/Chroma, depth-only) hides the picker entirely, which is correct: those graphs have no `Input_Control_Net` node to switch. Declaring a type the graph cannot run is the silent failure this field exists to prevent — the switch falls through to its baked branch and returns a plausible image made the wrong way, so VERIFY against the graph's own Control note before adding one.
@@ -2027,6 +2028,132 @@ const ALL_MODELS = [
             'comfyui_controlnet_aux',     // AIO_Preprocessor x4, as SDXL's
             'comfyui-inpaint-cropandstitch', // masked edit, inpaint, detail
             'LanPaint',                   // LanPaint_KSampler - masked edit + inpaint
+        ],
+    },
+
+    // ── FLUX.3 Klein (MPI-1181) ────────────────────────────────────────────────
+    // Black Forest Labs, 5.6B, released 2026-10-15. Text-to-image and edits with up to TEN
+    // reference images in one model. Notes + every bench: docs/models/flux3/.
+    //
+    // Klein's shape (one graph, Input_wf_type picks the op, numbered as Klein's; 3 = depth is
+    // gone and routes to t2i). TURBO is Krea 2's button with a different inside: it injects
+    // Input_is_Turbo, and an MpiIfElse picks the UNET — distilled int8 (16 steps, cfg 1) on
+    // true, base int8 (50 steps, cfg 3.5) on false. Both weights install with the card, so the
+    // button never downloads. Turbo also hides the negative toggle (cfg 1 discards it).
+    //
+    // LICENCE-GATED: `MODEL_LICENCES['flux3-klein']` (FLUX Kommunity). Rename this id without
+    // moving that key and the gate drops SILENTLY.
+    {
+        id: 'flux3-klein',
+        sizeTier: 'balanced',
+        name: 'FLUX.3 Klein',
+        dropdownMeta: 'PHOTO',
+        mediaType: 'image',
+        image: 'flux3-klein.webp',
+        defaultUpscale: '4x-NMKD-Siax',
+        type: 'flux3',
+        enhanceRecipe: 'flux',   // until the flux-3 recipe (BFL's upsampler prompts) lands
+        supportedOps: ['t2i', 'i2i', 'edit', 'inpaint', 'detail', 'upscale'],
+        loraStrengths: ['model'],
+        capabilities: {
+            multiStage: false, audio: false,
+            negativePrompt: true,   // live on base (cfg 3.5); Turbo hides it
+            styleLoras: false,
+            batch: false,
+            turboToggle: true,
+            tileUpscale: true,
+            multiReference: true, multiReference8: true, multiReference10: true,
+        },
+        opInject: {
+            t2i:     { Input_wf_type: 1 },
+            i2i:     { Input_wf_type: 2 },
+            // Custom size always on: the graph honours it only WITHOUT a mask (#798
+            // `custom size AND NOT has_mask`), so a masked edit keeps the source frame.
+            edit:    { Input_wf_type: 4, Input_custom_size: true },
+            inpaint: { Input_wf_type: 5 },
+            detail:  { Input_wf_type: 6 },
+            upscale: { Input_wf_type: 7 },
+        },
+        // Unmasked edit takes the ratio + tier picker (Fabio, 2026-10-19): the user picks the
+        // frame instead of inheriting reference 1's. See modelShowsRatio.
+        customSizeOps: ['edit'],
+        imageSizedOps: ['detail', 'upscale'],
+        qualityTiers: ['1k', '2k', '4k'],
+        // 1k/2k = Qwen-Image 2.1's table; 4k = 2k x2 per edge (Fabio, 2026-10-19: coherent at
+        // 3840x2176 on both weights). Every edge /32.
+        ratios: {
+            '1k': {
+                portrait: [
+                    { label: '1:1', w: 1024, h: 1024, icon: 'rect_1_1' },
+                    { label: '3:4', w: 896, h: 1152, icon: 'rect_3_4' },
+                    { label: '4:5', w: 896, h: 1088, icon: 'rect_4_5' },
+                    { label: '5:8', w: 800, h: 1280, icon: 'rect_5_8' },
+                    { label: '9:16', w: 768, h: 1344, icon: 'rect_9_16' },
+                ],
+                landscape: [
+                    { label: '1:1', w: 1024, h: 1024, icon: 'rect_1_1' },
+                    { label: '4:3', w: 1152, h: 896, icon: 'rect_4_3' },
+                    { label: '5:4', w: 1088, h: 896, icon: 'rect_5_4' },
+                    { label: '8:5', w: 1280, h: 800, icon: 'rect_8_5' },
+                    { label: '16:9', w: 1344, h: 768, icon: 'rect_16_9' },
+                ],
+            },
+            '2k': {
+                portrait: [
+                    { label: '1:1', w: 1472, h: 1472, icon: 'rect_1_1' },
+                    { label: '3:4', w: 1248, h: 1664, icon: 'rect_3_4' },
+                    { label: '4:5', w: 1280, h: 1600, icon: 'rect_4_5' },
+                    { label: '5:8', w: 1120, h: 1792, icon: 'rect_5_8' },
+                    { label: '9:16', w: 1088, h: 1920, icon: 'rect_9_16' },
+                ],
+                landscape: [
+                    { label: '1:1', w: 1472, h: 1472, icon: 'rect_1_1' },
+                    { label: '4:3', w: 1664, h: 1248, icon: 'rect_4_3' },
+                    { label: '5:4', w: 1600, h: 1280, icon: 'rect_5_4' },
+                    { label: '8:5', w: 1792, h: 1120, icon: 'rect_8_5' },
+                    { label: '16:9', w: 1920, h: 1088, icon: 'rect_16_9' },
+                ],
+            },
+            '4k': {
+                portrait: [
+                    { label: '1:1', w: 2944, h: 2944, icon: 'rect_1_1' },
+                    { label: '3:4', w: 2496, h: 3328, icon: 'rect_3_4' },
+                    { label: '4:5', w: 2560, h: 3200, icon: 'rect_4_5' },
+                    { label: '5:8', w: 2240, h: 3584, icon: 'rect_5_8' },
+                    { label: '9:16', w: 2176, h: 3840, icon: 'rect_9_16' },
+                ],
+                landscape: [
+                    { label: '1:1', w: 2944, h: 2944, icon: 'rect_1_1' },
+                    { label: '4:3', w: 3328, h: 2496, icon: 'rect_4_3' },
+                    { label: '5:4', w: 3200, h: 2560, icon: 'rect_5_4' },
+                    { label: '8:5', w: 3584, h: 2240, icon: 'rect_8_5' },
+                    { label: '16:9', w: 3840, h: 2176, icon: 'rect_16_9' },
+                ],
+            },
+        },
+        gen_speed: 'balanced',
+        description: 'FLUX.3 Klein from Black Forest Labs makes images from text and edits them with up to ten reference images, plus image-to-image, inpaint, detail and upscale, up to 4K. Turbo (on by default) is the fast distilled model; turn it off for the base model, which is about four times slower and clearly more natural on skin and photographs. Both are installed together. Licensed by Black Forest Labs under the FLUX Kommunity License: you confirm it before downloading, and the images are yours to use commercially if you earn under US$5 million a year.',
+        workflows: {
+            // ONE file for all six ops, baked by generate_flux3.py.
+            t2i:     'flux3_t2i.json',
+            i2i:     'flux3_t2i.json',
+            edit:    'flux3_t2i.json',
+            inpaint: 'flux3_t2i.json',
+            detail:  'flux3_t2i.json',
+            upscale: 'flux3_t2i.json',
+        },
+        dependencies: [
+            'flux3-klein-transformer',       // distilled = Turbo on
+            'flux3-klein-base-transformer',  // base = Turbo off
+            'qwen3vl-abliterated-clip',      // engine asset; FLUX.3 takes it as its text encoder
+            'vae-flux2',
+            '4x-NMKD-Siax',
+            'ComfyUI-MpiNodes',              // MpiFlux3References (ten reference slots)
+            'comfyui-kjnodes',               // ImageResizeKJv2
+            'ComfyUI-Impact-Pack',           // MaskDetailerPipe, tile upscale group
+            'ComfyUI-UltimateSDUpscale',
+            'comfyui-inpaint-cropandstitch', // masked edit, inpaint, detail
+            'LanPaint',                      // inpaint
         ],
     },
 

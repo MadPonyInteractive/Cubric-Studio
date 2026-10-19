@@ -441,6 +441,37 @@ export const modelDeps = {
         bytes: 9433065664,
         sha256: '8daaac4f1e869cea35a051fcc619c515b7ba003d319667c1db6ae798fa1e6db2',
     },
+    // ── FLUX.3 Klein transformers (MPI-1181) ───────────────────────────────────
+    // BOTH ship on the one card: the Turbo button picks between them inside one graph
+    // (MpiIfElse on Input_is_Turbo), so the button never downloads anything. int8_convrot
+    // only — bf16 is double the size for the same model, nvfp4 pays off on RTX 50 only.
+    // FLUX Kommunity License: redistribution allowed under §3 (bundled licence + notice,
+    // `licences/flux3-klein/`), so R2 is the primary. BFL's own repo is GATED and the
+    // download manager sends no token, so the mirror is ml-resources' ungated copy —
+    // byte-identical (same lfs sha256 as black-forest-labs/flux-3-image-klein-comfy,
+    // checked 2026-10-19). Text encoder + VAE are reused: qwen3vl-abliterated-clip, vae-flux2.
+    'flux3-klein-transformer': {
+        id: 'flux3-klein-transformer',
+        name: 'FLUX.3 Klein Transformer (distilled, int8_convrot)',
+        origin: 'black-forest-labs/flux-3-image-klein-comfy (diffusion_models/flux3-image-klein-int8-convrot.safetensors)',
+        filename: 'diffusion_models/flux3-image-klein-int8-convrot.safetensors',
+        url: 'https://models.cubric.studio/vision/models/diffusion_models/flux3-image-klein-int8-convrot.safetensors',
+        mirrorUrl: 'https://huggingface.co/ml-resources/flux-3-image-klein-comfy/resolve/main/diffusion_models/flux3-image-klein-int8-convrot.safetensors',
+        size: '5.43GB',
+        bytes: 5827874779,
+        sha256: '847d8933548afd93df4af2cac2498e70891bf28d9dae06d695f536992e168fe2',
+    },
+    'flux3-klein-base-transformer': {
+        id: 'flux3-klein-base-transformer',
+        name: 'FLUX.3 Klein Base Transformer (int8_convrot)',
+        origin: 'black-forest-labs/flux-3-image-klein-comfy (diffusion_models/flux3-image-klein-base-int8-convrot.safetensors)',
+        filename: 'diffusion_models/flux3-image-klein-base-int8-convrot.safetensors',
+        url: 'https://models.cubric.studio/vision/models/diffusion_models/flux3-image-klein-base-int8-convrot.safetensors',
+        mirrorUrl: 'https://huggingface.co/ml-resources/flux-3-image-klein-comfy/resolve/main/diffusion_models/flux3-image-klein-base-int8-convrot.safetensors',
+        size: '5.41GB',
+        bytes: 5807427339,
+        sha256: '8949ecfc1bf3871b08be02cf43ec7276a4914e1a86eade6b5eb8f4204426bc92',
+    },
     // ── LTX-2.3 transformers (MPI-127) ─────────────────────────────────────────
     // Ship deps = exactly what LTX_i2v_t2v_template.json references (workflow scan
     // 2026-06-25). Support weights (video/audio VAE, gemma clip, text projection,

@@ -30,6 +30,10 @@ Hub: [qwen-image-2/README.md](qwen-image-2/README.md) — the licence bar (image
 usable either), why only the encoder is on R2 (it is stock Qwen3-VL-8B, proven), the all-core graph,
 and why Alibaba's 4-step accelerator does not run on core ComfyUI.
 
+### [flux3/](flux3/) — FLUX.3 Klein (one card, Turbo picks distilled or base; FLUX Kommunity licence)
+Hub: [flux3/README.md](flux3/README.md) — both int8 weights, the reused Qwen3-VL-4B encoder, Klein's
+one-graph shape, the 1k/2k/4k tiers, custom size on an unmasked edit, and the upsampler still to come.
+
 ### [ltx/](ltx/) — LTX-2.3 video
 | File | Holds |
 |---|---|

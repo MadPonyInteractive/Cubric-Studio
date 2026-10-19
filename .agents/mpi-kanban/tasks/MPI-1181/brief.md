@@ -409,7 +409,35 @@ What exists vs what A needs (checked 2026-10-19):
 - Decoding per BFL: greedy, top_p 0.95, top_k 20, presence penalty 1.5 t2i / 0 edit, no thinking;
   "TARGET CANVAS: W:H" first line when the ratio is known.
 
+### Wiring 2026-10-19 (session "Flux.3 integration 5") - current state
+
+WIRED, not yet committed: `flux3-klein` ModelDef (type `flux3`, ops t2i/i2i/edit/inpaint/detail/upscale,
+tiers 1k/2k/4k, Turbo via `turboToggle`, `multiReference10`), deps `flux3-klein-transformer` +
+`flux3-klein-base-transformer` (R2 url + ml-resources mirror, sha256 from HF lfs), licence
+`FLUX_KOMMUNITY` + `licences/flux3-klein/`, `generate_flux3.py` + `flux3_` handler, runtime
+`comfy_workflows/flux3_t2i.json`, edit op slots 9-10 + Turbo, custom size on unmasked edit
+(`customSizeOps` / `sizeOptIn`, `Input_custom_size: true` in opInject), 4k hint, provisional ranks
+(below Fabio's 2026-10-19 order), docs/models/flux3/, UNRELEASED line, placeholder card image.
+Bench proof per op: validation.md. Weights hardlinked into `engine/mpi_models/diffusion_models/` for
+an in-app test (G: is full).
+Next: Fabio's in-app look (Turbo button, edit picker); R2 upload (his yes); the flux-3 recipe with
+BFL's four prompts, which must also write the `TARGET CANVAS: W:H` line (a custom-size edit
+pillarboxes without it) and carry the agent guide; progressStages count; Boxes; Pod smoke.
+Custom size for every other model: MPI-1207 (Fabio, investigate first).
+
+**Fabio's in-app look (2026-10-19): checks pass, two changes.** (1) The edit size picker must sit
+behind a **Custom size BUTTON**, off by default: off = follow reference 1 (send
+`Input_custom_size: false`, no ratio/tier shown); on = show ratio + tier and send true. Today the
+picker is always shown and opInject always sends true - wrong. Make it a perModel/perOp toggle
+control injecting `Input_custom_size` (take it out of opInject), gating the ratio + qualityTier
+mount on it. (2) He supplies the card image (replace the teapot placeholder). Multi-image edit
+checks: his, later. R2 upload: next session (his yes, 11.6 GB ~ $0.17/mo).
+
 ## Noticed
 
 - 2026-10-19 (Fabio, future): a tile-upscaler FLOW that describes each tile with its own prompt - separate from
   this card's prompt-less tile upscale.
+- 2026-10-19: Krea 2 and Qwen-Image 2.1 have no `QUALITY_TIER_HINT` entry, so their 2k radio reads
+  LTX's "detail-focused, low motion" (MpiOptionSelector.js). Wrong copy on image models.
+- 2026-10-19: the Turbo button's hint is Krea-generic ("less precision"); FLUX.3's real trade is skin
+  realism (brief § Shape).

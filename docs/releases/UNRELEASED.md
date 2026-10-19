@@ -48,6 +48,10 @@
 > never shipped, and the entry is then simply false. Full gate:
 > `.claude/skills/mpi-release/references/copy-review.md` § Gate 0.
 
+## New
+
+- **FLUX.3 Klein.** Black Forest Labs' new model: text to image, edits with up to ten reference images, and an edit can now pick its own frame size. A Turbo button switches between the fast and the more natural base model, up to 4K. (MPI-1181)
+
 ## Fixes
 
 - **An engine update started twice no longer deletes the engine.** A second update, repair or install asked for while one runs now waits on the running one instead of starting its own, which could collide with it and wipe the engine. (MPI-1204)

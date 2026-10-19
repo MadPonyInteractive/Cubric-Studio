@@ -1,0 +1,8 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-1207/checklist.md",
+    ".agents/mpi-kanban/tasks/MPI-1207/validation.md",
+    ".agents/mpi-kanban/tasks/MPI-1207/research/"
+  ]
+}

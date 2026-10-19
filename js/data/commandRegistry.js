@@ -510,6 +510,9 @@ export const commands = {
             { key: 'inputImage6', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_6', required: false, ordinal: true, requiresCapability: 'multiReference8' },
             { key: 'inputImage7', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_7', required: false, ordinal: true, requiresCapability: 'multiReference8' },
             { key: 'inputImage8', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_8', required: false, ordinal: true, requiresCapability: 'multiReference8' },
+            // 9-10: FLUX.3 Klein (MPI-1181), through MpiFlux3References.
+            { key: 'inputImage9', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_9', required: false, ordinal: true, requiresCapability: 'multiReference10' },
+            { key: 'inputImage10', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_10', required: false, ordinal: true, requiresCapability: 'multiReference10' },
         ],
         promptRequired: true,
         // Boogu-Image-Edit's op: a whole-image instruction edit that follows the SOURCE
@@ -519,7 +522,11 @@ export const commands = {
         // it too follows the source size, because Krea2 names krea2Edit in its
         // `imageSizedOps` and modelShowsRatio() suppresses the picker there.
         // No Background (MPI-1049): Qwen-Image 2.1 keeps alpha on edit as on t2i.
-        components: ['styleSelect', 'stylization', 'transparentBackground'],
+        // krea2Turbo mounts only on `capabilities.turboToggle` — FLUX.3 Klein (MPI-1181).
+        // ratio + qualityTier mount only for a model naming edit in `customSizeOps`
+        // (`sizeOptIn`, see modelShowsRatio): FLUX.3 sets the frame of an unmasked edit.
+        components: ['styleSelect', 'stylization', 'transparentBackground', 'krea2Turbo', 'qualityTier', 'ratio'],
+        sizeOptIn: true,
     },
     krea2Edit: {
         label: 'Edit',
@@ -2059,6 +2066,9 @@ export function modelShowsStyleRack(model, operation) {
  */
 export function modelShowsRatio(model, operation) {
     if (!getCommandComponents(operation).includes('ratio')) return false;
+    // An op that follows its source on every model but the ones naming it in
+    // `customSizeOps` (edit: FLUX.3 Klein alone picks its frame, MPI-1181).
+    if (commands[operation]?.sizeOptIn && !model?.customSizeOps?.includes(operation)) return false;
     const imageSized = Array.isArray(model?.imageSizedOps) ? model.imageSizedOps : [];
     return !imageSized.includes(operation);
 }

@@ -42,6 +42,8 @@ HANDLERS = [
                              # in this one graph and is selected by the injected Input_wf_type;
                              # lazy evaluation prunes the unselected branches at run time, so
                              # there is no op split, no tier axis and no content axis.
+    ("flux3_",    "flux3"),  # MPI-1181: flux3_t2i_template.json — Klein's shape, ONE runtime
+                             # file; Turbo picks the UNET at run time (Input_is_Turbo).
 ]
 
 
