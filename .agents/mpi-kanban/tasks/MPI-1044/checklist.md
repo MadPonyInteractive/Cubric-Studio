@@ -110,4 +110,23 @@ Working list: brief.md § "2026-10-14 status check" and § Blockers.
       dev == stable, mcpb 28 == TOOLS). Stamp 8ec932d31, notes approved by Fabio (.approved-2.1.1.json).
       npm test 3417/0, release:deps 341/341, test:desktop 245/246: model-settings-popup fails 4/5
       runs; Fabio confirmed the pickers open in his app -> test bug, card MPI-1200. Tag v2.1.1 pushed,
-      mpi-ci 39260723113 building. Left: artifacts, update test, Gate 2, publish.
+      mpi-ci 39260723113 built 8ec932d31; update test from published 1.5.0 PASSED on it (evidence 8c51620d0).
+      Fabio stopped the publish at Gate 2 (an empty v2.1.1 DRAFT was left, later deleted) to add fixes.
+      RE-CUT 1: MPI-1201/1202/1203 notes (47cbe7538), Fabio re-approved, agent deleted the draft and
+      force-moved v2.1.1 -> 47cbe7538 (Fabio asked), mpi-ci 39272519801 built it (6 files in
+      D:/CubricStudio/Vision/Builds/v2.1.1, hash 47cbe75381a3). Its update test: install b broke because
+      the test script fired a SECOND /engine/upgrade beside the app's own -> card MPI-1204 (no re-entry
+      guard; the fallback wipes the engine). Install c set up but superseded.
+      RE-CUT 2: Fabio included MPI-1205 (project delete -> Recycle Bin, data loss; peer pushed 809cce797).
+      Notes now 5 fixes, re-approved by Fabio, committed ea0f11f0c. npm test 3422/0.
+      NEXT: (1) CI green on 809cce797 (run 39299834217) -> close MPI-1205 for the archived peer
+      (done + validation.md with run id + tick "CI green" in its checklist). (2) Move the tag:
+      `git tag -f -a v2.1.1 -m v2.1.1 <master sha with ea0f11f0c>` + `git push --force origin
+      refs/tags/v2.1.1` (Fabio OK'd the agent doing it). (3) Download the 6 new files over
+      Builds/v2.1.1, delete CI artifacts. (4) Update test on D:/CVTest/CubricVision-v1.5.0-to-v2.1.1d
+      (prepared by scratchpad prep_d.sh with the engine stamp; user-data snapshot ud-before-d.json):
+      apply the update zip, launch with APP_DOCUMENTS=D:\CVTest\docs-v2.1.1d-test, let the APP
+      upgrade its engine (NEVER also POST /engine/upgrade), start engine, SDXL t2i; Fabio's app must be
+      closed. Rewrite dev_configs/update-evidence.json (bundleBuildHash = new), release:check:publish.
+      (5) Gate 2 already approved for the body text; it changed only by the MPI-1205 line + intro, show
+      Fabio the diff, then gh release create v2.1.1 --latest + 6 assets, verify releases/latest.
