@@ -12,6 +12,14 @@
 - `tests/comfy-start-single-flight.test.cjs`: three overlapping starts run strictly one after another (peak 1); the route is wired through the guard.
 - Related start tests 33/33; `npm test` 3424 pass / 0 fail.
 
-## Not yet
-- Proven only by unit test; the app-level proof needs a build that carries it (the 2.1.1 re-cut 3 update test, if Fabio takes it into 2.1.1).
-- CI on the commit.
+## CI
+- Tests run 39306413245 on d20daa9c3: first attempt failed one unrelated test (`cancel stops a running upload...`, fetch ECONNRESET in tests/remote-uploads.test.cjs); `--failed` re-run: unit + desktop (1-4) all success.
+
+## App-level proof (2026-10-19, build b60ed53033cc, install D:\CVTest\CubricVision-v1.5.0-to-v2.1.1e)
+- One in-place engine upgrade at launch, 0.34.0 -> 0.42.1.
+- 20:07:12.769Z one `Starting ComfyUI background process...` + one curated pip pass; the client's `Requesting ComfyUI server start` at 20:07:22 waited for it and spawned nothing.
+- Marker stamped 20:08:29, no WinError, no "degraded"; `/comfy/status` depsWarning null.
+- First-launch SDXL t2i rendered in 72 s, image matches the prompt.
+
+## Noticed
+- The first start (20:07:12) is logged without the client's `Requesting ComfyUI server start` line, so a second caller exists outside comfyController's ensureServerRunning. Harmless now that the route allows one start at a time.

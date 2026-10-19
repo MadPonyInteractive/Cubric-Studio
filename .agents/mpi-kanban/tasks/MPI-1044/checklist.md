@@ -119,7 +119,16 @@ Working list: brief.md § "2026-10-14 status check" and § Blockers.
       guard; the fallback wipes the engine). Install c set up but superseded.
       RE-CUT 2: Fabio included MPI-1205 (project delete -> Recycle Bin, data loss; peer pushed 809cce797).
       Notes now 5 fixes, re-approved by Fabio, committed ea0f11f0c. npm test 3422/0.
-      NEXT: (1) CI green on 809cce797 (run 39299834217) -> close MPI-1205 for the archived peer
+      2026-10-19 (session "Version 2.1 readiness 11"): MPI-1205 closed (CI 39299834217 green). Tag moved to
+      17f8dbf25, mpi-ci 39302124939 built it; update test on install d: 29/29 user-data identical, the
+      app moved its engine itself, but it started the engine TWICE (two pips, WinError 32) and the first
+      picture was refused as python_deps_broken; a relaunch healed it. Fix MPI-1206 (d20daa9c3, one
+      engine start at a time). RE-CUT 3: Fabio took it into 2.1.1, notes approved (acab3e0b, b60ed5303),
+      tag -> b60ed5303, mpi-ci 39313364316, 6 files in Builds/v2.1.1 (BUILD_HASH b60ed53033cc), CI
+      artifacts deleted. Update test on FRESH install e: 29/29 identical, one engine upgrade, one start,
+      one pip, first-launch SDXL picture rendered and opened; update-evidence.json rewritten,
+      release:check:publish passes. NEXT: Gate 2 (body diff: + MPI-1206 line + intro), then publish.
+      OLD NEXT (done): (1) CI green on 809cce797 (run 39299834217) -> close MPI-1205 for the archived peer
       (done + validation.md with run id + tick "CI green" in its checklist). (2) Move the tag:
       `git tag -f -a v2.1.1 -m v2.1.1 <master sha with ea0f11f0c>` + `git push --force origin
       refs/tags/v2.1.1` (Fabio OK'd the agent doing it). (3) Download the 6 new files over
