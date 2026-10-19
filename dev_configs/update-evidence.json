@@ -1,19 +1,19 @@
 {
-  "at": "2026-10-19T11:00:00Z",
-  "toVersion": "2.1.0",
+  "at": "2026-10-19T14:35:00Z",
+  "toVersion": "2.1.1",
   "fromVersion": "1.5.0",
   "bundleFromVersion": null,
   "oldestServedVersion": "1.5.0",
-  "oldestServedReason": "Every 1.4.x applier aborts on the memory-mapped icudtl.dat (UNKNOWN, fixed in 1.5.0), measured on a 1.4.2 copy at the 2.0.0 release (MPI-595). 2.1.0 ships the same FULL bundle shape, so the line holds. The release body sends pre-1.5.0 installs to the full build.",
+  "oldestServedReason": "Every 1.4.x applier aborts on the memory-mapped icudtl.dat (UNKNOWN, fixed in 1.5.0), measured on a 1.4.2 copy at the 2.0.0 release (MPI-595). 2.1.1 ships the same FULL bundle shape, so the line holds. The release body sends pre-1.5.0 installs to the full build.",
   "platform": "win32",
-  "bundle": "CubricStudio-windows-x64-update-v2.1.0.zip",
-  "bundleBuildHash": "4a52fb28989d",
-  "source": "D:\\CVTest\\CubricVision-v1.5.0-to-v2.1.0 (fresh extract of the PUBLISHED 1.5.0 Windows zip, BUILD_HASH 43b22c407b61, same size as the v1.5.0 release asset; 1.5.0-era user-data/ copied in; engine/ copied from the 1.4.4 test install, ComfyUI 0.34.0 = the 2.0.x engine; models/ held only a marker, weights read from the 1.4.4 install through extra_model_paths; APP_DOCUMENTS = D:\\CVTest\\docs-v2.1.0-test seeded with a 'Cubric Vision' folder holding one project)",
+  "bundle": "CubricStudio-windows-x64-update-v2.1.1.zip",
+  "bundleBuildHash": "8ec932d31867",
+  "source": "D:\\CVTest\\CubricVision-v1.5.0-to-v2.1.1 (fresh extract of the PUBLISHED 1.5.0 Windows zip D:\\CVTest\\dl\\CubricVision-windows-x64-v1.5.0.zip; 1.5.0-era user-data/ copied in; engine/ComfyUI_windows_portable copied from the 1.4.4 test install, ComfyUI 0.34.0 = the 2.0.x engine, and its .mpi_engine_version stamp (0.34.0) restored after the first copy missed it; weights read from the 1.4.4 install's models through extra_model_paths; APP_DOCUMENTS = D:\\CVTest\\docs-v2.1.1-test seeded with a 'Cubric Vision' folder holding one project)",
   "userDataSurvived": true,
-  "userDataNote": "27 of 27 user-data + models files byte-identical after the update (sha256 before/after, Chromium caches excluded), applied with the install's own update-from-zip.bat, exit 0, manifest toVersion 2.1.0 buildHash 4a52fb28989d; CubricVision.exe moved aside to CubricVision.exe.old, CubricStudio.exe present; scratch Documents 'Cubric Vision' renamed to 'Cubric Studio', the pre-update project listed. First launch upgraded the engine in place 0.34.0 -> 0.42.1 (pygit2, 5 pip packages, 62 s), 0 IMPORT FAILED.",
+  "userDataNote": "29 of 29 user-data files byte-identical after the update (sha256 before/after, Chromium caches excluded), applied with the install's own update-from-zip.bat, exit 0, manifest toVersion 2.1.1 (fromVersion null, 8629 files), BUILD_HASH 8ec932d31867; CubricVision.exe moved aside to CubricVision.exe.old, CubricStudio.exe present; scratch Documents 'Cubric Vision' renamed to 'Cubric Studio', the pre-update project listed. Engine upgraded in place 0.34.0 -> 0.42.1 through /engine/upgrade (pygit2 checkout, 5 pip packages, stamp written in 52 s, 7 node deps repaired), 0 IMPORT FAILED, system_stats comfyui_version 0.42.1.",
   "generation": {
     "ok": true,
-    "artifact": "D:\\CVTest\\docs-v2.1.0-test\\Cubric Studio\\Projects\\Rename Check\\Media\\t2i_003.png",
-    "note": "SDXL Realistic t2i 768x1024 over /connector/generate, 95 s render on the RTX 4060 Ti under the GPU lease, the install's own engine (ready 250 s after launch, Fabio's app closed so 3000/48188 were free); opened it: a red bicycle with two black wicker baskets against a white brick wall in low sun, matches the prompt"
+    "artifact": "D:\\CVTest\\docs-v2.1.1-test\\Cubric Studio\\Projects\\Rename Check\\Media\\t2i_004.png",
+    "note": "SDXL Realistic t2i 768x1024 over /connector/generate, 82 s render on the RTX 4060 Ti under the GPU lease, the install's own engine on 0.42.1 (Fabio's app closed so 3000/48188 were free); opened it: a red bicycle with two black wicker baskets against a white brick wall, matches the prompt"
   }
 }
