@@ -364,6 +364,9 @@ How the app does it today: a static `ratios` table per tier in `models.js` (Qwen
 copy that table for `1k`/`2k`, and **`4k` = the `2k` table x2 per edge** (16:9 3840x2176, 1:1 2944, ~8.4 MP;
 exact ratios, every edge /64) - the megapixel step, no graph change. 8.4 MP is past BFL's stated 4 MP:
 one 4k t2i on the bench decides whether the row ships as-is.
+**4k bench 2026-10-19 (Turbo t2i, 3840x2176, seed 424242, er_sde 16 steps, 130 s wall, no OOM):** coherent at
+8.4 MP - no doubled subjects or tiling, legible "MERCEARIA" sign, clean face/hands at 1:1, real tile/cobble
+texture. Small flaws: one extra copy of the sign further up the street, hair ends slightly painterly.
 Pinned: MpiNodes 3d00c16 pushed + pinned (`b6dabd2e1`, 2026-10-19). 2.1.1 already shipped (MPI-1044 closed),
 so FLUX.3 lands in the NEXT release.
 
