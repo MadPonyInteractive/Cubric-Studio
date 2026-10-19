@@ -432,6 +432,8 @@ picker is always shown and opInject always sends true - wrong. Make it a perMode
 control injecting `Input_custom_size` (take it out of opInject), gating the ratio + qualityTier
 mount on it. (2) He supplies the card image (replace the teapot placeholder). Multi-image edit
 checks: his, later. R2 upload: next session (his yes, 11.6 GB ~ $0.17/mo).
+**Done 2026-10-19 ("Flux.3 integration 6"):** (1) Custom size button shipped as the `customSize`
+control (validation.md). R2 upload of both transformers started from C:/AI/diffusion_models.
 
 ## Noticed
 

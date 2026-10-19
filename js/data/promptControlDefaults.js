@@ -61,6 +61,9 @@ export const PROMPT_CONTROL_DEFAULTS = Object.freeze({
     // No Background (MPI-1049, Qwen-Image 2.1): off, a background is what a picture has
     // unless the user asks otherwise. Stored perModel like the turbos.
     transparentBackground: false,
+    // Custom size (Input_custom_size, MPI-1181, FLUX.3 edit): off = the edit follows
+    // reference 1's frame, on = the ratio + tier picker sets it (Fabio, 2026-10-19).
+    customSize: false,
     // Control adherence (Input_Control_strength MpiFloat). What it lands on differs by
     // model — a control-LoRA's `strength` on Krea2/Klein, a ControlNet's on Chroma/SDXL —
     // but the meaning is the same everywhere: 1.0 = full (what each graph bakes and what

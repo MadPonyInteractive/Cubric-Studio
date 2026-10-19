@@ -525,7 +525,9 @@ export const commands = {
         // krea2Turbo mounts only on `capabilities.turboToggle` — FLUX.3 Klein (MPI-1181).
         // ratio + qualityTier mount only for a model naming edit in `customSizeOps`
         // (`sizeOptIn`, see modelShowsRatio): FLUX.3 sets the frame of an unmasked edit.
-        components: ['styleSelect', 'stylization', 'transparentBackground', 'krea2Turbo', 'qualityTier', 'ratio'],
+        // They sit behind `customSize` (off by default), which MUST come before them:
+        // MpiPromptBox parks the two while it is off.
+        components: ['styleSelect', 'stylization', 'transparentBackground', 'krea2Turbo', 'customSize', 'qualityTier', 'ratio'],
         sizeOptIn: true,
     },
     krea2Edit: {

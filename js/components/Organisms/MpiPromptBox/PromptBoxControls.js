@@ -1364,6 +1364,47 @@ export const PROMPT_BOX_CONTROLS = {
     },
 
     /**
+     * customSize — Custom size button on a source-sized op (`sizeOptIn`, edit) for a model
+     * naming it in `customSizeOps` (MPI-1181, FLUX.3 Klein). Injects `Input_custom_size`.
+     * OFF (default) = the edit follows reference 1's frame; ON = the ratio + tier picker
+     * sets it. MpiPromptBox parks those two controls while it is off (hidden AND not
+     * injected), listening for `prompt:custom-size`. The graph still ignores it under a
+     * mask (#798 `custom size AND NOT has_mask`). perOp: only edit carries it.
+     */
+    customSize: {
+        nodeTitle: 'Input_custom_size',
+        scope: 'perOp',
+        defaultValue: PROMPT_CONTROL_DEFAULTS.customSize,
+        mount(hostEl, opts = {}) {
+            const saved = _readSaved(this, opts);
+            this.value = typeof saved.customSize === 'boolean' ? saved.customSize : !!this.defaultValue;
+
+            this._instance = MpiButton.mount(hostEl, {
+                icon: 'resize',
+                label: 'Custom size',
+                labelPosition: 'right',
+                size: 'sm',
+                variant: 'primary',
+                toggleable: true,
+                active: this.value,
+                info: 'Custom size — pick the output ratio and resolution. Off, the edit keeps the first image\'s frame',
+            });
+
+            this._instance.on('click', ({ active }) => {
+                this.value = !!active;
+                _emitUpdate(this, opts, 'customSize', !!active);
+                Events.emit('prompt:custom-size', { active: !!active });
+            });
+        },
+        getValue() {
+            return this.value === true;
+        },
+        getInjectionParams() {
+            return { Input_custom_size: this.value === true };
+        },
+    },
+
+    /**
      * transparentBackground — No Background (MPI-1049). Qwen-Image 2.1's transparency is
      * PROMPT-ONLY: no graph switch exists, the model returns alpha when the prompt opens
      * and closes with its vendor's two RGBA sentences (`ModelDef.transparentPrompt`).
@@ -2066,6 +2107,8 @@ export function visibleControlIds(model, operation, ctx = {}) {
         // On a source-sized op (`sizeOptIn`, edit) the tier is part of the size picker:
         // it mounts with the ratio or not at all (MPI-1181).
         if (id === 'qualityTier' && commands[operation]?.sizeOptIn && !modelShowsRatio(model, operation)) return false;
+        // The Custom size button gates that picker, so it exists exactly where the picker can.
+        if (id === 'customSize' && !(commands[operation]?.sizeOptIn && modelShowsRatio(model, operation))) return false;
 
         // Qwen-Edit tier radio (Input_Tier) mounts only for models that ship a
         // runtime accelerator-tier switch (Qwen-Image-Edit). Capability-gated so

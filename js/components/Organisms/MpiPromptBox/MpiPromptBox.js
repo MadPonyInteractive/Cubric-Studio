@@ -311,6 +311,12 @@ export const MpiPromptBox = ComponentFactory.create({
 
         /** @type {Map<string, Object>} */
         const _activeControls = new Map();
+        // MPI-1181: ratio + qualityTier behind the Custom size button. While it is off they
+        // sit here instead of in _activeControls (so nothing injects their Width/Height) and
+        // their hosts are hidden. Mounted, not destroyed: a remount would re-read settings
+        // the debounced queue has not flushed yet. See _applyCustomSize.
+        const _parkedSize = new Map();
+        const _sizeHosts = new Map();
 
         let runSlotEl = null;
         let runBtn = null;
@@ -1598,6 +1604,7 @@ export const MpiPromptBox = ComponentFactory.create({
                 _krea2TurboOn = !!active;
                 _refreshNegToggle();
             }),
+            Events.on('prompt:custom-size', () => _applyCustomSize()),
             // Note: model list management is owned by the parent block (gallery /
             // history workspace). They call el.setModelList() with the appropriate
             // mediaType-scoped or all-installed list. Don't double-update here.
@@ -2188,13 +2195,34 @@ export const MpiPromptBox = ComponentFactory.create({
             }
         }
 
+        // Park or restore the size picker per the Custom size button (MPI-1181). No button
+        // mounted (every op but FLUX.3's edit) = nothing is gated.
+        function _applyCustomSize() {
+            const btn = _activeControls.get('customSize');
+            if (!btn) return;
+            const on = btn.getValue() === true;
+            for (const [id, host] of _sizeHosts) {
+                host.classList.toggle('hide', !on);
+                if (on && _parkedSize.has(id)) {
+                    _activeControls.set(id, _parkedSize.get(id));
+                    _parkedSize.delete(id);
+                } else if (!on && _activeControls.has(id)) {
+                    _parkedSize.set(id, _activeControls.get(id));
+                    _activeControls.delete(id);
+                }
+            }
+            _refreshPriceTag();
+        }
+
         function _refreshOpSlot() {
             if (!opSlot) return;
-            for (const ctrl of _activeControls.values()) {
+            for (const ctrl of new Set([..._activeControls.values(), ..._parkedSize.values()])) {
                 try { ctrl.destroy?.(); } catch {}
             }
             opSlot.innerHTML = '';
             _activeControls.clear();
+            _parkedSize.clear();
+            _sizeHosts.clear();
 
             // One gate, shared with the reuse snapshot (MPI-479) — see visibleControlIds.
             const componentIds = visibleControlIds(model, activeOperation, { historyMode: _context.historyMode });
@@ -2209,10 +2237,12 @@ export const MpiPromptBox = ComponentFactory.create({
                 try {
                     ctrl.mount(ctrlEl, { model, opName: activeOperation });
                     _activeControls.set(componentId, ctrl);
+                    if (componentId === 'ratio' || componentId === 'qualityTier') _sizeHosts.set(componentId, ctrlEl);
                 } catch (err) {
                     clientLogger.error('PromptBox', `Control "${componentId}" mount failed`, err);
                 }
             }
+            _applyCustomSize();
 
             // The wipe above detached the "?" — re-append it LAST so it lands on
             // the final wrapped line of the control row (margin-left:auto pins it

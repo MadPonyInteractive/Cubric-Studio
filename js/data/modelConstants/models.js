@@ -2067,15 +2067,16 @@ const ALL_MODELS = [
         opInject: {
             t2i:     { Input_wf_type: 1 },
             i2i:     { Input_wf_type: 2 },
-            // Custom size always on: the graph honours it only WITHOUT a mask (#798
-            // `custom size AND NOT has_mask`), so a masked edit keeps the source frame.
-            edit:    { Input_wf_type: 4, Input_custom_size: true },
+            // Input_custom_size comes from the Custom size button (`customSize` control),
+            // never from here; the graph honours it only WITHOUT a mask (#798).
+            edit:    { Input_wf_type: 4 },
             inpaint: { Input_wf_type: 5 },
             detail:  { Input_wf_type: 6 },
             upscale: { Input_wf_type: 7 },
         },
-        // Unmasked edit takes the ratio + tier picker (Fabio, 2026-10-19): the user picks the
-        // frame instead of inheriting reference 1's. See modelShowsRatio.
+        // Unmasked edit takes the ratio + tier picker behind a Custom size button, off by
+        // default (Fabio, 2026-10-19): on, the user picks the frame instead of inheriting
+        // reference 1's. See modelShowsRatio.
         customSizeOps: ['edit'],
         imageSizedOps: ['detail', 'upscale'],
         qualityTiers: ['1k', '2k', '4k'],

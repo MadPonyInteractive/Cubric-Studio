@@ -25,3 +25,17 @@ containing "motion" inside the H3 hint slice) - fixed. Re-run: see below.
 Not done yet: in-app run per op (the app engine reads G:/CubricModels, 8.7 GB free, weights sit in
 C:/AI), R2 upload (needs Fabio's yes), agent guide (comes with the flux-3 recipe), progressStages
 count, Boxes, Pod smoke.
+
+## 2026-10-19 - Custom size button (session "Flux.3 integration 6")
+
+Fabio's in-app ask: the edit size picker behind a button, off by default. `customSize` control
+(perOp, injects `Input_custom_size`), `Input_custom_size` out of `opInject.edit`, MpiPromptBox
+parks ratio + qualityTier (hidden + not injected) while off; agent `resolveNamedParams`: a named
+ratio/tier turns it on, else the project's button, else off with no Width/Height.
+
+- `tests/flux3-custom-size.test.cjs` 6/6; `npm test` 3433 pass / 0 fail / 2 skipped.
+- `tests/desktop/prompt-box-custom-size.spec.js` (real Electron, own port) pass: off = no Width,
+  `Input_custom_size: false`, picker hidden; on = Width + true, shown; off again = parked.
+  Neighbours prompt-box-use-tiles / badge / start-frame-toggle: 4/4 pass.
+- Fabio in his own app, 2026-10-19: "It looks great" (Turbo + Custom size buttons in the edit
+  popup, 1K/2K/4K + ratio shown when on). Copying it to every other edit model is MPI-1207, not here.

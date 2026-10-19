@@ -478,7 +478,17 @@ export function resolveNamedParams(project, model, operation, named = {}) {
     // An op that sizes its own output (the model's `imageSizedOps`: Klein's edit follows
     // the source image) takes no ratio, so the project's saved one is not injected either.
     // It was: the card recorded 1024x1024 for an 832x1248 edit (MPI-774, 2026-09-17).
-    const ratioDims = modelShowsRatio(model, operation)
+    // FLUX.3's edit (MPI-1181): the size picker sits behind the Custom size button. A
+    // named ratio or tier turns it on; unasked, the project's own button decides; off, the
+    // edit follows reference 1 and no size is injected (the PromptBox parks the picker).
+    const sizeGated = modelShowsRatio(model, operation) && getCommandComponents(operation).includes('customSize');
+    const customSize = sizeGated && (ratio !== undefined || qualityTier !== undefined
+        || getOpSettings(project || {}, model?.id, operation).customSize === true);
+    if (sizeGated) {
+        injectionParams.Input_custom_size = customSize;
+        _from('customSize', ratio !== undefined || qualityTier !== undefined, customSize);
+    }
+    const ratioDims = modelShowsRatio(model, operation) && (!sizeGated || customSize)
         ? resolvePlannedRatio(project, model, { ratioLabel: ratio, qualityTier })
         : { width: 0, height: 0, label: null };
     if (ratioDims.width && ratioDims.height) {
