@@ -5,4 +5,4 @@
 - [x] Unit test covers the git-less Windows branch
 - [x] Live re-check: same scratch engine logs `In-place upgrade landed 0.41.0`, no full reinstall
 - [x] Playbook 02-local-upgrade.md says how Windows moves the checkout
-- [~] npm test (3413 pass) + CI green
+- [x] npm test (3413 pass) + CI green (run 39188042735 on b3689866b: unit + 4 desktop shards success)

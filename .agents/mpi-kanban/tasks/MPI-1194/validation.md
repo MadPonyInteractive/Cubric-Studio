@@ -51,3 +51,7 @@ at the landed line, before that point.
 - `tests/engine-in-place-upgrade.test.cjs` § 8: Windows steps run the engine python, never git,
   pass repo + pinned ref, shallow fetch, force checkout of the pin; linux/darwin keep git.
 - `npm test`: 3415 tests, 3413 pass, 0 fail, 2 skipped. eslint clean on both files.
+
+## CI
+
+Run 39188042735 on b3689866b: unit + desktop 1-4 all success.
