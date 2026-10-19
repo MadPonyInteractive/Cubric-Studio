@@ -163,7 +163,8 @@ Cosmo listening (MPI-1169); this phase builds on both.
   `input-audio`, 1M context). Video format and length limits are UNDOCUMENTED — a real call settles
   them; ask Fabio before spending. If one works, the Remote describer sends the clip itself; ComfyUI
   keeps the sheet. **Verify:** bench evidence per model in research/, then one look on a real clip.
-- [ ] **Vision chat model "recommended for video".** A DeepSeek-Flash-class agent model that can SEE
+- [ ] **Vision chat model "recommended for video".** **Still pictures moved to MPI-1208 (Fabio,
+  2026-10-19): pick the model there; this item keeps only the video half on top of it.** A DeepSeek-Flash-class agent model that can SEE
   images, so Cosmo runs the MPI-1168 MCP process itself (separate frames, scene pick, `from`/`to`)
   with no describer in between. Needs an agent-bench run per candidate before it is recommended.
   Also closes the MPI-1164 look leak: given a reference "for this grain / grading / light", Cosmo
