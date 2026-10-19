@@ -17,8 +17,8 @@ const opsOf = (id) => MODELS.find((m) => m.id === id)?.supportedOps || [];
 
 /** Every pair the table ranks, read back through the public function. */
 const RANKED = [
-    ['edit', [['boogu-edit-high', 'edit'], ['boogu-edit-balanced', 'edit'], ['klein-9b', 'kleinEdit'],
-        ['klein-4b', 'kleinEdit'], ['krea2', 'krea2Edit'], ['qwen-edit', 'qwenEdit']]],
+    ['edit', [['qwen-image-2-1', 'edit'], ['klein-9b', 'kleinEdit'], ['klein-4b', 'kleinEdit'],
+        ['boogu-edit-high', 'edit'], ['boogu-edit-balanced', 'edit'], ['krea2', 'krea2Edit'], ['qwen-edit', 'qwenEdit']]],
     ['t2v', [['minimax-h3', 't2v_ms'], ['ltx-23-balanced', 't2v_ms'], ['wan22-5b', 't2v'], ['ltx-23', 't2v_ms']]],
     ['i2v', [['minimax-h3', 'i2v_ms'], ['ltx-23-balanced', 'i2v_ms'], ['wan-22', 'i2v_ms'],
         ['wan22-5b', 'i2v'], ['ltx-23', 'i2v_ms']]],
@@ -195,7 +195,7 @@ test('the local order is untouched by the paid models being ranked (MPI-875)', (
     // The paid entries are appended after the locals are ranked, so adding one must not
     // renumber anything a local model was promised.
     assert.equal(opPriority('krea2', 't2i').rank, 1);
-    assert.equal(opPriority('boogu-edit-high', 'edit').rank, 1);
+    assert.equal(opPriority('qwen-image-2-1', 'edit').rank, 1);
     assert.equal(opPriority('minimax-h3', 't2v_ms').rank, 1);
 });
 

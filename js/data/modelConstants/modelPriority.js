@@ -52,15 +52,19 @@ const IMAGE_ORDER = [
     'pony-mix',
 ];
 
-/** `[modelId, op]`, best first. */
+/**
+ * `[modelId, op]`, best first. MPI-1202 (Fabio 2026-10-19): Qwen-Image 2.1, then Klein 9B or
+ * 4B, then Krea 2, "the worst for editing" — live, Cosmo was starting edits on it. Boogu
+ * (one image only) sits between Klein and Krea 2; Fabio's list did not name it.
+ */
 const EDIT = [
-    ['boogu-edit-high', 'edit'],
-    ['boogu-edit-balanced', 'edit'],
+    ['qwen-image-2-1', 'edit'],
     ['klein-9b', 'kleinEdit'],
     ['klein-4b', 'kleinEdit'],
+    ['boogu-edit-high', 'edit'],
+    ['boogu-edit-balanced', 'edit'],
     ['krea2', 'krea2Edit'],
     ['qwen-edit', 'qwenEdit'],
-    ['qwen-image-2-1', 'edit'],
 ];
 
 const T2V = [
@@ -93,7 +97,7 @@ const REF2V = [
  * angle)" went to Boogu, rank 1, with B alone, and the furniture was invented from the
  * words. "One image" alone did not say what that rules out, so the rank won.
  */
-const ONE_IMAGE = 'it takes exactly one image, so it can never bring in anything from another picture (a person, an object, the furniture of the same room from another angle): that is qwenEdit, else kleinEdit, else krea2Edit (the order the model guide gives), with the picture being changed first and the one holding the content second';
+const ONE_IMAGE = 'it takes exactly one image, so it can never bring in anything from another picture (a person, an object, the furniture of the same room from another angle): that is the Qwen-Image 2.1 edit, else kleinEdit, else krea2Edit, else qwenEdit, with the picture being changed first and the one holding the content second';
 
 /** Keyed `modelId:op` where the strength is about that op, else by `modelId`. */// Neither adds skin detail unless the prompt asks for it.
 const KREA2_SKIN = 'the best skin detail here, but only at its own low default denoise — push it higher and the character changes too. Ask for it in the prompt, e.g. "high skin detail, visible pores"';
@@ -109,8 +113,8 @@ const NOTES = {
     // Fabio 2026-09-30): with Head Swap not installed, it read as "only Qwen can move a head",
     // and the agent told him no installed editor could, with Klein 9B taking references.
     'qwen-edit:qwenEdit': 'the slowest of these',
-    // MPI-936: ranked last on purpose. Its research licence covers the images too, so the
-    // agent must reach it for what only it does, never drift to it.
+    // MPI-936 ranked it last for its research licence; MPI-1202 (Fabio 2026-10-19) made it
+    // rank 1 anyway. The licence line stays so the agent can say it when asked.
     'qwen-image-2-1:edit': 'takes up to eight images in one edit, more than any editor here, and can return the subject on a transparent background (transparent: true). Research or evaluation use only: the images are not for commercial use',
     // Alpha survives t2i and edit only: every other op repaints an opaque source and returns RGB.
     // MPI-1049 (Fabio 2026-10-10): a no-background ask that names no model may come here, or be
