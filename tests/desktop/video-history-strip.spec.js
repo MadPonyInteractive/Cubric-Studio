@@ -51,13 +51,13 @@ async function pinInstalled(window, ids) {
 // A picture's answer is kept under the age AND doodle questions (MPI-1173), a clip's under the age one.
 async function keptNo(window) {
   return window.evaluate(async () => {
-    const [{ questionHash }, { AGE_QUESTION, SKETCH_QUESTION }] = await Promise.all([
+    const [{ questionHash }, { PICTURE_AGE_KEY, CLIP_AGE_KEY }] = await Promise.all([
       import('/js/services/mediaVerdicts.js'),
       import('/js/data/childSafety.js'),
     ]);
     return {
-      clip: { ageVerdict: { q: questionHash(AGE_QUESTION), answer: 'NO' } },
-      still: { ageVerdict: { q: questionHash(AGE_QUESTION + SKETCH_QUESTION), answer: 'NO' } },
+      clip: { ageVerdict: { q: questionHash(CLIP_AGE_KEY), answer: 'NO' } },
+      still: { ageVerdict: { q: questionHash(PICTURE_AGE_KEY), answer: 'NO' } },
     };
   });
 }

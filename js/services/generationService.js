@@ -37,7 +37,7 @@ import { orderVersions, shownVersion } from '../utils/outputVersions.js';
 import { MpiToast } from '../components/Primitives/MpiToast/MpiToast.js';
 import { ce } from '../utils/dom.js';
 import { collapseQueueBatches } from './generationBatch.js';
-import { checkChildSafety, childSafetyGate, gateWords, configContext, CHILD_SAFETY_CODE, needsPictureCheck, picturesOf, controlMapOf, AGE_QUESTION, EXPOSED_QUESTION, CLOTHES_QUESTION, SKETCH_QUESTION, parseAgeAnswer, parseSketchAnswer, refusal, lookWanted, NUDITY_SYSTEM } from '../data/childSafety.js';
+import { checkChildSafety, childSafetyGate, gateWords, configContext, CHILD_SAFETY_CODE, needsPictureCheck, picturesOf, controlMapOf, AGE_QUESTION, EXPOSED_QUESTION, CLOTHES_QUESTION, SKETCH_QUESTION, PICTURE_AGE_KEY, CLIP_AGE_KEY, parseAgeAnswer, parseSketchAnswer, refusal, lookWanted, NUDITY_SYSTEM } from '../data/childSafety.js';
 import { cachedVerdicts } from './mediaVerdicts.js';
 
 // ── Cue queue (in-app, THREE-LANE dispatch) ─────────────────────────────────
@@ -724,10 +724,8 @@ async function _pictureVerdicts(config, llm, pictures, clips, refs, video, map =
     ]);
 
     // MPI-1173: a picture the age question says YES to is asked whether it is only a rough doodle;
-    // a bare YES keeps it NO. Both questions key the kept answer, so a YES kept before this wording
-    // is asked again. `OWN_LOOK` re-keys it once more: a YES an edit took from its source before
-    // every picture was judged on its own look (2026-10-19) is asked again.
-    const OWN_LOOK = ' (own look)';
+    // a bare YES keeps it NO. Both questions key the kept answer (`PICTURE_AGE_KEY`), so a YES kept
+    // before this wording is asked again.
     const pictureAge = async (url) => {
         const minor = await describe(url, AGE_QUESTION);
         if (minor !== true) return minor;
@@ -741,8 +739,8 @@ async function _pictureVerdicts(config, llm, pictures, clips, refs, video, map =
     // adults' 15/24 NO; a body-shape wording passed one more adult and missed a child's canny.
     const mapAsk = (url) => describe(url, AGE_QUESTION, (u) => _describeControlMap(llm, u, map.net));
     const [picAge, clipAge, mapAge] = await Promise.all([
-        cachedVerdicts(pictures, { key: 'ageVerdict', question: AGE_QUESTION + SKETCH_QUESTION + OWN_LOOK, project, ask: pictureAge }),
-        cachedVerdicts(clips, { key: 'ageVerdict', question: AGE_QUESTION + OWN_LOOK, project, ask: atFrames(AGE_QUESTION) }),
+        cachedVerdicts(pictures, { key: 'ageVerdict', question: PICTURE_AGE_KEY, project, ask: pictureAge }),
+        cachedVerdicts(clips, { key: 'ageVerdict', question: CLIP_AGE_KEY, project, ask: atFrames(AGE_QUESTION) }),
         map ? cachedVerdicts([map.url], { key: `mapVerdict${map.net}`, question: AGE_QUESTION, project, ask: mapAsk }) : [],
     ]);
     if ([...picAge, ...clipAge, ...mapAge].includes(null)) return refusal('pictureUnchecked');

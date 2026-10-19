@@ -628,6 +628,14 @@ export function parseAgeAnswer(answer) {
  */
 export const SKETCH_QUESTION = 'Is this picture only a rough doodle: thick strokes, blobs or stick figures drawn on a plain background, where no person has a drawn face, hands or body detail? A photograph, a painting, an illustration, anime or a detailed line drawing is not a rough doodle, and neither is a photograph with strokes drawn over it. Answer with exactly one word: YES or NO.';
 
+/**
+ * What a kept age answer is keyed by (`mediaVerdicts.js`): a picture's age + doodle questions, a
+ * clip's age question. " (own look)" re-keyed both on 2026-10-19, when an edit stopped taking its
+ * source's YES, so a YES once inherited is asked again.
+ */
+export const PICTURE_AGE_KEY = AGE_QUESTION + SKETCH_QUESTION + ' (own look)';
+export const CLIP_AGE_KEY = AGE_QUESTION + ' (own look)';
+
 /** Only a bare YES is a doodle: anything else leaves the picture looked at as it was. */
 export function parseSketchAnswer(answer) {
     return String(answer || '').replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/[^A-Za-z]+/g, ' ').trim().toUpperCase() === 'YES';

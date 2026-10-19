@@ -124,7 +124,7 @@ and kept in the project's preview store (`_clipStill`). No still = refused.
 **Kept per file** (`cachedVerdicts`): each answer is saved in the card's sidecar as
 `meta[key] = { q, answer }` (`ageVerdict`, `exposedVerdict`, `clothesVerdict`), `q` the question's
 FNV hash, so a reworded question asks again. An edit never takes its source's answer (Fabio
-2026-10-19: a character aged up by an edit is judged as it now looks; `OWN_LOOK` re-asks the YESes
+2026-10-19: a character aged up by an edit is judged as it now looks; `PICTURE_AGE_KEY` re-asks the YESes
 once inherited). A picture with no card (an agent's path, a staged engine file) is asked every time.
 Precedent: `llmService.pictureCaptions`. So a new picture costs one describer call, a video of a
 picture minor a second, and every later run on it none.
