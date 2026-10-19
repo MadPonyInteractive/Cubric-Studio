@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1196", "at": "2026-10-19T03:24:55+01:00", "actor": "claude", "column": "doing", "title": "Video Edit: a picture of another shape is squeezed into the clip's frame (into the picture's room)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1196", "at": "2026-10-19T04:00:23+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Stretch fixed in a06a96432, CI 39190517743 green; Fabio's 9:16 eye test passed; late start split to MPI-1197"}
