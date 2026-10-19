@@ -43,6 +43,9 @@ export const RELEASE_NOTES = {
     whatIsNew: [],
     fixes: [
       '**Creating a RunPod network volume no longer says "Volume not created" when it was made.** RunPod sometimes answers with an error after making the volume. The app now finds that volume and selects it, so trying again no longer pays for a second one.',
+      '**Jobs no longer stall in the queue while a download-only RunPod is connected.** The first job ran, then every job behind it waited forever.',
+      '**Cosmo edits with Qwen-Image 2.1 first.** It used to try it last and could start an edit on Krea 2, the weakest editor, which is now its last pick.',
+      '**Cosmo uses a reference picture of several people or things whole.** It used to stop and ask which one you meant. It now sends the whole picture with each one named, and asks only when your words mean one and the picture cannot show which.',
     ],
     breakingChanges: [],
     importantChanges: [],
