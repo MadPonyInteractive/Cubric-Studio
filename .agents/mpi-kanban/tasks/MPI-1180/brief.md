@@ -54,7 +54,8 @@ Bump to the first tag AFTER v0.42.0, not v0.42.0 itself. v0.42.0 still has the S
 an illegal memory access", Comfy-Org/ComfyUI#17115). The fix, PR #17178 (7db08fe50), merged
 one commit after the v0.42.0 tag. A commit pin does not work: fresh installs download the
 tag's portable, and the in-place upgrade needs host git on Windows. 2.1 ships on 0.41.0 with
-the crash (Fabio, 2026-10-19); the restart is automatic.
+the crash (Fabio, 2026-10-19); the restart is automatic. When the release carrying the fix is
+out, close the public known-issue https://github.com/MadPonyInteractive/Cubric-Studio/issues/10.
 
 ## Done when
 
