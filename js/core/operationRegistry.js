@@ -61,7 +61,8 @@ export const OPERATION_REGISTRY = {
     ltxVideoUpscale: { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
     removeBackground: { latestVersion: '1.0', appVersionIntroduced: '1.1.0' },
     imageDescribe: { latestVersion: '1.0', appVersionIntroduced: '1.1.0' },
-    speechTranscribe: { latestVersion: '1.0', appVersionIntroduced: '2.0.1' },
+    controlMapDescribe: { latestVersion: '1.0', appVersionIntroduced: '2.1.0' },
+    speechTranscribe: { latestVersion: '1.0', appVersionIntroduced: '2.1.0' },
     autoMaskImg:  { latestVersion: '1.0', appVersionIntroduced: '0.0.1' },
     gifCutoutSam3: { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
     gifCutoutBirefnet: { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
@@ -93,18 +94,18 @@ export const OPERATION_REGISTRY = {
     flowScribObj: { latestVersion: '1.1', appVersionIntroduced: '2.0.0' },
     flowScribble: { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
     flowObjectStamp: { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
-    flowVideoEdit: { latestVersion: '1.0', appVersionIntroduced: '2.0.1' },
+    flowVideoEdit: { latestVersion: '1.0', appVersionIntroduced: '2.1.0' },
     // MPI-1042 — Character Sheet from Images.
-    flowCharacterSheetImages: { latestVersion: '1.0', appVersionIntroduced: '2.0.1' },
+    flowCharacterSheetImages: { latestVersion: '1.0', appVersionIntroduced: '2.1.0' },
     // MPI-1041 — the Character Sheet Editor flow, Klein and its Qwen-Image 2.1 twin.
-    flowCharacterSheetEdit: { latestVersion: '1.0', appVersionIntroduced: '2.0.1' },
-    flowCharacterSheetEditQwen: { latestVersion: '1.0', appVersionIntroduced: '2.0.1' },
+    flowCharacterSheetEdit: { latestVersion: '1.0', appVersionIntroduced: '2.1.0' },
+    flowCharacterSheetEditQwen: { latestVersion: '1.0', appVersionIntroduced: '2.1.0' },
     // MPI-1101 — the Make seamless flow.
-    flowMakeSeamless: { latestVersion: '1.0', appVersionIntroduced: '2.0.1' },
+    flowMakeSeamless: { latestVersion: '1.0', appVersionIntroduced: '2.1.0' },
     // MPI-607 — the Voice Changer flow, the first op that OUTPUTS audio.
     flowVoiceChanger: { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
     // MPI-1071 — the Transcribe flow: audio or video in, text + SRT out.
-    flowTranscribe: { latestVersion: '1.0', appVersionIntroduced: '2.0.1' },
+    flowTranscribe: { latestVersion: '1.0', appVersionIntroduced: '2.1.0' },
     // MPI-607 — the two TTS flows that join Voice Changer.
     // DEPRECATED (MPI-781): DramaBox left the app and is sold as a Flow package, which
     // registers under its own `user:drama-box` key. Same reason as `flowHeadSwap` above.
@@ -124,9 +125,9 @@ export const OPERATION_REGISTRY = {
     t2a:          { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
     tts:          { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
     // MPI-623 — the 3D Scene ops, through `enqueueGeneration`.
-    sceneConvert: { latestVersion: '1.0', appVersionIntroduced: '2.0.1' },
-    scenePathVideo: { latestVersion: '1.0', appVersionIntroduced: '2.0.1' }, // a card, through enqueueGeneration
-    flowPano360:  { latestVersion: '1.0', appVersionIntroduced: '2.0.1' }, // the 360 Panorama Flow
+    sceneConvert: { latestVersion: '1.0', appVersionIntroduced: '2.1.0' },
+    scenePathVideo: { latestVersion: '1.0', appVersionIntroduced: '2.1.0' }, // a card, through enqueueGeneration
+    flowPano360:  { latestVersion: '1.0', appVersionIntroduced: '2.1.0' }, // the 360 Panorama Flow
 };
 
 /**

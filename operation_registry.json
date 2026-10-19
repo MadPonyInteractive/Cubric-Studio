@@ -117,9 +117,14 @@
     "appVersionIntroduced": "1.1.0",
     "universal": true
   },
+  "controlMapDescribe": {
+    "latestVersion": "1.0",
+    "appVersionIntroduced": "2.1.0",
+    "universal": true
+  },
   "speechTranscribe": {
     "latestVersion": "1.0",
-    "appVersionIntroduced": "2.0.1",
+    "appVersionIntroduced": "2.1.0",
     "universal": true
   },
   "autoMaskImg": {
@@ -129,17 +134,17 @@
   },
   "sceneConvert": {
     "latestVersion": "1.0",
-    "appVersionIntroduced": "2.0.1",
+    "appVersionIntroduced": "2.1.0",
     "universal": true
   },
   "scenePathVideo": {
     "latestVersion": "1.0",
-    "appVersionIntroduced": "2.0.1",
+    "appVersionIntroduced": "2.1.0",
     "universal": true
   },
   "flowPano360": {
     "latestVersion": "1.0",
-    "appVersionIntroduced": "2.0.1",
+    "appVersionIntroduced": "2.1.0",
     "universal": true
   },
   "gifCutoutSam3": {
@@ -209,7 +214,7 @@
   },
   "flowTranscribe": {
     "latestVersion": "1.0",
-    "appVersionIntroduced": "2.0.1",
+    "appVersionIntroduced": "2.1.0",
     "universal": true
   },
   "flowDramaBox": {
@@ -239,27 +244,27 @@
   },
   "flowVideoEdit": {
     "latestVersion": "1.0",
-    "appVersionIntroduced": "2.0.1",
+    "appVersionIntroduced": "2.1.0",
     "universal": true
   },
   "flowCharacterSheetImages": {
     "latestVersion": "1.0",
-    "appVersionIntroduced": "2.0.1",
+    "appVersionIntroduced": "2.1.0",
     "universal": true
   },
   "flowCharacterSheetEdit": {
     "latestVersion": "1.0",
-    "appVersionIntroduced": "2.0.1",
+    "appVersionIntroduced": "2.1.0",
     "universal": true
   },
   "flowCharacterSheetEditQwen": {
     "latestVersion": "1.0",
-    "appVersionIntroduced": "2.0.1",
+    "appVersionIntroduced": "2.1.0",
     "universal": true
   },
   "flowMakeSeamless": {
     "latestVersion": "1.0",
-    "appVersionIntroduced": "2.0.1",
+    "appVersionIntroduced": "2.1.0",
     "universal": true
   },
   "flowTextToMusic": {
