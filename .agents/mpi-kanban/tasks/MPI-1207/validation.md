@@ -99,11 +99,27 @@ not padding - Fabio accepted it.
 Rule (Fabio): zooming in/out or adding content to fill the frame is fine, as i2i at a new size;
 only bands (padding) fail.
 
+## The toggle to copy (FLUX.3, pushed 86680e011, Fabio approved in-app - Flux.3 integration 6)
+
+- `customSize` control in `PromptBoxControls.js`: perOp, injects `Input_custom_size`, default `false`
+  in `promptControlDefaults.js`, emits `prompt:custom-size`. `visibleControlIds` shows it only where
+  `commands[op].sizeOptIn && modelShowsRatio(model, op)`.
+- The command lists `'customSize'` BEFORE `'qualityTier', 'ratio'` in `components` (`edit` does;
+  `kleinEdit` / `krea2Edit` / `qwenEdit` need it plus `sizeOptIn: true`).
+- `MpiPromptBox._applyCustomSize()` parks ratio + qualityTier while off (`.hide` AND removed from
+  `_activeControls`, so no Width/Height is injected). No remount: the settings queue is debounced and
+  a remount re-reads the stale value.
+- Agent path: `resolveNamedParams` (`generationControls.js`) gates on
+  `getCommandComponents(op).includes('customSize')`: a named ratio/qualityTier turns it on, else the
+  project's saved `customSize`, else off with no size.
+- `Input_custom_size` must NOT be in a model's opInject.
+- Tests to extend: `tests/flux3-custom-size.test.cjs`, `tests/desktop/prompt-box-custom-size.spec.js`.
+
 ## Phase 2 order
 
 1. Fabio changes the raws in ComfyUI per the table above (the `custom AND NOT masked` gate; Klein's
    `Flux2Scheduler` width/height too). Agents never script a raw.
 2. Bench each changed runtime graph (`research/bench.py` pattern): unmasked custom on (fills the
    frame), custom off (follows ref 1), masked (keeps the source frame).
-3. Wire once FLUX.3's toggle lands: `customSizeOps`, drop the op from `imageSizedOps`,
+3. Wire per the toggle shape above (it has landed): `customSizeOps`, drop the op from `imageSizedOps`,
    `sizeOptIn` + `qualityTier` on `kleinEdit` / `krea2Edit`, `Input_custom_size` from the toggle.
