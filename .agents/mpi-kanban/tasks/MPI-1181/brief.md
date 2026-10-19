@@ -359,6 +359,13 @@ forced on upscale (the user's button decides). Generator/sync concerns only: til
 prompt (CFG 1, so harmless), `Input_is_Turbo` baked true, `Input_Image` bakes a bench filename.
 **Tiers (Fabio, 2026-10-19): 1K / 2K / 4K, 1K = base**, built the way other 1K/2K models do it; community
 practice is base-resolution input + a megapixel control to go up.
+How the app does it today: a static `ratios` table per tier in `models.js` (Qwen 2.1 / Krea 2: `1k` ~1 MP,
+1:1 1024; `2k` long edge ~1920, 1:1 1472, every edge /32), injected as `Input_Width`/`Input_Height`. Plan:
+copy that table for `1k`/`2k`, and **`4k` = the `2k` table x2 per edge** (16:9 3840x2176, 1:1 2944, ~8.4 MP;
+exact ratios, every edge /64) - the megapixel step, no graph change. 8.4 MP is past BFL's stated 4 MP:
+one 4k t2i on the bench decides whether the row ships as-is.
+Pinned: MpiNodes 3d00c16 pushed + pinned (`b6dabd2e1`, 2026-10-19). 2.1.1 already shipped (MPI-1044 closed),
+so FLUX.3 lands in the NEXT release.
 
 **Custom size (Fabio, 2026-10-19):** FLUX.3 can set an edit's output size. Graph: `Input_custom_size` ->
 #798 `custom size AND NOT has_mask` -> #703 picks `EmptyFlux2LatentImage(W,H)` over the references'
