@@ -1347,8 +1347,10 @@ export function runAutoMask(payload) {
             // so listeners can show "Nothing detected".
             if (!_detectedFired) exec.onDetected?.([]);
         } catch (err) {
+            // MPI-1192: an engine error after the user's Stop is the Stop, not a failure.
+            if (_cancelled) clientLogger.warn('comfy', `autoMask: engine raised after Stop: ${err?.message || err}`);
             // MPI-856: a no-engine refusal already warned the user — no bug dialog on top.
-            if (err?.code !== NO_ENGINE_CODE) {
+            else if (err?.code !== NO_ENGINE_CODE) {
                 clientLogger.error('comfy', `autoMask workflow failed`, err);
                 Events.emit('ui:error', { title: 'Auto-mask failed', message: err.message });
             }
@@ -2826,6 +2828,14 @@ export function runCommand(payload) {
             });
         } catch (err) {
             closeComfyEventSource();
+            // MPI-1192: a Stop stays a cancel even when the engine raises while stopping
+            // (ComfyUI 0.41.0 can fault the GPU on an interrupt, Comfy-Org/ComfyUI#17115).
+            // The twins already do this; here it opened the "Generation failed" dialog.
+            if (generationStore.getSignal(jobId)?.aborted) {
+                clientLogger.warn('comfy', `Engine raised after Stop, ended as cancelled: ${err?.message || err}`);
+                await _abortedBail();
+                return;
+            }
             // Settle the store job to error (no-op if a Stop already reached the
             // `cancelled` terminal — an interrupt during runWorkflow throws here, but
             // store.cancel() already terminated the job). Non-terminal jobs become

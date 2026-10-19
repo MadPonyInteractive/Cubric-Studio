@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/task-files/v1", "files": ["js/services/commandExecutor.js", "tests/stop-after-engine-fault.test.cjs", ".agents/mpi-kanban/tasks/MPI-1192/"]}
