@@ -71,5 +71,18 @@ Working list: brief.md § "2026-10-14 status check" and § Blockers.
       is not out, run this session as written above.
       2026-10-18: the `--flows all` half is DONE by the v0.27.0-dev smoke above. Still owed here: the
       describe-encoder check (MPI-1045) and the MPI-1097 live proof, plus the clean RELEASE image.
+- [x] 2026-10-19 Fabio: bump to **v0.42.1** before tagging 2.1 (it carries the Stop-crash fix #17178, which
+      replaces the known issue). Pins e91ac4979 (core 63be2f9b, frontend 1.55.18, templates 0.11.89,
+      system_dependencies 0.42.1); no torch line moves, python_deps header only. Engine-line note restored
+      989bff8ef. Breaking-surface pass 0.41.0..0.42.1: no mesh nodes in our graphs; ce1e922d8 moves the Qwen
+      think-block, net-same conditioning for Krea 2 / Qwen-Image 2.1 / Boogu, but TextGenerate (Enhance,
+      Describe) may now reason before answering (parser strips it): eye-test Enhance + Describe once.
+      Local gate: MPI-1194 scratch portable moved in place git-less via shipped `comfyCheckoutSteps`
+      (3 pip pkgs), curated set installed, booted `--cpu` on 48199 (48188 = Fabio's engine, busy with the
+      video session): 0 IMPORT FAILED, floor 252/252. Bench G:\ComfyUi v0.42.1 (.bak-v0410), 252/252,
+      left running. npm test 3414/0. release:check refuses until the new smoke (expected).
+- [ ] Pod half (Fabio's go): re-run `--plan --all` (drift check), sync node_lock + python_deps into
+      mpi-ci, DEV image v0.28.0-dev (only POD_IMAGE_VERSION_DEV/_CPU_DEV), restart app, smoke
+      `--all --flows all` (~$1 last time, cap $5, new ~390 GB volume), then RELEASE image + stable pin.
 - [ ] Stamp 2.1 (`/mpi-version-bump`), `release:check`, `/mpi-release`.
 - [ ] Same day: Claude Desktop bundle 0.3.2 (public steps need Fabio's yes), website guides (MPI-1124).
