@@ -250,12 +250,12 @@
   "143": {
     "inputs": {
       "width": [
-        "232",
+        "240",
         0
       ],
       "height": [
-        "232",
-        1
+        "241",
+        0
       ],
       "batch_size": [
         "149",
@@ -645,6 +645,90 @@
     "class_type": "GetImageSize",
     "_meta": {
       "title": "Get Image Size"
+    }
+  },
+  "233": {
+    "inputs": {
+      "int": 1024
+    },
+    "class_type": "MpiInt",
+    "_meta": {
+      "title": "Input_Width"
+    }
+  },
+  "234": {
+    "inputs": {
+      "int": 1024
+    },
+    "class_type": "MpiInt",
+    "_meta": {
+      "title": "Input_Height"
+    }
+  },
+  "235": {
+    "inputs": {
+      "boolean": false
+    },
+    "class_type": "MpiSimpleBoolean",
+    "_meta": {
+      "title": "Input_custom_size"
+    }
+  },
+  "239": {
+    "inputs": {
+      "mode": "a_true_b_false",
+      "a": [
+        "235",
+        0
+      ],
+      "b": [
+        "231",
+        4
+      ]
+    },
+    "class_type": "MpiBooleanCompare",
+    "_meta": {
+      "title": "Mpi Boolean Compare"
+    }
+  },
+  "240": {
+    "inputs": {
+      "true": [
+        "233",
+        0
+      ],
+      "false": [
+        "232",
+        0
+      ],
+      "boolean": [
+        "239",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Mpi If Else"
+    }
+  },
+  "241": {
+    "inputs": {
+      "true": [
+        "234",
+        0
+      ],
+      "false": [
+        "232",
+        1
+      ],
+      "boolean": [
+        "239",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Mpi If Else"
     }
   }
 }

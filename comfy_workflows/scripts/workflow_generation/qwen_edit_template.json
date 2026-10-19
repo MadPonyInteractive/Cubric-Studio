@@ -102,7 +102,7 @@
     },
     "class_type": "TextEncodeQwenImageEditPlus",
     "_meta": {
-      "title": "TextEncodeQwenImageEditPlus"
+      "title": "Text Encode Qwen Image Edit Plus"
     }
   },
   "30": {
@@ -123,7 +123,7 @@
         0
       ],
       "latent_image": [
-        "215",
+        "312",
         0
       ],
       "seed": [
@@ -173,7 +173,7 @@
     },
     "class_type": "TextEncodeQwenImageEditPlus",
     "_meta": {
-      "title": "TextEncodeQwenImageEditPlus"
+      "title": "Text Encode Qwen Image Edit Plus"
     }
   },
   "37": {
@@ -586,6 +586,24 @@
       "title": "Input_Mask"
     }
   },
+  "204": {
+    "inputs": {
+      "int": 1088
+    },
+    "class_type": "MpiInt",
+    "_meta": {
+      "title": "Input_Width"
+    }
+  },
+  "205": {
+    "inputs": {
+      "int": 896
+    },
+    "class_type": "MpiInt",
+    "_meta": {
+      "title": "Input_Height"
+    }
+  },
   "206": {
     "inputs": {
       "image": "None",
@@ -921,6 +939,69 @@
     "class_type": "MpiAnySwitch",
     "_meta": {
       "title": "Mpi Any Switch"
+    }
+  },
+  "306": {
+    "inputs": {
+      "boolean": false
+    },
+    "class_type": "MpiSimpleBoolean",
+    "_meta": {
+      "title": "Input_custom_size"
+    }
+  },
+  "310": {
+    "inputs": {
+      "mode": "a_true_b_false",
+      "a": [
+        "306",
+        0
+      ],
+      "b": [
+        "202",
+        4
+      ]
+    },
+    "class_type": "MpiBooleanCompare",
+    "_meta": {
+      "title": "Mpi Boolean Compare"
+    }
+  },
+  "311": {
+    "inputs": {
+      "batch_size": 1,
+      "width": [
+        "204",
+        0
+      ],
+      "height": [
+        "205",
+        0
+      ]
+    },
+    "class_type": "EmptySD3LatentImage",
+    "_meta": {
+      "title": "EmptySD3LatentImage"
+    }
+  },
+  "312": {
+    "inputs": {
+      "true": [
+        "311",
+        0
+      ],
+      "false": [
+        "215",
+        0
+      ],
+      "boolean": [
+        "310",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Mpi If Else"
     }
   }
 }

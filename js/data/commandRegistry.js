@@ -409,10 +409,10 @@ export const commands = {
     // node: each extra reference costs ~14 s (1/2/3 refs = 20/30/44 s), so an unlimited
     // slot list would let a user build a job whose cost they cannot see.
     //
-    // Takes the style rack. `ratio` is listed in `components` but never shown: Klein
-    // names kleinEdit in its `imageSizedOps`, so modelShowsRatio() suppresses the picker
-    // and the edit follows the SOURCE image size. No qualityTier — Klein is
-    // orientation-mode, one output class.
+    // Takes the style rack. The ratio picker sits behind the Custom size button, off by
+    // default (MPI-1207, FLUX.3's shape): off, the edit follows the SOURCE image size; on,
+    // Klein (`customSizeOps`) sizes an unmasked edit from the ratio. The tier never mounts —
+    // Klein is orientation-mode, one output class.
     kleinEdit: {
         label: 'Edit',
         short: 'edit',
@@ -438,7 +438,8 @@ export const commands = {
             { key: 'inputImage3', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_3', required: false, ordinal: true },
         ],
         promptRequired: true,
-        components: ['styleSelect', 'stylization', 'ratio'],
+        components: ['styleSelect', 'stylization', 'customSize', 'qualityTier', 'ratio'],
+        sizeOptIn: true,
     },
     upscale: {
         label: 'Upscale',
@@ -524,7 +525,8 @@ export const commands = {
         // No Background (MPI-1049): Qwen-Image 2.1 keeps alpha on edit as on t2i.
         // krea2Turbo mounts only on `capabilities.turboToggle` — FLUX.3 Klein (MPI-1181).
         // ratio + qualityTier mount only for a model naming edit in `customSizeOps`
-        // (`sizeOptIn`, see modelShowsRatio): FLUX.3 sets the frame of an unmasked edit.
+        // (`sizeOptIn`, see modelShowsRatio): FLUX.3, Qwen-Image 2.1 and Boogu set the
+        // frame of an unmasked edit (MPI-1181, MPI-1207).
         // They sit behind `customSize` (off by default), which MUST come before them:
         // MpiPromptBox parks the two while it is off.
         components: ['styleSelect', 'stylization', 'transparentBackground', 'krea2Turbo', 'customSize', 'qualityTier', 'ratio'],
@@ -572,8 +574,9 @@ export const commands = {
         // injected unconditionally, so it is NOT `requiresMask` (which would force one).
         //
         // Styles + the style slider help the edit path, so they stay. No batch: Krea2's
-        // second sampler produces artifacts on batched follow-ups. `ratio` is listed but
-        // suppressed by Krea2's imageSizedOps — edit now follows the SOURCE image size.
+        // second sampler produces artifacts on batched follow-ups. Tier + ratio sit behind
+        // the Custom size button, off by default (MPI-1207): off, the edit follows the
+        // SOURCE image size; on, Krea2 (`customSizeOps`) sizes an unmasked edit from them.
         // NO ENHANCEMENT AT ALL on this op (MPI-310 session, and MPI-677's
         // ENHANCE_EXEMPT_OPS says the same for the whole edit family): the enhancer
         // actively harms it.
@@ -585,7 +588,8 @@ export const commands = {
         // "change" = soft), so paraphrasing silently flips edit strength. Edit adherence
         // is tuned by grounding_px, not prompt length. Tried and failed: a "clarify, don't
         // expand" enhancer prompt.
-        components: ['qualityTier', 'styleSelect', 'stylization', 'ratio', 'krea2Turbo'],
+        components: ['styleSelect', 'stylization', 'krea2Turbo', 'customSize', 'qualityTier', 'ratio'],
+        sizeOptIn: true,
     },
     qwenEdit: {
         label: 'Edit',
@@ -620,8 +624,11 @@ export const commands = {
         promptRequired: true,
         // Its own op, NOT the shared 'edit' (that one is Boogu's: no controls, one image).
         // Qwen needs the tier radio + its own style rack. Output follows the SOURCE image
-        // dimensions (ImageScaleToTotalPixels off the input), so there is no ratio picker.
-        components: ['qwenTier', 'styleSelect', 'stylization'],
+        // dimensions (ImageScaleToTotalPixels off the input) unless the Custom size button
+        // is on (MPI-1207): then the ratio sizes an unmasked edit, and the run's prompt
+        // gets the `canvasPrompt` line Qwen Edit needs to fill the new frame.
+        components: ['qwenTier', 'styleSelect', 'stylization', 'customSize', 'qualityTier', 'ratio'],
+        sizeOptIn: true,
         // Qwen's style LoRAs overpower the edit at full strength — 0.8 is the usable
         // default. Krea2's ops keep the global 1.0. `stylization` stores per MODEL, but
         // defaults resolve per OP (_resolveDefault), and qwenEdit is Qwen's alone, so a
@@ -2069,7 +2076,7 @@ export function modelShowsStyleRack(model, operation) {
 export function modelShowsRatio(model, operation) {
     if (!getCommandComponents(operation).includes('ratio')) return false;
     // An op that follows its source on every model but the ones naming it in
-    // `customSizeOps` (edit: FLUX.3 Klein alone picks its frame, MPI-1181).
+    // `customSizeOps` (MPI-1181, MPI-1207: the edit family's unmasked frame).
     if (commands[operation]?.sizeOptIn && !model?.customSizeOps?.includes(operation)) return false;
     const imageSized = Array.isArray(model?.imageSizedOps) ? model.imageSizedOps : [];
     return !imageSized.includes(operation);

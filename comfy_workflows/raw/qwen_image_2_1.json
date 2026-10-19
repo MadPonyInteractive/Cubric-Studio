@@ -1,8 +1,8 @@
 {
   "id": "575e77e9-f3c9-40fe-bb6d-2027e56af489",
   "revision": 0,
-  "last_node_id": 127,
-  "last_link_id": 330,
+  "last_node_id": 130,
+  "last_link_id": 335,
   "nodes": [
     {
       "id": 1,
@@ -608,7 +608,7 @@
           "type": "BOOLEAN",
           "links": [
             153,
-            182
+            333
           ]
         }
       ],
@@ -2231,7 +2231,7 @@
           "widget": {
             "name": "switch"
           },
-          "link": 182
+          "link": 335
         }
       ],
       "outputs": [
@@ -2676,7 +2676,8 @@
           "links": [
             199,
             204,
-            237
+            237,
+            332
           ]
         }
       ],
@@ -7974,6 +7975,174 @@
         "string_b": "",
         "delimiter": " "
       }
+    },
+    {
+      "id": 128,
+      "type": "MpiSimpleBoolean",
+      "pos": [
+        100,
+        6774
+      ],
+      "size": [
+        270,
+        58
+      ],
+      "flags": {},
+      "order": 212,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "boolean",
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "boolean"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "boolean",
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "links": [
+            331
+          ]
+        }
+      ],
+      "title": "Input_custom_size",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
+        "Node name for S&R": "MpiSimpleBoolean"
+      },
+      "widgets_values": [
+        false
+      ],
+      "widgets_values_named": {
+        "boolean": false
+      }
+    },
+    {
+      "id": 129,
+      "type": "MpiBooleanCompare",
+      "pos": [
+        2517.44140625,
+        822
+      ],
+      "size": [
+        210,
+        78
+      ],
+      "flags": {},
+      "order": 213,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "a",
+          "name": "a",
+          "type": "BOOLEAN",
+          "link": 331
+        },
+        {
+          "localized_name": "b",
+          "name": "b",
+          "type": "BOOLEAN",
+          "link": 332
+        },
+        {
+          "localized_name": "mode",
+          "name": "mode",
+          "type": "COMBO",
+          "widget": {
+            "name": "mode"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "result",
+          "name": "result",
+          "type": "BOOLEAN",
+          "links": [
+            334
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "3d00c1633f92c2166dd3facbc9d641cff8a196f9",
+        "Node name for S&R": "MpiBooleanCompare"
+      },
+      "widgets_values": [
+        "a_true_b_false"
+      ],
+      "widgets_values_named": {
+        "mode": "a_true_b_false"
+      },
+      "title": "Custom Size Unmasked"
+    },
+    {
+      "id": 130,
+      "type": "MpiBooleanCompare",
+      "pos": [
+        2517.44140625,
+        982
+      ],
+      "size": [
+        210,
+        78
+      ],
+      "flags": {},
+      "order": 214,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "a",
+          "name": "a",
+          "type": "BOOLEAN",
+          "link": 333
+        },
+        {
+          "localized_name": "b",
+          "name": "b",
+          "type": "BOOLEAN",
+          "link": 334
+        },
+        {
+          "localized_name": "mode",
+          "name": "mode",
+          "type": "COMBO",
+          "widget": {
+            "name": "mode"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "result",
+          "name": "result",
+          "type": "BOOLEAN",
+          "links": [
+            335
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "3d00c1633f92c2166dd3facbc9d641cff8a196f9",
+        "Node name for S&R": "MpiBooleanCompare"
+      },
+      "widgets_values": [
+        "a_true_b_false"
+      ],
+      "widgets_values_named": {
+        "mode": "a_true_b_false"
+      },
+      "title": "Keep Source Canvas"
     }
   ],
   "links": [
@@ -8200,14 +8369,6 @@
       31,
       1,
       "INT"
-    ],
-    [
-      182,
-      11,
-      4,
-      32,
-      2,
-      "BOOLEAN"
     ],
     [
       183,
@@ -9376,6 +9537,46 @@
       36,
       3,
       "STRING"
+    ],
+    [
+      331,
+      128,
+      0,
+      129,
+      0,
+      "BOOLEAN"
+    ],
+    [
+      332,
+      40,
+      4,
+      129,
+      1,
+      "BOOLEAN"
+    ],
+    [
+      333,
+      11,
+      4,
+      130,
+      0,
+      "BOOLEAN"
+    ],
+    [
+      334,
+      129,
+      0,
+      130,
+      1,
+      "BOOLEAN"
+    ],
+    [
+      335,
+      130,
+      0,
+      32,
+      2,
+      "BOOLEAN"
     ]
   ],
   "groups": [
@@ -9400,7 +9601,8 @@
         5540.045424623843,
         1176.333333333334
       ]
-    }
+    },
+    "linkExtensions": []
   },
   "version": 0.4
 }

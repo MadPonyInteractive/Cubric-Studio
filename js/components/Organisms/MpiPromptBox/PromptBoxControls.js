@@ -1399,8 +1399,15 @@ export const PROMPT_BOX_CONTROLS = {
         getValue() {
             return this.value === true;
         },
+        // A drawn mask keeps the source frame (the graph's `custom AND NOT masked` gate), so
+        // the button greys out and sends false while one exists (MPI-1207). The user's
+        // choice is kept and comes back when the mask is cleared.
+        setMasked(masked) {
+            this.masked = !!masked;
+            this._instance?.el?.setDisabled?.(this.masked);
+        },
         getInjectionParams() {
-            return { Input_custom_size: this.value === true };
+            return { Input_custom_size: this.value === true && !this.masked };
         },
     },
 

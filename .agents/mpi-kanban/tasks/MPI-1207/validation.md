@@ -123,3 +123,64 @@ only bands (padding) fail.
    frame), custom off (follows ref 1), masked (keeps the source frame).
 3. Wire per the toggle shape above (it has landed): `customSizeOps`, drop the op from `imageSizedOps`,
    `sizeOptIn` + `qualityTier` on `kleinEdit` / `krea2Edit`, `Input_custom_size` from the toggle.
+
+## Phase 3 wiring - app side done ahead of the graphs (2026-10-19, session "Custom edit option for models 2")
+
+UNCOMMITTED until Phase 2 benches pass: today the graphs ignore `Input_custom_size`, so the button
+would do nothing on these models.
+
+- `kleinEdit` / `krea2Edit` / `qwenEdit`: `sizeOptIn` + `customSize, qualityTier, ratio` (FLUX.3 order).
+  Krea2's edit tier radio injected nothing before (dead control); it now sits behind the button.
+- `customSizeOps`: Klein 4B/9B `kleinEdit`, Krea2/NSFW `krea2Edit`, Qwen Edit `qwenEdit`,
+  Qwen-Image 2.1 / Boogu high / balanced `edit`; each op dropped from `imageSizedOps`.
+  Klein, Boogu, Qwen Edit are orientation-mode (ratio only; Boogu + Qwen Edit use the SDXL 1 MP fallback set).
+- Qwen Edit `canvasPrompt: true`: `commandExecutor` prepends `TARGET CANVAS: <ratio>` and appends
+  "Fill the whole picture edge to edge, no borders." on a custom-size, UNMASKED run (`withCanvasPrompt`,
+  generationControls.js). Wording differs from the bench prompt (scene-specific) - Phase 2 bench must use it.
+- Checks: `node --test` full suite 3441 pass, 1 fail = op-strip-availability's old Klein `imageSizedOps` pin, updated and re-run green;
+  `tests/flux3-custom-size.test.cjs` 8/8 (family loop + canvas line); desktop
+  `prompt-box-custom-size.spec.js` passes off/on/off on flux3, klein-4b, krea2, qwen-image-2-1,
+  boogu-edit-high, qwen-edit; eslint clean.
+
+## Phase 2 - raw graphs edited by the agent (Fabio's permission, 2026-10-20)
+
+Fabio asked the agent to add the nodes itself, keeping `raw/` LiteGraph (never API). Done with a
+clone-and-wire script (scratchpad `lgedit.py`): new nodes are clones of FLUX.3's (#700 / #703 / #798 /
+#704) or of the graph's own Get/Set/MpiInt, placed in free space by their group, each raw written back in
+ITS OWN formatting (Krea2's raw is minified one-line, the rest indented; a whole-file rewrite was caught and
+reverted), dead reroute ids purged. Then `workflow-to-api.mjs` + `validate-injection-rules.mjs` (all pass) +
+`orchestrate.py` (one-off `bake.mjs`, the sync script minus its auto-commit). Runtime semantic diff = only
+the new nodes + the rewired inputs (Qwen Edit also picks up two cosmetic display-name changes on untitled
+encoders from the newer ComfyUI).
+
+| raw | added | rewired |
+|---|---|---|
+| `klein_t2i_template` (4B + 9B) | Input_custom_size + Set, Get_custom size / Get_has_mask -> MpiBooleanCompare a_true_b_false, Get_W/Get_H -> EmptyFlux2LatentImage, 3 MpiIfElse | `185.latent_image`, `173 Flux2Scheduler` width/height |
+| `krea2_t2i_template` (SFW + NSFW) | Input_custom_size + Set, gate, MpiIfElse(560 empty, Get_Empty_latent_Resized) | `561.any_4` |
+| `qwen_image_2_1` | Input_custom_size (plain wires, no Get/Set in this graph), `Custom Size Unmasked` + `Keep Source Canvas` compares | `32 Edit Canvas`.switch = image loaded AND NOT gate |
+| `boogu_edit_template` (high + balanced) | NEW Input_Width / Input_Height (1024), Input_custom_size + Set, gate, 2 MpiIfElse | `143 EmptyLatentImage` width/height (Set_W/Set_H left as they were) |
+| `qwen_edit_template` | Input_custom_size + Set, gate, EmptySD3LatentImage, MpiIfElse; UNMUTED Input_Width/Height + Set_W/Set_H (were mode 4) | `30.latent_image` |
+
+Mask button (Fabio, in-app look): a drawn mask greys Custom size out, parks ratio + tier and sends
+`Input_custom_size: false` - FLUX.3 included. Signal = `_context.hasMask`, the same flag Detail /
+Inpaint use (`requiresMask`). Desktop spec covers masked -> unmasked on all six models.
+
+Bench 2 (`research/bench2.py`, shipped runtimes, no patch; output size asserted):
+
+| model | on (1024x1024, unmasked) | off (no size) | mask (custom on + mask) |
+|---|---|---|---|
+| Klein 4B | 9 s, 1024x1024, fills | 9 s, 768x1376 (source shape) | 18 s, 571x1021 source frame, edit inside the mask only |
+| Klein 9B | 27 s, fills | 16 s, 768x1376 | 30 s, 571x1021 |
+| Qwen-Image 2.1 | 52 s, fills | 36 s, 768x1376 | 61 s, 571x1021 |
+| Boogu balanced | 39 s, fills by zooming (accepted) | 27 s, 768x1376 | 30 s, 571x1021 |
+| Krea2 SFW | 253 s, fills, doorway outpainted | 406 s, 768x1376 | 424 s, 571x1021 |
+| Qwen Edit (tier 3) | 60 s, 1024x1024 BUT black bands with the first canvas tail | 48 s, 768x1376 | 45 s, 571x1021 |
+
+All 18 sizes PASS (asserted in bench2.py). Qwen Edit's canvas tail, same seed, 3 wordings at 1:1: "Fill the whole
+picture edge to edge, no borders" = bands; "Extend the scene outward on every side so it fills the whole picture
+edge to edge. No black bars, no borders, no padding." = clean fill; a "widen the view ... left and right" variant =
+clean; "recompose ... never leave bands" = bands. At 16:9 (1344x768) the old tail made a three-panel collage, the
+"extend outward" tail a coherent wide room. `withCanvasPrompt` now uses "extend outward". One seed per wording:
+a different seed could still band - Fabio's in-app look is the wider check.
+Masked input must sit inside ComfyUI input/ (MpiLoadImage refuses other absolute paths) - a bench trap, not an app one.
+Full unit suite after the graph change: 3442 pass, 0 fail.

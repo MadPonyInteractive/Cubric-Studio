@@ -252,10 +252,13 @@ test('the ratio picker is hidden only on a model\'s declared image-sized ops', a
     assert.strictEqual(modelShowsRatio(null, 'control'), true, 'no model = no gate');
 });
 
-test('Klein declares exactly the two ops that derive their own size', async () => {
+test('Klein declares exactly the ops that derive their own size', async () => {
     const { getModelById } = await import('../js/data/modelRegistry.js');
     const klein = getModelById('klein-4b');
-    assert.deepStrictEqual(klein.imageSizedOps, ['control', 'kleinEdit']);
+    // kleinEdit moved to customSizeOps (MPI-1207): it follows the source unless the
+    // Custom size button is on, and modelShowsRatio gates it through `sizeOptIn`.
+    assert.deepStrictEqual(klein.imageSizedOps, ['control']);
+    assert.deepStrictEqual(klein.customSizeOps, ['kleinEdit']);
     // Every declared op must be one this model actually runs, or the entry is dead.
     for (const op of klein.imageSizedOps) {
         assert.ok(klein.supportedOps.includes(op), `${op} must be in supportedOps`);

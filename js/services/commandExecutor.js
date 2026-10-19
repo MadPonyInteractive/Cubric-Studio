@@ -26,7 +26,7 @@ import { remoteEngineClient } from './remoteEngineClient.js';
 import { resolveDeps, resolveWorkflowFile, variantDepsOf, archVariantOptions } from '../data/modelConstants/resolveModelDeps.js';
 import { downloadService } from './downloadService.js';
 import { COMMANDS, getCommandMediaInputs, filterMediaInputsForModel, stripOrdinalMediaRoles, commandIsMultiStage } from '../data/commandRegistry.js';
-import { withTransparentPrompt } from '../data/generationControls.js';
+import { withTransparentPrompt, withCanvasPrompt } from '../data/generationControls.js';
 import { Events } from '../events.js';
 import { clientLogger } from './clientLogger.js';
 import { state } from '../state.js';
@@ -953,6 +953,14 @@ function _buildParams(payload) {
             params.Input_Positive = withTransparentPrompt(modelDef, params.Input_Positive);
         }
         delete params.Transparent_Background;
+    }
+
+    // Custom size on a `canvasPrompt` model (MPI-1207, Qwen Edit) needs the frame in the
+    // prompt to fill it. Same single point as above; a masked edit keeps the source frame
+    // (the graph's `custom AND NOT masked` gate), so it gets no line.
+    if (modelDef?.canvasPrompt && params.Input_custom_size === true && !payload.maskDataUrl) {
+        params.Input_Positive = withCanvasPrompt(params.Input_Positive,
+            params.Ratio_Label || `${params.Width}x${params.Height}`);
     }
 
     if (commandIsMultiStage(payload.operation)) {

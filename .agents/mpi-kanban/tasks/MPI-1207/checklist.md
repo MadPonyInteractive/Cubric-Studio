@@ -10,12 +10,14 @@
 
 ## Phase 2 - graphs (Fabio in ComfyUI) + bench
 
-- [ ] Fabio changes each raw: `custom AND NOT masked` gate on the edit latent (Klein: Flux2Scheduler W/H too; Boogu, Qwen Edit: add Input_Width/Height)
+- [x] Raws changed (agent, Fabio permission 2026-10-20): `custom AND NOT masked` gate on every edit latent; runtimes regenerated
 - [ ] Regenerate runtimes, bench each: custom on fills / custom off follows ref 1 / masked keeps source frame
+
+- [x] Custom size greyed out + false while a mask is drawn (all models, FLUX.3 too)
 
 ## Phase 3 - wiring (after FLUX.3's "Custom size" toggle lands)
 
-- [ ] customSizeOps + drop op from imageSizedOps per model
-- [ ] sizeOptIn + qualityTier on kleinEdit / krea2Edit (/ qwenEdit if wired)
-- [ ] Input_custom_size from the toggle; canvas line where the model needs it (FLUX.3, Qwen Edit)
+- [x] customSizeOps + drop op from imageSizedOps per model (2026-10-19, uncommitted until the graphs bench)
+- [x] sizeOptIn + customSize + qualityTier on kleinEdit / krea2Edit / qwenEdit
+- [x] Input_custom_size from the toggle; canvas line on Qwen Edit (`canvasPrompt`, commandExecutor, unmasked only)
 - [ ] Cloud: one paid probe per family (price stated first), then decide

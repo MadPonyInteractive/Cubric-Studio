@@ -1015,12 +1015,12 @@
         0
       ],
       "width": [
-        "186",
+        "698",
         0
       ],
       "height": [
-        "186",
-        1
+        "699",
+        0
       ]
     },
     "class_type": "Flux2Scheduler",
@@ -1115,7 +1115,7 @@
         0
       ],
       "latent_image": [
-        "163",
+        "697",
         0
       ]
     },
@@ -2309,6 +2309,109 @@
       ],
       "boolean": [
         "687",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Mpi If Else"
+    }
+  },
+  "689": {
+    "inputs": {
+      "boolean": false
+    },
+    "class_type": "MpiSimpleBoolean",
+    "_meta": {
+      "title": "Input_custom_size"
+    }
+  },
+  "693": {
+    "inputs": {
+      "mode": "a_true_b_false",
+      "a": [
+        "689",
+        0
+      ],
+      "b": [
+        "296",
+        4
+      ]
+    },
+    "class_type": "MpiBooleanCompare",
+    "_meta": {
+      "title": "Mpi Boolean Compare"
+    }
+  },
+  "696": {
+    "inputs": {
+      "batch_size": 1,
+      "width": [
+        "324",
+        0
+      ],
+      "height": [
+        "325",
+        0
+      ]
+    },
+    "class_type": "EmptyFlux2LatentImage",
+    "_meta": {
+      "title": "Empty Flux 2 Latent"
+    }
+  },
+  "697": {
+    "inputs": {
+      "true": [
+        "696",
+        0
+      ],
+      "false": [
+        "163",
+        0
+      ],
+      "boolean": [
+        "693",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Mpi If Else"
+    }
+  },
+  "698": {
+    "inputs": {
+      "true": [
+        "324",
+        0
+      ],
+      "false": [
+        "186",
+        0
+      ],
+      "boolean": [
+        "693",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Mpi If Else"
+    }
+  },
+  "699": {
+    "inputs": {
+      "true": [
+        "325",
+        0
+      ],
+      "false": [
+        "186",
+        1
+      ],
+      "boolean": [
+        "693",
         0
       ]
     },

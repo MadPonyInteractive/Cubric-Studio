@@ -394,8 +394,8 @@
         2
       ],
       "switch": [
-        "11",
-        4
+        "130",
+        0
       ]
     },
     "class_type": "ComfySwitchNode",
@@ -1678,6 +1678,49 @@
     "class_type": "StringConcatenate",
     "_meta": {
       "title": "prompt + style trigger"
+    }
+  },
+  "128": {
+    "inputs": {
+      "boolean": false
+    },
+    "class_type": "MpiSimpleBoolean",
+    "_meta": {
+      "title": "Input_custom_size"
+    }
+  },
+  "129": {
+    "inputs": {
+      "mode": "a_true_b_false",
+      "a": [
+        "128",
+        0
+      ],
+      "b": [
+        "40",
+        4
+      ]
+    },
+    "class_type": "MpiBooleanCompare",
+    "_meta": {
+      "title": "Custom Size Unmasked"
+    }
+  },
+  "130": {
+    "inputs": {
+      "mode": "a_true_b_false",
+      "a": [
+        "11",
+        4
+      ],
+      "b": [
+        "129",
+        0
+      ]
+    },
+    "class_type": "MpiBooleanCompare",
+    "_meta": {
+      "title": "Keep Source Canvas"
     }
   }
 }

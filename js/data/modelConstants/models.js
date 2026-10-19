@@ -20,7 +20,8 @@
  * @property {string[]} [qualityTiers] - Ordered quality-tier ids for a NEW `type` (MPI-174), e.g. ['low','medium','high']. Presence ⇒ quality UI mode (tier radio); absent + `ratios` present ⇒ orientation mode. Consumed via qualityTiersFor() in js/utils/ratios.js and the v3 project migration.
  * @property {Record<string, Object>} [opInject] - Per-OP constant workflow params THIS model always injects, keyed by operation id then node title (MPI-354). For a model whose ops are branches of ONE master graph selected by a value private to that model — FLUX.2 Klein maps each op to an `Input_wf_type` int, a numbering no shared op could own. Merged in commandExecutor._buildParams AFTER the op's own `injectParams` and BEFORE the user's controls. A model that declares this MUST cover every op in `supportedOps`: a missing entry does not error, it runs the graph's default branch and returns the wrong operation's output, so the executor warns on a gap. Prefer the op's `injectParams` when the constant is a property of the OP rather than of this model.
  * @property {string[]} [styleOps] - Operations where this model's style rack is live (MPI-354). REQUIRED for any model with `capabilities.styleLoras` — the old DEFAULT_STYLE_OPS fallback was deleted in MPI-365 once all six style models declared their own, so an undeclared model now shows no rack anywhere (loud and one line to fix, rather than silently inheriting a reach wrong for its graph). Only consulted when `capabilities.styleLoras` is true; the op's `components` still decides whether the control exists at all.
- * @property {string[]} [customSizeOps] - The inverse, for an op that follows its source on every other model (a command with `sizeOptIn`, today `edit`): this model takes the ratio + tier picker there and sizes the output from `Input_Width`/`Input_Height` (MPI-1181, FLUX.3 Klein).
+ * @property {string[]} [customSizeOps] - The inverse, for an op that follows its source on every other model (a command with `sizeOptIn`: `edit`, `kleinEdit`, `krea2Edit`, `qwenEdit`): this model takes the ratio + tier picker there and sizes the output from `Input_Width`/`Input_Height` (MPI-1181, FLUX.3 Klein; the edit family, MPI-1207). The picker sits behind the Custom size button, off by default.
+ * @property {boolean} [canvasPrompt] - On a custom-size run (`Input_custom_size` true) the run's prompt opens with a `TARGET CANVAS` line naming the frame (MPI-1207, Qwen Edit): without it the model bands the new frame instead of filling it. The prompt of record stays the user's.
  * @property {string[]} [imageSizedOps] - Operations whose OUTPUT SHAPE comes from the input image rather than from `Input_Width`/`Input_Height` (MPI-354) — typically because the graph scales the input to a megapixel target. The ratio picker is hidden on these ops (see modelShowsRatio in commandRegistry.js); everything else about them is unchanged. Defaults to none, so every model that does not declare it keeps the picker on every op exactly as before. This is a property of the MODEL's graph, not of the op: every model's `control` now derives its size from the input, but each does so through a different node and SDXL's did NOT until the MPI-365 master template swapped its ControlNet branch onto ImageScaleToTotalPixels. VERIFY IN THE GRAPH, never from the op name — Chroma's depth was mis-declared for exactly that reason until 2026-08-02, and the symptom was a padded gallery card, not an error.
  * @property {Record<string, *>} [controlDefaults] - Per-MODEL starting values for PromptBox controls, keyed by control id (MPI-365) — e.g. `{ stylization: 0.6 }`. Resolved in PromptBoxControls._resolveDefault AFTER an op default and BEFORE the global PROMPT_CONTROL_DEFAULTS, so an op-specific default still wins and every undeclared model is unaffected. Use this when the right starting value is a property of the MODEL's weights rather than of the op: a heavily distilled checkpoint whose style LoRAs artefact at full strength wants one number across its whole rack, which an op default (shared by every model running that op) cannot express. This sets only the STARTING value; where an edited value is stored is still the control's `scope`.
  * @property {string[]} [controlTypes] - Which structures this model's `control` op can copy, as CONTROL_TYPES ids, in PICKER ORDER (MPI-365). The value injected into `Input_Control_Net` comes from CONTROL_TYPES in commandRegistry.js, NOT from this list's order, so display order is free — SDXL lists depth first while its graph numbers pose first. A list of ONE (Klein/Krea2/Chroma, depth-only) hides the picker entirely, which is correct: those graphs have no `Input_Control_Net` node to switch. Declaring a type the graph cannot run is the silent failure this field exists to prevent — the switch falls through to its baked branch and returns a plausible image made the wrong way, so VERIFY against the graph's own Control note before adding one.
@@ -730,7 +731,10 @@ const ALL_MODELS = [
         // MPI-365: every op EXCEPT t2i/i2i now derives its output shape from the input
         // image (ImageScaleToTotalPixels replaced ImageResizeKJv2), so the ratio picker
         // is hidden there. t2i/i2i still generate at our Input_Width/Height.
-        imageSizedOps: ['control', 'krea2Edit', 'detail', 'upscale'],
+        imageSizedOps: ['control', 'detail', 'upscale'],
+        // Unmasked edit takes the ratio picker behind the Custom size button, off by default
+        // (MPI-1207, FLUX.3's shape): off, the edit follows the source as above.
+        customSizeOps: ['krea2Edit'],
         styleLoraLabels: [
             'None', 'Dark Brush', 'Dot Matrix', 'Kids Drawing', 'Neon Drip',
             'Rainy Window', 'Retro Anime', 'Soft Water Color', 'Sunset Blur', 'Vintage Tarot',
@@ -863,7 +867,10 @@ const ALL_MODELS = [
         // MPI-365: every op EXCEPT t2i/i2i now derives its output shape from the input
         // image (ImageScaleToTotalPixels replaced ImageResizeKJv2), so the ratio picker
         // is hidden there. t2i/i2i still generate at our Input_Width/Height.
-        imageSizedOps: ['control', 'krea2Edit', 'detail', 'upscale'],
+        imageSizedOps: ['control', 'detail', 'upscale'],
+        // Unmasked edit takes the ratio picker behind the Custom size button, off by default
+        // (MPI-1207, FLUX.3's shape): off, the edit follows the source as above.
+        customSizeOps: ['krea2Edit'],
         styleLoraLabels: [
             'None', 'Dark Brush', 'Dot Matrix', 'Kids Drawing', 'Neon Drip',
             'Rainy Window', 'Retro Anime', 'Soft Water Color', 'Sunset Blur', 'Vintage Tarot',
@@ -1043,7 +1050,10 @@ const ALL_MODELS = [
         // Ops whose output shape comes from the INPUT image (scaled to a megapixel
         // target), not from Input_Width/Height — so the ratio picker is hidden there.
         // Klein's depth and edit branches both do this; t2i/i2i still take our ratio.
-        imageSizedOps: ['control', 'kleinEdit'],
+        imageSizedOps: ['control'],
+        // Unmasked edit takes the ratio picker behind the Custom size button, off by default
+        // (MPI-1207, FLUX.3's shape): off, the edit follows the source as above.
+        customSizeOps: ['kleinEdit'],
         // Index-aligned with the MpiStyleSelector's trigger lines and its MpiStyleLoras
         // banks (verified against the baked graph: bank 1 = muppets/cartoon/jojo/anime/
         // chibi, bank 2 = doodle/vintage/aesthetic). Index 0 = no style, selector 0.
@@ -1169,7 +1179,8 @@ const ALL_MODELS = [
         // Same reach as 4B: the rack lives in the ONE graph both sizes are baked from, so
         // it is live on every op including detail and upscale.
         styleOps: ['t2i', 'i2i', 'control', 'kleinEdit', 'inpaint', 'detail', 'upscale'],
-        imageSizedOps: ['control', 'kleinEdit'],
+        imageSizedOps: ['control'],
+        customSizeOps: ['kleinEdit'],   // as 4B (MPI-1207)
         // Index-aligned with the 9B graph's trigger lines and its MpiStyleLoras banks
         // (bank 1 = cartoon/comic/anime/chibi/doodle, bank 2 = vintage/aesthetic + three
         // empty slots). Index 0 = no style, selector 0. SEVEN styles — the labels are NOT
@@ -1235,7 +1246,8 @@ const ALL_MODELS = [
     //
     // Op = the existing `edit` (image+prompt → whole-image edit, dims from source,
     // no ratio picker). `type: 'boogu'` is new → only consumer is `enhanceRecipe ??
-    // type` (set below). No ratios/qualityTiers: edit has no size selector, like PiD.
+    // type` (set below). No ratios/qualityTiers: the Custom size button (MPI-1207) gives
+    // edit the fallback 1 MP ratio set, one output class.
     // User LoRA rack (Input_Lora_1..6) is live → settings gear shown, model-only.
     // High/Balanced run cfg 4/3.5 (negatives fire); Low is turbo cfg 1 (negatives
     // ignored, negativePrompt:false).
@@ -1257,6 +1269,9 @@ const ALL_MODELS = [
         workflows: {
             edit: 'boogu_edit_high.json',
         },
+        // Custom size button on edit (MPI-1207): off follows the source; on, an unmasked
+        // edit fills the picked frame (it zooms rather than outpaints - accepted).
+        customSizeOps: ['edit'],
         dependencies: [
             'boogu-edit-transformer-high',
             'qwen3vl-8b-int8-clip',
@@ -1289,6 +1304,9 @@ const ALL_MODELS = [
         workflows: {
             edit: 'boogu_edit_balanced.json',
         },
+        // Custom size button on edit (MPI-1207): off follows the source; on, an unmasked
+        // edit fills the picked frame (it zooms rather than outpaints - accepted).
+        customSizeOps: ['edit'],
         dependencies: [
             'boogu-edit-transformer-balanced',
             'qwen3vl-8b-int8-clip',
@@ -1832,7 +1850,13 @@ const ALL_MODELS = [
         // Every Qwen op keeps the SOURCE image dimensions (ImageScaleToTotalPixels off
         // the input; Input_Width/Height were bypassed out of the graph), so the ratio
         // picker is hidden on all of them.
-        imageSizedOps: ['qwenEdit', 'control'],
+        imageSizedOps: ['control'],
+        // Unmasked edit takes the ratio picker behind the Custom size button, off by default
+        // (MPI-1207, FLUX.3's shape): off, the edit follows the source as above.
+        // A plain prompt leaves bands and crops the subject at a new frame; the canvas
+        // line makes it fill (bench 2026-10-19), so a custom-size run gets it prepended.
+        customSizeOps: ['qwenEdit'],
+        canvasPrompt: true,
         // INDEX-ALIGNED with the workflow's seven MpiMath gates (`b if a == N`) and its
         // MpiPromptList trigger lines; index 0 = no style (every gate zeroed). NOTE the
         // two anime entries: slot 2 is Qwen-Anime-V2 (3D) and slot 3 is animal_style.
@@ -1954,9 +1978,12 @@ const ALL_MODELS = [
             'qwen-image-21-style-detailfix.webp', 'qwen-image-21-style-naturalexposure.webp',
             'qwen-image-21-style-clay.webp',
         ],
-        // edit follows reference 1 (the encoder's latent); control is sized on the input;
-        // detail stitches back into the source; upscale is the source times the factor.
-        imageSizedOps: ['edit', 'control', 'detail', 'upscale'],
+        // control is sized on the input; detail stitches back into the source; upscale is
+        // the source times the factor.
+        imageSizedOps: ['control', 'detail', 'upscale'],
+        // Edit follows reference 1 (the encoder's latent) unless the Custom size button is
+        // on (MPI-1207): then an unmasked edit takes the ratio + tier picker.
+        customSizeOps: ['edit'],
         qualityTiers: ['1k', '2k'],
         // Krea 2's grid: 1k is the FLUX set, 2k the larger class. Every edge is /32.
         ratios: {

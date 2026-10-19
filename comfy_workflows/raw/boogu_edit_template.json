@@ -1,8 +1,8 @@
 {
   "id": "9320dd74-7214-4c6d-83ce-e4aabf5fc1e9",
   "revision": 0,
-  "last_node_id": 232,
-  "last_link_id": 398,
+  "last_node_id": 241,
+  "last_link_id": 409,
   "nodes": [
     {
       "id": 58,
@@ -372,7 +372,7 @@
           "name": "INT",
           "type": "INT",
           "links": [
-            270
+            406
           ]
         }
       ],
@@ -414,7 +414,7 @@
           "name": "INT",
           "type": "INT",
           "links": [
-            269
+            403
           ]
         }
       ],
@@ -1625,7 +1625,7 @@
           "widget": {
             "name": "width"
           },
-          "link": 269
+          "link": 408
         },
         {
           "name": "height",
@@ -1633,7 +1633,7 @@
           "widget": {
             "name": "height"
           },
-          "link": 270
+          "link": 409
         },
         {
           "name": "batch_size",
@@ -3268,6 +3268,410 @@
         "32",
         "gpu (much faster)"
       ]
+    },
+    {
+      "id": 233,
+      "type": "MpiInt",
+      "pos": [
+        2270.7569855754405,
+        3916.9110087960544
+      ],
+      "size": [
+        210,
+        58
+      ],
+      "flags": {},
+      "order": 70,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "int",
+          "type": "INT",
+          "links": [
+            402
+          ]
+        }
+      ],
+      "title": "Input_Width",
+      "properties": {
+        "Node name for S&R": "MpiInt",
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "ba4b37ae349d7bb55e06c4b4c57b039a9abd1b04"
+      },
+      "widgets_values": [
+        1024
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 234,
+      "type": "MpiInt",
+      "pos": [
+        2270.7569855754405,
+        4036.9110087960544
+      ],
+      "size": [
+        210,
+        58
+      ],
+      "flags": {},
+      "order": 71,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "int",
+          "type": "INT",
+          "links": [
+            405
+          ]
+        }
+      ],
+      "title": "Input_Height",
+      "properties": {
+        "Node name for S&R": "MpiInt",
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "ba4b37ae349d7bb55e06c4b4c57b039a9abd1b04"
+      },
+      "widgets_values": [
+        1024
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 235,
+      "type": "MpiSimpleBoolean",
+      "pos": [
+        2270.7569855754405,
+        4166.911008796054
+      ],
+      "size": [
+        270,
+        58
+      ],
+      "flags": {},
+      "order": 72,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "boolean",
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "boolean"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "boolean",
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "links": [
+            399
+          ]
+        }
+      ],
+      "title": "Input_custom_size",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "aaa1d2d9fa713decae6843e64f5a81b84f9f443d",
+        "Node name for S&R": "MpiSimpleBoolean"
+      },
+      "widgets_values": [
+        false
+      ],
+      "widgets_values_named": {
+        "boolean": false
+      },
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 236,
+      "type": "SetNode",
+      "pos": [
+        2570.7569855754405,
+        4166.911008796054
+      ],
+      "size": [
+        210,
+        58
+      ],
+      "flags": {},
+      "order": 73,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "BOOLEAN",
+          "type": "BOOLEAN",
+          "link": 399
+        }
+      ],
+      "outputs": [
+        {
+          "name": "BOOLEAN",
+          "type": "BOOLEAN",
+          "links": []
+        }
+      ],
+      "title": "Set_custom size",
+      "properties": {
+        "Node name for S&R": "SetNode",
+        "aux_id": "kijai/ComfyUI-KJNodes",
+        "previousName": "custom size"
+      },
+      "widgets_values": [
+        "custom size"
+      ]
+    },
+    {
+      "id": 237,
+      "type": "GetNode",
+      "pos": [
+        2556.706206712902,
+        4286.658276907815
+      ],
+      "size": [
+        210,
+        58
+      ],
+      "flags": {},
+      "order": 74,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "BOOLEAN",
+          "type": "BOOLEAN",
+          "links": [
+            400
+          ]
+        }
+      ],
+      "title": "Get_custom size",
+      "properties": {
+        "Node name for S&R": "GetNode",
+        "aux_id": "kijai/ComfyUI-KJNodes"
+      },
+      "widgets_values": [
+        "custom size"
+      ]
+    },
+    {
+      "id": 238,
+      "type": "GetNode",
+      "pos": [
+        2556.706206712902,
+        4376.658276907815
+      ],
+      "size": [
+        210,
+        58
+      ],
+      "flags": {},
+      "order": 75,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "BOOLEAN",
+          "type": "BOOLEAN",
+          "links": [
+            401
+          ]
+        }
+      ],
+      "title": "Get_has_mask",
+      "properties": {
+        "Node name for S&R": "GetNode",
+        "aux_id": "kijai/ComfyUI-KJNodes"
+      },
+      "widgets_values": [
+        "has_mask"
+      ]
+    },
+    {
+      "id": 239,
+      "type": "MpiBooleanCompare",
+      "pos": [
+        2806.706206712902,
+        4286.658276907815
+      ],
+      "size": [
+        210,
+        78
+      ],
+      "flags": {},
+      "order": 76,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "a",
+          "name": "a",
+          "type": "BOOLEAN",
+          "link": 400
+        },
+        {
+          "localized_name": "b",
+          "name": "b",
+          "type": "BOOLEAN",
+          "link": 401
+        },
+        {
+          "localized_name": "mode",
+          "name": "mode",
+          "type": "COMBO",
+          "widget": {
+            "name": "mode"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "result",
+          "name": "result",
+          "type": "BOOLEAN",
+          "links": [
+            404,
+            407
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "3d00c1633f92c2166dd3facbc9d641cff8a196f9",
+        "Node name for S&R": "MpiBooleanCompare"
+      },
+      "widgets_values": [
+        "a_true_b_false"
+      ],
+      "widgets_values_named": {
+        "mode": "a_true_b_false"
+      }
+    },
+    {
+      "id": 240,
+      "type": "MpiIfElse",
+      "pos": [
+        3116.706206712902,
+        4006.658276907815
+      ],
+      "size": [
+        210,
+        78
+      ],
+      "flags": {},
+      "order": 77,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "true",
+          "name": "true",
+          "type": "*",
+          "link": 402
+        },
+        {
+          "localized_name": "false",
+          "name": "false",
+          "type": "*",
+          "link": 403
+        },
+        {
+          "localized_name": "boolean",
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "boolean"
+          },
+          "link": 404
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "output",
+          "name": "output",
+          "type": "*",
+          "links": [
+            408
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "3d00c1633f92c2166dd3facbc9d641cff8a196f9",
+        "Node name for S&R": "MpiIfElse"
+      },
+      "widgets_values": [
+        true
+      ],
+      "widgets_values_named": {
+        "boolean": true
+      }
+    },
+    {
+      "id": 241,
+      "type": "MpiIfElse",
+      "pos": [
+        3116.706206712902,
+        4166.658276907815
+      ],
+      "size": [
+        210,
+        78
+      ],
+      "flags": {},
+      "order": 78,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "true",
+          "name": "true",
+          "type": "*",
+          "link": 405
+        },
+        {
+          "localized_name": "false",
+          "name": "false",
+          "type": "*",
+          "link": 406
+        },
+        {
+          "localized_name": "boolean",
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "boolean"
+          },
+          "link": 407
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "output",
+          "name": "output",
+          "type": "*",
+          "links": [
+            409
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "3d00c1633f92c2166dd3facbc9d641cff8a196f9",
+        "Node name for S&R": "MpiIfElse"
+      },
+      "widgets_values": [
+        true
+      ],
+      "widgets_values_named": {
+        "boolean": true
+      }
     }
   ],
   "links": [
@@ -3422,22 +3826,6 @@
       144,
       0,
       "LATENT"
-    ],
-    [
-      269,
-      145,
-      0,
-      143,
-      0,
-      "INT"
-    ],
-    [
-      270,
-      146,
-      0,
-      143,
-      1,
-      "INT"
     ],
     [
       272,
@@ -3862,6 +4250,94 @@
       203,
       0,
       "*"
+    ],
+    [
+      399,
+      235,
+      0,
+      236,
+      0,
+      "BOOLEAN"
+    ],
+    [
+      400,
+      237,
+      0,
+      239,
+      0,
+      "BOOLEAN"
+    ],
+    [
+      401,
+      238,
+      0,
+      239,
+      1,
+      "BOOLEAN"
+    ],
+    [
+      402,
+      233,
+      0,
+      240,
+      0,
+      "INT"
+    ],
+    [
+      403,
+      145,
+      0,
+      240,
+      1,
+      "INT"
+    ],
+    [
+      404,
+      239,
+      0,
+      240,
+      2,
+      "BOOLEAN"
+    ],
+    [
+      405,
+      234,
+      0,
+      241,
+      0,
+      "INT"
+    ],
+    [
+      406,
+      146,
+      0,
+      241,
+      1,
+      "INT"
+    ],
+    [
+      407,
+      239,
+      0,
+      241,
+      2,
+      "BOOLEAN"
+    ],
+    [
+      408,
+      240,
+      0,
+      143,
+      0,
+      "INT"
+    ],
+    [
+      409,
+      241,
+      0,
+      143,
+      1,
+      "INT"
     ]
   ],
   "groups": [
@@ -3927,7 +4403,8 @@
     "VHS_latentpreview": false,
     "VHS_latentpreviewrate": 0,
     "VHS_MetadataImage": true,
-    "VHS_KeepIntermediate": true
+    "VHS_KeepIntermediate": true,
+    "linkExtensions": []
   },
   "version": 0.4
 }

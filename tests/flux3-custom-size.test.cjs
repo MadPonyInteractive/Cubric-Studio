@@ -45,7 +45,7 @@ test('agent edit: the project`s own button decides when nothing is asked', () =>
 
 test('t2i and every other model never carry the flag', () => {
     assert.equal('Input_custom_size' in resolveNamedParams(RATIO, FLUX3, 't2i', {}).injectionParams, false);
-    assert.equal('Input_custom_size' in resolveNamedParams(RATIO, KREA2, 'krea2Edit', {}).injectionParams, false);
+    assert.equal('Input_custom_size' in resolveNamedParams(RATIO, KREA2, 't2i', {}).injectionParams, false);
 });
 
 test('the button mounts only where the picker can, before ratio + tier', async () => {
@@ -56,9 +56,46 @@ test('the button mounts only where the picker can, before ratio + tier', async (
     assert.ok(ids.indexOf('customSize') < ids.indexOf('ratio'));
     assert.ok(ids.indexOf('customSize') < ids.indexOf('qualityTier'));
     assert.ok(!visibleControlIds(FLUX3, 't2i', {}).includes('customSize'));
-    assert.ok(!visibleControlIds(KREA2, 'krea2Edit', {}).includes('customSize'));
-    for (const m of MODELS.filter((x) => x.supportedOps?.includes('edit') && !x.customSizeOps)) {
-        assert.ok(!visibleControlIds(m, 'edit', {}).includes('customSize'), m.id);
+    assert.ok(!visibleControlIds(KREA2, 't2i', {}).includes('customSize'));
+    // Every source-sized op: the button only on a model naming that op in customSizeOps.
+    const { commands } = await import('../js/data/commandRegistry.js');
+    for (const op of Object.keys(commands).filter((o) => commands[o].sizeOptIn)) {
+        for (const m of MODELS.filter((x) => x.supportedOps?.includes(op) && !x.customSizeOps?.includes(op))) {
+            assert.ok(!visibleControlIds(m, op, {}).includes('customSize'), `${m.id} ${op}`);
+        }
     }
     assert.deepEqual(PROMPT_BOX_CONTROLS.customSize.getInjectionParams.call({ value: false }), { Input_custom_size: false });
+});
+
+// MPI-1207: the edit family copies FLUX.3's button, model by model.
+const FAMILY = [
+    ['klein-4b', 'kleinEdit'], ['klein-9b', 'kleinEdit'],
+    ['krea2', 'krea2Edit'], ['krea2-nsfw', 'krea2Edit'],
+    ['qwen-image-2-1', 'edit'], ['boogu-edit-high', 'edit'], ['boogu-edit-balanced', 'edit'],
+    ['qwen-edit', 'qwenEdit'],
+];
+
+test('edit family: the button mounts before the picker, off by default, a ratio turns it on', async () => {
+    const { visibleControlIds } = await import('../js/components/Organisms/MpiPromptBox/PromptBoxControls.js');
+    for (const [id, op] of FAMILY) {
+        const m = MODELS.find((x) => x.id === id);
+        assert.ok(m?.customSizeOps?.includes(op) && !m.imageSizedOps?.includes(op), id);
+        assert.equal('Input_custom_size' in (m.opInject?.[op] || {}), false, id);
+        const ids = visibleControlIds(m, op, {});
+        assert.ok(ids.includes('customSize') && ids.indexOf('customSize') < ids.indexOf('ratio'), id);
+        const off = resolveNamedParams(RATIO, m, op, {}).injectionParams;
+        assert.equal(off.Input_custom_size, false, id);
+        assert.equal(off.Width, undefined, id);
+        const on = resolveNamedParams(RATIO, m, op, { ratio: '1:1' }).injectionParams;
+        assert.equal(on.Input_custom_size, true, id);
+        assert.ok(on.Width > 0 && on.Height > 0, id);
+    }
+});
+
+test('the canvas line: Qwen Edit alone, once, the user words kept', () => {
+    const { withCanvasPrompt } = require('../js/data/generationControls.js');
+    assert.deepEqual(MODELS.filter((m) => m.canvasPrompt).map((m) => m.id), ['qwen-edit']);
+    const once = withCanvasPrompt('make her top red', '3:4');
+    assert.ok(once.startsWith('TARGET CANVAS: 3:4\nmake her top red\n'));
+    assert.equal(withCanvasPrompt(once, '3:4'), once);
 });

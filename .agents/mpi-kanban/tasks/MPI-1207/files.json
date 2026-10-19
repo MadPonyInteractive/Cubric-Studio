@@ -3,6 +3,16 @@
   "files": [
     ".agents/mpi-kanban/tasks/MPI-1207/checklist.md",
     ".agents/mpi-kanban/tasks/MPI-1207/validation.md",
-    ".agents/mpi-kanban/tasks/MPI-1207/research/"
+    ".agents/mpi-kanban/tasks/MPI-1207/research/",
+    "js/data/commandRegistry.js",
+    "js/data/modelConstants/models.js",
+    "tests/flux3-custom-size.test.cjs",
+    "tests/desktop/prompt-box-custom-size.spec.js",
+    "js/services/commandExecutor.js",
+    "js/data/generationControls.js",
+    "tests/op-strip-availability.test.cjs",
+    "js/components/Organisms/MpiPromptBox/MpiPromptBox.js",
+    "js/components/Organisms/MpiPromptBox/PromptBoxControls.js",
+    "comfy_workflows/"
   ]
 }

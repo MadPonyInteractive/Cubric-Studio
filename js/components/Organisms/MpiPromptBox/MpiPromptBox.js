@@ -816,6 +816,7 @@ export const MpiPromptBox = ComponentFactory.create({
             const prevHistoryMode = _context.historyMode === true;
             _context = { ..._context, ...ctx };
             _refreshOpStrip();
+            _applyCustomSize();
             const nextHistoryMode = _context.historyMode === true;
             if (prevHistoryMode !== nextHistoryMode) {
                 el.classList.toggle('mpi-prompt-box--history-mode', nextHistoryMode);
@@ -2196,11 +2197,14 @@ export const MpiPromptBox = ComponentFactory.create({
         }
 
         // Park or restore the size picker per the Custom size button (MPI-1181). No button
-        // mounted (every op but FLUX.3's edit) = nothing is gated.
+        // mounted (an op without `sizeOptIn`) = nothing is gated. A drawn mask keeps the
+        // source frame, so it greys the button out and parks the picker too (MPI-1207).
         function _applyCustomSize() {
             const btn = _activeControls.get('customSize');
             if (!btn) return;
-            const on = btn.getValue() === true;
+            const masked = _context.hasMask === true;
+            btn.setMasked?.(masked);
+            const on = btn.getValue() === true && !masked;
             for (const [id, host] of _sizeHosts) {
                 host.classList.toggle('hide', !on);
                 if (on && _parkedSize.has(id)) {

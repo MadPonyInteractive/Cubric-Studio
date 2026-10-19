@@ -296,6 +296,23 @@ export function withTransparentPrompt(model, prompt) {
     return text;
 }
 
+/**
+ * The run's prompt for a `canvasPrompt` model on a custom-size edit (MPI-1207, Qwen Edit):
+ * opens with the frame and asks for the scene to be EXTENDED to it. Wording benched on the
+ * shipped graph (2026-10-20, 1:1 and 16:9 from a portrait): "fill ... no borders" alone left
+ * black bands at 1:1 and a three-panel collage at 16:9; "extend the scene outward on every
+ * side" filled both cleanly. Same contract as withTransparentPrompt: the prompt of record
+ * stays the user's own words.
+ * @param {string} prompt
+ * @param {string} frame - the ratio label ('3:4'), or 'WxH' when there is none
+ * @returns {string}
+ */
+export function withCanvasPrompt(prompt, frame) {
+    const text = String(prompt || '').trim();
+    if (text.startsWith('TARGET CANVAS:')) return text;
+    return `TARGET CANVAS: ${frame}\n${text}\nExtend the scene outward on every side so it fills the whole picture edge to edge. No black bars, no borders, no padding.`;
+}
+
 // ── upscale factor + Use Tiles (MPI-1038) ────────────────────────────────────
 
 /** The upscale op's factors without tiles; Use Tiles adds 1 (detail only). Mirrors the
