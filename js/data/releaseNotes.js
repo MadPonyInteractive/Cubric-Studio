@@ -38,6 +38,16 @@
  * @type {Record<string, ReleaseNotes>}
  */
 export const RELEASE_NOTES = {
+  '2.1.1': {
+    version: '2.1.1',
+    whatIsNew: [],
+    fixes: [
+      '**Creating a RunPod network volume no longer says "Volume not created" when it was made.** RunPod sometimes answers with an error after making the volume. The app now finds that volume and selects it, so trying again no longer pays for a second one.',
+    ],
+    breakingChanges: [],
+    importantChanges: [],
+    engineNotes: [],
+  },
   '2.1.0': {
     version: '2.1.0',
     whatIsNew: [
