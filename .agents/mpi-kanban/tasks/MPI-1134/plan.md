@@ -74,6 +74,11 @@
 (its description carries the `UMBRELLA: MPI-1134` line). The other Phase 0 cards keep their
 own umbrellas and are tracked here only.
 
+**Members since 2026-10-19 (Fabio, umbrella pass):** MPI-1191 (Keyframes to Video Flow -
+starts after the Phase 3 keyframe-anchor bench below proves mid-shot and multi-anchor runs) and
+MPI-1088 (Hairstyle picker from a Hairstyles element - blocked on MPI-815 Elements and its
+"Flow slots consuming elements" follow-up). Both carry the `UMBRELLA: MPI-1134` line.
+
 ## Parallel Batch: Phase 1 — Story foundation (no UI) — `auto`
 
 Run with `mpi-execute-parallel` once Phase 0's MPI-815 is done. Ownership is provisional; the
@@ -122,7 +127,7 @@ Sequential after 1A (it consumes the validator).
   time. Mid-shot and multi-anchor runs are UNPROVEN: bench first, per
   `research/h3-addguide-keyframes.md`. **Verify:** the three bench arms there, SSIM per anchor; then
   a `keyframes` join mode added to `docs/story/continuity.md` only if they pass. A standalone
-  Keyframes to Video Flow (drawings / 3D key poses) is its own idea card, MPI-1191.
+  Keyframes to Video Flow (drawings / 3D key poses) is member card MPI-1191 (joined 2026-10-19); it starts after this bench.
 - [ ] `user-ux`: Fabio judges a 3-shot chained scene. **Verify:** his yes in validation.md.
 
 ## Phase 4: Infinite Video Flow — `user-ux`

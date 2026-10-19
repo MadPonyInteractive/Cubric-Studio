@@ -16,7 +16,7 @@ which of the two the board keeps.
 | MPI-510 | An interrupted remote install strands its partial on the volume, then the disk gate counts it against the retry |
 | MPI-509 | A remote install can silently do nothing — the engine dep filter drops every dep and still answers `success: true` |
 | MPI-496 | Stage-all-on-connect stages onto the download Pod, whose disk is hard-capped |
-| MPI-489 | A renderer that did not start the download never subscribes to the SSE stream |
+| MPI-489 | A renderer that did not start the download never subscribes to the SSE stream. **DONE 2026-10-19**: fixed by MPI-1142 (`js/shell.js` subscribes at boot) |
 | MPI-485 | The orphan Pod sweep reaps by NAME, so a second app instance deletes the first one's live Pod |
 | MPI-403 | `engineAssets` never reach the Pod's fast disk — hot-store staging stops too early |
 | MPI-502 | Gate 9 needs a Pod-side twin: read `/object_info` from the wrapper (from MPI-558; touches `scripts/smoke-workflows.mjs` and the Pod wrapper, disjoint from the install routes) |
