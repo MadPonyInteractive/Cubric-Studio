@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/task-files/v1", "files": ["js/services/generationService.js", "tests/cue-dispatch-stall.test.cjs", "docs/generation-lifecycle.md", ".agents/mpi-kanban/tasks/MPI-1203/"]}

@@ -89,6 +89,9 @@ const _lanes = {
  *  before it had to be patched into four such lists one bug at a time (MPI-851). */
 const LANE_ORDER = Object.freeze(['tool', 'cloud', 'remote', 'local']);
 
+/** How long a dispatched Cue job may hold its lane with no store job before app.log hears of it (MPI-1203). */
+const DISPATCH_STALL_MS = 30_000;
+
 /** @returns {string|null} the lane whose dispatched intent is this Cue job. */
 function _laneHolding(queueJobId) {
     return LANE_ORDER.find(lane => _lanes[lane].active?.queueJobId === queueJobId) || null;
@@ -96,14 +99,19 @@ function _laneHolding(queueJobId) {
 
 /**
  * The lane a job (or its opts) dispatches on. MUST mirror the store's engine→lane
- * rule in commandExecutor (`engine = forceLocal ? 'local' : isRemote() ? 'remote' :
- * 'local'`), because generationStore keys the lane off that resolved `engine`. If
+ * rule in commandExecutor (`engine = forceLocal || isDownloadOnly() ? 'local' :
+ * isRemote() ? 'remote' : 'local'`), because generationStore keys the lane off that
+ * resolved `engine`. If
  * this derived the lane from `forceLocal` alone, a NO-POD local gen (forceLocal
  * false, isRemote false) would park its INTENT on the 'remote' lane while its STORE
  * job runs on 'local' — so the store's 'local' drain fires `_loopCallbacks.local`
  * (never set) and `_lanes.remote.active` never clears → a completed gen shows a
  * phantom "1 RUNNING" that never drains (MPI-213). Keying both on the same resolved
  * engine keeps the intent lane and the store lane in agreement.
+ * MPI-1203: the same phantom, the other way round. MPI-539 sent a download-mode (CPU)
+ * Pod's gens to local in commandExecutor but not here, so with one connected the first
+ * gen ran and finished on 'local' while its intent held 'remote' forever: a RUNNING row
+ * that never cleared, every later job pending behind it, nothing in app.log.
  *
  * NOTE: `isRemote()` reads the mirror refreshed by remoteEngineClient.refresh(),
  * which the store's own resolution awaits fresh at dispatch. This sync read can lag
@@ -121,7 +129,7 @@ function _laneOf(jobOrOpts) {
     if (jobOrOpts?.config?.describeEndpoint) return 'cloud';
     // MPI-1069 — a tool op runs on no engine at all, so neither flag applies either.
     if (isToolOp(jobOrOpts?.config?.operation)) return 'tool';
-    if (opts.forceLocal === true) return 'local';
+    if (opts.forceLocal === true || remoteEngineClient.isDownloadOnly()) return 'local';
     return remoteEngineClient.isRemote() ? 'remote' : 'local';
 }
 
@@ -454,6 +462,15 @@ function _dispatchNextCue() {
             isLoop: next.isLoop,
         });
         if (!handle) _onLaneDrain(lane, { skipNext: false });
+        // MPI-1203: an executor registers its store job within moments of dispatch. An intent
+        // still holding its lane with no store job THERE after DISPATCH_STALL_MS is the RUNNING
+        // row that never moves: an await that never settled before registration, or a store job
+        // filed under another lane. Neither throws, so without this app.log says nothing.
+        else setTimeout(() => {
+            if (_lanes[lane].active !== next || _laneBusy(lane)) return;
+            clientLogger.warn('generationService', `Cue job ${next.queueJobId} (${next.config?.operation}) holds the ${lane} lane `
+                + `with no ${lane} store job after ${DISPATCH_STALL_MS / 1000} s; it will not start until it is stopped`);
+        }, DISPATCH_STALL_MS);
     }
 
     _updateQueueDepth();
