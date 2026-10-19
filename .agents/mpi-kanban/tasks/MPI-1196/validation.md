@@ -19,3 +19,17 @@
   whose pose was close to the clip's) opened clean. Wording did not move it (R3e). So the trigger is a picture whose
   pose differs from the clip's first frame, on template 6.
 - _007 (Change the outfit, no picture, clip _006) was also late and changed the room: a different failure, not studied.
+
+### Bench, 2026-10-19 (the app's engine :48188 under the GPU lease, never the app; _009's exact prompt from /history)
+
+- W1 = _009 + the swap LoRA forced on (node 21 `1 > 0`), same staged clip + picture, seed 27347941, same Input_Look:
+  352 s (vs 342 s), STILL +16 frames late (strips + motion lag), hallway kept. The swap LoRA does not fix it.
+  W1 also ran the new in-graph crop (nodes 27-29) on the 1136x2016 picture: ran clean, not stretched.
+- W2 = _009 with the clip's OWN frame 0 as the picture (pose identical), LoRA as shipped: 340 s, STILL ~12-15
+  frames late. So the picture's pose is NOT the cause (the R3d reading does not explain this case).
+- What does track it is the CLIP: every run fed _006 (an H3 result) is late (_007 no picture, _008, _009, W1, W2);
+  both runs fed resizeVideo_001 (Fabio's real 30 fps footage, same 576x1024 render) are in sync (_005, _006;
+  4-frame strips, hands-to-face at the same strip positions). The loader is not it: MpiLoadVideoUpload resamples
+  with ffmpeg's `fps` filter (duration kept) and reports the forced rate, same path for both clips.
+- Why an H3 result fed back in plays late is NOT found. Note the MPI-1036 H3 test dancer (also H3-made, 1088x1920)
+  stayed in sync on op 2 (D3/D4), so "any H3-made clip" is not the whole story.
