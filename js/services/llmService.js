@@ -38,7 +38,7 @@
  * Nothing here ever sees it.
  */
 
-import { resolveRecipe, FALLBACK_RECIPE_ID, getRecipe, withReferences, withPictureLines, TRANSPARENT_BACKGROUND_RULE } from '../data/recipes/registry.js';
+import { resolveRecipe, FALLBACK_RECIPE_ID, getRecipe, withReferences, withImageLooks, withPictureLines, TRANSPARENT_BACKGROUND_RULE } from '../data/recipes/registry.js';
 import { composeSystemPrompt } from '../data/recipes/styles.js';
 import { clientLogger } from './clientLogger.js';
 import { Storage } from '../core/storage.js';
@@ -352,6 +352,9 @@ export function resolveMode(recipeId, asked) {
 export function recipeModeForOp(op) {
     if (/^ref2v/.test(op || '')) return 'r2v';
     if (/^i2v/.test(op || '')) return 'i2v';
+    // MPI-1181: an edit or inpaint is an instruction on the images. Only FLUX.3 enhances these
+    // ops; a recipe without `i2i` resolves back to t2v (`resolveMode`).
+    if (op === 'edit' || op === 'inpaint') return 'i2i';
     return DEFAULT_MODE;
 }
 
@@ -862,7 +865,9 @@ export async function enhance({ prompt, model, recipeKey, mode, operation, refer
     // MPI-1006: only an r2v mode is told what is staged; it cites those tags and no others.
     // MPI-1084: and what each picture shows, or it guesses the roles by load order.
     const seen = modeRecipe.seesPictures && pictures?.length ? await pictureCaptions(pictures) : { captions: [], missed: [] };
-    const userText = resolvedMode === 'r2v' ? withReferences(idea, references ?? [], seen.captions) : idea;
+    const userText = resolvedMode === 'r2v' ? withReferences(idea, references ?? [], seen.captions)
+        : resolvedMode === 'i2i' ? withImageLooks(idea, seen.captions)
+        : idea;
 
     const { profileId } = Storage.getLlmConnection();
     const resolvedModelId = chosen === 'endpoint' ? await _endpointEnhanceModel(profileId) : enhancerModelPreference();

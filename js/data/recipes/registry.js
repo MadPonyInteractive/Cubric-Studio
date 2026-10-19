@@ -39,9 +39,11 @@ import { pony } from './pony.recipe.js';
 import { illustrious } from './illustrious.recipe.js';
 import { wan30 } from './wan-3.0.recipe.js';
 import { qwenImage21 } from './qwen-image-2.1.recipe.js';
+import { flux3 } from './flux-3.recipe.js';
 
-/** Generation modes a recipe may declare. `r2v` is reference-to-video (MPI-26). */
-export const RECIPE_MODES = ['t2v', 'i2v', 'r2v'];
+/** Generation modes a recipe may declare. `r2v` is reference-to-video (MPI-26). `i2i` is an
+ *  image EDIT (MPI-1181, FLUX.3): an instruction on the staged images, not a scene. */
+export const RECIPE_MODES = ['t2v', 'i2v', 'r2v', 'i2i'];
 export const OUTPUT_FORMATS = ['prose', 'keyword-list', 'structured-tags', 'timeline'];
 export const NEGATIVE_HANDLING = ['none', 'inline-positive', 'separate-field'];
 export const RECIPE_STATUSES = ['draft', 'validated'];
@@ -77,6 +79,7 @@ export const RECIPE_REGISTRY = [
     illustrious,
     wan30,
     qwenImage21,
+    flux3,
 ].map(normalizeRecipe);
 
 /**
@@ -176,6 +179,25 @@ export function withReferences(idea, references = [], captions = []) {
         ? `\n\nWhat each attached picture shows:\n${captions.map(c => `${c.tag}: ${c.name || gist(c.text)}`).join('\n')}`
         : '';
     return `${idea}${seen}\n\nAttached references, in load order: ${references.length ? references.join(', ') : 'none'}.`;
+}
+
+const ORDINALS = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'];
+
+/**
+ * The enhancer's user message on an `i2i` run (MPI-1181): the request, then what each staged
+ * image shows, in load order, named by ordinal the way BFL's edit upsampler cites them ("the
+ * first image"). The enhancer cannot see them, so a vision model's look stands in. The WHOLE
+ * look, unlike `withReferences`' two-sentence gist: an edit names its referent by appearance
+ * ("the woman's teal swimsuit"), so the detail is the point. Capped per image so ten
+ * references stay inside the engine's context.
+ * @param {string} idea
+ * @param {Array<{tag:string,text:string}>} captions in load order
+ */
+export function withImageLooks(idea, captions = []) {
+    if (!captions.length) return idea;
+    const look = (text) => String(text).replace(/\s+/g, ' ').trim().split(' ').slice(0, 160).join(' ');
+    const lines = captions.map((c, i) => `The ${ORDINALS[i] ?? `#${i + 1}`} image: ${look(c.text)}`);
+    return `${idea}\n\nThe attached images, in order:\n${lines.join('\n')}`;
 }
 
 /** What a picture IS -> the role word its `<Picture n>` line opens with (person/animal bare = the character). */

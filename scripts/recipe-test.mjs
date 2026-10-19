@@ -39,7 +39,7 @@
  */
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { getRecipe, resolveRecipe, withReferences, withPictureLines } from '../js/data/recipes/registry.js';
+import { getRecipe, resolveRecipe, withReferences, withImageLooks, withPictureLines } from '../js/data/recipes/registry.js';
 import { MODELS } from '../js/data/modelConstants/models.js';
 import { commands, filterMediaInputsForModel, refTagHandle } from '../js/data/commandRegistry.js';
 import {
@@ -156,6 +156,33 @@ const SEEN = {
     beach: 'Tropical turquoise ocean water meets a white sandy shoreline in a vertical, eye-level wide shot under a bright, clear blue sky. In the foreground, clear, translucent teal waves with white foam crests ripple over smooth, light beige sand, creating intricate caustic light patterns on the shallow seabed. The shoreline curves gently from the bottom right toward the midground on the right side. The ocean occupies the left half of the frame, transitioning from a shallow, bright cyan near the shore to a deep cerulean blue at the distant horizon line. The sky is a vibrant azure, featuring a bright, white sun in the upper left corner that radiates a subtle lens flare. Fluffy, bright white cumulus clouds are scattered across the sky, with a larger cluster of textured, billowy clouds positioned in the midground on the right side. The horizon is a straight, sharp line dividing the deep blue sea from the light blue sky. The lighting is bright and direct from above, creating high contrast and sharp reflections on the moving water\'s surface. The photograph has a high-definition, crisp quality with a deep depth of field that maintains clarity from the foamy bubbles in the immediate foreground to the distant horizon.',
     woman: 'Young woman with tan skin sits on the edge of a turquoise swimming pool, her lower legs submerged in the water, facing the camera with a smile that reveals her white teeth. She has long, wavy hair that transitions from dark brown at the roots to a vibrant magenta pink at the ends, cascading over her right shoulder. She wears a fitted, ribbed, teal-colored one-piece swimsuit with thin spaghetti straps and a scooped neckline. Her right hand rests on the dark stone ledge of the pool behind her, while her left hand is raised near her shoulder, fingers slightly curled, with a thin gold ring on her ring finger. She is positioned in the center foreground, framed by lush tropical vegetation. To her left, large green leaves and bright red hibiscus flowers are visible, with one hibiscus blossom prominently displayed near her shoulder. The background is a dense thicket of green tropical foliage and flowers, creating a shallow depth of field that softly blurs the greenery.',
 };
+
+/** `--mode i2i` (MPI-1181, FLUX.3): EDIT requests on the staged pictures, sent as the app sends
+ *  them (`withImageLooks`). The scene tiers above ("cat", the samurai) are not edits, so an edit
+ *  mode runs these instead: the four jobs, each on a real look from SEEN. */
+function editInputs() {
+    const send = (idea, looks) => withImageLooks(idea, looks.map((l) => ({ text: SEEN[l] })));
+    const kept = { name: 'names what stays unchanged', re: /\b(unchanged|keep|preserv|remain|untouched|as it is)\w*/i };
+    const ramble = 'ok so I want to change her swimsuit, I was thinking maybe red, like a deep red, cherry red, not orange red, and actually maybe keep the same ribbed look it has now because I like that, and the straps too, and honestly I kept going back and forth on whether to also change her hair but no, leave the hair, the pink ends are great, and the pool should stay the same and the flowers, I love the flowers, and please make it look super realistic, 8k, masterpiece, really high quality, and I don\'t want her face to change at all, her smile is perfect, and also the ring, keep the ring, and maybe the light on the swimsuit should still look wet and shiny like it does now, and I think that is it, just the swimsuit colour really, nothing else, but make sure it looks natural and not like a cheap photoshop, you know what I mean, like it was always red';
+    return [
+        { name: 'bare', job: 'EXPAND a near-empty edit request into a concrete instruction grounded in what the image shows, without changing anything the user did not ask for.',
+            input: send('red swimsuit', ['woman']),
+            scene: [{ name: 'the swimsuit turns red', re: /\bred\b/i }, kept] },
+        { name: 'medium', job: 'RESTRUCTURE a plain removal into an imperative instruction that says what fills the removed region and what stays.',
+            input: send('take the sunglasses off the hamster', ['hamster']),
+            scene: [{ name: 'a removal', re: /\bremov\w*|\btake\b[^.]*\boff\b/i }, { name: 'says what shows instead', re: /\b(eyes?|fur|face)\b/i }, kept] },
+        { name: 'directed', job: 'Compose references into a NEW frame by ordinal, keeping the user\'s direction, and INFER what the garbled part meant.',
+            input: send('put the hampster from the frist pic on the beach from the second, low angle, golden hour light', ['hamster', 'beach']),
+            scene: [{ name: 'a generation request', re: /^\s*(create|generate)\b/i }, { name: 'cites each image by ordinal', re: /\bfirst image\b[\s\S]*\bsecond image\b|\bsecond image\b[\s\S]*\bfirst image\b/i },
+                { name: 'low angle kept', re: /\blow[- ]angle\b/i }, { name: 'golden hour kept', re: /\bgolden[- ]hour\b/i }] },
+        { name: 'overlong', job: 'CONDENSE a rambling edit request into one concise instruction that keeps every concrete wish and drops the filler and quality words.',
+            input: send(ramble, ['woman']),
+            scene: [{ name: 'cherry or deep red', re: /\b(cherry|deep) red\b/i }, kept, { name: 'no quality words', re: /\b(8k|masterpiece|high quality|realistic)\b/i, absent: true }] },
+        { name: 'whole', job: 'A whole-image transformation opens with its scope and keeps the image\'s own content.',
+            input: send('make it winter', ['valley']),
+            scene: [{ name: 'opens with its scope', re: /^\s*(convert|transform|change|turn|apply|make)\b[^.]*\b(entire|whole)\b/i }, { name: 'snow', re: /\bsnow/i }] },
+    ];
+}
 
 /** `--ref-tiers` on a `seesPictures` mode (MPI-1084): UNTAGGED prompts, as users write them,
  *  with what each picture shows (`withReferences` captions, as `pictureCaptions` sends them).
@@ -549,7 +576,7 @@ async function main() {
         ? filterMediaInputsForModel(commands[refOp(refModel)].mediaInputs, refModel).map((s) => s.tag).filter(Boolean)
         : [];
     const REF_INPUTS = refInputs((name) => refTagHandle(name, refModel), refTags);
-    const eligible = process.argv.includes('--ref-tiers')
+    const eligible = modeKey === 'i2i' ? editInputs() : process.argv.includes('--ref-tiers')
         ? [...TIERS.filter((t) => REF_INPUTS[t.name]).map((t) => ({ ...t, input: REF_INPUTS[t.name],
             // "a rocking chair in <Picture 2>": the role word alone passed "setting: the rocking chair".
             // LTX only: the other r2v modes write no picture lines.

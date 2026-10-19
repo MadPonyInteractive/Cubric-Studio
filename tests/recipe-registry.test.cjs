@@ -82,7 +82,7 @@ function testValidatorActuallyBites() {
 }
 
 function testRegistryIntegrity() {
-    assert.strictEqual(RECIPE_REGISTRY.length, 14, 'the v1.0 recipe set is 14 models (qwen-image-2.1 added MPI-1048)');
+    assert.strictEqual(RECIPE_REGISTRY.length, 15, 'the v1.0 recipe set is 15 models (flux-3 added MPI-1181)');
     assert.strictEqual(listRecipes(), RECIPE_REGISTRY);
 
     const ids = RECIPE_REGISTRY.map((r) => r.modelId);

@@ -27,9 +27,9 @@ Turbo button; ships Klein's op set minus depth: t2i, i2i, edit, inpaint, detail,
 - **Never copy Klein 9B's "images stay commercially usable" line unqualified.** Here it holds only
   under US$5M revenue.
 - **The prompt upsampler is required for good results** (BFL, Fabio's bench), and is NOT in the
-  graph: the plan is an auto-run Enhancer recipe built from BFL's four system prompts
-  (`research/bfl_pup_system_prompts.json`, Apache 2.0). Until it lands the card resolves the shared
-  `flux` recipe.
+  graph: the `flux-3` Enhancer recipe carries BFL's system prompts verbatim (`t2v` = BFL t2i, `i2i` =
+  BFL i2i for edit/inpaint; `research/bfl_pup_system_prompts.json`, Apache 2.0). The user presses
+  Enhance; NO auto-run (Fabio, 2026-10-20), the op help says to. Cosmo's guide: `docs/agent/models/flux-3.md`.
 - **Turbo on upscale is the user's call**, not forced (Fabio). Turbo single-pass upscale held identity
   best of every upscale run; tile upscale drifts identity.
 

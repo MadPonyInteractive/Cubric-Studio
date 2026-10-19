@@ -39,3 +39,18 @@ ratio/tier turns it on, else the project's button, else off with no Width/Height
   Neighbours prompt-box-use-tiles / badge / start-frame-toggle: 4/4 pass.
 - Fabio in his own app, 2026-10-19: "It looks great" (Turbo + Custom size buttons in the edit
   popup, 1K/2K/4K + ratio shown when on). Copying it to every other edit model is MPI-1207, not here.
+
+## 2026-10-20 - R2 upload of both transformers
+
+`rclone copyto` from C:/AI/diffusion_models, serial, `--bwlimit 3M`, `--s3-no-check-bucket`: both exit 0,
+0 ERROR lines, rclone's own post-upload checksum passed. `rclone lsl cubric-models/vision/models/diffusion_models/`:
+`flux3-image-klein-int8-convrot.safetensors` 5827874779 B, `flux3-image-klein-base-int8-convrot.safetensors`
+5807427339 B = the local files byte for byte. URLs = the dep entries' `url` (`models.cubric.studio/vision/models/<filename>`).
+
+## 2026-10-20 - flux-3 recipe (draft), Stage 1 NOT RUN YET
+
+`js/data/recipes/flux-3.recipe.js`: `t2v` = BFL `pup_prompts.json` t2i verbatim; `i2i` = BFL
+`pup_prompts_external_vlm.json` i2i verbatim + one adapter sentence. `tests/flux3-recipe.test.cjs` 3/3,
+recipe-registry, agent-corpus, agent-prompt-budget green. `npm test` 3443/3447 before the guide's price
+wording fix (the 2 fails were that line), corpus tests green after it. The Stage 1 sweep was queued under
+the GPU lease behind MPI-1207's bench and cancelled for the handoff: nothing ran.
