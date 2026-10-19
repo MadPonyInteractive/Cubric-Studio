@@ -703,7 +703,25 @@ async function _runEngineDownload(chosenModelsRoot) {
     }
 }
 
-router.post('/engine/download', async (req, res) => {
+// MPI-1204: ONE engine-tree job at a time. A download, a repair and an upgrade all rewrite
+// the same engine tree and each answers "started" at once, then runs for minutes. The
+// 2.1.1 update test POSTed /engine/upgrade twice 4 s apart (the modal's own + a second
+// caller): the second hit the first's git lock, fell back to the full reinstall and
+// deleted the portable the first was still using - a dead engine. `beginEngineJob()` is
+// only the quit guard and counts, it never refuses. A later call now attaches: it answers
+// `already-running` and the running job's SSE `engine:complete`/`engine:error` reaches it.
+let _engineTreeJob = null;
+async function _oneEngineJob(kind, res, run) {
+    if (_engineTreeJob) {
+        logger.warn('engine', `${kind} requested while the ${_engineTreeJob} is running - attaching to it, not starting a second`);
+        res.json({ success: true, status: 'already-running', running: _engineTreeJob });
+        return;
+    }
+    _engineTreeJob = kind;
+    try { await run(); } finally { _engineTreeJob = null; }
+}
+
+router.post('/engine/download', (req, res) => _oneEngineJob('download', res, async () => {
     logger.info('engine', `Download request received`);
 
     // The pre-download /comfy/set-path YAML lives inside the comfy dir and is
@@ -718,10 +736,10 @@ router.post('/engine/download', async (req, res) => {
     logger.info('engine', `Starting async engine download`);
     // The quit guard asks for this for the whole job, not just the archive (MPI-792).
     const endJob = beginEngineJob();
-    _runEngineDownload(chosenModelsRoot).catch(e => {
+    await _runEngineDownload(chosenModelsRoot).catch(e => {
         logger.error('engine', 'Uncaught engine download error (already handled)', e);
     }).finally(endJob);
-});
+}));
 
 router.get('/engine/version-check', async (req, res) => {
     try {
@@ -837,7 +855,7 @@ async function _installOutstandingUwDeps() {
     return repairSet.length;
 }
 
-router.post('/engine/repair-deps', async (req, res) => {
+router.post('/engine/repair-deps', (req, res) => _oneEngineJob('repair', res, async () => {
     logger.info('engine', 'UW deps repair requested');
     res.json({ success: true, status: 'repair-started' });
 
@@ -894,7 +912,7 @@ router.post('/engine/repair-deps', async (req, res) => {
     } finally {
         endJob();
     }
-});
+}));
 
 // ── In-place engine upgrade (MPI-457) ────────────────────────────────────────
 // /engine/upgrade used to delete the whole ~11 GB engine tree and re-download the
@@ -1187,7 +1205,7 @@ async function _fullEngineReinstall() {
     await _runEngineDownload(preservedRoot || undefined);
 }
 
-router.post('/engine/upgrade', async (req, res) => {
+router.post('/engine/upgrade', (req, res) => _oneEngineJob('upgrade', res, async () => {
     // `mode` forces a path for testing/recovery; 'auto' (the default) decides. (MPI-457)
     const mode = (req.body && req.body.mode) || 'auto';
     // Respond immediately — every phase below is long and the frontend listens on SSE.
@@ -1220,9 +1238,10 @@ router.post('/engine/upgrade', async (req, res) => {
     } finally {
         endJob();
     }
-});
+}));
 
 module.exports = router;
+module.exports.oneEngineJob = _oneEngineJob;                  // MPI-1204 — exported for unit test
 module.exports.installPathDepthError = installPathDepthError; // MPI-387 — exported for unit test
 module.exports.changedRequirements = changedRequirements;     // MPI-457 — exported for unit test
 module.exports.engineOwnedChange = engineOwnedChange;         // MPI-457 — exported for unit test

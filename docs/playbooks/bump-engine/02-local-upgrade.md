@@ -115,6 +115,11 @@ Three consequences, and the middle one is the whole reason this is written down:
   `Upgrading engine in place to 0.34.0` about a second after the server came up, and was
   stamped 25 seconds later. Driving `POST /engine/upgrade` by hand is for forcing a `mode`
   (`full` / `in-place`), not for triggering the ordinary path.
+- **One engine-tree job at a time (MPI-1204).** `/engine/download`, `/engine/repair-deps` and
+  `/engine/upgrade` share one guard: a call while any of them runs answers
+  `{status: 'already-running', running: '<kind>'}` and does nothing, so its `mode` is ignored.
+  Wait for the running job's `engine:complete` before forcing a mode. Up to 2.1.1 a second
+  upgrade ran in parallel, hit the first's git lock and wiped the tree under it.
 - **The gate is skippable, and skipping it skips the drift repair.** `skipLocalEngine`
   (MPI-390) and `CUBRIC_E2E` (MPI-446) both bypass the whole block, so an engine under those
   flags stays on the old pin — with stale custom nodes — and nothing says so.

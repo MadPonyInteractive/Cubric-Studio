@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1204", "at": "2026-10-19T18:57:46+01:00", "actor": "claude", "column": "todo", "title": "Engine upgrade has no re-entry guard: a second POST /engine/upgrade collides on a git lock and the fallback wipes the engine"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1204", "at": "2026-10-19T22:09:01+01:00", "actor": "7799bd45", "from": "todo", "to": "doing", "reason": "engine-job re-entry guard started"}
