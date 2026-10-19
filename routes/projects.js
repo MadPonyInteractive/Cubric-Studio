@@ -812,6 +812,54 @@ async function materializePreviewAssets({ projectRoot, mediaDir, itemId, stage, 
 
 // ── Project CRUD ──────────────────────────────────────────────────────────────
 
+// MPI-1205: a project folder may never sit inside another project's folder. Delete
+// removes a project's whole folder, so deleting the outer one took the inner one with
+// it — a tester picked his old project's folder as the new one's location and lost
+// both. `create-project` refuses the location, `delete-project` refuses the outer
+// folder for projects nested before this check existed.
+
+/** The name of the project whose folder is `dir` or holds it, else null. */
+async function enclosingProjectName(dir) {
+    for (let cur = path.resolve(dir); ; cur = path.dirname(cur)) {
+        const jsonPath = path.join(cur, 'project.json');
+        if (await fs.pathExists(jsonPath)) {
+            const p = await fs.readJson(jsonPath).catch(() => ({}));
+            return p.name || path.basename(cur);
+        }
+        if (path.dirname(cur) === cur) return null;
+    }
+}
+
+/** Project folders below `dir`, not `dir` itself. */
+// ponytail: depth-capped at 3 — a nested project comes from picking a folder inside
+// one, so it lands a level or two down; deepen the cap if one is ever found lower.
+async function nestedProjectFolders(dir, depth = 3) {
+    if (depth === 0) return [];
+    const found = [];
+    for (const entry of await fs.readdir(dir, { withFileTypes: true })) {
+        if (!entry.isDirectory() || entry.name.startsWith('.')) continue;
+        const sub = path.join(dir, entry.name);
+        if (await fs.pathExists(path.join(sub, 'project.json'))) found.push(sub);
+        else found.push(...await nestedProjectFolders(sub, depth - 1));
+    }
+    return found;
+}
+
+// MPI-1205: Delete Project goes to the Recycle Bin, through the same `trash` package
+// the model uninstall uses (MPI-500; ESM-only, hence the dynamic import). Unlike that
+// uninstall, a failed move NEVER falls back to a permanent delete: Windows refuses to
+// recycle anything over the bin's quota, and a big video project can be that.
+let _trashFn = null;
+async function moveToTrash(folderPath) {
+    if (!_trashFn) _trashFn = (await import('trash')).default;
+    try {
+        await _trashFn(folderPath);
+    } catch (err) {
+        logger.warn('project', `trash failed for ${folderPath}: ${err.message}`);
+        throw new Error(`This project could not go to the Recycle Bin (it may be bigger than the bin allows), so nothing was deleted. To delete it for good, delete the folder yourself: ${folderPath}`);
+    }
+}
+
 router.post('/create-project', async (req, res) => {
     try {
         const { name, folderPath } = req.body;
@@ -834,6 +882,13 @@ router.post('/create-project', async (req, res) => {
 
         if (await fs.pathExists(projectRoot)) {
             projectRoot = `${projectRoot}_${id.slice(0, 8)}`;
+        }
+
+        if (folderPath) {
+            const owner = await enclosingProjectName(path.dirname(projectRoot));
+            if (owner) {
+                return res.status(400).json({ success: false, error: `That folder is inside the project "${owner}". Pick a folder outside it.` });
+            }
         }
 
         const mediaDir = path.join(projectRoot, 'Media');
@@ -1076,7 +1131,12 @@ router.post('/delete-project', async (req, res) => {
                 }
             } catch (_) { /* unreadable json — still refuse below if no id guard met */ }
         }
-        await fs.remove(folderPath);
+        const nested = await nestedProjectFolders(folderPath);
+        if (nested.length) {
+            const names = await Promise.all(nested.map(enclosingProjectName));
+            return res.status(409).json({ success: false, error: `This project's folder also holds ${names.map(n => `"${n}"`).join(', ')}. Move ${nested.length === 1 ? 'that project' : 'those projects'} out of it first: ${nested.join(', ')}` });
+        }
+        await moveToTrash(folderPath);
         // The folder is gone, so a hidden entry for it is dead weight that would
         // also hide a future project created at the same path.
         await setProjectHidden(folderPath, false);
@@ -3977,3 +4037,5 @@ module.exports.resolveDisplayImage = resolveDisplayImage;
 module.exports.projectThumbFor = projectThumbFor;
 module.exports.cleanupRebuildableAssets = cleanupRebuildableAssets;
 module.exports.writeImageRenditions = writeImageRenditions;
+// MPI-1205: a test must not put real entries in the developer's Recycle Bin.
+module.exports._setTrashFnForTests = (fn) => { _trashFn = fn; };

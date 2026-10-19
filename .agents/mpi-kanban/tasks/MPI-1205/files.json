@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/task-files/v1", "files": ["routes/projects.js", "js/shell/projectUI.js", "tests/project-delete-trash.test.cjs", "docs/project-integrity.md", ".agents/mpi-kanban/tasks/MPI-1205/", "tests/project-paths-registry.test.cjs"]}

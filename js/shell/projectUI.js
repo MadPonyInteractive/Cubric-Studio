@@ -332,7 +332,7 @@ function _showDeleteConfirm(projectName, onConfirm) {
     text: `Are you sure you want to delete "${projectName}"?`,
     okLabel: 'Delete',
     cancelLabel: 'Keep it',
-    checkbox: { label: 'Also delete files from disk', checked: true },
+    checkbox: { label: 'Also move its files to the Recycle Bin', checked: true },
   });
   dialog.on('ok', ({ checkboxChecked }) => {
     onConfirm({ deleteFiles: !!checkboxChecked });

@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1205", "at": "2026-10-19T18:59:10+01:00", "actor": "claude", "column": "doing", "title": "Deleting a project sends it to the Recycle Bin, and a project can no longer be made inside another project"}

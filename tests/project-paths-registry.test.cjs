@@ -32,6 +32,8 @@ const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'mpi809-'));
 process.env.APP_DOCUMENTS = TMP;
 
 const projectRoutes = require('../routes/projects');
+// MPI-1205: delete-project now goes to the Recycle Bin; keep this run out of the real one.
+projectRoutes._setTrashFnForTests((p) => fs.promises.rm(p, { recursive: true, force: true }));
 const { getProjectPathsRegistryFile, getProjectsRoot } = require('../routes/shared');
 
 let nextId = 0;
