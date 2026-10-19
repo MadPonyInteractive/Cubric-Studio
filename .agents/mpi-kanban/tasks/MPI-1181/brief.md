@@ -106,6 +106,9 @@ upsampler answers.
 
 ## 2026-10-19 update (Fabio) - ships in 2.1.1, three workstreams
 
+**HOLD on workflow edits:** Fabio is reworking the raw Flux Klein workflow himself (adding the
+base/distilled Turbo fork). No agent edits a workflow until he hands it back; proceed from HIS file.
+
 Release target **2.1.1, this week**, after 2.1 (MPI-1044). Licence-gated like Klein 9B, not devOnly.
 The "Blocker - the engine" section above is CLEARED: 2.1 ships ComfyUI **v0.42.1** and the
 G:\ComfyUi bench is on 0.42.1 too (checked 2026-10-19). Done-when is now: shipped in 2.1.1, not a verdict.

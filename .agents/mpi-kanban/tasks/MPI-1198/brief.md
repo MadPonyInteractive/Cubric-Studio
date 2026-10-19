@@ -43,8 +43,8 @@ an edit, and an RGBA output. Measure time and peak VRAM on Fabio's card.
 
 ## Release
 
-Not tied to 2.1.1 unless Fabio says so. If it rides 2.1.1 with FLUX.3, the Pod smoke adds only the
-Qwen 2.1 ops (LoRA route: same weight, new dep + graph change).
+**NOT 2.1.1** (Fabio, 2026-10-19: "leave Qwen 2.1 Turbo for another release"). Pick up after
+2.1.1 ships. Its Pod smoke then adds only the Qwen 2.1 ops (LoRA route: same weight, new dep + graph change).
 
 ## Done when
 
