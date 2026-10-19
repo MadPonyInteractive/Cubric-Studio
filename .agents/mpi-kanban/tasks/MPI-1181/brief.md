@@ -222,3 +222,73 @@ No engine bump, so not a full smoke: FLUX.3's ops only, plus whatever else the M
 `MpiFlux3References` touches (check the smoke-scope rule in `docs/playbooks/bump-engine/` at the
 time). If the pin bump forces more, an app-side alternative is dropping empty `images.imageN` inputs
 from the API prompt before submit (no node) - only if the injection rules allow it.
+
+### Structure control (depth / pose / canny) - checked 2026-10-19
+
+- **None from BFL.** Blog, repo README and ComfyUI's 9 FLUX.3 templates name only t2i, edit (10 refs)
+  and bounding boxes. No depth/canny/pose ControlNet or Control-LoRA, none announced.
+- **None from the community yet** (Hugging Face search, 4 days after release): quants, GGUFs, a PUP
+  abliteration, style and restore/consistency LoRAs, no control model. CivitAI not checked (region-blocked).
+- **Route to bench:** a depth map as an ordinary reference image ("follow the depth of <ref_image_0>"),
+  the way FLUX.2 Klein worked before its refcontrol LoRA (MPI-354). Our Klein 4B refcontrol LoRA does
+  NOT port (different model). Boxes cover layout, not pose.
+- A vendor blog (kie.ai) reports pose edits weaker than FLUX.2 Klein 4B; unverified, maybe run without PUP.
+
+### Distilled sampler settings - checked 2026-10-19
+
+BFL HF card: 16 steps, guidance none, no sampler named. docs.comfy.org: distilled 4-16 steps (16 default),
+CFG 1 fixed ("raising cfg does not help"); base t2i 50 / CFG 3.5, base edit 50 / CFG 1. Template JSONs:
+distilled t2i 15 / er_sde / simple, distilled edit 16 / euler / simple. **Fabio's bench templates (0.42.1,
+authoritative over the GitHub main JSON, whose base t2i read 15 / er_sde / 1): base edit 50 / CFG 1 / euler /
+simple; distilled edit 16 / CFG 1, rest same; base t2i 50 / CFG 3.5.** Community (earngenix): 15 steps, res_2s_ode +
+bong_tangent (RES4LYF). Bench: euler/simple vs er_sde vs res_2s_ode, 8 vs 16 steps.
+
+**Bench 2026-10-19, base t2i, 50 steps euler/simple, same seed, 1088x896, long BFL-style prompt:** CFG 3.5
+follows the prompt clearly better (orange lamp band, wooden frame, droplets, true profile with the far eye
+hidden, deep shadow side); CFG 1.0 is softer and more filmic but drops prompt detail and showed a far-eye
+artefact. Keep 3.5 for base t2i (costs 2x per step). First run looked CFG-insensitive only because Fabio's
+graph fed the POSITIVE text into the base negative encoder (#751/#695) - fixed by him; check on hand-back.
+**Turbo (distilled), same prompt/seed:** CFG 1.0 holds the prompt nearly as well as base 3.5, with the oily
+sheen on forehead/nose the video warned about; CFG 3.5 overcooks it (oilier, harsher contrast, skin aged,
+deeper creases) and doubles the time. Turbo locks CFG 1 - matches the docs ("raising cfg does not help").
+**Turbo CFG 1, er_sde vs euler (simple, 16 steps):** er_sde cuts most of the oily sheen (drier skin, real
+pores and freckles, more photographic split lighting, cooler mixed bokeh); euler keeps more literal prompt
+detail (wooden frame - er_sde made it pale/metal) and one stray bright bokeh shape showed in er_sde. Pick:
+er_sde for Turbo t2i (= the official distilled t2i template), euler for edits.
+**Base CFG 3.5, er_sde vs euler (50 steps):** er_sde = more cinematic and textured (pores, peach fuzz,
+flyaway hairs, cool window key + orange lamp split) but bends the lighting brief (blue lands on the near
+side) and crushes the lower-right shadow; euler = literal and clean (warm band, wooden frame), slightly
+"graded". Prompt-adherence scorecard (14 prompt items): euler wins the lighting plan (orange band across
+cheekbone/nose/lip), hair tucked behind the ear, wooden frame; er_sde wins age (late 20s), vellus hair,
+amber bokeh, film grain; rest tied - a near tie, euler ahead only on lighting placement.
+**DECIDED (Fabio, 2026-10-19): er_sde for every t2i (base + Turbo), euler for edits.**
+**Speed, 1088x896 t2i, er_sde, Fabio's GPU (bench asset panel):** base 50 steps CFG 3.5 = 42.4 s; Turbo
+16 steps CFG 1 = 9.4 s (~4.5x faster).
+**img2img (photo -> anime, base 50 steps, 768x1376, same seed, temp 00016-00022):** beta pushes the style
+much further than simple at the same denoise (beta front-loads high-noise steps). er_sde beta 0.7 (#19) = only
+fully-anime result, clean cel look, Fabio's favourite - but it slimmed her figure and moved the bottle (identity
+drift); every 0.6 run (any sampler/scheduler) stays half-photo. Candidate: er_sde + beta for img2img, denoise
+~0.65-0.7; beta not yet tried on plain t2i.
+**t2i beta vs simple (base, 768x1376, temp 00023/00024):** simple keeps more face detail and is less crushed;
+beta darker. **DECIDED (Fabio, 2026-10-19): scheduler = beta for img2img only, simple for t2i and edit.**
+Settings table: t2i er_sde/simple (base 50/CFG 3.5, Turbo 16/CFG 1); img2img er_sde/beta, denoise ~0.65-0.7;
+edit euler/simple (base 50, Turbo 16, CFG 1).
+**Edit bench (recolour tank top to burgundy, BFL-upsampler-style prompt, MpiFlux3References in the loop):**
+clean bounded edit - rib texture, straps, folds kept; face, hands, bottle, jeans, background, even the
+watermark untouched. Asset panel times 93.2 s and 48.2 s at 571x1021 (which run was base vs Turbo, and
+whether a model load is inside, not yet confirmed).
+**Masked edit (InpaintCropImproved crop -> 1024x1024, recolour to emerald, stitch back):** clean - no sleeve
+on the grown mask, hand/cigarette/chin kept, no visible seam, output stays at the source 571x1021.
+89.1 s (crop 1024x1024).
+**Inpaint (LanPaint KSampler, add a dog):** first run fed `SetLatentNoiseMask.samples` from
+`MpiFlux3References.empty_latent` (blank) -> dog on a grey plate + halo after stitch; fix = VAEEncode of the
+crop (ref_image_0) into `samples`, references stay on the conditioning. FluxGuidance in that branch is a
+FLUX.1/2 leftover (no FLUX.3 template uses it). LanPaint_NumSteps 2 = 237 s; Fabio retrying at 1.
+Edit cannot replace inpaint (the model does not see the mask, so it may place new content outside it).
+Idea to bench: inpaint = edit + a box auto-derived from the mask's bounds (`<obj_1>` tells it WHERE) +
+crop/stitch (keeps the rest) - would drop LanPaint. Boxes work for t2i AND edit.
+**DECIDED (Fabio, 2026-10-19): inpaint STAYS on LanPaint** (VAEEncode of crop as the latent). Open: LanPaint_NumSteps
+per mode - Fabio's hypothesis: base works at 1, Turbo may need more. Fabio still to bench: detailing, upscaling.
+**Next session topic - boxes for TEXT-TO-IMAGE:** edit-with-boxes already has a home (History workspace op,
+section 3 above); t2i has none. Discuss: a Flow for it? which installed models already take boxes (Fabio thinks
+none; unsure about Qwen-Image(-Edit) 2.1 - check), MOSS-Image (MPI-1180) and Ideogram share the format.
