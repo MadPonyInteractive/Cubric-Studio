@@ -1,7 +1,11 @@
-# MPI-1194 - Reinforcement of child safety
+# MPI-1195 - Reinforcement of child safety
 
 **Parked (deferred).** Pick this up only when a bad output gets past the current gate, or a
 user reports one. Brainstormed with Fabio 2026-10-19; no code written.
+
+> `docs/child-safety.md` § Known gaps records an output check as rejected on 2026-10-16
+> ("do not re-raise"). Fabio reopened it on 2026-10-19 as this parked fallback only; update
+> that section when the card is picked up.
 
 ## Why
 

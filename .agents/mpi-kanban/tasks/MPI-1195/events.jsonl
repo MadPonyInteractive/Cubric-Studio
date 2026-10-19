@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1195", "at": "2026-10-19T03:11:11+01:00", "actor": "claude", "column": "todo", "title": "Reinforcement of child safety: check the output when a run warrants it"}
