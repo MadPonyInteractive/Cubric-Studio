@@ -1,0 +1,10 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "C:/AI/Mpi/ComfyUi-MpiNodes/flux3.py",
+    "C:/AI/Mpi/ComfyUi-MpiNodes/__init__.py",
+    "C:/AI/Mpi/ComfyUi-MpiNodes/README.md",
+    "C:/AI/Mpi/ComfyUi-MpiNodes/changelog.md",
+    "dev_configs/node_lock.json"
+  ]
+}

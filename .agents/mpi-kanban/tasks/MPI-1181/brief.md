@@ -170,6 +170,15 @@ the dress color <obj_1> to red"), so like H3 the node must rewrite slot numbers 
 once empties are dropped - or a tag points at the wrong picture. New node = `/mpi-nodes-sync`
 (committed, pushed, pinned).
 
+**BUILT 2026-10-19:** `MpiFlux3References` in ComfyUi-MpiNodes `flux3.py`, commit `3d00c16`
+(local, NOT pushed until Fabio accepts it; pin bump waits for the 2.1 cut - `node_lock.json` is
+held by the 2.1 release session). Slots are **0-based** `ref_image_0..9` to match FLUX 3's own
+`<ref_image_0>` convention; takes `clip` + `prompt` (like the H3 node) because the tags must be
+rewritten BEFORE encoding. Bare `ref_image_N` in an i2i layout table's `"from"` is renumbered too.
+Headless bench test passed (bench Python, real core node + flux2-vae on CPU): 1x1 sentinel dropped,
+a black image kept, tags renumbered. **Catch:** with no references core's `empty_latent` is a
+4-channel SD latent - t2i must keep `EmptyFlux2LatentImage`. Not yet run inside the bench UI.
+
 ### 3. Boxes - a NEW operation, History workspace
 
 - What the engine wants: core `CreateBoundingBoxes` (a canvas widget, ComfyUI frontend only) feeds

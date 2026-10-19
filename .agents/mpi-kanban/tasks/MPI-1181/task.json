@@ -3,11 +3,11 @@
   "id": "MPI-1181",
   "title": "FLUX.3 Klein for 2.1.1: one card with a Turbo button, 10 reference images, and a new Boxes operation",
   "description": "UMBRELLA: MPI-1179 - New Models to Test. Menu: tasks/MPI-1179/plan.md. Ship BFL's FLUX.3 Klein (5.6B, t2i + edit + up to 10 refs) in 2.1.1 (Fabio 2026-10-19, was dev-gated): one licence-gated card with a Turbo button, a 10-slot reference node like MpiH3References, and Boxes - a new operation in the History workspace (coloured, movable, resizable boxes, each cited in the prompt as <obj_N>). Engine blocker cleared: 2.1 ships ComfyUI v0.42.1. Brief: brief.md.",
-  "column": "todo",
-  "maturity": "planned",
+  "column": "doing",
+  "maturity": "in-progress",
   "status": "active",
   "created_at": "2026-10-18T10:43:07+01:00",
-  "updated_at": "2026-10-19T09:50:00+01:00",
+  "updated_at": "2026-10-19T10:12:11+01:00",
   "links": {
     "brief": "brief.md",
     "events": "events.jsonl"
