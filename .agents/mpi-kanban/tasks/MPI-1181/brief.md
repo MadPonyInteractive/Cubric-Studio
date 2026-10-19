@@ -344,6 +344,52 @@ Next phase: Fabio hands back `flux3.json` -> copy to `comfy_workflows/raw/`, run
 section 3 above); t2i has none. Discuss: a Flow for it? which installed models already take boxes (Fabio thinks
 none; unsure about Qwen-Image(-Edit) 2.1 - check), MOSS-Image (MPI-1180) and Ideogram share the format.
 
+### Hand-back 2026-10-19 - `comfy_workflows/raw/flux3_t2i_template.json`
+
+Byte copy of Fabio's bench `flux3.json` (`cmp` identical; 293 nodes). Named like `krea2_t2i_template.json`
+so it routes to a generator; no `HANDLERS` prefix collision (`klein_` does not match `flux3_`).
+Checks: both base negative encoders (#751 t2i, #695 edit) read `Get_negative text` - OK. Turbo picks
+UNET (#689), steps 16/50 (#733), cfg 1/3.5 (#754) - OK. CFG rule on detailer (#791) and single-pass upscale
+(#792) keyed on `MpiAnyChecker` of the prompt - OK. No FluxGuidance - OK. LanPaint latent = VAEEncode (#770)
+of the crop, NumSteps 1, mask via bypassed MaskPreview #598 (converter forwards bypass) - OK. Samplers: t2i
+er_sde/simple, i2i er_sde/beta, edit euler/simple - OK. Upscale default = single pass (`Input_Tile_Upscale`
+false) - OK. **Answered (Fabio, 2026-10-19): the graph is correct as wired.** CFG is right for every op
+(the settings table above is wrong where it differs - e.g. base edit runs at `Get_cfg` 3.5); Turbo is NOT
+forced on upscale (the user's button decides). Generator/sync concerns only: tile path #681 still encodes the
+prompt (CFG 1, so harmless), `Input_is_Turbo` baked true, `Input_Image` bakes a bench filename.
+**Tiers (Fabio, 2026-10-19): 1K / 2K / 4K, 1K = base**, built the way other 1K/2K models do it; community
+practice is base-resolution input + a megapixel control to go up.
+
+**Custom size (Fabio, 2026-10-19):** FLUX.3 can set an edit's output size. Graph: `Input_custom_size` ->
+#798 `custom size AND NOT has_mask` -> #703 picks `EmptyFlux2LatentImage(W,H)` over the references'
+`empty_latent`. App: turn `Input_custom_size` on for every UNMASKED edit (single or multi-reference) and show
+the ratio + resolution picker there, so the user picks the frame instead of inheriting image 1's. Masked
+edit / inpaint keep the source size (crop + stitch). t2i and img2img get ratio + resolution like every model.
+Resolution tiers: **2K and 4K required** (Fabio) - real 4K ceiling still unmeasured.
+
+**DECIDED (Fabio, 2026-10-19): upsampler = option A, an Enhancer recipe that runs AUTOMATICALLY before
+every FLUX.3 run** on the installed `qwen3vl-abliterated` (no PUP download, no in-graph TextGenerate).
+**It must carry the box prompts too (Fabio):** four system prompts, picked per run - no boxes: `t2i` /
+`i2i`; user boxes drawn: `t2i_bbox` / `i2i_bbox`, the boxes sent as JSON after the request and kept
+exactly. The `*_bbox` output already ends in the element table, so the app sends it as the prompt as-is
+(no `Flux3LayoutPrompt`). `i2i_bbox` rows are `{id, from, src_bbox, tgt_bbox, desc}` with class-noun ids
+(`person_1`), not `Flux3LayoutPrompt`'s `obj_N` - build the box payload from `flux3/bbox.py`. BFL's PUP repo
+is Apache 2.0, so the prompts can ship verbatim (unlike Qwen's).
+What exists vs what A needs (checked 2026-10-19):
+- Recipe modes are `t2v`/`i2v`/`r2v` only; four BFL prompts + a box switch need a recipe-format or
+  enhancer extension (the registry says "never an enhancer code change" - this is the exception, say so).
+- **Edit ops never enhance today** (`ENHANCE_EXEMPT_OPS`, `js/data/commandRegistry.js:1841`); FLUX.3 edit
+  must be let through (per model, not globally).
+- The enhancer is TEXT-only; `i2i`/`i2i_bbox` want to SEE the references. Nearest path: MPI-1084's r2v
+  describe-first (`llmService.js` ~1196); better: send the images to the VL engine directly.
+- Auto-run: Flows already auto-enhance (`flowEnhance.js` `autoEnhanceDecl`, `MpiBaseFlow._autoEnhance`);
+  the prompt box has no equivalent - new, and it must show itself (queue row / status) per the
+  "every action shows itself" rule.
+- Ops: t2i, img2img, edit, inpaint, detail, single-pass upscale through the rules; tile upscale stays
+  prompt-less. Child-safety gate must see the UPSAMPLED text, not only the typed one.
+- Decoding per BFL: greedy, top_p 0.95, top_k 20, presence penalty 1.5 t2i / 0 edit, no thinking;
+  "TARGET CANVAS: W:H" first line when the ratio is known.
+
 ## Noticed
 
 - 2026-10-19 (Fabio, future): a tile-upscaler FLOW that describes each tile with its own prompt - separate from
