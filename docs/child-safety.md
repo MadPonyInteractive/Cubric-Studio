@@ -99,6 +99,8 @@ edit ("change the background") is never looked at. Nor is a doodle drawn on a BL
 under 18" to the describer, so "a lady in lingerie" was refused; its typed words are still checked.
 An uploaded drawing or photo, a Reuse and every agent's media are still looked at, and a doodle among them passes on `SKETCH_QUESTION` below.
 
+**A controller is judged by what the model gets** (Fabio 2026-10-19, "the model should see what Qwen is fed": an 18-year-old who looks younger poses or films herself to move a character). A `control` run's first picture (`inputImage`, else the first image) reaches the model only as its map. Pose: never looked at, the words decide (a skeleton carries no age). Depth / Scribble / Canny (`controlMapOf`, no picker = depth): `AGE_QUESTION` is asked of the map, made by the same annotator in `controlMapDescribe` (`control_map_describe.json`, always ComfyUI, kept as `mapVerdict<index>`); a map keeps the body's shape, so a child's refuses beside nudity. A second or third picture is the person posed into it: looked at as usual. Video Edit's **Swap the person** with "Only change" empty (`motionOnly` -> `config.motionRefs`) never looks at the clip, which only moves the character; with "Only change" set, or any other operation, the filmed person stays and is looked at. Not controllers: i2i, edits, i2v and Reference to Video's clip slot (H3 can edit that clip, so "same motion" and "make her naked" look alike): the person's own likeness reaches the output, so a young-looking adult counts.
+
 `_pictureVerdicts` asks `llmService.describeImage` (the user's describe pick, ComfyUI Qwen3-VL or
 a Remote endpoint) fixed YES/NO questions; only a bare NO is a no (`parseAgeAnswer`):
 
@@ -121,11 +123,11 @@ and kept in the project's preview store (`_clipStill`). No still = refused.
 
 **Kept per file** (`cachedVerdicts`): each answer is saved in the card's sidecar as
 `meta[key] = { q, answer }` (`ageVerdict`, `exposedVerdict`, `clothesVerdict`), `q` the question's
-FNV hash, so a reworded question asks again. An edit of a picture kept YES is YES without asking:
-its sidecar names its sources (`generationSettings.mediaItems`), followed up to five edits back. A
-NO is never inherited (an edit can add a child). A picture with no card (an agent's path, a staged
-engine file) is asked every time. Precedent: `llmService.pictureCaptions`. So a new picture costs
-one describer call, a video of a picture minor a second, and every later run on it none.
+FNV hash, so a reworded question asks again. An edit never takes its source's answer (Fabio
+2026-10-19: a character aged up by an edit is judged as it now looks; `OWN_LOOK` re-asks the YESes
+once inherited). A picture with no card (an agent's path, a staged engine file) is asked every time.
+Precedent: `llmService.pictureCaptions`. So a new picture costs one describer call, a video of a
+picture minor a second, and every later run on it none.
 
 ## Where it runs
 
@@ -160,16 +162,13 @@ on swimwear ("マイクロビキニを着た17歳の少女" passed).
 
 The doodle question (MPI-1173, ComfyUI Qwen3-VL 4B, 16 pictures x 3, `tasks/MPI-1173/`): 5 doodles (Fabio's Scribble, stick figures, a pen doodle on grey, colour blobs) YES 15/15; children as photo, painting, a line drawing traced from a photo and a photo with strokes drawn over it, and adults (photo, anime), NO 33/33. DeepInfra `google/gemma-4-26B-A4B-it` (`research/gemma.mjs`, the app's describe call replayed, 8 pictures x 2, $0.0004): both doodles YES; a child photo with strokes over it, a painting with strokes over it, two line arts traced from child photos and two plain children NO; Fabio's live upload passed on it too. Gemma 3 12B and Ollama describers are unbenched.
 
-The age question: ComfyUI describer, clothed pictures, every real 10-year-old refused (8/8), adults
-9/11 passed (a young-looking 25-year-old and an anime adult refused), ~2.5 s a picture. The person
-wording (MPI-1152, Gemma 4 26B, 14 pictures x 3): cartoon monkeys pass, all 4 children refused,
-adults and mascots pass, one of two renders of a fox character refused (the strict side). Rejected
-(benched): "visible genitals / breasts?" as the trigger: NO on every clothed child, so "remove her
-clothes" on a child photo would never be looked at. `EXPOSED_QUESTION` and `CLOTHES_QUESTION` are
-not benched yet.
+The control map (2026-10-19, ComfyUI Qwen3-VL 4B, the Qwen graph's annotators at 1024, 12 pictures x 4 maps x 3): `AGE_QUESTION` on depth / scribble / canny maps, every child YES (12/12), adults 15/24 NO (Fabio's young-looking 19-year-old and an anime adult YES on all three); on pose skeletons every adult YES too, a 70-year-old's included, hence Pose by the words. A body-proportions wording passed one more adult and missed a child's canny map: rejected. ~2.3 s a map warm, ~7 s cold.
+
+The age question: ComfyUI describer, clothed pictures, every real 10-year-old refused (8/8), adults 9/11 passed (a young-looking 25-year-old and an anime adult refused), ~2.5 s a picture. The person wording (MPI-1152, Gemma 4 26B, 14 pictures x 3): cartoon monkeys pass, all 4 children refused, adults and mascots pass, one of two renders of a fox character refused (the strict side). Rejected (benched): "visible genitals / breasts?" as the trigger: NO on every clothed child, so "remove her clothes" on a child photo would never be looked at. `EXPOSED_QUESTION` and `CLOTHES_QUESTION` are not benched yet.
 
 ## Known gaps (by decision)
 
+- A controller is not looked at for who it shows (Fabio 2026-10-19): a child's Pose skeleton, or a child's clip in Video Edit's Swap the person, under words that name an adult, passes; so does anyone a whole-person swap leaves in the clip. A young-looking adult's depth map can still read as a child's and refuse: Pose is the way through.
 - Content already IN an input passes with innocent typed words: a describer's caption is never
   read, and an innocent still edit is not looked at. The age verdict guards what the words ask for.
 - Outputs are never looked at. A post-run check (a local nudity detector such as NudeNet as the

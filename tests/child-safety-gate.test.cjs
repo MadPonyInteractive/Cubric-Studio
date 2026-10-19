@@ -516,3 +516,75 @@ test('a Clothes reference that is underwear or swimwear is refused on a minor, a
     await until(() => queued(dressed.queueJobId));
     assert.ok(queued(dressed.queueJobId), 'ordinary clothes on a child');
 });
+
+// ── A controller, not the subject (Fabio 2026-10-19): "the model should see what Qwen is fed" ──
+// An 18-year-old who looks younger poses for a character. Her photo read "could be under 18", so
+// Depth and Pose on Qwen-Image 2.1 with "Naked anime 20-year-old woman" were refused.
+
+const control = (positive, net, extra = {}) => config(positive, {
+    operation: 'control', model: { id: 'qwen-image-2.1', mediaType: 'image' },
+    mediaItems: [{ url: PHOTO, mediaType: 'image', role: 'inputImage' }],
+    injectionParams: net ? { Input_Control_Net: net } : {}, ...extra,
+});
+const mapJobs = () => peekCueQueue().filter((j) => j.config.operation === 'controlMapDescribe');
+
+test('Pose: a skeleton carries no age, so her photo is never looked at and the words decide', async () => {
+    describeAnswer = { ok: true, text: 'YES' };
+    const before = describeBodies.length;
+    const maps = mapJobs().length;
+    const r = enqueueGeneration(control('Naked anime 20-year-old woman', 1), {});
+    assert.ok(queued(r?.queueJobId), 'queued at once');
+    assert.strictEqual(describeBodies.length, before, 'the photo is not described');
+    assert.strictEqual(mapJobs().length, maps, 'no map is made');
+    assert.strictEqual(enqueueGeneration(control('a naked 10-year-old girl', 1), {}), null, 'words naming a child still refuse');
+});
+
+test('Depth, Canny, Scribble: the map the model gets is looked at, never the photo; a child-shaped map refuses', async () => {
+    describeAnswer = { ok: true, text: 'YES' };
+    // No picker (Klein, Krea 2, Chroma) = depth, the only map those graphs make.
+    for (const [net, mapSays, passes] of [[2, 'NO', true], [4, 'NO', true], [3, 'YES', false], [undefined, 'YES', false], [2, 'Maybe', false]]) {
+        const before = describeBodies.length;
+        const maps = mapJobs().length;
+        const { seen, off, callbacks } = capture();
+        const r = enqueueGeneration(control('Naked anime 20-year-old woman', net), callbacks);
+        await until(() => mapJobs().length > maps);
+        const job = mapJobs().at(-1);
+        assert.strictEqual(job.config.mediaItems[0].url, PHOTO);
+        assert.strictEqual(job.config.injectionParams.Input_Control_Net, net ?? 2, 'the run\'s own annotator');
+        assert.match(job.config.injectionParams.Input_Describe_Prompt, /could be, under 18\?/);
+        job.callbacks.onText(mapSays);
+        await until(() => queued(r.queueJobId) || seen.errors.length > 0);
+        off();
+        assert.strictEqual(queued(r.queueJobId), passes, `${net} ${mapSays}`);
+        assert.strictEqual(describeBodies.length, before, 'the photo is never described');
+        if (!passes) assert.strictEqual(seen.errors[0]?.code, 'CHILD_SAFETY');
+    }
+});
+
+test('a second picture on a control run is the person posed into it: still looked at', async () => {
+    const SUBJECT = '/project-file?path=C%3A%2Fproj%2FMedia%2Fsubject.png';
+    describeAnswer = { ok: true, text: 'YES' };
+    const before = describeBodies.length;
+    const { seen, off, callbacks } = capture();
+    enqueueGeneration(control('Naked anime 20-year-old woman', 1, {
+        mediaItems: [{ url: PHOTO, mediaType: 'image', role: 'inputImage' }, { url: SUBJECT, mediaType: 'image', role: 'inputImage2' }],
+    }), callbacks);
+    await until(() => seen.errors.length > 0);
+    off();
+    assert.strictEqual(seen.errors[0]?.code, 'CHILD_SAFETY');
+    assert.ok(describeBodies.slice(before).every((b) => b.imagePath === SUBJECT), 'the subject, never the pose photo');
+});
+
+test('Video Edit, Swap the person: her clip only moves the character, so only the character is looked at', async () => {
+    const CHARACTER = '/project-file?path=C%3A%2Fproj%2FMedia%2Fcharacter.png';
+    describeAnswer = { ok: true, text: 'NO' };
+    const before = describeBodies.length;
+    const r = enqueueGeneration(config('a naked anime woman', {
+        operation: 'flowVideoEdit', model: { id: null, mediaType: 'video' },
+        mediaItems: [{ url: CLIP, mediaType: 'video', role: 'video1' }, { url: CHARACTER, mediaType: 'image', role: 'image1' }],
+        motionRefs: [CLIP],
+    }), {});
+    await until(() => queued(r.queueJobId));
+    assert.ok(queued(r.queueJobId));
+    assert.deepStrictEqual(describeBodies.slice(before).map((b) => b.imagePath), [CHARACTER]);
+});

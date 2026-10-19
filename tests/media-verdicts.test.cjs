@@ -51,25 +51,21 @@ test('a reworded question asks again; a path in another spelling is the same car
     assert.notStrictEqual(questionHash('Q1'), questionHash('Q2'));
 });
 
-test('an edit of a YES is YES without asking, two edits back; a NO is never inherited', async () => {
+// Fabio 2026-10-19: a young-looking anime character aged up by an edit is judged as the adult it
+// now shows. An edit of a YES used to be YES without asking, so it could never be used.
+test('an edit is judged on its own look: a YES on its source is never taken', async () => {
     const { cachedVerdicts, questionHash } = await load();
     const q = questionHash('Q1');
     const from = (...n) => ({ generationSettings: { mediaItems: n.map((x) => ({ url: url(x) })) } });
-    const s = setup(['child.png', 'edit1.png', 'edit2.png', 'adult.png', 'edit3.png'], {
-        'child.png': { ageVerdict: { q, answer: 'YES' } },
-        'edit1.png': from('child.png'),
-        'edit2.png': from('edit1.png'),
-        'adult.png': { ageVerdict: { q, answer: 'NO' } },
-        'edit3.png': from('adult.png'),
+    const s = setup(['young.png', 'aged.png'], {
+        'young.png': { ageVerdict: { q, answer: 'YES' } },
+        'aged.png': from('young.png'),
     });
     let asked = 0;
     const o = { key: 'ageVerdict', question: 'Q1', inherit: true, project: s.project, http: s.http, ask: async () => { asked += 1; return false; } };
-    assert.deepStrictEqual(await cachedVerdicts([url('edit2.png')], o), [true]);
-    assert.strictEqual(asked, 0, 'inherited, not asked');
-    assert.strictEqual(s.sidecars['edit2.png'].ageVerdict.answer, 'YES', 'and kept on the edit');
-    assert.deepStrictEqual(await cachedVerdicts([url('edit3.png')], o), [false]);
-    assert.strictEqual(asked, 1, 'an edit of a NO is asked: an edit can add a child');
-    assert.deepStrictEqual(await cachedVerdicts([url('edit3.png')], { ...o, inherit: false, key: 'other' }), [false]);
+    assert.deepStrictEqual(await cachedVerdicts([url('aged.png')], o), [false]);
+    assert.strictEqual(asked, 1, 'the edit itself is asked');
+    assert.strictEqual(s.sidecars['aged.png'].ageVerdict.answer, 'NO');
 });
 
 test('no card: asked every time, nothing written; no answer: null, nothing kept', async () => {

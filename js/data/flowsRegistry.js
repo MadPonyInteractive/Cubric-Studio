@@ -871,6 +871,10 @@ export const FLOWS = [
         type: 'edit',
         // Change the outfit: the picture's clothes go on the person (`flowGateInputs`, MPI-1156).
         clothesRef: { role: 'image1', when: { field: 'Input_Operation', in: [3, '3'] } },
+        // Swap the person, whole frame: everyone it names is replaced, so the clip only gives the
+        // motion and the gate never looks at it (`flowGateInputs`, Fabio 2026-10-19: an adult who
+        // looks young films herself to move a character). "Only change" keeps the rest as filmed.
+        motionOnly: { role: 'video1', when: [{ field: 'Input_Operation', in: [1, '1'] }, { field: 'Input_Target', is: '' }] },
         inputSchema: {
             media: [
                 { type: 'video', mode: 'upto', max: 1, roles: ['video1'], labels: ['Video to edit'] },
@@ -3407,11 +3411,12 @@ export function flowRunValues(flow, run = {}) {
  * Enhancer fills, the built prompt or a describer's answer. Plus an age a `setsAge` field puts on
  * the person, as data (`minorAge`), since the built prompt that carries it as words is not read.
  * And the picture a FlowDef's `clothesRef: { role, when }` names, when its rule holds: the gate asks
- * it whether it is underwear or swimwear (`clothesRefs`).
+ * it whether it is underwear or swimwear (`clothesRefs`). A clip `motionOnly: { role, when }` names
+ * gives only motion to someone else, so it is never looked at (`motionRefs`).
  * @param {FlowDef} flow
  * @param {Object} [run] - a run's inputs, as `submitFlowGeneration` takes them
  * @param {Array<{ role?: string, url?: string }>} [mediaItems] - the run's media, by role
- * @returns {{ userWords: string[], minorAge?: number, clothesRefs?: string[] }}
+ * @returns {{ userWords: string[], minorAge?: number, clothesRefs?: string[], motionRefs?: string[] }}
  */
 export function flowGateInputs(flow, run = {}, mediaItems = []) {
     const values = flowRunValues(flow, run);
@@ -3419,10 +3424,14 @@ export function flowGateInputs(flow, run = {}, mediaItems = []) {
     const typed = fields.filter(f => f.type === 'text' && !f.hidden && !/negative/i.test(f.id)).map(f => values[f.id]);
     const userWords = [...new Set([run?.positive, ...typed])].filter(v => typeof v === 'string' && v.trim());
     const age = fields.filter(f => f.setsAge).map(f => Number(values[f.id])).find(n => Number.isFinite(n) && n >= 0);
-    const ref = flow?.clothesRef;
-    const clothesRefs = ref && ruleHolds(ref.when, values)
-        ? (mediaItems || []).filter(m => m?.role === ref.role && m.url).map(m => m.url) : [];
-    return { userWords, ...(age !== undefined ? { minorAge: age } : {}), ...(clothesRefs.length ? { clothesRefs } : {}) };
+    const named = (ref) => (ref && ruleHolds(ref.when, values)
+        ? (mediaItems || []).filter(m => m?.role === ref.role && m.url).map(m => m.url) : []);
+    const clothesRefs = named(flow?.clothesRef);
+    const motionRefs = named(flow?.motionOnly);
+    return {
+        userWords, ...(age !== undefined ? { minorAge: age } : {}),
+        ...(clothesRefs.length ? { clothesRefs } : {}), ...(motionRefs.length ? { motionRefs } : {}),
+    };
 }
 
 /**

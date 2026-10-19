@@ -1,0 +1,194 @@
+{
+  "35": {
+    "inputs": {
+      "clip_name": "qwen3vl_4b_abliterated_fp8_scaled.safetensors",
+      "type": "krea2",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "36": {
+    "inputs": {
+      "max_length": 512,
+      "sampling_mode": "on",
+      "sampling_mode.temperature": 0.2,
+      "sampling_mode.top_k": 64,
+      "sampling_mode.top_p": 0.95,
+      "sampling_mode.min_p": 0.05,
+      "sampling_mode.repetition_penalty": 1.05,
+      "sampling_mode.seed": 0,
+      "sampling_mode.presence_penalty": 0,
+      "thinking": false,
+      "use_default_template": true,
+      "clip": [
+        "35",
+        0
+      ],
+      "image": [
+        "41",
+        0
+      ],
+      "prompt": [
+        "38",
+        0
+      ]
+    },
+    "class_type": "TextGenerate",
+    "_meta": {
+      "title": "Generate Text"
+    }
+  },
+  "37": {
+    "inputs": {
+      "source": [
+        "48",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Output_prompt"
+    }
+  },
+  "38": {
+    "inputs": {
+      "value": "<|im_start|>system\nYou are an image captioning model. Produce one richly detailed description that could be\nused as a text-to-image prompt to recreate this image.\n\nYour entire reply is the description, and its first word is the first word of the scene —\nbegin with the main subject. Never open with a framing phrase (\"The image\", \"This image\",\n\"In the image\", \"A photo of\", \"There is\", \"There are\", \"We see\", \"Here\", \"Shown\"); if one\nwould start your reply, drop it and start at the subject.\n\nBe exhaustive — someone must be able to recreate the image from your words alone. Cover:\n- Every subject: count them; for each, apparent age/gender, pose, action, expression, hair\n  (color, length, style), full clothing (garment, color, pattern, material, fit), accessories.\n- Spatial layout: where each subject/object sits (foreground, midground, background;\n  left/right) and how they relate (who holds, touches, or faces what).\n- Setting and props: location, surfaces, furniture, background objects, any visible text.\n- Lighting: direction, quality (soft/hard), and color.\n- Camera: shot type and framing, angle, depth of field.\n- Medium and style: photograph, 3D render, illustration, and any distinct look.\n\nRules:\n- State only what is actually visible. Do not infer mood, story, or intent.\n- Concrete visual facts, not empty praise — never \"beautiful\", \"stunning\", \"amazing\".\n- Positive phrasing only: describe what is present, never what is absent (\"no\", \"without\").\n- One dense, continuous paragraph — no bullets, JSON, markdown, or preamble. Do not\n  summarize or omit; when the scene is complex, write more.<|im_end|>\n<|im_start|>user\n<|vision_start|><|image_pad|><|vision_end|>Describe this image in exhaustive, recreation-ready detail.<|im_end|>\n<|im_start|>assistant\n"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Input_Describe_Prompt"
+    }
+  },
+  "41": {
+    "inputs": {
+      "upscale_method": "nearest-exact",
+      "megapixels": 1,
+      "resolution_steps": 16,
+      "image": [
+        "53",
+        0
+      ]
+    },
+    "class_type": "ImageScaleToTotalPixels",
+    "_meta": {
+      "title": "Scale Image to Total Pixels"
+    }
+  },
+  "43": {
+    "inputs": {
+      "image": "None",
+      "channel": "alpha",
+      "block_if_empty": true,
+      "string": ""
+    },
+    "class_type": "MpiLoadImage",
+    "_meta": {
+      "title": "Input_Image"
+    }
+  },
+  "48": {
+    "inputs": {
+      "passthrough": [
+        "36",
+        0
+      ]
+    },
+    "class_type": "MpiClearVram",
+    "_meta": {
+      "title": "Mpi Clear Vram"
+    }
+  },
+  "55": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "megapixels": 1,
+      "resolution_steps": 32,
+      "image": [
+        "43",
+        0
+      ]
+    },
+    "class_type": "ImageScaleToTotalPixels",
+    "_meta": {
+      "title": "Scale Image to Total Pixels (control)"
+    }
+  },
+  "50": {
+    "inputs": {
+      "preprocessor": "DepthAnythingV2Preprocessor",
+      "resolution": 1024,
+      "image": [
+        "55",
+        0
+      ]
+    },
+    "class_type": "AIO_Preprocessor",
+    "_meta": {
+      "title": "AIO Aux Preprocessor"
+    }
+  },
+  "51": {
+    "inputs": {
+      "preprocessor": "ScribblePreprocessor",
+      "resolution": 1024,
+      "image": [
+        "55",
+        0
+      ]
+    },
+    "class_type": "AIO_Preprocessor",
+    "_meta": {
+      "title": "AIO Aux Preprocessor"
+    }
+  },
+  "52": {
+    "inputs": {
+      "preprocessor": "CannyEdgePreprocessor",
+      "resolution": 1024,
+      "image": [
+        "55",
+        0
+      ]
+    },
+    "class_type": "AIO_Preprocessor",
+    "_meta": {
+      "title": "AIO Aux Preprocessor"
+    }
+  },
+  "54": {
+    "inputs": {
+      "int": 2
+    },
+    "class_type": "MpiInt",
+    "_meta": {
+      "title": "Input_Control_Net"
+    }
+  },
+  "53": {
+    "inputs": {
+      "any_2": [
+        "50",
+        0
+      ],
+      "any_3": [
+        "51",
+        0
+      ],
+      "any_4": [
+        "52",
+        0
+      ],
+      "select": [
+        "54",
+        0
+      ]
+    },
+    "class_type": "MpiAnySwitch10",
+    "_meta": {
+      "title": "Control Map"
+    }
+  }
+}

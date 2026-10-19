@@ -31,10 +31,11 @@ const imp = (p) => import(pathToFileURL(path.resolve(p)).href);
     // text branch and never write a gallery card.
     // MPI-1071 added speechTranscribe: dictation on ComfyUI, the recording in, the words out.
     // Then flowTranscribe: the Transcribe Flow, an audio or a video in, SRT out.
-    const TEXT_OPS = ['imageDescribe', 'speechTranscribe', 'flowTranscribe', 'promptEnhance'];
+    // MPI-1156: controlMapDescribe, the child-safety gate's look at a control run's map.
+    const TEXT_OPS = ['imageDescribe', 'controlMapDescribe', 'speechTranscribe', 'flowTranscribe', 'promptEnhance'];
     const textOps = Object.entries(commands).filter(([, c]) => c.outputKind === 'text');
     assert.deepStrictEqual(textOps.map(([k]) => k), TEXT_OPS,
-        'four text ops today — a new one must be added here deliberately');
+        'five text ops today — a new one must be added here deliberately');
     for (const [key, cmd] of Object.entries(commands)) {
         if (TEXT_OPS.includes(key)) continue;
         assert.notStrictEqual(cmd.outputKind, 'text', `${key} must not be text`);

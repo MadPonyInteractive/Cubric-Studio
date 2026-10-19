@@ -67,6 +67,8 @@ export function registerUserFlow({ id, manifest, errors }) {
     } else {
         def = {
             ...flow,
+            // Only a built-in Flow may tell the child-safety gate not to look at a clip (MPI-1156).
+            motionOnly: undefined,
             id: key,
             operation: key,
             workflow: `${base}workflow.json`,

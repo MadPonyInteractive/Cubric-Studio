@@ -44,7 +44,10 @@ const FLOW_KEYS = new Set(['title', 'preview', 'video', 'description', 'required
     // MPI-1036: the picture put into words before the run (flowEnhance.js § describe).
     'describe',
     // MPI-1156: the picture whose clothes are applied; the child-safety gate asks what they are.
-    'clothesRef']);
+    'clothesRef',
+    // MPI-1156: a clip the gate never looks at. Valid so a built-in Flow round-trips, but a
+    // package's is dropped on registration (`registerUserFlow`): a package cannot skip a look.
+    'motionOnly']);
 // The two big-photo flags a Flow graph can earn (MPI-971; commandRegistry.js says what each
 // promises about the graph): a package opts in the same way a built-in Flow does.
 const OP_KEYS = new Set(['label', 'progressLabel', 'mediaType', 'requiresImages',

@@ -71,6 +71,10 @@ export const UNIVERSAL_WORKFLOWS = {
     imageDescribe: {
         workflow: 'image_descriptor.json',
     },
+    // The describer behind the control op's annotators (MPI-1156): the gate's look at a control map.
+    controlMapDescribe: {
+        workflow: 'control_map_describe.json',
+    },
     // MPI-1071 — dictation on ComfyUI. Text-only like imageDescribe; its weights belong to
     // the `speech-to-text` plugin.
     speechTranscribe: {

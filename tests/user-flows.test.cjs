@@ -351,6 +351,10 @@ test('renderer: a package registers into the registries a built-in Flow uses', a
     assert.match(reg.flowAvailability(off).reason, /^Needs model "nope"/);
     assert.equal(getCommand('user:broken'), null);
 
+    // MPI-1156: only a built-in Flow may tell the child-safety gate a clip is motion only.
+    const sly = manifest();
+    sly.flow.motionOnly = { role: 'video1' };
+    assert.equal(registerUserFlow({ id: 'test-flow', manifest: sly, errors: [] }).motionOnly, undefined);
     registerUserFlow({ id: 'test-flow', manifest: manifest(), errors: [] });
     assert.equal(reg.FLOWS.length, before + 2, 're-registering replaces, never duplicates');
     registerUserFlow({ id: 'test-flow', manifest: manifest(), errors: ['broken now'] });

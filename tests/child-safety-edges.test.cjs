@@ -71,6 +71,19 @@ test('a Clothes reference reaches the gate only when its clothes are applied (MP
     assert.ok(fs.readFileSync(repo('js/services/flowService.js'), 'utf8').includes('flowGateInputs(flow, run, mediaItems)'), 'flowService hands it the run\'s media');
 });
 
+// Fabio 2026-10-19: an 18-year-old who looks younger films herself to move a character. Swapped
+// out whole, she is only the motion; anything else keeps her in the result.
+test('Video Edit\'s clip is motion only when the whole person is swapped', async () => {
+    const { FLOWS, flowGateInputs } = await esm('js/data/flowsRegistry.js');
+    const videoEdit = FLOWS.find(f => f.id === 'video-edit');
+    const media = [{ role: 'video1', url: 'clip.mp4' }, { role: 'image1', url: 'character.png' }];
+    const refs = (injectionParams) => flowGateInputs(videoEdit, { injectionParams }, media).motionRefs;
+    assert.deepEqual(refs({ Input_Operation: 1 }), ['clip.mp4'], 'Swap the person');
+    assert.deepEqual(refs({ Input_Operation: 1, Input_Target: '' }), ['clip.mp4']);
+    assert.equal(refs({ Input_Operation: 1, Input_Target: 'head' }), undefined, 'only her head is swapped: her body stays');
+    for (const op of [2, 3, 4, 5]) assert.equal(refs({ Input_Operation: op }), undefined, `operation ${op} keeps her`);
+});
+
 test('submitFlowGeneration stamps the typed words and the age on every pass, never the describer\'s answer', async () => {
     const { submitFlowGeneration } = await esm('js/services/flowService.js');
     const queued = [];
