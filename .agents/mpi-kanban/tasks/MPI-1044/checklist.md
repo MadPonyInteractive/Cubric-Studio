@@ -102,5 +102,5 @@ Working list: brief.md § "2026-10-14 status check" and § Blockers.
       validate` OK; Fabio published to the MCP Registry: 0.3.2 active, isLatest (checked /v0/servers).
       Guides: every "2.1" line true against the shipped notes, competitor facts re-checked on GitHub (A1111
       v1.10.1 Feb 2025, Forge last push Jul 2025, Fooocus LTS); merged into website main c5c9704 and pushed.
-      Still owed: Enhance + Describe eye test on 0.42.1 (Fabio, should have preceded the cut); IndexNow/Bing
-      re-crawl ping (Fabio's call).
+      Still owed: Enhance + Describe eye test on 0.42.1 (Fabio, should have preceded the cut); IndexNow ping SENT (Fabio's yes):
+      key file 3586aee7….txt at website 33ef8e6, served live; 17 sitemap URLs POSTed to api.indexnow.org, HTTP 202.
