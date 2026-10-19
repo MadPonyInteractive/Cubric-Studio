@@ -46,6 +46,7 @@ const IMAGE_ORDER = [
     'chroma-hyper',
     'klein-4b',
     'sdxl-realistic',
+    'flux3-klein',   // MPI-1181, provisional: below Fabio's order until benched against it
     'qwen-image-2-1',
     'ill-anime',
     'ill-anime-beauty',
@@ -64,6 +65,7 @@ const EDIT = [
     ['boogu-edit-high', 'edit'],
     ['boogu-edit-balanced', 'edit'],
     ['qwen-edit', 'qwenEdit'],
+    ['flux3-klein', 'edit'],   // MPI-1181, provisional: below Fabio's order, above Krea 2 (last)
     ['krea2', 'krea2Edit'],
 ];
 
@@ -139,6 +141,9 @@ const NOTES = {
     'chroma-flash:upscale': CHROMA_SKIN,
     'krea2': 'realism',
     'klein-9b': 'realism, well past any SDXL model',
+    // MPI-1181: base vs Turbo on the bench, 42 s vs 9 s at 1088x896 on a 16 GB card.
+    'flux3-klein': 'photographs and skin with turbo: false (the base model); Turbo is about four times faster but plasticky on skin, fine for products and lettering. Up to 4K',
+    'flux3-klein:edit': 'takes up to ten images in one edit, the most of any editor here. A ratio sets the output frame: the picture is re-composed to fill it (not cropped); with a mask the source frame is kept',
     'chroma-flash': 'candid, real-life, influencer-style photography',
     'chroma-hyper': 'candid, real-life photography, on the faster tier',
     'sdxl-realistic': 'realistic by an older standard: today it sits below Klein 9B',
