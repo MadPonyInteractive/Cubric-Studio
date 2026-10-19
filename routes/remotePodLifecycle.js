@@ -342,8 +342,11 @@ const POD_IMAGE_VERSION_CPU = 'v0.27.0';
 // v0.27.0-dev (MPI-1044, the 2.1 engine bump): ComfyUI v0.39.0 -> v0.41.0 (98cc0bf8), frontend
 // 1.55.17, templates 0.11.84; no node pin moved. Stable v0.26.0 is still 0.39.0: the clean
 // release rebuild at ship is MANDATORY for the same reason as v0.25.0-dev above.
-const POD_IMAGE_VERSION_DEV = 'v0.27.0-dev';
-const POD_IMAGE_VERSION_CPU_DEV = 'v0.27.0-dev';
+// v0.28.0-dev (MPI-1044, 2.1 engine re-bump): ComfyUI v0.41.0 -> v0.42.1 (63be2f9b, carries the
+// Stop-crash fix #17178), frontend 1.55.18, templates 0.11.89; no node pin moved. mpi-ci 8afac83.
+// Stable v0.27.0 is still 0.41.0: the clean release rebuild at ship is MANDATORY, as above.
+const POD_IMAGE_VERSION_DEV = 'v0.28.0-dev';
+const POD_IMAGE_VERSION_CPU_DEV = 'v0.28.0-dev';
 // 0.2.23 (MPI-169): add GET /wrapper/disk (du -sb of the mounted volume) so the
 // Settings volume bar can show truthful USED bytes — RunPod's API has no used-bytes.
 // R2-publish-only (publish-runtime.sh, no image rebuild). Degrades gracefully: an
