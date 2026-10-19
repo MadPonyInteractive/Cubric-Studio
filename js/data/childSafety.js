@@ -629,7 +629,7 @@ export function parseAgeAnswer(answer) {
 export const SKETCH_QUESTION = 'Is this picture only a rough doodle: thick strokes, blobs or stick figures drawn on a plain background, where no person has a drawn face, hands or body detail? A photograph, a painting, an illustration, anime or a detailed line drawing is not a rough doodle, and neither is a photograph with strokes drawn over it. Answer with exactly one word: YES or NO.';
 
 /**
- * Asked only of a picture the age question said YES to and that is not a doodle (Fabio 2026-10-19:
+ * Asked of a picture (not a doodle) or a clip frame the age question said YES to (Fabio 2026-10-19:
  * a plain adult in a halter top was refused animating in Video Edit). "Could be under 18" says YES
  * to every 25-year-old benched; a number does not. Benched on the ComfyUI Qwen3-VL 4B describer,
  * the same answer 3 of 3: children 10-12, dressed 15-17s 13-18, Fabio's young-looking adult 18,
@@ -648,12 +648,12 @@ export function parseYears(answer) {
 
 /**
  * What a kept age answer is keyed by (`mediaVerdicts.js`): a picture's age + doodle + age-guess
- * questions, a clip's age question. " (own look)" re-keyed both on 2026-10-19, when an edit stopped
- * taking its source's YES, so a YES once inherited is asked again; the age guess re-keyed pictures
- * again, so a YES kept before it is asked again.
+ * questions, a clip's age + age-guess questions. " (own look)" re-keyed both on 2026-10-19, when an edit stopped
+ * taking its source's YES, so a YES once inherited is asked again; the age guess re-keyed both
+ * again (clips a step later), so a YES kept before it is asked again.
  */
 export const PICTURE_AGE_KEY = AGE_QUESTION + SKETCH_QUESTION + YEARS_QUESTION + ` (own look, clears at ${ADULT_YEARS})`;
-export const CLIP_AGE_KEY = AGE_QUESTION + ' (own look)';
+export const CLIP_AGE_KEY = AGE_QUESTION + YEARS_QUESTION + ` (own look, clears at ${ADULT_YEARS})`;
 
 /** Only a bare YES is a doodle: anything else leaves the picture looked at as it was. */
 export function parseSketchAnswer(answer) {

@@ -108,13 +108,13 @@ a Remote endpoint) fixed YES/NO questions; only a bare NO is a no (`parseAgeAnsw
 |---|---|---|
 | `AGE_QUESTION`: a person who is, or could be, under 18? | every looked-at picture / clip | `pictureMinor`: read as a minor (age 16; 15 for swimwear) |
 | `SKETCH_QUESTION`: only a rough doodle (strokes, stick figures, no face / hands / body detail, no photo under strokes)? | a picture (not a clip) the age question said YES to | only a bare YES: the age verdict is kept NO and the typed words decide (MPI-1173) |
-| `YEARS_QUESTION`: the youngest person's age, one number? | a picture (not a clip, not a map) the age question said YES to, not a doodle | a bare number of `ADULT_YEARS` (20) or more keeps the age verdict NO (Fabio 2026-10-19); anything else, the YES stands |
+| `YEARS_QUESTION`: the youngest person's age, one number? | a picture (not a doodle) or a clip frame the age question said YES to; never a map | a bare number of `ADULT_YEARS` (20) or more keeps the age verdict NO (Fabio 2026-10-19); anything else, the YES stands |
 | `EXPOSED_QUESTION`: anyone in swimwear, underwear, shirtless, topless or nude? | a video run's minor pictures / clips | `pictureExposed`: never animated |
 | `CLOTHES_QUESTION`: underwear, lingerie or swimwear of any kind? | a Clothes reference | `revealingRef` (no answer reads as YES; refuses only beside a minor) |
 
 A person is a human, real or drawn (photo, cartoon, anime, 3D, a doll), or a human-shaped character
 (an elf, a robot, a furry); an animal with an animal body is not (MPI-1152). Perception, not age, by
-decision: a young-looking adult counts, unless a picture's age guess is 20 or more. A YES logs the describer's answer (80 characters), so a
+decision: a young-looking adult counts, unless its age guess is 20 or more (a clip: every frame that said YES). A YES logs the describer's answer (80 characters), so a
 refusal needs no paid replay. No describer, or no answer to an age / exposed question, refuses
 `pictureUnchecked`: with no describer reachable NO picture can be animated.
 

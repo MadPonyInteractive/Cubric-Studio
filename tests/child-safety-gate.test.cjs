@@ -55,7 +55,7 @@ globalThis.fetch = (url, init) => {
         if (/shirtless, topless or nude/.test(body.question)) return Promise.resolve({ json: async () => ({ ok: true, text: exposedAnswer }) });
         if (/clothing in this picture/.test(body.question)) return Promise.resolve({ json: async () => ({ ok: true, text: clothesAnswer }) });
         if (/only a rough doodle/.test(body.question)) return Promise.resolve({ json: async () => ({ ok: true, text: sketchAnswer }) });
-        if (/How old is the youngest person/.test(body.question)) return Promise.resolve({ json: async () => ({ ok: true, text: yearsAnswer }) });
+        if (/How old is the youngest person/.test(body.question)) return Promise.resolve({ json: async () => ({ ok: true, text: Array.isArray(yearsAnswer) ? yearsAnswer.shift() : yearsAnswer }) });
         return Promise.resolve({ json: async () => describeAnswer });
     }
     if (url === '/load-meta-batch') {
@@ -344,7 +344,7 @@ test('"remove her clothes" on a clip: the poster, then the middle and last frame
 
 test('a clip that may show a minor is refused, and so is a clip no still can be made of', async () => {
     describeAnswer = { ok: true, text: 'YES' };
-    for (const [card, rx, asked] of [[undefined, /picture or clip that may show someone under 18/, 4], [null, /could not run/, 0]]) {
+    for (const [card, rx, asked] of [[undefined, /picture or clip that may show someone under 18/, 5], [null, /could not run/, 0]]) {
         // null: no card, so the first frame is grabbed, and this <video> cannot read the clip.
         videoBroken = card === null;
         const before = describeBodies.length;
@@ -355,7 +355,7 @@ test('a clip that may show a minor is refused, and so is a clip no still can be 
         assert.strictEqual(queued(r.queueJobId), false, String(card));
         assert.strictEqual(seen.errors[0]?.code, 'CHILD_SAFETY', String(card));
         assert.match(seen.warnings[0], rx, String(card));
-        // A YES on the poster is enough for the age; then "in swimwear or less?" (NO, three frames).
+        // A YES on the poster guessed 10 is enough for the age; then "in swimwear or less?" (NO, three frames).
         assert.strictEqual(describeBodies.length, before + asked, String(card));
     }
     videoBroken = false;
@@ -397,6 +397,25 @@ test('a kept subject the describer calls unclothed is never read: only the age q
     assert.ok(looks.every((b) => /could be, under 18\?/.test(b.question)), 'the age question only');
 });
 
+// Fabio 2026-10-19: his adult anime woman in a bikini, Video Edit "Change the outfit", "Fully naked":
+// refused on the clip. Each looked-at frame the age question says YES to is guessed; every one must
+// guess 20 or more, and one young-looking frame refuses the clip.
+test('a clip whose every frame guesses 20 or more queues; one frame under 20 refuses it', async () => {
+    describeAnswer = { ok: true, text: 'YES' };
+    try {
+        for (const [years, passes] of [[['20', '20', '20'], true], [['25', '25', '10'], false], [['18'], false]]) {
+            yearsAnswer = years;
+            const { seen, off, callbacks } = capture();
+            const r = enqueueGeneration(clipEdit('Fully naked and with bunny ears instead of a hat', null), callbacks);
+            await until(() => queued(r.queueJobId) || seen.errors.length > 0);
+            off();
+            assert.strictEqual(queued(r.queueJobId), passes, JSON.stringify(years));
+        }
+    } finally {
+        yearsAnswer = '10';
+    }
+});
+
 test('the same words TYPED as the new look are refused on a clip that may show a minor', async () => {
     describeAnswer = { ok: true, text: 'YES' };
     const before = describeBodies.length;
@@ -406,7 +425,7 @@ test('the same words TYPED as the new look are refused on a clip that may show a
     off();
     assert.strictEqual(queued(r.queueJobId), false);
     assert.strictEqual(seen.errors[0]?.code, 'CHILD_SAFETY');
-    assert.strictEqual(describeBodies.length, before + 4, 'the age (YES on the poster), then what they wear');
+    assert.strictEqual(describeBodies.length, before + 5, 'the age (YES on the poster, guessed 10), then what they wear');
 });
 
 // ── Words the lists cannot read (MPI-1062 Phase 2, Fabio's live test 2026-10-10) ────────────
@@ -432,7 +451,7 @@ test('an innocent Japanese edit of a child\'s clip is queued: looked at (a clip)
     const r = enqueueGeneration(clipEdit('背景を夜の街にする'), {});
     await until(() => queued(r.queueJobId));
     assert.strictEqual(queued(r.queueJobId), true);
-    assert.strictEqual(describeBodies.length, looks + 4, 'the age, then what they wear');
+    assert.strictEqual(describeBodies.length, looks + 5, 'the age (guessed 10), then what they wear');
     assert.strictEqual(nudityCalls, asked + 1, '"do the words undress anyone?" (a minor is in the clip)');
     assert.strictEqual(factCalls, judged);
 });

@@ -710,23 +710,35 @@ async function _pictureVerdicts(config, llm, pictures, clips, refs, video, map =
         if (yes) clientLogger.info('generationService', `[childSafety] YES to "${question.slice(0, 40)}..." answer=${JSON.stringify(String(r.text ?? '').slice(0, 80))}`);
         return yes;
     };
-    const atFrames = (question) => async (url) => {
+    const atFrames = (askFrame) => async (url) => {
         for (const at of [0, 0.5, 1]) {
             const still = await _clipStill(url, project, at);
-            const yes = still ? await describe(still, question) : null;
+            const yes = still ? await askFrame(still) : null;
             if (yes !== false) return yes;
         }
         return false;
     };
     const ask = (urls, key, question) => Promise.all([
         cachedVerdicts(urls.pictures, { key, question, project, ask: (u) => describe(u, question) }),
-        cachedVerdicts(urls.clips, { key, question, project, ask: atFrames(question) }),
+        cachedVerdicts(urls.clips, { key, question, project, ask: atFrames((u) => describe(u, question)) }),
     ]);
 
     // MPI-1173: a picture the age question says YES to is asked whether it is only a rough doodle;
     // a bare YES keeps it NO. Both questions key the kept answer (`PICTURE_AGE_KEY`), so a YES kept
     // before this wording is asked again.
-    // Not a doodle, its age guessed (`YEARS_QUESTION`): ADULT_YEARS or more clears the YES.
+    // An age YES whose guess (`YEARS_QUESTION`) is ADULT_YEARS or more is no YES: a picture that is
+    // not a doodle, and each frame of a clip (Fabio 2026-10-19: an adult anime clip refused in Video Edit).
+    const guessedAdult = async (url) => {
+        const r = llm ? await llm.describeImage({ imagePath: url, question: YEARS_QUESTION }) : null;
+        const guess = r?.ok ? parseYears(r.text) : null;
+        if (guess === null || guess < ADULT_YEARS) return false;
+        clientLogger.info('generationService', `[childSafety] guessed ${guess}: an adult, the words decide`);
+        return true;
+    };
+    const frameAge = async (url) => {
+        const minor = await describe(url, AGE_QUESTION);
+        return minor === true && await guessedAdult(url) ? false : minor;
+    };
     const pictureAge = async (url) => {
         const minor = await describe(url, AGE_QUESTION);
         if (minor !== true) return minor;
@@ -736,11 +748,7 @@ async function _pictureVerdicts(config, llm, pictures, clips, refs, video, map =
             clientLogger.info('generationService', '[childSafety] a rough doodle: no age in it, the words decide');
             return false;
         }
-        const years = await look(YEARS_QUESTION);
-        const guess = years?.ok ? parseYears(years.text) : null;
-        if (guess === null || guess < ADULT_YEARS) return true;
-        clientLogger.info('generationService', `[childSafety] guessed ${guess}: an adult, the words decide`);
-        return false;
+        return !(await guessedAdult(url));
     };
     // A control map, kept per picture and type: the age question asked of what the model gets.
     // Benched (ComfyUI Qwen3-VL 4B, 12 pictures x 3 maps x 3): every child's map YES (12/12),
@@ -748,7 +756,7 @@ async function _pictureVerdicts(config, llm, pictures, clips, refs, video, map =
     const mapAsk = (url) => describe(url, AGE_QUESTION, (u) => _describeControlMap(llm, u, map.net));
     const [picAge, clipAge, mapAge] = await Promise.all([
         cachedVerdicts(pictures, { key: 'ageVerdict', question: PICTURE_AGE_KEY, project, ask: pictureAge }),
-        cachedVerdicts(clips, { key: 'ageVerdict', question: CLIP_AGE_KEY, project, ask: atFrames(AGE_QUESTION) }),
+        cachedVerdicts(clips, { key: 'ageVerdict', question: CLIP_AGE_KEY, project, ask: atFrames(frameAge) }),
         map ? cachedVerdicts([map.url], { key: `mapVerdict${map.net}`, question: AGE_QUESTION, project, ask: mapAsk }) : [],
     ]);
     if ([...picAge, ...clipAge, ...mapAge].includes(null)) return refusal('pictureUnchecked');
