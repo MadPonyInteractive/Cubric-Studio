@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1194",
+  "title": "Reinforcement of child safety: check the output when a run warrants it",
+  "description": "Parked until a bad output slips through or a user reports one. Check the RESULT on adult-word runs, NSFW-tuned models and unknown LoRAs; brief.md has the plan.",
+  "column": "todo",
+  "maturity": "deferred",
+  "status": "active",
+  "created_at": "2026-10-19T03:11:11+01:00",
+  "updated_at": "2026-10-19T03:11:11+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
