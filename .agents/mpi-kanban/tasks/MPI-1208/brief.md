@@ -86,8 +86,12 @@ Coordinate before editing it.
 
 ## Current State (2026-10-19, Cosmo improvements 1)
 
-- Half 2 shipped in 3020e6307 (see validation.md). Card stays in `doing` for Half 1.
+- Half 2 shipped in 3020e6307, CI 39332677834 green. Card stays in `doing` for Half 1.
 - Half 1 next: wire `look` to hand the picture itself to a chat model whose profile reports `vision`
-  (describer text stays the fallback). Candidates + prices: `research/vision-candidates.md`.
-- Bench spend waits for Fabio's yes: ceiling ~$5 (212 single runs on 4 models, then 318 on the best 2).
-- The live `shape-then-edit` bench case has never run (billed); run it with the Half 1 bench.
+  (describer text stays the fallback), with tests. Then make the bench send the picture too, or it
+  measures the describer, not the model. Candidates + prices: `research/vision-candidates.md`.
+- **Fabio approved the spend (2026-10-19): up to $2.75 worst case, two models only.** Step 1: every
+  case once on `inclusionAI/Ling-3.0-flash-VL` and `deepseek-ai/DeepSeek-V4.1-Flash` (106 chats,
+  ~$0.85 ceiling). Step 2: full 3-run pass on the winner only (~$0.55 Ling / ~$1.90 DeepSeek). His
+  DeepInfra balance was $7.47. Nemotron / MiMo only if both fail, and that needs a new yes.
+- The live `shape-then-edit` bench case has never run; it runs inside step 1.

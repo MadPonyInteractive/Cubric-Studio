@@ -24,3 +24,4 @@ Evidence:
 - New case's check exercised on synthetic runs (crop+edit and outpaint+edit pass; i2i, edit-before-crop,
   edit-only fail).
 - NOT run: the live bench case against a model. It bills DeepInfra; waits for Fabio's yes with the Half 1 runs.
+- CI: run 39332677834 (Tests) green on 3020e6307.
