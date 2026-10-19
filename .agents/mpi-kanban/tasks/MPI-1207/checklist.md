@@ -6,7 +6,7 @@
 - [x] Per cloud edit model: size field on edit (plumbing exists; fill-vs-crop needs one paid probe per family)
 - [x] Bench every local edit model at a new frame (1024x1024 from a 571x1021 portrait), bare + canvas prompt
 - [x] Fabio's rule: zoom / added content is fine, only bands fail
-- [x] Verdict: wire Klein 4B/9B, Krea2, Qwen-Image 2.1, Boogu; Qwen Edit only with the canvas line (Fabio's call pending)
+- [x] Verdict: wire Klein 4B/9B, Krea2, Qwen-Image 2.1, Boogu; Qwen Edit too, with the canvas line added to its prompt when custom size is on (Fabio)
 
 ## Phase 2 - graphs (Fabio in ComfyUI) + bench
 

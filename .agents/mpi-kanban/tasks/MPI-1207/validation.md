@@ -90,7 +90,7 @@ installing after removing three video models for space (2026-10-19):
 | Krea2 / Krea2 NSFW | WIRE - fills the frame, no canvas line needed (NSFW = same graph) |
 | Qwen-Image 2.1 | WIRE - fills the frame, no canvas line needed; smallest graph change |
 | Boogu Edit high/balanced | WIRE - fills the frame by zooming (Fabio: expected, like i2i at a new size - zoom in/out or add content is fine; only bands fail) |
-| Qwen Edit | WIRE IF the canvas line ships (Fabio's call pending): bands + cropped face with a plain prompt, clean fill with `TARGET CANVAS` - the same need FLUX.3 has |
+| Qwen Edit | WIRE (Fabio 2026-10-19) WITH the canvas line added to its prompt whenever custom size is on: bands + cropped face with a plain prompt, clean fill with `TARGET CANVAS` - the same need FLUX.3 has |
 | Cloud edit models | not decided - one paid probe per family first (fill vs crop), price stated before |
 
 Krea2's "bands left and right" (Fabio's first read) were the doorway outpainted as real content,
