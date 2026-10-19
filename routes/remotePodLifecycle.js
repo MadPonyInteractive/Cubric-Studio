@@ -173,7 +173,13 @@ const POD_IMAGE_BASE = 'docker.io/madponyinteractive/cubric-vision-pod';
 // run 39169739755, wrapper 0.2.47 baked. Both legs pullable (cu130 sha256:430507a9, cpu
 // sha256:a65eeb34); `node-import smoke test OK`, torch 2.12.0+cu130. cpu boot smoke PASS:
 // /health 200, wrapper 0.2.47 fetched from R2 stable (sha 3dc462d7 = git), stats 401 no token.
-const POD_IMAGE_VERSION = 'v0.27.0';
+// v0.28.0 (MPI-1044, 2.1 re-bump): ComfyUI 0.42.1 (Stop-crash fix #17178), frontend 1.55.18,
+// templates 0.11.89; no node pin moved. Clean release build at the lock, NOT v0.28.0-dev renamed.
+// Its dev twin smoked PASS 65 · SKIP 1 · FAIL 0, 18/18 Flows (smoke-evidence 2026-10-19). mpi-ci
+// 8afac83, CI run 39229329527, wrapper 0.2.47. Both legs pullable (cu130 sha256:571746b9, cpu
+// sha256:2df0139c). cpu boot smoke PASS: /health 200, wrapper 0.2.47 from R2 stable (sha
+// 3dc462d7), stats 401 no token.
+const POD_IMAGE_VERSION = 'v0.28.0';
 // The CPU image stays on GHCR (not moved to Docker Hub — MPI-189 only repointed
 // the GPU image whose cold-start pull is being measured).
 const POD_IMAGE_BASE_CPU = 'ghcr.io/madponyinteractive/cubric-vision-pod';
@@ -210,7 +216,8 @@ const POD_IMAGE_BASE_CPU = 'ghcr.io/madponyinteractive/cubric-vision-pod';
 // v0.24.0-cpu (MPI-595): same CI dispatch as the GPU pin (37007901023), lockstep.
 // v0.26.0-cpu (MPI-1044): same CI dispatch as the GPU pin (38571331600), lockstep.
 // v0.27.0-cpu (MPI-1044): same CI dispatch as the GPU pin (39169739755), lockstep.
-const POD_IMAGE_VERSION_CPU = 'v0.27.0';
+// v0.28.0-cpu (MPI-1044): same CI dispatch as the GPU pin (39229329527), lockstep.
+const POD_IMAGE_VERSION_CPU = 'v0.28.0';
 // MPI-340: DEV-ONLY image pins. _devMode (BUILD_HASH === 'dev') is false in every
 // released portable, so a shipped app can NEVER resolve these — the stable pins above
 // stay frozen while Pod-image work iterates. Bump these (not the stable pair) after a
