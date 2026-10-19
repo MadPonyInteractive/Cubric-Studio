@@ -80,6 +80,17 @@ Comfy-Org/ComfyUI`, HEAD at exactly the pinned sha) and bundles its own
 mechanism — with one deliberate difference: **Comfy's updater pulls `master`, ours checks
 out the PINNED sha.** Never change that.
 
+**Windows never runs git (MPI-1194).** A Windows PC has no git unless the user installed
+one, and `gitProvision.js` can only install it on Linux/macOS — so the in-place path used
+to throw on every git-less Windows PC and fall through to the ~1 GB re-download. The
+fetch + checkout above is the git spelling; on Windows `comfyCheckoutSteps()` runs the same
+two steps as ONE `pygit2` script in the portable's own `python_embeded` (pygit2 ships there:
+1.20.0 at 0.34.0, 1.19.3 at 0.41.0 — it is what `update.py` runs on). The portable's `.git`
+is **shallow**, so the pin is fetched at depth 1. Measured git-less (PATH with no git),
+0.34.0 → 0.41.0: checkout 1.5 s, `In-place upgrade landed 0.41.0`, no re-download. If a
+future portable ever drops pygit2, the run throws and the wipe catches it — check
+`python_embeded/Lib/site-packages/pygit2` on the bump.
+
 Measured cost on `0.29.2 → 0.30.0`: one checkout and three pip packages, against an ~11 GB
 wipe and a ~1 GB re-download plus every node and pip dep.
 
