@@ -30,3 +30,4 @@ ONE thing changed. Lag read from 4-frame strips (hands-to-face) and motion-energ
   - V2 = _006's own in-sync run (real footage, edit_001, its seed and words): 440 s (vs 368 s), lag -1: still in step.
 - NOT yet: Fabio's eye test in the app.
 - PASSED: Fabio re-ran _009 in the app on ca982394f - in sync with the music (2026-10-19). CI 39196400277 green.
+- The eye test above ran AFTER the 2.1 engine bump: the app engine reports ComfyUI 0.42.1 (Fabio, 2026-10-19). The bench runs (F/A/D/L/V1/V2) ran on the engine before it.
