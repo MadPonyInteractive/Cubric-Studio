@@ -557,11 +557,29 @@ function _watchForRestartRequests(spawnedAt) {
     if (_restartWatch.unref) _restartWatch.unref();
 }
 
+// MPI-1206: ONE start at a time. A start keeps the engine DOWN through the curated pip
+// pass (minutes after a release moves a pin) and sets `activeComfyProcess` only at the
+// spawn, so the already-running check cannot see a start still in its pip pass. Two
+// calls 1.2 s apart (the 2.1.1 update test, right after the app moved its own engine)
+// both got through: two pips on one site-packages, one died on WinError 32 and recorded
+// a failure the other never cleared, and the first picture was refused as
+// python_deps_broken. A later call waits for the start in flight, then answers
+// "Already running" off the process that start spawned.
+let _startInFlight = null;
+async function _oneStartAtATime(run) {
+    while (_startInFlight) await _startInFlight;
+    _startInFlight = run();
+    try { return await _startInFlight; } finally { _startInFlight = null; }
+}
+
 /**
  * POST /comfy/start
- * Launches ComfyUI in the background. Idempotent — returns success if already running.
+ * Launches ComfyUI in the background. Idempotent — returns success if already running,
+ * and a call made while another start is still installing waits for it (MPI-1206).
  */
-router.post('/comfy/start', async (req, res) => {
+router.post('/comfy/start', (req, res) => _oneStartAtATime(() => _startComfy(req, res)));
+
+async function _startComfy(req, res) {
     try {
         const isUserRestart = req.body && req.body.isUserRestart;
         if (isUserRestart) {
@@ -780,7 +798,7 @@ router.post('/comfy/start', async (req, res) => {
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
-});
+}
 
 /**
  * POST /comfy/stop
@@ -1257,3 +1275,4 @@ module.exports.scanForImportFailures = _scanForImportFailures;   // MPI-674 — 
 module.exports.stageMediaFile = stageMediaFile;                  // MPI-800 — exported for unit test
 module.exports.noteDynamicVramFault = _noteDynamicVramFault;     // MPI-1024 — exported for unit test
 module.exports.cudaModeArgs = _cudaModeArgs;                     // MPI-1024 — exported for unit test
+module.exports.oneStartAtATime = _oneStartAtATime;               // MPI-1206 — exported for unit test
