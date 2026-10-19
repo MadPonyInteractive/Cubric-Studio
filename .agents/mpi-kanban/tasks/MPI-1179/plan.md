@@ -28,7 +28,8 @@ the same card or a new member card; one that fails closes with its findings.
 | LTX 2.5 Refine + Restore, 2.5 upscalers | MPI-578 Upscale Video Flow on LTX 2.5: Refine + Restore replace or add to today's Flow; 2.5 latent upscalers + DiffVAE | integrate | MPI-1095 |
 | Singularity H3 + FastH3 Trim | MPI-1135 Two H3 base candidates vs ours: replace or add, their upscalers, Story draft resolution | test | Nothing. Story (MPI-1134) waits on it |
 | MOSS-Image | MPI-1180 Bench MOSS-Image (5B text-to-image) | test | ComfyUI v0.42.0 |
-| FLUX.3 Klein | MPI-1181 One card, Turbo button (distilled int8 / base int8), dev-gated | test | Engine on >= v0.41.0 |
+| FLUX.3 Klein | MPI-1181 Ships in 2.1.1: Turbo button, 10 references (own node), new Boxes op in History | integrate | Nothing: 2.1 ships v0.42.1. After the 2.1 cut |
+| Qwen-Image 2.1 Turbo | MPI-1198 8-step Turbo button on the shipped Qwen 2.1 card: 0.91 GB LoRA vs 7.26 GB int8 | test | Nothing |
 | Fish Audio Drama 3 | MPI-1182 int8 experts in RAM, ComfyUI-Drama3 pack | test | Engine on >= v0.40; ~48 GB system RAM |
 | InfiniSplat v2 | MPI-1183 Multi-view feed-forward splat on a 3D Scene path video | test | After 2.1 |
 | ATAS on MiniMax-H3 | MPI-1184 World memory across shots; spike before any adapter | scope | Parked; the spike needs Fabio's yes on ~$1.50 |
@@ -45,7 +46,8 @@ the same card or a new member card; one that fails closes with its findings.
 - **Engine bump timing (Fabio, 2026-10-18):** MOSS-Image, FLUX.3 Klein and Drama 3 all clear on
   one ComfyUI v0.42.0 bump. Do that bump BEFORE 2.1's full Pod smoke (MPI-1044) if v0.42.0 is out
   by then, so one bump and one smoke cover 2.1 and 2.2 brings the models with no second bump.
-- **FLUX.3 Klein:** dev-gated, not a 2.1 item (Fabio, 2026-10-18).
+- **FLUX.3 Klein:** ~~dev-gated, not a 2.1 item (Fabio, 2026-10-18).~~ Ships in 2.1.1 this week,
+  licence-gated, with the Boxes op (Fabio, 2026-10-19).
 - **InfiniSplat v2 vs ATAS:** both are candidates for the 3D Scene lift-back MPI-623 dropped;
   weigh one against the other before picking either. Both have non-commercial weights.
 - **PiD 1.5:** came from MPI-343 (Model upgrade evaluation queue), merged here on 2026-10-18. Its `plan.md` keeps the shared evaluation method for "is this newer build

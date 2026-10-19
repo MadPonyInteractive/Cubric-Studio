@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1198",
+  "title": "Qwen-Image 2.1 Turbo (8 steps): a Turbo button on the shipped Qwen 2.1 card, LoRA or own weight",
+  "description": "UMBRELLA: MPI-1179 - New Models to Test. Menu: tasks/MPI-1179/plan.md. Official 8-step Turbo of Qwen-Image 2.1 (Qwen/Qwen-Image-2.1-Turbo, 2026-10-09). Comfy-Org ships it two ways: a 0.91 GB turbo LoRA on the base we already ship, or a 7.26 GB int8 weight. Bench both, ship the cheaper one that holds quality as a Turbo button. Brief: brief.md.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-10-19T09:44:11+01:00",
+  "updated_at": "2026-10-19T09:44:11+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

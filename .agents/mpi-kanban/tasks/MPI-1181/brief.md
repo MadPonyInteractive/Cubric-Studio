@@ -3,7 +3,9 @@
 Umbrella: MPI-1179 (New Models to Test), phase 2. Researched 2026-10-18 from Fabio's video
 (<https://www.youtube.com/watch?v=gfLy2yjJ0sI>, The AI Blueprint, 2026-10-16) and the sources below.
 
-**Dev-gated (`devOnly: true`). Not a 2.1 item** (Fabio, 2026-10-18).
+~~Dev-gated, not a 2.1 item (Fabio, 2026-10-18).~~ **Superseded 2026-10-19: ships in 2.1.1, this
+week, licence-gated (not devOnly), with Boxes.** See "2026-10-19 update" at the end: it overrides
+anything above it that disagrees.
 
 ## What it is
 
@@ -101,3 +103,63 @@ Once, also compare base int8 against base bf16 to confirm int8 keeps base's qual
 A verdict in `validation.md`: wire it (open an `/mpi-add-model` card, still `devOnly`) or drop it.
 It needs measured speed, VRAM and RAM for Turbo on and off, base vs distilled quality, and the TE-reuse and
 upsampler answers.
+
+## 2026-10-19 update (Fabio) - ships in 2.1.1, three workstreams
+
+Release target **2.1.1, this week**, after 2.1 (MPI-1044). Licence-gated like Klein 9B, not devOnly.
+The "Blocker - the engine" section above is CLEARED: 2.1 ships ComfyUI **v0.42.1** and the
+G:\ComfyUi bench is on 0.42.1 too (checked 2026-10-19). Done-when is now: shipped in 2.1.1, not a verdict.
+
+### 1. The model card (the brief above still holds)
+
+Turbo button, int8 base/distilled, licence entry. **The prompt upsampler is OPTIONAL in the official
+templates**, not mandatory: both `image_flux3_klein_t2i` and `_image_edit` route it through a
+`ComfySwitchNode` (default `false` = off). So v1 can ship WITHOUT the 6.7 GB upsampler and lean on
+our Enhancer, which removes the 16 GB-RAM worry. Bench with and without once.
+
+### 2. Ten reference images - our own node, the MpiH3References way
+
+Core node: `ReferenceMultiLatent` ("Set Reference Multi Latent", `comfy_extras/nodes_edit_model.py`):
+positive/negative/vae + an **Autogrow** `images` input (`image0`, `image1`, ... up to 100), resolution
+`resize` + megapixels, outputs positive/negative/`empty_latent`. Autogrow cannot be pre-wired to 10 Mpi
+loaders where some are empty: an empty `MpiLoadImage` sends the 1x1 sentinel, which core would take
+as a real picture. Fabio's call: copy what `MpiH3References` (ComfyUi-MpiNodes `h3.py`) did -
+**`MpiFlux3References`: 10 flat optional `ref_image_N` slots, empties (None or the 1x1 sentinel)
+dropped, survivors handed to core's `ReferenceMultiLatent.execute` (delegate, never copy its maths)**.
+The prompt cites references as `<ref_image_0>` (0-based, template example: "In <ref_image_0>, change
+the dress color <obj_1> to red"), so like H3 the node must rewrite slot numbers to core's ordinals
+once empties are dropped - or a tag points at the wrong picture. New node = `/mpi-nodes-sync`
+(committed, pushed, pinned).
+
+### 3. Boxes - a NEW operation, History workspace
+
+- What the engine wants: core `CreateBoundingBoxes` (a canvas widget, ComfyUI frontend only) feeds
+  `Flux3LayoutPrompt` (`comfy_extras/nodes_flux.py`, marked experimental). **That node only APPENDS
+  TEXT**: `prompt + " " + json.dumps([{"id": "obj_1", "bbox": [ymin, xmin, ymax, xmax], "desc": "..."}, ...])`,
+  bbox on a 0-1000 grid of the output frame (`_norm_bbox` in `nodes_bounding_boxes.py`). Colour
+  palettes are ignored by FLUX.3 ("describe colours in the description"). Order: background first,
+  foreground last.
+- **So the app needs no box node at all:** our UI draws the boxes, the app builds that JSON and appends
+  it to the prompt (or feeds `Flux3LayoutPrompt.element`). The paid template Fabio saw is
+  `api_bfl_flux3_image_bboxes` (BFL cloud); the FREE local Klein templates already wire
+  `CreateBoundingBoxes` -> `Flux3LayoutPrompt`. Bench that boxes really steer the LOCAL model first.
+- UI (Fabio): draw several boxes, each its own border colour; move and resize them; each box has its
+  own description; the prompt cites box N as `<obj_N>`; add / remove boxes from the prompt-box
+  settings. Start from `MpiCanvasViewer`'s crop box (`getCropRect`/`setCropRect`, one movable,
+  resizable box today) rather than a new canvas. Boxes are per-card History state, like a mask.
+- MOSS-Image (MPI-1180) and Ideogram templates use the same box format
+  (`image_moss_image_base_t2i_bboxes`), so build the op model-neutral: a model opts in by capability.
+
+### Bench now (no engine work needed)
+
+Downloads go to **C:\AI** (G: has 9 GB free; the bench already maps `C:/AI/diffusion_models` and
+`C:/AI/text_encoders` in `extra_model_paths.yaml`). Have: `flux2-vae`, `qwen3vl_4b_abliterated_fp8_scaled`.
+Need: base int8 5.8 GB + distilled int8 5.8 GB, `qwen3vl_4b_int8_convrot` 4.9 GB only if the abliterated
+TE fails, upsampler w4a8 6.7 GB only for the with/without comparison. C: had 46 GB free on 2026-10-19.
+
+### 2.1.1 Pod smoke scope
+
+No engine bump, so not a full smoke: FLUX.3's ops only, plus whatever else the MpiNodes pin bump for
+`MpiFlux3References` touches (check the smoke-scope rule in `docs/playbooks/bump-engine/` at the
+time). If the pin bump forces more, an app-side alternative is dropping empty `images.imageN` inputs
+from the API prompt before submit (no node) - only if the injection rules allow it.

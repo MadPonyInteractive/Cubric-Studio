@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1198", "at": "2026-10-19T09:44:11+01:00", "actor": "claude", "column": "todo", "title": "Qwen-Image 2.1 Turbo (8 steps): a Turbo button on the shipped Qwen 2.1 card, LoRA or own weight"}
