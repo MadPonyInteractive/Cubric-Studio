@@ -83,3 +83,11 @@ Coordinate before editing it.
   `research/`; a recommendation to Fabio with score and cost per chat. The default model changes only on his yes.
 - A finding in `docs/agent-findings.md` (200-line cap).
 - Code commits with the card in `doing`; done only on a green CI run (done-gate).
+
+## Current State (2026-10-19, Cosmo improvements 1)
+
+- Half 2 shipped in 3020e6307 (see validation.md). Card stays in `doing` for Half 1.
+- Half 1 next: wire `look` to hand the picture itself to a chat model whose profile reports `vision`
+  (describer text stays the fallback). Candidates + prices: `research/vision-candidates.md`.
+- Bench spend waits for Fabio's yes: ceiling ~$5 (212 single runs on 4 models, then 318 on the best 2).
+- The live `shape-then-edit` bench case has never run (billed); run it with the Half 1 bench.
