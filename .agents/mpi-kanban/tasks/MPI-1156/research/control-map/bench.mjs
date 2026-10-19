@@ -34,7 +34,8 @@ async function makeMap(file, type) {
     // SAVED=1: ask the maps an earlier run saved, never re-make them.
     // PHOTO=1: ask the source photo itself (the picture check, not a map).
     if (process.env.PHOTO) return `${IN}${file}`;
-    if (process.env.SAVED) return `${OUT}mpi_ctl_maps/${file.replace(/\.png$/, '')}_${type}_00001_.png`;
+    const saved = `${OUT}mpi_ctl_maps/${file.replace(/\.png$/, '')}_${type}_00001_.png`;
+    if (process.env.SAVED && fs.existsSync(saved)) return saved;
     const name = `mpi_ctl_maps/${file.replace(/\.png$/, '')}_${type}`;
     const out = await run({
         1: { class_type: 'LoadImage', inputs: { image: `mpi_ctl/${file}` } },
