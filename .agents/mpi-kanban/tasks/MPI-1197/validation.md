@@ -29,3 +29,4 @@ ONE thing changed. Lag read from 4-frame strips (hands-to-face) and motion-energ
   - V1 = _009 exactly: 450 s (vs 342 s for _009), 73 frames + soundtrack, lag 0 (corr 0.70), in step by eye.
   - V2 = _006's own in-sync run (real footage, edit_001, its seed and words): 440 s (vs 368 s), lag -1: still in step.
 - NOT yet: Fabio's eye test in the app.
+- PASSED: Fabio re-ran _009 in the app on ca982394f - in sync with the music (2026-10-19). CI 39196400277 green.
