@@ -8,7 +8,7 @@
 >
 > **Cleared 2026-10-19 at the 2.1.1 bump (MPI-1044).** MPI-1199 (the RunPod volume create) was
 > folded into `RELEASE_NOTES['2.1.1']` and `docs/releases/2026-10-19-v2.1.1.md`; the re-cut added
-> MPI-1201, MPI-1202 and MPI-1203 straight from their commits (none passed through this file).
+> MPI-1201, MPI-1202, MPI-1203 and MPI-1205 straight from their commits (none passed through this file).
 >
 > **Cleared 2026-10-19 at the 2.1.0 bump (MPI-1044).** Every item was folded into
 > `RELEASE_NOTES['2.1.0']` and `docs/releases/2026-10-19-v2.1.0.md`; the engine line was

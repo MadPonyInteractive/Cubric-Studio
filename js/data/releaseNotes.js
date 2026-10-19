@@ -42,6 +42,7 @@ export const RELEASE_NOTES = {
     version: '2.1.1',
     whatIsNew: [],
     fixes: [
+      '**Deleting a project sends it to the Recycle Bin, and never takes another project with it.** A project made inside another project\'s folder used to be erased with it for good. The app now refuses to create one there, and if the Recycle Bin cannot take a project, Delete removes nothing and says so.',
       '**Creating a RunPod network volume no longer says "Volume not created" when it was made.** RunPod sometimes answers with an error after making the volume. The app now finds that volume and selects it, so trying again no longer pays for a second one.',
       '**Jobs no longer stall in the queue while a download-only RunPod is connected.** The first job ran, then every job behind it waited forever.',
       '**Cosmo edits with Qwen-Image 2.1 first.** It used to try it last and could start an edit on Krea 2, the weakest editor, which is now its last pick.',
