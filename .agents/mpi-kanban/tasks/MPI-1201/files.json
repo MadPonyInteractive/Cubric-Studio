@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/task-files/v1", "files": ["services/agentLoop.mjs", "docs/agent-findings.md", "services/agentBench.mjs", "tests/agent-prompt-budget.test.cjs", ".agents/mpi-kanban/tasks/MPI-1201/"]}

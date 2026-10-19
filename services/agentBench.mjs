@@ -105,6 +105,11 @@ const checkInHolds = (run) => {
     return f;
 };
 const ANGLE = { id: 'att_angle', name: 'IMG_6021.JPG', filePath: 'C:/Temp/cubric-agent/attachments/att_angle.jpg' };
+// MPI-1201: one reference picture holding two subjects, a clip for the motion, a place.
+const LEGS = { id: 'att_legs', name: 'IMG_9104.JPG', filePath: 'C:/Temp/cubric-agent/attachments/att_legs.jpg' };
+const HALLWAY = { id: 'att_hallway', name: 'IMG_9107.JPG', filePath: 'C:/Temp/cubric-agent/attachments/att_hallway.jpg' };
+const WALK = { id: 'i2v_007.mp4', name: 'i2v_007.mp4', filePath: `${PROJECT.folderPath}/Media/i2v_007.mp4`,
+    reference: true, mediaType: 'video', itemId: 'item_w', groupId: 'grp_w' };
 const GRAINY = { id: 'att_grainy', name: 'IMG_7310.JPG', filePath: 'C:/Temp/cubric-agent/attachments/att_grainy.jpg' };
 const GRADED = { id: 'att_graded', name: 'IMG_7311.JPG', filePath: 'C:/Temp/cubric-agent/attachments/att_graded.jpg' };
 const LIT = { id: 'att_lit', name: 'IMG_7312.JPG', filePath: 'C:/Temp/cubric-agent/attachments/att_lit.jpg' };
@@ -844,6 +849,35 @@ const CASES = [
             for (const c of ok) {
                 if (!/^ref2v/.test(c.args.operation || '')) f.push(`ran ${c.args.operation}, not a reference op`);
                 if (!(c.args.media || []).some((m) => m.image === ANGLE.id)) f.push('left the photo out of the media');
+            }
+            return f;
+        },
+    },
+    {
+        // MPI-1201: "the legs" on a sheet holding two pairs got a which-pair question with
+        // buttons, a lost turn. Sent whole with both named, the reference op handled it. The
+        // flip asks for ONE pair, so asking which is then right.
+        id: 'several-subjects-reference-whole',
+        title: 'a reference picture of two subjects goes in whole, both named, no which-one question',
+        setup: {
+            attachments: [LEGS, WALK, HALLWAY],
+            look: {
+                [LEGS.filePath]: said('Two pairs of legs side by side on a white background, knee down: on the left black pantyhose and black stiletto heels, on the right bare tanned legs in white knee-high boots.'),
+                [WALK.filePath]: said('A woman walks toward the camera along a pavement at a steady pace, filmed from the knees down, the camera tracking back in front of her.'),
+                [HALLWAY.filePath]: said('A long narrow hotel hallway with a red patterned carpet, cream walls and doors on both sides, warm ceiling lights, seen from one end.'),
+            },
+            turns: ['Make the legs walk down this hallway, with the motion from the clip.'],
+        },
+        flip: { turns: ['Make one of these pairs of legs walk down this hallway, with the motion from the clip.'] },
+        check(run) {
+            const ok = calledAll(run, 'generate').filter((c) => c.result?.ok);
+            if (!ok.length) return ['never generated'];
+            const f = [];
+            for (const c of ok) {
+                const p = c.args.prompt || '';
+                if (!/^ref2v/.test(c.args.operation || '')) f.push(`ran ${c.args.operation}, not a reference op`);
+                if (!(c.args.media || []).some((m) => m.image === LEGS.id)) f.push('left the legs picture out of the media');
+                if (!/pantyhose|stiletto/i.test(p) || !/boot/i.test(p)) f.push(`did not name both pairs: ${p.slice(0, 160)}`);
             }
             return f;
         },

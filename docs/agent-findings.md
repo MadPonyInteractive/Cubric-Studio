@@ -42,33 +42,30 @@ root cause, not per symptom. A finding whose fix shipped stays: the *why* is the
 
 ### A flow's inputs never reached it (2026-09-19)
 
-Outpaint ran 70 s and handed back the same shape: its `crop` step was invisible to
-`_listModels` (it built params from `kind === 'box'` only) and `_submitFlow` had no crop branch.
-Flow entries also carried no media roles, so it borrowed `inputImage` from another model and
-learned the real role from a refusal. Fix: a crop step rides as `frame: {param, role, ratios}`,
-flows map through `mediaRolesFor`, and no frame on a crop flow is `FRAME_REQUIRED` (a ratio the
-picture already has is `FRAME_UNCHANGED`). **The model names a RATIO, the app does the
-arithmetic** (`frameRectForRatio`), the same reason `BOX_NOT_MEASURED` exists. MPI-816 is the
+Outpaint ran 70 s and handed back the same shape: its `crop` step was invisible to `_listModels` (it built
+params from `kind === 'box'` only) and `_submitFlow` had no crop branch. Flow entries also carried no media
+roles, so it borrowed `inputImage` from another model and learned the real role from a refusal. Fix: a crop
+step rides as `frame: {param, role, ratios}`, flows map through `mediaRolesFor`, and no frame on a crop flow
+is `FRAME_REQUIRED` (a ratio the picture already has is `FRAME_UNCHANGED`). **The model names a RATIO, the
+app does the arithmetic** (`frameRectForRatio`), the same reason `BOX_NOT_MEASURED` exists. MPI-816 is the
 same family: flow fields advertised as `{id, label}` with no type, default or options.
 
 ### Names that sound like values (2026-09-20)
 
-"Redo it in 1K" got 1664x960: `qualityTiers` reached it as bare names (`high`, `very_high`)
-with no pixels, so it matched on how a name sounds. Fix: `namedParamsFor` returns `tierSizes`
-(`{tier: {ratio: 'WxH'}}`). Same shape: a ratio snap was narrated as "the picture's own shape"
-until `snapNote` said it is the NEAREST of the only ratios the op makes. Expect this wherever
-an enum is advertised without its meaning.
+"Redo it in 1K" got 1664x960: `qualityTiers` reached it as bare names (`high`, `very_high`) with no pixels,
+so it matched on how a name sounds. Fix: `namedParamsFor` returns `tierSizes` (`{tier: {ratio: 'WxH'}}`).
+Same shape: a ratio snap was narrated as "the picture's own shape" until `snapNote` said it is the NEAREST
+of the only ratios the op makes. Expect this wherever an enum is advertised without its meaning.
 
 ### It writes negation into prompts (2026-09-19)
 
-Three rounds lost to "not drawn", "never leaves the holster": a text encoder has no "not", each
-phrase ADDS its noun. Then "no camera roll" on H3, where the word it needed (`arc`) sat beside
-`roll` in the guide. Both guides had the rule filed under ONE op. Fix: a
-`### Say what is there, never what is not` section in `docs/agent/models/krea-2.md` and
-`minimax-h3.md`. Two guides with the same defect says the rule is not per-model. Related: **the
-agent never reads the enhancer recipe** (zero references in `agentLoop.mjs` / `agentTools.mjs`);
-it reads `docs/agent/models/*.md`. Two prompt-knowledge bodies per model; the vendor-skill
-merges of 2026-08-17 landed in the one it never sees. That is MPI-817 Phase D.
+Three rounds lost to "not drawn", "never leaves the holster": a text encoder has no "not", each phrase ADDS
+its noun. Then "no camera roll" on H3, where the word it needed (`arc`) sat beside `roll` in the guide. Both
+guides had the rule filed under ONE op. Fix: a `### Say what is there, never what is not` section in
+`docs/agent/models/krea-2.md` and `minimax-h3.md`. Two guides with the same defect says the rule is not
+per-model. Related: **the agent never reads the enhancer recipe** (zero references in `agentLoop.mjs` /
+`agentTools.mjs`); it reads `docs/agent/models/*.md`. Two prompt-knowledge bodies per model; the
+vendor-skill merges of 2026-08-17 landed in the one it never sees. That is MPI-817 Phase D.
 
 ### "The last one" answered from a note, not the list (2026-09-19)
 
@@ -116,49 +113,45 @@ WORDS.** `edit_001` came out right although its own prompt was wrong. Home for t
 
 ### It did not know denoise exists, and its runs injected none (2026-09-20, BUILT 2026-09-21)
 
-Zero hits for `denoise` in `agentLoop`, `agentTools`, `agentDispatch`, the connector. Reading the
-code found the worse half: **an agent run injected NO denoise.** The PromptBox control returns
-`{ Denoise: v }`; `resolveNamedParams` never set it, so the graph ran its BAKED value while the
-sidecar's `controlState.op.denoise` recorded the project's slider. The 0.3 on both krea2 i2i
-sidecars was the op's default (`commandRegistry.js` `i2i.defaults`), which happens to equal the
-baked 0.3, so nothing looked wrong. **The twin of duration before MPI-820: any control the
-PromptBox injects and `resolveNamedParams` does not is a run that disagrees with its record.**
-Fix: `denoise` is a named param on every op whose components list it, on the duration ladder
-(asked > the project's value for that op > the op's default), advertised by `describe_model` as
-`{min, max, default}`, its meaning ("the higher it is, the more the image changes") in the tool
-description. No prompt line. `tests/agent-denoise.test.cjs`.
+Zero hits for `denoise` in `agentLoop`, `agentTools`, `agentDispatch`, the connector. Reading the code found
+the worse half: **an agent run injected NO denoise.** The PromptBox control returns `{ Denoise: v }`;
+`resolveNamedParams` never set it, so the graph ran its BAKED value while the sidecar's
+`controlState.op.denoise` recorded the project's slider. The 0.3 on both krea2 i2i sidecars was the op's
+default (`commandRegistry.js` `i2i.defaults`), which happens to equal the baked 0.3, so nothing looked
+wrong. **The twin of duration before MPI-820: any control the PromptBox injects and `resolveNamedParams`
+does not is a run that disagrees with its record.** Fix: `denoise` is a named param on every op whose
+components list it, on the duration ladder (asked > the project's value for that op > the op's default),
+advertised by `describe_model` as `{min, max, default}`, its meaning ("the higher it is, the more the image
+changes") in the tool description. No prompt line. `tests/agent-denoise.test.cjs`.
 
 ### A second picture never reached the model (2026-09-26, tester's log; BUILT 2026-09-27, MPI-944)
 
-"Put the furniture from photo A into empty photo B, seen from B's angle": it looked at both,
-understood the job, and sent B ALONE to `boogu-edit-high:edit`, rank 1 for edits, which takes
-one image. The furniture was invented from its own prompt ("the same furniture as in the other
-photo", to a model that never saw it), and the reply said it was taken from photo A. Offline,
-1 run in 3 right with Boogu + Klein installed, 2 in 3 for a person into a reverse angle. The
-Boogu note said "one image" and nothing about what that rules out, so the rank won; the guide
-sent a second-image copy to Qwen only, so with no Qwen nothing named `kleinEdit`. Fix, both in
-data: the Boogu notes (`modelPriority.js` `ONE_IMAGE`) say it can never bring anything in from
-another picture and name the editors that can, in the guide's order (listing Klein first flipped
-an every-editor box off Qwen: the note outranks the guide); `flux-2.md` gives the Klein fallback
-and the load order (changed picture `inputImage`, content `inputImage2`). Cases
-`second-picture-*` 3/3 each. **The same shape as i2v's note (MPI-916): a limit stated without
-what it forbids does not stop the pick.** Whether an editor can actually redraw the content
-from the reversed viewpoint is unmeasured.
+"Put the furniture from photo A into empty photo B, seen from B's angle": it looked at both, understood the
+job, and sent B ALONE to `boogu-edit-high:edit`, rank 1 for edits, which takes one image. The furniture was
+invented from its own prompt ("the same furniture as in the other photo", to a model that never saw it), and
+the reply said it was taken from photo A. Offline, 1 run in 3 right with Boogu + Klein installed, 2 in 3 for
+a person into a reverse angle. The Boogu note said "one image" and nothing about what that rules out, so the
+rank won; the guide sent a second-image copy to Qwen only, so with no Qwen nothing named `kleinEdit`. Fix,
+both in data: the Boogu notes (`modelPriority.js` `ONE_IMAGE`) say it can never bring anything in from
+another picture and name the editors that can, in the guide's order (listing Klein first flipped an
+every-editor box off Qwen: the note outranks the guide); `flux-2.md` gives the Klein fallback and the load
+order (changed picture `inputImage`, content `inputImage2`). Cases `second-picture-*` 3/3 each. **The same
+shape as i2v's note (MPI-916): a limit stated without what it forbids does not stop the pick.** Whether an
+editor can actually redraw the content from the reversed viewpoint is unmeasured.
 
 ### Its eyes were wrong and nothing recorded what they said (2026-09-20; the record is BUILT, the eyes are OPEN)
 
-Source: rider upright, both revolvers raised, pointing UP. Its prompts: "leaning forward",
-"pointing outward at her sides". No ComfyUI activity during `agent.describe`, so the describer
-was the remote vision model; whether IT misread or the chat model paraphrased is unprovable,
-because a look's text lives in server memory only. Also every waited still is looked at TWICE
-(`settle()` auto-looks, then the model calls `look` on the same file). Built 2026-09-21: **a
-look is kept once in the card's sidecar** (`look: {text, at}`, `AgentLoop._lookOnce`), read
-first, vision model only on a miss; it dies with the card. Only the unprompted description is
-kept: a question, a crop or a box is a different answer and always goes live. The read is off
-disk; the write goes through `POST /project-media/agent/update-meta` because that route owns the
-per-sidecar write queue, and `storeLook` never creates a sidecar. **Consequence to remember when
-the describer changes: a wrong description is now wrong forever**, until the field is cleared.
-Wider principle he named: the sidecar is the home for card-scoped derived information.
+Source: rider upright, both revolvers raised, pointing UP. Its prompts: "leaning forward", "pointing outward
+at her sides". No ComfyUI activity during `agent.describe`, so the describer was the remote vision model;
+whether IT misread or the chat model paraphrased is unprovable, because a look's text lives in server memory
+only. Also every waited still is looked at TWICE (`settle()` auto-looks, then the model calls `look` on the
+same file). Built 2026-09-21: **a look is kept once in the card's sidecar** (`look: {text, at}`,
+`AgentLoop._lookOnce`), read first, vision model only on a miss; it dies with the card. Only the unprompted
+description is kept: a question, a crop or a box is a different answer and always goes live. The read is off
+disk; the write goes through `POST /project-media/agent/update-meta` because that route owns the per-sidecar
+write queue, and `storeLook` never creates a sidecar. **Consequence to remember when the describer changes:
+a wrong description is now wrong forever**, until the field is cleared. Wider principle he named: the
+sidecar is the home for card-scoped derived information.
 
 **The describer was then replaced on evidence (2026-09-21).** Ten multimodal DeepInfra models,
 production's own prompt, resize and message shape, scored against a truth file read off the
@@ -179,6 +172,13 @@ elsewhere: the masked App state line now says the painted entry IS the choice. "
 gallery (you're already looking at it)": a rule's "skip the first half" loses, so the on-card line
 now gives only the Mask tool. No `[options]` buttons, and it went straight to painting directions:
 the Route rule now ends on `[options: Mask | Whole-picture edit]`. None harness-tested (no `workspace` in the bench).
+
+### A picture of two subjects got a which-one question (2026-10-19, live; BUILT, MPI-1201)
+
+Two pairs of legs on one sheet, a walking clip, a hallway: "the legs walk down this hallway". It picked
+`minimax-h3-ref2va`, then asked which pair with `[options]`, a lost turn; sent whole with both named, the
+result was good. Cause: nothing said a reference op takes a several-subject picture as it is, so "unsure
+which: ask" won. Fix: one Model-rule sentence. Bench `several-subjects-reference-whole`, not run live.
 
 ## What worked, and should be copied
 
