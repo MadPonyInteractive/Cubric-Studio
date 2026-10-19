@@ -43,9 +43,9 @@ as `<Video 1>` at **~0.75 of that size**. Both trim the clip to H3's 17k+5 frame
   own pose ~0.5-0.7 s and then plays the whole performance from its first move, so every move landed
   late against the music and the clip's last moves never came (12-16 frames, on real footage and a
   re-fed result alike; the swap LoRA, grain and a cut-out background changed nothing). A picture
-  posed like the clip's frame 0 hid it. Nodes 36-47 put 17 stills of frame 0 in front of the clip
+  posed like the clip's frame 0 hid it. Nodes 36-39 and 45-47 put 17 stills of frame 0 in front of the clip
   (length + 17, still on the 17k+5 grid) and node 123 drops them before the save: both test runs in
-  step (lag 0 / -1). Whole frame only (the masked route reads node 31 itself); ~20% slower.
+  step (lag 0 / -1). Whole frame only (the masked route reads node 31 itself); 20-32% slower on the 4060 Ti bench (440 s vs 368 s, 450 s vs 342 s).
 - **The user's LoRA rack** (`Input_Lora_Phase1_1..6`, nodes 180-185, the slot's `loras: true`) sits
   between the loader and the Flow's own swap / Faceswap / turbo LoRAs; H3's encoder reads its CLIP.
 
@@ -149,9 +149,10 @@ preview-asset store (no card). A failed describe generates nothing and says so.
 - **A head swap keeps the clip's hair LENGTH** unless the picture shows where the hair ends (a bun
   worked); "shoulder-length" in the words did not move it. A model limit (Fabio, 2026-10-09): a
   head-and-shoulders picture or a character sheet is the user's lever.
-- **A mirror-shot picture (back to camera) opens on its own pose for ~0.8 s** in template 6 (R3d/R3e);
-  a front-facing picture opens clean (R3f). The wording does not move it; a character sheet on a
-  plain background avoids it.
+- **A picture whose pose differs from the clip's frame 0 opens on its own pose** in template 6, and
+  the whole performance runs late after it (R3d/R3e ~0.8 s; MPI-1197 12-16 frames with a
+  front-facing picture too, so R3f's clean open was a pose close to the clip's). The wording does
+  not move it; the still lead-in (nodes 36-39, 45-47, 123, above) absorbs it.
 
 ## Traps
 
