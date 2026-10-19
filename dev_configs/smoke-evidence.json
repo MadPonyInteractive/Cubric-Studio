@@ -1,14 +1,14 @@
 {
-  "at": "2026-10-18T21:34:18.924Z",
+  "at": "2026-10-19T09:19:36.134Z",
   "engine": {
-    "want": "0.41.0",
-    "got": "0.41.0",
+    "want": "0.42.1",
+    "got": "0.42.1",
     "proven": true
   },
   "datacenter": "EU-RO-1",
   "gpu": "RTX PRO 4500",
   "volume": {
-    "id": "wzeh9dxbru",
+    "id": "cavs1zgt5a",
     "size": 440
   },
   "budget": {
@@ -29,9 +29,7 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "fp": "52ac8002e920129c",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "52ac8002e920129c"
     },
     {
       "model": "sdxl-nsfw",
@@ -44,9 +42,7 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "fp": "52ac8002e920129c",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "52ac8002e920129c"
     },
     {
       "model": "sdxl-nsfw",
@@ -59,9 +55,7 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "fp": "52ac8002e920129c",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "52ac8002e920129c"
     },
     {
       "model": "sdxl-nsfw",
@@ -74,9 +68,7 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "fp": "52ac8002e920129c",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "52ac8002e920129c"
     },
     {
       "model": "sdxl-nsfw",
@@ -89,9 +81,7 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "fp": "52ac8002e920129c",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "52ac8002e920129c"
     },
     {
       "model": "sdxl-nsfw",
@@ -104,9 +94,7 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "fp": "52ac8002e920129c",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "52ac8002e920129c"
     },
     {
       "model": "chroma-hyper",
@@ -119,9 +107,7 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "fp": "03421d3c466e6b10",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "03421d3c466e6b10"
     },
     {
       "model": "chroma-hyper",
@@ -134,24 +120,20 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "fp": "03421d3c466e6b10",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "03421d3c466e6b10"
     },
     {
       "model": "chroma-hyper",
       "op": "control",
       "status": "PASS",
-      "secs": 25,
+      "secs": 29,
       "media": 2,
       "budget": [
         "Input_Seed=42",
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "fp": "03421d3c466e6b10",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "03421d3c466e6b10"
     },
     {
       "model": "chroma-hyper",
@@ -164,24 +146,20 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "fp": "03421d3c466e6b10",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "03421d3c466e6b10"
     },
     {
       "model": "chroma-hyper",
       "op": "detail",
       "status": "PASS",
-      "secs": 8,
+      "secs": 9,
       "media": 2,
       "budget": [
         "Input_Seed=42",
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "fp": "03421d3c466e6b10",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "03421d3c466e6b10"
     },
     {
       "model": "krea2-nsfw",
@@ -195,9 +173,7 @@
         "Input_Width=128",
         "Input_Seed=42"
       ],
-      "fp": "9fcc06b1fccd88c2",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "9fcc06b1fccd88c2"
     },
     {
       "model": "krea2-nsfw",
@@ -211,13 +187,25 @@
         "Input_Width=128",
         "Input_Seed=42"
       ],
-      "fp": "9fcc06b1fccd88c2",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "9fcc06b1fccd88c2"
     },
     {
       "model": "krea2-nsfw",
       "op": "control",
+      "status": "PASS",
+      "secs": 30,
+      "media": 2,
+      "budget": [
+        "Input_is_Turbo=true",
+        "Input_Height=128",
+        "Input_Width=128",
+        "Input_Seed=42"
+      ],
+      "fp": "9fcc06b1fccd88c2"
+    },
+    {
+      "model": "krea2-nsfw",
+      "op": "krea2Edit",
       "status": "PASS",
       "secs": 34,
       "media": 2,
@@ -227,31 +215,13 @@
         "Input_Width=128",
         "Input_Seed=42"
       ],
-      "fp": "9fcc06b1fccd88c2",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
-    },
-    {
-      "model": "krea2-nsfw",
-      "op": "krea2Edit",
-      "status": "PASS",
-      "secs": 38,
-      "media": 2,
-      "budget": [
-        "Input_is_Turbo=true",
-        "Input_Height=128",
-        "Input_Width=128",
-        "Input_Seed=42"
-      ],
-      "fp": "9fcc06b1fccd88c2",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "9fcc06b1fccd88c2"
     },
     {
       "model": "krea2-nsfw",
       "op": "inpaint",
       "status": "PASS",
-      "secs": 73,
+      "secs": 74,
       "media": 2,
       "budget": [
         "Input_is_Turbo=true",
@@ -259,15 +229,13 @@
         "Input_Width=128",
         "Input_Seed=42"
       ],
-      "fp": "9fcc06b1fccd88c2",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "9fcc06b1fccd88c2"
     },
     {
       "model": "krea2-nsfw",
       "op": "upscale",
       "status": "PASS",
-      "secs": 17,
+      "secs": 21,
       "media": 2,
       "budget": [
         "Input_is_Turbo=true",
@@ -275,9 +243,7 @@
         "Input_Width=128",
         "Input_Seed=42"
       ],
-      "fp": "9fcc06b1fccd88c2",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "9fcc06b1fccd88c2"
     },
     {
       "model": "krea2-nsfw",
@@ -291,9 +257,7 @@
         "Input_Width=128",
         "Input_Seed=42"
       ],
-      "fp": "9fcc06b1fccd88c2",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "9fcc06b1fccd88c2"
     },
     {
       "model": "nvidia-pid",
@@ -304,9 +268,7 @@
       "budget": [
         "Input_Seed=42"
       ],
-      "fp": "1cc6675eca4842e7",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "1cc6675eca4842e7"
     },
     {
       "model": "klein-4b",
@@ -319,9 +281,7 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "fp": "c67b6ac09ac78a4a",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "c67b6ac09ac78a4a"
     },
     {
       "model": "klein-4b",
@@ -334,24 +294,20 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "fp": "c67b6ac09ac78a4a",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "c67b6ac09ac78a4a"
     },
     {
       "model": "klein-4b",
       "op": "control",
       "status": "PASS",
-      "secs": 17,
+      "secs": 12,
       "media": 2,
       "budget": [
         "Input_Seed=42",
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "fp": "c67b6ac09ac78a4a",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "c67b6ac09ac78a4a"
     },
     {
       "model": "klein-4b",
@@ -364,24 +320,20 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "fp": "c67b6ac09ac78a4a",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "c67b6ac09ac78a4a"
     },
     {
       "model": "klein-4b",
       "op": "inpaint",
       "status": "PASS",
-      "secs": 13,
+      "secs": 12,
       "media": 2,
       "budget": [
         "Input_Seed=42",
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "fp": "c67b6ac09ac78a4a",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "c67b6ac09ac78a4a"
     },
     {
       "model": "klein-4b",
@@ -394,24 +346,20 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "fp": "c67b6ac09ac78a4a",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "c67b6ac09ac78a4a"
     },
     {
       "model": "klein-4b",
       "op": "upscale",
       "status": "PASS",
-      "secs": 9,
+      "secs": 8,
       "media": 2,
       "budget": [
         "Input_Seed=42",
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "fp": "c67b6ac09ac78a4a",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "c67b6ac09ac78a4a"
     },
     {
       "model": "boogu-edit-balanced",
@@ -422,30 +370,26 @@
       "budget": [
         "Input_Seed=42"
       ],
-      "fp": "a28e29158edacbd0",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "a28e29158edacbd0"
     },
     {
       "model": "wan-22",
       "op": "i2v_ms",
       "status": "PASS",
-      "secs": 35,
+      "secs": 29,
       "media": 2,
       "budget": [
         "Input_Seed=42",
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "fp": "a49711807994ba90",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "a49711807994ba90"
     },
     {
       "model": "ltx-23-balanced",
       "op": "t2v_ms",
       "status": "PASS",
-      "secs": 68,
+      "secs": 65,
       "media": 1,
       "budget": [
         "Input_Duration=1",
@@ -453,15 +397,13 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "fp": "8decd91562ae4d22",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "8decd91562ae4d22"
     },
     {
       "model": "ltx-23-balanced",
       "op": "i2v_ms",
       "status": "PASS",
-      "secs": 42,
+      "secs": 38,
       "media": 2,
       "budget": [
         "Input_Duration=1",
@@ -469,15 +411,13 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "fp": "8decd91562ae4d22",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "8decd91562ae4d22"
     },
     {
       "model": "ltx-23-balanced",
       "op": "ref2v_ms",
       "status": "PASS",
-      "secs": 46,
+      "secs": 42,
       "media": 1,
       "budget": [
         "Input_Duration=1",
@@ -485,15 +425,13 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "fp": "8decd91562ae4d22",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "8decd91562ae4d22"
     },
     {
       "model": "minimax-h3",
       "op": "t2v_ms",
       "status": "PASS",
-      "secs": 77,
+      "secs": 78,
       "media": 1,
       "budget": [
         "Input_is_Turbo=true",
@@ -502,15 +440,13 @@
         "Input_seed=42",
         "Input_Duration=1"
       ],
-      "fp": "56754644a6e53cb7",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "56754644a6e53cb7"
     },
     {
       "model": "minimax-h3",
       "op": "i2v_ms",
       "status": "PASS",
-      "secs": 68,
+      "secs": 73,
       "media": 2,
       "budget": [
         "Input_is_Turbo=true",
@@ -519,15 +455,13 @@
         "Input_seed=42",
         "Input_Duration=1"
       ],
-      "fp": "56754644a6e53cb7",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "56754644a6e53cb7"
     },
     {
       "model": "minimax-h3-ref2va",
       "op": "ref2v_ms",
       "status": "PASS",
-      "secs": 51,
+      "secs": 60,
       "media": 1,
       "budget": [
         "Input_is_Turbo=true",
@@ -536,9 +470,7 @@
         "Input_Height=128",
         "Input_Width=128"
       ],
-      "fp": "fde3903ef6d70d73",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "fde3903ef6d70d73"
     },
     {
       "model": "wan22-5b",
@@ -551,9 +483,7 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "fp": "229c27a4035e8faf",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "229c27a4035e8faf"
     },
     {
       "model": "wan22-5b",
@@ -566,51 +496,43 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "fp": "f33671f6dc82a53a",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "f33671f6dc82a53a"
     },
     {
       "model": "qwen-edit",
       "op": "qwenEdit",
       "status": "PASS",
-      "secs": 33,
+      "secs": 34,
       "media": 2,
       "budget": [
         "Input_Tier=3",
         "Input_Seed=42"
       ],
-      "fp": "d9d2149f15552ae2",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "d9d2149f15552ae2"
     },
     {
       "model": "qwen-edit",
       "op": "control",
       "status": "PASS",
-      "secs": 38,
+      "secs": 39,
       "media": 2,
       "budget": [
         "Input_Tier=3",
         "Input_Seed=42"
       ],
-      "fp": "d9d2149f15552ae2",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "d9d2149f15552ae2"
     },
     {
       "model": "qwen-image-2-1",
       "op": "t2i",
       "status": "PASS",
-      "secs": 17,
+      "secs": 13,
       "media": 1,
       "budget": [
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "fp": "6dd4be9e9fa90de0",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "6dd4be9e9fa90de0"
     },
     {
       "model": "qwen-image-2-1",
@@ -622,9 +544,7 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "fp": "6dd4be9e9fa90de0",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "6dd4be9e9fa90de0"
     },
     {
       "model": "qwen-image-2-1",
@@ -636,23 +556,19 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "fp": "6dd4be9e9fa90de0",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "6dd4be9e9fa90de0"
     },
     {
       "model": "qwen-image-2-1",
       "op": "edit",
       "status": "PASS",
-      "secs": 25,
+      "secs": 26,
       "media": 2,
       "budget": [
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "fp": "6dd4be9e9fa90de0",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "6dd4be9e9fa90de0"
     },
     {
       "model": "qwen-image-2-1",
@@ -664,9 +580,7 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "fp": "6dd4be9e9fa90de0",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "6dd4be9e9fa90de0"
     },
     {
       "model": "qwen-image-2-1",
@@ -678,23 +592,19 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "fp": "6dd4be9e9fa90de0",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "6dd4be9e9fa90de0"
     },
     {
       "model": "qwen-image-2-1",
       "op": "upscale",
       "status": "PASS",
-      "secs": 8,
+      "secs": 9,
       "media": 2,
       "budget": [
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "fp": "6dd4be9e9fa90de0",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "6dd4be9e9fa90de0"
     },
     {
       "model": "stable-audio-3",
@@ -706,72 +616,60 @@
         "Input_Duration=1",
         "Input_Seed=42"
       ],
-      "fp": "181c6640bd937915",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "181c6640bd937915"
     },
     {
       "model": "chatterbox",
       "op": "tts",
       "status": "PASS",
-      "secs": 33,
+      "secs": 30,
       "media": 1,
       "budget": [
         "Input_Seed=42"
       ],
-      "fp": "32708947e81bb472",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "32708947e81bb472"
     },
     {
       "model": "flux-schnell-cloud",
       "op": "t2i",
       "status": "SKIP",
       "why": "no workflow mapped",
-      "fp": "4f53cda18c2baa0c",
-      "run": "2026-10-18T21:34:18.924Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "4f53cda18c2baa0c"
     },
     {
       "model": "flow",
       "op": "ltx-extend",
       "status": "PASS",
-      "secs": 47,
+      "secs": 46,
       "media": 1,
       "budget": [
         "Input_Seed=42",
         "Input_Duration=1"
       ],
-      "fp": "a71339ab15515cbc",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "a71339ab15515cbc"
     },
     {
       "model": "flow",
       "op": "ltx-extend/minimax-h3",
       "status": "PASS",
-      "secs": 42,
+      "secs": 43,
       "media": 1,
       "budget": [
         "Input_Seed=42",
         "Input_Duration=1"
       ],
-      "fp": "71110e38518c9ded",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "71110e38518c9ded"
     },
     {
       "model": "flow",
       "op": "ltx-foley",
       "status": "PASS",
-      "secs": 46,
+      "secs": 47,
       "media": 1,
       "budget": [
         "Input_Seed=42"
       ],
-      "fp": "c467c22a7a1beb25",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "c467c22a7a1beb25"
     },
     {
       "model": "flow",
@@ -782,22 +680,18 @@
       "budget": [
         "Input_Seed=42"
       ],
-      "fp": "a5ab736e21f79e99",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "a5ab736e21f79e99"
     },
     {
       "model": "flow",
       "op": "video-edit",
       "status": "PASS",
-      "secs": 69,
+      "secs": 73,
       "media": 1,
       "budget": [
         "Input_Seed=42"
       ],
-      "fp": "e6e24672eb8bf16e",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "95a634c5b1d60a19"
     },
     {
       "model": "flow",
@@ -808,9 +702,7 @@
       "budget": [
         "Input_Seed=42"
       ],
-      "fp": "27ba1dfbe6a415bf",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "27ba1dfbe6a415bf"
     },
     {
       "model": "flow",
@@ -821,33 +713,27 @@
       "budget": [
         "Input_Seed=42"
       ],
-      "fp": "5a6689c844b6cd7e",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "5a6689c844b6cd7e"
     },
     {
       "model": "flow",
       "op": "character-sheet",
       "status": "PASS",
-      "secs": 65,
+      "secs": 64,
       "media": 2,
       "budget": [
         "Input_Seed=42"
       ],
-      "fp": "7f62de7dd12674aa",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "7f62de7dd12674aa"
     },
     {
       "model": "flow",
       "op": "character-sheet-from-images",
       "status": "PASS",
-      "secs": 56,
+      "secs": 52,
       "media": 3,
       "budget": [],
-      "fp": "248084001345bbbd",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "248084001345bbbd"
     },
     {
       "model": "flow",
@@ -856,9 +742,7 @@
       "secs": 13,
       "media": 2,
       "budget": [],
-      "fp": "49ca74a0a08944ec",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "49ca74a0a08944ec"
     },
     {
       "model": "flow",
@@ -869,9 +753,7 @@
       "budget": [
         "Input_Seed=42"
       ],
-      "fp": "04f60a5711641e20",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "04f60a5711641e20"
     },
     {
       "model": "flow",
@@ -880,22 +762,18 @@
       "secs": 17,
       "media": 3,
       "budget": [],
-      "fp": "4f8e23ef392179cc",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "4f8e23ef392179cc"
     },
     {
       "model": "flow",
       "op": "voice-changer",
       "status": "PASS",
-      "secs": 9,
+      "secs": 8,
       "media": 1,
       "budget": [
         "Input_Seed=42"
       ],
-      "fp": "87917c84d5eb43a7",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "87917c84d5eb43a7"
     },
     {
       "model": "flow",
@@ -904,9 +782,7 @@
       "secs": 4,
       "media": 4,
       "budget": [],
-      "fp": "822dffe90a8af119",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "822dffe90a8af119"
     },
     {
       "model": "flow",
@@ -915,22 +791,18 @@
       "secs": 12,
       "media": 1,
       "budget": [],
-      "fp": "a274261c8c395a59",
-      "run": "2026-10-18T21:34:18.924Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "a274261c8c395a59"
     },
     {
       "model": "flow",
       "op": "object-stamp",
       "status": "PASS",
-      "secs": 21,
+      "secs": 17,
       "media": 3,
       "budget": [
         "Input_Seed=42"
       ],
-      "fp": "4855061d727c0ba0",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "4855061d727c0ba0"
     },
     {
       "model": "flow",
@@ -942,22 +814,18 @@
         "Input_Seed=42",
         "Input_Duration=1"
       ],
-      "fp": "91acbb4e48d31c23",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "91acbb4e48d31c23"
     },
     {
       "model": "flow",
       "op": "pano-360",
       "status": "PASS",
-      "secs": 42,
+      "secs": 47,
       "media": 1,
       "budget": [
         "Input_Seed=42"
       ],
-      "fp": "746ee9153a51a754",
-      "run": "2026-10-18T20:55:56.791Z",
-      "gpu": "RTX PRO 4500"
+      "fp": "746ee9153a51a754"
     }
   ],
   "counts": {
@@ -967,7 +835,7 @@
     "opsPlanned": 66
   },
   "scope": {
-    "requested": "merged",
+    "requested": "all",
     "modelsRun": [
       "sdxl-nsfw",
       "chroma-hyper",
@@ -1020,7 +888,7 @@
     "Pod-green is not Windows-green: different OS, python, torch, CUDA.",
     "Deduped by class_type set — a break tied to weight FORMAT under the same loader node is not covered.",
     "Proves a graph RUNS; does not judge output quality.",
-    "SCOPED RUN: 16 of 40 models are in no family EITHER run touched — flux-schnell-cloud, seedream-4-cloud, seedream-45-cloud, seedream-5-pro-cloud, flux2-dev-cloud, klein-9b-cloud, flux2-pro-cloud, flux2-max-cloud, nano-banana-2-lite-cloud, nano-banana-2-cloud, nano-banana-pro-cloud, seedance-15-pro-cloud, seedance-2-cloud, wan3-cloud, veo-31-fast-cloud, veo-31-cloud."
+    "SCOPED RUN: 16 of 40 models are in no family this run touched — flux-schnell-cloud, seedream-4-cloud, seedream-45-cloud, seedream-5-pro-cloud, flux2-dev-cloud, klein-9b-cloud, flux2-pro-cloud, flux2-max-cloud, nano-banana-2-lite-cloud, nano-banana-2-cloud, nano-banana-pro-cloud, seedance-15-pro-cloud, seedance-2-cloud, wan3-cloud, veo-31-fast-cloud, veo-31-cloud."
   ],
   "skippedWeights": [
     "sdxl-realistic(6.62GB)",
@@ -1043,9 +911,5 @@
     "klein-9b-style-doodle(39.53MB)",
     "klein-9b-style-vintage(667.95MB)",
     "klein-9b-style-watercolour(260.05MB)"
-  ],
-  "runs": [
-    "2026-10-18T20:55:56.791Z",
-    "2026-10-18T21:34:18.924Z"
   ]
 }
