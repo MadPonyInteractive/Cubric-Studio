@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1200", "at": "2026-10-19T14:30:49+01:00", "actor": "claude", "column": "todo", "title": "Desktop test model-settings-popup fails 4 of 5 runs: LoRA picker trigger click did not register"}

@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1200",
+  "title": "Desktop test model-settings-popup fails 4 of 5 runs: LoRA picker trigger click did not register",
+  "description": "",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-10-19T14:30:49+01:00",
+  "updated_at": "2026-10-19T14:30:49+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

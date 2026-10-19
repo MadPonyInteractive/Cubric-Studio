@@ -102,5 +102,12 @@ Working list: brief.md § "2026-10-14 status check" and § Blockers.
       validate` OK; Fabio published to the MCP Registry: 0.3.2 active, isLatest (checked /v0/servers).
       Guides: every "2.1" line true against the shipped notes, competitor facts re-checked on GitHub (A1111
       v1.10.1 Feb 2025, Forge last push Jul 2025, Fooocus LTS); merged into website main c5c9704 and pushed.
-      Still owed: Enhance + Describe eye test on 0.42.1 (Fabio, should have preceded the cut); IndexNow ping SENT (Fabio's yes):
+      Eye test on 0.42.1 PASSED (Fabio, after the cut; should have preceded it): Describe on ComfyUI qwen3vl
+      clean (log 12:14), Enhance on ComfyUI "Enhanced by qwen3vl_4b_abliterated" clean. IndexNow ping SENT (Fabio's yes):
       key file 3586aee7….txt at website 33ef8e6, served live; 17 sitemap URLs POSTed to api.indexnow.org, HTTP 202.
+- [ ] 2.1.1 (Fabio via the "Network volume creation error" session, 2026-10-19): one fix, MPI-1199 RunPod
+      volume create 5xx (7a7a621f5). Preconditions green (no baselines, engine unchanged, Pod runtime
+      dev == stable, mcpb 28 == TOOLS). Stamp 8ec932d31, notes approved by Fabio (.approved-2.1.1.json).
+      npm test 3417/0, release:deps 341/341, test:desktop 245/246: model-settings-popup fails 4/5
+      runs; Fabio confirmed the pickers open in his app -> test bug, card MPI-1200. Tag v2.1.1 pushed,
+      mpi-ci 39260723113 building. Left: artifacts, update test, Gate 2, publish.
