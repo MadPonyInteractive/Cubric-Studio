@@ -81,8 +81,12 @@ Working list: brief.md § "2026-10-14 status check" and § Blockers.
       (3 pip pkgs), curated set installed, booted `--cpu` on 48199 (48188 = Fabio's engine, busy with the
       video session): 0 IMPORT FAILED, floor 252/252. Bench G:\ComfyUi v0.42.1 (.bak-v0410), 252/252,
       left running. npm test 3414/0. release:check refuses until the new smoke (expected).
-- [ ] Pod half (Fabio's go): re-run `--plan --all` (drift check), sync node_lock + python_deps into
-      mpi-ci, DEV image v0.28.0-dev (only POD_IMAGE_VERSION_DEV/_CPU_DEV), restart app, smoke
-      `--all --flows all` (~$1 last time, cap $5, new ~390 GB volume), then RELEASE image + stable pin.
+- [x] 2026-10-19 Pod half (Fabio's go, cap $5): mpi-ci 8afac83 synced; dev image v0.28.0-dev (CI
+      39217855161, cpu boot smoke PASS on R2 dev) pinned 89c04ace9. Fabio's app restarted: engine moved in
+      place to 0.42.1 in 20 s (3 pip pkgs, 0 IMPORT FAILED, floor 252/252); his Video Edit eye test done.
+      Smoke `--all`: **PASS 65 · SKIP 1 (flux-schnell-cloud) · FAIL 0, 18/18 Flows**, engine want/got
+      0.42.1 proven, RTX PRO 4500 (evidence 0c11b4cdc). Both Pods deleted (204); volume cavs1zgt5a
+      (440 GB) KEPT, Fabio to decide. RELEASE image v0.28.0 (CI 39229329527, cu130 sha256:571746b9, cpu
+      sha256:2df0139c, cpu boot smoke PASS on R2 stable), stable pins a7be64bcc. release:check passes.
 - [ ] Stamp 2.1 (`/mpi-version-bump`), `release:check`, `/mpi-release`.
 - [ ] Same day: Claude Desktop bundle 0.3.2 (public steps need Fabio's yes), website guides (MPI-1124).
