@@ -1,0 +1,16 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "main/secretsStore.js",
+    "js/core/secretsClient.js",
+    "routes/licences.js",
+    "js/components/Compounds/MpiLicenceGate/MpiLicenceGate.js",
+    "js/data/modelConstants/licences.js",
+    "js/components/Compounds/LandingPages/MpiSettings/MpiSettings.js",
+    "tests/hf-token.test.cjs",
+    "tests/licence-gate.test.cjs",
+    "docs/model-library.md",
+    "docs/download-manager.md",
+    "docs/releases/UNRELEASED.md"
+  ]
+}

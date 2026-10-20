@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1215",
+  "title": "Save the Hugging Face token encrypted so a gated licence gate asks for it once",
+  "description": "The licence gate (MPI-357 verify step) asks for an HF read token on every gated licence and drops it. Fabio reversed that 2026-10-21: keep it encrypted in main/secretsStore.js like the DeepInfra and RunPod keys. /licences/verify uses the saved token when none is typed and saves a typed one that passes; the gate makes the field optional when one is saved; Settings can clear it.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-21T00:44:54+01:00",
+  "updated_at": "2026-10-21T00:46:15+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
