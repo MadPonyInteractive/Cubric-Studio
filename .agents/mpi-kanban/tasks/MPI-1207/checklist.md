@@ -22,4 +22,4 @@
 - [x] Input_custom_size from the toggle; canvas line on Qwen Edit (`canvasPrompt`, commandExecutor, unmasked only)
 - [x] Cloud: one paid probe per family ($0.1336 spent): Seedream + FLUX-2 dev/Klein fill; FLUX-2 pro crops; Nano Banana stretches
 - [x] Fabio decided (2026-10-20): Seedream 4/4.5/5 Pro, FLUX-2 dev, Klein 9B cloud get the button; FLUX-2 pro/max + Nano Banana do not. Wired (customSizeOps), unit suite 3446 pass
-- [ ] One paid in-app run each on the unprobed members (Seedream 4.5, 5 Pro, FLUX-2 dev), price asked first
+- [x] One paid in-app run each on the unprobed members (Seedream 4.5, 5 Pro, FLUX-2 dev), approved: 4.5 + Dev pass, 5 Pro stretches and came off

@@ -2360,7 +2360,7 @@ const ALL_MODELS = [
         },
         supportedOps: ['t2i', 'edit'],
         // Custom size on edit (MPI-1207): a 16:9 run from a portrait filled the new frame,
-        // outpainted, subject intact (cloud probe 2026-10-20). Covers 4.5 and 5 Pro too.
+        // outpainted, subject intact (cloud probe 2026-10-20). 4.5 too; NOT 5 Pro (stretches).
         customSizeOps: ['edit'],
         capabilities: { negativePrompt: false, batch: false },
         description: 'ByteDance Seedream 4, running at DeepInfra on your own key — no GPU, no download. Strong at photographic scenes and readable text in the image, at 2K or 4K. About $0.04 an image, billed to you by DeepInfra.',
@@ -2406,7 +2406,9 @@ const ALL_MODELS = [
             '2k': _cloudRatios(SEEDREAM_ASPECTS, 2048, { min: 1280, max: 4096, step: 64 }),
         },
         supportedOps: ['t2i', 'edit'],
-        customSizeOps: ['edit'],   // as Seedream 4 (MPI-1207)
+        // No Custom size on edit (MPI-1207): its in-app 16:9 run from a portrait stretched
+        // the figure sideways (2026-10-20), unlike Seedream 4 / 4.5. Follows the source.
+        imageSizedOps: ['edit'],
         capabilities: { negativePrompt: false, batch: false, multiReference: true },
         description: 'Seedream 5.0 Pro, the top of the Seedream line, on your own DeepInfra key. About $0.05 an image up to 1.5K and about $0.10 above it — the tier selector is what moves you between the two.',
         workflows: {},

@@ -74,14 +74,15 @@ const FAMILY = [
     ['qwen-image-2-1', 'edit'], ['boogu-edit-high', 'edit'], ['boogu-edit-balanced', 'edit'],
     ['qwen-edit', 'qwenEdit'],
     // Cloud: the ones whose probe filled a new frame cleanly (validation.md, 2026-10-20).
-    ['seedream-4-cloud', 'edit'], ['seedream-45-cloud', 'edit'], ['seedream-5-pro-cloud', 'edit'],
+    ['seedream-4-cloud', 'edit'], ['seedream-45-cloud', 'edit'],
     ['flux2-dev-cloud', 'edit'], ['klein-9b-cloud', 'edit'],
 ];
 
 test('cloud models whose probe failed keep following the source, no button', async () => {
     const { visibleControlIds } = await import('../js/components/Organisms/MpiPromptBox/PromptBoxControls.js');
-    // FLUX-2 pro/max centre-crop the subject away; Nano Banana stretches (Fabio, 2026-10-20).
-    for (const id of ['flux2-pro-cloud', 'flux2-max-cloud',
+    // FLUX-2 pro/max centre-crop the subject away; Nano Banana and Seedream 5 Pro stretch
+    // (Fabio, 2026-10-20; 5 Pro from its in-app run).
+    for (const id of ['flux2-pro-cloud', 'flux2-max-cloud', 'seedream-5-pro-cloud',
         'nano-banana-2-lite-cloud', 'nano-banana-2-cloud', 'nano-banana-pro-cloud']) {
         const m = MODELS.find((x) => x.id === id);
         assert.ok(m, id);

@@ -221,3 +221,20 @@ the button is off (no Width/Height sent, so deepinfraSizing keeps sending the so
 (generationControls) gates the same way. `tests/flux3-custom-size.test.cjs` asserts the five show the button
 and size on a ratio, and that flux2-pro/max + the three Nano Bananas show none and send no Width. Full unit
 suite: 3446 pass, 0 fail. Left: one paid in-app run on Seedream 4.5, 5 Pro, FLUX-2 dev (~$0.11, asked).
+
+## In-app paid runs (2026-10-20, Fabio approved 3 runs ~$0.11; SPENT $0.157)
+
+Own `app:isolated` instance (own profile, empty engine root, key seeded into that profile and deleted
+after), connector generate, edit with `ratio: "16:9"`, same portrait, seed 424242, "Make her top red."
+Every run went out with `Input_custom_size: true` and the 16:9 row of the model's default tier.
+
+| model | out | cost | result |
+|---|---|---|---|
+| `seedream-45-cloud` | 2752x1536 | $0.040 | FILLS: wall + door outpainted, subject whole |
+| `seedream-5-pro-cloud` | 2304x1280 | $0.099 | STRETCH: figure squashed sideways, head clipped -> FAIL, button removed |
+| `flux2-dev-cloud` | 1376x768 | $0.018 | FILLS by zooming: head intact, lower legs cropped, blinds + wall outpainted (zoom = pass) |
+
+Over the quote by $0.047: Seedream 5 Pro's default tier is its dearer band ($0.099), quoted as $0.05.
+Per Fabio's rule (a failing model gets no button) 5 Pro is back to `imageSizedOps: ['edit']`.
+Final cloud set with the button: Seedream 4, Seedream 4.5, FLUX-2 Dev, Klein 9B cloud.
+
