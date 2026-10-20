@@ -1,8 +1,8 @@
 /**
  * layoutBoxes.js — the Boxes layout table (MPI-1181, FLUX.3).
  *
- * The app's boxes are `{ x, y, w, h, desc }`, fractions of the output frame; box N is
- * `obj_N`. FLUX.3 reads them as a JSON table at the END of its prompt:
+ * The app's boxes are `{ x, y, w, h, desc, name }`, fractions of the output frame; the
+ * name is the row id the prompt cites as `<name>`. FLUX.3 reads them as a JSON table at the END of its prompt:
  * `[{ id, bbox: [y_min, x_min, y_max, x_max] on a 0-1000 grid, desc }]` (core
  * `Flux3LayoutPrompt`). The enhancer's box mode is BFL's `flux3/bbox.py`, ported here:
  * `upsamplingInput` is the user message it was trained on, `reconcileBoxes` re-imposes the
@@ -13,14 +13,39 @@
 const SCALE = 1000;
 const ID = /^[A-Za-z][A-Za-z0-9_]*$/;
 
-/** The app's boxes -> table rows, `obj_1..n`, clamped to the grid. */
+/** What the user typed as a box name -> a table id (`big cat` -> `big_cat`), or '' . */
+export function boxName(raw) {
+    return String(raw || '').trim().replace(/[^A-Za-z0-9_]+/g, '_').replace(/^[^A-Za-z]+/, '').replace(/_+$/, '');
+}
+
+/** `base` if no other box has it, else `base_2`, `base_3`... (`box` -> `box1`, `box2`). */
+export function uniqueBoxName(base, others = []) {
+    const taken = new Set(others.map((b) => b?.name));
+    if (base === 'box') { let n = 1; while (taken.has(`box${n}`)) n++; return `box${n}`; }
+    if (!taken.has(base)) return base;
+    let n = 2;
+    while (taken.has(`${base}_${n}`)) n++;
+    return `${base}_${n}`;
+}
+
+/**
+ * The app's boxes -> table rows, clamped to the grid. The id is the box's name (the
+ * `<name>` the prompt cites); a box saved before names existed is `obj_N`. An empty desc
+ * falls back to the name, so `tree` with "make <tree> purple" in the prompt still reads.
+ */
 export function layoutRows(boxes = []) {
     const grid = (v) => Math.round(Math.max(0, Math.min(1, Number(v) || 0)) * SCALE);
-    return boxes.map((b, i) => ({
-        id: `obj_${i + 1}`,
-        bbox: [grid(b.y), grid(b.x), grid(b.y + b.h), grid(b.x + b.w)],
-        desc: String(b.desc || '').trim(),
-    }));
+    const seen = new Set();
+    return boxes.map((b, i) => {
+        let id = ID.test(String(b.name || '')) ? b.name : `obj_${i + 1}`;
+        if (seen.has(id)) id = `${id}_${i + 1}`;
+        seen.add(id);
+        return {
+            id,
+            bbox: [grid(b.y), grid(b.x), grid(b.y + b.h), grid(b.x + b.w)],
+            desc: String(b.desc || '').trim() || id.replace(/_/g, ' '),
+        };
+    });
 }
 
 /** BFL's upsampler input for a request with locked boxes (`bbox.upsampling_input`). */

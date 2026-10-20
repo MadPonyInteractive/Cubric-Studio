@@ -1,12 +1,13 @@
 /* BEM Block naming — mpi-prompt-box */
 .mpi-prompt-box {
     display: grid;
-    /* neg · prompt · enhance · dictate · cog · settings · engine · run. MPI-852 briefly
+    /* neg · prompt · enhance · dictate · boxes · cog · settings · engine · run. MPI-1181
+       added the ninth track, the Boxes toggle (hidden where boxes do not apply). MPI-852 briefly
        added an eighth track for the price and then took it back out: the figure now rides
        inside the Cue button. The eighth is the dictation mic (MPI-946). There is no second
        declaration to keep in step — the agent-mode grid went with the agent face in
        MPI-797 Phase 3. */
-    grid-template-columns: auto 1fr auto auto auto auto auto auto;
+    grid-template-columns: auto 1fr auto auto auto auto auto auto auto;
     align-items: end;
     gap: var(--s-2);
     background: var(--surface-bar);
@@ -86,6 +87,34 @@
 
 .mpi-prompt-box__op-strip:empty {
     display: none;
+}
+
+/* Boxes panel slot (MPI-1181). The panel inside translates down by its own height when
+   closed; overflow hidden clips it at the bar's top edge, so it slides out from behind
+   the bar. The slot never takes the pointer itself, only the open panel does. */
+.mpi-prompt-box__boxes-slot {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.mpi-prompt-box--history-mode .mpi-prompt-box__boxes-slot {
+    left: var(--history-rail-w);
+}
+
+/* The Boxes toggle reads icon + count; no boxes = icon only. */
+.mpi-prompt-box__col--boxes .mpi-ibtn__label:empty {
+    display: none;
+}
+
+/* While the panel is open the op strip and the media chips sit on its top edge. */
+.mpi-prompt-box:has(.mpi-boxes--open) .mpi-prompt-box__op-strip,
+.mpi-prompt-box:has(.mpi-boxes--open) .mpi-prompt-box-media-strip {
+    bottom: calc(100% + var(--boxes-h, 0px));
 }
 
 /* Floating over gallery art, so it carries its own surface. */

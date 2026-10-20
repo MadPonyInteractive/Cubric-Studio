@@ -42,17 +42,19 @@ test('FLUX.3 takes boxes on t2i and edit only; other models never', () => {
     assert.ok(!modelTakesBoxes(KREA2, 't2i'));
 });
 
-test('the button shows on every FLUX.3 op, on no other model; sends only where it works', async () => {
+test('the button shows on every FLUX.3 op, on no other model; the run always records its boxes', async () => {
     const { visibleControlIds, PROMPT_BOX_CONTROLS } =
         await import('../js/components/Organisms/MpiPromptBox/PromptBoxControls.js');
     for (const op of FLUX3.supportedOps) assert.ok(visibleControlIds(FLUX3, op, {}).includes('boxes'), op);
     assert.ok(!visibleControlIds(KREA2, 't2i', {}).includes('boxes'));
 
+    // Injected even empty (the sidecar describes the run); only t2i/edit reach the prompt,
+    // which commandExecutor gates on modelTakesBoxes (tested above).
     const ctrl = PROMPT_BOX_CONTROLS.boxes;
-    const probe = (enabled, value) => ctrl.getInjectionParams.call({ ...ctrl, enabled, value });
-    assert.deepEqual(probe(true, [FOX]), { Layout_Boxes: [FOX] });
-    assert.deepEqual(probe(true, []), {});
-    assert.deepEqual(probe(false, [FOX]), {});
+    const probe = (value) => ctrl.getInjectionParams.call({ ...ctrl, value });
+    assert.deepEqual(probe([FOX]), { Layout_Boxes: [FOX] });
+    assert.deepEqual(probe([]), { Layout_Boxes: [] });
+    assert.deepEqual(probe(undefined), { Layout_Boxes: [] });
 });
 
 test('an enhanced box prompt keeps its own table; nothing is appended twice', () => {
@@ -81,4 +83,35 @@ test('reconcile: the user`s box wins, a re-planned twin takes its id, cited extr
     assert.deepEqual(rows.map((r) => r.id), ['obj_1', 'tree_1']);
     assert.deepEqual(rows[0].bbox, [550, 50, 950, 350], 'the user`s coordinates, not the plan`s');
     assert.equal(rows[0].desc, 'Red fox, rust coat.', 'the upsampler`s richer desc');
+});
+
+test('named boxes: the name is the id the prompt cites, an empty desc reads as the name', async () => {
+    const { layoutRows, boxName, uniqueBoxName } = await import('../js/data/layoutBoxes.js');
+    const rows = layoutRows([
+        { ...FOX, name: 'fox' },
+        { x: 0, y: 0, w: 0.5, h: 0.5, desc: '', name: 'old_tree' },
+        { x: 0, y: 0, w: 0.1, h: 0.1, desc: 'legacy' },
+        { x: 0, y: 0, w: 0.1, h: 0.1, desc: 'twin', name: 'fox' },
+    ]);
+    assert.deepEqual(rows.map((r) => r.id), ['fox', 'old_tree', 'obj_3', 'fox_4']);
+    assert.equal(rows[1].desc, 'old tree');
+    assert.equal(boxName('  big cat! '), 'big_cat');
+    assert.equal(boxName('2 dogs'), 'dogs');
+    assert.equal(boxName('!!'), '');
+    assert.equal(uniqueBoxName('cat', [{ name: 'cat' }, { name: 'cat_2' }]), 'cat_3');
+    assert.equal(uniqueBoxName('box', [{ name: 'box1' }]), 'box2');
+});
+
+test('Reuse brings back the boxes the run used: names, descs and all', async () => {
+    const { resolveControlDefaults, reconcileControlsFromInjection } = await import('../js/components/Organisms/MpiPromptBox/PromptBoxControls.js');
+    const { buildPromptReuseSettings } = await import('../js/utils/promptReuse.js');
+    const ran = [{ ...FOX, name: 'fox' }, { x: 0.6, y: 0.1, w: 0.3, h: 0.3, desc: '', name: 'tree' }];
+    // The project's copy is 300 ms debounced, so it can lag the run: the sidecar must
+    // still record what ran.
+    const buckets = resolveControlDefaults(FLUX3, 'edit', {});
+    assert.deepEqual(buckets.op.boxes, [], 'fixture guard: the project holds no boxes');
+    reconcileControlsFromInjection(buckets, { Layout_Boxes: ran, Width: 1024, Height: 1024 }, FLUX3, 'edit', {});
+    assert.deepEqual(buckets.op.boxes, ran);
+    const reuse = buildPromptReuseSettings({ generationSettings: { controlState: { shared: buckets.shared, op: buckets.op } } }, FLUX3);
+    assert.deepEqual(reuse.opUpdates.boxes, ran);
 });

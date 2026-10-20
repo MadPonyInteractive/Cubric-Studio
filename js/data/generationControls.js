@@ -323,8 +323,8 @@ export function modelTakesBoxes(model, operation) {
 
 /**
  * The run's prompt with the user's boxes appended as the model's layout table. Boxes are
- * stored as fractions of the output frame, `{ x, y, w, h, desc }`; box N is `obj_N`, which
- * the prompt cites as `<obj_N>`.
+ * stored as fractions of the output frame, `{ x, y, w, h, desc, name }`; the name is the
+ * row id, which the prompt cites as `<name>` (`layoutRows`).
  *
  * `flux3`: what core `Flux3LayoutPrompt` does - prompt, one space, a JSON list of
  * `{ id, bbox: [y_min, x_min, y_max, x_max] on a 0-1000 grid, desc }`, background first.

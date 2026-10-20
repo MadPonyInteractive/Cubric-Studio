@@ -34,7 +34,6 @@ import { fixedDurationFor } from '../../../data/modelConstants/deepinfraPricing.
 // ONE module, so an agent submit can never silently resolve a different tier
 // than this control shows (see generationControls.js's own module comment).
 import { resolveEffectiveQualityTier, resolveThreeLayerDefault, modelTakesBoxes } from '../../../data/generationControls.js';
-import { MpiBoxesDialog } from '../../Compounds/MpiBoxesDialog/MpiBoxesDialog.js';
 
 // ── Scope helpers ─────────────────────────────────────────────────────────────
 //
@@ -1413,70 +1412,42 @@ export const PROMPT_BOX_CONTROLS = {
     },
 
     /**
-     * boxes — the Boxes button (MPI-1181, FLUX.3). Opens MpiBoxesDialog over the output
-     * frame (blank at the picked ratio on t2i, the first picture on edit); each box is
-     * `{ x, y, w, h, desc }` as fractions of that frame. `Layout_Boxes` is no node title:
-     * commandExecutor._buildParams appends the model's layout table to the prompt and drops
-     * the key, like No Background. Mounted on all of a box model's ops, greyed out where
-     * `layoutBoxes.ops` does not list the op; hidden on every other model.
+     * boxes — the Boxes layout (MPI-1181, FLUX.3): DATA ONLY. Each box is
+     * `{ x, y, w, h, desc, name }` as fractions of the output frame; the name is the
+     * `<name>` the prompt cites. `Layout_Boxes` is no node title: commandExecutor._buildParams
+     * appends the model's layout table to the prompt and drops the key, like No Background.
+     *
+     * The Boxes BUTTON (on the bar, beside the cog) and MpiBoxesPanel belong to each
+     * MpiPromptBox, not to this entry: a registry entry is one object shared by every
+     * prompt box, so a panel kept here followed the user from gallery to history. The box
+     * reads `enabled` (shown only on `layoutBoxes.ops`) and writes through `setValue`.
      *
      * perOp: a t2i layout and an edit layout are drawn over different frames.
-     * Mount opts from MpiPromptBox: `boxFrame()` -> `{ url }` or `{ w, h }`, and
-     * `insertPromptText(text)` for the `<obj_N>` a row's name puts in the prompt.
      */
     boxes: {
         nodeTitle: null,
         scope: 'perOp',
         defaultValue: PROMPT_CONTROL_DEFAULTS.boxes,
-        mount(hostEl, opts = {}) {
+        mount(_hostEl, opts = {}) {
             const saved = _readSaved(this, opts);
             this.value = Array.isArray(saved.boxes) ? saved.boxes.map((b) => ({ ...b })) : [];
             this.enabled = modelTakesBoxes(opts.model, opts.opName);
-            const label = () => (this.value.length ? `Boxes ${this.value.length}` : 'Boxes');
-
-            this._instance = MpiButton.mount(hostEl, {
-                icon: 'shape_rect_stroke',
-                label: label(),
-                labelPosition: 'right',
-                size: 'sm',
-                variant: 'primary',
-                info: this.enabled
-                    ? 'Boxes — draw where things go; cite box N in the prompt as <obj_N>'
-                    : 'Boxes work on Text to Image and Edit',
-            });
-            if (!this.enabled) {
-                this._instance.el.setDisabled(true);
-                return;
-            }
-
-            let saveTimer = null;
-            this._instance.on('click', () => {
-                this._dialog ??= MpiBoxesDialog.mount(document.createElement('div'));
-                this._dialog.el.open({
-                    boxes: this.value,
-                    frame: opts.boxFrame?.() || { w: 1024, h: 1024 },
-                    accent: 'vision',
-                    onChange: (boxes) => {
-                        this.value = boxes;
-                        this._instance?.el?.setLabel?.(label());
-                        clearTimeout(saveTimer);
-                        saveTimer = setTimeout(() => _emitUpdate(this, opts, 'boxes', this.value.map((b) => ({ ...b }))), 300);
-                    },
-                    onCite: (n) => opts.insertPromptText?.(`<obj_${n}>`),
-                });
-            });
+            this._opts = opts;
+        },
+        setValue(boxes) {
+            this.value = boxes;
+            clearTimeout(this._saveTimer);
+            const opts = this._opts;
+            this._saveTimer = setTimeout(() => _emitUpdate(this, opts, 'boxes', boxes.map((b) => ({ ...b }))), 300);
         },
         getValue() {
             return this.value || [];
         },
+        // Always injected, even empty and on an op without boxes (commandExecutor gates on
+        // modelTakesBoxes): the run's own boxes are what the sidecar records, so Reuse
+        // brings back what ran even when the 300 ms save lagged, or an agent sent them raw.
         getInjectionParams() {
-            return this.enabled && this.value?.length ? { Layout_Boxes: this.value } : {};
-        },
-        destroy() {
-            this._dialog?.el?.destroy?.();
-            this._dialog = null;
-            this._instance?.destroy?.();
-            this._instance = null;
+            return { Layout_Boxes: Array.isArray(this.value) ? this.value : [] };
         },
     },
 

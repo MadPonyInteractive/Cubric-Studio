@@ -11,6 +11,7 @@ import { MpiOpHelpDialog } from '../../Compounds/MpiOpHelpDialog/MpiOpHelpDialog
 import { MpiMediaPicker } from '../../Compounds/MpiMediaPicker/MpiMediaPicker.js';
 import { MpiVoicePicker } from '../../Compounds/MpiVoicePicker/MpiVoicePicker.js';
 import { MpiLoraRack } from '../../Compounds/MpiLoraRack/MpiLoraRack.js';
+import { MpiBoxesPanel } from '../../Compounds/MpiBoxesPanel/MpiBoxesPanel.js';
 import { getModelDepStatus, tierLetterFor } from '../../../data/modelRegistry.js';
 import { usesQualityTier } from '../../../utils/ratios.js';
 import { deriveInstalledOps } from '../../../data/modelConstants/resolveModelDeps.js';
@@ -137,6 +138,10 @@ export const MpiPromptBox = ComponentFactory.create({
             </div>
             ` : ''}
 
+            <!-- MPI-1181: the Boxes panel slides up out of this slot (overflow hidden), so it
+                 reads as coming from behind the bar. The boxes control mounts it. -->
+            <div class="mpi-prompt-box__boxes-slot" id="boxes-slot"></div>
+
             <div class="mpi-prompt-box__op-strip" id="op-strip-slot"></div>
 
             <div class="mpi-prompt-box__col mpi-prompt-box__col--neg" id="bottom-neg-slot"></div>
@@ -150,6 +155,8 @@ export const MpiPromptBox = ComponentFactory.create({
                  own (see positionPopup), and this order keeps the two apart in the first
                  place. Grid columns are all auto, so DOM order IS the visual order.
                  No backticks in here: this markup is a template literal. -->
+            <!-- MPI-1181: the Boxes toggle, shown only on an op that takes boxes. -->
+            <div class="mpi-prompt-box__col mpi-prompt-box__col--boxes hide" id="boxes-btn-slot"></div>
             <div class="mpi-prompt-box__col mpi-prompt-box__col--cog" id="settings-cog-slot"></div>
             <div class="mpi-prompt-box__col mpi-prompt-box__col--settings" id="settings-badge-slot"></div>
             <div class="mpi-prompt-box__col mpi-prompt-box__col--engine hide" id="engine-toggle-slot"></div>
@@ -343,6 +350,60 @@ export const MpiPromptBox = ComponentFactory.create({
         /** @type {Array<Function>} Cleanup functions, all run in destroy. */
         const _unsubs = [];
 
+        // ── Boxes (MPI-1181) ──────────────────────────────────────────────────
+        // The button and the panel are THIS box's: the `boxes` registry entry is shared by
+        // every prompt box, so a panel kept there followed the user from gallery to history.
+        // The panel stays open across an op or model switch (refilled for the new op) and
+        // dies with the box, so leaving the workspace closes it.
+        let _boxesPanel = null;
+        const _boxesBtnSlot = qs('#boxes-btn-slot', el);
+        const _boxesBtn = MpiButton.mount(_boxesBtnSlot, {
+            icon: 'shape_rect_stroke',
+            label: '0',
+            labelPosition: 'right',
+            size: 'sm',
+            variant: 'primary',
+            toggleable: true,
+            active: false,
+            info: 'Boxes - draw where things go; cite a box in the prompt as <its name>',
+        });
+        const _boxesCtrl = () => {
+            const ctrl = _activeControls.get('boxes');
+            return ctrl?.enabled ? ctrl : null;
+        };
+        const _boxesLabel = () => {
+            const n = _boxesCtrl()?.getValue().length || 0;
+            _boxesBtn.el.setLabel(n ? String(n) : '');
+        };
+        function _closeBoxes() {
+            _boxesPanel?.el.hide();
+            _boxesBtn.el.setActive(false);
+        }
+        function _openBoxes() {
+            const ctrl = _boxesCtrl();
+            if (!ctrl) return _closeBoxes();
+            _boxesPanel ??= MpiBoxesPanel.mount(qs('#boxes-slot', el).appendChild(document.createElement('div')));
+            _boxesPanel.el.open({
+                boxes: ctrl.getValue(),
+                frame: _boxFrame(),
+                mode: activeOperation === 'edit' ? 'edit' : 't2i',
+                accent: 'vision',
+                onChange: (boxes) => { _boxesCtrl()?.setValue(boxes); _boxesLabel(); },
+                onCite: (name) => _insertPromptText(`<${name}>`),
+                onRename: _renamePromptTag,
+                onClose: () => _boxesBtn.el.setActive(false),
+            });
+            _boxesBtn.el.setActive(true);
+        }
+        /** Op or model changed (_refreshOpSlot): show the button where boxes work, refill an open panel. */
+        function _syncBoxes() {
+            _boxesBtnSlot.classList.toggle('hide', !_boxesCtrl());
+            _boxesLabel();
+            if (_boxesPanel?.el.isOpen()) _openBoxes();
+        }
+        _boxesBtn.on('click', () => (_boxesPanel?.el.isOpen() ? _closeBoxes() : _openBoxes()));
+        _unsubs.push(() => { _boxesPanel?.el.destroy(); _boxesBtn.destroy?.(); });
+
         // ── Media state ────────────────────────────────────────────────────────
         /** @type {Array<{id:string, url:string, file:File|null, mediaType:'image'|'video'|'audio', source:'file'|'app', role?:string}>} */
         const _mediaItems = [];
@@ -505,6 +566,7 @@ export const MpiPromptBox = ComponentFactory.create({
         }
 
         function _emitMediaChange() {
+            _refreshBoxFrame();
             const hadMedia = (el.imageCount ?? 0) > 0 || (el.videoCount ?? 0) > 0;
             el.imageCount = _mediaItems.filter(m => m.mediaType === 'image').length;
             el.videoCount = _mediaItems.filter(m => m.mediaType === 'video').length;
@@ -1605,7 +1667,7 @@ export const MpiPromptBox = ComponentFactory.create({
                 _krea2TurboOn = !!active;
                 _refreshNegToggle();
             }),
-            Events.on('prompt:custom-size', () => _applyCustomSize()),
+            Events.on('prompt:custom-size', () => { _applyCustomSize(); _refreshBoxFrame(); }),
             // Note: model list management is owned by the parent block (gallery /
             // history workspace). They call el.setModelList() with the appropriate
             // mediaType-scoped or all-installed list. Don't double-update here.
@@ -1747,15 +1809,33 @@ export const MpiPromptBox = ComponentFactory.create({
             emit('input', { positive: positiveValue, negative: negativeValue, negativeAudio: negativeAudioValue, activeMode: promptMode });
         }
 
-        /** The frame the Boxes dialog draws on: the first picture on an edit that keeps its
-         *  frame, else the picked ratio's size. */
+        /** A box renamed in the Boxes panel: every `<from>` in the prompt becomes `<to>`. */
+        function _renamePromptTag(from, to) {
+            const next = positiveValue.split(`<${from}>`).join(`<${to}>`);
+            if (next === positiveValue) return;
+            _writeMode(next, 'positive');
+            if (promptMode === 'positive') { textareaEl.value = next; updateHeight(); }
+            _saveDraft();
+            emit('input', { positive: positiveValue, negative: negativeValue, negativeAudio: negativeAudioValue, activeMode: promptMode });
+        }
+
+        /** The frame the Boxes panel draws on: on edit the first picture, in the custom
+         *  size's shape when one is on (centred, as FLUX.3 is assumed to fill around it);
+         *  on t2i, or an edit with no picture yet, the picked ratio's size. */
         function _boxFrame() {
-            if (activeOperation === 'edit' && _activeControls.get('customSize')?.getValue?.() !== true) {
-                const img = _mediaItems.find((m) => m.mediaType === 'image');
-                if (img?.url) return { url: img.url };
-            }
             const size = (_activeControls.get('ratio') || _parkedSize.get('ratio'))?.getInjectionParams?.();
-            return size?.Width && size?.Height ? { w: size.Width, h: size.Height } : { w: 1024, h: 1024 };
+            const wh = size?.Width && size?.Height ? { w: size.Width, h: size.Height } : { w: 1024, h: 1024 };
+            if (activeOperation === 'edit') {
+                const img = _mediaItems.find((m) => m.mediaType === 'image');
+                if (img?.url) return _activeControls.get('customSize')?.getValue?.() === true ? { url: img.url, ...wh } : { url: img.url };
+            }
+            return wh;
+        }
+
+        /** Ratio, custom size or the picture changed: the open Boxes panel redraws its frame
+         *  (next frame, so the control that changed has stored its value). */
+        function _refreshBoxFrame() {
+            requestAnimationFrame(() => { if (_boxesPanel?.el.isOpen()) _boxesPanel.el.setFrame(_boxFrame()); });
         }
 
         function _syncRefPicker() {
@@ -2011,6 +2091,18 @@ export const MpiPromptBox = ComponentFactory.create({
         // price is a provider's business, and a filter here would go stale silently.
         _unsubs.push(Events.on('settings:shared:update', () => _refreshPriceTag()));
         _unsubs.push(Events.on('settings:model:update', () => _refreshPriceTag()));
+        // MPI-1181: the open Boxes panel follows the ratio (shared) and custom size (model).
+        _unsubs.push(Events.on('settings:model:update', _refreshBoxFrame));
+        _unsubs.push(Events.on('settings:shared:update', _refreshBoxFrame));
+
+        // MPI-1181: the op strip and the media chips ride up on top of an open Boxes panel
+        // (MpiPromptBox.css reads --boxes-h). A 0x0 rect is hidden, not resized.
+        const _boxesRo = new ResizeObserver(([entry]) => {
+            const h = entry?.contentRect?.height;
+            if (h) el.style.setProperty('--boxes-h', `${h}px`);
+        });
+        _boxesRo.observe(qs('#boxes-slot', el));
+        _unsubs.push(() => _boxesRo.disconnect());
 
         // The picker overlay is opened by whoever owns it, not by this box — the
         // radial (step 7) fires the same event.
@@ -2269,7 +2361,7 @@ export const MpiPromptBox = ComponentFactory.create({
                 opSlot.appendChild(ctrlEl);
 
                 try {
-                    ctrl.mount(ctrlEl, { model, opName: activeOperation, boxFrame: _boxFrame, insertPromptText: _insertPromptText });
+                    ctrl.mount(ctrlEl, { model, opName: activeOperation });
                     _activeControls.set(componentId, ctrl);
                     if (componentId === 'ratio' || componentId === 'qualityTier') _sizeHosts.set(componentId, ctrlEl);
                 } catch (err) {
@@ -2277,6 +2369,7 @@ export const MpiPromptBox = ComponentFactory.create({
                 }
             }
             _applyCustomSize();
+            _syncBoxes();
 
             // The wipe above detached the "?" — re-append it LAST so it lands on
             // the final wrapped line of the control row (margin-left:auto pins it

@@ -106,3 +106,41 @@ under gpu_lease; the box table appended to the prompt exactly as `Flux3LayoutPro
   instruction; now r2v only (`llmService.enhance`).
 - Not done: a real in-app generation (the app engine has no FLUX.3 weights; benched on G:/ComfyUi
   instead), Fabio's eye check of the dialog, a DeepInfra count of `t2v_bbox`.
+
+## Boxes UI rework (2026-10-20, Fabio's eye check of the modal)
+
+- MpiBoxesDialog -> MpiBoxesPanel: slides up from behind the PromptBox on the Boxes button, down on
+  the next press or its X; no backdrop. Live in my isolated app ("Boxes test"): op strip + media chips
+  ride on its top edge; prompt typing, ratio picker and Custom size work while open and the frame
+  follows (1:1 -> 9:16 -> 1:1 measured); edit shows picture 1, centred `contain` in the ratio with
+  Custom size on; Darken 76% -> `brightness(0.24)`; placeholder "What happens here" on edit, "What goes
+  here" on t2i; Add box removed, Clear all added (empties the run payload's `Layout_Boxes`).
+- Named boxes: drawing opens the rename (typed "big cat" -> `big_cat`), name click cites `<big_cat>`,
+  double-click on the frame tag renames to `cat` and the prompt became `<cat>`. Empty desc -> the name.
+- Reuse: a run whose project copy lagged (300 ms save) or an agent dispatch recorded the PROJECT's
+  boxes - the control only injected non-empty, mounted. Now always injects; test proves sidecar ->
+  `buildPromptReuseSettings` returns the run's named boxes.
+- `tests/flux3-boxes.test.cjs` 9/9; `npm test` 3458, 1 fail (`cloud-price-tag` source-shape pin on my
+  listener edit) fixed and rerun 13/13; lint clean.
+- Not checked: whether FLUX.3 fills or rescales around a centred picture with Custom size (needs a
+  bench render); Fabio's eye check of the panel.
+
+## Boxes round 2 (2026-10-20, Fabio's in-app test)
+
+- Fabio: panel "looks good, seems to work fine". His empty-prompt edit (cat box "a cute cat looking at
+  the gorilla", nothing in the main prompt) DID add a cat in the box; not looking at the gorilla.
+- Bug (Fabio): panel followed him gallery -> history and vanished on return. Root cause: button,
+  panel and open flag lived on the `boxes` REGISTRY entry, one object shared by every prompt box.
+  Fix (his design): `boxes` control is data-only (value/setValue/injection); MpiPromptBox owns its
+  own Boxes toggle on the bar beside the cog (icon + count, hidden where the op takes no boxes) and
+  its own panel; the panel survives an op switch, dies with the box. Live in my app: t2i shows
+  count 2, i2i hides the button, edit shows it; gallery open -> history = closed/off; open in
+  history -> back to gallery = closed/off. Rows widened 340 -> 430 px.
+- `npm test` 3458: 3456 pass, 0 fail, 2 skipped; lint clean.
+- Zoom/colour (Fabio): NOT the graph resize - edit_001 -> edit_005 -> edit_006 are all 1280x800 in and
+  out with custom size off. Bench replays (`research/boxes/zoombench.py`, `zoom_sheet.jpg`,
+  `zoom_sheet2.jpg`): edit_005 + "Orange cat" box, empty prompt vs "Keep everything else identical",
+  seeds 111/222 and his recorded 2686832702 - framing held in ALL, and his own edit_006 matches
+  edit_005's framing. His visible zoom is edit_001 -> edit_005 (first box edit, empty prompt): not
+  reproduced yet. Also: on the bench the desc "Orange cat" did NOT recolour at his seed (app did).
+

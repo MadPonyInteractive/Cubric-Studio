@@ -437,6 +437,7 @@ control (validation.md). R2 upload of both transformers started from C:/AI/diffu
 
 ## Noticed
 
+- 2026-10-20: Cosmo cannot read or cite Boxes names yet ("make the dog bigger"); agreed later, not this pass.
 - 2026-10-19 (Fabio, future): a tile-upscaler FLOW that describes each tile with its own prompt - separate from
   this card's prompt-less tile upscale.
 - 2026-10-19: Krea 2 and Qwen-Image 2.1 have no `QUALITY_TIER_HINT` entry, so their 2k radio reads

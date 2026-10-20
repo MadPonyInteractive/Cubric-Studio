@@ -2703,21 +2703,21 @@
 
 
 /**
- * @typedef {Object} MpiBoxesDialogProps (Compound — js/components/Compounds/MpiBoxesDialog)
+ * @typedef {Object} MpiBoxesPanelProps (Compound — js/components/Compounds/MpiBoxesPanel)
  * No props at mount time — content arrives via open().
  *
- * The Boxes overlay (MPI-1181), opened by the PromptBox `boxes` control on a model with
- * `layoutBoxes` (FLUX.3 t2i + edit). Right: the output frame; drag on it to draw a box,
- * drag a box to move it, drag its corner to resize. Left: one row per box (colour, name
- * `obj_N` that cites it in the prompt, what goes there, minus). Up to 10 boxes.
- * MpiModal owns the backdrop, portal, Overlays entry and Escape.
+ * The Boxes panel (MPI-1181), toggled by the PromptBox `boxes` control on a model with
+ * `layoutBoxes` (FLUX.3 t2i + edit). Mounted into the PromptBox `__boxes-slot` and slides
+ * up from behind the bar; no backdrop, the prompt box stays live. Right, top-aligned: the
+ * output frame; drag on it to draw a box, drag a tag to move, a corner to resize,
+ * double-click a tag to rename. Left: one row per box (colour, name that cites `<name>`
+ * in the prompt, optional description, minus), Clear all, Darken (picture only). Up to 10.
  *
  * Instance methods (on instance.el):
- *   open({ boxes: Array<{x,y,w,h,desc}>, frame: {url} | {w,h}, accent?: string,
- *          onChange(boxes), onCite(n) })
- *     — boxes are fractions of the frame; every edit calls onChange with a fresh copy
- *       (no OK button: closing keeps what is drawn). onCite(n) asks for <obj_n> in the prompt.
- *   hide() / destroy()
+ *   open({ boxes: Array<{x,y,w,h,desc,name}>, frame: {url?, w?, h?}, mode: 't2i'|'edit',
+ *          accent?: string, onChange(boxes), onCite(name), onRename(from, to), onClose() })
+ *     — boxes are fractions of the frame; every edit calls onChange with a fresh copy.
+ *   setFrame(frame) / hide() / isOpen() / destroy()
  */
 
 /**
