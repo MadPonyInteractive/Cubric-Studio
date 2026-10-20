@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1212",
+  "title": "FLUX.3 Klein in the Flows: bench it against Qwen-Image 2.1 and Klein 9B per Flow, swap where it wins",
+  "description": "",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-10-20T20:33:14+01:00",
+  "updated_at": "2026-10-20T20:33:14+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

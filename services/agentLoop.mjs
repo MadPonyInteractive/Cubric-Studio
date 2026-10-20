@@ -122,6 +122,7 @@ export const TOOL_DEFS = [
                     tiles: { type: 'boolean', description: 'Upscale, where params.tiles: redraw in 1024 px tiles. Each tile gets the WHOLE prompt: describe the look or send none, never the scene.' },
                     upscaleFactor: { type: 'number', description: 'One of params.upscaleFactors; 1 keeps the size and needs tiles.' },
                     transparent: { type: 'boolean', description: 'Where params.transparent: no background. Describe the subject alone.' },
+                    boxes: { type: 'array', items: { type: 'object' }, description: 'Where params.boxes: [{ name, x, y, w, h, desc }], x, y the top-left, all 0-1 of the picture; cite a box as <name>.' },
                     styleSelect: { type: 'string' },
                     stylization: { type: 'number' },
                     seed: { type: 'integer' },
@@ -1076,7 +1077,7 @@ export class AgentLoop {
                 // (MPI-980), so "this frame" anywhere else is the user's Create snapshot.
                 + (workspace.frame ? _frameOnScreen(workspace.frame) : '')
             : '';
-        return `[App state: ${where}${standing} Images you can look at: ${refs.length ? refs.join(', ') : 'none'}.${more} A ref with no "made by" was not made here, so you do not know what made it — say so rather than guessing, and never assume it came from the model selected now.]`;
+        return `[App state: ${where}${standing}${_boxesDrawn(workspace?.boxes, this._pinned)} Images you can look at: ${refs.length ? refs.join(', ') : 'none'}.${more} A ref with no "made by" was not made here, so you do not know what made it — say so rather than guessing, and never assume it came from the model selected now.]`;
     }
 
     /**
@@ -3497,7 +3498,7 @@ function _projectFileUrl(absPath) {
  * (defaulted)` for all five runs: the number was in its reply and never in the call. The result
  * only said "started", so nothing it read could contradict the claim.
  */
-const _SENT_KEYS = ['ratio', 'qualityTier', 'turbo', 'duration', 'denoise', 'styleSelect', 'stylization', 'seed', 'category', 'language', 'tiles', 'upscaleFactor', 'transparent'];
+const _SENT_KEYS = ['ratio', 'qualityTier', 'turbo', 'duration', 'denoise', 'styleSelect', 'stylization', 'seed', 'category', 'language', 'tiles', 'upscaleFactor', 'transparent', 'boxes'];
 
 /**
  * A generate call's own fields in the connector's words: `prompt` goes as `positive`, and a
@@ -3556,7 +3557,7 @@ function _sentNote(body, pinned = null) {
         const at = [pinned.duration && `${pinned.duration} s`, pinned.ratio].filter(Boolean).join(', ');
         return ` The settings panel is open, so it runs at the panel's settings${at ? ` (${at})` : ''} and any you sent were dropped. Name no other duration, quality or ratio to the user.`;
     }
-    const sent = _SENT_KEYS.filter((k) => body[k] !== undefined).map((k) => `${k} ${body[k]}`);
+    const sent = _SENT_KEYS.filter((k) => body[k] !== undefined).map((k) => `${k} ${typeof body[k] === 'object' ? JSON.stringify(body[k]) : body[k]}`);
     return ` Settings you sent: ${sent.length ? sent.join(', ') : 'none'}. Every other setting runs at its default. Tell the user only settings listed here; to change one, send it.`;
 }
 
@@ -3597,6 +3598,21 @@ function _routineNote(name, r) {
  * The App state line's half-sentence for an open video's playhead (MPI-984). Frame numbers
  * are the viewer's own counter (from 0), so they match what the user reads off the screen.
  */
+/**
+ * MPI-1181: the boxes the user drew in the Boxes panel. Fabio, 2026-10-20: "I have already
+ * drawn some boxes for where I want the UFO and the people" - Cosmo could not see them.
+ * Unpinned they run only when sent; pinned the panel's own boxes run on their own.
+ */
+function _boxesDrawn(boxes, pinned) {
+    if (!boxes?.ops) return '';
+    const lists = Object.entries(boxes.ops).map(([op, list]) => `${op} ${JSON.stringify(list)}`).join('; ');
+    // Fabio, 2026-10-20: boxes drawn at 8:5 sent at 16:9 stretched, and the people came out too big.
+    const frame = boxes.ratio && boxes.ops.t2i ? ` The t2i boxes are drawn on a ${boxes.ratio} frame: send ratio ${boxes.ratio} with them unless the user asks for another.` : '';
+    return ` The user has drawn boxes for ${boxes.modelId} in the Boxes panel: ${lists}.${frame} A box's size is how big the thing is in the picture: write the prompt at that size, never closer.${pinned
+        ? ' With the settings panel open they run on their own; cite each as <name> in the prompt.'
+        : ' They run only if you send them: when the user wants them used, pass that op\'s list as generate\'s boxes on that model and op, and cite each as <name> in the prompt.'}`;
+}
+
 function _frameOnScreen({ index, count, paused }) {
     const where = `${paused ? 'paused on' : 'playing, now at'} frame ${index} of ${count} (the first is frame 0)`;
     return index === 0

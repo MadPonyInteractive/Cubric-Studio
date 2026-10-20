@@ -36,7 +36,8 @@ import { activeStackMember } from '../shell/activeStackMember.js';
 import { isStack, expandStacks } from '../data/stackModel.js';
 import { PAGE_GROUP_HISTORY, PAGE_SCENE } from '../router.js';
 import { isOperationInstalled } from '../data/modelRegistry.js';
-import { resolveNamedParams } from '../data/generationControls.js';
+import { resolveNamedParams, resolvePlannedRatio } from '../data/generationControls.js';
+import { getOpSettings } from '../data/projectModel.js';
 
 export const AGENT_EVENT_NAMES = [
     'agent:working',
@@ -209,12 +210,12 @@ function _pinnedForTurn() {
  * the girl in front") and Klein, seeing only the crop, drew a second girl in it.
  * @returns {{page:string, groupId:?string, card:?{name:string,type:string},
  *            activeEntry:?{itemId:string, filePath:string, modelId:?string}, masked:boolean,
- *            frame:?{index:number, count:number, paused:boolean}}}
+ *            frame:?{index:number, count:number, paused:boolean}, boxes:?object}}
  */
 function _workspaceForTurn() {
     const page = state.currentPage;
     const groupId = state.currentParams?.groupId || null;
-    const base = { page, groupId: null, card: null, activeEntry: null };
+    const base = { page, groupId: null, card: null, activeEntry: null, boxes: _boxesForTurn() };
     // MPI-623: in a card's Scene the agent still needs to know which card it is.
     if ((page !== PAGE_GROUP_HISTORY && page !== PAGE_SCENE) || !groupId) return base;
 
@@ -241,7 +242,27 @@ function _workspaceForTurn() {
         masked: activeMask()?.groupId === group.id,
         // MPI-984: on a video, the frame on screen. Null on a still.
         frame: activeFrame(),
+        boxes: base.boxes,
     };
+}
+
+/**
+ * The boxes the user drew in the Boxes panel for the selected model (MPI-1181), per op, or
+ * null. Fabio, 2026-10-20: "I have already drawn some boxes" and Cosmo could not see them.
+ * Told, not sent: unpinned they run only when the agent passes them as `boxes`.
+ * @returns {{modelId:string, ops:Object<string, Array<object>>, ratio:?string}|null}
+ */
+function _boxesForTurn() {
+    const model = pinnedModel();
+    const project = state.currentProject;
+    if (!model?.layoutBoxes || !project) return null;
+    const ops = {};
+    for (const op of model.layoutBoxes.ops) {
+        const boxes = getOpSettings(project, model.id, op).boxes;
+        if (Array.isArray(boxes) && boxes.length) ops[op] = boxes;
+    }
+    // The t2i boxes are fractions of the panel's frame: sent at another ratio they stretch.
+    return Object.keys(ops).length ? { modelId: model.id, ops, ratio: resolvePlannedRatio(project, model).label } : null;
 }
 
 /**

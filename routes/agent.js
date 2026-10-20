@@ -84,6 +84,22 @@ const _unavailable = (res, err) =>
  * at the boundary, by the same `ownedMedia` the video-by-reference attachment above uses.
  * An entry that fails the check costs the agent the shortcut, never the turn.
  */
+/** MPI-1181: the Boxes panel's saved boxes, `{ modelId, ops: { op: [box] } }`, numbers and short text only. */
+function _cleanBoxes(raw) {
+    if (!raw || typeof raw.modelId !== 'string' || !raw.ops || typeof raw.ops !== 'object') return null;
+    const num = (v) => Math.round(Math.max(0, Math.min(1, Number(v) || 0)) * 1000) / 1000;
+    const ops = {};
+    for (const [op, list] of Object.entries(raw.ops)) {
+        if (!/^\w+$/.test(op) || !Array.isArray(list)) continue;
+        const boxes = list.slice(0, 20).filter((b) => b && typeof b === 'object').map((b) => ({
+            name: String(b.name || '').slice(0, 40), x: num(b.x), y: num(b.y), w: num(b.w), h: num(b.h), desc: String(b.desc || '').slice(0, 300),
+        }));
+        if (boxes.length) ops[op] = boxes;
+    }
+    const ratio = typeof raw.ratio === 'string' && /^\d+(\.\d+)?:\d+(\.\d+)?$/.test(raw.ratio) ? raw.ratio : null;
+    return Object.keys(ops).length ? { modelId: raw.modelId.slice(0, 80), ops, ratio } : null;
+}
+
 async function _sanitiseWorkspace(workspace, project) {
     if (!workspace || typeof workspace.page !== 'string') return null;
     const entry = workspace.activeEntry;
@@ -98,6 +114,7 @@ async function _sanitiseWorkspace(workspace, project) {
             && workspace.frame.index >= 0 && workspace.frame.count > 0
             ? { index: workspace.frame.index, count: workspace.frame.count, paused: workspace.frame.paused === true }
             : null,
+        boxes: _cleanBoxes(workspace.boxes),
     };
     if (!entry || typeof entry.filePath !== 'string' || !project?.folderPath) return clean;
 

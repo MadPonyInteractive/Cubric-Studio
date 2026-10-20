@@ -34,7 +34,10 @@ test('an empty edit prompt is written from the boxes; a typed one, or t2i, is no
     const tiger = { x: 0.26, y: 0.27, w: 0.2, h: 0.43, desc: 'Sneaking Tiger', name: 'Tiger' };
     assert.equal(withLayoutBoxes(FLUX3, ' ', [tiger, { ...FOX, name: 'fox' }], 'edit').split(' [')[0],
         'In <Tiger>: Sneaking Tiger. In <fox>: red fox sitting. Keep everything else in the picture exactly the same.');
-    assert.match(withLayoutBoxes(FLUX3, 'Add a tiger', [tiger], 'edit'), /^Add a tiger \[/);
+    // A typed edit with no keep clause gets the keep line (Fabio, 2026-10-20); one with a clause is left as typed.
+    assert.match(withLayoutBoxes(FLUX3, 'Add a tiger', [tiger], 'edit'), /^Add a tiger\. Keep everything else in the picture exactly the same\. \[/);
+    assert.match(withLayoutBoxes(FLUX3, 'Add a tiger. Keep the forest unchanged.', [tiger], 'edit'), /^Add a tiger\. Keep the forest unchanged\. \[/);
+    assert.match(withLayoutBoxes(FLUX3, 'Add a tiger, leave the rest the same', [tiger], 'edit'), /^Add a tiger, leave the rest the same \[/);
     assert.match(withLayoutBoxes(FLUX3, '', [tiger], 't2i'), /^ \[/);
 });
 
@@ -149,4 +152,25 @@ test('a box moved after Enhance drops the enhancement; a Reuse keeps its own (Fa
     // The sync every prompt edit runs must NOT check boxes: a Reuse injects the prompt before its boxes.
     const sync = src.slice(src.indexOf('function _syncEnhancedState()'), src.indexOf('const _closeEnhanceDialog'));
     assert.doesNotMatch(sync, /_boxesNow|_boxKey/);
+});
+
+test('agents send boxes by name: describe_model lists them, the run gets the panel`s list, a bad one is refused', () => {
+    const { namedParamsFor, resolveNamedParams } = require('../js/data/generationControls.js');
+    assert.equal(namedParamsFor(FLUX3, 't2i').boxes, true);
+    assert.equal(namedParamsFor(FLUX3, 'edit').boxes, true);
+    assert.equal(namedParamsFor(KREA2, 't2i').boxes, undefined);
+    const r = resolveNamedParams(null, FLUX3, 't2i', { boxes: [{ ...FOX, name: 'red fox' }] });
+    assert.equal(r.ok, true, JSON.stringify(r));
+    assert.deepEqual(r.injectionParams.Layout_Boxes, [{ x: 0.05, y: 0.55, w: 0.3, h: 0.4, desc: 'red fox sitting', name: 'red_fox' }]);
+    assert.equal('Layout_Boxes' in resolveNamedParams(null, FLUX3, 't2i', {}).injectionParams, false, 'unasked: the panel`s boxes never ride an agent run');
+    for (const bad of [[], [{ x: 0, y: 0, w: 2, h: 1 }], [{ x: 0, y: 0, w: 0, h: 0.5 }], 'fox']) {
+        assert.equal(resolveNamedParams(null, FLUX3, 't2i', { boxes: bad }).code, 'INVALID_BOXES', JSON.stringify(bad));
+    }
+    assert.equal(resolveNamedParams(null, KREA2, 't2i', { boxes: [FOX] }).code, 'INVALID_BOXES');
+    // Pinned (a project passed): the panel's saved boxes run unsent; sent ones still win.
+    const project = { modelSettings: { 'flux3-klein': { operations: { t2i: { boxes: [{ ...FOX, name: 'fox' }] } } } } };
+    const { getOpSettings } = require('../js/data/projectModel.js');
+    assert.equal(getOpSettings(project, 'flux3-klein', 't2i').boxes?.length, 1, 'fixture matches the project shape');
+    assert.equal(resolveNamedParams(project, FLUX3, 't2i', {}).injectionParams.Layout_Boxes[0].name, 'fox');
+    assert.equal(resolveNamedParams(project, FLUX3, 't2i', { boxes: [{ ...FOX, name: 'cat' }] }).injectionParams.Layout_Boxes[0].name, 'cat');
 });

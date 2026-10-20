@@ -495,6 +495,7 @@ const TOOLS = {
                 tiles: { type: 'boolean', description: 'Only on an upscale op whose params list tiles: true cuts the picture into 1024 px tiles and redraws each one. For a very large picture, or with upscaleFactor 1 to add detail without enlarging. Every tile gets the WHOLE prompt: describe the look (sharp photo, film grain) or send none, never the scene.' },
                 upscaleFactor: { type: 'number', description: 'Only on an upscale op: one of its params.upscaleFactors. 1 (detail only) needs tiles: true.' },
                 transparent: { type: 'boolean', description: 'Only where the op\'s params list transparent: true returns the image with a transparent background (no background). Describe the subject only, no setting.' },
+                boxes: { type: 'array', description: 'Only where the op\'s params list boxes: where things go in the picture. x, y = top-left corner, w, h = size, each 0-1 of the picture; desc = what goes there; cite a box in the prompt as <name>. A bigger box reads nearer the camera; inside its box the desc wins over the prompt.', items: { type: 'object', properties: { name: { type: 'string' }, x: { type: 'number' }, y: { type: 'number' }, w: { type: 'number' }, h: { type: 'number' }, desc: { type: 'string' } }, required: ['x', 'y', 'w', 'h', 'desc'] } },
                 cardName: { type: 'string', description: 'A short name for the gallery card this creates.' },
                 media: {
                     type: 'array',

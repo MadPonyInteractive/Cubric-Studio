@@ -38,7 +38,7 @@ import {
     TTS_KNOBS, ttsKnobParams,
 } from './commandRegistry.js';
 import { PROMPT_CONTROL_DEFAULTS } from './promptControlDefaults.js';
-import { layoutRows, endsWithBoxTable } from './layoutBoxes.js';
+import { layoutRows, endsWithBoxTable, boxName } from './layoutBoxes.js';
 import { MODELS } from './modelConstants/models.js';
 import { canonicalModelId } from './modelConstants/resolveModelDeps.js';
 import { getExtension, isImageFile, isVideoFile, isAudioFile } from '../utils/file.js';
@@ -275,6 +275,8 @@ export function namedParamsFor(model, operation) {
         // An edit whose size sits behind the Custom size button (`customSizeOps`, MPI-1181/1207): ratio and
         // qualityTier are optional there, and leaving both out keeps reference 1's own frame (resolveNamedParams).
         ...(modelShowsRatio(model, operation) && getCommandComponents(operation).includes('customSize') ? { customSize: true } : {}),
+        // Boxes (MPI-1181): where things go in the frame, the PromptBox Boxes panel's list.
+        ...(modelTakesBoxes(model, operation) ? { boxes: true } : {}),
     };
 }
 
@@ -319,6 +321,10 @@ export function withCanvasPrompt(prompt, frame) {
 
 // ── Boxes (MPI-1181) ─────────────────────────────────────────────────────────
 
+const KEEP_LINE = 'Keep everything else in the picture exactly the same.';
+// ponytail: English keyword match; a keep clause worded otherwise just gets a second one.
+const KEEP_CLAUSE = /\bunchanged\b|\b(keep|leave|preserve)\b[^.]*\b(same|intact|as (it|they) (is|are))\b/i;
+
 /** Does `model` take layout boxes on `operation`? (`ModelDef.layoutBoxes.ops`) */
 export function modelTakesBoxes(model, operation) {
     return !!model?.layoutBoxes?.ops?.includes(operation);
@@ -352,7 +358,11 @@ export function withLayoutBoxes(model, prompt, boxes, operation) {
     if (endsWithBoxTable(text)) return text;
     const rows = layoutRows(boxes);
     if (!text && operation === 'edit') {
-        text = `${rows.map((r) => `In <${r.id}>: ${r.desc}.`).join(' ')} Keep everything else in the picture exactly the same.`;
+        text = `${rows.map((r) => `In <${r.id}>: ${r.desc}.`).join(' ')} ${KEEP_LINE}`;
+    } else if (operation === 'edit' && !KEEP_CLAUSE.test(text)) {
+        // A typed box edit with no keep clause gets one (Fabio, 2026-10-20): the boxes say
+        // what changes, nothing said what stays.
+        text = `${/[.!?]$/.test(text) ? text : `${text}.`} ${KEEP_LINE}`;
     }
     return `${text} ${JSON.stringify(rows)}`;
 }
@@ -517,7 +527,7 @@ export function isValidSeed(value) {
  *            provenance:Object<string,{from:'asked'|'defaulted', value:*}>}|{ok:false, code:string, message:string}}
  */
 export function resolveNamedParams(project, model, operation, named = {}) {
-    const { ratio, qualityTier, turbo, styleSelect, stylization, duration: durationWanted, denoise: denoiseWanted, batch, category, language, tiles, upscaleFactor, transparent } = named;
+    const { ratio, qualityTier, turbo, styleSelect, stylization, duration: durationWanted, denoise: denoiseWanted, batch, category, language, tiles, upscaleFactor, transparent, boxes: askedBoxes } = named;
     const injectionParams = {};
     const modelName = model?.name || model?.id || 'this model';
     const provenance = {};
@@ -711,6 +721,24 @@ export function resolveNamedParams(project, model, operation, named = {}) {
         injectionParams.Transparent_Background = transparent
             ?? getModelSettings(project || {}, model?.id).transparentBackground === true;
         _from('transparent', transparent !== undefined, injectionParams.Transparent_Background);
+    }
+
+    // Boxes (MPI-1181), the panel's `{ x, y, w, h, desc, name }` in fractions of the output
+    // frame. Asked, else the project's saved boxes - and an agent run passes a project only
+    // with the settings panel open, so unpinned the panel's boxes ride only when sent.
+    const savedBoxes = askedBoxes === undefined && project && modelTakesBoxes(model, operation)
+        ? getOpSettings(project, model?.id, operation).boxes : undefined;
+    const boxes = Array.isArray(savedBoxes) && savedBoxes.length ? savedBoxes : askedBoxes;
+    if (boxes !== undefined) {
+        if (!modelTakesBoxes(model, operation)) {
+            return _err('INVALID_BOXES', `${modelName} takes no boxes on "${operation}".`);
+        }
+        const frac = (v) => typeof v === 'number' && v >= 0 && v <= 1;
+        if (!Array.isArray(boxes) || !boxes.length || boxes.some((b) => !b || !['x', 'y', 'w', 'h'].every((k) => frac(b[k])) || !b.w || !b.h)) {
+            return _err('INVALID_BOXES', 'boxes must be a list of { name, x, y, w, h, desc }: x, y the top-left corner and w, h the size, each 0-1 of the output frame.');
+        }
+        injectionParams.Layout_Boxes = boxes.map((b) => ({ x: b.x, y: b.y, w: b.w, h: b.h, desc: String(b.desc || '').trim(), name: boxName(b.name) }));
+        _from('boxes', askedBoxes !== undefined, injectionParams.Layout_Boxes.length);
     }
 
     // The audio models' two pickers (MPI-1012). Same ladder as turbo: asked, else the

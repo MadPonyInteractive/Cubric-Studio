@@ -29,6 +29,8 @@ when a user mentions selling or client work.
   base model, 50 steps. Base is the one for photoreal people (Turbo skin reads plastic and
   oily); Turbo holds up on products and text, and Turbo single-pass `upscale` kept a face's
   identity best of every upscale tried.
+- "Better quality" at the same size is `turbo: false`, never a higher tier: a tier here is
+  only the picture's size. Say it runs about four times slower.
 - Tiers `1k`, `2k`, `4k` on `t2i`, `i2i` and a custom-size `edit` (4k: Turbo ~130 s, base ~11 min on a 16 GB card).
   The ratio is a param: never write it into the prompt.
 - `edit` keeps the FIRST image's frame unless custom size is on: a `ratio` or `qualityTier`
@@ -39,6 +41,29 @@ when a user mentions selling or client work.
   the picture as it already is.
 - Media roles: `t2i` takes no image; `i2i`, `inpaint`, `detail`, `upscale` take `inputImage`;
   `edit` takes `inputImage` through `inputImage10`, the first the one being changed.
+
+## Boxes (`t2i`, `edit`)
+
+`boxes` places things: `[{ name, x, y, w, h, desc }]`, with `x, y` the top-left corner and
+`w, h` the size, each 0 to 1 of the output picture (on `edit`, of the first image). Send them
+when the user says WHERE something goes ("a fox bottom-left", "put a lamp on the table").
+The app appends them to your prompt as the model's layout table; never write coordinates in
+the prompt yourself.
+
+- `name` is one word (`fox`, `red_lamp`); cite it in the prompt as `<fox>`. That is the one
+  angle-bracket tag this model reads.
+- `desc` is what goes in the box. Inside its box, the desc wins over the prompt, so keep the
+  two saying the same thing.
+- The box SIZE reads as distance: a big box is near the camera, a small one far away. Size
+  the box for the depth you want, not just the area.
+- Write the prompt at the box's size: the prompt beats the box. Each person's clothes, their
+  faces, or a camera close behind them draws them far larger than a small box. For a small
+  box say small, distant figures, the camera far back, and leave out detail that only shows
+  up close.
+- Boxes are fractions of the frame they were drawn on: send the same `ratio`, or they stretch.
+- On `edit`, an added object lands in its box. Who does what to whom across boxes (the tiger
+  chasing the mouse) is the model's limit: say it in the prompt, then adjust box size and
+  place, and never promise it.
 
 ## The prompt shape
 

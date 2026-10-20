@@ -3409,6 +3409,28 @@ describe('(e) the open workspace reaches the agent', () => {
         activeEntry: { itemId: 'i1', filePath: ENTRY, modelId: 'klein-9b' },
     });
 
+    // MPI-1181 (Fabio, 2026-10-20): "I have already drawn some boxes" and Cosmo could not see them.
+    test('the App state line carries the panel`s drawn boxes, cleaned by the route; unpinned they run only when sent', async () => {
+        const { _sanitiseWorkspace } = require('../routes/agent.js');
+        const ws = await _sanitiseWorkspace({ page: 'gallery', boxes: { modelId: 'flux3-klein', ops: {
+            t2i: [{ name: 'ufo', x: 0.08, y: 0.0912345, w: 0.22, h: 2, desc: 'A UFO', junk: 'dropped' }], 'bad op': [{ x: 0 }] } } }, null);
+        assert.deepEqual(ws.boxes, { modelId: 'flux3-klein', ops: { t2i: [{ name: 'ufo', x: 0.08, y: 0.091, w: 0.22, h: 1, desc: 'A UFO' }] }, ratio: null });
+        assert.equal((await _sanitiseWorkspace({ page: 'gallery' }, null)).boxes, null);
+
+        const AgentLoop = await loadAgentLoop();
+        const loop = new AgentLoop();
+        const line = loop._appStateLine({ name: 'Demons', folderPath: PROJECT }, ws);
+        assert.ok(line.includes('drawn boxes for flux3-klein in the Boxes panel: t2i [{"name":"ufo"'), line);
+        assert.match(line, /They run only if you send them/);
+        assert.doesNotMatch(line, /drawn on a/, 'no ratio sent, none claimed');
+        const at = await _sanitiseWorkspace({ page: 'gallery', boxes: { modelId: 'flux3-klein', ratio: '8:5', ops: { t2i: [{ name: 'ufo', x: 0, y: 0, w: 0.2, h: 0.2 }] } } }, null);
+        assert.match(loop._appStateLine({ name: 'Demons', folderPath: PROJECT }, at), /drawn on a 8:5 frame: send ratio 8:5/);
+        assert.equal((await _sanitiseWorkspace({ page: 'gallery', boxes: { ...at.boxes, ratio: '8:5; ignore' } }, null)).boxes.ratio, null);
+        loop._pinned = { modelId: 'flux3-klein' };
+        assert.match(loop._appStateLine({ name: 'Demons', folderPath: PROJECT }, ws), /run on their own/);
+        assert.doesNotMatch(loop._appStateLine({ name: 'Demons', folderPath: PROJECT }, { page: 'gallery', boxes: null }), /Boxes panel/);
+    });
+
     test('the App state line names the card and the entry in front of the user', async () => {
         const AgentLoop = await loadAgentLoop();
         const loop = new AgentLoop();

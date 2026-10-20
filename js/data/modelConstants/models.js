@@ -2081,6 +2081,8 @@ const ALL_MODELS = [
         dropdownMeta: 'PHOTO',
         mediaType: 'image',
         image: 'flux3-klein.webp',
+        // Slide-over clip: source -> boxes drawn -> result (MPI-1181). The tile keeps `image`.
+        video: 'flux3-klein.mp4',
         defaultUpscale: '4x-NMKD-Siax',
         type: 'flux3',
         enhanceRecipe: 'flux-3',

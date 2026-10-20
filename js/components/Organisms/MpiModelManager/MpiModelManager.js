@@ -854,7 +854,7 @@ export const MpiModelManager = ComponentFactory.create({
             // Static markup (thumb, title, description) via innerHTML; toggle rows +
             // VRAM table + action buttons are mounted as real components below.
             detailBody.innerHTML = `
-                <div class="mpi-detail__thumb mpi-detail__thumb--${isVideo ? 'video' : 'image'} mpi-detail__thumb--placeholder" id="detail-thumb"></div>
+                <div class="mpi-detail__thumb mpi-detail__thumb--${isVideo || model.video ? 'video' : 'image'} mpi-detail__thumb--placeholder" id="detail-thumb"></div>
                 <div class="mpi-detail__titlerow">
                     <div>
                         <div class="mpi-detail__name">${model.name}</div>
@@ -905,7 +905,8 @@ export const MpiModelManager = ComponentFactory.create({
             // without hovering, and both image + video size to their TRUE aspect (no
             // crop) — the box adopts the asset's real dimensions once it loads.
             const thumb = qs('#detail-thumb', detailBody);
-            if (isVideo && model.video) {
+            // An image model may carry a clip too (FLUX.3's source -> boxes -> result); the tile keeps its still.
+            if (model.video) {
                 const vid = ce('video', { src: `comfy_workflows/display/${model.video}`, className: 'mpi-detail__thumb-media' });
                 vid.muted = true; vid.loop = true; vid.playsInline = true; vid.autoplay = true; vid.preload = 'auto';
                 _unsubs.push(on(vid, 'error', () => { vid.remove(); thumb.classList.add('mpi-detail__thumb--placeholder'); }));

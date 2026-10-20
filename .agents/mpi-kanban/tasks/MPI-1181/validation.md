@@ -244,4 +244,34 @@ under gpu_lease; the box table appended to the prompt exactly as `Flux3LayoutPro
   Cosmo cannot send them; HTTP/MCP only via undeclared raw `injectionParams.Layout_Boxes`.
   Guide `docs/agent/models/flux-3.md` stale lines fixed (tiers incl. custom-size edit; the
   "not yet handled" bars line). `agent-corpus` test passes.
-
+- 2026-10-20 Box-change drop: Fabio live click-through PASSED ("as soon as I move the box, the
+  prompt enhancement button indicates that it is no longer enhanced").
+- 2026-10-20 Cosmo FLUX.3 bugs: fixed by "Cosmo improvements 4" in a836a4334 (qualityTier enum dropped;
+  ratio snap skipped where namedParamsFor says customSize). Their regression test is in agent-loop.test.cjs.
+- 2026-10-20 Named `boxes` param: namedParamsFor advertises `boxes: true` on FLUX.3 t2i/edit;
+  resolveNamedParams validates [{name,x,y,w,h,desc}] fractions and injects Layout_Boxes, asked only
+  (INVALID_BOXES otherwise); NAMED_PARAM_KEYS, agentDispatch named, agentLoop schema + _SENT_KEYS (+_sentNote
+  prints objects as JSON), MCP schema. Tool schemas +173 B, budget 16,294. Guide `flux-3.md` § Boxes.
+  flux3-boxes 13/13 (new: agents send boxes by name), npm test 3467: 3465 pass, 0 fail, 2 skipped; lint clean.
+  Not checked: a live Cosmo/MCP run with boxes (GPU; Fabio's go).
+- 2026-10-20 Slide-over clip: comfy_workflows/display/flux3-klein.mp4, 960x600 H.264 24 fps 7.8 s 1.0 MB,
+  crossfades tiger (edit_007) -> boxes screenshot -> result (edit_029) -> back to tiger for a seamless loop
+  (Fabio: plain fades, no drawn boxes). ModelDef `video:`; MpiModelManager now plays `model.video` on an
+  image model too (was video models only). Frames checked on a contact strip. Not checked: in the app.
+- 2026-10-20 Keep line (Fabio: yes): a typed box edit with no keep clause gets "Keep everything else in the picture
+  exactly the same." before the table (`withLayoutBoxes`, `KEEP_CLAUSE` English keyword match). flux3-boxes 13/13, npm test 3465/0.
+- 2026-10-20 Cosmo sees the panel boxes (Fabio asked a FLUX.3 t2i "I have already drawn some boxes"; Cosmo could
+  not see them). agentService._boxesForTurn sends the selected model's saved per-op boxes in the turn workspace;
+  routes/agent._cleanBoxes clamps them; agentLoop App state line lists them (unpinned: pass as `boxes`; pinned:
+  they run on their own, resolveNamedParams falls back to getOpSettings(...).boxes when a project is passed).
+  Tests: agent-loop "drawn boxes", flux3-boxes 13/13; npm test 3468: 3466 pass, 0 fail. Not checked live: needs an
+  app RESTART (server code), then Fabio asks Cosmo again.
+- 2026-10-20 LIVE Cosmo t2i with panel boxes (after restart): card e1d046ee sidecar holds the panel's exact boxes
+  (people/ufo), so the route works. Two misses: Cosmo ran 16:9 (Fabio drew at 8:5: fractions stretch), and his prompt
+  (each person's clothes, camera "slightly behind and below") drew the people ~3x the box. Fix: turn sends the
+  panel ratio (_boxesForTurn ratio, route regex-checked), App state line says "send ratio X" + "write the prompt at
+  that size"; guide flux-3.md Boxes gets the size + ratio bullets. agent-loop "drawn boxes" extended; npm test
+  3468: 3466 pass, 0 fail. Not checked live: needs a restart + Cosmo rerun.
+- 2026-10-20 LIVE rerun after restart (Fabio set the panel to 5:4, 2k; agent model MiMo-V2.6-Flash, not DeepSeek):
+  sidecar Ratio_Label 5:4 1600x1280 = panel ratio, panel boxes, prompt "small distant figures ... no faces visible".
+  People inside their box, poses read as distress (Fabio). Not re-run on DeepSeek V4 Flash.
