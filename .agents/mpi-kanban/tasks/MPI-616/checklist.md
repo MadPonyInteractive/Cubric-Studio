@@ -77,6 +77,21 @@ reasoning survives.
       PASSED. A delete attempted then failed with "Request data is updated by some
       other source" (the pass being written) - luckily. Before deleting a request
       after a confusing ID check, wait and Refresh: it may already be Completed.
+- [x] Certificate profile **`MadPonyPublicTrust`** (Public Trust) created
+      2026-10-20, subject `CN=Mad Pony Interactive, O=Mad Pony Interactive,
+      L=Great Yarmouth, S=Norfolk` - street + postcode boxes UNTICKED on purpose.
+- [x] App registration **`cubric-ci-signing`** (single tenant) created; the
+      **Artifact Signing Certificate Profile Signer** role is on the APP at the
+      `madponysigning` account scope (confirmed by portal notification).
+- [x] Client secret `mpi-ci`, 730 days (2026-10-20 -> ~2028-10-19). Rotation
+      reminder: Google Calendar all-day 2028-09-19, email+popup T-2/T-1, event id
+      `lhgjo9mpt2dm6iadmjdskc5ml0` (description also flags the identity
+      validation expiry 2029-01-22).
+- [ ] **Fabio adds three Actions secrets to `MadPonyInteractive/mpi-ci`**:
+      `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`. As of handoff
+      NONE exist in any org repo (`gh secret list` swept). If he left the Azure
+      page the Value is gone - he makes a new secret and deletes the old one.
+      Verify with `gh secret list -R MadPonyInteractive/mpi-ci` (names only).
 - [ ] Wire the signing pass into `scripts/build-portable.mjs` — **after** the
       `electron.exe` → `CubricVision.exe` rename. `win.azureSignOptions` in
       `electron-builder.yml` is inert; electron-builder does not build the shipped
