@@ -218,9 +218,9 @@ test('a verify licence is not satisfied by consent alone', async () => {
     recordLicenceAcceptance(VERIFIED, { verified: true });
     assert.strictEqual(hasAcceptedLicence(VERIFIED), true, 'a proven acceptance must stick');
 
-    // And the token is not in there. It is used for one request and dropped; a receipt
-    // that carried it would put a live credential in localStorage and into any portable
-    // build copied to another machine.
+    // And the token is not in there. It is saved in its own encrypted slot (MPI-1215); a
+    // receipt that carried it would put a live credential in localStorage and into any
+    // portable build copied to another machine.
     const receipt = JSON.parse(store.get([...store.keys()][0]))[getModelLicence(VERIFIED).id];
     assert.deepStrictEqual(Object.keys(receipt).sort(), ['acceptedVia', 'at', 'verified', 'version']);
 });

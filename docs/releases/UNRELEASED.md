@@ -57,6 +57,8 @@
 
 ## Fixes
 
+- **A gated model asks for your Hugging Face token only once.** FLUX.3 Klein and Klein 9B each asked for a token and then forgot it; the first token that checks out is now saved, encrypted, like your API keys, and the next licence verifies with it. Settings > External Connections can clear it. (MPI-1215)
+
 - **Cosmo can ask FLUX.3, Krea 2 and LTX for their real resolutions (1K, 2K, 4K), and an edit it runs keeps the picture's own frame unless a size is asked for.** (MPI-1208)
 
 - **The Windows app is now signed.** Every program in the Windows download carries a Mad Pony Interactive signature, so Smart App Control should no longer block Cubric Studio from opening. SmartScreen may still ask once while the new signature earns its reputation. (MPI-616)

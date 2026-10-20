@@ -2,8 +2,8 @@
  * main/secretsStore.js — main-process secret storage.
  *
  * Stores the user's RunPod API key, the per-Pod Cubric wrapper token, and the
- * DeepInfra API key that pays for the cloud prompt enhancer (MPI-677 step 1a),
- * encrypted, under <APP_USER_DATA>/runpod-secrets.json. The FILE NAME is
+ * DeepInfra API key that pays for the cloud prompt enhancer (MPI-677 step 1a), and
+ * the Hugging Face token the licence gate proves a grant with (MPI-1215), encrypted, under <APP_USER_DATA>/runpod-secrets.json. The FILE NAME is
  * historical and deliberately unchanged — renaming it orphans every key already on
  * disk for the sake of a tidier path. Runs in the MAIN Electron process only
  * (safeStorage is main-only). The renderer never reads a raw secret back — it can set,
@@ -189,6 +189,41 @@ function clearDeepInfraKey() {
   return { ok: true };
 }
 
+// --- Hugging Face token slot (MPI-1215) --------------------------------------
+// The read token a `verify` licence gate proves the user's grant with (MPI-357).
+// Until 2026-10-21 it was used for one probe and dropped; every gated licence then
+// asked again, and a user who does not keep tokens had to mint a new one each time.
+// Kept now, like the other keys. It only ever authenticates a HEAD probe — the
+// weights themselves come from our own mirror. No renderer get channel.
+
+function setHfToken(plainToken) {
+  if (!plainToken || typeof plainToken !== 'string') {
+    return { ok: false, reason: 'empty' };
+  }
+  const weak = !_encryptionAvailable();
+  const data = _read();
+  data.hfToken = _encrypt(plainToken);
+  _write(data);
+  _log('info', 'Hugging Face token stored');
+  return { ok: true, weakEncryption: weak };
+}
+
+function hasHfToken() {
+  return !!(_read().hfToken);
+}
+
+function getHfToken() {
+  return _decrypt(_read().hfToken);
+}
+
+function clearHfToken() {
+  const data = _read();
+  delete data.hfToken;
+  _write(data);
+  _log('info', 'Hugging Face token cleared');
+  return { ok: true };
+}
+
 // --- Endpoint profiles: the shared LLM connection (MPI-774, used by every job) --
 // A profile is a CONNECTION only: { id, name, baseURL } plus its key. Which model
 // runs is each job's own pick, never the profile's. Five presets (deepinfra,
@@ -350,6 +385,15 @@ function init({ app, safeStorage, ipcMain, logger }) {
     ipcMain.handle('secrets:has-api-key', () => ({ has: hasApiKey() }));
     ipcMain.handle('secrets:clear-api-key', () => clearApiKey());
     ipcMain.handle('secrets:encryption-status', () => encryptionStatus());
+    // HF token (MPI-1215): set/has/clear only, no get. The licence gate's token is
+    // saved by /licences/verify over the fork bridge once its probe passes.
+    ipcMain.handle('secrets:set-hf-token', (_e, { token } = {}) => {
+      try { return setHfToken(token); } catch { return { ok: false, reason: 'error' }; }
+    });
+    ipcMain.handle('secrets:has-hf-token', () => ({ has: hasHfToken() }));
+    ipcMain.handle('secrets:clear-hf-token', () => {
+      try { return clearHfToken(); } catch { return { ok: false }; }
+    });
     // Wrapper token is write-only from the renderer (keyed to a podId). There is
     // deliberately no renderer get channel — the forked server resolves it via
     // the fork bridge. Used by Phase 4 in-app Pod-create and the manual store path.
@@ -404,6 +448,14 @@ function registerForkBridge(serverProcess) {
     } else if (msg.type === 'secrets:clear-wrapper-token-request') {
       try { clearWrapperToken(); } catch { /* noop */ }
       serverProcess.send({ type: 'secrets:clear-wrapper-token-response', id: msg.id, ok: true });
+    } else if (msg.type === 'secrets:get-hf-token-request') {
+      let value = null;
+      try { value = getHfToken(); } catch { value = null; }
+      serverProcess.send({ type: 'secrets:get-hf-token-response', id: msg.id, value });
+    } else if (msg.type === 'secrets:set-hf-token-request') {
+      let ok = false;
+      try { ok = setHfToken(msg.token).ok; } catch { ok = false; }
+      serverProcess.send({ type: 'secrets:set-hf-token-response', id: msg.id, ok });
     } else if (msg.type === 'secrets:get-endpoint-profile-request') {
       // Returns the profile and its decrypted key together. Key is null when its
       // bound URL differs from the profile's current baseURL (the user edited the
@@ -444,6 +496,10 @@ module.exports = {
   hasDeepInfraKey,
   getDeepInfraKey,
   clearDeepInfraKey,
+  setHfToken,
+  hasHfToken,
+  getHfToken,
+  clearHfToken,
   setWrapperToken,
   getWrapperToken,
   clearWrapperToken,

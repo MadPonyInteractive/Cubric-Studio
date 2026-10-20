@@ -8,6 +8,7 @@ import { qs, ce, on } from '../../../utils/dom.js';
 import { renderIcon } from '../../../utils/icons.js';
 import { openExternal } from '../../../utils/openExternal.js';
 import { clientLogger } from '../../../services/clientLogger.js';
+import { secretsClient } from '../../../core/secretsClient.js';
 
 /**
  * MpiLicenceGate — Model Licence Acceptance Dialog (Compound, MPI-451)
@@ -29,8 +30,9 @@ import { clientLogger } from '../../../services/clientLogger.js';
  * evidence rather than consent (MPI-357). Those licences are granted by the licensor to
  * a person, through an access request on the licensor's own model page — so the dialog
  * also asks for an access token and PROVES the grant against Hugging Face before it
- * resolves. Accept then means "checked, and it passed", not "ticked a box". The token is
- * used for that one request and never stored; see `routes/licences.js`.
+ * resolves. Accept then means "checked, and it passed", not "ticked a box". A token that
+ * passes is saved encrypted (MPI-1215), so the next gated licence verifies without
+ * asking; see `routes/licences.js`.
  *
  * The scroll gate covers the RESTRICTIONS PANE only, not the whole agreement. The
  * pane is the text the licence actually obliges us to put in front of the user, and
@@ -161,15 +163,14 @@ export const MpiLicenceGate = ComponentFactory.create({
         let token = '';
         let tokenInput = null;
         let verifyMsg = null;
+        let verifyText = null;
+        // A token saved by an earlier pass (MPI-1215). While true the field is hidden and
+        // Verify probes with the saved one; a failure on it brings the field back.
+        let hasSaved = false;
 
         if (verify) {
-            verifySlot.append(ce('div', {
-                className: 'mpi-licence-gate__verify-text',
-                textContent: `${licence.modelName} is released behind an access request. Request it on `
-                           + 'the model page under your own Hugging Face account, then paste a read '
-                           + 'token here so we can confirm it was granted. The token is used once and '
-                           + 'never stored.',
-            }));
+            verifyText = ce('div', { className: 'mpi-licence-gate__verify-text' });
+            verifySlot.append(verifyText);
 
             const verifyLinks = ce('div', { className: 'mpi-licence-gate__verify-links' });
             verifyLinks.append(_link('Request access on Hugging Face', licenceAccessUrl(licence)));
@@ -186,6 +187,13 @@ export const MpiLicenceGate = ComponentFactory.create({
 
             verifyMsg = ce('div', { className: 'mpi-licence-gate__verify-msg' });
             verifySlot.append(verifyMsg);
+            _showTokenField(true);
+
+            secretsClient.hasHfToken().then((has) => {
+                hasSaved = has;
+                _showTokenField(!has);
+                _refresh();
+            });
         } else {
             verifySlot.style.display = 'none';
         }
@@ -225,7 +233,11 @@ export const MpiLicenceGate = ComponentFactory.create({
             // A failed probe must leave the dialog OPEN. Resolving false here would read
             // to the caller as "declined", and the user would be back on a tile with no
             // idea which of the two fixable things went wrong.
-            _setMsg(_failureText(result), true);
+            // The saved token failed: show the field so a pasted one can replace it (the
+            // route saves a typed token once it passes). It stays optional until then.
+            if (result.usedSaved) _showTokenField(true);
+            _setMsg(_failureText(result) + (result.usedSaved
+                ? ' You can paste a different token above; it replaces the saved one.' : ''), true);
             _refresh();
         });
         actionsSlot.appendChild(acceptBtn.el);
@@ -249,7 +261,7 @@ export const MpiLicenceGate = ComponentFactory.create({
             && scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 4;
         const _allTicked = () => readToEnd
             && checkboxes.every(cb => cb.el.isChecked())
-            && (!verify || token.length > 0);
+            && (!verify || token.length > 0 || hasSaved);
 
         function _refresh() {
             if (!readToEnd && _atEnd()) {
@@ -275,6 +287,17 @@ export const MpiLicenceGate = ComponentFactory.create({
             return a;
         }
 
+        function _showTokenField(show) {
+            if (!tokenInput) return;
+            tokenInput.el.style.display = show ? '' : 'none';
+            verifyText.textContent = `${licence.modelName} is released behind an access request. Request it on `
+                + 'the model page under your own Hugging Face account, then '
+                + (hasSaved && !show
+                    ? 'press Verify: your saved Hugging Face token confirms it was granted.'
+                    : 'paste a read token here so we can confirm it was granted. A token that passes is '
+                    + 'saved, encrypted, on this computer, so you are asked for it only once.');
+        }
+
         function _setMsg(text, isError) {
             if (!verifyMsg) return;
             verifyMsg.textContent = text;
@@ -290,7 +313,8 @@ export const MpiLicenceGate = ComponentFactory.create({
                 const res = await fetch('/licences/verify', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ repoId: verify.repoId, probePath: verify.probePath, token }),
+                    // An empty token = "use the saved one" (the route reads it over the fork bridge).
+                    body: JSON.stringify({ repoId: verify.repoId, probePath: verify.probePath, token: token || undefined }),
                 });
                 return await res.json();
             } catch (err) {
@@ -314,7 +338,9 @@ export const MpiLicenceGate = ComponentFactory.create({
                          + 'Most are granted the moment you accept, but some licensors review '
                          + 'requests by hand — if yours does, come back once it is approved.';
                 case 'bad-token':
-                    return 'That token was rejected. Check you pasted a current token with read access.';
+                    return result.usedSaved
+                        ? 'Your saved token was rejected. It may have expired or been deleted.'
+                        : 'That token was rejected. Check you pasted a current token with read access.';
                 case 'offline':
                     return 'Could not reach Hugging Face. Check your connection and try again.';
                 default:

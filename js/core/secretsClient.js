@@ -109,6 +109,50 @@ export const secretsClient = {
         }
     },
 
+    // ── Hugging Face token (MPI-1215) ────────────────────────────────────────
+    // The licence gate's proof-of-grant token. Same write-only contract: no get.
+    // `/licences/verify` saves it once a probe passes and reads it over the fork bridge.
+
+    /**
+     * @param {string} token
+     * @returns {Promise<{ok: boolean, weakEncryption?: boolean, error?: string}>}
+     */
+    async setHfToken(token) {
+        const ipc = _ipc();
+        if (!ipc) return { ok: false, error: 'ipc_unavailable' };
+        try {
+            return await ipc.invoke('secrets:set-hf-token', { token });
+        } catch (err) {
+            clientLogger.error('settings', '[secretsClient] set-hf-token failed', err);
+            return { ok: false, error: 'ipc_error' };
+        }
+    },
+
+    /** @returns {Promise<boolean>} True when a Hugging Face token is stored. */
+    async hasHfToken() {
+        const ipc = _ipc();
+        if (!ipc) return false;
+        try {
+            const res = await ipc.invoke('secrets:has-hf-token');
+            return !!res?.has;
+        } catch (err) {
+            clientLogger.error('settings', '[secretsClient] has-hf-token failed', err);
+            return false;
+        }
+    },
+
+    /** @returns {Promise<{ok: boolean}>} */
+    async clearHfToken() {
+        const ipc = _ipc();
+        if (!ipc) return { ok: false };
+        try {
+            return await ipc.invoke('secrets:clear-hf-token');
+        } catch (err) {
+            clientLogger.error('settings', '[secretsClient] clear-hf-token failed', err);
+            return { ok: false };
+        }
+    },
+
     // ── Endpoint profiles: the shared LLM connection (MPI-774) ───────────────
     // Keys follow the same write-only contract: set / has / clear, no get.
     // The forked server reads the key over the fork bridge. The deepinfra preset

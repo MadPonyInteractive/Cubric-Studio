@@ -194,7 +194,11 @@ The state is derived, never stored: it disappears the moment the receipt carries
 `verified: true`. `hasAcceptedLicence` requires that flag for a `verify` licence, so
 consent alone — including any receipt written before the proof step existed — re-prompts
 rather than silently unlocking. The probe itself is `POST /licences/verify`
-(`routes/licences.js`); the token is used once and never stored.
+(`routes/licences.js`). A token that passes is saved, encrypted, in `main/secretsStore.js`
+(MPI-1215, the `hfToken` slot beside the DeepInfra and RunPod keys); the next gated licence
+then shows no token field and Verify probes with the saved one. A failure on the saved
+token (`usedSaved: true`) brings the field back, and a pasted token that passes replaces
+it. Settings > External Connections clears it.
 
 **A repo that stops being gated fails OPEN, deliberately.** If Black Forest Labs ungate
 the weights, the probe returns 2xx/3xx for any token and the install proceeds — there is

@@ -661,9 +661,10 @@ export function hasAcceptedLicence(modelId) {
  * receipt is filed under the licence, so it covers every model that agreement governs.
  *
  * THE TOKEN IS NEVER PART OF THIS. A `verify` licence writes `verified: true` and the
- * timestamp it happened, and nothing else: the HF token is used for one HEAD request and
- * dropped. No safeStorage, no IPC, no credential at rest, nothing to leak into a log or a
- * portable build. On a later 403 at download time the gate simply asks again.
+ * timestamp it happened, and nothing else: a receipt is localStorage, readable by any
+ * renderer code and carried by a portable build. The HF token lives in its own encrypted
+ * slot instead (`main/secretsStore.js`, MPI-1215), saved by `/licences/verify` once a
+ * probe passes, so the next gated licence verifies without asking for it again.
  *
  * @param {string} modelId
  * @param {{at?: string, verified?: boolean}} [opts]

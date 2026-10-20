@@ -15,6 +15,7 @@ import { loadAll as loadAssets } from '../../../../services/assetService.js';
 import { reSyncInstalledModels } from '../../../../data/modelRegistry.js';
 import { getPendingUpdate, runUpdate } from '../../../../services/updateChecker.js';
 import { localEngine } from '../../../../services/comfyController.js';
+import { secretsClient } from '../../../../core/secretsClient.js';
 import { ce, qs } from '../../../../utils/dom.js';
 import { applySink, setOutputDevice } from '../../../../utils/audioOutput.js';
 import { openMic } from '../../../../utils/audioInput.js';
@@ -261,6 +262,13 @@ export const MpiSettings = ComponentFactory.create({
                             <span class="mpi-settings__plate-desc">The engine reads its folder list once, at startup. Adding or removing a folder above needs a restart before those models can be used — dropping a file into a folder it already knows does not. If something is generating, the restart waits until it finishes or you cancel it.</span>
                         </div>
                         <div class="mpi-settings__plate-ctrl" id="mpiSettingsRestartEngineSlot"></div>
+                    </div>
+                    <div class="mpi-settings__plate">
+                        <div class="mpi-settings__plate-main">
+                            <span class="mpi-settings__plate-label">Hugging Face token</span>
+                            <span class="mpi-settings__plate-desc" id="mpiSettingsHfTokenStatus"></span>
+                        </div>
+                        <div class="mpi-settings__plate-ctrl" id="mpiSettingsHfTokenClearSlot"></div>
                     </div>
                 </section>
 
@@ -934,6 +942,8 @@ export const MpiSettings = ComponentFactory.create({
             _syncReuseSource?.(value);
         }));
 
+        _renderHfToken(el);
+
         el.destroy = () => {
             _unsubs.forEach(fn => fn?.());
             _clearExtraFolderControls();
@@ -1041,6 +1051,28 @@ export const MpiSettings = ComponentFactory.create({
             _renderDropZones(root, 'loras', '#mpiSettingsLoraDropSlot');
             _renderDropZones(root, 'upscale_models', '#mpiSettingsUpscaleDropSlot');
             _renderRestartEngine(root);
+        }
+
+        /**
+         * The Hugging Face token a gated licence proved its grant with (MPI-1215). Saved by
+         * the licence gate once its probe passes, never typed here; this only says whether
+         * one is kept and lets the user drop it. The next gated licence then asks again.
+         */
+        async function _renderHfToken(root) {
+            const slot = qs('#mpiSettingsHfTokenClearSlot', root);
+            const status = qs('#mpiSettingsHfTokenStatus', root);
+            if (!slot || !status) return;
+            slot.innerHTML = '';
+            const saved = await secretsClient.hasHfToken();
+            status.textContent = saved
+                ? 'Saved, encrypted, on this computer. Gated model licences verify with it instead of asking.'
+                : 'None saved. A gated model licence asks for one and keeps it once it is verified.';
+            if (!saved) return;
+            const btn = MpiButton.mount(slot, { text: 'Clear', variant: 'secondary', size: 'sm' });
+            btn.on('click', async () => {
+                await secretsClient.clearHfToken();
+                _renderHfToken(root);
+            });
         }
 
         /**

@@ -348,7 +348,8 @@ case; Flux is the next known consumer.
   the dialog ask for a Hugging Face token and prove it through `POST /licences/verify`
   (`routes/licences.js`) before it resolves `true`. The receipt then also carries
   `verified: true`, and `hasAcceptedLicence` DEMANDS it for such a licence — consent
-  alone re-prompts. The token is used for one HEAD request and never stored. `probePath`
+  alone re-prompts. The token is never in the receipt: one that passes is saved encrypted
+  in `main/secretsStore.js` (MPI-1215), so later gated licences verify without asking. `probePath`
   must name a file the gate actually covers: `LICENSE.md` and `README.md` are served
   publicly by design and would pass every user. Install state → `docs/model-library.md`
   § "Licence required".
