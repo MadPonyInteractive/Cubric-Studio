@@ -4,14 +4,15 @@ Release this week (Fabio, 2026-10-20). Current shipped version 2.1.1.
 
 ## Signing (from MPI-616)
 
-The signing code is already on master (`6d64c2d2d`, `build-portable.mjs --sign`, inert
-without the flag). The mpi-ci workflow that passes `--sign` sits on mpi-ci branch
-`mpi-616-signing` (`18fc3ce`) until a test dispatch proves it.
+Signing is LIVE: every portable dispatch from mpi-ci `main` (`4796a48`) passes
+`--sign`, and the build fails if any .exe/.dll/.node is not Valid. Proven 2026-10-20
+on run 39442831579 (24/24 Valid, MPI-616 validation.md).
 
-- [ ] MPI-616's test dispatch green, and its Windows artifact's census all `Valid`
-      (see MPI-616 validation.md). If it is not green, ship 2.1.2 unsigned and keep
-      the unsigned warning - signing must never hold the release.
-- [ ] Merge mpi-ci `mpi-616-signing` into `main` BEFORE the 2.1.2 release build
+- [x] MPI-616's test dispatch green, Windows census 24/24 `Valid`
+- [x] mpi-ci signing workflow merged to `main`
+- [ ] If the release build fails at signing: read the log for `AADSTS` (an Azure
+      login error hides behind signtool's bare "unexpected internal error"); the
+      client secret expires ~2028-10-19 (calendar reminder 2028-09-19)
 - [ ] After the release build: download the Windows zip and re-run the census
       (`Get-AuthenticodeSignature` over every .exe/.dll/.node -> all Valid)
 - [ ] Drop the unsigned / Smart App Control warning from the 2.1.2 release notes

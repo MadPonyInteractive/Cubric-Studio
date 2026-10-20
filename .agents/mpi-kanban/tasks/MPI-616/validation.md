@@ -100,3 +100,35 @@ wording landed independently of the signing spend.
   opened directly. Real, and now understood as one binary winning the ISG branch.
 - 2026-08-24: sibling app MPI Shop Assistant, unsigned, SAC enforced, hard-blocked
   (CodeIntegrity 3033/3077/3118). Real, and the same branch losing.
+
+## 2026-10-20 — signing wired and proven on CI
+
+- `tests/build-portable-sign.test.cjs` 4/4, green on master CI run 39434430684
+  (`12753a974`). It broke master once first: under a PowerShell 7 parent (the
+  runner's default shell) Windows PowerShell inherits 7's `PSModulePath`, cannot
+  load `Get-AuthenticodeSignature`, prints nothing and exits 0. Reproduced locally
+  from `pwsh`, fixed by dropping `PSModulePath` from the child env +
+  `ErrorActionPreference=Stop`. (`c29fd922a`'s "stdout wrap" theory was wrong.)
+- First full signed dispatch (run 39432707649) failed inside signtool with only
+  "An unexpected internal error has occurred". A 2-minute smoke with `/v /debug`
+  showed the cause: `AADSTS7000215 Invalid client secret` - the GitHub secret held
+  the Secret ID, not the Value. Fixed by Fabio 2026-10-20. Lesson: always smoke a
+  new secret with `/v /debug`; the plain error hides the auth failure.
+- Smoke run 39433751542 attempt 4: signtool 10.0.28000 (NuGet) and the runner's
+  SDK signtool both sign; result `Valid`, signer `CN=Mad Pony Interactive,
+  O=Mad Pony Interactive, L=Great Yarmouth, S=Norfolk, C=GB`.
+- The signing list is wider than the 2026-08-24 census (which covered the Electron
+  root only): it also takes sharp's libvips DLLs + `.node`, `7za.exe`, `rcedit`,
+  ffmpeg/ffprobe-static, `windows-trash.exe`, `dxcompiler.dll`, `vulkan-1.dll`
+  - every PE in the staged tree that is not already Valid (~22 files).
+- **Full signed build, run 39442831579 (`12753a974`), all 3 platforms green.**
+  Build log: "Signed 21 binaries; all 24 in the staged tree read Valid." Independent
+  census on the downloaded `CubricStudio-windows-x64-v2.1.1.zip`, every
+  .exe/.dll/.node: **24/24 Valid** - 21 `CN=Mad Pony Interactive`, 2 Microsoft
+  (d3dcompiler_47, dxil), 1 `uv/uv.exe` already signed by its publisher (OpenAI
+  OpCo). Update zip: 23/23 Valid (no uv). Zero NotSigned.
+- mpi-ci workflow fast-forwarded to `main` (`4796a48`); every portable dispatch now
+  signs. Branch and smoke workflow deleted.
+- SAC eyes-on dropped (no SAC box; Valid is the criterion SAC reads). Dropping the
+  unsigned warning from release notes moves to MPI-1210 (2.1.2, the first signed
+  release).

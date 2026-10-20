@@ -101,13 +101,15 @@ reasoning survives.
       Merge to mpi-ci `main` only after a green signed dispatch.
 - [x] RBAC trap: assign **Artifact Signing Certificate Profile Signer** to the
       **app registration**, not to the user account (done, see above)
-- [ ] Re-run the census on a signed build — every app binary must read `Valid`
+- [x] Re-run the census on a signed build — every app binary must read `Valid`
+      (2026-10-20, run 39442831579: 24/24 Valid, 21 ours; see validation.md)
 - [ ] ~~Confirm on an SAC-enforced box~~ — **dropped 2026-10-20**: neither Fabio nor
       the tester has an SAC box, and SAC's rule is "publicly trusted signed code
       runs", which the Valid census checks directly. Fallback if a user still
       reports a block: their CodeIntegrity log (3033/3076/3077/3118). A fresh
       Windows 11 VM can enable SAC if eyes-on is ever wanted.
-- [ ] Only then drop the unsigned warning from the release notes
+- [x] ~~Only then drop the unsigned warning from the release notes~~ — moved to
+      MPI-1210 (2.1.2 release readiness): it belongs to the first signed release
 
 ## Explicitly rejected
 

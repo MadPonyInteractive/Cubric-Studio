@@ -31,6 +31,16 @@ Triggers:
   a Cubric-Vision secret named `MPI_CI_WORKFLOW_TOKEN` that can dispatch
   workflows in `MadPonyInteractive/mpi-ci`.
 
+**Windows builds are Authenticode-signed (MPI-616, 2026-10-20).** The Windows job
+passes `--sign`: after the exe rebrand and before the manifest hashes, every
+`.exe/.dll/.node` in the staged tree that is not already `Valid` is signed with Azure
+Artifact Signing (account `madponysigning`, North Europe, profile
+`MadPonyPublicTrust`), then re-read; any binary not `Valid` fails the build. Auth is
+the app registration `cubric-ci-signing` via the `AZURE_TENANT_ID/CLIENT_ID/CLIENT_SECRET`
+secrets in `mpi-ci`; the secret expires ~2028-10-19. A bare signtool "unexpected
+internal error" is usually an Azure login failure - rerun with `/v /debug` and look
+for `AADSTS`. Local builds without `--sign` stay unsigned.
+
 Each job calls `scripts/build-portable.mjs` with an explicit `--stage-dir`
 under `${{ runner.temp }}` and uploads the full artifact plus update bundle as a
 private GitHub Actions artifact named `cubric-vision-<platform>-<arch>`
