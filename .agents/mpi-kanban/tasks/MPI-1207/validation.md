@@ -215,6 +215,9 @@ following the source with no button.
 
 ## Cloud wiring (2026-10-20)
 
+**Superseded in part by the in-app runs below:** Seedream 5 Pro stretched and was taken back off
+(208356acd). Final set: Seedream 4, 4.5, FLUX-2 Dev, Klein 9B cloud (4 models); the test's no-button set is 6.
+
 `customSizeOps: ['edit']` (and `imageSizedOps` edit dropped) on seedream-4-cloud, seedream-45-cloud,
 seedream-5-pro-cloud, flux2-dev-cloud, klein-9b-cloud. No other code: the prompt box parks ratio + tier while
 the button is off (no Width/Height sent, so deepinfraSizing keeps sending the source shape) and the agent path
