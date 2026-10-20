@@ -212,3 +212,12 @@ in the real app per wired family is the verify.
 **Decision (Fabio, 2026-10-20):** a model that fails does not get the option. Wire Seedream 4 / 4.5 / 5 Pro,
 FLUX-2 dev and Klein 9B cloud; FLUX-2 pro/max (crop loses the subject) and the Nano Banana family (stretch) keep
 following the source with no button.
+
+## Cloud wiring (2026-10-20)
+
+`customSizeOps: ['edit']` (and `imageSizedOps` edit dropped) on seedream-4-cloud, seedream-45-cloud,
+seedream-5-pro-cloud, flux2-dev-cloud, klein-9b-cloud. No other code: the prompt box parks ratio + tier while
+the button is off (no Width/Height sent, so deepinfraSizing keeps sending the source shape) and the agent path
+(generationControls) gates the same way. `tests/flux3-custom-size.test.cjs` asserts the five show the button
+and size on a ratio, and that flux2-pro/max + the three Nano Bananas show none and send no Width. Full unit
+suite: 3446 pass, 0 fail. Left: one paid in-app run on Seedream 4.5, 5 Pro, FLUX-2 dev (~$0.11, asked).

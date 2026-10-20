@@ -2355,6 +2355,9 @@ const ALL_MODELS = [
             '4k': _cloudRatios(SEEDREAM_ASPECTS, 4096, { min: 1280, max: 4096, step: 64 }),
         },
         supportedOps: ['t2i', 'edit'],
+        // Custom size on edit (MPI-1207): a 16:9 run from a portrait filled the new frame,
+        // outpainted, subject intact (cloud probe 2026-10-20). Covers 4.5 and 5 Pro too.
+        customSizeOps: ['edit'],
         capabilities: { negativePrompt: false, batch: false },
         description: 'ByteDance Seedream 4, running at DeepInfra on your own key — no GPU, no download. Strong at photographic scenes and readable text in the image, at 2K or 4K. About $0.04 an image, billed to you by DeepInfra.',
         workflows: {},
@@ -2371,6 +2374,7 @@ const ALL_MODELS = [
         mediaType: 'image',
         type: 'seedream4',
         supportedOps: ['t2i', 'edit'],
+        customSizeOps: ['edit'],   // as Seedream 4 (MPI-1207)
         capabilities: { negativePrompt: false, batch: false },
         description: 'Seedream 4.5 — the same shape as Seedream 4 with a newer checkpoint behind it: better prompt following and cleaner faces, at the same $0.04 an image. Runs at DeepInfra on your own key.',
         workflows: {},
@@ -2398,7 +2402,7 @@ const ALL_MODELS = [
             '2k': _cloudRatios(SEEDREAM_ASPECTS, 2048, { min: 1280, max: 4096, step: 64 }),
         },
         supportedOps: ['t2i', 'edit'],
-        imageSizedOps: ['edit'],
+        customSizeOps: ['edit'],   // as Seedream 4 (MPI-1207)
         capabilities: { negativePrompt: false, batch: false, multiReference: true },
         description: 'Seedream 5.0 Pro, the top of the Seedream line, on your own DeepInfra key. About $0.05 an image up to 1.5K and about $0.10 above it — the tier selector is what moves you between the two.',
         workflows: {},
@@ -2423,7 +2427,9 @@ const ALL_MODELS = [
             landscape: _cloudRatios(IMG_LANDSCAPE, 1024, { min: 128, max: 1920 }),
         },
         supportedOps: ['t2i', 'edit'],
-        imageSizedOps: ['edit'],
+        // Custom size on edit (MPI-1207): Klein 9B cloud's probe filled a 16:9 frame from a
+        // portrait (2026-10-20); same endpoint family. NOT pro/max: they centre-crop.
+        customSizeOps: ['edit'],
         enhanceRecipe: 'flux-2',
         capabilities: { negativePrompt: false, batch: false, multiReference: true },
         description: 'FLUX 2 Dev in the cloud on your own DeepInfra key. The open FLUX 2 weights without the download: about $0.02 an image at this size. Price rises with pixels on this one, so a larger ratio costs more.',
@@ -2447,7 +2453,7 @@ const ALL_MODELS = [
         mediaType: 'image',
         type: 'flux2',
         supportedOps: ['t2i', 'edit'],
-        imageSizedOps: ['edit'],
+        customSizeOps: ['edit'],   // probed: fills a new frame cleanly (MPI-1207)
         // Klein's own recipe, as on the local card: every Flow prompt was tuned on it.
         enhanceRecipe: 'flux',
         capabilities: { negativePrompt: false, batch: false, multiReference: true },
