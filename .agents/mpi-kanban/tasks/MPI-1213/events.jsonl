@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1213", "at": "2026-10-20T23:00:43+01:00", "actor": "claude", "column": "todo", "title": "Ultimate SD Upscale: the app installs its submodule, the node never fetches at import"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1213", "at": "2026-10-20T23:01:21+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "starting work"}

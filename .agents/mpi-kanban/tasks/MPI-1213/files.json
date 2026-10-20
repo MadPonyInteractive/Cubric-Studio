@@ -1,0 +1,13 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "dev_configs/node_lock.json",
+    "js/data/modelConstants/nodesDeps.js",
+    "routes/shared.js",
+    "tests/node-submodules.test.cjs",
+    "routes/downloadManager.js",
+    "scripts/install-flow-devkit.mjs",
+    "docs/download-manager.md",
+    "docs/releases/UNRELEASED.md"
+  ]
+}

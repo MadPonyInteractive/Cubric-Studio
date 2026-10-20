@@ -72,7 +72,7 @@ const { serveChannel } = require('./eventStream');
 const { checkOnline } = require('./netCheck');
 // runCustomCommand dropped here with the per-node requirements step (MPI-413); it is
 // still exported from shared.js and used by the remote path's Pod wrapper contract.
-const { resolveComfyPath, getCustomRoot, cleanEmptyDirs, getUniversalWorkflowDepIds, getDefaultModelsRoot, processState, writeNodeCommitMarker } = require('./shared');
+const { resolveComfyPath, getCustomRoot, cleanEmptyDirs, getUniversalWorkflowDepIds, getDefaultModelsRoot, processState, writeNodeCommitMarker, emptyNodeSubmodules, streamDownload } = require('./shared');
 const { getComfyPath, getEngineRoot } = require('./platformEngine');
 // MPI-410: the indeterminate/sweep rule lives here — one contract, node-tested.
 const { isNodeTickPending } = require('./install/computeProgress');
@@ -124,6 +124,34 @@ async function _extractZipArchive(zipPath, extractDir) {
 // `targetPath` weight that lands under it? MPI-387 F1 moved the predicate to
 // downloadCompletion.js — the same test decides install state in three other places.
 const _nodeFolderHasFiles = isNodeInstalledOnDisk;
+
+// MPI-1213: fill a node's empty git-submodule folders from node_lock (`getNodeSubmodules`,
+// routes/shared.js) — pinned commit, sha256-checked, with Node — so the pack never fetches
+// them itself at import. Staged beside the destination and moved in whole, so a failed
+// run leaves the folder empty (drift → retried next boot), never half-filled.
+// `download` is a test seam only.
+async function _installNodeSubmodules(nodeFolder, depId, download = streamDownload) {
+    for (const sub of await emptyNodeSubmodules(nodeFolder, depId)) {
+        const dest = path.join(nodeFolder, sub.relPath);
+        const stage = `${dest}.mpi-staging`;
+        await fs.remove(stage);
+        await fs.ensureDir(stage);
+        try {
+            const zipPath = path.join(stage, 'submodule.zip');
+            await download(sub.url, zipPath);
+            await _verifySha256(zipPath, sub.sha256);
+            await _extractZipArchive(zipPath, stage);
+            await fs.remove(zipPath);
+            const [top] = await fs.readdir(stage); // a GitHub archive has ONE top-level folder
+            if (!top) throw new Error('archive held no folder');
+            await fs.remove(dest);
+            await fs.move(path.join(stage, top), dest);
+            logger.info('download', `submodule ${sub.relPath} of ${depId} installed at ${sub.commit.slice(0, 8)}`);
+        } finally {
+            await fs.remove(stage).catch(() => {});
+        }
+    }
+}
 
 // MPI-387: build the end-of-batch failure message from the two failure kinds a
 // node install can hit. Extraction and pip are different problems with different
@@ -3208,6 +3236,16 @@ async function _runCustomNodeInstall(modelJob, onNode = null) {
         // requirements.txt on the user's machine. The Pod converged on the same set, so
         // the remote passthrough is gone too.
 
+        // MPI-1213: a GitHub archive ships submodule folders empty — fill them before the
+        // marker, so a node whose submodule failed carries no marker and retries.
+        try {
+            await _installNodeSubmodules(targetDir, dep.id);
+        } catch (err) {
+            logger.error('download', `submodule install FAILED for ${dep.id}: ${err.message}`);
+            extractFailures.push(`${dep.id} (submodule: ${err.message})`);
+            continue;
+        }
+
         // Stamp the pinned-commit marker LAST, so it only lands on a fully-extracted
         // node. A missing/mismatched marker = drift → targeted reinstall on next boot
         // (MPI-222). No-op for unpinned nodes. Its pip deps are covered by the curated
@@ -3897,6 +3935,7 @@ module.exports = {
     _isInsidePath, // MPI-682 — exported for unit test (the rail's other half)
     _filterDepsForEngine, // MPI-276 — exported for unit test
     _describeNodeInstallFailures, // MPI-387 — exported for unit test
+    _installNodeSubmodules, // MPI-1213 — exported for unit test
     _describeTransportError, // MPI-427 — exported for unit test
     _mirrorUrlsFor, // MPI-427 — exported for unit test
     _isSameObjectUrl, // MPI-427 — exported for unit test

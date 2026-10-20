@@ -261,6 +261,12 @@ async function installPack(customNodes, id, entry, scratch) {
     await fs.rm(target, { recursive: true, force: true });
     await fs.rename(path.join(stage, top.name), target);
 
+    // MPI-1213: a GitHub archive ships submodule folders empty, and USDU then fetches its
+    // own unpinned at import. Fill each at the lock's pin, the same way the app does.
+    for (const [rel, sub] of Object.entries(entry.submodules || {})) {
+        await installPack(target, `${id}-submodule`, { ...sub, filename: rel }, scratch);
+    }
+
     // Stamped LAST, so it only ever lands on a fully extracted pack (MPI-222).
     await fs.writeFile(path.join(target, NODE_COMMIT_MARKER), `${entry.commit}\n`);
     await fs.rm(stage, { recursive: true, force: true });

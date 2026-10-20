@@ -66,7 +66,14 @@
       "repo": "ssitu/ComfyUI_UltimateSDUpscale",
       "commit": "bebd5696fddd61cb0d08949a222c508898ab5577",
       "filename": "comfyui_ultimatesdupscale",
-      "installRequirements": false
+      "installRequirements": false,
+      "submodules": {
+        "repositories/ultimate_sd_upscale": {
+          "repo": "Coyote-A/ultimate-upscale-for-automatic1111",
+          "commit": "2322caa480535b1011a1f9c18126d85ea444f146",
+          "sha256": "0797d41bad17b4bd9c41fae0ff4ea110cc364c1d2a06e13b27ca78fd0d4c57d7"
+        }
+      }
     },
     "ComfyUI-Frame-Interpolation": {
       "source": "git-commit",

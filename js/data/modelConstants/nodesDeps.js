@@ -106,6 +106,11 @@ export const nodesDeps = {
         installRequirements: true,
         size: '120KB',
     },
+    // Carries a git SUBMODULE (repositories/ultimate_sd_upscale) that the GitHub archive
+    // leaves empty. node_lock `submodules` pins it and the installer fills it (MPI-1213);
+    // left empty, the pack's __init__.py fetches Coyote-A master with Python at import.
+    // A bump of this node's commit must re-read the submodule commit its tree records
+    // and re-pin `submodules` (commit + archive sha256) with it.
     'ComfyUI-UltimateSDUpscale': {
         id: 'ComfyUI-UltimateSDUpscale',
         name: 'ComfyUI Ultimate SD Upscale',

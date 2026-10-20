@@ -1095,6 +1095,38 @@ function getPinnedNodeCommit(depId) {
 }
 
 /**
+ * MPI-1213: the git SUBMODULES a locked node needs, each pinned to the commit the node's
+ * own tree records, with the sha256 of that commit's GitHub archive. A GitHub archive zip
+ * leaves every submodule folder EMPTY, and comfyui_ultimatesdupscale's __init__.py then
+ * fills its own with Python urllib from the submodule's unpinned master, unhashed. On a
+ * fresh Windows PC Python's SSL rejected github.com, the pack never imported, and
+ * "Repair engine" re-extracted the same empty folder. The installer fills these with
+ * Node instead (`_installNodeSubmodules`, routes/downloadManager.js).
+ * @param {string} depId dependencies.js id === node_lock key
+ * @returns {{relPath: string, repo: string, commit: string, sha256: string, url: string}[]}
+ */
+function getNodeSubmodules(depId) {
+    const nodeLock = _require('../dev_configs/node_lock.json');
+    const subs = nodeLock.nodes?.[depId]?.submodules || {};
+    return Object.entries(subs).map(([relPath, s]) => ({
+        relPath, ...s, url: `https://github.com/${s.repo}/archive/${s.commit}.zip`,
+    }));
+}
+
+/**
+ * The submodules of an installed node whose folder is empty or absent — the exact test
+ * the USDU pack makes before it fetches (`if not len(os.listdir(usdu_dir))`).
+ */
+async function emptyNodeSubmodules(nodeFolder, depId) {
+    const out = [];
+    for (const sub of getNodeSubmodules(depId)) {
+        const entries = await fs.readdir(path.join(nodeFolder, sub.relPath)).catch(() => []);
+        if (!entries.length) out.push(sub);
+    }
+    return out;
+}
+
+/**
  * Stamp the pinned-commit marker into an installed node folder. Trimmed UTF-8,
  * same shape as `.mpi_engine_version`. No-op (returns false) when the node has no
  * pinned commit — nothing to record.
@@ -1189,6 +1221,11 @@ async function checkUniversalWorkflowDepsStatus(rootOverride = null) {
                 if (installed !== pinned) {
                     drifted.push(depId);
                     logger.info('comfy', `node drift: ${depId} installed=${installed ?? 'none'} pinned=${pinned}`);
+                } else if ((await emptyNodeSubmodules(localPath, depId)).length) {
+                    // MPI-1213: right commit, empty submodule — every 2.1.1 install of
+                    // UltimateSDUpscale. Drift is what re-extracts it with the submodule.
+                    drifted.push(depId);
+                    logger.info('comfy', `node drift: ${depId} has an empty submodule folder`);
                 }
             }
         }
@@ -1243,6 +1280,8 @@ module.exports = {
     getUniversalWorkflowDeps,
     checkUniversalWorkflowDepsStatus,
     getPinnedNodeCommit,
+    getNodeSubmodules,
+    emptyNodeSubmodules,
     writeNodeCommitMarker,
     NODE_COMMIT_MARKER,
 };

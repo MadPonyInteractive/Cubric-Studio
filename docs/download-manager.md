@@ -863,6 +863,24 @@ fresh volume), `controlnet-aux-torch-guard.test.cjs` (asserted null → dead), a
 nothing). Fix: text-scanners must read the split file(s) that hold the blocks
 (`nodesDeps.js` for custom_nodes; glob `*Deps.js` for a folder-type sweep).
 
+### `submodules` — a node whose repo carries a git submodule (MPI-1213)
+
+A GitHub archive zip leaves every submodule folder EMPTY. `comfyui_ultimatesdupscale`'s
+`__init__.py` then fills `repositories/ultimate_sd_upscale` itself, with Python urllib, from
+Coyote-A's unpinned `master`, unhashed. On a tester's fresh Windows PC Python's SSL failed
+(`CERTIFICATE_VERIFY_FAILED`), the pack never imported, and Repair re-extracted the same empty
+folder. Now the node's `node_lock.json` entry declares `submodules: { "<relPath>": { repo,
+commit, sha256 } }` — the commit the node's tree records (GitHub contents API on the node
+commit, the gitlink sha) and the sha256 of that commit's GitHub archive — and
+`_runCustomNodeInstall` fills each empty one with Node (`_installNodeSubmodules`), sha-checked,
+BEFORE the commit marker, so a failed fill leaves no marker and retries. The drift check
+(`checkUniversalWorkflowDepsStatus`) also counts an empty submodule as drift, which is what
+heals 2.1.1 installs: right marker, empty folder → pre-wipe → re-extract → fill.
+**A bump of that node must re-pin `submodules` with it.** The devkit fills them the same way.
+**Remote gap:** the Pod wrapper volume-installs the node from the plain GitHub archive and the
+pack fetches `master` at import there (Linux SSL succeeds, so it works, unpinned).
+Guard: `tests/node-submodules.test.cjs`.
+
 ## The remote ATTACH guard trusts the WRAPPER, not its own cache (MPI-97 / 100 / 481)
 
 `_startRemoteDownload` skips any dep it believes is already handled, so model B
