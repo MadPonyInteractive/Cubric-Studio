@@ -784,22 +784,28 @@ export function resolveSigningEnv(env = process.env) {
 
 // One PowerShell call for the whole list: Get-AuthenticodeSignature is the same
 // check the MPI-616 census used, so "Valid" here means what it meant there.
+// Results go to a FILE, never stdout: with no console attached (a CI runner) Windows
+// PowerShell wraps stdout at the host width, splitting every long staged path, so
+// every status read back as missing. Measured on CI run 39432461902.
 export async function authenticodeStatus(fullPaths) {
-  const listFile = path.join(os.tmpdir(), `cubric-sign-${process.pid}.txt`);
+  const base = path.join(os.tmpdir(), `cubric-sign-${process.pid}`);
+  const listFile = `${base}-in.txt`;
+  const outFile = `${base}-out.txt`;
   await fs.writeFile(listFile, fullPaths.join('\n'), 'utf8');
   try {
-    const { stdout } = await execFileAsync('powershell.exe', [
+    await execFileAsync('powershell.exe', [
       '-NoProfile', '-NonInteractive', '-Command',
-      `Get-Content -LiteralPath '${listFile}' -Encoding UTF8 | ForEach-Object { (Get-AuthenticodeSignature -LiteralPath $_).Status.ToString() + '|' + $_ }`,
-    ], { maxBuffer: 16 * 1024 * 1024 });
+      `Get-Content -LiteralPath '${listFile}' -Encoding UTF8 | ForEach-Object { (Get-AuthenticodeSignature -LiteralPath $_).Status.ToString() + '|' + $_ } | Set-Content -LiteralPath '${outFile}' -Encoding UTF8`,
+    ]);
     const status = new Map();
-    for (const line of stdout.split(/\r?\n/)) {
+    for (const line of (await fs.readFile(outFile, 'utf8')).replace(/^﻿/, '').split(/\r?\n/)) {
       const at = line.indexOf('|');
       if (at > 0) status.set(line.slice(at + 1), line.slice(0, at));
     }
     return status;
   } finally {
     await fs.rm(listFile, { force: true });
+    await fs.rm(outFile, { force: true });
   }
 }
 

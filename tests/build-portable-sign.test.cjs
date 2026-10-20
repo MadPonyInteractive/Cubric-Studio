@@ -45,6 +45,6 @@ test('authenticode status reads the census truth off Electron\'s dist', { skip: 
   const exe = path.join(dist, 'electron.exe');
   const msDll = path.join(dist, 'd3dcompiler_47.dll');
   const status = await authenticodeStatus([exe, msDll]);
-  assert.strictEqual(status.get(exe), 'NotSigned');
+  assert.strictEqual(status.get(exe), 'NotSigned', JSON.stringify([...status]));
   assert.strictEqual(status.get(msDll), 'Valid');
 });
