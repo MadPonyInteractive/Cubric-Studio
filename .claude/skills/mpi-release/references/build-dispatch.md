@@ -123,3 +123,10 @@ separate).
   produced; don't invent a macos-x64 asset.
 - If CI fails one OS leg, the others still produced artifacts; re-run only the
   failed leg via the `workflow_dispatch` fallback above.
+- **The Windows leg signs itself (MPI-616, since 2026-10-20) - no manual step.** It
+  fails, rather than ships unsigned, if any binary is not `Valid`. A failure inside
+  signtool that reads only "An unexpected internal error has occurred" is almost
+  always the Azure login: find `AADSTS` in the log (`7000215` = the client secret is
+  wrong or expired; it expires ~2028-10-19). Fix the `AZURE_CLIENT_SECRET` secret in
+  `mpi-ci`, then re-run the Windows leg. Details:
+  `docs/releases/portable-distribution-contract.md` § Build Process.
