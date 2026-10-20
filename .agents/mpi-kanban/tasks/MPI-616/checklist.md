@@ -65,6 +65,12 @@ reasoning survives.
       **Artifact Signing Identity Verifier** -> Identity validations > Organization >
       New Identity > Public, with the D-U-N-S details above -> AU10TIX check when
       asked -> wait 1-20 business days -> certificate profile, type **Public Trust**
+      **Progress 2026-10-20:** Pay-As-You-Go subscription ("Azure Plan") up, 2FA on
+      the Microsoft account, `Microsoft.CodeSigning` registered, account
+      **`madponysigning`** created (resource group `cubric-signing`, North Europe,
+      Basic, endpoint `https://neu.codesigning.azure.net/`) - **billing started
+      2026-10-20**. Identity Verifier role assigned. Next: the identity validation
+      form.
 - [ ] Wire the signing pass into `scripts/build-portable.mjs` — **after** the
       `electron.exe` → `CubricVision.exe` rename. `win.azureSignOptions` in
       `electron-builder.yml` is inert; electron-builder does not build the shipped
