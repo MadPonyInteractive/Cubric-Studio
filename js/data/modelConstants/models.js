@@ -2104,8 +2104,10 @@ const ALL_MODELS = [
         },
         // Unmasked edit takes the ratio + tier picker behind a Custom size button, off by
         // default (Fabio, 2026-10-19): on, the user picks the frame instead of inheriting
-        // reference 1's. See modelShowsRatio.
+        // reference 1's. See modelShowsRatio. A bare prompt pillarboxes a 1:1 frame; the
+        // canvas line fills 1:1 and 16:9 (bench 2026-10-20, withCanvasPrompt's exact text).
         customSizeOps: ['edit'],
+        canvasPrompt: true,
         // BFL feeds this model through its own upsampler: Enhance shows on edit + inpaint
         // too, and each op's help says to press it first. Never auto-run (Fabio, 2026-10-20).
         enhanceFirstOps: ['t2i', 'i2i', 'edit', 'inpaint', 'detail'],

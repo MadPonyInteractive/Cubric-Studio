@@ -66,3 +66,14 @@ the GPU lease behind MPI-1207's bench and cancelled for the handoff: nothing ran
   edit + inpaint only, every other model's edits stay exempt; `getOpHelp` appends "press Enhance ... then Cue".
 - `tests/enhance-control.test.cjs` 8/8 (new: FLUX.3 lift, Klein still exempt, help line); `tests/flux3-recipe.test.cjs` 3/3;
   `npm test` 3446 pass / 0 fail / 2 skipped. Not seen in the real app yet.
+
+## 2026-10-20 - DeepInfra count stopped by Fabio; canvas line on (session "Flux.3 integration 7")
+
+- DeepInfra Gemma 4 26B, 8 sweeps (~12 cents, two yeses of 4): t2v 15/15 on the last, i2i 14/15 (one
+  151-word whole-image edit). One BFL sentence restated (its ban quoted "is visible"). Fabio: "Good
+  enough: a 1-word overrun is harmless. Stop sweeping." Detail: `docs/recipes/research/flux-3/validation.md`.
+- `canvasPrompt: true` on flux3-klein: the executor prepends withCanvasPrompt's TARGET CANVAS line on a
+  custom-size, unmasked edit. Bench on the shipped graph (G:/ComfyUi :8188, Turbo, portrait 571x1021
+  source, seed 424242, under gpu_lease) with the helper's exact text: 1:1 and 16:9 both fill edge to
+  edge, no bars; the earlier bare 1:1 pillarboxed (2026-10-19). `tests/flux3-custom-size.test.cjs` 9/9;
+  `npm test` 3446 pass / 0 fail / 2 skipped.

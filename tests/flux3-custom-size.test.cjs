@@ -108,9 +108,9 @@ test('edit family: the button mounts before the picker, off by default, a ratio 
     }
 });
 
-test('the canvas line: Qwen Edit alone, once, the user words kept', () => {
+test('the canvas line: Qwen Edit and FLUX.3 alone, once, the user words kept', () => {
     const { withCanvasPrompt } = require('../js/data/generationControls.js');
-    assert.deepEqual(MODELS.filter((m) => m.canvasPrompt).map((m) => m.id), ['qwen-edit']);
+    assert.deepEqual(MODELS.filter((m) => m.canvasPrompt).map((m) => m.id), ['qwen-edit', 'flux3-klein']);
     const once = withCanvasPrompt('make her top red', '3:4');
     assert.ok(once.startsWith('TARGET CANVAS: 3:4\nmake her top red\n'));
     assert.equal(withCanvasPrompt(once, '3:4'), once);

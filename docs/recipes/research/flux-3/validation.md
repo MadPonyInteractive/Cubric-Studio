@@ -100,6 +100,8 @@ Changes:
 - i2i: 14/15 on DI 2 and DI 4. The whole-image tier ran over 150 words in 4 of its 12 DI runs,
   by 1-11 words; the other tiers are 3/3 on the last DI sweep.
 - Spent on the count: 8 sweeps, ~12 cents (two yeses of 4).
+- **Fabio, 2026-10-20: "Good enough: a 1-word overrun is harmless. Stop sweeping."** The count
+  stops here, short of twice-green by his call; Stage 2 (renders) and the `validated` flip are his.
 
 ## Stage 2 — render (Fabio)
 
