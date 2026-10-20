@@ -20,4 +20,5 @@
 - [x] customSizeOps + drop op from imageSizedOps per model (2026-10-19, uncommitted until the graphs bench)
 - [x] sizeOptIn + customSize + qualityTier on kleinEdit / krea2Edit / qwenEdit
 - [x] Input_custom_size from the toggle; canvas line on Qwen Edit (`canvasPrompt`, commandExecutor, unmasked only)
-- [ ] Cloud: one paid probe per family (price stated first), then decide
+- [x] Cloud: one paid probe per family ($0.1336 spent): Seedream + FLUX-2 dev/Klein fill; FLUX-2 pro crops; Nano Banana stretches
+- [ ] Fabio decides which cloud families get the button, then wire (customSizeOps) + one in-app paid run each

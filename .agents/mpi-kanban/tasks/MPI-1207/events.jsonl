@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1207", "at": "2026-10-19T22:50:26+01:00", "actor": "Flux.3 integration 5", "column": "todo", "title": "Custom output size on edit for every model: investigate viability first"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1207", "at": "2026-10-19T22:53:40+01:00", "actor": "MPI-1207 session", "from": "todo", "to": "doing", "reason": "phase 1 investigation started"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1207", "at": "2026-10-20T00:48:02+01:00", "actor": "Custom edit option for models 2", "from": "doing", "to": "doing", "reason": "Local edit models wired + benched (7fec15a81); waiting on Fabio's in-app look and the cloud probes (paid, not approved)"}

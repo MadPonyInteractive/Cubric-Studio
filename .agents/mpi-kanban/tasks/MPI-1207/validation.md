@@ -184,3 +184,27 @@ clean; "recompose ... never leave bands" = bands. At 16:9 (1344x768) the old tai
 a different seed could still band - Fabio's in-app look is the wider check.
 Masked input must sit inside ComfyUI input/ (MpiLoadImage refuses other absolute paths) - a bench trap, not an app one.
 Full unit suite after the graph change: 3442 pass, 0 fail.
+
+## Fabio's in-app look (2026-10-20)
+
+"Custom size looks and behaves right on the edit models, and the mask greys it out." Local edit models:
+VERIFIED. Left on the card: the cloud edit models (one paid probe per family, price stated first).
+
+## Cloud probes (2026-10-20, Fabio approved 4 runs ~$0.13; SPENT $0.1336)
+
+Portrait source (571x1021) -> 16:9, plain edit prompt, body built exactly as routes/deepinfra.js does
+(`buildSizeFields`), seed 424242. Script: session scratchpad `cloud_probe.mjs` (pictures stay off the board).
+
+| family (probed member) | sent | cost | result |
+|---|---|---|---|
+| Seedream 4 / 4.5 / 5 Pro (`seedream-4-cloud`) | size 1344x768 | $0.040 | FILLS: doorway + wall outpainted, person intact |
+| FLUX-2 dev / Klein 9B cloud (`klein-9b-cloud`) | width/height 1344x768 | $0.015 | FILLS: blinds + door outpainted |
+| FLUX-2 pro / max (`flux2-pro-cloud`) | width/height 1344x768 | $0.045 | CENTRE-CROP ZOOM: head and legs cut off, no bands |
+| Nano Banana 2 lite / 2 / pro (`nano-banana-2-lite-cloud`) | aspect_ratio 16:9 | $0.034 | STRETCH: 1376x768, the figure squashed sideways |
+
+Verdict, mine: wire Seedream + FLUX-2 dev / Klein 9B cloud (clean fills). FLUX-2 pro/max zoom-crop
+is "zoom" under Fabio's rule but loses the head - Fabio's call. Nano Banana stretches (distortion,
+not bands) - Fabio's call; a canvas line like Qwen Edit's might fix it but costs more probes.
+Wiring for cloud = add `customSizeOps: ['edit']` + drop 'edit' from `imageSizedOps` on the chosen
+cloud ModelDefs; the size plumbing (deepinfraSizing) already sends the picked size. One paid run
+in the real app per wired family is the verify.
