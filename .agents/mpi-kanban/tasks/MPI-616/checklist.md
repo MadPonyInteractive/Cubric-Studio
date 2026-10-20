@@ -87,20 +87,26 @@ reasoning survives.
       reminder: Google Calendar all-day 2028-09-19, email+popup T-2/T-1, event id
       `lhgjo9mpt2dm6iadmjdskc5ml0` (description also flags the identity
       validation expiry 2029-01-22).
-- [ ] **Fabio adds three Actions secrets to `MadPonyInteractive/mpi-ci`**:
-      `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`. As of handoff
-      NONE exist in any org repo (`gh secret list` swept). If he left the Azure
-      page the Value is gone - he makes a new secret and deletes the old one.
-      Verify with `gh secret list -R MadPonyInteractive/mpi-ci` (names only).
-- [ ] Wire the signing pass into `scripts/build-portable.mjs` — **after** the
-      `electron.exe` → `CubricVision.exe` rename. `win.azureSignOptions` in
-      `electron-builder.yml` is inert; electron-builder does not build the shipped
-      artifact.
-- [ ] RBAC trap: assign **Artifact Signing Certificate Profile Signer** to the
-      **app registration**, not to the user account
+- [x] **Fabio adds three Actions secrets to `MadPonyInteractive/mpi-ci`**:
+      `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` - in 2026-10-20.
+      The first client secret's Value showed in a chat screenshot, so it was
+      rotated the same day: new secret `mpi-ci-2` (730 days) in GitHub, old one
+      deleted in Azure. Calendar reminder 2028-09-19 still fits.
+- [x] Wire the signing pass into `scripts/build-portable.mjs` (`--sign`, commit
+      `6d64c2d2d`) — after the rebrand (rcedit would void an earlier signature),
+      before the manifest hashes. Signs every non-Valid `.exe/.dll/.node` in the
+      staged tree, re-reads Authenticode status, throws unless all Valid.
+      mpi-ci workflow on branch `mpi-616-signing` (`18fc3ce`): signtool + dlib
+      from NuGet, .NET 8, metadata.json with EnvironmentCredential only.
+      Merge to mpi-ci `main` only after a green signed dispatch.
+- [x] RBAC trap: assign **Artifact Signing Certificate Profile Signer** to the
+      **app registration**, not to the user account (done, see above)
 - [ ] Re-run the census on a signed build — every app binary must read `Valid`
-- [ ] Confirm on an SAC-enforced box, reading CodeIntegrity rather than trusting
-      the absence of a dialog
+- [ ] ~~Confirm on an SAC-enforced box~~ — **dropped 2026-10-20**: neither Fabio nor
+      the tester has an SAC box, and SAC's rule is "publicly trusted signed code
+      runs", which the Valid census checks directly. Fallback if a user still
+      reports a block: their CodeIntegrity log (3033/3076/3077/3118). A fresh
+      Windows 11 VM can enable SAC if eyes-on is ever wanted.
 - [ ] Only then drop the unsigned warning from the release notes
 
 ## Explicitly rejected
