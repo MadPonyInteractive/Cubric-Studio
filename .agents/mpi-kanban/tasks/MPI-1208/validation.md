@@ -117,3 +117,24 @@ Bench step 1 (one run each, `research/bench/`):
   Suite x3: runs 53, 50, 52 = 52/55 median (47 strict), billed $0.1970 ($0.0012/chat), 0 x 429. Misses scattered
   (shape-then-edit 1/3, video-buns 1/3, options markers 2/3). Six MiMo runs: 51 53 53 53 50 52.
 - = ties the default 0731 (52/55, $0.0016) at 25% less, and sees when it must. Card total billed ~$2.09.
+
+## MiniMax M3.1 Flash free screen (2026-10-20, Cosmo improvements 5, Ollama Cloud, $0)
+
+- `minimax-m3.1-flash:cloud`, 1 run, preset ollama, suite hash unchanged (agentBench.mjs untouched by a60fcbca0).
+  Suite **49/55**, 0 errored (no free-plan limit hit). Fails: ask-first (27 calls, 555 s loop), new-project-brief,
+  several-subjects-reference-whole, no-delete, shape-then-edit, options-after-decline.
+  Vision 2/3: identity FAIL (never used see: true, judged from descriptions), grain OK, plain-description OK.
+- 64 s/test (MiMo 21 s), ~161k input tokens/chat. After the free window ($0.15 / $0.015 cached / $0.60 per 1M):
+  ~$0.0074/chat at 90% cached, $0.027 all fresh = 6-22x MiMo's $0.0012.
+- Verdict: below MiMo-V2.6-Flash (52/55) on score, speed and post-free price. No 3-run, no upload (needs >= 3 runs).
+  Files: research/bench/minimax-m3.1-flash-cloud-{suite,vision}-1run.txt.
+
+## Edit rank + featured (2026-10-20, Fabio)
+
+- FLUX.3 Klein edit rank 2 (after Qwen-Image 2.1, above Klein 9B) until his tests decide; FLUX.3 + Qwen-Image 2.1
+  `featured: true`. dd5853d7d; model-priority 16 pass, agent-loop/bench/prompt-budget 232 pass.
+
+## Close-out evidence
+
+- CI Tests green on every MPI-1208 code commit: 6580548bb (run 39477999801, covers a836a4334), dd5853d7d (39483304382).
+  Later master a60fcbca0 green too (39484760660). Commits after 6580548bb up to dd5853d7d are card-only.

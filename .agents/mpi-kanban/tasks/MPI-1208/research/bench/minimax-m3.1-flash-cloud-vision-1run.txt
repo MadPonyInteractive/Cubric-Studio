@@ -1,0 +1,26 @@
+(node:37512) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/AI/Mpi/Cubric-Vision/js/shell/agentToolOps.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\AI\Mpi\Cubric-Vision\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+agent-test: minimax-m3.1-flash:cloud · 3 case(s) × 1 
+price: unknown (cost not computed)
+[2026-10-20T19:56:49.766Z] [INFO] [agent] look FRESH attachment woman-a.png: A young woman with long straight purple hair and blunt bangs, in a white sleeveless top with black and teal trim, in a bright futuristic white corridor with ceiling light panels, one hand reaching toward the camera.
+[2026-10-20T19:56:49.766Z] [INFO] [agent] look FRESH attachment woman-b.png: A young woman with long straight purple hair and blunt bangs, smiling, hands on hips, in a white and grey sleeveless top, a black pencil skirt and fishnet tights, in a bright white corridor with ceiling light panels.
+  see-identity-drift #1: FAIL · 6 calls · 48821 in / 1904 out · $0.00000 · 21.7s
+      - never asked to see a picture: judged identity from descriptions
+      - did not say the face changed: Both came back with the same read: the same character model — a young woman with long straight purple hair and blunt bangs, in the same bright white corridor with ceiling light panels.
+
+What changed i
+      turn 0 calls: look({"image":"att_woman_a"}) look({"image":"att_woman_b"}) look({"image":"att_woman_a","question":"Describe her face in detail: eye colour, eye shape, skin tone, hair colour, hairstyle, expression, and any distinguishing marks."}) look({"image":"att_woman_b","question":"Describe her face in detail: eye colour, eye shape, skin tone, hair colour, hairstyle, expression, and any distinguishing marks."}) list_cards({"limit":10}) look({"image":"att_woman_a","crop":{"height":400,"width":400,"x":312,"y":80},"question":"What do the eyes, eyebrows, mouth and hair look like in this crop? Describe colours and shape precisely."}) look({"image":"att_woman_b","crop":{"height":330,"width":260,"x":160,"y":60},"question":"What do the eyes, eyebrows, mouth and hair look like in this crop? Describe colours and shape precisely."}) look({"crop":{"height":300,"width":300,"x":362,"y":120},"image":"att_woman_a"}) look({"crop":{"height":300,"width":300,"x":140,"y":60},"image":"att_woman_b"}) look({"image":"att_woman_a","box":true,"question":"the woman's head and face"}) look({"image":"att_woman_b","box":true,"question":"the woman's head and face"})
+      turn 0 reply: Both came back with the same read: the same character model — a young woman with long straight purple hair and blunt bangs, in the same bright white corridor with ceiling light panels. What changed in the edit: - **Framing** — picture 1 is square with her hand reaching toward the lens; picture 2 is a taller portrait (578×1024), full body, hands on hips. - **Expression** — picture 1 is neutral, pic
+[2026-10-20T19:57:12.522Z] [INFO] [agent] look FRESH attachment grainy.jpg: A smiling young woman with long purple hair and bangs in a white sleeveless top with grey trim, reaching toward the camera in a bright white futuristic corridor with ceiling light panels and blue light strips. Heavy colour film grain over t…
+[2026-10-20T19:57:49.563Z] [INFO] [agent] look FRESH result t2i_001.png: A smiling young woman with long purple hair and bangs in a white sleeveless top with grey trim, reaching toward the camera in a bright white futuristic corridor with ceiling light panels and blue light strips. Heavy colour film grain over t…
+  see-grain-only #1: pass · 8 calls · 128911 in / 3541 out · $0.00000 · 41.4s
+[2026-10-20T19:57:52.882Z] [INFO] [agent] look FRESH attachment woman-a.png: A young woman with long straight purple hair and blunt bangs, in a white sleeveless top with black and teal trim, in a bright futuristic white corridor with ceiling light panels.
+  see-not-for-a-plain-description #1: pass · 2 calls · 14974 in / 75 out · $0.00000 · 2.7s
+
+summary
+  FAIL see-identity-drift 0/1 — asked whether an edit kept the person, it sees both pictures and finds the face changed
+  OK   see-grain-only 1/1 — a picture given for its grain puts the grain in the prompt and nothing else from it (MPI-1164)
+  OK   see-not-for-a-plain-description 1/1 — asked what a picture shows, it reads the description and does not spend a picture
+cost: $0.0000 for 3 conversations ($0.00000 each, cached priced as fresh) · billed $0.0000 · 0 picture(s) seen

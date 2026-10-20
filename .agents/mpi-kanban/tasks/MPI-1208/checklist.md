@@ -15,8 +15,10 @@
 - [x] look hands the picture to a vision-capable chat model (fallback: describer text)
 - [x] DeepInfra vision+tools candidates listed
 - [x] Bench runs priced; Fabio's yes before spending
-- [ ] Recommendation with score and cost per chat
-- [ ] Finding in docs/agent-findings.md
+- [x] Recommendation with score and cost per chat (MiMo-V2.6-Flash 52/55, $0.0012/chat, default)
+- [x] Finding in docs/agent-findings.md (MiMo lines 164-165)
 - [x] Custom size on edit (MPI-1207): EDIT_NOTE says a ratio re-composes the frame; shape-then-edit accepts one edit at a new ratio (2026-10-20)
 - [x] Bench: Ling step 1 rerun, DeepSeek-V4.1 3-run pass, finding in docs/agent-findings.md (2026-10-20)
 - [x] Resolution: max = the model's last tier, image + video bench cases (2026-10-20)
+- [x] MiniMax M3.1 Flash free screen: 49/55, not adopted (2026-10-20)
+- [x] FLUX.3 edit rank 2 + FLUX.3/Qwen-Image 2.1 featured (dd5853d7d)

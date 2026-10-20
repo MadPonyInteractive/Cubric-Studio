@@ -84,6 +84,11 @@ Coordinate before editing it.
 - A finding in `docs/agent-findings.md` (200-line cap).
 - Code commits with the card in `doing`; done only on a green CI run (done-gate).
 
+## Current State (2026-10-20 night, Cosmo improvements 5) - CLOSED
+
+- MiniMax M3.1 Flash (Ollama Cloud, free): 49/55, vision 2/3, 64 s/test, ~6-22x MiMo's cost after the free window.
+  Not adopted. MiMo-V2.6-Flash stays default. FLUX.3 edit rank 2 + featured (dd5853d7d). CI green; card done.
+
 ## Current State (2026-10-20 evening, end of Cosmo improvements 4)
 
 - SHIPPED a836a4334 (code) + 6580548bb (card), pushed: MiMo-V2.6-Flash is Cosmo's default (52/55 median,

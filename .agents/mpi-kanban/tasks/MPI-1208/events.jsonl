@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1208", "at": "2026-10-19T22:52:13+01:00", "actor": "claude", "column": "todo", "title": "Cosmo sees the pictures: a vision agent model, and tool facts it plans from"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1208", "at": "2026-10-19T23:00:22+01:00", "actor": "Cosmo improvements 1", "from": "todo", "to": "doing", "reason": "Half 2 starts: tool facts at pick time"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1208", "at": "2026-10-20T20:58:52+01:00", "actor": "35314a2f-9f12-45ea-bfb5-53e7db0b2a25", "from": "doing", "to": "done", "reason": "MiMo default shipped, MiniMax screened and not adopted, CI green on 6580548bb + dd5853d7d"}
