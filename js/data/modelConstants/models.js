@@ -1922,6 +1922,7 @@ const ALL_MODELS = [
     {
         id: 'qwen-image-2-1',
         sizeTier: 'balanced',
+        featured: true,
         name: 'Qwen-Image 2.1',
         dropdownMeta: 'PHOTO',
         mediaType: 'image',
@@ -2075,6 +2076,7 @@ const ALL_MODELS = [
     {
         id: 'flux3-klein',
         sizeTier: 'balanced',
+        featured: true,
         name: 'FLUX.3 Klein',
         dropdownMeta: 'PHOTO',
         mediaType: 'image',

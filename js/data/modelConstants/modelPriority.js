@@ -60,12 +60,13 @@ const IMAGE_ORDER = [
  */
 const EDIT = [
     ['qwen-image-2-1', 'edit'],
+    // Fabio 2026-10-20: FLUX.3 second, above Klein 9B, until his own tests say whether it beats Qwen-Image 2.1.
+    ['flux3-klein', 'edit'],
     ['klein-9b', 'kleinEdit'],
     ['klein-4b', 'kleinEdit'],
     ['boogu-edit-high', 'edit'],
     ['boogu-edit-balanced', 'edit'],
     ['qwen-edit', 'qwenEdit'],
-    ['flux3-klein', 'edit'],   // MPI-1181, provisional: below Fabio's order, above Krea 2 (last)
     ['krea2', 'krea2Edit'],
 ];
 

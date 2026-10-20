@@ -17,9 +17,9 @@ const opsOf = (id) => MODELS.find((m) => m.id === id)?.supportedOps || [];
 
 /** Every pair the table ranks, read back through the public function. */
 const RANKED = [
-    ['edit', [['qwen-image-2-1', 'edit'], ['klein-9b', 'kleinEdit'], ['klein-4b', 'kleinEdit'],
+    ['edit', [['qwen-image-2-1', 'edit'], ['flux3-klein', 'edit'], ['klein-9b', 'kleinEdit'], ['klein-4b', 'kleinEdit'],
         ['boogu-edit-high', 'edit'], ['boogu-edit-balanced', 'edit'], ['qwen-edit', 'qwenEdit'],
-        ['flux3-klein', 'edit'], ['krea2', 'krea2Edit']]],   // FLUX.3 provisional (MPI-1181)
+        ['krea2', 'krea2Edit']]],   // FLUX.3 second (Fabio 2026-10-20), provisional
     ['t2v', [['minimax-h3', 't2v_ms'], ['ltx-23-balanced', 't2v_ms'], ['wan22-5b', 't2v'], ['ltx-23', 't2v_ms']]],
     ['i2v', [['minimax-h3', 'i2v_ms'], ['ltx-23-balanced', 'i2v_ms'], ['wan-22', 'i2v_ms'],
         ['wan22-5b', 'i2v'], ['ltx-23', 'i2v_ms']]],
