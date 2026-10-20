@@ -71,8 +71,12 @@ reasoning survives.
       Basic, endpoint `https://neu.codesigning.azure.net/`) - **billing started
       2026-10-20**. Identity Verifier role assigned. **Organization / Public identity
       validation submitted 2026-10-20**, In Progress; fields read back and match
-      the D&B listing. Waiting on: two email links (7-day expiry), then "Action
-      Required" -> AU10TIX ID check, then Microsoft's 1-20 business days.
+      the D&B listing. **COMPLETED the same day (2026-10-20), expires 2029-01-22.**
+      Trap seen: after the AU10TIX check the email/portal link reads "No Access -
+      link used already" and Fabio believed the face check had failed; it had
+      PASSED. A delete attempted then failed with "Request data is updated by some
+      other source" (the pass being written) - luckily. Before deleting a request
+      after a confusing ID check, wait and Refresh: it may already be Completed.
 - [ ] Wire the signing pass into `scripts/build-portable.mjs` — **after** the
       `electron.exe` → `CubricVision.exe` rename. `win.azureSignOptions` in
       `electron-builder.yml` is inert; electron-builder does not build the shipped
