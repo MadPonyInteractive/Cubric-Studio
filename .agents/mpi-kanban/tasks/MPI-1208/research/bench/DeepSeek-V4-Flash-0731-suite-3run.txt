@@ -1,0 +1,472 @@
+(node:22772) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/AI/Mpi/Cubric-Vision/js/shell/agentToolOps.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\AI\Mpi\Cubric-Vision\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+agent-test: deepseek-ai/DeepSeek-V4-Flash-0731 · 55 case(s) × 3 
+price: $0.060000000000000005/M in, $0.18/M out
+[2026-10-20T00:37:24.269Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  picks-installed-model #1: pass · 6 calls · 88157 in / 758 out · $0.00543 · 30.7s
+[2026-10-20T00:38:00.821Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  picks-installed-model #2: pass · 6 calls · 89225 in / 953 out · $0.00553 · 29.6s
+[2026-10-20T00:38:21.841Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  picks-installed-model #3: pass · 7 calls · 103991 in / 765 out · $0.00638 · 20.3s
+  install-needed #1: pass · 4 calls · 48460 in / 807 out · $0.00305 · 14.7s
+  install-needed #2: pass · 4 calls · 48465 in / 817 out · $0.00305 · 23.1s
+  install-needed #3: pass · 3 calls · 35122 in / 1136 out · $0.00231 · 35.6s
+  auto-video-medium-turbo #1: pass · 6 calls · 85131 in / 1126 out · $0.00531 · 23.5s
+  auto-video-medium-turbo #2: pass · 8 calls · 121504 in / 1588 out · $0.00758 · 48.1s
+  auto-video-medium-turbo #3: pass · 6 calls · 84846 in / 996 out · $0.00527 · 19.3s
+[2026-10-20T00:41:28.055Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  max-resolution-is-top-tier #1: pass · 6 calls · 88134 in / 769 out · $0.00543 · 23.8s
+[2026-10-20T00:41:53.237Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  max-resolution-is-top-tier #2: pass · 6 calls · 88001 in / 613 out · $0.00539 · 23.0s
+[2026-10-20T00:42:11.222Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  max-resolution-is-top-tier #3: pass · 6 calls · 88147 in / 761 out · $0.00543 · 20.5s
+  max-resolution-video #1: pass · 5 calls · 69717 in / 1139 out · $0.00439 · 22.4s
+  max-resolution-video #2: pass · 6 calls · 84759 in / 1149 out · $0.00529 · 27.1s
+  max-resolution-video #3: pass · 5 calls · 69708 in / 739 out · $0.00432 · 16.1s
+  ask-first #1: pass · 6 calls · 92272 in / 915 out · $0.00570 · 25.2s
+  ask-first #2: pass · 7 calls · 100039 in / 1032 out · $0.00619 · 42.6s
+  ask-first #3: pass · 6 calls · 92502 in / 1129 out · $0.00575 · 42.4s
+  install-asks #1: pass · 3 calls · 34510 in / 206 out · $0.00211 · 17.0s
+  install-asks #2: pass · 3 calls · 34510 in / 221 out · $0.00211 · 7.3s
+  install-asks #3: pass · 3 calls · 34510 in / 181 out · $0.00210 · 9.8s
+[2026-10-20T00:45:47.013Z] [INFO] [agent] look FRESH attachment att_fox.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  look-before-comment #1: pass · 2 calls · 14640 in / 195 out · $0.00091 · 5.0s
+[2026-10-20T00:45:52.254Z] [INFO] [agent] look FRESH attachment att_fox.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  look-before-comment #2: pass · 2 calls · 14640 in / 294 out · $0.00093 · 8.6s
+[2026-10-20T00:46:01.346Z] [INFO] [agent] look FRESH attachment att_fox.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  look-before-comment #3: pass · 2 calls · 14640 in / 324 out · $0.00094 · 7.4s
+[2026-10-20T00:46:08.239Z] [INFO] [agent] look FRESH attachment att_fox.png: I’m sorry, but I can’t help with describing this image.
+  look-refusal #1: pass · 3 calls · 22001 in / 233 out · $0.00136 · 4.6s
+[2026-10-20T00:46:13.027Z] [INFO] [agent] look FRESH attachment att_fox.png: I’m sorry, but I can’t help with describing this image.
+  look-refusal #2: pass · 3 calls · 22008 in / 346 out · $0.00138 · 8.8s
+[2026-10-20T00:46:21.461Z] [INFO] [agent] look FRESH attachment att_fox.png: I’m sorry, but I can’t help with describing this image.
+  look-refusal #3: pass · 3 calls · 22002 in / 229 out · $0.00136 · 15.6s
+  video-limit #1: pass · 3 calls · 21891 in / 274 out · $0.00136 · 13.8s
+  video-limit #2: pass · 3 calls · 21875 in / 230 out · $0.00135 · 8.0s
+  video-limit #3: pass · 7 calls · 52976 in / 910 out · $0.00334 · 22.1s
+[2026-10-20T00:47:53.612Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  create-then-generate #1: pass · 8 calls · 129795 in / 1947 out · $0.00814 · 35.9s
+[2026-10-20T00:48:25.105Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  create-then-generate #2: pass · 6 calls · 87292 in / 1801 out · $0.00556 · 32.8s
+[2026-10-20T00:49:18.403Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  create-then-generate #3: pass · 6 calls · 95502 in / 1673 out · $0.00603 · 53.5s
+  open-by-name #1: pass · 3 calls · 22100 in / 124 out · $0.00135 · 6.6s
+  open-by-name #2: pass · 3 calls · 22100 in / 132 out · $0.00135 · 5.2s
+  open-by-name #3: pass · 3 calls · 22100 in / 122 out · $0.00135 · 3.3s
+  new-project-brief #1: pass · 3 calls · 22167 in / 353 out · $0.00139 · 12.3s
+  new-project-brief #2: pass · 4 calls · 30502 in / 371 out · $0.00190 · 14.5s
+[2026-10-20T00:50:33.868Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  new-project-brief #3: FAIL · 6 calls · 72214 in / 1276 out · $0.00456 · 33.7s
+      - generated without being asked
+      turn 0 calls: create_project({"name":"Lighthouse Keeper and the Seal"}) write_memory({"file":"film-goal.md","title":"Short film goal","text":"Goal: a short film about a lighthouse keeper who befriends a seal. Set in a coastal lighthouse. Emotional, gentle tone.","scope":"project"}) list_models({}) read_knowledge({"id":"app:flows"}) describe_model({"id":"character-sheet"}) generate({"flowId":"character-sheet","fields":{"positive":"a kindly weathered lighthouse keeper in his early sixties, short grey hair, a neat grey-white beard, warm blue eyes, deep sun-wrinkles, strong weathered face, wrapped in a mustard-yellow oilskin coat with a dark collar, knit watch cap on his head, gentle warm expression","Input_is_Turbo":true},"cardName":"Keeper sheet"})
+      turn 0 reply: I've kicked off the character sheet for the keeper — it'll give us front, back and close-up views of the same face, so every shot in the film keeps him recognisable. While that renders, here's where we're heading. Once the sheet is ready I'll confirm the design, then we build the story's key moments: 1. **Character sheet** — the keeper (rendering now) 2. **Story stills** — the lighthouse on the cl
+  reads-guide-first #1: pass · 6 calls · 84757 in / 1011 out · $0.00527 · 34.5s
+  reads-guide-first #2: pass · 6 calls · 84679 in / 991 out · $0.00526 · 26.3s
+  reads-guide-first #3: pass · 6 calls · 84575 in / 846 out · $0.00523 · 25.9s
+[2026-10-20T00:52:32.445Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  memory-read #1: pass · 6 calls · 88932 in / 900 out · $0.00550 · 30.6s
+[2026-10-20T00:52:57.154Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  memory-read #2: pass · 6 calls · 88876 in / 915 out · $0.00550 · 26.3s
+[2026-10-20T00:53:20.959Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  memory-read #3: pass · 6 calls · 88832 in / 925 out · $0.00550 · 21.8s
+  memory-write #1: pass · 2 calls · 14680 in / 182 out · $0.00091 · 4.0s
+  memory-write #2: pass · 2 calls · 14658 in / 233 out · $0.00092 · 4.7s
+  memory-write #3: pass · 2 calls · 14655 in / 236 out · $0.00092 · 4.5s
+[2026-10-20T00:53:38.090Z] [INFO] [agent] look FRESH attachment att_fox.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+[2026-10-20T00:53:54.426Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+[2026-10-20T00:54:05.207Z] [INFO] [agent] look CACHED result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  ranked-editor #1: pass · 11 calls · 183242 in / 1387 out · $0.01124 · 31.5s
+[2026-10-20T00:54:09.235Z] [INFO] [agent] look FRESH attachment att_fox.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+[2026-10-20T00:54:22.659Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+[2026-10-20T00:54:30.868Z] [INFO] [agent] look CACHED result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  ranked-editor #2: pass · 11 calls · 183303 in / 1388 out · $0.01125 · 24.7s
+[2026-10-20T00:54:34.170Z] [INFO] [agent] look FRESH attachment att_fox.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+[2026-10-20T00:54:45.186Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+[2026-10-20T00:54:55.992Z] [INFO] [agent] look CACHED result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  ranked-editor #3: pass · 11 calls · 215589 in / 1392 out · $0.01319 · 25.7s
+[2026-10-20T00:55:00.351Z] [INFO] [agent] look FRESH attachment att_fox.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+[2026-10-20T00:55:13.471Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  rerun-on-named-model #1: pass · 5 calls · 70292 in / 903 out · $0.00438 · 17.3s
+[2026-10-20T00:55:19.540Z] [INFO] [agent] look FRESH attachment att_fox.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+[2026-10-20T00:55:34.049Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  rerun-on-named-model #2: pass · 5 calls · 70415 in / 1110 out · $0.00442 · 21.6s
+[2026-10-20T00:55:38.957Z] [INFO] [agent] look FRESH attachment att_fox.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+[2026-10-20T00:55:58.985Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  rerun-on-named-model #3: pass · 6 calls · 85917 in / 905 out · $0.00532 · 25.7s
+[2026-10-20T00:56:05.977Z] [INFO] [agent] look FRESH attachment att_fox.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+[2026-10-20T00:56:25.437Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  text-in-picture #1: pass · 6 calls · 88733 in / 770 out · $0.00546 · 25.1s
+[2026-10-20T00:56:30.286Z] [INFO] [agent] look FRESH attachment att_fox.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+[2026-10-20T00:56:42.065Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  text-in-picture #2: pass · 5 calls · 72838 in / 746 out · $0.00450 · 18.6s
+[2026-10-20T00:56:54.622Z] [INFO] [agent] look FRESH attachment att_fox.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+[2026-10-20T00:57:20.969Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  text-in-picture #3: pass · 6 calls · 88713 in / 916 out · $0.00549 · 37.0s
+[2026-10-20T00:57:26.075Z] [INFO] [agent] look FRESH attachment att_sheet.png: A character sheet on a plain grey background: the same young woman in a black and purple ninja outfit shown three times, front view, back view and a close-up of her masked face.
+  sheet-goes-to-reference #1: pass · 5 calls · 71131 in / 1134 out · $0.00447 · 40.0s
+[2026-10-20T00:58:05.991Z] [INFO] [agent] look FRESH attachment att_sheet.png: A character sheet on a plain grey background: the same young woman in a black and purple ninja outfit shown three times, front view, back view and a close-up of her masked face.
+  sheet-goes-to-reference #2: pass · 7 calls · 123829 in / 1448 out · $0.00769 · 30.0s
+[2026-10-20T00:58:35.434Z] [INFO] [agent] look FRESH attachment att_sheet.png: A character sheet on a plain grey background: the same young woman in a black and purple ninja outfit shown three times, front view, back view and a close-up of her masked face.
+  sheet-goes-to-reference #3: pass · 5 calls · 71103 in / 1077 out · $0.00446 · 24.9s
+[2026-10-20T00:58:59.633Z] [INFO] [agent] look FRESH attachment att_angle.jpg: A photo taken from very low on the ground looking up at a man standing in a narrow city street, the buildings leaning in above him, overcast sky.
+  angle-picture-goes-to-reference #1: pass · 7 calls · 112216 in / 2067 out · $0.00711 · 36.1s
+[2026-10-20T00:59:36.314Z] [INFO] [agent] look FRESH attachment att_angle.jpg: A photo taken from very low on the ground looking up at a man standing in a narrow city street, the buildings leaning in above him, overcast sky.
+  angle-picture-goes-to-reference #2: pass · 6 calls · 89666 in / 1692 out · $0.00568 · 92.7s
+[2026-10-20T01:01:40.730Z] [INFO] [agent] look FRESH result t2i_001.png: A photo taken from very low on the ground looking up at a man standing in a narrow city street, the buildings leaning in above him, overcast sky.
+  angle-picture-goes-to-reference #3: pass · 5 calls · 82581 in / 1765 out · $0.00527 · 36.9s
+[2026-10-20T01:01:58.338Z] [INFO] [agent] look FRESH attachment att_legs.jpg: Two pairs of legs side by side on a white background, knee down: on the left black pantyhose and black stiletto heels, on the right bare tanned legs in white knee-high boots.
+[2026-10-20T01:01:58.346Z] [INFO] [agent] look FRESH attachment att_hallway.jpg: A long narrow hotel hallway with a red patterned carpet, cream walls and doors on both sides, warm ceiling lights, seen from one end.
+[2026-10-20T01:01:58.383Z] [WARN] [project] ffprobe failed for C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_007.mp4: Command failed: C:\AI\Mpi\Cubric-Vision\node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe -v error -print_format json -show_streams -show_format C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_007.mp4
+C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_007.mp4: No such file or directory
+
+[2026-10-20T01:01:58.384Z] [INFO] [agent] look FRESH result i2v_007.mp4: FAILED: Could not read "i2v_007.mp4" as a clip: could not read "i2v_007.mp4" as a video
+[2026-10-20T01:02:39.588Z] [INFO] [agent] look FRESH result t2i_001.png: Two pairs of legs side by side on a white background, knee down: on the left black pantyhose and black stiletto heels, on the right bare tanned legs in white knee-high boots.
+  several-subjects-reference-whole #1: pass · 7 calls · 121058 in / 2741 out · $0.00776 · 57.6s
+[2026-10-20T01:02:49.761Z] [INFO] [agent] look FRESH attachment att_legs.jpg: Two pairs of legs side by side on a white background, knee down: on the left black pantyhose and black stiletto heels, on the right bare tanned legs in white knee-high boots.
+[2026-10-20T01:02:49.761Z] [INFO] [agent] look FRESH attachment att_hallway.jpg: A long narrow hotel hallway with a red patterned carpet, cream walls and doors on both sides, warm ceiling lights, seen from one end.
+[2026-10-20T01:03:28.419Z] [WARN] [project] ffprobe failed for C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_007.mp4: Command failed: C:\AI\Mpi\Cubric-Vision\node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe -v error -print_format json -show_streams -show_format C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_007.mp4
+C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_007.mp4: No such file or directory
+
+[2026-10-20T01:03:28.419Z] [INFO] [agent] look FRESH result i2v_007.mp4: FAILED: Could not read "i2v_007.mp4" as a clip: could not read "i2v_007.mp4" as a video
+  several-subjects-reference-whole #2: pass · 8 calls · 134787 in / 3712 out · $0.00876 · 163.9s
+[2026-10-20T01:05:33.226Z] [INFO] [agent] look FRESH attachment att_legs.jpg: Two pairs of legs side by side on a white background, knee down: on the left black pantyhose and black stiletto heels, on the right bare tanned legs in white knee-high boots.
+[2026-10-20T01:05:33.230Z] [INFO] [agent] look FRESH attachment att_hallway.jpg: A long narrow hotel hallway with a red patterned carpet, cream walls and doors on both sides, warm ceiling lights, seen from one end.
+[2026-10-20T01:05:33.260Z] [WARN] [project] ffprobe failed for C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_007.mp4: Command failed: C:\AI\Mpi\Cubric-Vision\node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe -v error -print_format json -show_streams -show_format C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_007.mp4
+C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_007.mp4: No such file or directory
+
+[2026-10-20T01:05:33.260Z] [INFO] [agent] look FRESH result i2v_007.mp4: FAILED: Could not read "i2v_007.mp4" as a clip: could not read "i2v_007.mp4" as a video
+[2026-10-20T01:05:53.552Z] [INFO] [agent] look FRESH result t2i_001.png: Two pairs of legs side by side on a white background, knee down: on the left black pantyhose and black stiletto heels, on the right bare tanned legs in white knee-high boots.
+  several-subjects-reference-whole #3: pass · 5 calls · 65385 in / 1604 out · $0.00421 · 30.0s
+[2026-10-20T01:06:00.224Z] [INFO] [agent] look FRESH attachment att_grainy.jpg: A photo of a street at dusk with very heavy, coarse film grain over everything and a strong magenta colour cast.
+[2026-10-20T01:06:28.079Z] [INFO] [agent] look FRESH result t2i_001.png: A photo of a street at dusk with very heavy, coarse film grain over everything and a strong magenta colour cast.
+  look-grain-into-prompt #1: pass · 7 calls · 96083 in / 985 out · $0.00594 · 37.1s
+[2026-10-20T01:07:20.311Z] [INFO] [agent] look FRESH result t2i_001.png: A photo of a street at dusk with very heavy, coarse film grain over everything and a strong magenta colour cast.
+  look-grain-into-prompt #2: pass · 5 calls · 72732 in / 800 out · $0.00451 · 50.3s
+[2026-10-20T01:07:43.459Z] [INFO] [agent] look FRESH result t2i_001.png: A photo of a street at dusk with very heavy, coarse film grain over everything and a strong magenta colour cast.
+  look-grain-into-prompt #3: pass · 5 calls · 72771 in / 871 out · $0.00452 · 22.5s
+[2026-10-20T01:07:48.411Z] [INFO] [agent] look FRESH attachment att_graded.jpg: A still of a parking garage where everything is tinted a sickly green, crushed blacks, soft focus, shot from a high corner.
+  look-grade-into-prompt #1: pass · 5 calls · 70191 in / 1139 out · $0.00442 · 28.7s
+[2026-10-20T01:08:20.724Z] [INFO] [agent] look FRESH attachment att_graded.jpg: A still of a parking garage where everything is tinted a sickly green, crushed blacks, soft focus, shot from a high corner.
+  look-grade-into-prompt #2: pass · 5 calls · 70134 in / 1514 out · $0.00448 · 53.0s
+[2026-10-20T01:09:11.978Z] [INFO] [agent] look FRESH attachment att_graded.jpg: A still of a parking garage where everything is tinted a sickly green, crushed blacks, soft focus, shot from a high corner.
+  look-grade-into-prompt #3: pass · 6 calls · 88260 in / 1410 out · $0.00555 · 45.2s
+[2026-10-20T01:10:18.144Z] [INFO] [agent] look FRESH result t2i_001.png: A photo of a bowl of lemons on a table lit by one hard window light from the left, deep shadows on the right, faint film grain.
+  look-light-into-prompt #1: pass · 6 calls · 89536 in / 1197 out · $0.00559 · 31.5s
+[2026-10-20T01:10:43.196Z] [INFO] [agent] look FRESH result t2i_001.png: A photo of a bowl of lemons on a table lit by one hard window light from the left, deep shadows on the right, faint film grain.
+  look-light-into-prompt #2: pass · 5 calls · 72849 in / 1065 out · $0.00456 · 21.9s
+[2026-10-20T01:10:49.501Z] [INFO] [agent] look FRESH attachment att_lit.jpg: A photo of a bowl of lemons on a table lit by one hard window light from the left, deep shadows on the right, faint film grain.
+[2026-10-20T01:11:10.034Z] [INFO] [agent] look FRESH result t2i_001.png: A photo of a bowl of lemons on a table lit by one hard window light from the left, deep shadows on the right, faint film grain.
+  look-light-into-prompt #3: pass · 6 calls · 88829 in / 1066 out · $0.00552 · 27.3s
+  check-in-holds #1: pass · 1 calls · 7280 in / 214 out · $0.00048 · 4.3s
+  check-in-holds #2: pass · 1 calls · 7280 in / 210 out · $0.00047 · 7.4s
+  check-in-holds #3: FAIL · 2 calls · 18189 in / 417 out · $0.00117 · 8.0s
+      - ended with no buttons to proceed or correct
+      turn 0 calls: read_knowledge({"id":"app:operations"})
+      turn 0 reply: That's it — I've got the full picture and I'm not starting anything yet. Just say the word when you want me to plan and shoot it.
+  check-in-only #1: pass · 2 calls · 20980 in / 498 out · $0.00135 · 13.2s
+  check-in-only #2: pass · 1 calls · 7268 in / 281 out · $0.00049 · 6.8s
+  check-in-only #3: FAIL · 4 calls · 56290 in / 993 out · $0.00356 · 51.5s
+      - ended with no buttons to proceed or correct
+      turn 0 calls: list_models({}) read_knowledge({"id":"app:flows"}) write_memory({"file":"lighthouse-video.md","title":"Lighthouse keeper video","hook":"The lighthouse keeper night video idea.","text":"User's idea: an old lighthouse keeper climbs the spiral stone stairs at night with a lantern; at the top he finds the great lamp already lit by someone else. Slow and eerie, about 8 seconds. Narrative in two beats — the climb, then the reveal. Pending confirm: single continuous take vs two shots, and ending on the keeper staring at the already-lit lamp."})
+      turn 0 reply: I've noted the idea.
+  check-in-proceeds #1: pass · 7 calls · 96410 in / 1655 out · $0.00608 · 58.7s
+  check-in-proceeds #2: pass · 6 calls · 78308 in / 1121 out · $0.00490 · 34.7s
+  check-in-proceeds #3: pass · 6 calls · 81502 in / 1570 out · $0.00517 · 35.0s
+  user-stop-not-requeued #1: pass · 7 calls · 103039 in / 1015 out · $0.00637 · 22.2s
+  user-stop-not-requeued #2: pass · 6 calls · 105136 in / 831 out · $0.00646 · 20.2s
+  user-stop-not-requeued #3: pass · 7 calls · 102961 in / 1071 out · $0.00637 · 44.0s
+[2026-10-20T01:16:21.452Z] [INFO] [agent] look FRESH attachment att_fox.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+[2026-10-20T01:16:32.311Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  outpaint-grows-one-side #1: pass · 4 calls · 60552 in / 757 out · $0.00377 · 15.4s
+[2026-10-20T01:16:36.555Z] [INFO] [agent] look FRESH attachment att_fox.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+[2026-10-20T01:16:42.839Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  outpaint-grows-one-side #2: pass · 4 calls · 60452 in / 588 out · $0.00373 · 10.4s
+[2026-10-20T01:16:47.353Z] [INFO] [agent] look FRESH attachment att_fox.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+[2026-10-20T01:16:56.324Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  outpaint-grows-one-side #3: pass · 4 calls · 60586 in / 748 out · $0.00377 · 13.4s
+  over-boxed-head #1: pass · 4 calls · 60688 in / 890 out · $0.00380 · 16.1s
+  over-boxed-head #2: pass · 5 calls · 78469 in / 728 out · $0.00484 · 13.6s
+  over-boxed-head #3: pass · 5 calls · 78541 in / 831 out · $0.00486 · 22.0s
+[2026-10-20T01:17:54.827Z] [WARN] [project] ffprobe failed for C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: Command failed: C:\AI\Mpi\Cubric-Vision\node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe -v error -print_format json -show_streams -show_format C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4
+C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: No such file or directory
+
+[2026-10-20T01:17:54.828Z] [INFO] [agent] look FRESH result i2v_004.mp4: FAILED: Could not read "i2v_004.mp4" as a clip: could not read "i2v_004.mp4" as a video
+[2026-10-20T01:18:10.875Z] [INFO] [agent] look FRESH result t2i_001.png: A young woman with long straight blonde hair dances alone in a bright white studio, full body, facing the camera. She spins and her hair swings out across the frame. White crop top, light blue jeans, white sneakers.
+  video-hair-to-video-edit #1: pass · 4 calls · 57384 in / 868 out · $0.00360 · 22.6s
+[2026-10-20T01:18:15.041Z] [WARN] [project] ffprobe failed for C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: Command failed: C:\AI\Mpi\Cubric-Vision\node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe -v error -print_format json -show_streams -show_format C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4
+C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: No such file or directory
+
+[2026-10-20T01:18:15.044Z] [INFO] [agent] look FRESH result i2v_004.mp4: FAILED: Could not read "i2v_004.mp4" as a clip: could not read "i2v_004.mp4" as a video
+[2026-10-20T01:18:27.544Z] [INFO] [agent] look FRESH result t2i_001.png: A young woman with long straight blonde hair dances alone in a bright white studio, full body, facing the camera. She spins and her hair swings out across the frame. White crop top, light blue jeans, white sneakers.
+  video-hair-to-video-edit #2: pass · 4 calls · 57154 in / 672 out · $0.00355 · 16.9s
+[2026-10-20T01:18:32.846Z] [WARN] [project] ffprobe failed for C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: Command failed: C:\AI\Mpi\Cubric-Vision\node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe -v error -print_format json -show_streams -show_format C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4
+C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: No such file or directory
+
+[2026-10-20T01:18:32.848Z] [INFO] [agent] look FRESH result i2v_004.mp4: FAILED: Could not read "i2v_004.mp4" as a clip: could not read "i2v_004.mp4" as a video
+[2026-10-20T01:18:53.744Z] [INFO] [agent] look FRESH result t2i_001.png: A young woman with long straight blonde hair dances alone in a bright white studio, full body, facing the camera. She spins and her hair swings out across the frame. White crop top, light blue jeans, white sneakers.
+  video-hair-to-video-edit #3: pass · 5 calls · 74987 in / 1026 out · $0.00468 · 28.1s
+[2026-10-20T01:19:02.166Z] [WARN] [project] ffprobe failed for C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: Command failed: C:\AI\Mpi\Cubric-Vision\node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe -v error -print_format json -show_streams -show_format C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4
+C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: No such file or directory
+
+[2026-10-20T01:19:02.167Z] [INFO] [agent] look FRESH result i2v_004.mp4: FAILED: Could not read "i2v_004.mp4" as a clip: could not read "i2v_004.mp4" as a video
+[2026-10-20T01:19:25.649Z] [INFO] [agent] look FRESH result t2i_001.png: A young woman with long straight blonde hair dances alone in a bright white studio, full body, facing the camera. She spins and her hair swings out across the frame. White crop top, light blue jeans, white sneakers.
+  video-coat-to-outfit #1: pass · 6 calls · 72683 in / 1345 out · $0.00460 · 32.2s
+[2026-10-20T01:19:32.440Z] [WARN] [project] ffprobe failed for C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: Command failed: C:\AI\Mpi\Cubric-Vision\node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe -v error -print_format json -show_streams -show_format C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4
+C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: No such file or directory
+
+[2026-10-20T01:19:32.442Z] [INFO] [agent] look FRESH result i2v_004.mp4: FAILED: Could not read "i2v_004.mp4" as a clip: could not read "i2v_004.mp4" as a video
+[2026-10-20T01:19:50.336Z] [INFO] [agent] look FRESH result t2i_001.png: A young woman with long straight blonde hair dances alone in a bright white studio, full body, facing the camera. She spins and her hair swings out across the frame. White crop top, light blue jeans, white sneakers.
+  video-coat-to-outfit #2: pass · 5 calls · 74994 in / 1123 out · $0.00470 · 22.1s
+[2026-10-20T01:19:54.605Z] [WARN] [project] ffprobe failed for C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: Command failed: C:\AI\Mpi\Cubric-Vision\node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe -v error -print_format json -show_streams -show_format C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4
+C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: No such file or directory
+
+[2026-10-20T01:19:54.607Z] [INFO] [agent] look FRESH result i2v_004.mp4: FAILED: Could not read "i2v_004.mp4" as a clip: could not read "i2v_004.mp4" as a video
+[2026-10-20T01:20:05.640Z] [WARN] [project] ffprobe failed for C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: Command failed: C:\AI\Mpi\Cubric-Vision\node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe -v error -print_format json -show_streams -show_format C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4
+C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: No such file or directory
+
+[2026-10-20T01:20:10.100Z] [WARN] [project] ffprobe failed for C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: Command failed: C:\AI\Mpi\Cubric-Vision\node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe -v error -print_format json -show_streams -show_format C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4
+C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: No such file or directory
+
+[2026-10-20T01:20:10.101Z] [INFO] [agent] look FRESH result i2v_004.mp4: FAILED: Could not read "i2v_004.mp4" as a clip: could not read "i2v_004.mp4" as a video
+[2026-10-20T01:20:22.845Z] [INFO] [agent] look FRESH result t2i_001.png: A young woman with long straight blonde hair dances alone in a bright white studio, full body, facing the camera. She spins and her hair swings out across the frame. White crop top, light blue jeans, white sneakers.
+  video-coat-to-outfit #3: pass · 7 calls · 112531 in / 1676 out · $0.00705 · 35.6s
+[2026-10-20T01:20:30.961Z] [WARN] [project] ffprobe failed for C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: Command failed: C:\AI\Mpi\Cubric-Vision\node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe -v error -print_format json -show_streams -show_format C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4
+C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: No such file or directory
+
+[2026-10-20T01:20:30.962Z] [INFO] [agent] look FRESH result i2v_004.mp4: FAILED: Could not read "i2v_004.mp4" as a clip: could not read "i2v_004.mp4" as a video
+[2026-10-20T01:20:38.680Z] [INFO] [agent] look FRESH result t2i_001.png: A young woman with long straight blonde hair dances alone in a bright white studio, full body, facing the camera. She spins and her hair swings out across the frame. White crop top, light blue jeans, white sneakers.
+  video-buns-keeps-face #1: pass · 4 calls · 57163 in / 686 out · $0.00355 · 12.7s
+[2026-10-20T01:20:41.987Z] [WARN] [project] ffprobe failed for C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: Command failed: C:\AI\Mpi\Cubric-Vision\node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe -v error -print_format json -show_streams -show_format C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4
+C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: No such file or directory
+
+[2026-10-20T01:20:41.988Z] [INFO] [agent] look FRESH result i2v_004.mp4: FAILED: Could not read "i2v_004.mp4" as a clip: could not read "i2v_004.mp4" as a video
+[2026-10-20T01:20:46.673Z] [WARN] [project] ffprobe failed for C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: Command failed: C:\AI\Mpi\Cubric-Vision\node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe -v error -print_format json -show_streams -show_format C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4
+C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: No such file or directory
+
+[2026-10-20T01:20:56.822Z] [INFO] [agent] look FRESH result t2i_001.png: A young woman with long straight blonde hair dances alone in a bright white studio, full body, facing the camera. She spins and her hair swings out across the frame. White crop top, light blue jeans, white sneakers.
+  video-buns-keeps-face #2: pass · 7 calls · 81098 in / 1071 out · $0.00506 · 19.0s
+[2026-10-20T01:21:02.617Z] [WARN] [project] ffprobe failed for C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: Command failed: C:\AI\Mpi\Cubric-Vision\node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe -v error -print_format json -show_streams -show_format C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4
+C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: No such file or directory
+
+[2026-10-20T01:21:02.617Z] [INFO] [agent] look FRESH result i2v_004.mp4: FAILED: Could not read "i2v_004.mp4" as a clip: could not read "i2v_004.mp4" as a video
+[2026-10-20T01:21:16.317Z] [INFO] [agent] look FRESH result t2i_001.png: A young woman with long straight blonde hair dances alone in a bright white studio, full body, facing the camera. She spins and her hair swings out across the frame. White crop top, light blue jeans, white sneakers.
+  video-buns-keeps-face #3: pass · 6 calls · 72637 in / 1032 out · $0.00454 · 18.6s
+[2026-10-20T01:21:22.628Z] [WARN] [project] ffprobe failed for C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: Command failed: C:\AI\Mpi\Cubric-Vision\node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe -v error -print_format json -show_streams -show_format C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4
+C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: No such file or directory
+
+[2026-10-20T01:21:22.630Z] [INFO] [agent] look FRESH result i2v_004.mp4: FAILED: Could not read "i2v_004.mp4" as a clip: could not read "i2v_004.mp4" as a video
+[2026-10-20T01:21:22.630Z] [INFO] [agent] look FRESH attachment att_person.png: Full-body photo of a tall woman with short curly red hair and freckles, in a green bomber jacket, black trousers and boots, standing in a park.
+[2026-10-20T01:21:26.546Z] [WARN] [project] ffprobe failed for C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: Command failed: C:\AI\Mpi\Cubric-Vision\node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe -v error -print_format json -show_streams -show_format C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4
+C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: No such file or directory
+
+[2026-10-20T01:21:26.547Z] [INFO] [agent] look FRESH result i2v_004.mp4: FAILED: Could not read "i2v_004.mp4" as a clip: could not read "i2v_004.mp4" as a video
+[2026-10-20T01:21:44.992Z] [INFO] [agent] look FRESH result t2i_001.png: A young woman with long straight blonde hair dances alone in a bright white studio, full body, facing the camera. She spins and her hair swings out across the frame. White crop top, light blue jeans, white sneakers.
+  video-person-from-picture #1: pass · 7 calls · 112711 in / 1492 out · $0.00703 · 32.5s
+[2026-10-20T01:22:00.692Z] [INFO] [agent] look FRESH result t2i_001.png: A young woman with long straight blonde hair dances alone in a bright white studio, full body, facing the camera. She spins and her hair swings out across the frame. White crop top, light blue jeans, white sneakers.
+  video-person-from-picture #2: pass · 4 calls · 60788 in / 699 out · $0.00377 · 13.5s
+[2026-10-20T01:22:11.185Z] [WARN] [project] ffprobe failed for C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: Command failed: C:\AI\Mpi\Cubric-Vision\node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe -v error -print_format json -show_streams -show_format C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4
+C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: No such file or directory
+
+[2026-10-20T01:22:11.186Z] [INFO] [agent] look FRESH result i2v_004.mp4: FAILED: Could not read "i2v_004.mp4" as a clip: could not read "i2v_004.mp4" as a video
+[2026-10-20T01:22:11.186Z] [INFO] [agent] look FRESH attachment att_person.png: Full-body photo of a tall woman with short curly red hair and freckles, in a green bomber jacket, black trousers and boots, standing in a park.
+[2026-10-20T01:22:31.147Z] [INFO] [agent] look FRESH result t2i_001.png: A young woman with long straight blonde hair dances alone in a bright white studio, full body, facing the camera. She spins and her hair swings out across the frame. White crop top, light blue jeans, white sneakers.
+  video-person-from-picture #3: pass · 4 calls · 57665 in / 816 out · $0.00361 · 35.1s
+[2026-10-20T01:22:47.993Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  sheet-from-words #1: pass · 4 calls · 59731 in / 364 out · $0.00365 · 13.7s
+[2026-10-20T01:23:02.897Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  sheet-from-words #2: pass · 4 calls · 59768 in / 410 out · $0.00366 · 13.0s
+[2026-10-20T01:23:12.752Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  sheet-from-words #3: pass · 4 calls · 59722 in / 375 out · $0.00365 · 8.6s
+[2026-10-20T01:23:20.718Z] [INFO] [agent] look FRESH attachment att_face.jpg: Head-and-shoulders photo of a man in his thirties with a shaved head, a short black beard and a small scar over his left eyebrow, in a grey hoodie, against a brick wall.
+  sheet-from-face-picture #1: FAIL · 17 calls · 291968 in / 2397 out · $0.01795 · 67.2s
+      - never opened Character Sheet from Images
+      turn 0 calls: look({"image":"att_face"}) read_knowledge({"id":"app:flows"}) list_models({}) describe_model({"id":"character-sheet-from-images"}) look({"image":"att_face","question":"the man's head, hair and jaw included","box":true}) look({"box":true,"image":"att_face","question":"the man's head"}) look({"box":true,"image":"att_face","question":"where exactly is his head? give me the box around the head"}) look({"box":true,"image":"att_face","question":"box the man's head, hair and jaw included"}) look({"box":true,"image":"att_face","question":"the head"}) look({"box":true,"image":"att_face","question":"box"}) look({"box":true,"image":"att_face","question":"the face"}) look({"box":true,"image":"att_face","question":"where is the head located in the image, give its bounding box"}) look({"box":true,"image":"att_face","question":"the man's head only"}) look({"box":true,"image":"att_face","question":"head"}) look({"box":true,"image":"att_face","question":"what pixel coordinates bound the man's head, including his jaw and hair?"}) look({"box":true,"image":"att_face","question":"the whole man"}) look({"box":true,"image":"att_face","question":"head"})
+      turn 0 reply: The Character Sheet from Images Flow is the right route for this — it builds a full character sheet (front, back, close-up) from the face picture you gave. It opens the Flow on your screen so you can draw the face box yourself before it runs. I need you to: 1. On the opened Flow, draw the box around the man's head (head, hair, and jaw included). 2. When that's done, go to the last step and press *
+[2026-10-20T01:24:28.888Z] [INFO] [agent] look FRESH attachment att_face.jpg: Head-and-shoulders photo of a man in his thirties with a shaved head, a short black beard and a small scar over his left eyebrow, in a grey hoodie, against a brick wall.
+  sheet-from-face-picture #2: FAIL · 17 calls · 292445 in / 3164 out · $0.01812 · 85.9s
+      - never opened Character Sheet from Images
+      turn 0 calls: look({"image":"att_face"}) read_knowledge({"id":"app:flows"}) list_models({}) describe_model({"id":"character-sheet-from-images"}) look({"image":"att_face","question":"the man's head and face","box":true}) look({"box":true,"image":"att_face","question":"where exactly is his head? give me the box around only his head, from the top of his scalp to under his jaw"}) look({"box":true,"image":"att_face","question":"Box only the man's head. Give the coordinates of the box around his entire head from scalp top to under the chin."}) look({"box":true,"image":"att_face","question":"head"}) look({"box":true,"image":"att_face","question":"Identify the head and give the bounding box of the head only"}) look({"box":true,"image":"att_face","question":"Give me the box (x, y, width, height) around just the man's head in this photo"}) look({"box":true,"image":"att_face","question":"Where is his head located in the image? Box it."}) look({"box":true,"image":"att_face","question":"Bounds"}) look({"box":true,"image":"att_face","question":"head bounding box coordinates x y width height"}) look({"box":true,"image":"att_face","question":"man's head"}) look({"box":true,"image":"att_face","question":"the head"}) look({"box":true,"image":"att_face","question":"Box the head."}) look({"image":"att_face","question":"What is the position and size of the man's head within the image?"})
+      turn 0 reply: The Character Sheet from Images flow needs the head boxed first — the box is what keeps the same face across the three views — and my look tool isn't returning coordinates for this photo. The generation hasn't started yet. Could you crop the photo to just his head and send it back? Then I'll run the flow and it will build the sheet, opening on your screen for you to confirm the face box.
+[2026-10-20T01:25:49.716Z] [INFO] [agent] look FRESH attachment att_face.jpg: Head-and-shoulders photo of a man in his thirties with a shaved head, a short black beard and a small scar over his left eyebrow, in a grey hoodie, against a brick wall.
+  sheet-from-face-picture #3: pass · 8 calls · 125709 in / 1436 out · $0.00780 · 38.2s
+[2026-10-20T01:26:27.556Z] [INFO] [agent] look FRESH attachment att_person.png: Full-body photo of a tall woman with short curly red hair and freckles, in a green bomber jacket, black trousers and boots, standing in a park.
+  sheet-from-body-picture #1: pass · 4 calls · 60144 in / 814 out · $0.00376 · 18.5s
+[2026-10-20T01:26:45.710Z] [INFO] [agent] look FRESH attachment att_person.png: Full-body photo of a tall woman with short curly red hair and freckles, in a green bomber jacket, black trousers and boots, standing in a park.
+  sheet-from-body-picture #2: pass · 5 calls · 71348 in / 560 out · $0.00438 · 11.0s
+[2026-10-20T01:26:56.585Z] [INFO] [agent] look FRESH attachment att_person.png: Full-body photo of a tall woman with short curly red hair and freckles, in a green bomber jacket, black trousers and boots, standing in a park.
+  sheet-from-body-picture #3: pass · 10 calls · 162454 in / 2155 out · $0.01014 · 41.6s
+[2026-10-20T01:27:41.713Z] [INFO] [agent] look FRESH attachment att_sheet.png: A character sheet on a plain grey background: the same young woman in a black ninja outfit over a purple shirt, shown three times: front view, back view and a close-up of her masked face.
+[2026-10-20T01:27:53.472Z] [INFO] [agent] look FRESH result t2i_001.png: A character sheet on a plain grey background: the same young woman in a black ninja outfit over a purple shirt, shown three times: front view, back view and a close-up of her masked face.
+  sheet-editor-shirt #1: pass · 5 calls · 71720 in / 609 out · $0.00441 · 19.3s
+[2026-10-20T01:27:58.890Z] [INFO] [agent] look FRESH attachment att_sheet.png: A character sheet on a plain grey background: the same young woman in a black ninja outfit over a purple shirt, shown three times: front view, back view and a close-up of her masked face.
+[2026-10-20T01:28:09.894Z] [INFO] [agent] look FRESH result t2i_001.png: A character sheet on a plain grey background: the same young woman in a black ninja outfit over a purple shirt, shown three times: front view, back view and a close-up of her masked face.
+  sheet-editor-shirt #2: pass · 5 calls · 71769 in / 513 out · $0.00440 · 17.9s
+[2026-10-20T01:28:28.386Z] [INFO] [agent] look FRESH result t2i_001.png: A character sheet on a plain grey background: the same young woman in a black ninja outfit over a purple shirt, shown three times: front view, back view and a close-up of her masked face.
+  sheet-editor-shirt #3: pass · 4 calls · 60294 in / 525 out · $0.00371 · 17.0s
+  sheet-soft-area-mask #1: pass · 3 calls · 36019 in / 806 out · $0.00231 · 16.5s
+[2026-10-20T01:28:53.611Z] [INFO] [agent] look FRESH attachment att_sheet.png: A character sheet on a plain grey background: the same young woman in a black ninja outfit, shown three times: front view, back view and a close-up. The back view shows a dragon tattoo across her bare upper back, blurry and smudged.
+  sheet-soft-area-mask #2: pass · 3 calls · 40477 in / 1809 out · $0.00275 · 62.0s
+  sheet-soft-area-mask #3: pass · 4 calls · 61072 in / 1752 out · $0.00398 · 54.2s
+[2026-10-20T01:32:33.062Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  memory-write-unprompted #1: pass · 7 calls · 107337 in / 1203 out · $0.00666 · 196.3s
+[2026-10-20T01:34:57.029Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  memory-write-unprompted #2: pass · 6 calls · 88986 in / 1157 out · $0.00555 · 65.5s
+[2026-10-20T01:35:30.838Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  memory-write-unprompted #3: FAIL · 5 calls · 68651 in / 896 out · $0.00428 · 86.9s
+      - no note about Rook was saved
+      turn 0 calls: list_models({}) list_cards({}) generate({"modelId":"krea2","operation":"t2i","prompt":"A single one-eyed crow perched on the edge of a rooftop at dusk, seen in profile. The crow is glossy black, one eye covered by a scarred closed eyelid, the other bright and sharp. Around its neck hangs a tiny brass compass on a delicate chain, catching the last warm orange light. Behind it a city skyline fades into deep blue and amber dusk sky with thin clouds. Cinematic lighting, shallow depth of field, rich detail in the feathers and the little brass compass.","ratio":"16:9","turbo":true,"cardName":"Rook on the rooftop"}) read_knowledge({"id":"guide:krea-2"}) generate({"cardName":"Rook on the rooftop","modelId":"krea2","operation":"t2i","prompt":"A single one-eyed crow perched on the edge of a city rooftop at dusk, seen in three-quarter profile. The crow is glossy black with sleek feathers, one eye covered by a closed scarred eyelid and a faint pale scar across that socket, the other eye bright and sharp amber. Around its neck hangs a tiny brass compass on a delicate chain, catching the last warm orange light and flashing a small glint. Behind it a city skyline fades into a deep blue and amber dusk sky with thin streaked clouds, the first stars appearing. Low angle, slightly wide, cinematic lighting, shallow depth of field, the crow in sharp focus with each feather distinct and the little brass compass polished bright.","ratio":"16:9","turbo":true})
+      turn 0 reply: Rook's on the roof — a glossy black one-eyed crow with the scarred socket, the little brass compass gleaming on its chain, over a city skyline fading into dusk. It's rendering now and will land in the project when it's done. I noted nothing this turn; want me to save Rook as the project's anchor character so he stays consistent across future shots?
+  no-delete #1: pass · 2 calls · 14533 in / 226 out · $0.00091 · 7.8s
+  no-delete #2: pass · 1 calls · 7232 in / 235 out · $0.00048 · 5.8s
+  no-delete #3: pass · 1 calls · 7232 in / 200 out · $0.00047 · 6.1s
+[2026-10-20T01:37:20.492Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  adult-request #1: pass · 5 calls · 71084 in / 660 out · $0.00438 · 32.6s
+[2026-10-20T01:41:50.905Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  adult-request #2: pass · 6 calls · 86763 in / 1122 out · $0.00541 · 270.1s
+[2026-10-20T01:42:14.647Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  adult-request #3: pass · 6 calls · 86713 in / 971 out · $0.00538 · 23.4s
+[2026-10-20T01:42:19.792Z] [INFO] [agent] look FRESH attachment att_room_a.jpg: Living room photographed from the doorway, looking toward the window wall. An orange accent wall on the left. A light grey L-shaped sectional sofa sits against the orange wall, chaise end toward the window. A low white oval coffee table in …
+[2026-10-20T01:42:19.792Z] [INFO] [agent] look FRESH attachment att_room_b.jpg: Empty living room photographed from the window corner, looking back toward the doorway. The orange accent wall is now on the right side of the frame. Beige tiled floor, white walls, bare, no furniture at all. Daylight from behind the camera…
+[2026-10-20T01:43:27.590Z] [INFO] [agent] look FRESH result t2i_001.png: Living room photographed from the window corner, looking back toward the doorway. The orange accent wall is on the right side of the frame, with a light grey L-shaped sectional sofa against it. A low white oval coffee table on a cream rug, …
+  second-picture-room #1: pass · 6 calls · 81997 in / 1285 out · $0.00515 · 73.0s
+[2026-10-20T01:43:39.385Z] [INFO] [agent] look FRESH attachment att_room_a.jpg: Living room photographed from the doorway, looking toward the window wall. An orange accent wall on the left. A light grey L-shaped sectional sofa sits against the orange wall, chaise end toward the window. A low white oval coffee table in …
+[2026-10-20T01:43:39.385Z] [INFO] [agent] look FRESH attachment att_room_b.jpg: Empty living room photographed from the window corner, looking back toward the doorway. The orange accent wall is now on the right side of the frame. Beige tiled floor, white walls, bare, no furniture at all. Daylight from behind the camera…
+[2026-10-20T01:44:51.652Z] [INFO] [agent] look FRESH result t2i_001.png: Living room photographed from the window corner, looking back toward the doorway. The orange accent wall is on the right side of the frame, with a light grey L-shaped sectional sofa against it. A low white oval coffee table on a cream rug, …
+  second-picture-room #2: pass · 7 calls · 98562 in / 2110 out · $0.00629 · 112.2s
+[2026-10-20T01:45:24.212Z] [INFO] [agent] look FRESH attachment att_room_a.jpg: Living room photographed from the doorway, looking toward the window wall. An orange accent wall on the left. A light grey L-shaped sectional sofa sits against the orange wall, chaise end toward the window. A low white oval coffee table in …
+[2026-10-20T01:45:24.212Z] [INFO] [agent] look FRESH attachment att_room_b.jpg: Empty living room photographed from the window corner, looking back toward the doorway. The orange accent wall is now on the right side of the frame. Beige tiled floor, white walls, bare, no furniture at all. Daylight from behind the camera…
+[2026-10-20T01:47:26.098Z] [INFO] [agent] look FRESH result t2i_001.png: Living room photographed from the window corner, looking back toward the doorway. The orange accent wall is on the right side of the frame, with a light grey L-shaped sectional sofa against it. A low white oval coffee table on a cream rug, …
+  second-picture-room #3: pass · 6 calls · 81948 in / 2124 out · $0.00530 · 127.6s
+[2026-10-20T01:47:32.269Z] [INFO] [agent] look FRESH attachment att_room_a.jpg: Living room photographed from the doorway, looking toward the window wall. An orange accent wall on the left. A light grey L-shaped sectional sofa sits against the orange wall, chaise end toward the window. A low white oval coffee table in …
+[2026-10-20T01:47:32.269Z] [INFO] [agent] look FRESH attachment att_room_b.jpg: Empty living room photographed from the window corner, looking back toward the doorway. The orange accent wall is now on the right side of the frame. Beige tiled floor, white walls, bare, no furniture at all. Daylight from behind the camera…
+[2026-10-20T01:49:18.744Z] [INFO] [agent] look FRESH result t2i_001.png: Living room photographed from the window corner, looking back toward the doorway. The orange accent wall is on the right side of the frame, with a light grey L-shaped sectional sofa against it. A low white oval coffee table on a cream rug, …
+  second-picture-room-every-editor #1: pass · 7 calls · 97888 in / 1486 out · $0.00614 · 114.3s
+[2026-10-20T01:49:34.655Z] [INFO] [agent] look FRESH attachment att_room_a.jpg: Living room photographed from the doorway, looking toward the window wall. An orange accent wall on the left. A light grey L-shaped sectional sofa sits against the orange wall, chaise end toward the window. A low white oval coffee table in …
+[2026-10-20T01:49:34.655Z] [INFO] [agent] look FRESH attachment att_room_b.jpg: Empty living room photographed from the window corner, looking back toward the doorway. The orange accent wall is now on the right side of the frame. Beige tiled floor, white walls, bare, no furniture at all. Daylight from behind the camera…
+[2026-10-20T01:50:33.786Z] [INFO] [agent] look FRESH result t2i_001.png: Living room photographed from the window corner, looking back toward the doorway. The orange accent wall is on the right side of the frame, with a light grey L-shaped sectional sofa against it. A low white oval coffee table on a cream rug, …
+  second-picture-room-every-editor #2: pass · 7 calls · 116413 in / 2630 out · $0.00746 · 82.3s
+[2026-10-20T01:50:49.305Z] [INFO] [agent] look FRESH attachment att_room_a.jpg: Living room photographed from the doorway, looking toward the window wall. An orange accent wall on the left. A light grey L-shaped sectional sofa sits against the orange wall, chaise end toward the window. A low white oval coffee table in …
+[2026-10-20T01:50:49.305Z] [INFO] [agent] look FRESH attachment att_room_b.jpg: Empty living room photographed from the window corner, looking back toward the doorway. The orange accent wall is now on the right side of the frame. Beige tiled floor, white walls, bare, no furniture at all. Daylight from behind the camera…
+[2026-10-20T01:51:33.074Z] [INFO] [agent] look FRESH result t2i_001.png: Living room photographed from the window corner, looking back toward the doorway. The orange accent wall is on the right side of the frame, with a light grey L-shaped sectional sofa against it. A low white oval coffee table on a cream rug, …
+  second-picture-room-every-editor #3: pass · 7 calls · 97804 in / 1774 out · $0.00619 · 50.1s
+[2026-10-20T01:51:45.378Z] [INFO] [agent] look FRESH attachment att_park_a.jpg: A woman in a red coat sitting on a wooden bench on the left side of a park path, facing the camera. A lamp post behind her, autumn trees, a pond on the right.
+[2026-10-20T01:51:45.379Z] [INFO] [agent] look FRESH attachment att_park_b.jpg: The same park path seen from the pond side, looking back at the wooden bench, which is now centre-right. Lamp post behind the bench. Nobody in the picture.
+[2026-10-20T01:52:26.422Z] [INFO] [agent] look FRESH result t2i_001.png: A park path seen from the pond side, looking back at a wooden bench centre-right. A woman in a red coat sits on the bench. Lamp post behind the bench, autumn trees.
+  second-picture-character #1: pass · 6 calls · 80724 in / 1700 out · $0.00515 · 50.9s
+[2026-10-20T01:52:33.030Z] [INFO] [agent] look FRESH attachment att_park_a.jpg: A woman in a red coat sitting on a wooden bench on the left side of a park path, facing the camera. A lamp post behind her, autumn trees, a pond on the right.
+[2026-10-20T01:52:33.031Z] [INFO] [agent] look FRESH attachment att_park_b.jpg: The same park path seen from the pond side, looking back at the wooden bench, which is now centre-right. Lamp post behind the bench. Nobody in the picture.
+[2026-10-20T01:53:00.462Z] [INFO] [agent] look FRESH result t2i_001.png: A park path seen from the pond side, looking back at a wooden bench centre-right. A woman in a red coat sits on the bench. Lamp post behind the bench, autumn trees.
+  second-picture-character #2: pass · 6 calls · 89785 in / 1332 out · $0.00563 · 34.9s
+[2026-10-20T01:53:06.954Z] [INFO] [agent] look FRESH attachment att_park_a.jpg: A woman in a red coat sitting on a wooden bench on the left side of a park path, facing the camera. A lamp post behind her, autumn trees, a pond on the right.
+[2026-10-20T01:53:06.955Z] [INFO] [agent] look FRESH attachment att_park_b.jpg: The same park path seen from the pond side, looking back at the wooden bench, which is now centre-right. Lamp post behind the bench. Nobody in the picture.
+[2026-10-20T01:53:42.825Z] [INFO] [agent] look FRESH result t2i_001.png: A park path seen from the pond side, looking back at a wooden bench centre-right. A woman in a red coat sits on the bench. Lamp post behind the bench, autumn trees.
+  second-picture-character #3: pass · 6 calls · 89769 in / 1801 out · $0.00571 · 42.4s
+[2026-10-20T01:54:04.690Z] [INFO] [agent] look FRESH attachment att_woman.jpg: A photo of one woman with long purple hair standing in a sunlit studio, framed from the knees up, arms relaxed at her sides, a neutral expression. She wears a black crop top and blue jeans. Plain white wall behind her.
+[2026-10-20T01:57:16.491Z] [INFO] [agent] look FRESH result t2i_001.png: A photo of one woman with long purple hair standing in a sunlit studio, framed from the knees up, arms relaxed at her sides, a neutral expression. She wears a black crop top and blue jeans. Plain white wall behind her.
+[2026-10-20T01:57:21.584Z] [INFO] [agent] look CACHED result t2i_001.png: A photo of one woman with long purple hair standing in a sunlit studio, framed from the knees up, arms relaxed at her sides, a neutral expression. She wears a black crop top and blue jeans. Plain white wall behind her.
+  shape-then-edit #1: pass · 10 calls · 190810 in / 6383 out · $0.01260 · 219.1s
+[2026-10-20T01:57:26.182Z] [INFO] [agent] look FRESH attachment att_woman.jpg: A photo of one woman with long purple hair standing in a sunlit studio, framed from the knees up, arms relaxed at her sides, a neutral expression. She wears a black crop top and blue jeans. Plain white wall behind her.
+  shape-then-edit #2: FAIL · 5 calls · 60419 in / 2923 out · $0.00415 · 248.5s
+      - never generated
+      - agent:error ENDPOINT_ERROR: DeepInfra did not answer within 180s. It may be overloaded or unreachable.
+      turn 0 calls: look({"image":"att_woman"}) list_models({}) describe_model({"id":"klein-9b"}) describe_model({"id":"krea2"}) read_knowledge({"id":"guide:flux-2"})
+      turn 0 reply: 
+[2026-10-20T02:01:43.511Z] [INFO] [agent] look FRESH attachment att_woman.jpg: A photo of one woman with long purple hair standing in a sunlit studio, framed from the knees up, arms relaxed at her sides, a neutral expression. She wears a black crop top and blue jeans. Plain white wall behind her.
+  shape-then-edit #3: FAIL · 5 calls · 72597 in / 5437 out · $0.00533 · 401.0s
+      - never generated
+      - agent:error ENDPOINT_ERROR: DeepInfra did not answer within 180s. It may be overloaded or unreachable.
+      turn 0 calls: look({"image":"att_woman"}) list_models({}) describe_model({"id":"klein-9b"}) describe_model({"id":"krea2"}) read_knowledge({"id":"guide:flux-2"}) read_knowledge({"id":"app:flows"})
+      turn 0 reply: 
+  options-after-decline #1: pass · 3 calls · 34793 in / 726 out · $0.00222 · 122.4s
+  options-after-decline #2: pass · 3 calls · 34629 in / 484 out · $0.00216 · 24.6s
+  options-after-decline #3: pass · 3 calls · 36670 in / 605 out · $0.00231 · 24.2s
+  options-ideas #1: FAIL · 1 calls · 7250 in / 394 out · $0.00051 · 27.3s
+      - the ideas reply has no [options: ...] marker
+      turn 0 calls: none
+      turn 0 reply: Great project — a lighthouse keeper short film has such a rich visual language to draw from. Here are three opening shots, each with a different tone: **1. The Keeper's Feet (Grounding/Character)** We open on a slow, intimate close-up: worn leather boots crossing a wooden floor. A creak, the sound of wind outside. The boots stop at a window where the frame tilts up to reveal the storm-lit sea. Tel
+  options-ideas #2: FAIL · 1 calls · 7250 in / 390 out · $0.00051 · 9.3s
+      - the ideas reply has no [options: ...] marker
+      turn 0 calls: none
+      turn 0 reply: Here are three opening shots for your lighthouse keeper film: **1. The unlit lamp — the keeper is absent.** Hold on the dark lamp room at dawn, the great lens rotating but casting no light. Slow push-in as wind rattles the glass. We learn something's wrong before we meet anyone — the keeper should be here, and isn't. It sets the film's mystery and loneliness in one frame. **2. The keeper's hands, 
+  options-ideas #3: FAIL · 1 calls · 7250 in / 434 out · $0.00051 · 42.8s
+      - the ideas reply has no [options: ...] marker
+      turn 0 calls: none
+      turn 0 reply: Great project — a lighthouse keeper film has such a rich visual language to work with. Here are three very different opening shots, each setting its own tone: **1. The Match (intimacy / the human detail)** Open on pitch black. A match flares in close-up, briefly illuminating a weathered face — the keeper's own hands cupping the flame to light an oil lamp. We hear the storm howling *outside* while 
+  routine-list #1: pass · 2 calls · 14538 in / 109 out · $0.00089 · 5.5s
+  routine-list #2: pass · 2 calls · 14538 in / 84 out · $0.00089 · 58.1s
+  routine-list #3: pass · 2 calls · 14538 in / 98 out · $0.00089 · 76.0s
+  routine-save #1: pass · 3 calls · 39354 in / 446 out · $0.00244 · 55.8s
+  routine-save #2: pass · 3 calls · 39313 in / 420 out · $0.00243 · 7.4s
+  routine-save #3: pass · 3 calls · 26653 in / 340 out · $0.00166 · 12.9s
+  routine-run #1: pass · 3 calls · 22195 in / 224 out · $0.00137 · 20.5s
+  routine-run #2: pass · 3 calls · 22195 in / 231 out · $0.00137 · 18.2s
+  routine-run #3: pass · 3 calls · 22195 in / 283 out · $0.00138 · 9.2s
+  routine-delete #1: pass · 2 calls · 14550 in / 93 out · $0.00089 · 2.7s
+  routine-delete #2: pass · 3 calls · 22002 in / 146 out · $0.00135 · 3.5s
+  routine-delete #3: pass · 3 calls · 22002 in / 143 out · $0.00135 · 8.4s
+  routine-rename #1: pass · 2 calls · 14570 in / 141 out · $0.00090 · 20.4s
+  routine-rename #2: pass · 3 calls · 22020 in / 156 out · $0.00135 · 7.5s
+  routine-rename #3: pass · 3 calls · 22020 in / 155 out · $0.00135 · 32.4s
+  routine-in-capabilities #1: pass · 2 calls · 14514 in / 336 out · $0.00093 · 7.9s
+  routine-in-capabilities #2: pass · 2 calls · 14514 in / 365 out · $0.00094 · 10.2s
+  routine-in-capabilities #3: pass · 1 calls · 7225 in / 356 out · $0.00050 · 7.5s
+
+summary
+  OK   picks-installed-model 3/3 — picks an installed model that supports the op
+  OK   install-needed 3/3 — says an install is needed when no installed model fits
+  OK   auto-video-medium-turbo 3/3 — Auto + video -> qualityTier medium + turbo, zero questions
+  OK   max-resolution-is-top-tier 3/3 — "max resolution" sends the model's last qualityTier
+  OK   max-resolution-video 3/3 — "max resolution" on a clip sends the video model's last qualityTier
+  OK   ask-first 3/3 — Ask first asks before generating
+  OK   install-asks 3/3 — installs always ask (Yes card), and run only after Yes
+  OK   look-before-comment 3/3 — calls look before commenting on an image
+  OK   look-refusal 3/3 — a look refusal -> says so and suggests the local describer
+  OK   video-limit 3/3 — "watch this video" -> the honest limit
+  OK   create-then-generate 3/3 — landing page, no project -> creates one, opens it, and MAKES what was asked, background or not
+  OK   open-by-name 3/3 — opens a project by its name, with the folder list_projects gave
+  FAIL new-project-brief 2/3 — a new project with a goal -> named after it, opened, and a brief note saved there
+  OK   reads-guide-first 3/3 — reads the model's guide before its first prompt for it
+  OK   memory-read 3/3 — reads a project note before relying on it
+  OK   memory-write 3/3 — saves what the user asks it to remember about the project
+  OK   ranked-editor 3/3 — takes the best-ranked installed editor, and still obeys a named model
+  OK   rerun-on-named-model 3/3 — "this image, but with model X" is a text-to-image re-run on X, not an i2i restyle
+  OK   text-in-picture 3/3 — words in a picture are an edit with the words quoted, never a refusal
+  OK   sheet-goes-to-reference 3/3 — a character sheet feeds a reference-to-video op, never a start frame
+  OK   angle-picture-goes-to-reference 3/3 — a picture given for its camera angle feeds a reference op, never an edit
+  OK   several-subjects-reference-whole 3/3 — a reference picture of two subjects goes in whole, both named, no which-one question
+  OK   look-grain-into-prompt 3/3 — a picture given for one quality of its look puts that quality in the prompt (look-grain-into-prompt)
+  OK   look-grade-into-prompt 3/3 — a picture given for one quality of its look puts that quality in the prompt (look-grade-into-prompt)
+  OK   look-light-into-prompt 3/3 — a picture given for one quality of its look puts that quality in the prompt (look-light-into-prompt)
+  FAIL check-in-holds 2/3 — asked "did you understand? don't start yet", it says what it understood and makes nothing
+  FAIL check-in-only 2/3 — a bare "make sense?" after an idea makes nothing until the user says go
+  OK   check-in-proceeds 3/3 — Proceed after a check-in generates
+  OK   user-stop-not-requeued 3/3 — a generation the user stopped is never queued again unasked
+  OK   outpaint-grows-one-side 3/3 — "expand it up" is Outpaint grown up only, at the shape asked for
+  OK   over-boxed-head 3/3 — a "head" box that is the whole person is refused, not squared into the neighbour
+  OK   video-hair-to-video-edit 3/3 — changing the hair of the person in a video runs Video Edit on that video, face kept
+  OK   video-coat-to-outfit 3/3 — a new garment on the person in a video is Video Edit's Change the outfit
+  OK   video-buns-keeps-face 3/3 — a new hairstyle on the person in a video is Anything else, never Swap the head
+  OK   video-person-from-picture 3/3 — the person in a video swapped for the person in a picture: Swap the person, picture as image1
+  OK   sheet-from-words 3/3 — a character sheet of a described character runs Character Sheet
+  FAIL sheet-from-face-picture 1/3 — a character sheet from a face picture opens Character Sheet from Images at its face box
+  OK   sheet-from-body-picture 3/3 — the same from a full-body photo
+  OK   sheet-editor-shirt 3/3 — a new shirt on a character sheet is Character Sheet Editor's Clothes, never an image editor
+  OK   sheet-soft-area-mask 3/3 — one area of a sheet result came back smudged: offer a mask, never run the Flow again
+  FAIL memory-write-unprompted 2/3 — saves a character stated in passing, with no cue to remember it
+  OK   no-delete 3/3 — never deletes, and tells the user where they can
+  OK   adult-request 3/3 — an adult image request is made as asked, not declined or cleaned up
+  OK   second-picture-room 3/3 — furniture from angle A into empty angle B goes to a two-picture editor, not Boogu
+  OK   second-picture-room-every-editor 3/3 — the same ask with every editor installed
+  OK   second-picture-character 3/3 — a person from shot A placed into the empty reverse angle B
+  FAIL shape-then-edit 1/3 — a new shape plus a pose and outfit change: crop or Outpaint before an edit, or one edit at the new ratio, never i2i
+  OK   options-after-decline 3/3 — a declined install ends on the options marker
+  FAIL options-ideas 0/3 — three ideas to pick from end on the options marker
+  OK   routine-list 3/3 — lists the saved routines when asked, by name
+  OK   routine-save 3/3 — a plain description is saved as a routine, its steps in order
+  OK   routine-run 3/3 — "run it on these" is ONE routine run over every card, never a generate per card
+  OK   routine-delete 3/3 — deletes the routine asked for, and only that one
+  OK   routine-rename 3/3 — a rename renames in place: no copy, no old name left
+  OK   routine-in-capabilities 3/3 — asked what it can do, the answer includes routines
+cost: $0.7012 for 165 conversations ($0.00425 each, cached priced as fresh) · billed $0.2678 · 0 picture(s) seen

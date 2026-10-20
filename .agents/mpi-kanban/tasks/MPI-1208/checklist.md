@@ -17,3 +17,6 @@
 - [x] Bench runs priced; Fabio's yes before spending
 - [ ] Recommendation with score and cost per chat
 - [ ] Finding in docs/agent-findings.md
+- [x] Custom size on edit (MPI-1207): EDIT_NOTE says a ratio re-composes the frame; shape-then-edit accepts one edit at a new ratio (2026-10-20)
+- [x] Bench: Ling step 1 rerun, DeepSeek-V4.1 3-run pass, finding in docs/agent-findings.md (2026-10-20)
+- [x] Resolution: max = the model's last tier, image + video bench cases (2026-10-20)

@@ -143,7 +143,7 @@ const NOTES = {
     'klein-9b': 'realism, well past any SDXL model',
     // MPI-1181: base vs Turbo on the bench, 42 s vs 9 s at 1088x896 on a 16 GB card.
     'flux3-klein': 'photographs and skin with turbo: false (the base model); Turbo is about four times faster but plasticky on skin, fine for products and lettering. Up to 4K',
-    'flux3-klein:edit': 'takes up to ten images in one edit, the most of any editor here. A ratio sets the output frame: the picture is re-composed to fill it (not cropped); with a mask the source frame is kept',
+    'flux3-klein:edit': 'takes up to ten images in one edit, the most of any editor here',
     'chroma-flash': 'candid, real-life, influencer-style photography',
     'chroma-hyper': 'candid, real-life photography, on the faster tier',
     'sdxl-realistic': 'realistic by an older standard: today it sits below Klein 9B',
@@ -181,7 +181,7 @@ const REF_NOTE = 'a reference op: the pictures (and clips and sounds) steer who 
  * Live, "9:16, hands on hips, mini skirt" went to i2i five times because no editor said it
  * moves a pose and the ratio was only on i2i.
  */
-const EDIT_NOTE = 'changes what the instruction says (a thing, the clothes, the pose, the expression, who is in it) and keeps the first picture\'s shape unless the op lists ratios; where it takes more pictures, a later one is a source to bring a person or thing from';
+const EDIT_NOTE = 'changes what the instruction says (a thing, the clothes, the pose, the expression, who is in it) and keeps the first picture\'s shape. Where the op lists ratios, its custom size is optional: send no ratio and the picture\'s own size is kept; send one and the picture is re-composed to fill that new frame in the same run (not cropped); where it takes more pictures, a later one is a source to bring a person or thing from';
 const OP_NOTES = {
     edit: EDIT_NOTE,
     kleinEdit: EDIT_NOTE,

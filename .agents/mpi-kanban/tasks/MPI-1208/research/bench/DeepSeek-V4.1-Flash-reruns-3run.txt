@@ -1,0 +1,36 @@
+(node:33024) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/AI/Mpi/Cubric-Vision/js/shell/agentToolOps.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\AI\Mpi\Cubric-Vision\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+agent-test: deepseek-ai/DeepSeek-V4.1-Flash · 3 case(s) × 3 
+price: $0.2/M in, $0.6/M out
+[2026-10-20T00:31:18.298Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  max-resolution-is-top-tier #1: pass · 4 calls · 39978 in / 418 out · $0.00825 · 7.8s
+[2026-10-20T00:31:26.557Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  max-resolution-is-top-tier #2: pass · 5 calls · 52339 in / 670 out · $0.01087 · 11.8s
+[2026-10-20T00:31:40.014Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  max-resolution-is-top-tier #3: pass · 4 calls · 39983 in / 422 out · $0.00825 · 10.5s
+  max-resolution-video #1: pass · 6 calls · 88365 in / 784 out · $0.01814 · 14.7s
+  max-resolution-video #2: pass · 5 calls · 70289 in / 562 out · $0.01440 · 11.3s
+  max-resolution-video #3: pass · 5 calls · 70352 in / 631 out · $0.01445 · 9.6s
+  install-asks #1: pass · 4 calls · 42488 in / 209 out · $0.00862 · 4.2s
+  install-asks #2: pass · 3 calls · 34848 in / 186 out · $0.00708 · 4.0s
+  install-asks #3: pass · 3 calls · 34848 in / 112 out · $0.00704 · 3.6s
+
+summary
+  OK   max-resolution-is-top-tier 3/3 — "max resolution" sends the model's last qualityTier
+  OK   max-resolution-video 3/3 — "max resolution" on a clip sends the video model's last qualityTier
+  OK   install-asks 3/3 — installs always ask (Yes card), and run only after Yes
+cost: $0.0971 for 9 conversations ($0.01079 each, cached priced as fresh) · billed $0.0117 · 0 picture(s) seen
+(node:40684) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/AI/Mpi/Cubric-Vision/js/shell/agentToolOps.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\AI\Mpi\Cubric-Vision\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+agent-test: deepseek-ai/DeepSeek-V4.1-Flash · 1 case(s) × 1 (BITE: every run must FAIL)
+price: $0.2/M in, $0.6/M out
+  max-resolution-video #1: bites · 5 calls · 46450 in / 798 out · $0.00977 · 13.0s
+      - qualityTier is "medium", not "4k", minimax-h3's largest
+
+summary
+  OK   max-resolution-video 1/1 — "max resolution" on a clip sends the video model's last qualityTier
+cost: $0.0098 for 1 conversations ($0.00977 each, cached priced as fresh) · billed $0.0011 · 0 picture(s) seen

@@ -63,3 +63,9 @@ in code.
 - https://huggingface.co/Cloudflare/clef-flash
 - https://www.infoq.com/news/2026/10/typesafe-ai-jev-released/
 - https://huggingface.co/openjev
+
+## Blocker lifted (Fabio, 2026-10-20)
+
+DeepInfra now lists a `decision` model type (dashboard, Model Library filter): Cloudflare/clef
+($0.24/1M, 64k ctx, fp8), Cloudflare/clef-flash ($0.038/1M, 24k), nace-ai/drex-max (27B, $0.12/1M,
+256k), nace-ai/drex-v2.0 (35B MoE 3B active, $0.06/1M, 128k). All ZDR. Not investigated yet.

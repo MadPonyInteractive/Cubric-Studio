@@ -461,6 +461,13 @@ const refusedParams = (run) => calledAll(run, 'generate')
     .filter((c) => /^INVALID_/.test(c.result?.error?.code || ''))
     .map((c) => `${c.result.error.code} on ${c.args.modelId}/${c.args.operation}`);
 const modelById = (id) => MODELS.models.find((m) => m.id === id);
+/** MPI-1208: the generate on `modelId` asked for "max resolution" sends that op's LAST qualityTier. */
+const gradeTopTier = (run, modelId) => {
+    const gen = calledAll(run, 'generate').find((c) => c.args.modelId === modelId);
+    if (!gen) return [`never generated with ${modelId}`];
+    const top = modelById(modelId).ops.find((o) => o.op === gen.args.operation)?.params?.qualityTiers?.at(-1);
+    return gen.args.qualityTier === top ? [] : [`qualityTier is ${JSON.stringify(gen.args.qualityTier)}, not "${top}", ${modelId}'s largest`];
+};
 /** MPI-1036: the first ok generate, graded as Video Edit on the dragged clip with What to change = `op`. */
 const gradeVideoEdit = (run, op) => {
     const ok = calledAll(run, 'generate').filter((c) => c.result?.ok);
@@ -559,6 +566,24 @@ const CASES = [
             f.push(...refusedParams(run).map((r) => `sent a param the op does not offer: ${r}`));
             return f;
         },
+    },
+    {
+        // MPI-1208, Fabio 2026-10-20: "max resolution" is each model's own top tier (Krea 2
+        // stops at 2K, FLUX.3 Klein goes to 4K); unasked, a picture stays at the smallest.
+        // The flip asks for no size, so the top tier must not be sent.
+        id: 'max-resolution-is-top-tier',
+        title: '"max resolution" sends the model\'s last qualityTier',
+        setup: { mode: 'auto', turns: ['Make a picture of a lighthouse at sunset with Krea 2, at max resolution.'] },
+        flip: { turns: ['Make a picture of a lighthouse at sunset with Krea 2.'] },
+        check: (run) => gradeTopTier(run, 'krea2'),
+    },
+    {
+        // The same fact on a clip: MiniMax H3's tiers run to 4k.
+        id: 'max-resolution-video',
+        title: '"max resolution" on a clip sends the video model\'s last qualityTier',
+        setup: { mode: 'auto', turns: ['Make a 3 second video of waves crashing on rocks with MiniMax H3, at max resolution.'] },
+        flip: { turns: ['Make a 3 second video of waves crashing on rocks with MiniMax H3.'] },
+        check: (run) => gradeTopTier(run, 'minimax-h3'),
     },
     {
         id: 'ask-first',
@@ -1196,10 +1221,11 @@ const CASES = [
         // MPI-1208, live 2026-10-19: a square picture with "9:16, smiling, hands on hips, mini
         // skirt and fishnets" ran Klein 9B i2i five times, the only op that took the ratio, and
         // the pose never moved. Fabio's routes: crop to 9:16 or Outpaint to it, THEN one edit
-        // for the pose, expression and clothes. The flip asks for no new shape, so no crop or
-        // Outpaint comes first and the check must fail.
+        // for the pose, expression and clothes. MPI-1207 gave every unmasked edit a custom size,
+        // so ONE edit with the new ratio is a route too. The flip asks for no new shape, so
+        // nothing changes the shape and the check must fail.
         id: 'shape-then-edit',
-        title: 'a new shape plus a pose and outfit change: crop or Outpaint first, then an edit, never i2i',
+        title: 'a new shape plus a pose and outfit change: crop or Outpaint before an edit, or one edit at the new ratio, never i2i',
         setup: {
             models: KLEIN_AND_KREA,
             attachments: [WOMAN],
@@ -1213,9 +1239,12 @@ const CASES = [
             const f = [];
             const i2i = ok.filter((c) => c.args.operation === 'i2i');
             if (i2i.length) f.push(`ran i2i ${i2i.length} time(s): it keeps the pose`);
-            const shape = ok.findIndex((c) => c.args.operation === 'crop' || c.args.flowId === 'outpaint');
-            const edit = ok.findIndex((c) => ['edit', 'kleinEdit', 'krea2Edit', 'qwenEdit'].includes(c.args.operation));
-            if (shape < 0) f.push('nothing changed the shape (no crop, no Outpaint)');
+            const isEdit = (c) => ['edit', 'kleinEdit', 'krea2Edit', 'qwenEdit'].includes(c.args.operation);
+            const reshapes = (c) => c.args.operation === 'crop' || c.args.flowId === 'outpaint'
+                || (isEdit(c) && !!c.args.ratio && c.args.ratio !== '1:1');
+            const shape = ok.findIndex(reshapes);
+            const edit = ok.findIndex(isEdit);
+            if (shape < 0) f.push('nothing changed the shape (no crop, no Outpaint, no edit at a new ratio)');
             if (edit < 0) f.push('no edit changed the pose and clothes');
             if (shape >= 0 && edit >= 0 && edit < shape) f.push('the edit ran before the shape change');
             return f;

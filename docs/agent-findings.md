@@ -95,21 +95,19 @@ tool, no new route, no prompt text.
 
 ### The step cap ended a good turn on a false error (2026-09-20)
 
-"Too many tool calls, try a simpler request", one second after it had dispatched the clip.
-Fix: `MAX_STEPS` 8 → 16, and the call after the last round carries NO tools plus a one-call
-system line (`OUT_OF_ROUNDS`, never stored), so the turn ends in the model's words.
-**Unproven:** no live turn has reached 16 rounds, so the tools-off call has never run against a
-real provider. One that rejects tool history with no `tools` param will show as
-`ENDPOINT_ERROR`.
+"Too many tool calls", one second after it had dispatched the clip. Fix: `MAX_STEPS` 8 → 16, and the call
+after the last round carries NO tools plus a one-call `OUT_OF_ROUNDS` line. **Unproven** against a real
+provider (no live turn has reached 16); one rejecting tool history with no `tools` shows as `ENDPOINT_ERROR`.
 
-### It picks i2i over edit, and its own rule lost three times in one night (2026-09-20, OPEN)
+### It picks i2i over edit (2026-09-20 and 2026-10-19, live; BUILT 2026-10-19, MPI-1208)
 
-"Make it anime": `ill-anime` `i2i`, then krea2 `i2i` twice, `krea2Edit` only when HE said so.
-The Model rule says changing an existing picture is the edit task. "Anime" matched ill-anime's
-NOTE, the rule lets a note outrank a rank, and ill-anime has no edit op. **Why edit is "more
-truthful" (his word): an edit op keeps the pixels whatever the words say, i2i repaints from the
-WORDS.** `edit_001` came out right although its own prompt was wrong. Home for the fix is data:
-`modelConstants/modelPriority.js` NOTES has no `:i2i` entry. Not built.
+"Make it anime": `ill-anime` `i2i`, then krea2 `i2i` twice, `krea2Edit` only when HE said so ("anime"
+matched a NOTE, and ill-anime has no edit op). Again a month later: "9:16, hands on hips, mini skirt" ran
+Klein i2i five times, the only op that took the ratio, and the pose never moved. **Why edit is "more
+truthful" (his word): an edit keeps the pixels whatever the words say, i2i repaints from the WORDS.** Fix,
+as facts at pick time, no route rule: each op's note says what it changes (edit: content, pose, clothes;
+i2i: keeps pose and layout; crop: shape only; Outpaint: a new shape, filled), plus one Plan line. Since
+MPI-1207 an edit's ratio re-composes the frame in one run (custom size, optional). Bench `shape-then-edit`.
 
 ### It did not know denoise exists, and its runs injected none (2026-09-20, BUILT 2026-09-21)
 
@@ -141,17 +139,13 @@ editor can actually redraw the content from the reversed viewpoint is unmeasured
 
 ### Its eyes were wrong and nothing recorded what they said (2026-09-20; the record is BUILT, the eyes are OPEN)
 
-Source: rider upright, both revolvers raised, pointing UP. Its prompts: "leaning forward", "pointing outward
-at her sides". No ComfyUI activity during `agent.describe`, so the describer was the remote vision model;
-whether IT misread or the chat model paraphrased is unprovable, because a look's text lives in server memory
-only. Also every waited still is looked at TWICE (`settle()` auto-looks, then the model calls `look` on the
-same file). Built 2026-09-21: **a look is kept once in the card's sidecar** (`look: {text, at}`,
-`AgentLoop._lookOnce`), read first, vision model only on a miss; it dies with the card. Only the unprompted
-description is kept: a question, a crop or a box is a different answer and always goes live. The read is off
-disk; the write goes through `POST /project-media/agent/update-meta` because that route owns the per-sidecar
-write queue, and `storeLook` never creates a sidecar. **Consequence to remember when the describer changes:
-a wrong description is now wrong forever**, until the field is cleared. Wider principle he named: the
-sidecar is the home for card-scoped derived information.
+Source: rider upright, revolvers pointing UP. Its prompts: "leaning forward", "pointing outward". Whether the
+remote describer misread or the chat model paraphrased was unprovable: a look's text lived in memory only, and
+every waited still was looked at TWICE. Built 2026-09-21: **a look is kept once in the card's sidecar**
+(`look: {text, at}`, `AgentLoop._lookOnce`), read first, describer only on a miss. Only the unprompted
+description is kept (a question, crop or box always goes live); the write goes through
+`POST /project-media/agent/update-meta` (it owns the per-sidecar write queue). **A wrong description is now
+wrong forever** until the field is cleared. His principle: the sidecar homes card-scoped derived information.
 
 **The describer was then replaced on evidence (2026-09-21).** Ten multimodal DeepInfra models,
 production's own prompt, resize and message shape, scored against a truth file read off the
@@ -160,10 +154,16 @@ picture: `.agents/mpi-kanban/tasks/MPI-817/research/` (harness, truth, every ans
 the incumbent `meta-llama/Llama-4-Scout-17B-16E-Instruct` scored 6/10 at 0.030c — it missed the
 dust, the horns, the fringe and the whole sepia treatment. **Mistral-Small-3.2 and Qwen3-VL-30B
 both put the rider "leaning forward"**, the original error, so the obvious pick would have been
-wrong twice. Two traps for the next survey: the marker for image input is the `multimodal` TAG,
-not the name (`gemma-3-4b-it` and `Mistral-Small-3.2` carry no hint in theirs), and the tag is
-not sufficient — `Qwen/Qwen3.5-9B` is tagged multimodal and returned an EMPTY string while
+wrong twice. Survey traps: image input is the `multimodal` TAG, not the name (`gemma-3-4b-it`
+carries no hint), and the tag is not sufficient: `Qwen/Qwen3.5-9B` returned an EMPTY string while
 billing 1388 input tokens. Probe before trusting either signal.
+
+**Seeing does not make it an identity judge (2026-10-20, measured; MPI-1208).** `look` `see: true` hands a
+vision chat model the picture itself, on request only (the description stays the default). Asked if an edit kept the person, DeepSeek-V4.1-Flash and Ling-3.0-flash-VL both SAW both pictures and said
+"same woman" over a drifted face (DeepSeek 2/3, Ling 0/1). And the text-only default, V4-Flash-0731,
+out-planned both: 48/55 at 3/3 against V4.1's 37/55, same bill. Evidence: MPI-1208 `research/bench/`.
+**Grade a model on the BILLED cost:** Ling lists at a third of DeepSeek's input price and billed twice as
+much per chat ($0.003 vs $0.0015); the cache rate decides it, and agent-test's ceiling was 9x the bill.
 
 ### The mask flow, three slips in one day (2026-09-29, live; BUILT, MPI-987 / MPI-991)
 
@@ -178,7 +178,7 @@ the Route rule now ends on `[options: Mask | Whole-picture edit]`. None harness-
 Two pairs of legs on one sheet, a walking clip, a hallway: "the legs walk down this hallway". It picked
 `minimax-h3-ref2va`, then asked which pair with `[options]`, a lost turn; sent whole with both named, the
 result was good. Cause: nothing said a reference op takes a several-subject picture as it is, so "unsure
-which: ask" won. Fix: one Model-rule sentence. Bench `several-subjects-reference-whole`, not run live.
+which: ask" won. Fix: one Model-rule sentence. Bench `several-subjects-reference-whole`: 0/3 on DeepSeek-V4.1.
 
 ## What worked, and should be copied
 

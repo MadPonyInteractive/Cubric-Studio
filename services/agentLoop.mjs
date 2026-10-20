@@ -446,7 +446,7 @@ const EDIT_OPS = new Set(['edit', 'kleinEdit', 'krea2Edit', 'qwenEdit']);
 // they govern, once per context. `when` reads one op of the entry describe_model returns.
 export const OP_RULES = [
     { id: 'tier', when: (o) => Object.keys(o.params?.tierSizes || {}).length > 0,
-        text: 'A tier\'s name is not its size: match a named resolution on params.tierSizes (1K = 1080p = full HD = 1920 on the long side) and say the pixels.' },
+        text: 'A tier\'s name is not its size: match a named resolution on params.tierSizes (1K = 1080p = full HD = 1920 on the long side) and say the pixels. qualityTiers run smallest to largest: the last is this model\'s max, the one for "max", "highest" or "full resolution". A picture nobody asked a size for leaves qualityTier out: the smallest is used.' },
     { id: 'clip', when: (o) => !!o.params?.duration && !o.params?.categories,
         text: 'Duration: a clip defaults to 2 to 3 seconds: ONE continuous action fits. Only a SEQUENCE of beats, or a spoken line too long for 3 seconds, earns more, and budget less than your first instinct. The user naming a length always wins. Say the durationSeconds the result reports; until then say "I asked for N seconds". When it finishes the app wakes you, and you report it then. Every new clip starts at the defaults, quality at the lowest tier, and a setting rises only when the user\'s words for THAT clip ask for it; only a redo keeps its card\'s settings.' },
     // MPI-1208: "a generation from a picture crops it to the ratio" read as "this op changes the

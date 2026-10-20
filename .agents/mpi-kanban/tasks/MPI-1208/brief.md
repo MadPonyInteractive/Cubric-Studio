@@ -84,6 +84,48 @@ Coordinate before editing it.
 - A finding in `docs/agent-findings.md` (200-line cap).
 - Code commits with the card in `doing`; done only on a green CI run (done-gate).
 
+## Current State (2026-10-20, Cosmo improvements 3)
+
+- Bench done: winner DeepSeek-V4.1-Flash (3 runs: 35/53 suite, vision 2/3 + identity 2/3, billed
+  $0.00145/chat); Ling lost on score AND bill. Finding written (docs/agent-findings.md, 200 lines).
+  Spent ~$0.53 billed of $2.75. Details: validation.md.
+- Uncommitted: EDIT_NOTE (custom size), OP_RULES tier (max = last tier), 3 bench cases, findings doc.
+- Baseline run (Fabio's yes): default V4-Flash-0731 48/55 at 3/3, $0.0016/chat billed, vs V4.1 37/55.
+  Fabio 2026-10-20: KEEP 0731 as default, change nothing in the app now, but test more. Spent ~$0.80.
+- Next (Fabio): (1) update the stored agent ratings in the app and on the website with the three new
+  results (0731 48/55, V4.1 37/55, Ling 40/53); Qwen3.6-35B's rating is from the 28-case suite.
+  (2) Research which DeepInfra models could do well in our system (vision + tools, good cache rate),
+  shortlist, then bench the shortlist (price per run first, his yes). Prices move with sales: V4.1
+  is 30% off now ($0.14 in / $0.004 cached), MiMo-V2.6-Flash $0.133 / $0.003, GLM-5.3-Flash
+  (multimodal) $0.075 / $0.015 at 50% off for a day, Nemotron-3.5-Super-VL $0.15 / $0.02.
+  Grade on billed cost. (3) Decision models on DeepInfra (MPI-1040) - a separate card, later.
+
+## Custom size on edit (2026-10-20, Cosmo improvements 3)
+
+Fabio: every unmasked edit now takes an optional custom size (MPI-1207, 7fec15a81; FLUX.3 in
+MPI-1181), so "no editor takes a ratio" above is no longer true. The agent path already works:
+a named ratio on an edit op turns custom size on (`resolveNamedParams`). Half 2 facts updated,
+uncommitted: `EDIT_NOTE` now says a ratio re-composes the picture to fill the new frame in the
+same run (not cropped), on every edit op listing ratios (the FLUX.3-only copy removed);
+bench `shape-then-edit` accepts ONE edit at a new ratio as well as crop/Outpaint first.
+agent-bench, model-priority, agent-prompt-budget, agent-loop: 243 pass.
+Fabio 2026-10-20: Cosmo turns the optional button on only when needed; off = the picture's own
+size. Already true: unpinned, `resolveSettingsOwner` passes `project: null`, so an unasked edit
+is custom-size OFF and a named ratio turns it on; pinned, the user's button decides. EDIT_NOTE
+reworded to say "no ratio = own size, a ratio = new frame".
+
+Resolution (Fabio 2026-10-20): unasked = 1K (the smallest tier), "max" = each model's own top
+tier (Krea 2 = 2K, FLUX.3 Klein = 4K); models with no tiers have nothing to send. Already true
+for the unasked default (`defaultQualityTier` = tiers[0] for image models; unpinned project is
+null). Added: OP_RULES `tier` says tiers run smallest to largest, the last is the max, an unasked
+picture leaves qualityTier out. Bench `max-resolution-is-top-tier` (Krea 2 -> "2k"): 1/1 live,
+flip fails as it must. Its first 3-run attempt hit DeepInfra 429s (run beside the 3-run pass,
+which lost `install-asks #1` to the same 429): rerun both SEQUENTIALLY after the pass.
+Video too (Fabio): the `tier` rule fires on every op with tierSizes, clips included. Real lists:
+LTX 2.3 and MiniMax H3 very_low..very_high, 2k, 4k (top 3840x2176); Wan 2.2 tops at very_high
+1920x1088; Wan 2.2 5B high 1280x704; Seedance / Wan 3 cloud 1080p; Veo 1080p. Case
+`max-resolution-video` (H3 -> "4k") added, not yet run live.
+
 ## Current State (2026-10-19, Cosmo improvements 2)
 
 - **Half 1 wiring built, uncommitted** (Fabio's call this session: description stays the default,

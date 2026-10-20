@@ -56,3 +56,27 @@ Bench step 1 (one run each, `research/bench/`):
 - Probe runs before step 1: ceiling $0.0026, billed $0.0014.
 - **Spent so far: billed ~$0.09 (ceiling ~$0.82) of Fabio's $2.75.**
 - Identity drift fails on BOTH models after seeing: a perception limit, not wiring.
+
+## Bench step 1 + 2 done (2026-10-20, Cosmo improvements 3)
+
+- Ling-3.0-flash-VL (rerun, 1 run): suite 40/53, vision 2/3 (identity FAIL: saw both, "same character").
+  Ceiling $0.3889, **billed $0.1625** ($0.0030/chat): twice DeepSeek's bill at a third of its list price.
+- Winner DeepSeek-V4.1-Flash, 3 runs (pass = 3/3): suite 34/53 (+ install-asks 3/3 on rerun after a
+  429 = 35/53), vision 2/3 cases 3/3 + identity 2/3. Ceiling $2.2071, **billed $0.2436** for 168 chats
+  ($0.00145/chat). 0/3: video-limit, several-subjects-reference-whole, video-hair-to-video-edit,
+  video-buns-keeps-face, video-person-from-picture, sheet-from-body-picture.
+- New cases 3/3 on DeepSeek-V4.1: max-resolution-is-top-tier (Krea 2 -> 2k), max-resolution-video
+  (H3 -> 4k), both flips bite. Unit: agent-bench 17/17, agent-loop/model-priority/budget/tiles 251 pass.
+- **Spent, billed: ~$0.53 of $2.75** (the ceiling sum is ~$3.6, over the cap on paper; the ceiling prices cached tokens as fresh). Files: research/bench/*.txt.
+- Baseline gap: today's default DeepSeek-V4-Flash-0731 was never run on the 53-case suite (33/34 was
+  the old suite), so V4.1 vs the default is unmeasured. Needs Fabio's yes (new spend).
+
+## Baseline: today's default (2026-10-20, Fabio's yes up to $0.65)
+
+- DeepSeek-V4-Flash-0731, 3 runs, 55 cases: **48/55 at 3/3**, billed **$0.2678** ($0.00162/chat),
+  ceiling $0.7012. Misses: options-ideas 0/3, sheet-from-face-picture 1/3, shape-then-edit 1/3 (both
+  misses = DeepInfra 180 s timeouts, not a wrong route), new-project-brief / check-in-holds /
+  check-in-only / memory-write-unprompted 2/3. max-resolution image + video 3/3.
+- vs DeepSeek-V4.1-Flash 37/55 (35/53 + 2 new) at $0.00145/chat: the default plans far better at the
+  same bill. V4.1 only adds sight, and sight did not settle identity (2/3).
+- Total spent, billed: ~$0.80 ($0.53 before + $0.27 baseline).
