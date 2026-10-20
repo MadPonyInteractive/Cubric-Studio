@@ -208,3 +208,7 @@ not bands) - Fabio's call; a canvas line like Qwen Edit's might fix it but costs
 Wiring for cloud = add `customSizeOps: ['edit']` + drop 'edit' from `imageSizedOps` on the chosen
 cloud ModelDefs; the size plumbing (deepinfraSizing) already sends the picked size. One paid run
 in the real app per wired family is the verify.
+
+**Decision (Fabio, 2026-10-20):** a model that fails does not get the option. Wire Seedream 4 / 4.5 / 5 Pro,
+FLUX-2 dev and Klein 9B cloud; FLUX-2 pro/max (crop loses the subject) and the Nano Banana family (stretch) keep
+following the source with no button.
