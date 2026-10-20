@@ -54,6 +54,10 @@ reasoning survives.
       registration papers, so check the Namecheap invoice for madponyinteractive.com
       names "Mad Pony Interactive" BEFORE submitting (three upload attempts only).
       No UK region: use **North Europe** (`https://neu.codesigning.azure.net`).
+      **Checked 2026-10-20, passes:** registrant contact and the 2026-06-07
+      registration invoice both read Fabio Goncalves / Mad Pony Interactive at the
+      D&B address; invoice is good until 2027-06-07. PDF kept in `C:/AI/Mpi/_private/`,
+      uploaded only if Microsoft asks.
 - [ ] Decide with Fabio
 - [ ] Fabio's own steps (account, payment and ID - never an agent's): Azure
       subscription (Pay-As-You-Go) -> register `Microsoft.CodeSigning` provider ->
