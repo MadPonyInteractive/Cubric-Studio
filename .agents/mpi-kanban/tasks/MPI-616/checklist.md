@@ -69,8 +69,10 @@ reasoning survives.
       the Microsoft account, `Microsoft.CodeSigning` registered, account
       **`madponysigning`** created (resource group `cubric-signing`, North Europe,
       Basic, endpoint `https://neu.codesigning.azure.net/`) - **billing started
-      2026-10-20**. Identity Verifier role assigned. Next: the identity validation
-      form.
+      2026-10-20**. Identity Verifier role assigned. **Organization / Public identity
+      validation submitted 2026-10-20**, In Progress; fields read back and match
+      the D&B listing. Waiting on: two email links (7-day expiry), then "Action
+      Required" -> AU10TIX ID check, then Microsoft's 1-20 business days.
 - [ ] Wire the signing pass into `scripts/build-portable.mjs` — **after** the
       `electron.exe` → `CubricVision.exe` rename. `win.azureSignOptions` in
       `electron-builder.yml` is inert; electron-builder does not build the shipped
