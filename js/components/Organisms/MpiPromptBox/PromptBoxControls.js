@@ -33,7 +33,8 @@ import { fixedDurationFor } from '../../../data/modelConstants/deepinfraPricing.
 // are shared with `js/shell/agentDispatch.js`'s named-param resolver via this
 // ONE module, so an agent submit can never silently resolve a different tier
 // than this control shows (see generationControls.js's own module comment).
-import { resolveEffectiveQualityTier, resolveThreeLayerDefault } from '../../../data/generationControls.js';
+import { resolveEffectiveQualityTier, resolveThreeLayerDefault, modelTakesBoxes } from '../../../data/generationControls.js';
+import { MpiBoxesDialog } from '../../Compounds/MpiBoxesDialog/MpiBoxesDialog.js';
 
 // ── Scope helpers ─────────────────────────────────────────────────────────────
 //
@@ -1412,6 +1413,74 @@ export const PROMPT_BOX_CONTROLS = {
     },
 
     /**
+     * boxes — the Boxes button (MPI-1181, FLUX.3). Opens MpiBoxesDialog over the output
+     * frame (blank at the picked ratio on t2i, the first picture on edit); each box is
+     * `{ x, y, w, h, desc }` as fractions of that frame. `Layout_Boxes` is no node title:
+     * commandExecutor._buildParams appends the model's layout table to the prompt and drops
+     * the key, like No Background. Mounted on all of a box model's ops, greyed out where
+     * `layoutBoxes.ops` does not list the op; hidden on every other model.
+     *
+     * perOp: a t2i layout and an edit layout are drawn over different frames.
+     * Mount opts from MpiPromptBox: `boxFrame()` -> `{ url }` or `{ w, h }`, and
+     * `insertPromptText(text)` for the `<obj_N>` a row's name puts in the prompt.
+     */
+    boxes: {
+        nodeTitle: null,
+        scope: 'perOp',
+        defaultValue: PROMPT_CONTROL_DEFAULTS.boxes,
+        mount(hostEl, opts = {}) {
+            const saved = _readSaved(this, opts);
+            this.value = Array.isArray(saved.boxes) ? saved.boxes.map((b) => ({ ...b })) : [];
+            this.enabled = modelTakesBoxes(opts.model, opts.opName);
+            const label = () => (this.value.length ? `Boxes ${this.value.length}` : 'Boxes');
+
+            this._instance = MpiButton.mount(hostEl, {
+                icon: 'shape_rect_stroke',
+                label: label(),
+                labelPosition: 'right',
+                size: 'sm',
+                variant: 'primary',
+                info: this.enabled
+                    ? 'Boxes — draw where things go; cite box N in the prompt as <obj_N>'
+                    : 'Boxes work on Text to Image and Edit',
+            });
+            if (!this.enabled) {
+                this._instance.el.setDisabled(true);
+                return;
+            }
+
+            let saveTimer = null;
+            this._instance.on('click', () => {
+                this._dialog ??= MpiBoxesDialog.mount(document.createElement('div'));
+                this._dialog.el.open({
+                    boxes: this.value,
+                    frame: opts.boxFrame?.() || { w: 1024, h: 1024 },
+                    accent: 'vision',
+                    onChange: (boxes) => {
+                        this.value = boxes;
+                        this._instance?.el?.setLabel?.(label());
+                        clearTimeout(saveTimer);
+                        saveTimer = setTimeout(() => _emitUpdate(this, opts, 'boxes', this.value.map((b) => ({ ...b }))), 300);
+                    },
+                    onCite: (n) => opts.insertPromptText?.(`<obj_${n}>`),
+                });
+            });
+        },
+        getValue() {
+            return this.value || [];
+        },
+        getInjectionParams() {
+            return this.enabled && this.value?.length ? { Layout_Boxes: this.value } : {};
+        },
+        destroy() {
+            this._dialog?.el?.destroy?.();
+            this._dialog = null;
+            this._instance?.destroy?.();
+            this._instance = null;
+        },
+    },
+
+    /**
      * transparentBackground — No Background (MPI-1049). Qwen-Image 2.1's transparency is
      * PROMPT-ONLY: no graph switch exists, the model returns alpha when the prompt opens
      * and closes with its vendor's two RGBA sentences (`ModelDef.transparentPrompt`).
@@ -2148,6 +2217,9 @@ export function visibleControlIds(model, operation, ctx = {}) {
 
         // No Background (MPI-1049): only a model that says how to ask for alpha.
         if (id === 'transparentBackground' && !model?.transparentPrompt) return false;
+
+        // Boxes (MPI-1181): only a model that says how to send them; greyed out on its other ops.
+        if (id === 'boxes' && !model?.layoutBoxes) return false;
 
         // H3 turbo toggle (MPI-505). Its own flag rather than krea2's `turboToggle`,
         // because it is its own control — the two inject the same node title but differ

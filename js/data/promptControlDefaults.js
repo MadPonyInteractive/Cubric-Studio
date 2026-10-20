@@ -64,6 +64,9 @@ export const PROMPT_CONTROL_DEFAULTS = Object.freeze({
     // Custom size (Input_custom_size, MPI-1181, FLUX.3 edit): off = the edit follows
     // reference 1's frame, on = the ratio + tier picker sets it (Fabio, 2026-10-19).
     customSize: false,
+    // Boxes (MPI-1181, FLUX.3 t2i + edit): none drawn. Each box is {x, y, w, h, desc}, as
+    // fractions of the output frame. Never mutate this array: the control copies it.
+    boxes: [],
     // Control adherence (Input_Control_strength MpiFloat). What it lands on differs by
     // model — a control-LoRA's `strength` on Krea2/Klein, a ControlNet's on Chroma/SDXL —
     // but the meaning is the same everywhere: 1.0 = full (what each graph bakes and what

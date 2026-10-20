@@ -39,6 +39,7 @@
  */
 
 import { resolveRecipe, FALLBACK_RECIPE_ID, getRecipe, withReferences, withImageLooks, withPictureLines, TRANSPARENT_BACKGROUND_RULE } from '../data/recipes/registry.js';
+import { layoutRows, upsamplingInput, reconcileBoxes, splitBoxTable } from '../data/layoutBoxes.js';
 import { composeSystemPrompt } from '../data/recipes/styles.js';
 import { clientLogger } from './clientLogger.js';
 import { Storage } from '../core/storage.js';
@@ -825,6 +826,9 @@ async function _enhanceFlowOn(backend, { prompt, injectionParams, modelId }) {
  * @param {Array<{tag:string,url:string}>} [a.pictures] the staged IMAGES, described for an r2v run (MPI-1084)
  * @param {string} [a.backend]      explicit override; defaults to the preference, then ComfyUI
  * @param {boolean} [a.transparent] No Background is on (MPI-1049): the brief says so
+ * @param {Array<{x:number,y:number,w:number,h:number,desc?:string}>} [a.boxes] the user's Boxes
+ *        (MPI-1181): a recipe with a `<mode>_bbox` mode plans around them and returns the
+ *        caption plus the reconciled table; any other mode reads them as layout hints
  * @returns {Promise<{ok:boolean, text?:string, negativeText?:string, backend?:string,
  *                    model?:string, recipeId?:string, fellBack?:boolean, note?:string,
  *                    error?:string}>}
@@ -832,7 +836,7 @@ async function _enhanceFlowOn(backend, { prompt, injectionParams, modelId }) {
  *          parsed. `text` is then the positive half alone — the caller must not
  *          re-split it.
  */
-export async function enhance({ prompt, model, recipeKey, mode, operation, references, pictures, backend, transparent } = {}) {
+export async function enhance({ prompt, model, recipeKey, mode, operation, references, pictures, backend, transparent, boxes } = {}) {
     const idea = String(prompt || '').trim();
     if (!idea) return { ok: false, error: 'Write a prompt first, then Enhance.' };
 
@@ -841,7 +845,12 @@ export async function enhance({ prompt, model, recipeKey, mode, operation, refer
     const askedMode = resolveMode(recipeId, mode ?? recipeModeForOp(operation));
     // MPI-1081: nothing staged = nothing to reference = text to video. Told "none", the r2v
     // modes still invented a `<Picture 1>` / `<Image 1>` tag, and no wording stopped it.
-    const resolvedMode = askedMode === 'r2v' && !references?.length && recipe?.modes?.t2v ? 't2v' : askedMode;
+    const plainMode = askedMode === 'r2v' && !references?.length && recipe?.modes?.t2v ? 't2v' : askedMode;
+    // MPI-1181 Boxes: BFL's box mode where the recipe has one (FLUX.3 t2i). It plans the caption
+    // around the user's boxes and writes the table; an edit keeps its own mode, which reads the
+    // boxes as layout hints, because a blind enhancer cannot box what is already in a picture.
+    const boxRows = boxes?.length ? layoutRows(boxes) : null;
+    const resolvedMode = boxRows && recipe?.modes?.[`${plainMode}_bbox`] ? `${plainMode}_bbox` : plainMode;
     const modeRecipe = recipe?.modes?.[resolvedMode];
     if (!modeRecipe) {
         return { ok: false, error: `No enhancer recipe for "${recipeId}" (mode "${resolvedMode}").` };
@@ -865,9 +874,10 @@ export async function enhance({ prompt, model, recipeKey, mode, operation, refer
     // MPI-1006: only an r2v mode is told what is staged; it cites those tags and no others.
     // MPI-1084: and what each picture shows, or it guesses the roles by load order.
     const seen = modeRecipe.seesPictures && pictures?.length ? await pictureCaptions(pictures) : { captions: [], missed: [] };
+    const request = boxRows ? upsamplingInput(idea, boxRows) : idea;
     const userText = resolvedMode === 'r2v' ? withReferences(idea, references ?? [], seen.captions)
-        : resolvedMode === 'i2i' ? withImageLooks(idea, seen.captions)
-        : idea;
+        : resolvedMode === 'i2i' ? withImageLooks(request, seen.captions)
+        : request;
 
     const { profileId } = Storage.getLlmConnection();
     const resolvedModelId = chosen === 'endpoint' ? await _endpointEnhanceModel(profileId) : enhancerModelPreference();
@@ -890,7 +900,14 @@ export async function enhance({ prompt, model, recipeKey, mode, operation, refer
         return result;
     }
     // MPI-1084: the picture lines are the app's, from what the describer saw; the enhancer keeps the scene.
-    if (seen.captions.length) result.text = withPictureLines(result.text, seen.captions);
+    // r2v only: an edit's looks are for the enhancer to read, never lines in its instruction.
+    if (resolvedMode === 'r2v' && seen.captions.length) result.text = withPictureLines(result.text, seen.captions);
+    // The user's boxes win over the box mode's own plan (BFL `bbox.reconcile`).
+    // An empty reply (a reasoning model that thought through its budget) would leave the table alone.
+    if (resolvedMode.endsWith('_bbox')) {
+        if (!splitBoxTable(result.text)[0]) return { ok: false, error: 'The enhancer wrote no caption for your boxes. Press Enhance again.' };
+        result.text = reconcileBoxes(result.text, boxRows);
+    }
     // Only a recipe that DECLARES two channels gets its reply split. A prose recipe
     // that happens to write the words "negative prompt" is not offering a second
     // field, and cutting its text there would silently delete half the prompt.

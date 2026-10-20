@@ -2703,6 +2703,24 @@
 
 
 /**
+ * @typedef {Object} MpiBoxesDialogProps (Compound — js/components/Compounds/MpiBoxesDialog)
+ * No props at mount time — content arrives via open().
+ *
+ * The Boxes overlay (MPI-1181), opened by the PromptBox `boxes` control on a model with
+ * `layoutBoxes` (FLUX.3 t2i + edit). Right: the output frame; drag on it to draw a box,
+ * drag a box to move it, drag its corner to resize. Left: one row per box (colour, name
+ * `obj_N` that cites it in the prompt, what goes there, minus). Up to 10 boxes.
+ * MpiModal owns the backdrop, portal, Overlays entry and Escape.
+ *
+ * Instance methods (on instance.el):
+ *   open({ boxes: Array<{x,y,w,h,desc}>, frame: {url} | {w,h}, accent?: string,
+ *          onChange(boxes), onCite(n) })
+ *     — boxes are fractions of the frame; every edit calls onChange with a fresh copy
+ *       (no OK button: closing keeps what is drawn). onCite(n) asks for <obj_n> in the prompt.
+ *   hide() / destroy()
+ */
+
+/**
  * @typedef {Object} MpiOpHelpDialogProps (Compound — js/components/Compounds/MpiOpHelpDialog)
  * No props required at mount time — content is provided imperatively via open().
  *

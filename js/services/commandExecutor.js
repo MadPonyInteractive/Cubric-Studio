@@ -26,7 +26,7 @@ import { remoteEngineClient } from './remoteEngineClient.js';
 import { resolveDeps, resolveWorkflowFile, variantDepsOf, archVariantOptions } from '../data/modelConstants/resolveModelDeps.js';
 import { downloadService } from './downloadService.js';
 import { COMMANDS, getCommandMediaInputs, filterMediaInputsForModel, stripOrdinalMediaRoles, commandIsMultiStage } from '../data/commandRegistry.js';
-import { withTransparentPrompt, withCanvasPrompt } from '../data/generationControls.js';
+import { withTransparentPrompt, withCanvasPrompt, withLayoutBoxes, modelTakesBoxes } from '../data/generationControls.js';
 import { Events } from '../events.js';
 import { clientLogger } from './clientLogger.js';
 import { state } from '../state.js';
@@ -961,6 +961,15 @@ function _buildParams(payload) {
     if (modelDef?.canvasPrompt && params.Input_custom_size === true && !payload.maskDataUrl) {
         params.Input_Positive = withCanvasPrompt(params.Input_Positive,
             params.Ratio_Label || `${params.Width}x${params.Height}`);
+    }
+
+    // Boxes (MPI-1181) are a PROMPT table too: the model's layout JSON appended LAST, after
+    // the wrappers above, because the model reads the table from the prompt's final `[`.
+    if ('Layout_Boxes' in params) {
+        if (modelTakesBoxes(modelDef, payload.operation)) {
+            params.Input_Positive = withLayoutBoxes(modelDef, params.Input_Positive, params.Layout_Boxes);
+        }
+        delete params.Layout_Boxes;
     }
 
     if (commandIsMultiStage(payload.operation)) {

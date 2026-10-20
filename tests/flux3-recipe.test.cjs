@@ -55,3 +55,12 @@ test('the images reach the enhancer as ordinal lines under the request', async (
     const long = withImageLooks('x', [{ text: 'w '.repeat(500) }]);
     assert.ok(long.split(' ').length < 175, 'one look is capped');
 });
+
+test('t2v_bbox is BFL`s t2i_bbox, byte for byte; no i2i_bbox (a blind enhancer cannot box a picture)', async () => {
+    const { getRecipe, RECIPE_MODES, validateRecipe } = await import('../js/data/recipes/registry.js');
+    const r = getRecipe('flux-3');
+    assert.ok(RECIPE_MODES.includes('t2v_bbox'));
+    assert.equal(r.modes.t2v_bbox.systemPrompt, PUP.t2i_bbox);
+    assert.equal(r.modes.i2i_bbox, undefined);
+    assert.deepEqual(validateRecipe(r), []);
+});

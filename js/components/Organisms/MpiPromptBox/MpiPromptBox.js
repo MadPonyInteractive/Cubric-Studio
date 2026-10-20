@@ -1728,6 +1728,36 @@ export const MpiPromptBox = ComponentFactory.create({
             emit('input', { positive: positiveValue, negative: negativeValue, negativeAudio: negativeAudioValue, activeMode: promptMode });
         }
 
+        /** Boxes (MPI-1181): `text` into the POSITIVE prompt at the caret, or at its end while
+         *  the box shows another field. The Boxes dialog stays open over it, so no focus. */
+        function _insertPromptText(text) {
+            const onPositive = promptMode === 'positive';
+            const at = onPositive ? textareaEl.selectionStart : positiveValue.length;
+            const before = positiveValue.slice(0, at);
+            const pad = before && !/\s$/.test(before) ? ' ' : '';
+            const next = `${before}${pad}${text} ${positiveValue.slice(at).replace(/^\s+/, '')}`;
+            _writeMode(next, 'positive');
+            if (onPositive) {
+                const caret = at + pad.length + text.length + 1;
+                textareaEl.value = next;
+                textareaEl.setSelectionRange(caret, caret);
+                updateHeight();
+            }
+            _saveDraft();
+            emit('input', { positive: positiveValue, negative: negativeValue, negativeAudio: negativeAudioValue, activeMode: promptMode });
+        }
+
+        /** The frame the Boxes dialog draws on: the first picture on an edit that keeps its
+         *  frame, else the picked ratio's size. */
+        function _boxFrame() {
+            if (activeOperation === 'edit' && _activeControls.get('customSize')?.getValue?.() !== true) {
+                const img = _mediaItems.find((m) => m.mediaType === 'image');
+                if (img?.url) return { url: img.url };
+            }
+            const size = (_activeControls.get('ratio') || _parkedSize.get('ratio'))?.getInjectionParams?.();
+            return size?.Width && size?.Height ? { w: size.Width, h: size.Height } : { w: 1024, h: 1024 };
+        }
+
         function _syncRefPicker() {
             // Never on a negative field — the tags address references, and a negative
             // prompt has none. (H3 has no negative node at all, but the guard is cheap
@@ -2239,7 +2269,7 @@ export const MpiPromptBox = ComponentFactory.create({
                 opSlot.appendChild(ctrlEl);
 
                 try {
-                    ctrl.mount(ctrlEl, { model, opName: activeOperation });
+                    ctrl.mount(ctrlEl, { model, opName: activeOperation, boxFrame: _boxFrame, insertPromptText: _insertPromptText });
                     _activeControls.set(componentId, ctrl);
                     if (componentId === 'ratio' || componentId === 'qualityTier') _sizeHosts.set(componentId, ctrlEl);
                 } catch (err) {
@@ -2493,6 +2523,15 @@ export const MpiPromptBox = ComponentFactory.create({
                 : null
         );
 
+        // MPI-1181: the Boxes an enhancement was planned around. An Enhance with boxes on a box
+        // model writes their table into the prompt, so a later change leaves it stale: say so.
+        const _boxesNow = () => JSON.stringify(_activeControls.get('boxes')?.getInjectionParams?.().Layout_Boxes ?? []);
+        const _boxesMismatchNote = (enh) => (
+            enh && model?.layoutBoxes && (enh.boxes ?? '[]') !== _boxesNow()
+                ? { text: 'Your boxes changed since this was enhanced. Press Enhance to plan it around them again.', kind: 'warn' }
+                : null
+        );
+
         function _openEnhanceDialog() {
             // NOT `if (_enhanceDialog) return`. `MpiModal.hide()` does not emit 'cancel'
             // — its own contract says so — so every dismissal that is NOT the Cancel
@@ -2503,6 +2542,7 @@ export const MpiPromptBox = ComponentFactory.create({
             // close-all. Tearing down whatever is there costs nothing when there is
             // nothing, and the button is unreachable under an open backdrop anyway.
             const transparent = _transparentOn();
+            const boxesAtOpen = _boxesNow();
             _closeEnhanceDialog();
             _enhanceDialog = MpiEnhanceDialog.mount(document.createElement('div'), {
                 prompt: positiveValue,
@@ -2515,6 +2555,8 @@ export const MpiPromptBox = ComponentFactory.create({
                     .map(entry => ({ tag: refTagHandle(entry.tag, model), url: entry.item.url })),
                 // MPI-1049: No Background on, so the recipe describes no setting.
                 transparent,
+                // MPI-1181: the Boxes drawn for this op; FLUX.3's t2i plans around them.
+                boxes: _activeControls.get('boxes')?.getInjectionParams?.().Layout_Boxes,
                 // Reopening on an existing enhancement, so Cancel is non-destructive and
                 // OK is not the only way to keep what is already approved. `note` rides
                 // along because it is the only surface the FALLBACK WARNING has: without
@@ -2527,7 +2569,7 @@ export const MpiPromptBox = ComponentFactory.create({
                         // A model mismatch OUTRANKS the stored note: both ride the same
                         // one line, and "these words are for another model" is the more
                         // urgent of the two. Re-enhancing replaces it either way.
-                        note: _modelMismatchNote(_enhanced) ?? _transparentMismatchNote(_enhanced) ?? _enhanced.note,
+                        note: _modelMismatchNote(_enhanced) ?? _transparentMismatchNote(_enhanced) ?? _boxesMismatchNote(_enhanced) ?? _enhanced.note,
                     }
                     : undefined,
             });
@@ -2556,6 +2598,8 @@ export const MpiPromptBox = ComponentFactory.create({
                         modelName: model?.name ?? null,
                         // MPI-1049: the No Background state it was written for.
                         transparent,
+                        // MPI-1181: and the Boxes.
+                        boxes: boxesAtOpen,
                         // Recorded so the NEXT enhancement can tell this negative
                         // apart from one the user typed. See below.
                         negative: negative || null,

@@ -42,8 +42,9 @@ import { qwenImage21 } from './qwen-image-2.1.recipe.js';
 import { flux3 } from './flux-3.recipe.js';
 
 /** Generation modes a recipe may declare. `r2v` is reference-to-video (MPI-26). `i2i` is an
- *  image EDIT (MPI-1181, FLUX.3): an instruction on the staged images, not a scene. */
-export const RECIPE_MODES = ['t2v', 'i2v', 'r2v', 'i2i'];
+ *  image EDIT (MPI-1181, FLUX.3): an instruction on the staged images, not a scene. `t2v_bbox`
+ *  is t2v with the user's Boxes (MPI-1181): `enhance()` picks it when boxes are drawn. */
+export const RECIPE_MODES = ['t2v', 'i2v', 'r2v', 'i2i', 't2v_bbox'];
 export const OUTPUT_FORMATS = ['prose', 'keyword-list', 'structured-tags', 'timeline'];
 export const NEGATIVE_HANDLING = ['none', 'inline-positive', 'separate-field'];
 export const RECIPE_STATUSES = ['draft', 'validated'];

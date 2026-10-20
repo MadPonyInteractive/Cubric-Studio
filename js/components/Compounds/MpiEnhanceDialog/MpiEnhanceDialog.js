@@ -59,6 +59,7 @@ import { qs } from '../../../utils/dom.js';
  * @param {string[]} [references]   the staged reference tags (`@image1`), for an r2v mode
  * @param {Array<{tag:string,url:string}>} [pictures]  the staged images, which an r2v mode is told about (MPI-1084)
  * @param {boolean} [transparent]   No Background is on (MPI-1049): the recipe describes no background
+ * @param {Array}   [boxes]         the Boxes drawn for this op (MPI-1181): FLUX.3 plans around them
  * @param {{positive?: string, negative?: string, note?: {text: string, kind: string}}} [enhanced]
  *                                  an existing enhancement to reopen on, restored into
  *                                  the lower boxes so OK / Cancel are non-destructive.
@@ -174,7 +175,7 @@ export const MpiEnhanceDialog = ComponentFactory.create({
             runBtn.el.setLabel?.('Enhancing…');
             _note('');
             try {
-                const result = await enhanceLocally({ prompt: shortText, model: props.model, operation: props.operation, references: props.references, pictures: props.pictures, transparent: props.transparent === true });
+                const result = await enhanceLocally({ prompt: shortText, model: props.model, operation: props.operation, references: props.references, pictures: props.pictures, transparent: props.transparent === true, boxes: props.boxes });
                 if (!result.ok) {
                     _note(result.error || 'Enhance failed.', 'warn');
                     return;

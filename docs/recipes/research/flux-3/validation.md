@@ -103,6 +103,16 @@ Changes:
 - **Fabio, 2026-10-20: "Good enough: a 1-word overrun is harmless. Stop sweeping."** The count
   stops here, short of twice-green by his call; Stage 2 (renders) and the `validated` flip are his.
 
+## `t2v_bbox` (Boxes) — probe, 2026-10-20
+
+BFL's `t2i_bbox` verbatim; `enhance()` sends `upsamplingInput` and runs `reconcileBoxes` (BFL's
+`bbox.py`, `js/data/layoutBoxes.js`). One probe, local `huihui_ai/gemma-4-abliterated:12b`,
+`think: false`, "a fox <obj_1> and a bike <obj_2> in a meadow" with two boxes: one-line caption
+citing `<obj_1>` `<obj_2>`, both boxes' coordinates unchanged, richer descs; rendered on the
+bench, each subject inside its box (`.agents/mpi-kanban/tasks/MPI-1181/research/boxes/`). With
+thinking ON the 12B answered EMPTY, so an empty box-mode reply is an error, never a table-only
+prompt. Not counted (no sweep, no DeepInfra spend): a probe, like Stage 1's first round.
+
 ## Stage 2 — render (Fabio)
 
 Not started. The `draft -> validated` flip is Fabio's.

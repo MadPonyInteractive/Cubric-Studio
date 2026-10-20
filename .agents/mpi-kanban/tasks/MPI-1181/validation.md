@@ -77,3 +77,32 @@ the GPU lease behind MPI-1207's bench and cancelled for the handoff: nothing ran
   source, seed 424242, under gpu_lease) with the helper's exact text: 1:1 and 16:9 both fill edge to
   edge, no bars; the earlier bare 1:1 pillarboxed (2026-10-19). `tests/flux3-custom-size.test.cjs` 9/9;
   `npm test` 3446 pass / 0 fail / 2 skipped.
+
+## 2026-10-20 - Boxes steer the local model (session "Flux.3 integration 8")
+
+Shipped runtime graph `comfy_workflows/flux3_t2i.json`, bench G:/ComfyUi 0.42.1, Turbo, seed 424242,
+under gpu_lease; the box table appended to the prompt exactly as `Flux3LayoutPrompt` does
+(`research/boxes/boxbench.py`, sheets `research/boxes/sheet_t2i.jpg`, `sheet_edit.jpg`):
+
+- t2i 1344x768 "meadow <obj_1>, red fox <obj_2>, blue bicycle <obj_3>": with no table the fox and bike sit
+  wherever; with the table each lands inside its box, and swapping the boxes swaps them (12 s each).
+- edit "Add a black cat <obj_1>", one ref: the cat lands in the box top-left and bottom-right, the rest
+  of the photo untouched (21 s each). The simple `{id,bbox,desc}` row and BFL's edit row
+  (`from: "target"`, `tgt_bbox`) land the same, so v1 sends the simple row on every op (Fabio's pick 1).
+
+## 2026-10-20 - Boxes built (session "Flux.3 integration 8")
+
+- Uncited boxes steer an edit too (`research/boxes/sheet_uncited.jpg`): the edit Enhance (blind to the
+  pictures, so no BFL i2i_bbox) writes the instruction and the app appends the table.
+- Box-mode Enhance probe (local 12B, think off) -> caption citing <obj_1>/<obj_2>, coordinates kept,
+  rendered on the bench with each subject in its box (`sheet_enhanced.jpg`, `enhanced_box_prompt.txt`).
+- In my isolated app (scratch project "Boxes test"): Boxes button on every FLUX.3 op, greyed with its
+  reason on i2i; dialog draws, moves by tag, resizes by corner, draws inside a full-frame box; the
+  row text + `<obj_1>` cite reach the prompt; the run payload carries `Layout_Boxes`; saved per op;
+  edit frame = the staged picture at its own shape.
+- `tests/flux3-boxes.test.cjs` 7/7, `tests/flux3-recipe.test.cjs` + registry green; `npm test` 3454 pass,
+  0 fail, 2 skipped. Lint clean.
+- Fixed on the way: an edit Enhance ran the r2v picture-lines step and prefixed tag lines to the
+  instruction; now r2v only (`llmService.enhance`).
+- Not done: a real in-app generation (the app engine has no FLUX.3 weights; benched on G:/ComfyUi
+  instead), Fabio's eye check of the dialog, a DeepInfra count of `t2v_bbox`.

@@ -274,7 +274,7 @@ export const commands = {
         // Krea2's panel matches LTX/Wan/SDXL. MPI-677 removed the in-graph
         // `enhancePrompt` toggle from every op — enhancement is now its own control
         // beside the prompt box, not a property of the workflow.
-        components: ['qualityTier', 'styleSelect', 'stylization', 'ratio', 'batch', 'krea2Turbo', 'transparentBackground'],
+        components: ['qualityTier', 'styleSelect', 'stylization', 'ratio', 'batch', 'krea2Turbo', 'transparentBackground', 'boxes'],
     },
     i2i: {
         label: 'Image to Image',
@@ -309,7 +309,7 @@ export const commands = {
         // a latent, so it is live here and inert on t2i. Default matches the graph's
         // baked 0.3. The bare `Denoise` key's tier-2 alias `Input_Denoise` matches the
         // node case-insensitively.
-        components: ['qualityTier', 'styleSelect', 'stylization', 'denoise', 'ratio', 'batch', 'krea2Turbo'],
+        components: ['qualityTier', 'styleSelect', 'stylization', 'denoise', 'ratio', 'batch', 'krea2Turbo', 'boxes'],
         defaults: { denoise: 0.30 },
     },
     // Structure transfer: Input_Image → a preprocessor → the model's control path.
@@ -476,7 +476,7 @@ export const commands = {
         promptRequired: false,
         // styleSelect/stylization mount only for a model carrying the rack on this op
         // (modelShowsStyleRack) — Klein's master graph, not Krea2's upscaler file.
-        components: ['useGrid', 'useTiles', 'upscaleFactor', 'denoise', 'krea2Turbo', 'styleSelect', 'stylization'],
+        components: ['useGrid', 'useTiles', 'upscaleFactor', 'denoise', 'krea2Turbo', 'styleSelect', 'stylization', 'boxes'],
         defaults: { denoise: 0.20 },
     },
     edit: {
@@ -529,7 +529,7 @@ export const commands = {
         // frame of an unmasked edit (MPI-1181, MPI-1207).
         // They sit behind `customSize` (off by default), which MUST come before them:
         // MpiPromptBox parks the two while it is off.
-        components: ['styleSelect', 'stylization', 'transparentBackground', 'krea2Turbo', 'customSize', 'qualityTier', 'ratio'],
+        components: ['styleSelect', 'stylization', 'transparentBackground', 'krea2Turbo', 'customSize', 'qualityTier', 'ratio', 'boxes'],
         sizeOptIn: true,
     },
     krea2Edit: {
@@ -685,7 +685,7 @@ export const commands = {
         // styleSelect/stylization are listed but only mount for a model whose graph
         // carries the rack on THIS op — see modelShowsStyleRack. Klein's one master
         // graph does; Krea2's separate detailer file does not.
-        components: ['denoise', 'krea2Turbo', 'styleSelect', 'stylization'],
+        components: ['denoise', 'krea2Turbo', 'styleSelect', 'stylization', 'boxes'],
         defaults: { denoise: 0.30 },
     },
     // Masked regeneration. Replaces the old `change` + `remove` pair, which were
@@ -744,7 +744,7 @@ export const commands = {
         // by `capabilities.turboToggle`, so only Krea 2 ever renders it — and there it is
         // REAL on this branch: the graph's LanPaint sampler reads Get_turbo for its own
         // steps (8 vs 15) and cfg (1.0 vs 2.0), and swaps the accelerator LoRA in.
-        components: ['styleSelect', 'stylization', 'krea2Turbo'],
+        components: ['styleSelect', 'stylization', 'krea2Turbo', 'boxes'],
     },
     // NVIDIA PiD generative upscaler. One workflow, internal 4-path VAE selector
     // (pidVariant → Input_Type) + output-size selector (pidResolution → Input_Resolution),

@@ -28,6 +28,22 @@
     "tests/model-priority.test.cjs",
     "js/components/Organisms/MpiPromptBox/PromptBoxControls.js",
     ".agents/mpi-kanban/tasks/MPI-1207/brief.md",
-    ".git/MSG_1181.txt"
+    ".git/MSG_1181.txt",
+    "js/data/promptControlDefaults.js",
+    "js/data/generationControls.js",
+    "js/services/commandExecutor.js",
+    "js/components/Organisms/MpiPromptBox/MpiPromptBox.js",
+    "js/components/Compounds/MpiBoxesDialog/",
+    "js/components/Compounds/MpiBoxesDialog",
+    "js/shell/preloadStyles.js",
+    "js/components/types.js",
+    "tests/flux3-boxes.test.cjs",
+    "js/data/layoutBoxes.js",
+    "js/services/llmService.js",
+    "js/data/recipes/registry.js",
+    "js/data/recipes/flux-3.recipe.js",
+    "js/components/Compounds/MpiEnhanceDialog/MpiEnhanceDialog.js",
+    "tests/flux3-recipe.test.cjs",
+    "docs/recipes/research/flux-3/validation.md"
   ]
 }

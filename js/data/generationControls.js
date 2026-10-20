@@ -38,6 +38,7 @@ import {
     TTS_KNOBS, ttsKnobParams,
 } from './commandRegistry.js';
 import { PROMPT_CONTROL_DEFAULTS } from './promptControlDefaults.js';
+import { layoutRows, endsWithBoxTable } from './layoutBoxes.js';
 import { MODELS } from './modelConstants/models.js';
 import { canonicalModelId } from './modelConstants/resolveModelDeps.js';
 import { getExtension, isImageFile, isVideoFile, isAudioFile } from '../utils/file.js';
@@ -311,6 +312,37 @@ export function withCanvasPrompt(prompt, frame) {
     const text = String(prompt || '').trim();
     if (text.startsWith('TARGET CANVAS:')) return text;
     return `TARGET CANVAS: ${frame}\n${text}\nExtend the scene outward on every side so it fills the whole picture edge to edge. No black bars, no borders, no padding.`;
+}
+
+// ── Boxes (MPI-1181) ─────────────────────────────────────────────────────────
+
+/** Does `model` take layout boxes on `operation`? (`ModelDef.layoutBoxes.ops`) */
+export function modelTakesBoxes(model, operation) {
+    return !!model?.layoutBoxes?.ops?.includes(operation);
+}
+
+/**
+ * The run's prompt with the user's boxes appended as the model's layout table. Boxes are
+ * stored as fractions of the output frame, `{ x, y, w, h, desc }`; box N is `obj_N`, which
+ * the prompt cites as `<obj_N>`.
+ *
+ * `flux3`: what core `Flux3LayoutPrompt` does - prompt, one space, a JSON list of
+ * `{ id, bbox: [y_min, x_min, y_max, x_max] on a 0-1000 grid, desc }`, background first.
+ * The table must be the LAST thing in the prompt (BFL's `bbox.split` reads from the last
+ * `[`), so this runs after every other prompt wrapper. Benched 2026-10-20: the boxes move
+ * the subjects on t2i and place an added object on edit.
+ *
+ * @param {object} model - the ModelDef; `layoutBoxes.format` picks the table
+ * @param {string} prompt
+ * @param {Array<{x:number,y:number,w:number,h:number,desc?:string}>} boxes
+ * @returns {string}
+ */
+export function withLayoutBoxes(model, prompt, boxes) {
+    const text = String(prompt || '').trim();
+    if (model?.layoutBoxes?.format !== 'flux3' || !Array.isArray(boxes) || !boxes.length) return text;
+    // An Enhance in box mode already wrote the table (the user's boxes, reconciled): keep it.
+    if (endsWithBoxTable(text)) return text;
+    return `${text} ${JSON.stringify(layoutRows(boxes))}`;
 }
 
 // ── upscale factor + Use Tiles (MPI-1038) ────────────────────────────────────
