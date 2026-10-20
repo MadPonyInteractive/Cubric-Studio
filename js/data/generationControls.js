@@ -272,6 +272,9 @@ export function namedParamsFor(model, operation) {
         ...(modelShowsTiles(model, operation) ? { tiles: true } : {}),
         // No Background (MPI-1049): a transparent result, where the model can make one.
         ...(modelShowsTransparent(model, operation) ? { transparent: true } : {}),
+        // An edit whose size sits behind the Custom size button (`customSizeOps`, MPI-1181/1207): ratio and
+        // qualityTier are optional there, and leaving both out keeps reference 1's own frame (resolveNamedParams).
+        ...(modelShowsRatio(model, operation) && getCommandComponents(operation).includes('customSize') ? { customSize: true } : {}),
     };
 }
 

@@ -53,7 +53,11 @@
 - **FLUX.3 Klein.** Black Forest Labs' new model: text to image, edits with up to ten reference images, and an edit can now pick its own frame size. A Turbo button switches between the fast and the more natural base model, up to 4K. A Boxes button slides up a panel behind the prompt box where you draw where things go, while the prompt and ratio stay usable: name each box (cat, dog, woman) and mention it in the prompt as `<cat>` (type `@` to pick one), add an optional short description, darken a bright picture to see the boxes, and Enhance plans the picture around them. An edit with boxes and nothing typed in the prompt writes its own instruction from the boxes, so the rest of the picture stays. Moving, adding or removing a box after Enhance switches the Enhance button off again, so a run never uses words planned for the old boxes; press Enhance again. Reuse brings the boxes back. (MPI-1181)
 - **Custom size on edit.** Klein 4B and 9B, Krea 2, Qwen-Image 2.1, Boogu, Qwen Edit and cloud Seedream 4 / 4.5, FLUX-2 Dev and Klein 9B can now pick the edited picture's frame: a Custom size button, off by default, unlocks the ratio and resolution. A drawn mask keeps the original frame. (MPI-1207)
 
+- **Cosmo now sees pictures, on a cheaper model.** Cosmo's default model is now MiMo-V2.6-Flash: it scores as well as the old default on our agent tests at about 25% less per chat, and can look at a picture itself when a description is not enough (is this the same face, how grainy is it). Scores for every tested model are at bench.cubric.studio. (MPI-1208)
+
 ## Fixes
+
+- **Cosmo can ask FLUX.3, Krea 2 and LTX for their real resolutions (1K, 2K, 4K), and an edit it runs keeps the picture's own frame unless a size is asked for.** (MPI-1208)
 
 - **The Windows app is now signed.** Every program in the Windows download carries a Mad Pony Interactive signature, so Smart App Control should no longer block Cubric Studio from opening. SmartScreen may still ask once while the new signature earns its reputation. (MPI-616)
 

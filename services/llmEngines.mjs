@@ -534,8 +534,25 @@ export const RECOMMENDED_REMOTE_MODELS = {
         // validation.md): DeepSeek x3 passes 33, 32, 33 (was 28/28 x3 on 28 cases), $0.3538. A multi-run score is
         // the MEDIAN, the rule bench.cubric.studio scores the same runs by (Fabio 2026-10-04: one number in both
         // places); it was stamped 30/34 "strict" (passed in all three), which the site never showed.
-        { id: 'deepseek-ai/DeepSeek-V4-Flash-0731', jobs: ['agent'], contextWindow: 1_048_576, reasoningEffort: 'low',
-            agentTest: { passed: 33, cases: 34, runs: 3, perChat: 0.0035, suiteHash: '38728db81118' } },
+        // Re-scored 2026-10-20 on the 55-case suite (MPI-1208 validation.md, research/bench/): runs 53, 52, 49,
+        // median 52 (48 strict), billed $0.2678 / 165 chats. `perChat` is the BILLED cost from here on (DeepInfra's
+        // `estimated_cost`, what the in-app benchmark reports); the old 0.0035 priced cached tokens as fresh.
+        // Default since 2026-10-20 (MPI-1208, Fabio): it ties 0731's score at 25% less and SEES pictures (`look`
+        // see:true) when words cannot settle it. 55 cases x3: runs 51, 53, 53 (median 53) spent a picture on every
+        // plain look; after the SEE_LIMITS rewording (agentLoop.mjs) runs 53, 50, 52, median 52 (47 strict), billed
+        // $0.1970 / 165 chats, and see-not-for-a-plain-description 3/3; identity 2/3. Benched with no reasoningEffort.
+        { id: 'XiaomiMiMo/MiMo-V2.6-Flash', jobs: ['agent'], contextWindow: 1_048_576,
+            agentTest: { passed: 52, cases: 55, runs: 3, perChat: 0.0012, suiteHash: 'e4f83ddc0bfe' } },
+        { id: 'deepseek-ai/DeepSeek-V4-Flash-0731', jobs: [], contextWindow: 1_048_576, reasoningEffort: 'low',
+            agentTest: { passed: 52, cases: 55, runs: 3, perChat: 0.0016, suiteHash: 'e4f83ddc0bfe' } },
+        // 55 cases x3 (MPI-1208): runs 48, 49, 47, median 48 (43 strict), billed $0.1834 / 165 chats. Sees pictures.
+        { id: 'deepseek-ai/DeepSeek-V4.1-Flash-1017', jobs: [], agentTest: { passed: 48, cases: 55, runs: 3, perChat: 0.0011, suiteHash: 'e4f83ddc0bfe' } },
+        // 55 cases x3 (MPI-1208): runs 46, 44, 43 (install-asks run 1 was a DeepInfra 429, rerun), median 44
+        // (37 strict), billed $0.0015/chat. Sees pictures but plans worse than 0731.
+        { id: 'deepseek-ai/DeepSeek-V4.1-Flash', jobs: [], agentTest: { passed: 44, cases: 55, runs: 3, perChat: 0.0015, suiteHash: 'e4f83ddc0bfe' } },
+        // 40/53 x1 (MPI-1208), billed $0.0030/chat. Ran before the two max-resolution cases and an edit to
+        // shape-then-edit, so its hash is the older 53-case one and Settings reads "older tests".
+        { id: 'inclusionAI/Ling-3.0-flash-VL', jobs: [], agentTest: { passed: 40, cases: 53, runs: 1, perChat: 0.0030, suiteHash: '171f63b8829f' } },
         // 31/34 x1, $0.2165 (was 25/28 on 2026-09-29, 19/23 x3 on MPI-912 § 6).
         { id: 'Qwen/Qwen3.6-35B-A3B', jobs: [], agentTest: { passed: 31, cases: 34, runs: 1, perChat: 0.0064, suiteHash: '38728db81118' } },
         // 31/34 x1, $0.0730 (was 19/28 on 2026-09-29).

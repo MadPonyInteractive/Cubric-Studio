@@ -160,10 +160,10 @@ billing 1388 input tokens. Probe before trusting either signal.
 
 **Seeing does not make it an identity judge (2026-10-20, measured; MPI-1208).** `look` `see: true` hands a
 vision chat model the picture itself, on request only (the description stays the default). Asked if an edit kept the person, DeepSeek-V4.1-Flash and Ling-3.0-flash-VL both SAW both pictures and said
-"same woman" over a drifted face (DeepSeek 2/3, Ling 0/1). And the text-only default, V4-Flash-0731,
-out-planned both: 48/55 at 3/3 against V4.1's 37/55, same bill. Evidence: MPI-1208 `research/bench/`.
-**Grade a model on the BILLED cost:** Ling lists at a third of DeepSeek's input price and billed twice as
-much per chat ($0.003 vs $0.0015); the cache rate decides it, and agent-test's ceiling was 9x the bill.
+"same woman" over a drifted face (DeepSeek 2/3, Ling 0/1). Median of 3 runs: 0731 52/55, V4.1 44/55, and
+MiMo-V2.6-Flash 52/55 at $0.0012/chat, now the default. A `limits` note ending "see: true shows you the
+picture" made MiMo see on EVERY look (0/3 -> 3/3 once reworded): a closing pointer reads as an order. Evidence: MPI-1208 `research/bench/`.
+**Grade a model on the BILLED cost:** Ling lists at a third of DeepSeek's input price and billed twice as much per chat ($0.003 vs $0.0015); the cache rate decides it, and agent-test's ceiling was 9x the bill.
 
 ### The mask flow, three slips in one day (2026-09-29, live; BUILT, MPI-987 / MPI-991)
 

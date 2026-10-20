@@ -112,7 +112,8 @@ export const TOOL_DEFS = [
                     prompt: { type: 'string' },
                     negative: { type: 'string' },
                     ratio: { type: 'string' },
-                    qualityTier: { type: 'string', enum: ['very_low', 'low', 'medium', 'high', 'very_high', 'ultra'] },
+                    // No enum: tiers differ per model (FLUX.3, Krea 2 and LTX use 1k/2k/4k); resolveNamedParams checks them.
+                    qualityTier: { type: 'string', description: 'One of the op\'s params.qualityTiers.' },
                     turbo: { type: 'boolean' },
                     duration: { type: 'number', description: 'Seconds, in the op\'s params.duration range. A clip: see the Duration rule.' },
                     category: { type: 'string', description: 'One of the op\'s params.categories.' },
@@ -399,7 +400,8 @@ export const TOOL_DEFS = [
 // ponytail: one size for stills and clip sheets; a sheet's frames are small at 768.
 const SEE_LONG_SIDE = 768;
 // What a description cannot carry, on a plain look's result for a model that can see.
-const SEE_LIMITS = "These are the describer's words. They name hair, clothes, pose and setting alike for two different faces, and they flatten grain and colour. see: true shows you the picture.";
+// MPI-1208: a closing "see: true shows you the picture" read as an invitation; MiMo-V2.6-Flash saw on every plain look (0/3).
+const SEE_LIMITS = "These are the describer's words, enough to say what the picture shows. They name hair, clothes, pose and setting alike for two different faces, and they flatten grain and colour: only for those is see: true worth its cost.";
 
 // MPI-1208 — a vision model's list: TOOL_DEFS with `see` on look. Picked per model, so the
 // list stays the same for the whole chat and the prompt cache holds (see WAKE_TOOLS below).
@@ -2389,9 +2391,12 @@ ${knowledgeIndex}`.trim();
                 // H3 on 9:16 and the agent wrote "if you'd rather keep the full 768x1024 framing I
                 // can adjust". H3 has no 3:4. "Taken from the picture's own shape" read as a
                 // choice among any shape, when it was the nearest of a closed set.
+                // Not on a Custom size edit (params.customSize): there a ratio turns custom size ON, and
+                // unasked it keeps reference 1's own frame (MPI-1208, from Flux.3 integration 11).
                 let snapNote = '';
-                if (!args.flowId && args.ratio === undefined && sourcePath && args.modelId && args.operation) {
-                    const opKey = `${args.modelId}\n${args.operation}`;
+                const opKey = `${args.modelId}\n${args.operation}`;
+                if (!args.flowId && args.ratio === undefined && sourcePath && args.modelId && args.operation
+                    && !this._ops.get(opKey)?.params?.customSize) {
                     const snapped = await this._ratioForSource(opKey, sourcePath);
                     if (snapped) {
                         body.ratio = snapped;

@@ -449,6 +449,25 @@ describe('(c) generate non-blocking', () => {
         assert.match(out.message, /runs at the panel's settings \(2 s, 1:1\)/);
     });
 
+    // MPI-1208 (from Flux.3 integration 11): no ratio asked = the picture's own shape. On a Custom size
+    // edit a sent ratio turns custom size ON, so there nothing is filled in and the edit keeps its frame.
+    test('an unasked ratio is snapped to the picture, except on a Custom size edit', async () => {
+        const { loop, tools } = await makeLoop();
+        const project = { folderPath: '/project', name: 'Test' };
+        loop._images.set('att_1', { path: '/tmp/att_1.png', kind: 'attachment' });
+        loop._ratioForSource = async () => '3:4';
+        loop._ops.set('test-model\ni2i', { op: 'i2i', params: { ratios: ['1:1', '3:4'] } });
+        loop._ops.set('test-model\nedit', { op: 'edit', params: { ratios: ['1:1', '3:4'], customSize: true } });
+        const send = async (operation) => {
+            const out = JSON.parse(await loop._executeTool('generate',
+                { modelId: 'test-model', operation, prompt: 'A fox', media: [{ role: 'image', image: 'att_1' }], wait: true }, `turn-${operation}`, project));
+            assert.equal(out.ok, true, JSON.stringify(out));
+            return tools.calls.generate.at(-1);
+        };
+        assert.equal((await send('i2i')).ratio, '3:4');
+        assert.equal((await send('edit')).ratio, undefined, 'custom size stays off: the edit keeps reference 1\'s frame');
+    });
+
     /**
      * MPI-817. Non-blocking is right for the LAST step and wrong for every step something
      * else needs. Live (Fabio, 2026-09-19): "grow the top and bottom edges so the format
@@ -1335,7 +1354,7 @@ describe('(g) model and context window', () => {
     test('no pick = the connection\'s recommended agent model', async () => {
         const { loop } = await makeLoop({ engineResponses: [{ text: 'hi' }] });
         await loop.runTurn('Hello', [], null, 'auto', 'deepinfra', 't-rec');
-        assert.equal(loop._fakeEngine.calls[0].model, 'deepseek-ai/DeepSeek-V4-Flash-0731');
+        assert.equal(loop._fakeEngine.calls[0].model, 'XiaomiMiMo/MiMo-V2.6-Flash');
     });
 
     test('no pick and no recommendation = NO_MODEL, and nothing is spent', async () => {
