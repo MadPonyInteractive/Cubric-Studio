@@ -30,6 +30,7 @@ import { MpiEnhanceDialog } from '../../Compounds/MpiEnhanceDialog/MpiEnhanceDia
 import { attachDictation } from '../../../services/dictation.js';
 import { thumbSrc } from '../../../utils/displayImage.js';
 import { PAGE_LANDING } from '../../../router.js';
+import { layoutRows } from '../../../data/layoutBoxes.js';
 
 /**
  * MpiPromptBox — Prompt input Block with self-composing operation slots.
@@ -1751,6 +1752,7 @@ export const MpiPromptBox = ComponentFactory.create({
         }
 
         function _labelFor(entry) {
+            if (entry.box) return '';
             if (entry.item.mediaType === 'audio') return _audioName(entry.item);
             return entry.item.name || entry.item.mediaType;
         }
@@ -1766,7 +1768,8 @@ export const MpiPromptBox = ComponentFactory.create({
                     extraClasses: `mpi-prompt-box__ref-picker-item${i === _refActive ? ' mpi-prompt-box__ref-picker-item--active' : ''}`,
                 }, `
                     <span class="mpi-prompt-box__ref-picker-tag">${entry.tag}</span>
-                    <span class="mpi-prompt-box__ref-picker-name">${_labelFor(entry)}</span>`);
+                    <span class="mpi-prompt-box__ref-picker-name"></span>`);
+                qs('.mpi-prompt-box__ref-picker-name', row).textContent = _labelFor(entry);
                 row.dataset.idx = String(i);
                 _refPicker.appendChild(row);
             });
@@ -1842,7 +1845,9 @@ export const MpiPromptBox = ComponentFactory.create({
             // Never on a negative field — the tags address references, and a negative
             // prompt has none. (H3 has no negative node at all, but the guard is cheap
             // and keeps this correct for any future tagged op that does.)
-            const tags = promptMode === 'positive' ? _stagedRefTags() : [];
+            // Boxes (MPI-1181) are cited the same way: `@` lists them after the references.
+            const boxTags = layoutRows(_boxesCtrl()?.getValue() || []).map((r) => ({ tag: r.id, box: true }));
+            const tags = promptMode === 'positive' ? [..._stagedRefTags(), ...boxTags] : [];
             if (!tags.length) return _closeRefPicker();
 
             const query = matchRefTagQuery(textareaEl.value, textareaEl.selectionStart, tags);
@@ -2644,8 +2649,13 @@ export const MpiPromptBox = ComponentFactory.create({
                 // MPI-1006: an r2v recipe cannot see the chips, so it is told their tags.
                 references: _stagedRefTags().map(entry => refTagHandle(entry.tag, model)),
                 // MPI-1084: and the pictures themselves, so it is told what each one shows.
-                pictures: _stagedRefTags().filter(entry => entry.item.mediaType === 'image')
-                    .map(entry => ({ tag: refTagHandle(entry.tag, model), url: entry.item.url })),
+                // An edit's slots carry no tag, so its pictures go by load order: without
+                // them the FLUX.3 edit recipe read a box's text as "the first image" (MPI-1181).
+                pictures: _stagedRefTags().length
+                    ? _stagedRefTags().filter(entry => entry.item.mediaType === 'image')
+                        .map(entry => ({ tag: refTagHandle(entry.tag, model), url: entry.item.url }))
+                    : _withAssignedRoles(_mediaItems, activeOperation).filter(item => item.mediaType === 'image' && item.role && item.url)
+                        .map((item, i) => ({ tag: `Image ${i + 1}`, url: item.url })),
                 // MPI-1049: No Background on, so the recipe describes no setting.
                 transparent,
                 // MPI-1181: the Boxes drawn for this op; FLUX.3's t2i plans around them.

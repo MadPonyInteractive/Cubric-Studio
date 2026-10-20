@@ -332,17 +332,26 @@ export function modelTakesBoxes(model, operation) {
  * `[`), so this runs after every other prompt wrapper. Benched 2026-10-20: the boxes move
  * the subjects on t2i and place an added object on edit.
  *
+ * An EDIT with an empty prompt gets its instruction written from the boxes: with only the
+ * table, FLUX.3 drew a new picture from the box text and dropped the subject (Fabio's tiger,
+ * 2026-10-20).
+ *
  * @param {object} model - the ModelDef; `layoutBoxes.format` picks the table
  * @param {string} prompt
  * @param {Array<{x:number,y:number,w:number,h:number,desc?:string}>} boxes
+ * @param {string} [operation]
  * @returns {string}
  */
-export function withLayoutBoxes(model, prompt, boxes) {
-    const text = String(prompt || '').trim();
+export function withLayoutBoxes(model, prompt, boxes, operation) {
+    let text = String(prompt || '').trim();
     if (model?.layoutBoxes?.format !== 'flux3' || !Array.isArray(boxes) || !boxes.length) return text;
     // An Enhance in box mode already wrote the table (the user's boxes, reconciled): keep it.
     if (endsWithBoxTable(text)) return text;
-    return `${text} ${JSON.stringify(layoutRows(boxes))}`;
+    const rows = layoutRows(boxes);
+    if (!text && operation === 'edit') {
+        text = `${rows.map((r) => `In <${r.id}>: ${r.desc}.`).join(' ')} Keep everything else in the picture exactly the same.`;
+    }
+    return `${text} ${JSON.stringify(rows)}`;
 }
 
 // ── upscale factor + Use Tiles (MPI-1038) ────────────────────────────────────

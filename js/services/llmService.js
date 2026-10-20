@@ -39,7 +39,7 @@
  */
 
 import { resolveRecipe, FALLBACK_RECIPE_ID, getRecipe, withReferences, withImageLooks, withPictureLines, TRANSPARENT_BACKGROUND_RULE } from '../data/recipes/registry.js';
-import { layoutRows, upsamplingInput, reconcileBoxes, splitBoxTable } from '../data/layoutBoxes.js';
+import { layoutRows, upsamplingInput, editPlacementInput, reconcileBoxes, splitBoxTable } from '../data/layoutBoxes.js';
 import { composeSystemPrompt } from '../data/recipes/styles.js';
 import { clientLogger } from './clientLogger.js';
 import { Storage } from '../core/storage.js';
@@ -874,7 +874,8 @@ export async function enhance({ prompt, model, recipeKey, mode, operation, refer
     // MPI-1006: only an r2v mode is told what is staged; it cites those tags and no others.
     // MPI-1084: and what each picture shows, or it guesses the roles by load order.
     const seen = modeRecipe.seesPictures && pictures?.length ? await pictureCaptions(pictures) : { captions: [], missed: [] };
-    const request = boxRows ? upsamplingInput(idea, boxRows) : idea;
+    const request = !boxRows ? idea
+        : resolvedMode.endsWith('_bbox') ? upsamplingInput(idea, boxRows) : editPlacementInput(idea, boxes);
     const userText = resolvedMode === 'r2v' ? withReferences(idea, references ?? [], seen.captions)
         : resolvedMode === 'i2i' ? withImageLooks(request, seen.captions)
         : request;

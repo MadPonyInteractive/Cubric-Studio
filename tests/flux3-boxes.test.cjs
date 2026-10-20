@@ -30,6 +30,26 @@ test('out-of-frame values clamp to the grid', () => {
     assert.match(out, /"bbox":\[900,0,1000,400\]/);
 });
 
+test('an empty edit prompt is written from the boxes; a typed one, or t2i, is not', () => {
+    const tiger = { x: 0.26, y: 0.27, w: 0.2, h: 0.43, desc: 'Sneaking Tiger', name: 'Tiger' };
+    assert.equal(withLayoutBoxes(FLUX3, ' ', [tiger, { ...FOX, name: 'fox' }], 'edit').split(' [')[0],
+        'In <Tiger>: Sneaking Tiger. In <fox>: red fox sitting. Keep everything else in the picture exactly the same.');
+    assert.match(withLayoutBoxes(FLUX3, 'Add a tiger', [tiger], 'edit'), /^Add a tiger \[/);
+    assert.match(withLayoutBoxes(FLUX3, '', [tiger], 't2i'), /^ \[/);
+});
+
+test('the edit enhancer gets each box as words, never coordinates, and is told the pictures lack it', async () => {
+    const { editPlacementInput } = await import('../js/data/layoutBoxes.js');
+    const out = editPlacementInput('the <tigger> sneaks up', [
+        { x: 0.74, y: 0.01, w: 0.26, h: 0.78, desc: 'A Bengal tiger ', name: 'tigger' },
+        { ...FOX, name: 'fox' },
+    ]);
+    assert.equal(out, 'the <tigger> sneaks up\n\nPLACEMENT (where each thing goes in the edited image; the attached images do not show it):\n'
+        + '<tigger>: A Bengal tiger, on the right of the frame, at middle height.\n'
+        + '<fox>: red fox sitting, on the left of the frame, near the bottom.');
+    assert.doesNotMatch(out, /\d{2,}|bbox|LOCKED/);
+});
+
 test('no boxes, or a model without a format: the prompt is untouched', () => {
     assert.equal(withLayoutBoxes(FLUX3, ' hi ', []), 'hi');
     assert.equal(withLayoutBoxes(KREA2, 'hi', [FOX]), 'hi');

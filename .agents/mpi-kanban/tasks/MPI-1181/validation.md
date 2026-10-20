@@ -144,3 +144,49 @@ under gpu_lease; the box table appended to the prompt exactly as `Flux3LayoutPro
   edit_005's framing. His visible zoom is edit_001 -> edit_005 (first box edit, empty prompt): not
   reproduced yet. Also: on the bench the desc "Orange cat" did NOT recolour at his seed (app did).
 
+## Boxes round 3 (2026-10-20, Fabio's second in-app test)
+
+- Fabio: bar toggle, gallery <-> history round trip and wider rows all pass. Approved both proposals.
+- Bug (Fabio, edit_007): edit_001 + a `Tiger` box "Sneaking Tiger", EMPTY prompt -> a new picture,
+  gorilla gone (environment kept). Cause: with only the table the model has no edit instruction.
+  Fix: `withLayoutBoxes(..., operation)` writes `In <Tiger>: Sneaking Tiger. Keep everything else in
+  the picture exactly the same.` when an edit's prompt is empty. Bench (`research/boxes/tigerbench.py`,
+  `tiger_sheet.jpg`, `tiger_sheet2.jpg`, his seed 1221865106 + 111/222/333): empty lost the gorilla on
+  2 of 4 (his seed reproduced) and zoomed on 111; the written line kept the gorilla 4 of 4, tiger
+  peeking from behind it; framing shifted on 222, a gorilla-tiger blend on 111. `Add <Tiger>:` wording
+  drew no tiger at his seed and printed "Tiger: Sneaking Tiger" as text at 111 -> rejected.
+- `@` picker lists boxes after the references, NAME ONLY (Fabio: the desc showed too; removed).
+  Live in my isolated page: `@T` -> Tiger and tree rows, Enter wrote `<Tiger> `, a `<b>` in a desc
+  showed as plain text.
+- `tests/flux3-boxes.test.cjs` 10/10; `npm test` 3459: 3457 pass, 0 fail, 2 skipped; lint clean.
+- Not checked: Fabio's eye check of the `@` list; the zoom is rarer with the written line, not gone.
+- edit_008 (typed prompt "the <tigger> is sneaking from behind the gorilla...", box on the RIGHT, custom
+  size 1280x800): tiger landed LEFT. Bench (`e008bench.py`, `e008_sheet.jpg`, his seed 3824626108 +
+  111/222): his prompt alone recomposed the gorilla 3 of 3, tiger off-box; + "Keep everything else in
+  the picture exactly the same." kept the gorilla 3 of 3, tiger in the box 3 of 3 (two tigers once).
+  Fabio then landed a good one in-app by typing "Do not change anything in the picture. Simply add the
+  tiger..." himself (2 of his 3 runs had a SECOND tiger). Open: app appends the keep line on box edits?
+- Keep line downside (`keepbench.py`, `keep_sheet.jpg`, seeds 3824626108/111): "Make it night time" +
+  keep line still went night 2 of 2 (no block); "one tiger" alone recomposed + off-box, + keep line one
+  tiger in the box, gorilla kept 2 of 2.
+- Enhance bug (Fabio): his enhanced edit prompt said "similar ... to the tiger described in the first
+  image" - no tiger picture exists. Backend = the engine's Qwen3-VL 4B (Ollama off). Cause: the edit
+  (i2i) request carried BFL's t2i_bbox header "LOCKED ... preserve every supplied identity, provenance
+  value" + raw coordinates. Bench (`enhbench.mjs`, `enhbench.txt`, i2i system prompt + a hand-written
+  gorilla caption, 3 seeds each): A (today) invented "the Bengal tiger from the first image" 3/3;
+  B (plain coordinates header) 0/3 but leaked "[8,736,793,1000]" once and put it lower-LEFT once;
+  C (words, no "not in the pictures") 3/3 invented again; D 0/3, leaked "marked region"; E
+  (`PLACEMENT ... the attached images do not show it` + `<id>: desc, on the right of the frame, at
+  middle height.`) 0/3, imperative "Place a Bengal tiger on the right side...", gorilla kept 3/3.
+  Shipped E as `editPlacementInput` (t2i keeps BFL `t2v_bbox` + `upsamplingInput`); string proven
+  identical to the bench's. `npm test` 3460: 3458 pass, 0 fail, 2 skipped; lint clean.
+- Not checked: E's prompt rendered through FLUX.3 in-app (Fabio).
+- CORRECTION: Fabio's backends are Remote (DeepInfra) for both: enhancer gemma3 12B, describer Gemma 4
+  26B. Code follows both picks (`enhance()` / `describeImage` -> `runnableBackend(<pref>)`); my "4B"
+  was a guess. Second cause found: the prompt box passed `pictures` only from TAGGED slots
+  (`_stagedRefTags`), and edit's slots carry no tag, so every FLUX.3 edit Enhance went out with NO
+  picture description while the i2i system prompt promises them - the box desc was the only "image"
+  text. Fix: untagged ops send their role-assigned images by load order (`Image 1`...). LTX's
+  `seesPictures` is r2v only (tagged), unchanged. Live in my isolated page: FLUX.3 edit + a staged
+  picture -> the dialog got `pictures: [{tag:'Image 1', url}]` (was `[]`). `npm test` 3458/0/2.
+

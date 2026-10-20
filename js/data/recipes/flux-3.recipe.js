@@ -36,9 +36,9 @@
  * "ORIGINAL PROMPT / LOCKED BOUNDING-BOX" message and re-imposes the user's boxes on the answer
  * (`js/data/layoutBoxes.js`, BFL's `bbox.py`). BFL's `i2i_bbox` is NOT used: it locates what is
  * already in the pictures, and this enhancer reads a description instead of seeing them, so its
- * boxes would be guesses. An edit with Boxes keeps `i2i`, whose last paragraph already reads
- * the boxes as layout hints, and the app appends the user's table (benched 2026-10-20: an
- * uncited box places an added object as well as a cited one).
+ * boxes would be guesses. An edit with Boxes keeps `i2i`, is sent each box as words, not
+ * coordinates (`editPlacementInput`), and the app appends the user's table (benched 2026-10-20:
+ * an uncited box places an added object as well as a cited one).
  *
  * TARGET CANVAS: BFL's t2i prompt reads an optional first line "TARGET CANVAS: W:H" and
  * composes for it. The bench showed a custom-size EDIT pillarboxes without that line in the

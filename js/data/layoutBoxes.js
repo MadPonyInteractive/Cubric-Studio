@@ -56,6 +56,27 @@ export function upsamplingInput(prompt, rows) {
         + `provenance value, null, and coordinate exactly:\n${JSON.stringify(rows)}`;
 }
 
+/**
+ * The EDIT enhancer's request with boxes: each box as words (`<tiger>: A Bengal tiger, on the
+ * right of the frame, at middle height.`), never coordinates, and told the pictures do not show
+ * it. BFL's "LOCKED ... identity, provenance" header made the 4B enhancer write "the tiger from
+ * the first image" 3 of 3 with no tiger picture; raw coordinates leaked into its prose or landed
+ * on the wrong side. This wording: 0 of 3 (`research/boxes/enhbench.mjs`, 2026-10-20). The app
+ * still appends the real table at run time (`withLayoutBoxes`).
+ */
+export function editPlacementInput(prompt, boxes) {
+    const where = (b) => {
+        const cx = (Number(b.x) || 0) + (Number(b.w) || 0) / 2;
+        const cy = (Number(b.y) || 0) + (Number(b.h) || 0) / 2;
+        const h = cx < 1 / 3 ? 'on the left' : cx > 2 / 3 ? 'on the right' : 'in the centre';
+        const v = cy < 1 / 3 ? 'near the top' : cy > 2 / 3 ? 'near the bottom' : 'at middle height';
+        return `${h} of the frame, ${v}`;
+    };
+    const rows = layoutRows(boxes);
+    return `${String(prompt).trim()}\n\nPLACEMENT (where each thing goes in the edited image; the attached images do not show it):\n`
+        + rows.map((r, i) => `<${r.id}>: ${r.desc}, ${where(boxes[i])}.`).join('\n');
+}
+
 /** `[caption, rows]`: the rows are the list parsed from the LAST `[` that parses (`bbox.split`). */
 export function splitBoxTable(text) {
     const s = String(text);

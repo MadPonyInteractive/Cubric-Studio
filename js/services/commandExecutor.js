@@ -967,7 +967,7 @@ function _buildParams(payload) {
     // the wrappers above, because the model reads the table from the prompt's final `[`.
     if ('Layout_Boxes' in params) {
         if (modelTakesBoxes(modelDef, payload.operation)) {
-            params.Input_Positive = withLayoutBoxes(modelDef, params.Input_Positive, params.Layout_Boxes);
+            params.Input_Positive = withLayoutBoxes(modelDef, params.Input_Positive, params.Layout_Boxes, payload.operation);
         }
         delete params.Layout_Boxes;
     }
