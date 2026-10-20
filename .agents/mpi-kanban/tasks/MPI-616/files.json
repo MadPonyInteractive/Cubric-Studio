@@ -2,6 +2,9 @@
   "schema": "mpi-kanban/files/v1",
   "files": [
     "docs/releases/github-release-checklist.md",
+    "scripts/build-portable.mjs",
+    "tests/build-portable-sign.test.cjs",
+    "c:/AI/Mpi/mpi-ci/.github/workflows/cubric-vision-portable.yml",
     ".agents/mpi-kanban/tasks/MPI-616/**"
   ]
 }

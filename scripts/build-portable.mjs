@@ -3,6 +3,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import { existsSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import zlib from 'node:zlib';
@@ -172,6 +173,7 @@ export function parseArgs(argv) {
     nodeModules: true,
     uvBin: process.env.CUBRIC_BUNDLE_UV || null,
     fromManifest: null,
+    sign: false,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -188,6 +190,8 @@ export function parseArgs(argv) {
       opts.updateBundle = false;
     } else if (arg === '--no-node-modules') {
       opts.nodeModules = false;
+    } else if (arg === '--sign') {
+      opts.sign = true;
     } else if (arg === '--uv-bin') {
       opts.uvBin = argv[++i];
     } else if (arg.startsWith('--uv-bin=')) {
@@ -259,6 +263,10 @@ Options:
                          cross-building for another OS; run npm install on target.
   --uv-bin <path>        Bundle this uv binary at <root>/uv/uv for zero-setup
                          engine bootstrap. Also reads CUBRIC_BUNDLE_UV env.
+  --sign                 win32 only: Authenticode-sign every unsigned .exe/.dll/.node
+                         in the staged tree with Azure Artifact Signing, then fail
+                         unless all of them read Valid. Needs ${SIGNING_ENV.join(', ')}
+                         and the AZURE_TENANT_ID/CLIENT_ID/CLIENT_SECRET the dlib reads.
 `);
 }
 
@@ -746,6 +754,81 @@ async function brandWindowsExe(exePath, exeName, version) {
     'product-version': version,
     'version-string': windowsExeBranding(exeName),
   });
+}
+
+// MPI-616: Smart App Control hard-blocks an unsigned exe with no override, and
+// Electron's npm prebuilts (plus ffmpeg, uv) ship unsigned. Signing runs here, over
+// the STAGED tree, because this script — not electron-builder — makes the shipped
+// artifact, and it must run after brandWindowsExe: rcedit rewrites the PE and would
+// void a signature made before it. Files already Valid (Microsoft's d3dcompiler_47 /
+// dxil) are left alone. CI sets the three paths; the dlib reads the Azure app
+// credentials from AZURE_TENANT_ID / AZURE_CLIENT_ID / AZURE_CLIENT_SECRET itself.
+export const SIGNING_ENV = ['ARTIFACT_SIGNING_SIGNTOOL', 'ARTIFACT_SIGNING_DLIB', 'ARTIFACT_SIGNING_METADATA'];
+const SIGNABLE_EXTS = new Set(['.exe', '.dll', '.node']);
+
+export function isSignable(relPath) {
+  return SIGNABLE_EXTS.has(path.extname(relPath).toLowerCase());
+}
+
+export function resolveSigningEnv(env = process.env) {
+  const missing = SIGNING_ENV.filter((name) => !env[name]);
+  if (missing.length) {
+    throw new Error(`--sign needs ${missing.join(', ')} set (see the mpi-ci portable workflow).`);
+  }
+  return {
+    signtool: env.ARTIFACT_SIGNING_SIGNTOOL,
+    dlib: env.ARTIFACT_SIGNING_DLIB,
+    metadata: env.ARTIFACT_SIGNING_METADATA,
+  };
+}
+
+// One PowerShell call for the whole list: Get-AuthenticodeSignature is the same
+// check the MPI-616 census used, so "Valid" here means what it meant there.
+export async function authenticodeStatus(fullPaths) {
+  const listFile = path.join(os.tmpdir(), `cubric-sign-${process.pid}.txt`);
+  await fs.writeFile(listFile, fullPaths.join('\n'), 'utf8');
+  try {
+    const { stdout } = await execFileAsync('powershell.exe', [
+      '-NoProfile', '-NonInteractive', '-Command',
+      `Get-Content -LiteralPath '${listFile}' -Encoding UTF8 | ForEach-Object { (Get-AuthenticodeSignature -LiteralPath $_).Status.ToString() + '|' + $_ }`,
+    ], { maxBuffer: 16 * 1024 * 1024 });
+    const status = new Map();
+    for (const line of stdout.split(/\r?\n/)) {
+      const at = line.indexOf('|');
+      if (at > 0) status.set(line.slice(at + 1), line.slice(0, at));
+    }
+    return status;
+  } finally {
+    await fs.rm(listFile, { force: true });
+  }
+}
+
+async function signWindowsBinaries(stageRoot) {
+  if (process.platform !== 'win32') {
+    throw new Error('--sign runs signtool, so it needs a Windows build host.');
+  }
+  const { signtool, dlib, metadata } = resolveSigningEnv();
+  const files = (await listFiles(stageRoot))
+    .filter(isSignable)
+    .map((rel) => path.join(stageRoot, ...rel.split('/')));
+  const before = await authenticodeStatus(files);
+  const unsigned = files.filter((file) => before.get(file) !== 'Valid');
+  // ponytail: fixed batches keep each signtool command line far under Windows' 32K cap.
+  for (let i = 0; i < unsigned.length; i += 25) {
+    await execFileAsync(signtool, [
+      'sign', '/fd', 'SHA256', '/tr', 'http://timestamp.acs.microsoft.com', '/td', 'SHA256',
+      '/dlib', dlib, '/dmdf', metadata, ...unsigned.slice(i, i + 25),
+    ], { maxBuffer: 16 * 1024 * 1024 });
+  }
+  // signtool exits non-zero on a failed file, but a shipped unsigned binary is the
+  // exact defect this exists for, so the census is re-run rather than trusted.
+  const after = await authenticodeStatus(files);
+  const bad = files.filter((file) => after.get(file) !== 'Valid');
+  if (bad.length) {
+    throw new Error(`Signing left ${bad.length} binary(ies) not Valid:\n  `
+      + bad.map((file) => `${after.get(file) ?? 'unread'}  ${path.relative(stageRoot, file)}`).join('\n  '));
+  }
+  console.log(`Signed ${unsigned.length} binaries; all ${files.length} in the staged tree read Valid.`);
 }
 
 async function brandMacBundle(appDir) {
@@ -1313,6 +1396,8 @@ async function main() {
   }
 
   await stagePortableSkeleton(stageRoot, opts, config);
+  // Before the manifest hashes and the update-bundle copy, so both carry signed bytes.
+  if (opts.sign && !opts.dryRun) await signWindowsBinaries(stageRoot);
   const manifest = await createUpdateManifest(stageRoot, opts, config);
   validateUpdateManifest(manifest);
   let updateManifest = null;
