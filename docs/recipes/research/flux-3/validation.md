@@ -78,10 +78,28 @@ Changes between DI 1 and DI 2:
 | i2i over 150 words | "150 words is a ceiling, not a target." — held |
 | check: "low camera angle", "Do not alter ..." | `recipe-test.mjs` accepts both (same direction / same keep-clause) |
 
-Open: the 26B writes "X is visible" for anything out of focus or seen through glass, against BFL's
-own ban. BFL's sentence QUOTES the banned phrase ('never "this image shows", "we can see" or
-"is visible"'), which playbook 07 names as the way a prohibition primes the very words. Next
-candidate: restate that one BFL sentence positively (a departure from verbatim), then 4 sweeps.
+### Second batch — Fabio's second yes, 4 sweeps (~6 cents), all spent
+
+| Sweep | t2v | i2i | Fails |
+|---|---|---|---|
+| local 12B round 5 | 15/15 | - | |
+| DI 3 (round 5) | 13/15 | 12/15 | t2v "Through the window, ... is visible" x2; i2i 159 / 161 words, "realistic highlights" x1 |
+| local 12B round 6 | 15/15 | 14/15 | bare dropped its keep-clause once (passed 3/3 locally in rounds 1, 2, 4 and on every DI sweep) |
+| DI 4 (round 6) | **15/15** | 14/15 | i2i whole at 151 words (cap 150) |
+
+Changes:
+
+| Symptom | Change |
+|---|---|
+| t2v "is visible" | BFL's own ban QUOTED the phrases it banned ('never "this image shows", "we can see" or "is visible"'), which playbook 07 names as the way a prohibition primes the words. Restated as "stating what is there and what it does, never what can be seen" (the ONE departure from BFL's text, Fabio's yes). Then the window became the verb's subject: "A view through a window belongs to the window's own sentence ("a tall window on the left frames a rainy garden in muted greens")". 10/15 -> 13/15 -> 15/15 |
+| i2i over 150 words | the ceiling sentence now says how: "a whole-image change or a composition names its scope and its few largest changes, then what stays". 159-161 -> 151 |
+
+### Where it stands
+
+- t2v: green ONCE on the 26B (DI 4); twice-green needs one more sweep.
+- i2i: 14/15 on DI 2 and DI 4. The whole-image tier ran over 150 words in 4 of its 12 DI runs,
+  by 1-11 words; the other tiers are 3/3 on the last DI sweep.
+- Spent on the count: 8 sweeps, ~12 cents (two yeses of 4).
 
 ## Stage 2 — render (Fabio)
 

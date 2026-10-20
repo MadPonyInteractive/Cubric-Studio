@@ -24,7 +24,11 @@ test('the system prompts are BFL`s, byte for byte', async () => {
     const r = getRecipe('flux-3');
     assert.equal(r.status, 'draft');
     // t2v = BFL t2i plus one adapter paragraph before the last line (Stage 1, 2026-10-20).
-    const t2i = PUP.t2i.replace(/Output only the caption\.\s*$/, '').trimEnd();
+    // ...and ONE sentence restated, because its ban quoted the phrases it banned (2026-10-20).
+    const quotedBan = 'never "this image shows", "we can see" or "is visible".';
+    assert.ok(PUP.t2i.includes(quotedBan), 'BFL`s sentence moved: re-check the restatement');
+    const t2i = PUP.t2i.replace(quotedBan, 'stating what is there and what it does, never what can be seen.')
+        .replace(/Output only the caption\.\s*$/, '').trimEnd();
     assert.ok(r.modes.t2v.systemPrompt.startsWith(t2i));
     assert.ok(r.modes.t2v.systemPrompt.endsWith('Output only the caption.'));
     const body = EXT.i2i.replace(/Output only the instruction\.\s*$/, '').trimEnd();
