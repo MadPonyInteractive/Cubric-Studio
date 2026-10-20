@@ -30,7 +30,7 @@ const logger = require('./logger');
 const { getRemoteMode } = require('./remoteProxy');
 const { getWrapperToken, proxyUrl } = require('./remoteEngine');
 const { isNetworkDownError } = require('./netCheck');
-const { getPinnedNodeCommit } = require('./shared');
+const { getPinnedNodeCommit, getNodeSubmodules } = require('./shared');
 const { createRequire } = require('module');
 
 const _require = createRequire(__filename);
@@ -466,6 +466,11 @@ async function remoteInstallDep(dep, { sizeBytes = 0, force = false } = {}) {
     // .mpi_node_commit + records it in manifest nodes[] for drift detection.
     const pinnedCommit = getPinnedNodeCommit(dep.id);
     if (pinnedCommit) body.commit = pinnedCommit;
+    // MPI-1214: a GitHub archive leaves git submodules EMPTY, and USDU then fetches its own
+    // unpinned master at import. The wrapper fills each one sha-checked before the marker,
+    // as `_installNodeSubmodules` does locally. An older wrapper ignores the field.
+    const submodules = getNodeSubmodules(dep.id).map(({ relPath, url, commit, sha256 }) => ({ relPath, url, commit, sha256 }));
+    if (submodules.length) body.submodules = submodules;
     // MPI-413: no `install_command` / `pip_pins` passthrough — the Pod installs the
     // same ONE curated set as the local engine and the wrapper runs no pip at all.
     // requirements_only: the node folder is already on the volume, just (re-)run
