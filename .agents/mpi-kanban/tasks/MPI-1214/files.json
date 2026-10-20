@@ -1,0 +1,10 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "routes/remoteModels.js",
+    "tests/remote-install-submodules.test.cjs",
+    "docs/runpod-remote-engine.md",
+    "C:/AI/Mpi/mpi-ci/cubric-vision-pod/wrapper/wrapper.py",
+    "C:/AI/Mpi/mpi-ci/cubric-vision-pod/wrapper/test_node_submodules.py"
+  ]
+}

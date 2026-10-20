@@ -1,0 +1,7 @@
+- [x] App sends submodules in the custom_nodes install body (b574b881e, tests/remote-install-submodules.test.cjs)
+- [x] Wrapper installs them sha-checked before the commit marker (mpi-ci c757aab, wrapper 0.2.48)
+- [x] Wrapper unit test (cubric-vision-pod/wrapper/test_node_submodules.py: fill, sha mismatch, path escape)
+- [x] publish-runtime.sh dev (dev manifest wrapper 0.2.48, sha c59896a5... = working tree)
+- [x] Live Pod test (Fabio's RTX PRO 4500, fresh node install, no Coyote fetch, upscale x2 ran)
+- [x] promote (stable = 0.2.48)
+- [x] docs/download-manager.md remote note updated

@@ -877,9 +877,10 @@ BEFORE the commit marker, so a failed fill leaves no marker and retries. The dri
 (`checkUniversalWorkflowDepsStatus`) also counts an empty submodule as drift, which is what
 heals 2.1.1 installs: right marker, empty folder → pre-wipe → re-extract → fill.
 **A bump of that node must re-pin `submodules` with it.** The devkit fills them the same way.
-**Remote gap:** the Pod wrapper volume-installs the node from the plain GitHub archive and the
-pack fetches `master` at import there (Linux SSL succeeds, so it works, unpinned).
-Guard: `tests/node-submodules.test.cjs`.
+**Remote (MPI-1214):** `remoteInstallDep` sends the same `submodules` in the custom_nodes
+install body, and wrapper 0.2.48+ fills each one sha-checked before `.mpi_node_commit`. A volume
+whose folder the pack already filled from `master` (pre-0.2.48) keeps those files: no drift fires.
+Guard: `tests/node-submodules.test.cjs`, `tests/remote-install-submodules.test.cjs`.
 
 ## The remote ATTACH guard trusts the WRAPPER, not its own cache (MPI-97 / 100 / 481)
 
