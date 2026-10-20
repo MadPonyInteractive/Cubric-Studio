@@ -1866,10 +1866,17 @@ export const ENHANCE_EXEMPT_OPS = Object.freeze(new Set([
     'flowCharacterSheetEdit', 'flowCharacterSheetEditQwen',
 ]));
 
-/** True when this op is one the enhancer must stay out of. */
-export function opAllowsEnhance(key) {
-    return !ENHANCE_EXEMPT_OPS.has(key);
+/**
+ * True when the enhancer may run on this op. A model's `enhanceFirstOps` lifts the
+ * exemption for that model alone (MPI-1181: FLUX.3 Klein is built to read its own
+ * upsampler's rewrite, edits included); every other model's edits stay exempt.
+ */
+export function opAllowsEnhance(key, model = null) {
+    return !ENHANCE_EXEMPT_OPS.has(key) || !!model?.enhanceFirstOps?.includes(key);
 }
+
+/** Help line for a model that wants Enhance pressed before Cue (`enhanceFirstOps`). */
+const ENHANCE_FIRST_HELP = 'This model is built to read a prompt its Enhancer has rewritten. Write what you want, press Enhance, check the rewrite, then Cue.';
 
 /**
  * DELETED in MPI-365 — `DEFAULT_STYLE_OPS` used to sit here.
@@ -2625,6 +2632,8 @@ export function getOpHelp(key, model = null) {
         const para = controlTypesParagraph(model);
         if (para) body = [body[0], para, ...body.slice(1)];
     }
+
+    if (model?.enhanceFirstOps?.includes(key)) body = [...body, ENHANCE_FIRST_HELP];
 
     return {
         title: help.title || cmd.label || key,

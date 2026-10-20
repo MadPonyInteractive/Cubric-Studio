@@ -54,3 +54,15 @@ ratio/tier turns it on, else the project's button, else off with no Width/Height
 recipe-registry, agent-corpus, agent-prompt-budget green. `npm test` 3443/3447 before the guide's price
 wording fix (the 2 fails were that line), corpus tests green after it. The Stage 1 sweep was queued under
 the GPU lease behind MPI-1207's bench and cancelled for the handoff: nothing ran.
+
+## 2026-10-20 - Stage 1 sweep + Enhance wiring (session "Flux.3 integration 7")
+
+- Stage 1 (12B probe, gemma3:12b judge, 3 runs, under gpu_lease): sweep 1 t2v 11/15, i2i 12/15; three
+  fixes (t2v adapter paragraph, BFL upsampler scope-opener sentence on i2i, harness scope regex); sweep 2
+  t2v 14/15 (one "is visible"), i2i 13/15 then `--tier whole` 3/3. Record: `docs/recipes/research/flux-3/validation.md`.
+  DeepInfra 26B count NOT run (needs Fabio's yes, ~6 cents for 4 sweeps).
+- `flux3-klein` -> `enhanceRecipe: 'flux-3'` (Cosmo's flux-3.md guide now routes); new ModelDef
+  `enhanceFirstOps` (t2i/i2i/edit/inpaint/detail): `opAllowsEnhance(op, model)` shows Enhance on FLUX.3
+  edit + inpaint only, every other model's edits stay exempt; `getOpHelp` appends "press Enhance ... then Cue".
+- `tests/enhance-control.test.cjs` 8/8 (new: FLUX.3 lift, Klein still exempt, help line); `tests/flux3-recipe.test.cjs` 3/3;
+  `npm test` 3446 pass / 0 fail / 2 skipped. Not seen in the real app yet.

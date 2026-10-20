@@ -4,7 +4,7 @@
  * flux3-recipe.test.cjs — MPI-1181.
  *
  * FLUX.3's enhancer recipe carries BFL's own prompt-upsampler system prompts verbatim
- * (Apache-2.0): `t2v` = BFL t2i, `i2i` = BFL i2i plus one adapter sentence, because our
+ * (Apache-2.0): `t2v` = BFL t2i plus one Stage 1 adapter paragraph, `i2i` = BFL i2i plus one adapter sentence, because our
  * enhancer reads a description of each reference instead of seeing it. Edit and inpaint ask
  * for `i2i`; a recipe without it falls back to t2v.
  */
@@ -23,7 +23,10 @@ test('the system prompts are BFL`s, byte for byte', async () => {
     const { getRecipe } = await import('../js/data/recipes/registry.js');
     const r = getRecipe('flux-3');
     assert.equal(r.status, 'draft');
-    assert.equal(r.modes.t2v.systemPrompt, PUP.t2i);
+    // t2v = BFL t2i plus one adapter paragraph before the last line (Stage 1, 2026-10-20).
+    const t2i = PUP.t2i.replace(/Output only the caption\.\s*$/, '').trimEnd();
+    assert.ok(r.modes.t2v.systemPrompt.startsWith(t2i));
+    assert.ok(r.modes.t2v.systemPrompt.endsWith('Output only the caption.'));
     const body = EXT.i2i.replace(/Output only the instruction\.\s*$/, '').trimEnd();
     assert.ok(r.modes.i2i.systemPrompt.startsWith(body));
     assert.ok(r.modes.i2i.systemPrompt.trimEnd().endsWith('Output only the instruction.'));

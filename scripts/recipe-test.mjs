@@ -180,7 +180,8 @@ function editInputs() {
             scene: [{ name: 'cherry or deep red', re: /\b(cherry|deep) red\b/i }, kept, { name: 'no quality words', re: /\b(8k|masterpiece|high quality|realistic)\b/i, absent: true }] },
         { name: 'whole', job: 'A whole-image transformation opens with its scope and keeps the image\'s own content.',
             input: send('make it winter', ['valley']),
-            scene: [{ name: 'opens with its scope', re: /^\s*(convert|transform|change|turn|apply|make)\b[^.]*\b(entire|whole)\b/i }, { name: 'snow', re: /\bsnow/i }] },
+            // "Transform the scene into ..." names the scope as surely as "the entire image" (Stage 1, 2026-10-20).
+            scene: [{ name: 'opens with its scope', re: /^\s*(convert|transform|change|turn|apply|make)\b[^.]*\b(entire|whole|the (scene|image|landscape|picture|photo(graph)?))\b/i }, { name: 'snow', re: /\bsnow/i }] },
     ];
 }
 

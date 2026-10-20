@@ -2269,8 +2269,9 @@ export const MpiPromptBox = ComponentFactory.create({
             // every path that reassigns `model` funnels through this function.
             _loraRack?.el.setModel(model?.id ?? null);
 
-            // The enhance control is OP-gated (edit and inpaint get none at all), and
-            // the op is reassigned live by setOperation. Same convergence point.
+            // The enhance control is OP-gated (edit and inpaint get none at all, except
+            // a model's own enhanceFirstOps), and the op is reassigned live by
+            // setOperation. Same convergence point.
             _refreshEnhanceBtn();
             // So is what the `+` adds (MPI-1012): a voice on Text to Speech, nothing on
             // Sound & Music.
@@ -2606,7 +2607,7 @@ export const MpiPromptBox = ComponentFactory.create({
             const slot = qs('#enhance-slot', el);
             if (!slot) return;
 
-            const show = opAllowsEnhance(activeOperation);
+            const show = opAllowsEnhance(activeOperation, model);
             if (show === !!_enhanceBtn) return;
 
             if (!show) {

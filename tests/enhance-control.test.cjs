@@ -47,6 +47,22 @@ function testGenerativeOpsStillEnhance() {
     }
 }
 
+function testFlux3LiftsTheExemptionOnItsOwnOpsOnly() {
+    // MPI-1181: FLUX.3 Klein is built to read its upsampler's rewrite, edits included.
+    // The lift is that model's alone; every other model's edits stay exempt.
+    const { MODELS } = require('../js/data/modelConstants/models.js');
+    const { getOpHelp } = require('../js/data/commandRegistry.js');
+    const flux3 = MODELS.find(m => m.id === 'flux3-klein');
+    for (const op of ['edit', 'inpaint', 'detail']) {
+        assert.strictEqual(opAllowsEnhance(op, flux3), true, `FLUX.3 ${op} must offer Enhance`);
+    }
+    assert.strictEqual(opAllowsEnhance('edit', MODELS.find(m => m.id === 'klein-9b')), false,
+        'Klein edit must stay exempt');
+    assert.ok(getOpHelp('edit', flux3).body.at(-1).includes('press Enhance'), 'FLUX.3 edit help must say press Enhance');
+    assert.ok(!getOpHelp('upscale', flux3).body.join(' ').includes('press Enhance'), 'upscale is not an enhance-first op');
+    assert.ok(!getOpHelp('t2i', null).body.join(' ').includes('press Enhance'), 'no model, no line');
+}
+
 function testEveryEditShapedOpIsExempt() {
     // The set is hand-written, so this is the thing that catches the NEXT edit op:
     // a key that reads as an edit and is not exempt is a control that damages prompts.
@@ -76,7 +92,7 @@ function testPromptBoxCallsTheLocalServiceAndNotTheBroker() {
         assert.ok(!file.includes('checkPromptEnhanceAvailable'),
             `no capability probe in the ${label}: there is no sibling app for the button to be conditional on`);
     }
-    assert.ok(src.includes('opAllowsEnhance(activeOperation)'),
+    assert.ok(src.includes('opAllowsEnhance(activeOperation, model)'),
         'the control must be gated on the OPERATION, which Vision knows locally');
 }
 
@@ -135,6 +151,7 @@ function testTheSeedIsUnreachableByACaller() {
 const tests = [
     testEditAndInpaintGetNoEnhancement,
     testGenerativeOpsStillEnhance,
+    testFlux3LiftsTheExemptionOnItsOwnOpsOnly,
     testEveryEditShapedOpIsExempt,
     testPromptBoxCallsTheLocalServiceAndNotTheBroker,
     testTheControlHasNoPerModelBranch,
