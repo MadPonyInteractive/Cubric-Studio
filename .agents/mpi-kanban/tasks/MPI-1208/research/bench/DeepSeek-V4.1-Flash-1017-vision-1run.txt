@@ -1,0 +1,18 @@
+(node:26784) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/AI/Mpi/Cubric-Vision/js/shell/agentToolOps.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\AI\Mpi\Cubric-Vision\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+agent-test: deepseek-ai/DeepSeek-V4.1-Flash-1017 · 3 case(s) × 1 
+price: $0.2/M in, $0.6/M out
+  see-identity-drift #1: pass · 2 calls · 2 seen · 15683 in / 419 out · $0.00339 · 15.1s
+[2026-10-20T10:05:10.951Z] [INFO] [agent] look FRESH attachment grainy.jpg: A smiling young woman with long purple hair and bangs in a white sleeveless top with grey trim, reaching toward the camera in a bright white futuristic corridor with ceiling light panels and blue light strips. Heavy colour film grain over t…
+[2026-10-20T10:05:38.487Z] [INFO] [agent] look FRESH result t2i_001.png: A smiling young woman with long purple hair and bangs in a white sleeveless top with grey trim, reaching toward the camera in a bright white futuristic corridor with ceiling light panels and blue light strips. Heavy colour film grain over t…
+  see-grain-only #1: pass · 6 calls · 90459 in / 960 out · $0.01867 · 34.0s
+[2026-10-20T10:05:44.645Z] [INFO] [agent] look FRESH attachment woman-a.png: A young woman with long straight purple hair and blunt bangs, in a white sleeveless top with black and teal trim, in a bright futuristic white corridor with ceiling light panels.
+  see-not-for-a-plain-description #1: pass · 2 calls · 14902 in / 104 out · $0.00304 · 4.1s
+
+summary
+  OK   see-identity-drift 1/1 — asked whether an edit kept the person, it sees both pictures and finds the face changed
+  OK   see-grain-only 1/1 — a picture given for its grain puts the grain in the prompt and nothing else from it (MPI-1164)
+  OK   see-not-for-a-plain-description 1/1 — asked what a picture shows, it reads the description and does not spend a picture
+cost: $0.0251 for 3 conversations ($0.00837 each, cached priced as fresh) · billed $0.0020 · 2 picture(s) seen

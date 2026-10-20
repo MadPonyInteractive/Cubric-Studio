@@ -80,3 +80,40 @@ Bench step 1 (one run each, `research/bench/`):
 - vs DeepSeek-V4.1-Flash 37/55 (35/53 + 2 new) at $0.00145/chat: the default plans far better at the
   same bill. V4.1 only adds sight, and sight did not settle identity (2/3).
 - Total spent, billed: ~$0.80 ($0.53 before + $0.27 baseline).
+
+## Ratings stored (2026-10-20, Cosmo improvements 4)
+
+- App: `services/llmEngines.mjs` agentTest = median of runs: 0731 52/55 x3, V4.1 44/55 x3, Ling 40/53 x1
+  (hash 171f63b8829f, "older tests"); perChat billed. node --test llm-connection, llm-service, agent-loop,
+  agent-bench, bench-community, llm-describe: 276 pass, 0 fail.
+- Website (Fabio's yes): 6 runs POSTed to bench.cubric.studio, each `{ ok: true }`; `GET /` lists
+  0731 52/55 counted, V4.1 44/55 counted, suite e4f83ddc0bfe.
+- Screening (Fabio's yes, est. $0.62, cap $1.25): MiMo-V2.6-Flash, V4.1-Flash-1017, Nemotron-3.5-Super-VL,
+  GLM-5.3-Flash, 1 run suite + vision each, files research/bench/<model>-{suite,vision}-1run.txt.
+  Results (suite /55, vision /3, billed for 58 chats, $/chat suite):
+  - MiMo-V2.6-Flash: 53/55, 2/3 (identity fail), $0.0851, $0.0015/chat. Misses video-buns-keeps-face, sheet-from-words.
+  - DeepSeek-V4.1-Flash-1017: 51/55, 3/3 (FIRST identity pass), $0.0649, $0.0011/chat. Misses: video-limit + 3 video-edit routes.
+  - Nemotron-3.5-Super-VL: 51/55, 2/3, $0.3999, $0.0071/chat (2.3x estimate); never chose to see a picture.
+  - GLM-5.3-Flash: INVALID, 22/55 with 34 cases = DeepInfra 429 Too Many Requests; vision 3/3; $0.1373.
+  Screen spent $0.687 of the $1.25 cap. Total MPI-1208 billed ~$1.49.
+
+## 3-run pass (2026-10-20, Fabio's yes, est. $0.46; GLM retry skipped by his pick)
+
+- MiMo-V2.6-Flash: runs 51, 53, 53 = **53/55 median** (49 strict), billed $0.1947 / 165 = $0.0012/chat, 21 s/test.
+  Vision: identity 2/3, grain 2/3, see-not-for-a-plain-description 0/3 (always spends a picture). 0 x 429.
+- DeepSeek-V4.1-Flash-1017: runs 48, 49, 47 = **48/55** (43 strict), $0.1834 / 165 = $0.0011/chat, 16 s/test.
+  Vision: identity 1/3, grain 3/3, plain-description 3/3. Misses: video routing, camera-angle/two-subject refs.
+- vs default 0731 52/55 (48 strict) $0.0016/chat: MiMo beats it on score AND bill (suite only).
+- Spent $0.391. Card total billed ~$1.88. Both added to `llmEngines.mjs` (jobs: []); 32 tests pass.
+  Upload (Fabio's yes): MiMo 3 runs `{ok:true}`; 1017 run 1 ok, runs 2-3 hit the 10/day limit, then sent with
+  the MPI-1211 owner key (201). Site: MiMo 53/55, 1017 48/55, both counted.
+
+## MiMo see-on-every-look fix (2026-10-20, Fabio's yes, est. $0.20)
+
+- Cause: the `limits` note on every plain look (vision models) ended "see: true shows you the picture." -> an
+  invitation. SEE_LIMITS reworded: words are enough to say what a picture shows; see only for faces, grain, colour.
+  agent-loop + prompt-budget + agent-bench: 227 pass.
+- MiMo after: vision identity 2/3, grain 3/3 (was 2/3), plain-description **3/3 (was 0/3)**, billed $0.0070.
+  Suite x3: runs 53, 50, 52 = 52/55 median (47 strict), billed $0.1970 ($0.0012/chat), 0 x 429. Misses scattered
+  (shape-then-edit 1/3, video-buns 1/3, options markers 2/3). Six MiMo runs: 51 53 53 53 50 52.
+- = ties the default 0731 (52/55, $0.0016) at 25% less, and sees when it must. Card total billed ~$2.09.

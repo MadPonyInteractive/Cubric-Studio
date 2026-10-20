@@ -84,6 +84,25 @@ Coordinate before editing it.
 - A finding in `docs/agent-findings.md` (200-line cap).
 - Code commits with the card in `doing`; done only on a green CI run (done-gate).
 
+## Current State (2026-10-20, Cosmo improvements 4)
+
+- Ratings: the app's are in `services/llmEngines.mjs` `RECOMMENDED_REMOTE_MODELS.deepinfra[].agentTest`
+  (MEDIAN of runs, suiteHash, perChat). Updated, uncommitted: 0731 52/55 x3 (48 strict), V4.1 44/55 x3
+  (37 strict), Ling 40/53 x1 (older-tests hash 171f63b8829f); perChat now BILLED. Current suite hash
+  e4f83ddc0bfe. Tests: llm-connection/llm-service/agent-loop/agent-bench/bench-community/llm-describe pass.
+- Website = bench.cubric.studio (Worker `mpi-ci/cubric-bench`, D1), filled only by app uploads (`POST /v1/runs`,
+  10/day, shows >= 3 runs). Today it shows only 0731 33/34 on the old suite. Upload of the 6 runs (0731 x3,
+  V4.1 x3) is ready as a dry run (scratchpad `share-bench.mjs`, `--post` to send): PUBLIC, waits on Fabio's yes.
+  Ling not uploaded (1 run, no matching hash).
+- Shortlist: `research/shortlist-2026-10-20.md`. Fabio said yes to the upload and the screen; both done.
+  Screen (1 run): MiMo-V2.6-Flash 53/55 $0.0015/chat; V4.1-Flash-1017 51/55 $0.0011/chat + identity PASS;
+  Nemotron 51/55 but $0.0071/chat; GLM invalid (34 cases 429). Spent $0.69 (total ~$1.49). Results: validation.md.
+  3-run (his yes): MiMo-V2.6-Flash 53/55 median $0.0012/chat (beats 0731 52/55 $0.0016), but spends a
+  picture on every look; V4.1-Flash-1017 48/55 $0.0011. Both in llmEngines.mjs, uncommitted. GLM retry skipped.
+  Uploaded (1017's last 2 via the MPI-1211 owner key, closed). SEE_LIMITS reworded in agentLoop.mjs (MiMo saw on
+  every look); MiMo rerun after it: 52/55, plain-description 3/3, $0.0012/chat; app row says 52. Uncommitted:
+  llmEngines.mjs, agentLoop.mjs. Open for Fabio: MiMo as default; upload the post-fix MiMo runs.
+
 ## Current State (2026-10-20, Cosmo improvements 3)
 
 - Bench done: winner DeepSeek-V4.1-Flash (3 runs: 35/53 suite, vision 2/3 + identity 2/3, billed

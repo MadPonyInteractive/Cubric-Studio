@@ -1,0 +1,40 @@
+(node:45636) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/AI/Mpi/Cubric-Vision/js/shell/agentToolOps.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\AI\Mpi\Cubric-Vision\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+agent-test: XiaomiMiMo/MiMo-V2.6-Flash · 3 case(s) × 3 
+price: $0.14/M in, $0.28/M out
+[2026-10-20T15:06:47.819Z] [INFO] [agent] look FRESH attachment woman-a.png: A young woman with long straight purple hair and blunt bangs, in a white sleeveless top with black and teal trim, in a bright futuristic white corridor with ceiling light panels, one hand reaching toward the camera.
+[2026-10-20T15:06:47.819Z] [INFO] [agent] look FRESH attachment woman-b.png: A young woman with long straight purple hair and blunt bangs, smiling, hands on hips, in a white and grey sleeveless top, a black pencil skirt and fishnet tights, in a bright white corridor with ceiling light panels.
+  see-identity-drift #1: pass · 3 calls · 2 seen · 23616 in / 526 out · $0.00345 · 14.5s
+  see-identity-drift #2: FAIL · 4 calls · 6 seen · 33683 in / 1010 out · $0.00500 · 32.6s
+      - did not say the face changed: Comparing the two: yes, she still reads as the **same woman**, though the edit changed a lot around her.
+
+Same across both:
+- **Face** — the same soft oval face, almond-shaped eyes, small nose and lip
+      turn 0 calls: look({"see":true,"image":"att_woman_a","question":"Describe this woman: face shape, hair, eyes, clothing, anything distinctive."}) look({"image":"att_woman_b","question":"Describe this woman: face shape, hair, eyes, clothing, anything distinctive.","see":true}) look({"crop":{"x":300,"y":130,"width":200,"height":220},"see":true,"image":"att_woman_a"}) look({"see":true,"crop":{"x":150,"y":70,"width":150,"height":170},"image":"att_woman_b"}) look({"crop":{"height":260,"width":240,"x":420,"y":130},"see":true,"image":"att_woman_a"}) look({"image":"att_woman_b","see":true,"crop":{"height":220,"width":180,"x":200,"y":80}})
+      turn 0 reply: Comparing the two: yes, she still reads as the **same woman**, though the edit changed a lot around her. Same across both: - **Face** — the same soft oval face, almond-shaped eyes, small nose and lip shape. The features line up closely in the crops, even with the expression change. - **Hair** — same vivid purple, same length and blunt bangs. Changed by the edit: - **Expression** — neutral gaze bec
+[2026-10-20T15:07:34.196Z] [INFO] [agent] look FRESH attachment woman-a.png: A young woman with long straight purple hair and blunt bangs, in a white sleeveless top with black and teal trim, in a bright futuristic white corridor with ceiling light panels, one hand reaching toward the camera.
+[2026-10-20T15:07:34.197Z] [INFO] [agent] look FRESH attachment woman-b.png: A young woman with long straight purple hair and blunt bangs, smiling, hands on hips, in a white and grey sleeveless top, a black pencil skirt and fishnet tights, in a bright white corridor with ceiling light panels.
+  see-identity-drift #3: pass · 3 calls · 2 seen · 23643 in / 477 out · $0.00344 · 10.7s
+[2026-10-20T15:07:46.034Z] [INFO] [agent] look FRESH attachment grainy.jpg: A smiling young woman with long purple hair and bangs in a white sleeveless top with grey trim, reaching toward the camera in a bright white futuristic corridor with ceiling light panels and blue light strips. Heavy colour film grain over t…
+[2026-10-20T15:08:24.767Z] [INFO] [agent] look FRESH result t2i_001.png: A smiling young woman with long purple hair and bangs in a white sleeveless top with grey trim, reaching toward the camera in a bright white futuristic corridor with ceiling light panels and blue light strips. Heavy colour film grain over t…
+  see-grain-only #1: pass · 7 calls · 108023 in / 1458 out · $0.01553 · 47.4s
+[2026-10-20T15:08:39.096Z] [INFO] [agent] look FRESH attachment grainy.jpg: A smiling young woman with long purple hair and bangs in a white sleeveless top with grey trim, reaching toward the camera in a bright white futuristic corridor with ceiling light panels and blue light strips. Heavy colour film grain over t…
+[2026-10-20T15:09:10.776Z] [INFO] [agent] look FRESH result t2i_001.png: A smiling young woman with long purple hair and bangs in a white sleeveless top with grey trim, reaching toward the camera in a bright white futuristic corridor with ceiling light panels and blue light strips. Heavy colour film grain over t…
+  see-grain-only #2: pass · 7 calls · 108575 in / 1315 out · $0.01557 · 51.2s
+[2026-10-20T15:09:25.187Z] [INFO] [agent] look FRESH attachment grainy.jpg: A smiling young woman with long purple hair and bangs in a white sleeveless top with grey trim, reaching toward the camera in a bright white futuristic corridor with ceiling light panels and blue light strips. Heavy colour film grain over t…
+[2026-10-20T15:09:57.171Z] [INFO] [agent] look FRESH result t2i_001.png: A smiling young woman with long purple hair and bangs in a white sleeveless top with grey trim, reaching toward the camera in a bright white futuristic corridor with ceiling light panels and blue light strips. Heavy colour film grain over t…
+  see-grain-only #3: pass · 6 calls · 89896 in / 1444 out · $0.01299 · 46.3s
+[2026-10-20T15:10:12.154Z] [INFO] [agent] look FRESH attachment woman-a.png: A young woman with long straight purple hair and blunt bangs, in a white sleeveless top with black and teal trim, in a bright futuristic white corridor with ceiling light panels.
+  see-not-for-a-plain-description #1: pass · 2 calls · 14683 in / 73 out · $0.00208 · 6.4s
+[2026-10-20T15:10:23.195Z] [INFO] [agent] look FRESH attachment woman-a.png: A young woman with long straight purple hair and blunt bangs, in a white sleeveless top with black and teal trim, in a bright futuristic white corridor with ceiling light panels.
+  see-not-for-a-plain-description #2: pass · 2 calls · 14683 in / 101 out · $0.00208 · 10.4s
+[2026-10-20T15:10:28.014Z] [INFO] [agent] look FRESH attachment woman-a.png: A young woman with long straight purple hair and blunt bangs, in a white sleeveless top with black and teal trim, in a bright futuristic white corridor with ceiling light panels.
+  see-not-for-a-plain-description #3: pass · 2 calls · 14683 in / 71 out · $0.00208 · 6.8s
+
+summary
+  FAIL see-identity-drift 2/3 — asked whether an edit kept the person, it sees both pictures and finds the face changed
+  OK   see-grain-only 3/3 — a picture given for its grain puts the grain in the prompt and nothing else from it (MPI-1164)
+  OK   see-not-for-a-plain-description 3/3 — asked what a picture shows, it reads the description and does not spend a picture
+cost: $0.0622 for 9 conversations ($0.00691 each, cached priced as fresh) · billed $0.0070 · 10 picture(s) seen

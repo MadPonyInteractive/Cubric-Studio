@@ -1,0 +1,21 @@
+(node:39680) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/AI/Mpi/Cubric-Vision/js/shell/agentToolOps.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\AI\Mpi\Cubric-Vision\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+agent-test: nvidia/NVIDIA-Nemotron-3.5-Super-VL · 3 case(s) × 1 
+price: $0.15/M in, $0.5/M out
+  see-identity-drift #1: FAIL · 2 calls · 17015 in / 325 out · $0.00271 · 3.4s
+      - never asked to see a picture: judged identity from descriptions
+      - did not say the face changed: Yes — same woman. Both have the long straight purple hair with blunt bangs in the same bright white corridor; the second shows her in a different outfit, smiling with hands on hips instead of reaching
+      turn 0 calls: look({"image":"att_woman_a","question":"Describe the woman in this image: face, hair, age, any distinguishing features, and what she is wearing."}) look({"image":"att_woman_b","question":"Describe the woman in this image: face, hair, age, any distinguishing features, and what she is wearing."})
+      turn 0 reply: Yes — same woman. Both have the long straight purple hair with blunt bangs in the same bright white corridor; the second shows her in a different outfit, smiling with hands on hips instead of reaching toward the camera.
+[2026-10-20T10:39:37.300Z] [INFO] [agent] look FRESH result t2i_001.png: A smiling young woman with long purple hair and bangs in a white sleeveless top with grey trim, reaching toward the camera in a bright white futuristic corridor with ceiling light panels and blue light strips. Heavy colour film grain over t…
+  see-grain-only #1: pass · 6 calls · 87187 in / 2485 out · $0.01432 · 17.8s
+[2026-10-20T10:39:39.795Z] [INFO] [agent] look FRESH attachment woman-a.png: A young woman with long straight purple hair and blunt bangs, in a white sleeveless top with black and teal trim, in a bright futuristic white corridor with ceiling light panels.
+  see-not-for-a-plain-description #1: pass · 2 calls · 16777 in / 236 out · $0.00263 · 3.2s
+
+summary
+  FAIL see-identity-drift 0/1 — asked whether an edit kept the person, it sees both pictures and finds the face changed
+  OK   see-grain-only 1/1 — a picture given for its grain puts the grain in the prompt and nothing else from it (MPI-1164)
+  OK   see-not-for-a-plain-description 1/1 — asked what a picture shows, it reads the description and does not spend a picture
+cost: $0.0197 for 3 conversations ($0.00656 each, cached priced as fresh) · billed $0.0105 · 0 picture(s) seen
