@@ -81,10 +81,17 @@ that still waits on reputation.
 **Do not assume it clears SAC — measure it.** Sign one build, run it on the same
 enforced box, read the same log. That is the only thing that settles it.
 
-Practical constraint before spending anything: public-trust **organisation**
-validation wants the legal entity to be 3+ years old. If MadPony Interactive is
-younger, individual validation is the fallback — the certificate is issued to
-Fabio personally.
+~~Practical constraint before spending anything: public-trust **organisation**
+validation wants the legal entity to be 3+ years old.~~ **Wrong — checked
+2026-10-20.** No business-age rule exists in Microsoft's Artifact Signing docs
+(quickstart updated 2026-10-08, FAQ updated 2026-10-20). The claim traces to a
+preview-era volunteer answer on Microsoft Q&A that also said "US/Canada only",
+which is no longer true either: the UK is on the Public Trust organisation list.
+Individual validation is still US/Canada only, so it is **not** a fallback here.
+
+Eligibility is settled: D-U-N-S **506528764** for MAD PONY INTERACTIVE resolves
+in D&B's public lookup since 2026-10-20 (MadPony-Identity MPI-75, closed). See
+the checklist for the remaining money facts before subscribing.
 
 ## Not in scope — already solved
 

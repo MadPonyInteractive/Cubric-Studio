@@ -24,14 +24,27 @@ reasoning survives.
 
 ## Signing — gated on eligibility, not on further measurement
 
-- [ ] **Confirm MadPony Interactive's registration status** — sole trader vs limited
+- [x] **Confirm MadPony Interactive's registration status** — sole trader vs limited
       company. Public Trust **Individual** validation is US/Canada only, so the UK
       route is **Organization / DBA**. Needs: legal/trading name matching public
       records, a business identifier (a UK VAT number qualifies), a website on a
       domain the entity owns, and **two contact emails on that same domain**.
-- [ ] Price it properly: $9.99/mo Basic (5,000 signatures/mo — 19 per release is
+      **Done 2026-10-20** (MadPony-Identity MPI-75): UK sole trader, no VAT.
+      Business identifier = D-U-N-S **506528764**, resolving in D&B's public
+      lookup as MAD PONY INTERACTIVE, Flat 2, 35 Nelson Road South, Great
+      Yarmouth, NR30 3JA (enter the address exactly so). Website
+      madponyinteractive.com. Emails `fabio@` + `contact@madponyinteractive.com`
+      (Namecheap forwarding to Gmail, so they accept external links).
+      The old "entity must be 3+ years old" note is **not** a real rule — absent
+      from Microsoft's current docs (see brief).
+- [x] Price it properly: $9.99/mo Basic (5,000 signatures/mo — 19 per release is
       nothing) plus Azure subscription, Entra tenant, app registration with an
-      annually-rotated client secret, identity validation renewal every 2 years
+      annually-rotated client secret, identity validation renewal every 2 years.
+      Checked against the FAQ 2026-10-20: needs a **paid** subscription (free,
+      trial, sponsored refused); billing is **not pro-rated** and starts at account
+      creation, **before** validation (1-20 business days), so a failed validation
+      still costs at least one month. Extra documents must be issued within the
+      last 12 months; three upload attempts, then onboarding stops for good.
 - [ ] Decide with Fabio
 - [ ] Wire the signing pass into `scripts/build-portable.mjs` — **after** the
       `electron.exe` → `CubricVision.exe` rename. `win.azureSignOptions` in
