@@ -162,7 +162,7 @@ const SEEN = {
  *  mode runs these instead: the four jobs, each on a real look from SEEN. */
 function editInputs() {
     const send = (idea, looks) => withImageLooks(idea, looks.map((l) => ({ text: SEEN[l] })));
-    const kept = { name: 'names what stays unchanged', re: /\b(unchanged|keep|preserv|remain|untouched|as it is)\w*/i };
+    const kept = { name: 'names what stays unchanged', re: /\b(unchanged|keep|preserv|remain|untouched|as it is|do not alter|leave)\w*/i };
     const ramble = 'ok so I want to change her swimsuit, I was thinking maybe red, like a deep red, cherry red, not orange red, and actually maybe keep the same ribbed look it has now because I like that, and the straps too, and honestly I kept going back and forth on whether to also change her hair but no, leave the hair, the pink ends are great, and the pool should stay the same and the flowers, I love the flowers, and please make it look super realistic, 8k, masterpiece, really high quality, and I don\'t want her face to change at all, her smile is perfect, and also the ring, keep the ring, and maybe the light on the swimsuit should still look wet and shiny like it does now, and I think that is it, just the swimsuit colour really, nothing else, but make sure it looks natural and not like a cheap photoshop, you know what I mean, like it was always red';
     return [
         { name: 'bare', job: 'EXPAND a near-empty edit request into a concrete instruction grounded in what the image shows, without changing anything the user did not ask for.',
@@ -174,7 +174,7 @@ function editInputs() {
         { name: 'directed', job: 'Compose references into a NEW frame by ordinal, keeping the user\'s direction, and INFER what the garbled part meant.',
             input: send('put the hampster from the frist pic on the beach from the second, low angle, golden hour light', ['hamster', 'beach']),
             scene: [{ name: 'a generation request', re: /^\s*(create|generate)\b/i }, { name: 'cites each image by ordinal', re: /\bfirst image\b[\s\S]*\bsecond image\b|\bsecond image\b[\s\S]*\bfirst image\b/i },
-                { name: 'low angle kept', re: /\blow[- ]angle\b/i }, { name: 'golden hour kept', re: /\bgolden[- ]hour\b/i }] },
+                { name: 'low angle kept', re: /\blow[- ](camera[- ])?angle\b/i }, { name: 'golden hour kept', re: /\bgolden[- ]hour\b/i }] },
         { name: 'overlong', job: 'CONDENSE a rambling edit request into one concise instruction that keeps every concrete wish and drops the filler and quality words.',
             input: send(ramble, ['woman']),
             scene: [{ name: 'cherry or deep red', re: /\b(cherry|deep) red\b/i }, kept, { name: 'no quality words', re: /\b(8k|masterpiece|high quality|realistic)\b/i, absent: true }] },

@@ -57,9 +57,31 @@ that grows per 12B slip is the failure playbook 07 warns about.
 
 Full logs of both sweeps were scratch files; re-run the command above to regenerate.
 
-## Count — DeepInfra Gemma 4 26B (NOT RUN)
+## Count — DeepInfra Gemma 4 26B (`--backend deepinfra --engine gemma-4-e4b`), 2026-10-20
 
-Needs Fabio's yes: ~1.5 cents a sweep, 4 sweeps for twice-green on both modes (~6 cents).
+Fabio's yes: 4 sweeps, ~6 cents. All 4 spent. NOT twice-green yet.
+
+| Sweep | t2v | i2i | Fails |
+|---|---|---|---|
+| DI 1 (Stage 1 recipe) | 8/15 | 8/15 | t2v: "is visible" x4 (window / out-of-focus planes), "highly detailed" x3; i2i: "low camera angle" and "Do not alter ..." missed by the checks, the user's "realistic" carried through x2, 151-158 words x3 |
+| local 12B round 3 | 14/15 | 11/15 | after round-4 wording below; the "not every element of the scene" clause made the 12B drop its keep-clause |
+| local 12B round 4 | - | 15/15 | |
+| DI 2 (round 4) | 10/15 | 14/15 | t2v: "is visible" x5; i2i: "realistic light reflections" x1 |
+
+Changes between DI 1 and DI 2:
+
+| Symptom | Change |
+|---|---|
+| t2v "Through the window, ... is visible" | adapter example moved to the window case; did NOT hold on the 26B |
+| t2v "highly detailed" | "Name a detail itself (individual hairs, frayed silk cords) instead of calling a thing detailed." — held (0 in DI 2) |
+| i2i quality words | the UPSAMPLER i2i's own "use no evaluative or quality words" (the external prompt we ship says "preserve every ... piece of wording", which carried "realistic, 8k" through) — 1 slip left |
+| i2i over 150 words | "150 words is a ceiling, not a target." — held |
+| check: "low camera angle", "Do not alter ..." | `recipe-test.mjs` accepts both (same direction / same keep-clause) |
+
+Open: the 26B writes "X is visible" for anything out of focus or seen through glass, against BFL's
+own ban. BFL's sentence QUOTES the banned phrase ('never "this image shows", "we can see" or
+"is visible"'), which playbook 07 names as the way a prohibition primes the very words. Next
+candidate: restate that one BFL sentence positively (a departure from verbatim), then 4 sweeps.
 
 ## Stage 2 — render (Fabio)
 
