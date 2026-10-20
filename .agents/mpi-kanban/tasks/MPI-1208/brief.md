@@ -84,6 +84,22 @@ Coordinate before editing it.
 - A finding in `docs/agent-findings.md` (200-line cap).
 - Code commits with the card in `doing`; done only on a green CI run (done-gate).
 
+## Current State (2026-10-20 evening, end of Cosmo improvements 4)
+
+- SHIPPED a836a4334 (code) + 6580548bb (card), pushed: MiMo-V2.6-Flash is Cosmo's default (52/55 median,
+  $0.0012/chat, sees pictures); SEE_LIMITS reworded; FLUX.3 fixes from Flux.3 integration 11 (qualityTier enum
+  dropped, source-ratio snap skips Custom size edits via namedParamsFor `customSize: true`, test in agent-loop).
+  bench.cubric.studio: MiMo #1 52/55 over 6 runs; uploads beyond 10/day use the MPI-1211 owner key
+  (`C:/Users/Fabio/.secrets/bench-owner.txt`, header `X-Owner-Key`). CI run 39477999801 was in progress.
+- NEXT (Fabio's yes, FREE): MiniMax M3.1 Flash via Ollama Cloud, `minimax-m3.1-flash:cloud`, free until
+  2026-10-22 23:59 UTC, then $0.15 / $0.015 / $0.60 per 1M (~$0.0035/chat est). Fabio's Ollama is signed in,
+  plan free; a probe tool call worked. Start `ollama serve` in the background if
+  `http://127.0.0.1:11434/api/version` does not answer. Run sequentially:
+  `node scripts/agent-test.mjs --runs 1 --preset ollama --model minimax-m3.1-flash:cloud > research/bench/minimax-m3.1-flash-cloud-suite-1run.txt 2>&1`
+  then the same with `--vision` (> ...-vision-1run.txt). Free-plan usage limits may cut the run: count errored
+  cases as invalid, not fails. 3-run only if it screens clearly above MiMo, and before the free window ends.
+  Upload to the site only for >= 3 runs (preset `ollama`, no GPU for a cloud model).
+
 ## Current State (2026-10-20, Cosmo improvements 4)
 
 - Ratings: the app's are in `services/llmEngines.mjs` `RECOMMENDED_REMOTE_MODELS.deepinfra[].agentTest`
