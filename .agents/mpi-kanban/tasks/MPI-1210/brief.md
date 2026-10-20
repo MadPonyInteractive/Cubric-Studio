@@ -22,7 +22,9 @@ on run 39442831579 (24/24 Valid, MPI-616 validation.md).
       - `docs/releases/github-release-checklist.md` ~L89-207: the SAC test notes, the
         release-body text that says "not code-signed", and "the standing fix is code
         signing". Rewrite as: signed by Mad Pony Interactive since 2.1.2.
-      - the 2.1.2 release body itself
+      - the 2.1.2 release body itself (the changelog line is ALREADY in
+        `docs/releases/UNRELEASED.md` § Fixes, "The Windows app is now signed",
+        and folds in at the bump like any other item)
       Keep: SAC still blocks `.bat/.vbs` update scripts (they cannot carry a
       signature), so the pre-1.3.0 "download the full zip" advice stays.
       SmartScreen caveat: a NEW publisher identity can still get a SmartScreen

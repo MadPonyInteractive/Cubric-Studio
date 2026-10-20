@@ -55,4 +55,6 @@
 
 ## Fixes
 
+- **The Windows app is now signed.** Every program in the Windows download carries a Mad Pony Interactive signature, so Smart App Control should no longer block Cubric Studio from opening. SmartScreen may still ask once while the new signature earns its reputation. (MPI-616)
+
 - **An engine update started twice no longer deletes the engine.** A second update, repair or install asked for while one runs now waits on the running one instead of starting its own, which could collide with it and wipe the engine. (MPI-1204)
