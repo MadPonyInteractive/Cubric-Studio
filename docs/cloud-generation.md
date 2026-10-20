@@ -41,6 +41,11 @@ model is a `ModelDef` in `js/data/modelConstants/models.js` with `provider: 'dee
   1365x1024 source with a 2048 square (measured 2026-10-02; 5 Pro kept the shape). The
   'aspect' case (Nano Banana) sends the source's nearest ratio label: with none, Nano Banana 2
   answered a 1024x1024 drawing with 1408x768 (MPI-1178, 2026-10-18).
+  **Custom size on edit (`customSizeOps: ['edit']`, MPI-1207):** Seedream 4 / 4.5, FLUX 2 dev and
+  Klein 9B send the picked ratio's pixels while the button is on (the prompt box parks the picker
+  while it is off, so the source-shape path above still runs). The others failed a 16:9 run from a
+  portrait and keep following the source: FLUX 2 pro/max centre-crop the subject, Seedream 5 Pro
+  and Nano Banana stretch it (paid probes 2026-10-20).
 - **Batch:** a native count where the endpoint has one (`batchFieldFor`): N outputs, ONE call,
   ONE bill. Otherwise `calls` requests of one sent together, N bills (MPI-940). One output is kept
   per output asked; extras are dropped (MPI-875).

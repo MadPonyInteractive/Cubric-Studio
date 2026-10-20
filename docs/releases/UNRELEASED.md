@@ -51,6 +51,7 @@
 ## New
 
 - **FLUX.3 Klein.** Black Forest Labs' new model: text to image, edits with up to ten reference images, and an edit can now pick its own frame size. A Turbo button switches between the fast and the more natural base model, up to 4K. (MPI-1181)
+- **Custom size on edit.** Klein 4B and 9B, Krea 2, Qwen-Image 2.1, Boogu, Qwen Edit and cloud Seedream 4 / 4.5, FLUX-2 Dev and Klein 9B can now pick the edited picture's frame: a Custom size button, off by default, unlocks the ratio and resolution. A drawn mask keeps the original frame. (MPI-1207)
 
 ## Fixes
 
