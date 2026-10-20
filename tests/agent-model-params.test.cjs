@@ -23,8 +23,10 @@ test('every advertised param passes the validator, on every shipped model and op
         for (const ratio of p.ratios) {
             assert.equal(resolveNamedParams(null, m, op, { ratio }).ok, true, `${where} advertises ratio ${ratio}`);
         }
+        // A Custom size edit takes a tier only with a ratio to size it (MPI-1181).
+        const withRatio = p.customSize ? { ratio: p.ratios[0] } : {};
         for (const qualityTier of p.qualityTiers) {
-            assert.equal(resolveNamedParams(null, m, op, { qualityTier }).ok, true, `${where} advertises tier ${qualityTier}`);
+            assert.equal(resolveNamedParams(null, m, op, { qualityTier, ...withRatio }).ok, true, `${where} advertises tier ${qualityTier}`);
         }
         if (p.turbo) assert.equal(resolveNamedParams(null, m, op, { turbo: true }).ok, true, `${where} advertises turbo`);
         p.styles.forEach((_, i) => {

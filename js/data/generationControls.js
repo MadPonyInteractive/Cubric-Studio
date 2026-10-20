@@ -562,6 +562,11 @@ export function resolveNamedParams(project, model, operation, named = {}) {
     const ratioDims = modelShowsRatio(model, operation) && (!sizeGated || customSize)
         ? resolvePlannedRatio(project, model, { ratioLabel: ratio, qualityTier })
         : { width: 0, height: 0, label: null };
+    // A tier alone turned Custom size on with no size to send: unpinned (no project) nothing
+    // resolves the ratio, and the edit ran at the workflow's baked 9:16 (Fabio, 2026-10-20).
+    if (sizeGated && customSize && qualityTier !== undefined && !ratioDims.width) {
+        return _err('INVALID_RATIO', `${modelName}'s ${operation} needs a ratio with qualityTier. Send both, or leave both out to keep the first picture's own frame.`);
+    }
     if (ratioDims.width && ratioDims.height) {
         injectionParams.Width = ratioDims.width;
         injectionParams.Height = ratioDims.height;

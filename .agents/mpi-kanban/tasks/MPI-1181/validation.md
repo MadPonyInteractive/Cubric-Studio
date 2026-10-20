@@ -275,3 +275,16 @@ under gpu_lease; the box table appended to the prompt exactly as `Flux3LayoutPro
 - 2026-10-20 LIVE rerun after restart (Fabio set the panel to 5:4, 2k; agent model MiMo-V2.6-Flash, not DeepSeek):
   sidecar Ratio_Label 5:4 1600x1280 = panel ratio, panel boxes, prompt "small distant figures ... no faces visible".
   People inside their box, poses read as distress (Fabio). Not re-run on DeepSeek V4 Flash.
+- 2026-10-20 LIVE Cosmo EDIT with boxes FAILED (card edit_030, sidecar 354d6b0b): Layout_Boxes = panel edit box
+  (Cosmo filled the empty desc itself), but (1) it ran on the newest card t2i_005, not the panel's picture 1:
+  Cosmo was never told which picture the edit boxes are drawn on; (2) he sent qualityTier 2k alone, unpinned
+  (project null) nothing resolved a ratio, so Input_custom_size true with NO Width/Height = the workflow's baked
+  768x1376 9:16, and the box landed in the wrong frame. Fix: _boxesForTurn carries picture (gallery chip, or the
+  History entry), route ownedMedia-checks it, loop registers it + App state line 'edit boxes are drawn on X ...,
+  sends no ratio or qualityTier'; resolveNamedParams refuses a Custom-size tier with no ratio (INVALID_RATIO);
+  guide flux-3.md edit line. Tests: agent-loop (picture), flux3-custom-size (tier refusal), agent-model-params
+  (tier sent with a ratio); npm test 3470: 3467 pass + that 1 fixed, 0 fail; eslint clean. Needs RESTART + rerun.
+- 2026-10-20 LIVE rerun after restart PASSED (edit_031, sidecar 5f5337c5): picture 1 = t2i_005 (the picture the panel
+  box was drawn on), Layout_Boxes = panel edit box, Input_custom_size false + no Width/Height (log: customSize=false
+  defaulted, no tier sent), 1136x912 = source 5:4 kept, prompt ends 'Keep ... unchanged'. Five women sit inside
+  the box (x .36-.79, y .51-.81); leaning figure, crouch and distant figures kept.

@@ -36,6 +36,16 @@ test('agent edit: a named ratio turns it on and sizes the run', () => {
     assert.ok(r.injectionParams.Width > 0);
 });
 
+// Fabio, 2026-10-20: unpinned (no project) a tier alone turned it on with no size, and the
+// edit ran at the workflow's baked 9:16.
+test('agent edit: a tier with no ratio to size it is refused, never run at the baked size', () => {
+    const r = resolveNamedParams(null, FLUX3, 'edit', { qualityTier: '2k' });
+    assert.equal(r.ok, false);
+    assert.equal(r.code, 'INVALID_RATIO');
+    assert.ok(resolveNamedParams(null, FLUX3, 'edit', { qualityTier: '2k', ratio: '1:1' }).injectionParams.Width > 0);
+    assert.ok(resolveNamedParams(RATIO, FLUX3, 'edit', { qualityTier: '2k' }).injectionParams.Width > 0, 'a saved ratio sizes it');
+});
+
 test('agent edit: the project`s own button decides when nothing is asked', () => {
     const project = { ...RATIO, modelSettings: { 'flux3-klein': { operations: { edit: { customSize: true } } } } };
     const r = resolveNamedParams(project, FLUX3, 'edit', {});

@@ -34,7 +34,8 @@ when a user mentions selling or client work.
 - Tiers `1k`, `2k`, `4k` on `t2i`, `i2i` and a custom-size `edit` (4k: Turbo ~130 s, base ~11 min on a 16 GB card).
   The ratio is a param: never write it into the prompt.
 - `edit` keeps the FIRST image's frame unless custom size is on: a `ratio` or `qualityTier`
-  param turns it on. A mask always keeps the source frame.
+  param turns it on, and a `qualityTier` needs a `ratio` with it. A mask always keeps the
+  source frame, and so do edit boxes: send neither with them.
 - `inpaint` and `detail` need a mask painted in History; you cannot paint one, so ask the user
   to, naming the area, and dispatch once they say it is drawn (`app:masking`).
 - `upscale` takes no prompt on its tile path; single pass reads the prompt as a description of

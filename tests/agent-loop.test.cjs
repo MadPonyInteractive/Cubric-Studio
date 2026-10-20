@@ -3598,6 +3598,23 @@ describe('(e) the open workspace reaches the agent', () => {
             assert.equal(clean.page, 'group-history', 'losing the entry costs the shortcut, never the turn');
         });
 
+        // MPI-1181 (Fabio, 2026-10-20): edit boxes drawn on one picture, Cosmo edited the newest card.
+        test('the edit boxes name their picture, checked like the entry, and it resolves', async () => {
+            const boxes = (picture) => ({ modelId: 'flux3-klein', picture, ops: { edit: [{ name: 'ladies', x: 0.2, y: 0.3, w: 0.4, h: 0.5 }] } });
+            const ws = await _sanitiseWorkspace({ page: 'gallery', boxes: boxes(fileUrl(ENTRY)) }, project);
+            assert.equal(ws.boxes.picture, ENTRY);
+            const outside = fileUrl(require('node:path').join(PROJECT, '..', 'secrets.png'));
+            assert.equal((await _sanitiseWorkspace({ page: 'gallery', boxes: boxes(outside) }, project)).boxes.picture, null);
+
+            const AgentLoop = await loadAgentLoop();
+            const loop = new AgentLoop();
+            loop._registerWorkspaceEntry(ws);
+            assert.equal(loop._resolveImage(ENTRY)?.path, ENTRY, 'the picture named must resolve for generate');
+            const line = loop._appStateLine(project, ws);
+            assert.ok(line.includes(`edit boxes are drawn on ${ENTRY}`), line);
+            assert.match(line, /sends no ratio or qualityTier/);
+        });
+
         test('a video frame survives as whole numbers; anything else is dropped (MPI-984)', async () => {
             const ws = (frame) => ({ page: 'group-history', groupId: 'g1', card: null, activeEntry: null, frame });
             assert.deepEqual((await _sanitiseWorkspace(ws({ index: 103, count: 192, paused: true }), project)).frame,

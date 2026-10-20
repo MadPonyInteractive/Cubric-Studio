@@ -215,7 +215,9 @@ function _pinnedForTurn() {
 function _workspaceForTurn() {
     const page = state.currentPage;
     const groupId = state.currentParams?.groupId || null;
-    const base = { page, groupId: null, card: null, activeEntry: null, boxes: _boxesForTurn() };
+    // The gallery box's picture 1 is what its edit boxes are drawn on (MPI-1181).
+    const galleryPicture = state.promptMedia?.gallery?.items?.find((m) => m.mediaType === 'image')?.url || null;
+    const base = { page, groupId: null, card: null, activeEntry: null, boxes: _boxesForTurn(galleryPicture) };
     // MPI-623: in a card's Scene the agent still needs to know which card it is.
     if ((page !== PAGE_GROUP_HISTORY && page !== PAGE_SCENE) || !groupId) return base;
 
@@ -242,7 +244,8 @@ function _workspaceForTurn() {
         masked: activeMask()?.groupId === group.id,
         // MPI-984: on a video, the frame on screen. Null on a still.
         frame: activeFrame(),
-        boxes: base.boxes,
+        // In History the edit's picture 1 is the open entry (MPI-721), not the gallery's chip.
+        boxes: base.boxes && { ...base.boxes, picture: item?.filePath || null },
     };
 }
 
@@ -250,9 +253,12 @@ function _workspaceForTurn() {
  * The boxes the user drew in the Boxes panel for the selected model (MPI-1181), per op, or
  * null. Fabio, 2026-10-20: "I have already drawn some boxes" and Cosmo could not see them.
  * Told, not sent: unpinned they run only when the agent passes them as `boxes`.
- * @returns {{modelId:string, ops:Object<string, Array<object>>, ratio:?string}|null}
+ * `picture`: the edit's picture 1, which the edit boxes are fractions of. Untold, Cosmo
+ * edited the newest card with boxes drawn on another (Fabio, 2026-10-20).
+ * @param {?string} picture
+ * @returns {{modelId:string, ops:Object<string, Array<object>>, ratio:?string, picture:?string}|null}
  */
-function _boxesForTurn() {
+function _boxesForTurn(picture) {
     const model = pinnedModel();
     const project = state.currentProject;
     if (!model?.layoutBoxes || !project) return null;
@@ -262,7 +268,7 @@ function _boxesForTurn() {
         if (Array.isArray(boxes) && boxes.length) ops[op] = boxes;
     }
     // The t2i boxes are fractions of the panel's frame: sent at another ratio they stretch.
-    return Object.keys(ops).length ? { modelId: model.id, ops, ratio: resolvePlannedRatio(project, model).label } : null;
+    return Object.keys(ops).length ? { modelId: model.id, ops, ratio: resolvePlannedRatio(project, model).label, picture } : null;
 }
 
 /**

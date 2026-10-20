@@ -1128,6 +1128,8 @@ export class AgentLoop {
      * a card, and re-registering the same entry on a later turn is a no-op by key.
      */
     _registerWorkspaceEntry(workspace) {
+        // MPI-1181: the picture the edit boxes are drawn on, checked like the entry.
+        if (workspace?.boxes?.picture) this._registerResult(workspace.boxes.picture);
         const entry = workspace?.activeEntry;
         if (!entry?.filePath) return;
         this._registerResult(entry.filePath, entry.modelId, entry.itemId);
@@ -3607,7 +3609,9 @@ function _boxesDrawn(boxes, pinned) {
     if (!boxes?.ops) return '';
     const lists = Object.entries(boxes.ops).map(([op, list]) => `${op} ${JSON.stringify(list)}`).join('; ');
     // Fabio, 2026-10-20: boxes drawn at 8:5 sent at 16:9 stretched, and the people came out too big.
-    const frame = boxes.ratio && boxes.ops.t2i ? ` The t2i boxes are drawn on a ${boxes.ratio} frame: send ratio ${boxes.ratio} with them unless the user asks for another.` : '';
+    const frame = (boxes.ratio && boxes.ops.t2i ? ` The t2i boxes are drawn on a ${boxes.ratio} frame: send ratio ${boxes.ratio} with them unless the user asks for another.` : '')
+        // Fabio, 2026-10-20: Cosmo edited the newest card, and a tier resized the frame under the box.
+        + (boxes.picture && boxes.ops.edit ? ` The edit boxes are drawn on ${boxes.picture} (the edit's picture 1): an edit with them runs on that picture as inputImage, whatever card is newest, and sends no ratio or qualityTier, so it keeps that picture's frame.` : '');
     return ` The user has drawn boxes for ${boxes.modelId} in the Boxes panel: ${lists}.${frame} A box's size is how big the thing is in the picture: write the prompt at that size, never closer.${pinned
         ? ' With the settings panel open they run on their own; cite each as <name> in the prompt.'
         : ' They run only if you send them: when the user wants them used, pass that op\'s list as generate\'s boxes on that model and op, and cite each as <name> in the prompt.'}`;

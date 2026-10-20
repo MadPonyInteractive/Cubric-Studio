@@ -602,6 +602,12 @@ attachment.
   the same numbers the counter shows (from 0). The App state line (`_frameOnScreen`) says which frame
   is on screen: at frame 0 the clip may go as a picture (it IS its first frame, MPI-980); anywhere
   else "this frame" is the user's right-click Create snapshot, never the clip.
+- **`boxes`** (MPI-1181) is `{ modelId, ops: { op: [box] }, ratio, picture }`, on every page: the
+  pinned model's saved Boxes-panel boxes (`agentService._boxesForTurn`), the panel's ratio (t2i boxes
+  are fractions of it), and `picture`, the edit's picture 1 the edit boxes are drawn on (the gallery
+  box's first image chip, or in History the open entry). The route clamps the boxes and runs
+  `picture` through `ownedMedia` like the entry; the loop registers it and `_boxesDrawn` tells the
+  agent to edit THAT picture with no ratio or tier. Untold, Cosmo edited the newest card instead.
 - **The live selection needs no new plumbing.** `MpiGroupHistoryBlock` promotes and persists
   `group.selectedIndex` on every `entry-selected`, so `state.currentProject` already holds which
   entry is in front of the user.
