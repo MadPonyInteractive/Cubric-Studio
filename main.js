@@ -234,7 +234,10 @@ function cleanSessionTempFolders() {
 
 // Required on Windows to show the app icon (not Electron's) when launched via .bat.
 // Use exe path as model ID — recommended for unpackaged Electron apps on Windows.
-const WINDOWS_APP_USER_MODEL_ID = 'cubric.studio.vision';
+// Source runs get their own ID: Windows takes the taskbar button's target and icon
+// from any Start Menu shortcut carrying the same ID, so a shared one let a deleted
+// test build's shortcut hijack `npm start` (MPI-1209).
+const WINDOWS_APP_USER_MODEL_ID = app.isPackaged ? 'cubric.studio.vision' : 'cubric.studio.vision.dev';
 
 if (process.platform === 'win32') {
   app.setAppUserModelId(WINDOWS_APP_USER_MODEL_ID);
