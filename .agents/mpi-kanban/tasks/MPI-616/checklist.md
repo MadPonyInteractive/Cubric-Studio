@@ -58,7 +58,7 @@ reasoning survives.
       registration invoice both read Fabio Goncalves / Mad Pony Interactive at the
       D&B address; invoice is good until 2027-06-07. PDF kept in `C:/AI/Mpi/_private/`,
       uploaded only if Microsoft asks.
-- [ ] Decide with Fabio
+- [x] Decide with Fabio - **yes, 2026-10-20**, Artifact Signing Basic $9.99/mo (Namecheap checks passed first)
 - [ ] Fabio's own steps (account, payment and ID - never an agent's): Azure
       subscription (Pay-As-You-Go) -> register `Microsoft.CodeSigning` provider ->
       create Artifact Signing account, Basic, North Europe -> give himself
