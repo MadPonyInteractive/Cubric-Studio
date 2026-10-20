@@ -135,3 +135,18 @@ test('Reuse brings back the boxes the run used: names, descs and all', async () 
     const reuse = buildPromptReuseSettings({ generationSettings: { controlState: { shared: buckets.shared, op: buckets.op } } }, FLUX3);
     assert.deepEqual(reuse.opUpdates.boxes, ran);
 });
+
+test('a box moved after Enhance drops the enhancement; a Reuse keeps its own (Fabio, 2026-10-20)', async () => {
+    const { buildPromptReusePayload } = await import('../js/utils/promptReuse.js');
+    const ran = [{ ...FOX, name: 'fox' }];
+    const payload = buildPromptReusePayload({ prompt: 'A red fox, enhanced.', sourcePrompt: 'the <fox>', generationSettings: { injectionParams: { Layout_Boxes: ran } } });
+    assert.deepEqual(payload.enhanced, { positive: 'A red fox, enhanced.', boxes: ran }, 'the enhancement travels with the boxes it ran with');
+
+    const src = require('node:fs').readFileSync(require('node:path').join(__dirname, '../js/components/Organisms/MpiPromptBox/MpiPromptBox.js'), 'utf8');
+    assert.match(src, /onChange: \(boxes\) => \{[^}]*_dropIfBoxesMoved\(\);/, 'a box drawn, moved or removed checks the enhancement');
+    assert.match(src, /el\.getRunPayload = \(\) => \{\s*\/\/[^\n]*\n\s*_dropIfBoxesMoved\(\);/, 'Run re-checks before it reads the enhancement');
+    assert.match(src, /boxes: _boxKey\(enhanced\.boxes\)/, 'a Reuse records the card`s boxes, not the ones on screen before it restores them');
+    // The sync every prompt edit runs must NOT check boxes: a Reuse injects the prompt before its boxes.
+    const sync = src.slice(src.indexOf('function _syncEnhancedState()'), src.indexOf('const _closeEnhanceDialog'));
+    assert.doesNotMatch(sync, /_boxesNow|_boxKey/);
+});

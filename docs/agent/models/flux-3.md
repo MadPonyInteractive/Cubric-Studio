@@ -29,7 +29,7 @@ when a user mentions selling or client work.
   base model, 50 steps. Base is the one for photoreal people (Turbo skin reads plastic and
   oily); Turbo holds up on products and text, and Turbo single-pass `upscale` kept a face's
   identity best of every upscale tried.
-- Tiers `1k`, `2k`, `4k` on `t2i` and `i2i` (4k: Turbo ~130 s, base ~11 min on a 16 GB card).
+- Tiers `1k`, `2k`, `4k` on `t2i`, `i2i` and a custom-size `edit` (4k: Turbo ~130 s, base ~11 min on a 16 GB card).
   The ratio is a param: never write it into the prompt.
 - `edit` keeps the FIRST image's frame unless custom size is on: a `ratio` or `qualityTier`
   param turns it on. A mask always keeps the source frame.
@@ -120,8 +120,8 @@ Change the woman's ribbed teal one-piece swimsuit to a deep cherry red with the 
 - Flat, plain, stock-looking: the prompt was short. Write the full form; that is what the
   model was trained on.
 - Plastic or oily skin on a person: Turbo is on. Rerun with `turbo: false`.
-- A custom-size edit came back with bars at the sides: the frame changed but the prompt did
-  not say so. Not yet handled in the app; tell the user and keep the first image's frame.
+- A custom-size edit recomposed or widened a scene whose shape did not change: drop `ratio`
+  and `qualityTier` so the edit keeps the first image's frame.
 - An edit changed something it should not have: end on the unchanged clause, naming each kept
   thing by type and place, and stop re-describing it.
 - The wrong reference was used: name each image by ordinal with what it shows.

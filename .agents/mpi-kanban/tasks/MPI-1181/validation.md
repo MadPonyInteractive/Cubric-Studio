@@ -189,4 +189,59 @@ under gpu_lease; the box table appended to the prompt exactly as `Flux3LayoutPro
   text. Fix: untagged ops send their role-assigned images by load order (`Image 1`...). LTX's
   `seesPictures` is r2v only (tagged), unchanged. Live in my isolated page: FLUX.3 edit + a staged
   picture -> the dialog got `pictures: [{tag:'Image 1', url}]` (was `[]`). `npm test` 3458/0/2.
+- 2026-10-20 Fabio live after Ctrl+R (Remote gemma3 12B, Gemma 4 26B describer): edit Enhance on
+  edit_001 now describes the real picture ("gorilla ... seated centrally on the dirt and
+  rock-strewn forest floor", pose kept; tiger right side, middle height, sneaking from behind).
+  edit_001's sidecar (b388be01) now holds `look` + `lookKind: animal` + `lookName`. Edit Enhance
+  sees its pictures: PROVEN. Still the generation voice ("Create a composite image by placing...").
+- 2026-10-20 Fabio's edit_017/018 from those prompts: tiger off-box, low, touching the gorilla
+  ("rubbing like a friend"). The i2i recipe forbids angle-bracket tokens, so the enhanced text
+  never cites `<tigger>`. `research/boxes/citebench.mjs` on his DeepInfra gemma3 12B ($0.00066,
+  6 calls): shipped wording cited 0/3; + a "write each PLACEMENT tag once" system exception 3/3.
+  BUT `citegen.py` on the G: bench (edit_001, his edit_017 text, his 2 seeds + 111, Turbo): with vs
+  without `<tigger>` = no visible difference (`cite_sheet.jpg`); both put the tiger right, beside the
+  gorilla. Citation exception NOT shipped (no effect shown). Turbo OFF, same text (`--slow`,
+  `slow_sheet.jpg`): tiger fills the box, stalking, head low, 3/3, ~90 s vs ~20 s.
+  Fabio's read of the sheets: Turbo 4 pass / 2 fail, Turbo OFF all fail (tiger under the gorilla's
+  arm or merely curious) - my "Turbo off is better" was WRONG.
+  RETRACTED "bench != app": `replay.py` sent his exact edit_017 graph (from :48188 /history; same
+  111 nodes, no non-input diff, staged image sha = edit_001) to the bench -> same picture as his.
+  The app's TARGET CANVAS line (custom size 8:5 on an 8:5 source) changes nothing (`canvas_sheet.jpg`).
+  `--words` (`words_sheet.jpg`, same 3 seeds): row 1 enhanced text = calm, beside the gorilla;
+  row 2 his typed prompt + keep line = 1/3 leaping; row 3 pounce spelled out ("crouched low, body
+  coiled, ears flattened, teeth bared, about to leap") = 3/3 snarling and crouched, still beside
+  the gorilla rather than behind it. The enhancer's text is the weakest of the three.
+- 2026-10-20 Fabio's edit_024 scene (edit_007 tiger + mouse/Velociraptor/lady boxes): both
+  creatures go for the mouse. He asked: guide read? skills? upsampler? the abliterated encoder?
+  (1) `vlmbench.mjs`: BFL's EXTERNAL-VLM `i2i_bbox` prompt (`bfl_pup_prompts_external_vlm.json`,
+  the BFL path for a VLM that sees the picture), the picture attached, his boxes as `from:target`
+  rows. DeepInfra has no Gemma 4 12B; gemma-3-12b-it + gemma-4-26B-A4B-it, 3 runs each, $0.0026.
+  All 6 wrote paragraph + from/src_bbox/tgt_bbox table; ids kept 4/6 (2 renamed to `mouse_1`...,
+  BFL's reconcile maps them back). G4 put the action in the descs ("ready to pounce").
+  (2) `vlmgen.py` (Turbo, source size, seeds 3443590830/1386278817/111, `vlm_sheet.jpg`): app's
+  edit_024 prompt vs G3 vs G4. All: tiger to the mouse, raptor in its box behind the tiger. G4 =
+  raptor looming over the tiger, mouth open, 3/3; the lady topless more often (her desc words).
+  (3) BFL's own text encoder `qwen3vl_4b_int8_convrot` (4.86 GB, ungated mirror, now in
+  G:/CubricModels/text_encoders, bench only): `--clip`, A and G4 (`te_sheet.jpg`): same
+  compositions per seed; only clothing shifts (more bras with BFL's). The encoder is NOT the lever.
+  Fabio's read: ALL fail; it is the model's capability. DECISION: no seeing-enhancer for box edits,
+  no model switch; the user adjusts boxes and wording. Recorded in `docs/models/flux3/README.md`.
+- 2026-10-20 Stale enhancement after a box change: the "boxes changed" note lived ONLY inside the
+  Enhance dialog, so Fabio never saw it; a t2i enhancement's own table ran the OLD boxes
+  (`withLayoutBoxes` keeps an enhanced table) and an edit's words described the old layout
+  (his edit_026: the shrunk raptor box sent, the stale words won). Fabio: a box change invalidates
+  the enhancement, like a prompt edit. `MpiPromptBox._dropIfBoxesMoved` on the panel's onChange
+  and at `getRunPayload`; NOT in `_syncEnhancedState` (Reuse injects the prompt before it restores
+  the boxes), so Reuse carries the card's `Layout_Boxes` in `enhanced.boxes` (`promptReuse.js`).
+  The dialog-only note is gone. `flux3-boxes` 13/13, `enhance-overlay` 19/19, lint clean.
+  Not checked: the live click-through (Fabio). `npm test` 3465: 3463 pass, 0 fail, 2 skipped.
+- 2026-10-20 Card image: Fabio's 4:5 crop (`Pictures/Screenshots/crop_001.png`, tiger + mouse) ->
+  `comfy_workflows/display/flux3-klein.webp` 704x880 q90 194 KB (was a teapot placeholder).
+- 2026-10-20 Cosmo / MCP readiness audit (Explore sub-agent, spot-checked agentLoop:115 + 2394):
+  Turbo + 10 refs YES both. Cosmo BROKEN: `qualityTier` enum (agentLoop:115) excludes 1k/2k/4k;
+  ratio auto-fill (agentLoop:2394) forces Custom size on every FLUX.3 edit. agentLoop.mjs is held by
+  "Cosmo improvements 4" (MPI-1208 claim) -> messaged them both fixes. Boxes: no named param;
+  Cosmo cannot send them; HTTP/MCP only via undeclared raw `injectionParams.Layout_Boxes`.
+  Guide `docs/agent/models/flux-3.md` stale lines fixed (tiers incl. custom-size edit; the
+  "not yet handled" bars line). `agent-corpus` test passes.
 

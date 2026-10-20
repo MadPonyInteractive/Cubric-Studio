@@ -1,0 +1,66 @@
+{
+  "user": "ORIGINAL PROMPT:\nThe tiger in the image is approaching the <mouse> And behind the tiger there is a <Velociraptor> Getting ready to attack the tiger. the <lady> Is On her knees with her hands on her head And wearing only bikini bottoms with her breasts exposed\n\nLOCKED BOUNDING-BOX ANNOTATIONS ([y_min, x_min, y_max, x_max] on a 0-1000 canvas, with (0, 0) at the top-left). This is an authoritative JSON list of dictionaries; preserve every supplied identity, provenance value, null, and coordinate exactly:\n[{\"id\":\"mouse\",\"from\":\"target\",\"src_bbox\":null,\"tgt_bbox\":[636,326,875,484],\"desc\":\"A mouse eating a nut\"},{\"id\":\"Velociraptor\",\"from\":\"target\",\"src_bbox\":null,\"tgt_bbox\":[3,0,583,201],\"desc\":\"The head and paws of a Velociraptor coming from off-frame\"},{\"id\":\"lady\",\"from\":\"target\",\"src_bbox\":null,\"tgt_bbox\":[0,635,742,877],\"desc\":\"Topless lady scared\"}]",
+  "results": [
+    {
+      "model": "google/gemma-3-12b-it",
+      "run": 1,
+      "text": "Create a scene depicting a tiger advancing towards a <mouse> while a <Velociraptor> emerges from the left side of the frame, poised to attack the tiger. Position a terrified <lady> in the lower portion of the image, kneeling with her hands on her head and wearing only bikini bottoms, with her breasts exposed. Preserve the details of the lush forest background from <ref_image_0> while integrating the new elements. [{\"id\":\"mouse\",\"from\":\"target\",\"src_bbox\":null,\"tgt_bbox\":[636,326,875,484],\"desc\":\"A mouse eating a nut\"},{\"id\":\"Velociraptor\",\"from\":\"target\",\"src_bbox\":null,\"tgt_bbox\":[3,0,583,201],\"desc\":\"The head and paws of a Velociraptor coming from off-frame\"},{\"id\":\"lady\",\"from\":\"target\",\"src_bbox\":null,\"tgt_bbox\":[0,635,742,877],\"desc\":\"Topless lady scared\"}]",
+      "cited": [
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "model": "google/gemma-3-12b-it",
+      "run": 2,
+      "text": "Create a scene where the tiger <tiger_1> from <ref_image_0> is aggressively approaching the mouse <mouse_1> that is eating a nut. Behind the tiger, introduce the head and paws of a Velociraptor <Velociraptor_1> coming from off-frame, poised to attack the tiger. In the foreground, position a lady <lady_1> on her knees with her hands on her head, appearing terrified and wearing only bikini bottoms with her breasts exposed. Maintain the existing forest environment as the backdrop. [{\"id\": \"tiger_1\", \"from\": \"ref_image_0\", \"src_bbox\": [220, 381, 884, 757], \"tgt_bbox\": [220, 381, 884, 757], \"desc\": \"A large tiger with orange and black stripes, walking forward through a wooded area.\"}, {\"id\": \"mouse_1\", \"from\": \"target\", \"src_bbox\": null, \"tgt_bbox\": [636, 326, 875, 484], \"desc\": \"A mouse eating a nut.\"}, {\"id\": \"Velociraptor_1\", \"from\": \"target\", \"src_bbox\": null, \"tgt_bbox\": [3, 0, 583, 201], \"desc\": \"The head and paws of a Velociraptor coming from off-frame.\"}, {\"id\": \"lady_1\", \"from\": \"target\", \"src_bbox\": null, \"tgt_bbox\": [0, 635, 742, 877], \"desc\": \"Topless lady scared.\"}]",
+      "cited": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "model": "google/gemma-3-12b-it",
+      "run": 3,
+      "text": "Create a jungle scene depicting a tiger <tiger> from <ref_image_0> approaching a mouse <mouse>. Behind the tiger, position a Velociraptor <Velociraptor> emerging from the left side, poised to attack the tiger. In the foreground, place a lady <lady> on her knees, with her hands over her head, wearing only bikini bottoms with her breasts exposed. Preserve the dense foliage and rocky ground of the jungle environment, matching the lighting and perspective of <ref_image_0>. [{\"id\": \"tiger\", \"from\": \"ref_image_0\", \"src_bbox\": [153, 303, 763, 658], \"tgt_bbox\": [153, 303, 763, 658], \"desc\": \"A large tiger with black and orange stripes walking through a forest.\"}, {\"id\": \"mouse\", \"from\": \"target\", \"src_bbox\": null, \"tgt_bbox\": [636, 326, 875, 484], \"desc\": \"A mouse eating a nut.\"}, {\"id\": \"Velociraptor\", \"from\": \"target\", \"src_bbox\": null, \"tgt_bbox\": [3, 0, 583, 201], \"desc\": \"The head and paws of a Velociraptor coming from off-frame.\"}, {\"id\": \"lady\", \"from\": \"target\", \"src_bbox\": null, \"tgt_bbox\": [0, 635, 742, 877], \"desc\": \"Topless lady scared\"}]",
+      "cited": [
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "model": "google/gemma-4-26B-A4B-it",
+      "run": 1,
+      "text": "Create a cinematic composition where a large tiger <tiger_1> from <ref_image_0> is stalking towards a small mouse <mouse_1> in the foreground. Just behind the tiger, the head and paws of a Velociraptor <velociraptor_1> emerge from the edge of the frame, poised to attack the tiger. In the background, a scared topless lady <lady_1> is on her knees with her hands pressed to her head, wearing only bikini bottoms. The scene is set in the lush, green forest from <ref_image_0>, ensuring the tiger's movement, the dinosaur's sudden appearance, and the lady's frightened pose are all integrated with consistent lighting and shadows. [{\"id\": \"tiger_1\", \"from\": \"ref_image_0\", \"src_bbox\": [268, 268, 705, 450], \"tgt_bbox\": [268, 268, 705, 450], \"desc\": \"A large, muscular tiger with orange fur and distinctive black stripes, walking forward on a rocky forest path.\"}, {\"id\": \"mouse_1\", \"from\": \"target\", \"src_bbox\": null, \"tgt_bbox\": [636, 326, 875, 484], \"desc\": \"A small mouse eating a nut.\"}, {\"id\": \"velociraptor_1\", \"from\": \"target\", \"src_bbox\": null, \"tgt_bbox\": [3, 0, 583, 201], \"desc\": \"The head and paws of a Velociraptor coming from off-frame.\"}, {\"id\": \"lady_1\", \"from\": \"target\", \"src_bbox\": null, \"tgt_bbox\": [0, 635, 742, 877], \"desc\": \"Topless lady scared\"}]",
+      "cited": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "model": "google/gemma-4-26B-A4B-it",
+      "run": 2,
+      "text": "Create a composition where a tiger is approaching a small mouse <mouse> eating a nut, while a Velociraptor <Velociraptor> emerges from off-frame to attack the tiger from behind. In the foreground, a topless lady <lady> is on her knees with her hands on her head in a state of fear, wearing only bikini bottoms. The scene should be set within the lush, leafy forest environment seen in <ref_image_0>, with the tiger, mouse, Velociraptor, and lady all integrated with consistent lighting, shadows, and perspective to match the forest floor and greenery. [{\"id\": \"mouse\", \"from\": \"target\", \"src_bbox\": null, \"tgt_bbox\": [636, 326, 875, 484], \"desc\": \"A small mouse eating a nut on the forest floor.\"}, {\"id\": \"Velociraptor\", \"from\": \"target\", \"src_bbox\": null, \"tgt_bbox\": [3, 0, 583, 201], \"desc\": \"The head and paws of a Velociraptor coming from off-frame, poised to attack.\"}, {\"id\": \"lady\", \"from\": \"target\", \"src_bbox\": null, \"tgt_bbox\": [0, 635, 742, 877], \"desc\": \"A topless lady with an expression of fear, on her knees with her hands on her head, wearing only bikini bottoms.\"}]",
+      "cited": [
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "model": "google/gemma-4-26B-A4B-it",
+      "run": 3,
+      "text": "Create a cinematic composition where a tiger from <ref_image_0> is prowling through a lush forest, approaching a small mouse <mouse> on the ground. Position a Velociraptor <Velociraptor> peeking from the top left edge of the frame, its head and claws poised to attack the tiger from behind. In the mid-ground, include a terrified lady <lady> who is on her knees with her hands pressed against her head in fear, wearing only bikini bottoms and with her chest exposed. The forest scene from <ref_image_0> should provide the dense green foliage and rocky path, with all new elements integrated with consistent lighting, shadows, and a sense of impending danger. [{\"id\": \"mouse\", \"from\": \"target\", \"src_bbox\": null, \"tgt_bbox\": [636, 326, 875, 484], \"desc\": \"A tiny mouse eating a nut on the forest floor.\"}, {\"id\": \"Velociraptor\", \"from\": \"target\", \"src_bbox\": null, \"tgt_bbox\": [3, 0, 583, 201], \"desc\": \"The head and sharp-clawed paws of a Velociraptor emerging from the edge of the frame, ready to pounce.\"}, {\"id\": \"lady\", \"from\": \"target\", \"src_bbox\": null, \"tgt_bbox\": [0, 635, 742, 877], \"desc\": \"A topless lady with an expression of extreme fear, kneeling on the ground with her hands clutched to her head, wearing only dark bikini bottoms.\"}]",
+      "cited": [
+        true,
+        true,
+        true
+      ]
+    }
+  ],
+  "spent": 0.0025874300000000004
+}

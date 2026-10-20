@@ -116,7 +116,7 @@ function testReuseRestoresBothTextsOnAnEnhancedCard() {
     assert.strictEqual(payload.positive, 'lighthouse',
         'the box gets the short prompt — that is the thing you can iterate on');
     assert.deepStrictEqual(payload.enhanced,
-        { positive: 'A weathered stone lighthouse, wide shot, Hasselblad X2D' },
+        { positive: 'A weathered stone lighthouse, wide shot, Hasselblad X2D', boxes: [] },
         'the enhancement is restored beside it, not thrown away');
 }
 

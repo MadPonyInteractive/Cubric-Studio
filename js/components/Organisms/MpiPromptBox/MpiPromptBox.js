@@ -389,7 +389,7 @@ export const MpiPromptBox = ComponentFactory.create({
                 frame: _boxFrame(),
                 mode: activeOperation === 'edit' ? 'edit' : 't2i',
                 accent: 'vision',
-                onChange: (boxes) => { _boxesCtrl()?.setValue(boxes); _boxesLabel(); },
+                onChange: (boxes) => { _boxesCtrl()?.setValue(boxes); _boxesLabel(); _dropIfBoxesMoved(); _saveDraft(); },
                 onCite: (name) => _insertPromptText(`<${name}>`),
                 onRename: _renamePromptTag,
                 onClose: () => _boxesBtn.el.setActive(false),
@@ -1619,7 +1619,8 @@ export const MpiPromptBox = ComponentFactory.create({
             // nothing else, so a reused card has no record of which engine answered.
             // A blank provenance line is the honest reading of that — do not invent one.
             _enhanced = enhanced?.positive
-                ? { source: positiveValue, positive: String(enhanced.positive) }
+                // MPI-1181: the card's own boxes, which the Reuse restores right after this.
+                ? { source: positiveValue, positive: String(enhanced.positive), boxes: _boxKey(enhanced.boxes) }
                 : null;
             // MPI-474: no mode-switch rule of its own. A reuse injects every field at
             // once, and the visibility rule below exists for a SINGLE-sided inject —
@@ -2621,14 +2622,26 @@ export const MpiPromptBox = ComponentFactory.create({
                 : null
         );
 
-        // MPI-1181: the Boxes an enhancement was planned around. An Enhance with boxes on a box
-        // model writes their table into the prompt, so a later change leaves it stale: say so.
-        const _boxesNow = () => JSON.stringify(_activeControls.get('boxes')?.getInjectionParams?.().Layout_Boxes ?? []);
-        const _boxesMismatchNote = (enh) => (
-            enh && model?.layoutBoxes && (enh.boxes ?? '[]') !== _boxesNow()
-                ? { text: 'Your boxes changed since this was enhanced. Press Enhance to plan it around them again.', kind: 'warn' }
-                : null
-        );
+        // MPI-1181: the Boxes an enhancement was planned around, as a comparable key.
+        function _boxKey(boxes) {
+            return JSON.stringify((boxes ?? []).map(b => [b.x, b.y, b.w, b.h, b.desc ?? '', b.name ?? '']));
+        }
+        function _boxesNow() {
+            return _boxKey(_activeControls.get('boxes')?.getInjectionParams?.().Layout_Boxes);
+        }
+        /**
+         * A box drawn, moved or removed since the Enhance drops it, like an edit to the short
+         * prompt (Fabio, 2026-10-20): a t2i enhancement carries its own table, which would run
+         * the OLD boxes, and an edit's words describe the old layout. A note inside the Enhance
+         * dialog was never seen. NOT part of `_syncEnhancedState`: a Reuse injects the prompt
+         * before it restores the card's boxes, so it runs on a box change and at Run only.
+         */
+        function _dropIfBoxesMoved() {
+            if (_enhanced && model?.layoutBoxes && (_enhanced.boxes ?? _boxKey([])) !== _boxesNow()) {
+                _enhanced = null;
+                _syncEnhancedState();
+            }
+        }
 
         function _openEnhanceDialog() {
             // NOT `if (_enhanceDialog) return`. `MpiModal.hide()` does not emit 'cancel'
@@ -2672,7 +2685,7 @@ export const MpiPromptBox = ComponentFactory.create({
                         // A model mismatch OUTRANKS the stored note: both ride the same
                         // one line, and "these words are for another model" is the more
                         // urgent of the two. Re-enhancing replaces it either way.
-                        note: _modelMismatchNote(_enhanced) ?? _transparentMismatchNote(_enhanced) ?? _boxesMismatchNote(_enhanced) ?? _enhanced.note,
+                        note: _modelMismatchNote(_enhanced) ?? _transparentMismatchNote(_enhanced) ?? _enhanced.note,
                     }
                     : undefined,
             });
@@ -2801,6 +2814,8 @@ export const MpiPromptBox = ComponentFactory.create({
         };
 
         el.getRunPayload = () => {
+            // Boxes also change off the panel (an op switch swaps the perOp value): re-check here.
+            _dropIfBoxesMoved();
             const injectionParams = getInjectionParamsFromControls(_activeControls);
             const previewCtrl = _activeControls.get('previewStage');
             const historyMode = _context.historyMode === true;

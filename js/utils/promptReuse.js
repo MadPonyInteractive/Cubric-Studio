@@ -167,7 +167,8 @@ export function buildPromptReusePayload(item = {}) {
 
     return {
         positive: _shortPrompt || _enhancedText,
-        enhanced: _shortPrompt ? { positive: _enhancedText } : null,
+        // MPI-1181: with the boxes it ran with, so the prompt box keeps it once they are restored.
+        enhanced: _shortPrompt ? { positive: _enhancedText, boxes: injectionParams.Layout_Boxes ?? [] } : null,
         negative: item.negativePrompt ?? source.negative ?? '',
         // MPI-474. Absent on every item generated before the third prompt mode
         // shipped, which is why it falls through to '' rather than being required.
