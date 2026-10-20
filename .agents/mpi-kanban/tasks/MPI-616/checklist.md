@@ -45,7 +45,22 @@ reasoning survives.
       creation, **before** validation (1-20 business days), so a failed validation
       still costs at least one month. Extra documents must be issued within the
       last 12 months; three upload attempts, then onboarding stops for good.
+- [x] Re-read the quickstart 2026-10-20 (updated 2026-10-08). Two facts the card
+      lacked: (1) **Organization validation also ID-checks the person** named on it -
+      when the request goes to "Action Required", Fabio does an AU10TIX check
+      (passport or driving licence + phone + Microsoft Authenticator). (2) If more
+      documents are asked for, Microsoft wants business registration papers or a
+      **domain invoice naming the entity and contact** - a sole trader has no
+      registration papers, so check the Namecheap invoice for madponyinteractive.com
+      names "Mad Pony Interactive" BEFORE submitting (three upload attempts only).
+      No UK region: use **North Europe** (`https://neu.codesigning.azure.net`).
 - [ ] Decide with Fabio
+- [ ] Fabio's own steps (account, payment and ID - never an agent's): Azure
+      subscription (Pay-As-You-Go) -> register `Microsoft.CodeSigning` provider ->
+      create Artifact Signing account, Basic, North Europe -> give himself
+      **Artifact Signing Identity Verifier** -> Identity validations > Organization >
+      New Identity > Public, with the D-U-N-S details above -> AU10TIX check when
+      asked -> wait 1-20 business days -> certificate profile, type **Public Trust**
 - [ ] Wire the signing pass into `scripts/build-portable.mjs` — **after** the
       `electron.exe` → `CubricVision.exe` rename. `win.azureSignOptions` in
       `electron-builder.yml` is inert; electron-builder does not build the shipped
