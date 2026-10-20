@@ -784,28 +784,29 @@ export function resolveSigningEnv(env = process.env) {
 
 // One PowerShell call for the whole list: Get-AuthenticodeSignature is the same
 // check the MPI-616 census used, so "Valid" here means what it meant there.
-// Results go to a FILE, never stdout: with no console attached (a CI runner) Windows
-// PowerShell wraps stdout at the host width, splitting every long staged path, so
-// every status read back as missing. Measured on CI run 39432461902.
+// PSModulePath is dropped from the child's env: under a PowerShell 7 parent (the CI
+// runner's default shell, `npm test` included) Windows PowerShell inherits 7's module
+// path, cannot load Get-AuthenticodeSignature, and printed nothing while exiting 0
+// (CI run 39433560946). Without it Windows PowerShell rebuilds its own default.
+// ErrorActionPreference=Stop turns any such failure into a thrown error, not silence.
 export async function authenticodeStatus(fullPaths) {
-  const base = path.join(os.tmpdir(), `cubric-sign-${process.pid}`);
-  const listFile = `${base}-in.txt`;
-  const outFile = `${base}-out.txt`;
+  const listFile = path.join(os.tmpdir(), `cubric-sign-${process.pid}.txt`);
   await fs.writeFile(listFile, fullPaths.join('\n'), 'utf8');
+  const env = { ...process.env };
+  for (const key of Object.keys(env)) if (key.toLowerCase() === 'psmodulepath') delete env[key];
   try {
-    await execFileAsync('powershell.exe', [
+    const { stdout } = await execFileAsync('powershell.exe', [
       '-NoProfile', '-NonInteractive', '-Command',
-      `Get-Content -LiteralPath '${listFile}' -Encoding UTF8 | ForEach-Object { (Get-AuthenticodeSignature -LiteralPath $_).Status.ToString() + '|' + $_ } | Set-Content -LiteralPath '${outFile}' -Encoding UTF8`,
-    ]);
+      `$ErrorActionPreference = 'Stop'; Get-Content -LiteralPath '${listFile}' -Encoding UTF8 | ForEach-Object { (Get-AuthenticodeSignature -LiteralPath $_).Status.ToString() + '|' + $_ }`,
+    ], { env, maxBuffer: 16 * 1024 * 1024 });
     const status = new Map();
-    for (const line of (await fs.readFile(outFile, 'utf8')).replace(/^﻿/, '').split(/\r?\n/)) {
+    for (const line of stdout.split(/\r?\n/)) {
       const at = line.indexOf('|');
       if (at > 0) status.set(line.slice(at + 1), line.slice(0, at));
     }
     return status;
   } finally {
     await fs.rm(listFile, { force: true });
-    await fs.rm(outFile, { force: true });
   }
 }
 
