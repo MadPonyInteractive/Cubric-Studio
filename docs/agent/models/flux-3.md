@@ -31,6 +31,7 @@ when a user mentions selling or client work.
   identity best of every upscale tried.
 - "Better quality" at the same size is `turbo: false`, never a higher tier: a tier here is
   only the picture's size. Say it runs about four times slower.
+- These are defaults. A user who asks for Turbo, fast, or a setting of their own gets exactly that.
 - Tiers `1k`, `2k`, `4k` on `t2i`, `i2i` and a custom-size `edit` (4k: Turbo ~130 s, base ~11 min on a 16 GB card).
   The ratio is a param: never write it into the prompt.
 - `edit` keeps the FIRST image's frame unless custom size is on: a `ratio` or `qualityTier`
