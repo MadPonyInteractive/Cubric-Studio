@@ -382,7 +382,7 @@ lottery is handled by the model being seed-tolerant + workflow quality, not by u
   (cap+toast vs silently trim — TBD from length tests).
 
 ### Dep (re-host before public ship — third-party)
-`ltx-2.3-id-lora-talkvid-3k.safetensors` (AviadDahan/TalkVid-3K, local at `C:/AI/loras/LTX2.3/id-lora-talkvid/`).
+`ltx-2.3-id-lora-talkvid-3k.safetensors` (AviadDahan/TalkVid-3K, local at `G:/models/loras/LTX2.3/id-lora-talkvid/`).
 
 ---
 

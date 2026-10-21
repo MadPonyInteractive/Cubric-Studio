@@ -11,6 +11,10 @@
     ".claude/skills/mpi-bump-local-comfy/SKILL.md",
     ".claude/commands/mpic-compute-dep-hashes.md",
     "scripts/computeDepHashes.py",
-    ".claude/rules/comfy_engine.md"
+    ".claude/rules/comfy_engine.md",
+    "docs/models/qwen-edit/tiers-and-loaders.md",
+    "docs/models/qwen-edit/README.md",
+    "docs/models/ltx/audio-input.md",
+    "docs/models/ltx/model-set.md"
   ]
 }

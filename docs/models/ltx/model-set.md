@@ -116,7 +116,7 @@ Default 0.5, sweep 0.3–0.7.
 
 ## Local LoRA folder convention
 
-All LTX LoRAs nest under `C:/AI/loras/LTX2.3/` (rgthree "Auto Nest Subdirectories")
+All LTX LoRAs nest under `G:/models/loras/LTX2.3/` (rgthree "Auto Nest Subdirectories")
 → LoRA-name strings carry the `LTX2.3\` prefix (e.g.
 `LTX2.3\LTX2.3_Reasoning_V1.safetensors`). Use prefixed names in template + dep
 manifest. ⚠️ The NerdyRodent monolith still points at the old ROOT paths — repath
@@ -168,7 +168,7 @@ Cubric CDN/R2 (`cubric-builds`).
 The actual Solution-B model = **ID-LoRA** (`audio_ref_only_ic` strategy = what `LTXVSetAudioRefTokens`
 does; no video guide; voice + appearance from text + ref-image + ref-audio). Two ungated AviadDahan repos
 (file `lora_weights.safetensors`, ~1.1GB, rank 128):
-- `AviadDahan/LTX-2.3-ID-LoRA-TalkVid-3K` (downloaded → `C:/AI/loras/LTX2.3/id-lora-talkvid/`)
+- `AviadDahan/LTX-2.3-ID-LoRA-TalkVid-3K` (downloaded → `G:/models/loras/LTX2.3/id-lora-talkvid/`)
 - `AviadDahan/LTX-2.3-ID-LoRA-CelebVHQ-3K`
 - Project: id-lora.github.io · paper arxiv 2603.10256 · `github.com/ID-LoRA/ID-LoRA`.
 - **Re-host required before ship.** These are **third-party** repos (AviadDahan, not Lightricks-official) —

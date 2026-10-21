@@ -66,7 +66,7 @@ instruction-driven image editing with a Qwen2.5-VL text encoder and the Qwen-Ima
 | Transformer | **`qwen_image_edit_2511_int8_convrot`** (ALL tiers; 19.10 GiB, below gate, `size:"19GB"`) — 🆕 NEW dep. fp8mixed + bf16 tested & REJECTED |
 | Text encoder | `text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors` (9.38GB, hidden 3584) — 🆕 NEW dep. **NOT** the krea2 Qwen3-VL-4B nor boogu Qwen3-VL-8B |
 | VAE | `vae/qwen_image_vae.safetensors` — REUSE existing dep **`vae-qwen-image`** (already on R2, hashed) |
-| Lightning LoRAs | 2511 4-step + 8-step bf16 (810MB each) — BAKED deps, `loras/qwen/` subfolder. Downloaded to `C:/AI/Loras/Qwen` |
+| Lightning LoRAs | 2511 4-step + 8-step bf16 (810MB each) — BAKED deps, `loras/qwen/` subfolder. Downloaded to `G:/models/loras/Qwen` |
 | Upstream | `Comfy-Org` (base weights) · `lightx2v/Qwen-Image-Edit-2511-Lightning` (accelerator LoRAs) |
 
 **Dep reuse:** the VAE is already hosted. `vae-flux-ae` is the WRONG dep. The transformer,

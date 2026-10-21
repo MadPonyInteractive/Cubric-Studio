@@ -42,7 +42,7 @@ with the mpi-ci image: build the image there, drive the workflow loop from here.
   dir), and `extra_config.py` registers whatever you write, so a typo fails
   silently as an empty dropdown. The app engine's yaml is GENERATED — a gap
   there is a code fix in `coreExtras` (`routes/yamlHelper.js`), never a hand edit.
-- LoRAs: `C:/AI/loras/` — **LTX LoRAs nested under `C:/AI/loras/LTX2.3/`**
+- LoRAs: `G:/models/loras/` — **LTX LoRAs nested under `G:/models/loras/LTX2.3/`**
   (rgthree "Auto Nest Subdirectories in Menus" gives folder submenus). LoRA-name
   strings therefore carry the `LTX2.3\` prefix.
 - Workflow authoring scratch: `D:/WORK/workflows/App/` — but the **canonical**

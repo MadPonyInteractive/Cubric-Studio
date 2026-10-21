@@ -45,7 +45,7 @@ top of the base**. → the 3-tier design (same base, LoRA swapped per tier) is c
 - **High = int8 raw ~20 steps** (no LoRA) — clean, no drift. NOT bf16, NOT 40-step.
 
 Only surviving weights on `M:\CubricModels`: `int8_convrot` (diffusion) + `qwen_2.5_vl_7b_fp8_scaled` (TE).
-Both Lightning LoRAs on `C:/AI/Loras/Qwen`. fp8mixed / bf16 / full-TE deleted.
+Both Lightning LoRAs on `G:/models/loras/Qwen`. fp8mixed / bf16 / full-TE deleted.
 
 ## Chosen transformer — deps entry
 

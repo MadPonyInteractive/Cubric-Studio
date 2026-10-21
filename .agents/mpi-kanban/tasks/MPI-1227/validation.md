@@ -7,3 +7,4 @@
 - Left alone on purpose: `.agents/mpi-kanban/**` history, `docs/archive/**`, `tests/*.cjs` (fixture strings), `js/data/modelConstants/assetDeps.js:1196` (code comment, outside scope), and `.claude/rules/comfy_engine.md:26` (rule file: needs Fabio's explicit OK).
 - `G:\ComfyUi` (the bench itself) still lives on G: and its mentions are unchanged.
 - Follow-up, Fabio OK in chat: `.claude/rules/comfy_engine.md` line 26 repointed to `M:\CubricModels` (two spellings). `rg` over the file returns nothing.
+- Follow-up from a peer session: bench test models moved C:/AI/{loras,...} -> G:/models/ (2026-10-21). Repointed the 6 live mentions of `C:/AI/loras` (5 docs). `rg` for the old paths outside docs/archive, .agents, .claude/worktrees: no matches.
