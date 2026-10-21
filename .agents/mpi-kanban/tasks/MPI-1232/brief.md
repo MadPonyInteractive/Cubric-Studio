@@ -8,6 +8,29 @@ blend. Also a detailer (1.0x). Wanted: tiles whose seams never land on a face; c
 so no seam pass is needed. Fabio's old per-tile workflow is lost - design from what is below.
 First logged as a note on MPI-1181 (2026-10-19).
 
+## Decisions (Fabio, 2026-10-21)
+
+- **Target 2.1.3 or later - NOT 2.1.2.** Nothing is wired until the bench passes.
+- **Use Grid goes.** With a prompt per tile, Tiles covers what Grid did; one upscale split option.
+- **Use Tiles, when on, shows two more controls:** a **Tile size** (injected straight into
+  `ImpactMakeTileSEGS` `bbox_size`) and a **Describe each tile** toggle (on = every tile gets its own
+  caption via the wildcard; off = today's prompt-less tiles).
+
+### What the decisions pull in (check while planning)
+
+- **Tile size is three numbers, not one.** `DetailerForEachPipe` uses guide 1024 (bbox) / max 1536:
+  a 512 tile is enlarged to 1024 before sampling (more detail, 4x the tiles), a 2048 tile is capped
+  at 1536. Size the guide/max from the tile size, or a big tile silently samples small. Bounds per
+  model (native side), and `tileCount.js` must take the size so the label count stays right.
+- **Removing Grid touches:** every template's Grid path (`MpiGridDimensions`, `Input_*` grid ids),
+  `PromptBoxControls.js`, `promptControlDefaults.js`, `generationControls.js`, `commandRegistry.js`,
+  `generationService.js`, plus the agent's upscale routes (MPI-1053) and the MCP/Cosmo params.
+- **Old saved settings still say `useGrid`:** reuse from an old card (`promptReuse.js`,
+  `projectModel.js`) and saved Routines (global, MPI-970) must map it to Tiles or drop it, never
+  fail or silently run a plain upscale.
+- **Describe off keeps the one-prompt trap** (the box text runs in every tile) - keep today's
+  rule for it (no prompt, CFG 1 on FLUX.3), and say so in the toggle's hover.
+
 ## Findings (2026-10-21, read from the Impact Pack source on the G:\ComfyUi bench)
 
 1. **Tiles already run one at a time, and are already clouds.** `DetailerForEachPipe` loops the
@@ -46,10 +69,10 @@ First logged as a note on MPI-1181 (2026-10-19).
 
 ## Open questions
 
-- **Tile size option:** my pick = none. The tile is the model's own side (1024), the label already
-  shows the count (`Upscale · N tiles`, MPI-1175). Revisit if a model wants another size.
-- **Who writes the tile prompts:** my pick = auto-caption every tile; the prompt box text, if any,
-  is appended to every tile as a style line (never a scene). A per-tile edit grid = later.
+- ~~Tile size option~~ - DECIDED: a Tile size control (above). Still open: the steps offered
+  (e.g. 512 / 768 / 1024 / 1536) and the default (model's native side).
+- **With Describe on, what the box text does:** my pick = appended to every tile as a style line
+  (never a scene). A per-tile edit grid = later.
 - **Caption cost/time:** 1920x1080 x2 = 15 tiles, 4000x6000 x2 = 150 captions. Local describer
   (time) or the DeepInfra one (money) - price it before a big photo runs.
 - **Face pass order:** faces inside the same DetailerForEach (one SEGS list) or a second detailer
