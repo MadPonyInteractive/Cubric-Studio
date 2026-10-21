@@ -1,0 +1,7 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".husky/pre-push",
+    "docs/red-master.md"
+  ]
+}

@@ -68,9 +68,18 @@ Green here and red in CI is an ANSWER, not a dead end — see cause 1.
 | gate (both in `.husky/pre-push`) | asks | blocks |
 |---|---|---|
 | **Done gate** (MPI-819) | did THIS card's code commit bring the red, or is it unjudged? | only the card being moved to `done`. Blames by ancestry + failing spec FILES, so a close during someone else's red passes |
+| **Local gate** (MPI-1217) | do `npm run lint` and `npm test` pass on the commit being pushed? | any code push to master. Docs / `.agents/` / `.md`-only pushes skip it |
 | **Master gate** | did master's last completed run fail? | any code push. Docs / `.agents/` / `.md`-only pushes skip it |
 
-Both fail OPEN (no `gh`, no network, shallow clone) and both yield to `--no-verify`.
+The done and master gates fail OPEN (no `gh`, no network, shallow clone). The local gate
+does not: a red suite is a verdict. All three yield to `--no-verify`.
+
+**The local gate stops the break itself; the other two only stop the pile-up.** It checks
+out the PUSHED commit into a throwaway worktree under `.git/prepush-<pid>` (hooks off, so
+no `npm ci`; `node_modules` junctioned to the main tree's), so a peer's uncommitted file in
+this shared tree can never block a push it is not part of. About 65 s on Fabio's box
+(2026-10-21). Its failing output lands in `.git/prepush-last.log`. The desktop suite stays
+CI's: ~10 min a shard is too slow to run on every push.
 
 **One more check runs at COMMIT time** (MPI-1022): `.husky/pre-commit` runs
 `scripts/precommit-done-gate.sh`, which refuses a commit carrying code AND a card's move to

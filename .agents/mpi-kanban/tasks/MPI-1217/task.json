@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1217",
+  "title": "Pre-push runs unit tests + lint before a code push to master",
+  "description": "A code push to master runs npm run lint and npm test locally first; docs/board pushes skip it.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-21T01:19:04+01:00",
+  "updated_at": "2026-10-21T01:19:04+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

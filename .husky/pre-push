@@ -5,9 +5,10 @@
 #
 # The failure this exists for (2026-08-23): MPI-567 shipped a Flow descriptor naming
 # preview art that was never made, the desktop suite went red on the resulting 404,
-# and EIGHT more pushes landed on top before anyone looked. This hook cannot catch
+# and EIGHT more pushes landed on top before anyone looked. This gate cannot catch
 # the push that BREAKS master — CI has not run on that commit yet — only the pile-up
-# afterwards, which is the part that cost a day.
+# afterwards, which is the part that cost a day. The local gate (MPI-1217) catches the
+# unit/lint half of the break itself.
 #
 # Deliberately NOT a GitHub branch-protection rule: a required status check rejects a
 # direct push to a protected branch, which would force every agent session through a
@@ -175,6 +176,48 @@ if [ -n "$push_remote_sha" ] && [ "$push_remote_sha" != "$zero" ]; then
         exit 0
     fi
 fi
+
+# ── Local gate (MPI-1217) ────────────────────────────────────────────────────────
+# Lint + the unit suite on the commit being pushed, BEFORE it reaches master. The CI
+# gate below only stops the pile-up; this stops the break itself. About half of master's
+# reds (2026-10-11..21) were `npm test` or lint failures an agent never ran locally.
+#
+# Run in a throwaway worktree of the pushed commit, never this tree: the tree is shared,
+# and a peer's half-written file must not block a push it is not part of. Hooks off for
+# the checkout (post-checkout would `npm ci`); node_modules is a junction to ours, removed
+# before the worktree so `worktree remove --force` cannot reach through it.
+#
+# ponytail: unit + lint only (~60 s). The desktop suite is ~10 min a shard and stays CI's.
+# Does NOT fail open: a red suite is a real verdict, and --no-verify is the bypass.
+root=$(git rev-parse --show-toplevel)
+wt="$root/.git/prepush-$$"
+log="$root/.git/prepush-last.log"
+local_cleanup() {
+    [ -d "$wt" ] || return 0
+    node -e 'try { require("fs").unlinkSync(process.argv[1]) } catch {}' "$wt/node_modules"
+    git -C "$root" worktree remove --force "$wt" 2>/dev/null || true
+}
+trap local_cleanup EXIT
+
+echo "[pre-push] lint + unit tests on $(git rev-parse --short=8 "$push_local_sha") (~1 min)..."
+git -c core.hooksPath=/dev/null worktree add --detach -q "$wt" "$push_local_sha"
+node -e 'require("fs").symlinkSync(process.argv[1], process.argv[2], "junction")' "$root/node_modules" "$wt/node_modules"
+for step in lint test; do
+    if ! (cd "$wt" && npm run -s "$step") >"$log" 2>&1; then
+        echo ""
+        echo "[pre-push] BLOCKED - npm run $step failed on the commit you are pushing."
+        echo ""
+        # ponytail: node --test marks a failure with ✖; eslint's output is all signal.
+        { [ "$step" = test ] && grep '✖' "$log" || tail -20 "$log"; } | head -30 | sed 's/^/    /'
+        echo ""
+        echo "  Full log: $log    Rerun: npm run $step"
+        echo "  CI would go red on this. Fix it and push again; --no-verify is for pushing a FIX"
+        echo "  to an already-red master, never for skipping this."
+        echo ""
+        exit 1
+    fi
+done
+echo "[pre-push] lint + unit tests green."
 
 command -v gh >/dev/null 2>&1 || exit 0
 
