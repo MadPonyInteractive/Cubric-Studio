@@ -32,3 +32,7 @@ Ollama Cloud) beat the local picks (ornith:9b 23/34 on the older tests).
 - The signed-out path: the 401 + `signin_url` shape is read from Ollama's source; this box is signed
   in and was not signed out to see it. Sign in falls back to ollama.com/signin when no link comes back.
 - A Cosmo chat on an added cloud model through the app (the same route ran the MPI-1208 bench).
+
+## CI
+
+- Tests run 39622026934 on f29d8d820: success.

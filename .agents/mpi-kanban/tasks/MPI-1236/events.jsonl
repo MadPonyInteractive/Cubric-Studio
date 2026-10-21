@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1236", "at": "2026-10-21T15:49:25+01:00", "actor": "399bb0a6-e02c-4890-9982-7a73d7d63157", "column": "todo", "title": "Agent settings: add an Ollama Cloud model without a terminal"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1236", "at": "2026-10-21T15:52:01+01:00", "actor": "399bb0a6-e02c-4890-9982-7a73d7d63157", "from": "todo", "to": "doing", "reason": "Fabio: create the card and start right away"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1236", "at": "2026-10-21T16:16:51+01:00", "actor": "399bb0a6-e02c-4890-9982-7a73d7d63157", "from": "doing", "to": "done", "reason": "Shipped f29d8d820, CI 39622026934 green, live-checked in an isolated instance"}
