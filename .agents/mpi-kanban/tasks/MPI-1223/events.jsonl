@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1223", "at": "2026-10-21T02:38:36+01:00", "actor": "2878130e-8ad0-4d5f-aeff-8261b7a9cc1c", "column": "doing", "title": "Seedance 2 face refusal names the cause: a photoreal human face"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1223", "at": "2026-10-21T02:40:56+01:00", "actor": "2878130e-8ad0-4d5f-aeff-8261b7a9cc1c", "from": "doing", "to": "done"}

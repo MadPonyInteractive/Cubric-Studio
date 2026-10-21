@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1223",
+  "title": "Seedance 2 face refusal names the cause: a photoreal human face",
+  "description": "MPI-1221 follow-up. BytePlus answers InputImageSensitiveContentDetected.PrivacyInformation for any photorealistic human face (it cannot tell a stranger from a real person), and the generic refusal copy let Cosmo guess the wrong cause (bikini content). The route now returns copy naming the face, shown in the toast and passed to the agent.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-21T02:38:36+01:00",
+  "updated_at": "2026-10-21T02:40:56+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

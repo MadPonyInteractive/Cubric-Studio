@@ -1,0 +1,12 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-1223/",
+    "routes/deepinfra.js",
+    "js/services/cloudExecutor.js",
+    "tests/deepinfra-multiref.test.cjs",
+    "tests/cloud-executor.test.cjs",
+    "docs/cloud-generation.md",
+    "tests/deepinfra-seedance-refs.test.cjs"
+  ]
+}
