@@ -452,6 +452,8 @@ test('every failure message names a non-billing cause where one is true', () => 
     // Failed calls are not billed, and a user who thinks they were will stop using the
     // feature. Verified against the account's usage page during the MPI-849 research.
     assert.match(cloudErrorMessage('CONTENT_FILTERED'), /not billed/);
+    // A refusal the route named keeps the route's words (MPI-1223).
+    assert.equal(cloudErrorMessage('CONTENT_FILTERED', 'It shows a realistic human face.'), 'It shows a realistic human face.');
     assert.match(cloudErrorMessage('PROVIDER_ERROR'), /not billed/);
     assert.match(cloudErrorMessage('NO_CREDIT'), /nothing was billed/);
 });

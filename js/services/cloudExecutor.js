@@ -74,7 +74,8 @@ const ERROR_COPY = {
  * for them (MPI-981). The route says itself whether it billed. Only a bare one is the provider's.
  */
 export function cloudErrorMessage(code, fallback) {
-    if (code === 'PROVIDER_ERROR' && fallback) return fallback;
+    // A CONTENT_FILTERED with a reason names what the provider refused (MPI-1223).
+    if ((code === 'PROVIDER_ERROR' || code === 'CONTENT_FILTERED') && fallback) return fallback;
     return ERROR_COPY[code] || fallback || ERROR_COPY.PROVIDER_ERROR;
 }
 

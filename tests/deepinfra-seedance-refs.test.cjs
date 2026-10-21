@@ -167,6 +167,15 @@ test('the route deletes the parked clip when the call FAILS', async () => {
     assert.deepEqual(calls.filter(c => c.method === 'DELETE').map(c => c.url), sentBody.reference_videos);
 });
 
+// MPI-1223: the detail measured live 2026-10-21 (Seedance 2.0 on a photoreal poolside picture).
+test('a realistic-face refusal is a CONTENT_FILTERED that names the face', async () => {
+    const detail = 'Request to https://ark.ap-southeast.bytepluses.com/api/v3/x failed with status: 400, response: {"error":{"code":"InputImageSensitiveContentDetected.PrivacyInformation","message":"may contain real person"}}';
+    const { json } = await runRoute(() => new Response(JSON.stringify({ detail }), { status: 500 }));
+    assert.equal(json.error.code, 'CONTENT_FILTERED');
+    assert.match(json.error.message, /realistic human face/);
+    assert.match(json.error.message, /not billed/);
+});
+
 test('the route deletes the parked clip when the call SUCCEEDS', async () => {
     const { json, sentBody, calls } = await runRoute(() => new Response(JSON.stringify({ video_url: 'https://out.example/clip.mp4', inference_status: { cost: 0.5 } }), { status: 200 }));
     assert.equal(json.ok, true);

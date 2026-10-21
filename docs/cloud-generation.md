@@ -115,6 +115,9 @@ reads as a real person with `InputImageSensitiveContentDetected.PrivacyInformati
 carries that provider code (MPI-1221).
 
 `CONTENT_FILTERED` is a toast, never the error dialog: the model saying no is not a fault (MPI-1221).
+A provider code with a known cause gets its own copy (`REFUSAL_COPY` in the route), shown instead of
+the fixed sentence and handed to the agent: `PrivacyInformation` means ANY photoreal human face,
+not a famous one, so the copy says that (MPI-1223; Cosmo had guessed "the bikini").
 
 The dialog copy is `cloudErrorMessage` (`ERROR_COPY` in `cloudExecutor.js`):
 

@@ -124,6 +124,16 @@ function _codeForStatus(status, detail = '') {
     return 'PROVIDER_ERROR';
 }
 
+/**
+ * A refusal whose provider code names its cause gets copy naming it, so the user and the agent
+ * do not guess (MPI-1223: Cosmo blamed the bikini). BytePlus cannot tell a stranger's
+ * photoreal face from a real person's, so the copy says "realistic face", never "known person".
+ */
+const REFUSAL_COPY = {
+    'InputImageSensitiveContentDetected.PrivacyInformation':
+        'The model refused the picture because it shows a realistic human face: this provider treats any photoreal face as a possible real person, famous or not. Try a stylised picture or another model. Refused calls are not billed.',
+};
+
 /** The provider's own 4xx wrapped inside a DeepInfra error detail, or null. */
 function _wrappedStatus(detail) {
     const m = /failed with status: (4\d\d)/.exec(String(detail || ''));
@@ -618,7 +628,7 @@ router.post('/deepinfra/generate', async (req, res) => {
         const providerCode = wrapped && /"code"\s*:\s*"([A-Za-z][\w.]{0,80})"/.exec(detail)?.[1];
         logger.warn('system', `deepinfra generate: ${model.id} answered HTTP ${upstream.status}`
             + (wrapped ? ` (provider ${host || '?'} said ${wrapped}${providerCode ? ` ${providerCode}` : ''})` : ''));
-        return _fail(res, _codeForStatus(upstream.status, detail), null);
+        return _fail(res, _codeForStatus(upstream.status, detail), REFUSAL_COPY[providerCode] || null);
     }
 
     const cost = {
