@@ -1,46 +1,70 @@
-# MPI-1232 - Tile Prompt Flow
+# MPI-1232 - Use Tiles, redone: a prompt per tile
 
 ## Ask (Fabio, 2026-10-21)
 
-A Flow that cuts the picture into tiles and redraws EACH tile with its OWN prompt, then stitches
-them back. Upscale (factor > 1) or detail only (1.0x, or upscale then downscale back to the
-source size). First logged as a "future" note on MPI-1181 (2026-10-19); no card existed until now.
+Not a Flow: this REPLACES the prompt box's **Use Tiles** (MPI-1038) on every model that has it.
+Split the picture into tiles, redraw each tile with ITS OWN prompt on the SELECTED model, then
+blend. Also a detailer (1.0x). Wanted: tiles whose seams never land on a face; cloud-shaped tiles
+so no seam pass is needed. Fabio's old per-tile workflow is lost - design from what is below.
+First logged as a note on MPI-1181 (2026-10-19).
 
-## Why it is not the existing Use Tiles
+## Findings (2026-10-21, read from the Impact Pack source on the G:\ComfyUi bench)
 
-The upscale op's **Use Tiles** (MPI-1038) is Impact `ImpactMakeTileSEGS` -> `DetailerForEachPipe`:
-every tile goes through the sampler with the ONE prompt, so the prompt "applies per tile" and
-renders the whole scene in each tile (`docs/models/krea2/upscaling.md` § traps). That is why
-FLUX.3 locked tile upscale to no prompt, CFG 1.0 (MPI-1181 brief, 2026-10-19). A per-tile prompt
-removes that trap: each tile is described for what is actually in it.
+1. **Tiles already run one at a time, and are already clouds.** `DetailerForEachPipe` loops the
+   SEGS and samples + pastes each tile in turn (`impact_pack.py` ~:340-385), so tile N sees tiles
+   1..N-1 already redrawn. `ImpactMakeTileSEGS` `mask_irregularity 0.7` "Reuse fast" (our graph) is
+   the cloud mask - why Use Tiles shows no seams today (`docs/models/krea2/upscaling.md`). The ONLY
+   real gap is that every tile gets the ONE prompt -> FLUX.3 had to lock tiles to no prompt.
+2. **Impact already takes a prompt per tile.** `DetailerForEachPipe` has a `wildcard` input:
+   `[ASC]tile 1 text[SEP]tile 2 text[SEP]...` gives each tile its own prompt, in tile order
+   (ASC = sorted by bbox x1, then y1). `[SKIP]` leaves a tile untouched, `[STOP]` ends the run.
+   No new node, no second graph, no N dispatches.
+3. **Trap - the wildcard REPLACES the conditioning** (`core.enhance_detail` ~:267): it is a plain
+   clip encode, so anything our graph adds to `positive` (Flux guidance, ReferenceLatent) is
+   dropped. `[CONCAT]` keeps the base positive's dict and appends the tile text. Bench which works
+   per model family before wiring.
+4. **Faces:** `face_yolov8n.pt` already ships (`assetDeps.js`). `ImpactMakeTileSEGS` takes
+   `filter_out_segs_opt` (an exclusion mask, dilated) - feed it the face SEGS so grid tiles leave
+   faces alone, then redraw each face ONCE as its own whole tile. That also fixes MPI-1181's
+   identity drift (3-4 overlapping tiles each re-denoising one face).
+5. **The app can make the tiles too** - Make seamless (MPI-1101) already has it:
+   `services/seamlessOps.js` (lossless working copy, window plan, cut + mask, feathered paste),
+   flowService multi-pass with `tool:hold` (status bar i/N between passes), and a per-window
+   describer (`everyPass`). Its 16K lesson: a whole-scene prompt makes the model paint the whole
+   scene into every window - the exact reason per-tile prompts matter.
 
-## Source recipe
+## Plan options (Fabio's call)
 
-Fabio has an old bench workflow that prompts per tile - **he is finding it**. Read how it splits,
-prompts and blends before choosing a route. Do not design before it arrives unless he says so.
+- **A (recommended) - stay in the graph.** App ports `js/utils/tileCount.js` to return the tile
+  RECTS (same maths as `ImpactMakeTileSEGS`), crops each tile from the scaled picture, captions each
+  with the describer, joins them `[ASC]...[SEP]...` into one new `Input_Tile_Prompts` string ->
+  the Tiles group's wildcard. One queue row, one run, clouds keep seams away, no seam pass.
+- **B - app-side tiling** on the Make seamless machinery: one queue row per tile, each a normal
+  i2i/detail op on the selected model, pasted with a cloud alpha. More control (retry one tile,
+  show each tile's prompt live) but N dispatches, and multi-pass lives in flowService, not the
+  prompt box. Only if A fails the bench.
 
-## Routes to compare (decide with Fabio)
+## Open questions
 
-1. **His workflow, as a graph.** One ComfyUI run; per-tile prompts injected as a list. Check how
-   the count is bounded (tile count follows the OUTPUT size: 1920x1080 x2 = 15 tiles,
-   `js/utils/tileCount.js`).
-2. **The app makes the tiles.** The app crops N tiles (with overlap), runs one i2i/detail per tile
-   through `enqueueGeneration` (each tile its own queue row, Stop works), then feather-blends them
-   back (sharp). Model-agnostic, any installed model; costs N runs.
-3. **Who writes each prompt:** the user types per tile (a tile-grid step gizmo, `docs/playbooks/add-flow/ui/`),
-   and/or an auto caption per tile (Qwen3-VL is already an engine asset; Cosmo could also fill them).
+- **Tile size option:** my pick = none. The tile is the model's own side (1024), the label already
+  shows the count (`Upscale · N tiles`, MPI-1175). Revisit if a model wants another size.
+- **Who writes the tile prompts:** my pick = auto-caption every tile; the prompt box text, if any,
+  is appended to every tile as a style line (never a scene). A per-tile edit grid = later.
+- **Caption cost/time:** 1920x1080 x2 = 15 tiles, 4000x6000 x2 = 150 captions. Local describer
+  (time) or the DeepInfra one (money) - price it before a big photo runs.
+- **Face pass order:** faces inside the same DetailerForEach (one SEGS list) or a second detailer
+  after the grid. The wildcard order must still match the tiles either way.
+- **FLUX.3:** its prompts go through the BFL upsampler rules (MPI-1181, DECIDED 2026-10-19) -
+  does that apply per tile?
 
-## Known facts that constrain it
+## Bench before building (Fabio's GPU go)
 
-- Identity drift: overlapping tiles each re-denoise a face in turn; on FLUX.3 0.3 denoise already
-  re-laid-out a face (MPI-1181 brief, tile run frpkh_00055). Per-tile prompts do not fix overlap
-  re-denoise - the blend/order does.
-- FLUX.3 prompts go through the BFL upsampler rules first (MPI-1181, DECIDED 2026-10-19).
-- Big photos: 16K inputs and sharp's limits (`project_users_load_16k_images`, `tools/sharp.md`).
-- A Flow is built with `/mpi-add-flow`; preview art with `/mpi-flow-graphics`.
+Krea 2 + FLUX.3 Klein, one photo with faces at 2x: today's prompt-less tiles vs per-tile
+`[ASC]` (replace) vs `[CONCAT]`, with and without the face exclusion. Eye-check faces and the
+overlap areas at 1:1.
 
 ## Related
 
-MPI-1038 (Use Tiles, the prompt-less path), MPI-1181 (FLUX.3 tile bench + the original note),
-MPI-1053 (Cosmo's upscale/detail routes - this Flow becomes one more), MPI-895 (upscale/refine
-evaluation umbrella).
+MPI-1038 (Use Tiles today), MPI-1175 (tile count in the label), MPI-1181 (FLUX.3 tile bench +
+identity drift), MPI-1101 (Make seamless machinery), MPI-1053 (Cosmo's upscale routes - update
+the Use Tiles line), MPI-895 (upscale/refine umbrella).
