@@ -13,6 +13,7 @@
     ".agents/mpi-kanban/tasks/MPI-1210/",
     "js/data/modelConstants/loraDeps.js",
     "tests/agent-loop.test.cjs",
-    "dev_configs/update-evidence.json"
+    "dev_configs/update-evidence.json",
+    "docs/playbooks/install-test/README.md"
   ]
 }

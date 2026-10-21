@@ -111,6 +111,8 @@ record the `fromVersion` you find there as `bundleFromVersion` in the evidence:
   swapped are byte-identical), and the fix first shipped in 1.5.0. Record the line as
   `oldestServedVersion` (`"1.5.0"`), test from exactly that version, and make the release body
   send every older install to the full build. The gate then accepts a one-behind source.
+  (From 2.1.2 the body drops that pre-1.5.0 section: Fabio, 2026-10-21, none remain. The
+  `release:check:publish` reminder line still prints; it is not a gate.)
 
 ```bash
 git tag --list "v*" | sort -V | tail -6

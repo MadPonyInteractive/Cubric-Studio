@@ -140,28 +140,35 @@ into a one-variable dependency diff.
 
 ## First-Launch Instructions (must appear in every release body)
 
-Both desktop platforms show an OS security prompt on first launch because the
-builds are unsigned. If the release body does not say so, the prompt reads as
-"this download is malware" and the user stops there. Include both notes.
+Both desktop platforms can show an OS security prompt on first launch. The Windows
+build is signed by Mad Pony Interactive since 2.1.2 (Azure Artifact Signing,
+MPI-616), but a new publisher identity still earns SmartScreen reputation from
+zero; the macOS build is unsigned. If the release body does not say so, the
+prompt reads as "this download is malware" and the user stops there. Include
+both notes. Say "signed", never "no more warnings".
 
 **Windows.** From 1.3.0 the zip extracts to a plain folder with `CubricStudio.exe`
 at its root — there is no start script in the launch chain any more (MPI-387 D:
 Smart App Control hard-blocks `.vbs`/`.bat`/`.cmd` with no override, which is
 what broke clean Windows 11 installs). Tell the user:
 
-> Extract the zip anywhere and run **`CubricStudio.exe`**. Windows may show
-> "Windows protected your PC" — click **More info**, then **Run anyway**. The app
-> is unsigned; this warning is expected and appears until the build earns
-> reputation.
+> Extract the zip anywhere and run **`CubricStudio.exe`**. From this version every
+> program in the download is signed by Mad Pony Interactive. Because the signature
+> is new, Windows may still show "Windows protected your PC" for a while. If it
+> does, click **More info**, then **Run anyway**.
+
+(The 2.1.2 body's wording. Until 2.1.1 this note said the app was unsigned.)
 
 Say "may", not "will". Measured 2026-07-30 on a clean Windows 11 laptop with
 Smart App Control **enforced** and a MOTW-carrying unsigned exe: no prompt
 appeared at all, the app opened directly. Promising a dialog that does not arrive
 makes the rest of the instructions read as wrong.
 
-Say plainly that the build is **not code-signed**. There is no certificate and no
-NSIS installer (user decision, 2026-07-29): signing starts SmartScreen's
-reputation clock, it does not skip it.
+Until 2.1.1 the body said plainly that the build was **not code-signed**. Since
+2.1.2 it says signed. There is still no NSIS installer (user decision,
+2026-07-29), and signing starts SmartScreen's reputation clock, it does not skip
+it. The signature census (every `.exe`/`.dll`/`.node` `Valid`) runs on each
+release's downloaded Windows zip before publishing.
 
 ### The third outcome: no prompt, no button, the app never opens
 
@@ -200,12 +207,15 @@ Get-WinEvent -LogName 'Microsoft-Windows-CodeIntegrity/Operational' -MaxEvents 2
 Absence of a dialog is not evidence of success. The 2026-07-30 run looked like a
 clean pass and this log is what tells "allowed" from "blocked silently" apart.
 
-The standing fix is code signing, which moves the build onto the first branch and
-off the lottery — tracked in **MPI-616**, not decided here.
+The fix was code signing, which moves the build onto the first branch and off
+the lottery: shipped in 2.1.2 (**MPI-616**). The section above stays for
+diagnosing a report from an unsigned (2.1.1 or older) build.
 
 **Windows users on a build older than 1.3.0 cannot be reached by an update** —
-Smart App Control blocks the update scripts too. They must download the full zip.
-This must be stated in any release that carries a Windows fix.
+Smart App Control blocks the update scripts too (a `.bat`/`.vbs` cannot carry a
+signature). They must download the full zip. **Release bodies no longer carry a
+"check your version first" section for these or any pre-1.5.0 install** (Fabio,
+2026-10-21: none remain); the full zip is still the path if one turns up.
 
 **1.4.0 ONLY — tell users to reopen the app manually after updating.** The updater
 that runs is the one already on their disk, so a 1.3.1 user pressing Update gets

@@ -136,12 +136,12 @@ Grab the portable build for your platform from
 There is no installer: extract and launch. On first run the app sets up its
 ComfyUI engine and asks where to store models.
 
-**Windows:** extract the zip and run **`CubricStudio.exe`**. Windows will show
-*"Windows protected your PC"*: click **More info**, then **Run anyway**. The
-builds are not code-signed, so this warning is expected. If double-clicking
-does nothing at all, with no message, Windows' Smart App Control may have
-blocked it. It cannot make an exception for one app; code signing is the fix,
-and it is not in place yet.
+**Windows:** extract the zip and run **`CubricStudio.exe`**. Since 2.1.2 every
+program in the Windows download is signed by Mad Pony Interactive, so Smart App
+Control no longer blocks it. The signature is new, so Windows may still show
+*"Windows protected your PC"* for a while: click **More info**, then **Run
+anyway**. If an older version did nothing at all when you double-clicked it,
+download this one.
 
 **macOS:** downloaded builds are quarantined. Clear it, then launch:
 

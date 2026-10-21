@@ -10,7 +10,7 @@
 - [x] Fabio OKs the `v2.1.2` tag push (CI build); download 6 artifacts
 - [x] Windows zip signature census: every .exe/.dll/.node `Valid`
 - [x] Update test from >= 2 releases behind + one real generation; `update-evidence.json`
-- [ ] Gate 2: Fabio reviews the GitHub release body
-- [ ] Fabio OKs `gh release create`; `releases/latest` = v2.1.2, not draft/prerelease
-- [ ] After public: flip "unsigned" wording (README.md, github-release-checklist.md); in the checklist also drop the rule that every body sends pre-1.5.0 installs to the full zip (Fabio, 2026-10-21)
-- [ ] After public: push website `0d1de08` (privacy page, HF token)
+- [x] Gate 2: Fabio reviews the GitHub release body
+- [x] Fabio OKs `gh release create`; `releases/latest` = v2.1.2, not draft/prerelease
+- [x] After public: flip "unsigned" wording (README.md, github-release-checklist.md); in the checklist also drop the rule that every body sends pre-1.5.0 installs to the full zip (Fabio, 2026-10-21)
+- [x] After public: push website `0d1de08` (privacy page, HF token)
