@@ -36,7 +36,9 @@ when a user mentions selling or client work.
   The ratio is a param: never write it into the prompt.
 - `edit` keeps the FIRST image's frame unless custom size is on: a `ratio` or `qualityTier`
   param turns it on, and a `qualityTier` needs a `ratio` with it. A mask always keeps the
-  source frame, and so do edit boxes: send neither with them.
+  source frame, and so do edit boxes: send neither with them. The first image's OWN ratio at
+  a bigger tier (8:5 2K on an 8:5 picture) keeps the scene and adds pixels; another ratio
+  re-lays the whole frame around the scene.
 - `inpaint` and `detail` need a mask painted in History; you cannot paint one, so ask the user
   to, naming the area, and dispatch once they say it is drawn (`app:masking`).
 - `upscale` takes no prompt on its tile path; single pass reads the prompt as a description of

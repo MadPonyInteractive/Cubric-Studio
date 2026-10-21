@@ -6390,3 +6390,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1220", "at": "2026-10-21T02:26:09+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on 6d22f010 (run 39525834185)"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1216", "at": "2026-10-21T01:44:05+01:00", "actor": "Flux.3 integration 14", "from": "todo", "to": "doing", "reason": "Fabio: go on the edit-size fix"}
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1222", "at": "2026-10-21T02:31:11+01:00", "actor": "Flux.3 integration 14", "column": "todo", "title": "Dev radial Restart engine restarts NOW, even mid-generation (Settings keeps the wait)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1216", "at": "2026-10-21T03:59:19+01:00", "actor": "Flux.3 integration 15", "from": "doing", "to": "doing", "reason": "zoom + Cosmo 8:5 2K fixed and benched; waiting on Fabio's live look"}

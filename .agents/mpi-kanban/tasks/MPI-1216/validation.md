@@ -26,3 +26,31 @@ Input_Image's own width/height (MpiLoadImage outputs 2/3), each side rounded to 
 
 Harness trap: MpiLoadImage reads only inside ComfyUI's input/output/temp; a path elsewhere
 blocks silently (status success, no output). Stage inputs in `G:/ComfyUi/ComfyUI/input/`.
+
+## 2026-10-21 - zoom drift + Cosmo 8:5 2K (session "Flux.3 integration 15")
+
+Measured first (`research/zoomchain.py` / `zoommeasure.py`, 3 chained "change nothing" edits of
+detail_013 1088x1920, Turbo, gpu_lease, Fabio's app idle):
+| graph | zoom after 3 | shift | change vs original 1st -> 3rd | per edit |
+|---|---|---|---|---|
+| A shipped (refs 1 MP) | x1.006 | -1.0% x, -0.5% y | 7.7 -> 15.0 | 36 s |
+| B refs "keep resolution" | x1.002 (none) | 0 | 4.4 -> 9.1 | 46 s |
+| D final fix | x1.002 (none) | 0 | 4.4 -> 9.0 | 46 s |
+
+Cosmo's "8:5 2K" was a BOX edit (edit_040-043 carry a `mouse` box, no mask), not masked: app.log
+01:24:03 `customSize=true ratio=8:5 qualityTier=2k`, Fabio stopped it at step 9, Cosmo re-ran
+without a size (edit_043 1280x800) then tried an upscale. Reproduced on the bench
+(`research/frame/t1_sheet.jpg`): edit_041 at Custom 1792x1120 on the shipped graph drops the
+tiger and dog; with the fix they stay.
+
+Fix `_ref_matches_frame` (generate_flux3.py): picture 1 resized (ImageResizeKJv2, centre crop,
+/16) to the frame the latent is built from, node on `keep resolution`, pictures 2-10 scaled to
+1 MP by ImageScaleBy (1x1 blanks stay 1x1). A Custom size of another ratio (>2%) keeps the old
+1 MP picture 1 so the model reframes (`research/frame/t4_ratio_sheet.jpg`: a crop cut the scene).
+- Big photo 3350x6000 -> 2192x3936 (`t3_sheet.jpg`): shipped re-composes (zoom x1.018, shift
+  -3%, people moved, detail soft); fix aligned (x1.002, 0) with full detail. 519 s vs 204 s,
+  VRAM 16.0 vs 15.1 GB (dynamic offload, no OOM).
+- Final graph ran every op on the bench: t2i, i2i, edit off / Custom same ratio / Custom new
+  ratio, masked edit (+Custom), inpaint, two-picture edit. All produced sane pictures.
+- `tests/flux3-edit-size.test.cjs` 7/7 (3 new fail on the old graph); `npm test` 3494 tests,
+  3492 pass, 0 fail, 2 skipped. Agent corpus/budget tests pass with the flux-3.md line.

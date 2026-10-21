@@ -11,7 +11,8 @@ app injects it from the Turbo button on every op.
 
 So this handler bakes only the two defaults the bench left behind and refuses a graph
 that would fail silently: wrong weight names, a linked op selector, a lost capture. It adds
-one branch the bench lacks: an edit keeps picture 1's own size (`_keep_edit_size`, MPI-1216).
+two branches the bench lacks (MPI-1216): an edit keeps picture 1's own size (`_keep_edit_size`),
+and picture 1 reaches the model at that frame's exact size (`_ref_matches_frame`).
 
 Orchestrated: build(source_path, out_dir) — routed here by the `flux3_` prefix.
 Standalone:  python generate_flux3.py
@@ -97,6 +98,78 @@ def _keep_edit_size(workflow: dict) -> None:
     workflow[sel]["inputs"]["false"] = [pick, 0]
 
 
+def _ref_matches_frame(workflow: dict) -> None:
+    """An unmasked edit hands picture 1 to the model at the output frame's exact size (MPI-1216).
+
+    The references node scaled every picture to 1 MP, rounding each side, so picture 1 no longer
+    lined up with the output: chained edits crept off by a few pixels each time, and a Custom
+    size frame of 2 MP re-drew the scene (Cosmo's 8:5 2K run lost the tiger and dog). Now
+    picture 1 is resized (centre-cropped to a new ratio) to the frame the latent is built from
+    — Input_Width/Height on Custom size, else `_keep_edit_size`'s picture-1 size — and the node
+    keeps every reference as it comes. A Custom size of another ratio (over 2% off) still hands
+    picture 1 over at 1 MP: there the model reframes the whole scene, where a crop would cut it.
+    Pictures 2-10 get the node's old 1 MP scale in the graph; a blank slot (1x1) stays 1x1 so
+    the node still drops it. A mask keeps its own crop. Price: a big photo's edit takes ~2.5x as
+    long (picture 1 at up to 8.6 MP beside an 8.6 MP latent), for its composition and detail."""
+    refs = next((k for k, n in workflow.items() if n["class_type"] == "MpiFlux3References"), None)
+    custom_latent = next((k for k, n in workflow.items() if n["class_type"] == "MpiBooleanCompare"
+                          and n["inputs"].get("mode") == "a_true_b_false"), None)
+    ids = {t: _find_id_by_title(workflow, t) for t in (
+        "Input_Image", "Input_Width", "Input_Height", "Edit size: width /16", "Edit size: height /16")}
+    if refs is None or custom_latent is None or None in ids.values():
+        raise SystemExit("[FAIL] references / edit-size nodes not found - picture 1 would go "
+                         "back to 1 MP and chained edits would drift")
+    ref0 = workflow[refs]["inputs"]["ref_image_0"]
+    switch = workflow[ref0[0]]
+    if switch["class_type"] != "MpiIfElse" or switch["inputs"]["false"] != [ids["Input_Image"], 0]:
+        raise SystemExit("[FAIL] ref_image_0 is not the mask switch (crop | Input_Image)")
+    nid = iter(str(i) for i in range(max(map(int, workflow)) + 1, 10**6))
+    fw, fh, fit, aspect, same, reframe, s1, one_mp, pick = (next(nid) for _ in range(9))
+    for node, side in ((fw, "Width"), (fh, "Height")):
+        workflow[node] = {"inputs": {"true": [ids[f"Input_{side}"], 0],
+                                     "false": [ids[f"Edit size: {side.lower()} /16"], 0],
+                                     "boolean": [custom_latent, 0]},
+                          "class_type": "MpiIfElse", "_meta": {"title": f"Edit frame: {side.lower()}"}}
+    workflow[fit] = {"inputs": {"upscale_method": "lanczos", "keep_proportion": "crop",
+                                "pad_color": "0, 0, 0", "crop_position": "center", "divisible_by": 16,
+                                "device": "cpu", "image": [ids["Input_Image"], 0],
+                                "width": [fw, 0], "height": [fh, 0]},
+                     "class_type": "ImageResizeKJv2", "_meta": {"title": "Edit frame: picture 1 at frame size"}}
+    # A Custom size frame of ANOTHER ratio is a reframe: cropping picture 1 to it would cut the
+    # scene, so that one run keeps the old 1 MP reference and the model re-lays the frame.
+    image = [ids["Input_Image"], 0]
+    workflow[aspect] = {"inputs": {"a": [ids["Input_Image"], 2], "b": [ids["Input_Image"], 3],
+                                   "math_expression": "a/b"},
+                        "class_type": "MpiMath", "_meta": {"title": "Edit frame: picture 1 ratio"}}
+    workflow[same] = {"inputs": {"a": [aspect, 0], "b": [ids["Input_Width"], 0], "c": [ids["Input_Height"], 0],
+                                 "math_expression": "fabs(a - b/c) < 0.02*a"},
+                      "class_type": "MpiMath", "_meta": {"title": "Edit frame: custom keeps the ratio"}}
+    workflow[reframe] = {"inputs": {"mode": "a_true_b_false", "a": [custom_latent, 0], "b": [same, 0]},
+                         "class_type": "MpiBooleanCompare", "_meta": {"title": "Edit frame: reframe"}}
+    workflow[s1] = {"inputs": {"a": [ids["Input_Image"], 2], "b": [ids["Input_Image"], 3],
+                               "math_expression": "sqrt(1048576/(a*b))"},
+                    "class_type": "MpiMath", "_meta": {"title": "Edit frame: 1 MP scale"}}
+    workflow[one_mp] = {"inputs": {"image": image, "upscale_method": "lanczos", "scale_by": [s1, 0]},
+                        "class_type": "ImageScaleBy", "_meta": {"title": "Edit frame: picture 1 at 1 MP"}}
+    workflow[pick] = {"inputs": {"true": [one_mp, 0], "false": [fit, 0], "boolean": [reframe, 0]},
+                      "class_type": "MpiIfElse", "_meta": {"title": "Edit frame: reframe keeps 1 MP"}}
+    switch["inputs"]["false"] = [pick, 0]
+    workflow[refs]["inputs"]["resolution"] = "keep resolution"
+    for slot in range(1, 10):
+        loader = workflow[refs]["inputs"].get(f"ref_image_{slot}")
+        if not loader or workflow[loader[0]]["class_type"] != "MpiLoadImage":
+            raise SystemExit(f"[FAIL] ref_image_{slot} is not an MpiLoadImage")
+        scale, img = next(nid), next(nid)
+        # MpiMath has no min(): ImageScaleBy tops out at x8, so a tiny picture stops there.
+        workflow[scale] = {"inputs": {"a": [loader[0], 2], "b": [loader[0], 3], "math_expression":
+                                      "1.0 if a*b <= 1 else (8.0 if a*b*64 < 1048576 "
+                                      "else sqrt(1048576/(a*b)))"},
+                           "class_type": "MpiMath", "_meta": {"title": f"Reference {slot + 1}: 1 MP scale"}}
+        workflow[img] = {"inputs": {"image": loader, "upscale_method": "lanczos", "scale_by": [scale, 0]},
+                         "class_type": "ImageScaleBy", "_meta": {"title": f"Reference {slot + 1}: at 1 MP"}}
+        workflow[refs]["inputs"][f"ref_image_{slot}"] = [img, 0]
+
+
 def build(source_path: Path, out_dir: Path) -> list[Path]:
     if source_path.name != TEMPLATE_NAME:
         print(f"  [WARN] {source_path.name} unknown to the flux3 handler — nothing to do")
@@ -107,6 +180,7 @@ def build(source_path: Path, out_dir: Path) -> list[Path]:
     _assert_and_bake_wf_type(workflow)
     _bake_turbo(workflow)
     _keep_edit_size(workflow)
+    _ref_matches_frame(workflow)
     _assert_weights(workflow)
     out_path = out_dir / OUT_NAME
     out_path.write_text(json.dumps(workflow, indent=2), encoding="utf-8")

@@ -18,13 +18,24 @@ const { MODELS } = require('../js/data/modelConstants/models.js');
 const byTitle = (t) => Object.keys(G).find((k) => G[k]._meta.title === t);
 const src = (link) => G[link[0]];
 
-// The two expression forms the generator writes: `A if C else B`, sqrt/floor from math.
-function py(expr, a, b) {
-    const js = expr.replace(/\b(sqrt|floor)\(/g, 'Math.$1(');
-    const m = js.match(/^(.*) if (.*) else (.*)$/);
-    const body = m ? `(${m[2]}) ? (${m[1]}) : (${m[3]})` : js;
-    return Function('a', 'b', `return ${body};`)(a, b);
+// The expression forms the generator writes: `A if C else B` (nested in parentheses), sqrt/floor.
+function toJs(e) {
+    e = e.trim();
+    let depth = 0;
+    const top = [];
+    for (let i = 0; i < e.length; i++) {
+        if (e[i] === '(') depth++;
+        else if (e[i] === ')') depth--;
+        else if (depth === 0 && (e.startsWith(' if ', i) || e.startsWith(' else ', i))) top.push(i);
+    }
+    if (top.length === 2) {
+        const [i, j] = top;
+        return `((${toJs(e.slice(i + 4, j))}) ? (${toJs(e.slice(0, i))}) : (${toJs(e.slice(j + 6))}))`;
+    }
+    if (/^\(.* if .*\)$/.test(e)) return toJs(e.slice(1, -1));
+    return e.replace(/\b(sqrt|floor)\(/g, 'Math.$1(');
 }
+const py = (expr, a, b) => Function('a', 'b', `return ${toJs(expr)};`)(a, b);
 
 function editLatent() {
     const custom = byTitle('Input_custom_size');
@@ -73,4 +84,62 @@ test('a photo past the 4K tier shrinks to its largest area, aspect kept', () => 
     assert.ok(w * h <= cap * 1.01, `${w}x${h} over the 4K area`);
     assert.ok(w * h > cap * 0.97, `${w}x${h} shrank too far`);
     assert.ok(Math.abs(w / h - 1.5) < 0.01);
+});
+
+// Picture 1 must reach the model at the output frame's exact size: at 1 MP it no longer lined
+// up, so chained edits crept and a 2 MP Custom size frame re-drew the scene (Cosmo's 8:5 2K).
+const refsNode = () => Object.values(G).find((n) => n.class_type === 'MpiFlux3References');
+
+test('unmasked picture 1 is resized to the frame the latent is built from', () => {
+    const refs = refsNode();
+    assert.equal(refs.inputs.resolution, 'keep resolution');
+    const sw = src(refs.inputs.ref_image_0);
+    assert.equal(sw.class_type, 'MpiIfElse');
+    const fit = src(src(sw.inputs.false).inputs.false);
+    assert.equal(fit.class_type, 'ImageResizeKJv2');
+    assert.deepEqual(fit.inputs.image, [byTitle('Input_Image'), 0]);
+    assert.equal(fit.inputs.divisible_by, 16);
+    const { sel } = editLatent();
+    for (const [side, title] of [['width', 'Input_Width'], ['height', 'Input_Height']]) {
+        const frame = src(fit.inputs[side]);
+        assert.equal(frame.class_type, 'MpiIfElse');
+        // Same switch as the latent: Custom size (no mask) -> Input_*, else picture 1's size.
+        assert.deepEqual(frame.inputs.boolean, sel.inputs.boolean);
+        assert.deepEqual(frame.inputs.true, [byTitle(title), 0]);
+        assert.deepEqual(frame.inputs.true, src(sel.inputs.true).inputs[side]);
+        assert.deepEqual(frame.inputs.false, src(src(sel.inputs.false).inputs.false).inputs[side]);
+    }
+});
+
+test('a Custom size of another ratio keeps picture 1 at 1 MP (reframe, not crop)', () => {
+    const pick = src(src(refsNode().inputs.ref_image_0).inputs.false);
+    const reframe = src(pick.inputs.boolean);
+    assert.equal(reframe.class_type, 'MpiBooleanCompare');
+    assert.equal(reframe.inputs.mode, 'a_true_b_false');
+    assert.deepEqual(reframe.inputs.a, editLatent().sel.inputs.boolean); // Custom size, no mask
+    const same = src(reframe.inputs.b);
+    const ratio = src(same.inputs.a);
+    const keeps = (w, h, W, H) => Function('a', 'b', 'c', `return ${same.inputs.math_expression
+        .replace('fabs', 'Math.abs')};`)(py(ratio.inputs.math_expression, w, h), W, H);
+    assert.equal(keeps(1280, 800, 1792, 1120), true);   // Cosmo's 8:5 2K
+    assert.equal(keeps(1088, 1920, 1080, 1920), true);  // within 2%
+    assert.equal(keeps(1280, 800, 896, 1152), false);   // landscape -> portrait
+    const oneMp = src(pick.inputs.true);
+    assert.equal(oneMp.class_type, 'ImageScaleBy');
+    assert.deepEqual(oneMp.inputs.image, [byTitle('Input_Image'), 0]);
+    assert.equal(py(src(oneMp.inputs.scale_by).inputs.math_expression, 2048, 2048), 0.5);
+});
+
+test('pictures 2-10 keep the old 1 MP scale; a blank slot stays 1x1', () => {
+    const refs = refsNode();
+    for (let slot = 1; slot <= 9; slot++) {
+        const img = src(refs.inputs[`ref_image_${slot}`]);
+        assert.equal(img.class_type, 'ImageScaleBy');
+        assert.equal(G[img.inputs.image[0]].class_type, 'MpiLoadImage');
+        const expr = src(img.inputs.scale_by).inputs.math_expression;
+        assert.equal(py(expr, 1, 1), 1);
+        assert.equal(py(expr, 2048, 2048), 0.5);
+        assert.equal(py(expr, 1024, 1024), 1);
+        assert.equal(py(expr, 64, 64), 8); // ImageScaleBy's ceiling
+    }
 });

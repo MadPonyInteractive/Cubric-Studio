@@ -4,6 +4,8 @@
     ".agents/mpi-kanban/tasks/MPI-1216/",
     "comfy_workflows/scripts/workflow_generation/generate_flux3.py",
     "comfy_workflows/flux3_t2i.json",
-    "tests/flux3-edit-size.test.cjs"
+    "tests/flux3-edit-size.test.cjs",
+    "docs/models/flux3/README.md",
+    "docs/agent/models/flux-3.md"
   ]
 }
