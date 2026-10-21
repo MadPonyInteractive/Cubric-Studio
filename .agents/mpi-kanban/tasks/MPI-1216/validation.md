@@ -79,3 +79,6 @@ Fix `_ref_matches_frame` (generate_flux3.py): picture 1 resized (ImageResizeKJv2
   untouched left (was 1.66); Turbo "change nothing" x3 0.28 (was 3.33); "make it night" shift
   88.6 -> KEPT; two-picture edit and a 1:1 Custom size reframe: node never ran (no line).
 - MpiNodes tests/test_grade.py 8/8 (2 new); tests/flux3-edit-size.test.cjs 8/8 (1 new).
+- CI run on `88230bb4` (grade-back + pin 291bf3d): success.
+- Fabio live (2026-10-21, after restart, "Flux.3 integration 17"): three chained Cosmo FLUX.3 edits,
+  colour holds - "this is much better now". Card closed on this.

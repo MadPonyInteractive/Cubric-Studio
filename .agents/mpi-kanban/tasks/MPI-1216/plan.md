@@ -39,6 +39,9 @@ Fabio's restart (new M.2 drive), run npm lint + npm test, commit, push, watch CI
 live look: a chained Cosmo edit chain should hold its colour (app restart reinstalls MpiNodes at
 the new pin). Agent guide flux-3.md NOT touched (no prompt change needed; a peer works on Cosmo).
 
+DONE (2026-10-21, "Flux.3 integration 17"): CI green on 88230bb4; Fabio live-confirmed three
+chained Cosmo edits hold their colour. Card closed.
+
 ## Remaining Work
 1. Colour grade drift on chained Cosmo/MCP edits: measure, then fix in the prompt path.
 
