@@ -11,8 +11,28 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
-const { installedKin } = require('../js/shell/agentDispatch.js');
-const { getModelById } = require('../js/data/modelRegistry.js');
+// The cloud key's only door (secretsClient -> ipc), stubbed so a test can save and clear it.
+let keySaved = false;
+globalThis.window = { require: (m) => (m === 'electron' ? { ipcRenderer: { invoke: async () => ({ has: keySaved }) } } : undefined) };
+
+const { installedKin, opUnavailable } = require('../js/shell/agentDispatch.js');
+const { getModelById, MODELS, refreshCloudKey } = require('../js/data/modelRegistry.js');
+
+// MPI-1234 (live 2026-10-21): FLUX Schnell (Cloud) with no key read "its weights are not
+// installed"; the agent read the RunPod setup guide, then ran FLUX.3 Klein instead.
+test('a cloud model with no key is refused for the key, never for weights', async () => {
+    const cloud = MODELS.find(m => m.provider);
+    keySaved = false;
+    await refreshCloudKey();
+    const why = opUnavailable(cloud, cloud.supportedOps[0]);
+    assert.match(why, /API key/);
+    assert.doesNotMatch(why, /weights/);
+
+    keySaved = true;
+    await refreshCloudKey();
+    assert.match(opUnavailable(cloud, 'no-such-op'), /unsupported, or its weights are not installed/,
+        'with a key, an op it lacks keeps the old reason');
+});
 
 test('an uninstalled family member names the installed one and its ops', () => {
     const h3 = getModelById('minimax-h3');

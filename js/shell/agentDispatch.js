@@ -617,6 +617,18 @@ async function _submitGeneration(jobId, input = {}) {
 const _refuse = (code, message) => ({ ok: false, code, message });
 
 /**
+ * Why a model op cannot run. MPI-1234 (live 2026-10-21): a cloud model with no key read
+ * "its weights are not installed", and the agent went to the RunPod setup guide and then
+ * switched models. A cloud model has no weights: what it lacks is the user's key.
+ */
+export function opUnavailable(model, operation) {
+    const name = model.name || model.id;
+    return model.provider && !isOperationInstalled(model, null)
+        ? `${name} runs in the cloud on the user's own API key, and none is set: there is nothing to install. It runs once the user adds the key in Settings: tell them so.`
+        : `"${operation}" is not available on ${name}: unsupported, or its weights are not installed.`;
+}
+
+/**
  * The installed models of a refused model's family, for its OP_UNAVAILABLE. Fabio's smoke
  * 2026-10-04: "the same video but with MiniMax H3" went to `minimax-h3`, not installed; the
  * refusal named only that, and the agent offered its 21 GB download with MiniMax H3
@@ -681,8 +693,8 @@ export async function buildGeneration(input, project, { pinned = false, painted 
         // says what it CAN do instead: tell the user (Fabio's own example — "that makes
         // video, it doesn't make images, you need to select another model").
         return _refuse('OP_UNAVAILABLE', pinned
-            ? `"${operation}" is not available on ${model.name || model.id} — unsupported, or its weights are not installed. The user has the settings panel open, so that model is theirs and you cannot change it: tell them this model cannot do it and ask them to select one that can - or to close the settings panel, and you will pick the model.`
-            : `"${operation}" is not available on ${model.name || modelId} — unsupported, or its weights are not installed.${installedKin(model)}`);
+            ? `${opUnavailable(model, operation)} The user has the settings panel open, so that model is theirs and you cannot change it: tell them this model cannot do it and ask them to select one that can - or to close the settings panel, and you will pick the model.`
+            : `${opUnavailable(model, operation)}${installedKin(model)}`);
     }
 
     const areas = painted && ONE_AREA_OPS.has(operation) ? await _maskAreas(painted.dataUrl) : null;
@@ -1562,7 +1574,7 @@ export function openPrompt(jobId, input = {}) {
     const model = getModelById(input.modelId);
     if (!model) return _fail(jobId, 'UNKNOWN_MODEL', `No model with id "${input.modelId}".`);
     if (!isOperationInstalled(model, input.operation)) {
-        return _fail(jobId, 'OP_UNAVAILABLE', `"${input.operation}" is not available on ${model.name || model.id}: unsupported, or its weights are not installed.`);
+        return _fail(jobId, 'OP_UNAVAILABLE', opUnavailable(model, input.operation));
     }
     // ponytail: the one control a voice op carries; generalise when a second op needs this.
     let controls = null;

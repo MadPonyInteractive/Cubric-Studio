@@ -1,0 +1,8 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-1234/",
+    "js/shell/agentDispatch.js",
+    "tests/agent-installed-kin.test.cjs"
+  ]
+}
