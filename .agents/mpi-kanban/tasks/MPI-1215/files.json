@@ -11,6 +11,7 @@
     "tests/licence-gate.test.cjs",
     "docs/model-library.md",
     "docs/download-manager.md",
-    "docs/releases/UNRELEASED.md"
+    "docs/releases/UNRELEASED.md",
+    ".claude/rules/component-mounts.md"
   ]
 }
