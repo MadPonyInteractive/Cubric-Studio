@@ -12,7 +12,8 @@ app injects it from the Turbo button on every op.
 So this handler bakes only the two defaults the bench left behind and refuses a graph
 that would fail silently: wrong weight names, a linked op selector, a lost capture. It adds
 two branches the bench lacks (MPI-1216): an edit keeps picture 1's own size (`_keep_edit_size`),
-and picture 1 reaches the model at that frame's exact size (`_ref_matches_frame`).
+and picture 1 reaches the model at that frame's exact size (`_ref_matches_frame`), and an
+edit of one picture is graded back to it (`_grade_back`).
 
 Orchestrated: build(source_path, out_dir) — routed here by the `flux3_` prefix.
 Standalone:  python generate_flux3.py
@@ -170,6 +171,34 @@ def _ref_matches_frame(workflow: dict) -> None:
         workflow[refs]["inputs"][f"ref_image_{slot}"] = [img, 0]
 
 
+def _grade_back(workflow: dict) -> None:
+    """An edit of ONE picture is graded back to it (MPI-1216).
+
+    FLUX.3 re-renders every pixel and each pass runs a touch warmer and more saturated (Turbo
+    "change nothing" x3: 3.3 dE off picture 1; base 1.4, chroma +60%), so chained edits drift. No
+    prompt clause moved it. MpiGradeBack fits a gain + offset over the whole frame without what the
+    edit changed and applies it (0.2 s at 1 MP). Off for a reference composition (picture 2 present),
+    a Custom size reframe (the pixels no longer line up) and a masked edit (its own composite)."""
+    mask = _find_id_by_title(workflow, "Input_Mask")
+    ids = {t: _find_id_by_title(workflow, t) for t in ("Input_Image", "Input_Image_2", "Edit frame: reframe")}
+    sel = next((k for k, n in workflow.items() if n["class_type"] == "MpiIfElse"
+                and n["inputs"].get("boolean") == [mask, 4]
+                and workflow[n["inputs"]["false"][0]]["class_type"] == "VAEDecode"), None)
+    if sel is None or None in ids.values():
+        raise SystemExit("[FAIL] unmasked edit decode / picture slots not found - chained edits would drift")
+    nid = iter(str(i) for i in range(max(map(int, workflow)) + 1, 10**6))
+    gate, grade = next(nid), next(nid)
+    # A blank picture slot loads as 1x1 (outputs 2/3 are width/height).
+    workflow[gate] = {"inputs": {"a": [ids["Input_Image_2"], 2], "b": [ids["Input_Image_2"], 3],
+                                 "c": [ids["Edit frame: reframe"], 0],
+                                 "math_expression": "False if c else a*b <= 1"},
+                      "class_type": "MpiMath", "_meta": {"title": "Edit grade: one picture, same frame"}}
+    workflow[grade] = {"inputs": {"original": [ids["Input_Image"], 0], "edited": workflow[sel]["inputs"]["false"],
+                                  "enabled": [gate, 0], "max_shift": 4.0},
+                       "class_type": "MpiGradeBack", "_meta": {"title": "Edit grade: back to picture 1"}}
+    workflow[sel]["inputs"]["false"] = [grade, 0]
+
+
 def build(source_path: Path, out_dir: Path) -> list[Path]:
     if source_path.name != TEMPLATE_NAME:
         print(f"  [WARN] {source_path.name} unknown to the flux3 handler — nothing to do")
@@ -181,6 +210,7 @@ def build(source_path: Path, out_dir: Path) -> list[Path]:
     _bake_turbo(workflow)
     _keep_edit_size(workflow)
     _ref_matches_frame(workflow)
+    _grade_back(workflow)
     _assert_weights(workflow)
     out_path = out_dir / OUT_NAME
     out_path.write_text(json.dumps(workflow, indent=2), encoding="utf-8")

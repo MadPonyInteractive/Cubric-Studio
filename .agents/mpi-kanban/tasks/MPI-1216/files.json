@@ -6,6 +6,12 @@
     "comfy_workflows/flux3_t2i.json",
     "tests/flux3-edit-size.test.cjs",
     "docs/models/flux3/README.md",
-    "docs/agent/models/flux-3.md"
+    "docs/agent/models/flux-3.md",
+    "dev_configs/node_lock.json",
+    "C:/AI/Mpi/ComfyUi-MpiNodes/grade.py",
+    "C:/AI/Mpi/ComfyUi-MpiNodes/__init__.py",
+    "C:/AI/Mpi/ComfyUi-MpiNodes/README.md",
+    "C:/AI/Mpi/ComfyUi-MpiNodes/changelog.md",
+    "C:/AI/Mpi/ComfyUi-MpiNodes/tests/test_grade.py"
   ]
 }

@@ -27,6 +27,18 @@ bench, prompts with and without a keep-colour clause; read what Cosmo actually w
 agent guide `docs/agent/models/flux-3.md` (edit section) and/or the app's keep line
 (`KEEP_CLAUSE` / `withLayoutBoxes`, `js/data/layoutBoxes.js`); never a graph colour hack.
 
+COLOUR MEASURED (2026-10-21, "Flux.3 integration 16", validation.md § Colour drift): a keep-colour
+clause does NOT help (real chain identical, base null chain worse); the drift is FLUX.3's own
+per-pass bias (Turbo warms ~1.1 dE/pass, base ~0.5 + chroma creep). Global ColorMatch wrecks new
+content (dog beige). A regrade fitted on unchanged pixels works (prototype `research/colour/
+regrade.py`) but means a new MpiNodes node.
+BUILT (Fabio OK, scope: one picture only, < 20 s): MpiNodes `MpiGradeBack` (291bf3d, pushed,
+pinned in node_lock.json) + `_grade_back` in generate_flux3.py on the unmasked edit decode, gated
+on slot 2 blank and not a reframe, max_shift 4/255. Bench verified (validation.md). NEXT: after
+Fabio's restart (new M.2 drive), run npm lint + npm test, commit, push, watch CI; then Fabio's
+live look: a chained Cosmo edit chain should hold its colour (app restart reinstalls MpiNodes at
+the new pin). Agent guide flux-3.md NOT touched (no prompt change needed; a peer works on Cosmo).
+
 ## Remaining Work
 1. Colour grade drift on chained Cosmo/MCP edits: measure, then fix in the prompt path.
 

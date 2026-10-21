@@ -777,7 +777,7 @@
         0
       ],
       "false": [
-        "166",
+        "832",
         0
       ],
       "boolean": [
@@ -2460,6 +2460,48 @@
     "class_type": "ImageScaleBy",
     "_meta": {
       "title": "Reference 10: at 1 MP"
+    }
+  },
+  "831": {
+    "inputs": {
+      "a": [
+        "235",
+        2
+      ],
+      "b": [
+        "235",
+        3
+      ],
+      "c": [
+        "809",
+        0
+      ],
+      "math_expression": "False if c else a*b <= 1"
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Edit grade: one picture, same frame"
+    }
+  },
+  "832": {
+    "inputs": {
+      "original": [
+        "474",
+        0
+      ],
+      "edited": [
+        "166",
+        0
+      ],
+      "enabled": [
+        "831",
+        0
+      ],
+      "max_shift": 4.0
+    },
+    "class_type": "MpiGradeBack",
+    "_meta": {
+      "title": "Edit grade: back to picture 1"
     }
   }
 }

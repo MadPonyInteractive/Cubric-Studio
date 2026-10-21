@@ -130,6 +130,25 @@ test('a Custom size of another ratio keeps picture 1 at 1 MP (reframe, not crop)
     assert.equal(py(src(oneMp.inputs.scale_by).inputs.math_expression, 2048, 2048), 0.5);
 });
 
+// FLUX.3 runs each pass a touch warmer and more saturated, so chained edits drifted; no prompt
+// clause moved it. An edit of ONE picture, same frame, is graded back to picture 1.
+test('an unmasked edit of one picture is graded back to it; two pictures or a reframe are not', () => {
+    const sel = Object.values(G).find((n) => n.class_type === 'MpiIfElse'
+        && n.inputs.boolean[0] === byTitle('Input_Mask') && n.inputs.boolean[1] === 4);
+    const grade = src(sel.inputs.false);
+    assert.equal(grade.class_type, 'MpiGradeBack');
+    assert.equal(src(grade.inputs.edited).class_type, 'VAEDecode');
+    assert.deepEqual(grade.inputs.original, [byTitle('Input_Image'), 0]);
+    const gate = src(grade.inputs.enabled);
+    assert.deepEqual(gate.inputs.a, [byTitle('Input_Image_2'), 2]);
+    assert.deepEqual(gate.inputs.c, [byTitle('Edit frame: reframe'), 0]);
+    const on = (w2, h2, reframe) => Function('a', 'b', 'c', `return ${toJs(gate.inputs.math_expression)
+        .replace(/\bFalse\b/g, 'false')};`)(w2, h2, reframe);
+    assert.equal(on(1, 1, false), true);       // slot 2 blank (1x1), same frame
+    assert.equal(on(1024, 1024, false), false); // a second picture: a composition
+    assert.equal(on(1, 1, true), false);        // Custom size of another ratio
+});
+
 test('pictures 2-10 keep the old 1 MP scale; a blank slot stays 1x1', () => {
     const refs = refsNode();
     for (let slot = 1; slot <= 9; slot++) {

@@ -56,3 +56,26 @@ Fix `_ref_matches_frame` (generate_flux3.py): picture 1 resized (ImageResizeKJv2
   3492 pass, 0 fail, 2 skipped. Agent corpus/budget tests pass with the flux-3.md line.
 - CI run 39536261773 on `8fb90437`: success. Card held in validating for Fabio's live look.
 - Fabio live (2026-10-21, after restart): "this time there's no zoom"; 8.6 MP edit time fine. Left: a mild colour-grade shift on some chained Cosmo edits (next part).
+
+## Colour drift (2026-10-21, "Flux.3 integration 16") - `research/colour/`
+- Live chain t2i_003 -> 044 -> 045 -> 046, untouched left 40%: saturation 13.1 -> 15.1 -> 17.7 ->
+  17.2 %; rock chroma 3.42 -> 3.78 -> 4.13 -> 5.38 (046 = Turbo). Cosmo's three prompts ALREADY end
+  on "... the lighting unchanged"; none names colour.
+- Bench reproduces live edit_045 (same seed/input): mean abs diff 0.65/255.
+- "Change nothing" x3 from t2i_003, dE vs picture 1 after 3: Turbo 3.33 (warms, b -1.7 -> +1.2),
+  Turbo + keep-colour clause 2.49, base 1.42 (chroma +60%), base + clause 2.40 (WORSE).
+- Cosmo's real 045 -> 046 prompts with vs without the clause: identical within 0.05 dE.
+  VERDICT: a keep-colour clause does not fix it; the drift is the model's per-pass bias.
+- KJNodes ColorMatch mkl (already in Draw It In / Object Stamp): null chain 0.04 dE, but on the
+  real chain it brightens untouched areas +2.6 L and turns the warm dog beige. Global match = no.
+- Prototype `regrade.py` (affine RGB fit on the 60% least-changed pixels, applied to all):
+  Turbo null 3.33 -> 1.01, real chain 1.66 -> 1.30, dog keeps its colour. Would need a new node.
+- Fabio OK'd building it (one picture only, never a reference composition; must cost < 20 s).
+  MpiNodes `fit_grade` (robust gain + offset, already in grade.py) beat the prototype: real chain
+  0.54, null 0.84, dog kept, 0.2 s at 1 MP, 1.7 s at 8.6 MP (CPU). Shipped as `MpiGradeBack`
+  (MpiNodes 291bf3d, pinned), wired by `_grade_back` in generate_flux3.py.
+- Shipped graph on the bench (`research/colour/verify.sh`, console lines read from the bench log):
+  Cosmo's real 045 -> 046 graded back (shift 2.47, 1.12/255), chain 0.89 dE off t2i_003 on the
+  untouched left (was 1.66); Turbo "change nothing" x3 0.28 (was 3.33); "make it night" shift
+  88.6 -> KEPT; two-picture edit and a 1:1 Custom size reframe: node never ran (no line).
+- MpiNodes tests/test_grade.py 8/8 (2 new); tests/flux3-edit-size.test.cjs 8/8 (1 new).
