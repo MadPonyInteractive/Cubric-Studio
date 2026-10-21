@@ -567,15 +567,21 @@ async function _frameZero(file) {
  * output it asked for rather than a job id to poll. Runs in the project `folderPath`
  * names, open or closed (MPI-873); without one, in whatever project the app has open.
  */
-router.post('/connector/generate', async (req, res) => {
-  req.body = await _asCurrentBody(req.body);
+/**
+ * Every check `/connector/generate` makes before it dispatches, as one function so
+ * `/connector/quote` makes the same ones (MPI-1225). The quote skipped them, so the spend
+ * card priced a run the submit then refused: Fabio clicked Yes, nothing was sent, the agent
+ * fixed its call and a SECOND card asked again (live 2026-10-21).
+ * -> `{ input, tool, requestId }`, or `{ status, error }` for a refusal.
+ */
+async function _checkGenerate(body) {
   const {
     modelId, operation, positive, negative, injectionParams, flowId, fields, media,
     styleSelect, batch, seed, params,
-  } = req.body || {};
+  } = body || {};
 
-  const _bad = (message) => res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST', message } });
-  const _namedErr = (code, message) => res.status(400).json({ ok: false, error: { code, message } });
+  const _bad = (message) => ({ status: 400, error: { code: 'BAD_REQUEST', message } });
+  const _namedErr = (code, message) => ({ status: 400, error: { code, message } });
 
   if (flowId && modelId) {
     return _bad('body.flowId and body.modelId are alternatives — send one, not both.');
@@ -593,8 +599,8 @@ router.post('/connector/generate', async (req, res) => {
       return _bad(`"${operation}" needs body.modelId. With no model, body.operation must be one of: ${AGENT_TOOL_OPS.map((t) => t.op).join(', ')}.`);
     }
   }
-  if (tool && NAMED_PARAM_KEYS.some((k) => req.body?.[k] !== undefined)) {
-    return _namedErr('BAD_REQUEST', `"${operation}" runs with no model: its settings go in fields, not ${NAMED_PARAM_KEYS.filter((k) => req.body[k] !== undefined).join(', ')}.`);
+  if (tool && NAMED_PARAM_KEYS.some((k) => body?.[k] !== undefined)) {
+    return _namedErr('BAD_REQUEST', `"${operation}" runs with no model: its settings go in fields, not ${NAMED_PARAM_KEYS.filter((k) => body[k] !== undefined).join(', ')}.`);
   }
 
   // A model op validates `batch` with the other named params below: it runs as one job
@@ -604,7 +610,7 @@ router.post('/connector/generate', async (req, res) => {
   }
   // What actually gets dispatched: the index, once a style named by label is resolved below.
   let styleSelectValue = styleSelect;
-  if (!flowId && NAMED_PARAM_KEYS.some((k) => req.body?.[k] !== undefined)) {
+  if (!flowId && NAMED_PARAM_KEYS.some((k) => body?.[k] !== undefined)) {
     const model = findModelDef(modelId);
     if (!model) return _namedErr('UNKNOWN_MODEL', `No model with id "${modelId}".`);
 
@@ -614,7 +620,7 @@ router.post('/connector/generate', async (req, res) => {
     // the agent said "about 6 seconds" and the card came back 3S).
     const named = {};
     for (const k of NAMED_PARAM_KEYS) {
-      if (req.body[k] !== undefined) named[k] = req.body[k];
+      if (body[k] !== undefined) named[k] = body[k];
     }
 
     // `styleSelect` is an INDEX, but the only place a caller ever sees the rack is as
@@ -641,7 +647,7 @@ router.post('/connector/generate', async (req, res) => {
     return _namedErr('INVALID_SEED', 'body.seed must be an integer between 0 and 4294967295.');
   }
   // MPI-776: names the card once the run lands, on either branch.
-  const { cardName } = req.body || {};
+  const { cardName } = body || {};
   if (cardName !== undefined && typeof cardName !== 'string') {
     return _namedErr('INVALID_CARD_NAME', 'body.cardName must be a string: the name the gallery card gets when the run lands.');
   }
@@ -662,8 +668,8 @@ router.post('/connector/generate', async (req, res) => {
       ...(Array.isArray(media) && media.length ? { media } : {}),
       // Every named param the body carried, from the same list that validated them.
       ...Object.fromEntries(NAMED_PARAM_KEYS
-        .filter((k) => req.body[k] !== undefined)
-        .map((k) => [k, req.body[k]])),
+        .filter((k) => body[k] !== undefined)
+        .map((k) => [k, body[k]])),
       // After the spread on purpose: a style named by label dispatches as its index.
       ...(styleSelectValue !== undefined ? { styleSelect: styleSelectValue } : {}),
       ...(seed !== undefined ? { seed } : {}),
@@ -672,9 +678,9 @@ router.post('/connector/generate', async (req, res) => {
   if (cardName !== undefined) input.cardName = cardName;
   // MPI-891: the in-app agent's "take the user to where this renders". Only `true` counts,
   // so a CLI agent that never sends it never moves the user's view.
-  if (req.body?.follow === true) input.follow = true;
+  if (body?.follow === true) input.follow = true;
   // MPI-950: one id for every item of an agent fan-out, so its new cards land as ONE stack.
-  const rs = req.body?.resultStack;
+  const rs = body?.resultStack;
   if (!flowId && !tool && rs && /^[\w-]{8,64}$/.test(String(rs.id)) && Number.isInteger(rs.total) && rs.total > 1) {
     input.resultStack = { id: String(rs.id), total: rs.total };
   }
@@ -682,7 +688,7 @@ router.post('/connector/generate', async (req, res) => {
   // `requestId` — the caller's own name for this submit, so it can cancel it later
   // (`POST /connector/cancel`). This route holds its response for the whole render, so
   // without one the caller has nothing to point at until it is too late to matter.
-  const { requestId } = req.body || {};
+  const { requestId } = body || {};
   if (requestId !== undefined && !/^[\w-]{8,64}$/.test(String(requestId))) {
     return _namedErr('INVALID_REQUEST_ID', 'body.requestId must be 8-64 characters of letters, digits, "-" or "_".');
   }
@@ -693,14 +699,14 @@ router.post('/connector/generate', async (req, res) => {
   // MPI-873: the run names its own project instead of inheriting whichever one is open,
   // which the user (or a second agent) can change between an open-project and this submit.
   // It may be closed: the renderer then registers the card server-side and the view stays.
-  const { folderPath } = req.body || {};
+  const { folderPath } = body || {};
   if (folderPath !== undefined) {
     if (typeof folderPath !== 'string' || !folderPath.trim()) {
       return _namedErr('INVALID_FOLDER_PATH', 'body.folderPath must be a project folder, as /connector/projects lists it.');
     }
     const listed = await _appPost('/list-projects', {}).catch((err) => ({ error: err.message }));
     if (!listed?.success) {
-      return res.json({ ok: false, error: { code: 'RUNTIME_ERROR', message: `Could not list the projects: ${listed?.error || 'unknown error'}` } });
+      return { status: 200, error: { code: 'RUNTIME_ERROR', message: `Could not list the projects: ${listed?.error || 'unknown error'}` } };
     }
     const match = findProjectByFolder(listed.projects, folderPath);
     if (!match) {
@@ -708,6 +714,20 @@ router.post('/connector/generate', async (req, res) => {
     }
     input.folderPath = String(match.folderPath).replace(/\\/g, '/');
   }
+
+  return { input, tool, requestId };
+}
+
+router.post('/connector/generate', async (req, res) => {
+  req.body = await _asCurrentBody(req.body);
+  const checked = await _checkGenerate(req.body);
+  if (checked.error) {
+    // Logged like a renderer refusal: these were silent, so a Yes that sent nothing left no trace.
+    logger.warn('system', `connector generate refused: ${checked.error.code} ${checked.error.message}`);
+    return res.status(checked.status).json({ ok: false, error: checked.error });
+  }
+  const { input, tool, requestId } = checked;
+  const { flowId, modelId } = req.body || {};
 
   // MPI-980: a clip in a picture slot goes as its first frame, for a model op and a tool alike.
   if (!flowId && input.media) {
@@ -749,6 +769,9 @@ router.post('/connector/quote', async (req, res) => {
   if (!flowId && (!modelId || !operation)) {
     return res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST', message: 'body.flowId, or body.modelId and body.operation, are required.' } });
   }
+  // A run the submit would refuse is refused here too, so no spend card asks for it (MPI-1225).
+  const checked = await _checkGenerate(req.body);
+  if (checked.error) return res.status(checked.status).json({ ok: false, error: checked.error });
   // Priced with the picture the run will send (MPI-980): a clip refused here would price no reference.
   const sent = flowId ? media : await _clipSeconds(await _firstFrames(media, String(operation), findModelDef(modelId)));
   const input = flowId ? { flowId: String(flowId) } : {

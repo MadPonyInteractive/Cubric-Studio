@@ -813,6 +813,20 @@ test('neither route can be talked into being the other', async () => {
     const bad = await postJson(`${base}/connector/quote`, {});
     assert.equal(bad.status, 400);
     assert.equal(bad.json.error.code, 'BAD_REQUEST');
+
+    // MPI-1225: a body the submit would refuse is refused by the quote too, with the submit's
+    // own code, so the spend card never asks for a run that cannot be sent (live: Yes, then a
+    // second card). Nothing reaches the renderer: the next frame read below is the generate's.
+    for (const body of [{ modelId: 'krea2', operation: 't2i', seed: -1 }, { modelId: 'krea2', operation: 't2i', cardName: 7 }]) {
+      const q = await postJson(`${base}/connector/quote`, body);
+      const g = await postJson(`${base}/connector/generate`, body);
+      assert.equal(q.status, 400);
+      assert.equal(q.json.error.code, g.json.error.code);
+    }
+    postJson(`${base}/connector/generate`, { modelId: 'krea2', operation: 't2i', positive: 'x' });
+    const next = await renderer.readFrame();
+    assert.equal(next.data.capability, 'generation.submit', 'no refused quote was relayed');
+    await postJson(`${base}/connector/jobs/${next.data.jobId}/result`, { ok: true, output: {} });
   } finally {
     renderer.close();
     await stop();
