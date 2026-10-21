@@ -11,6 +11,7 @@
     "README.md",
     "docs/releases/github-release-checklist.md",
     ".agents/mpi-kanban/tasks/MPI-1210/",
-    "js/data/modelConstants/loraDeps.js"
+    "js/data/modelConstants/loraDeps.js",
+    "tests/agent-loop.test.cjs"
   ]
 }

@@ -1019,7 +1019,10 @@ describe('(m) a local agent and its own render share one GPU', () => {
         const t = await gpuLoop({ responses: [gen('g1', { ...FOX, wait: true }), { text: 'Now animating.' }] });
         try {
             const turn = t.run('make a fox then animate it', 't1');
-            await new Promise((r) => setTimeout(r, 1200));
+            // Wait for the release itself, not a guessed time: a fixed 1200 ms sleep lost the race
+            // on a loaded box, and the late release then counted in the next test (pre-push 2026-10-21).
+            const deadline = Date.now() + 5000;
+            while (t.released() < 1 && Date.now() < deadline) await new Promise((r) => setTimeout(r, 10));
             assert.equal(t.released(), 1);
             assert.equal(t.engine.calls.length, 1);
             const [id] = t.held.keys();
