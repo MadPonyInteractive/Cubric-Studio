@@ -19,4 +19,7 @@ the unpinned refusal (routing policy unchanged).
 
 - `node --test tests/agent-installed-kin.test.cjs` 3/3, incl. keyless -> key reason, keyed + bad
   op -> old reason (stubbed key through the real secretsClient door).
-- `npm run lint` 0, `npm test` 3498 pass / 0 fail.
+- `npm run lint` 0, `npm test` 3498 pass / 0 fail. CI run 39620224397 green.
+- Fabio's live pass (same day, no key): "same concept on Flux Schnell" -> Cosmo said add the API key
+  in Settings (DeepInfra, ~$0.0005/image) and offered "keep going with a local model" as a choice.
+  Fabio: routing as it is, fine.
