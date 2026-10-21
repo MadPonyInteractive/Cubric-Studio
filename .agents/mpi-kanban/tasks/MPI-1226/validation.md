@@ -1,0 +1,28 @@
+# MPI-1226 validation
+
+## What Fabio saw (2026-10-21, "Flux 3 tests")
+
+edit_045 landed at 09:58:37. The auto-look described it as "Seven human figures" (there are six).
+His message ("Nice one... add a dog... use turbo") then opened on that note plus its advice to
+check a doubted point with a question look, so the turn made two more describer calls
+(09:59:05, 09:59:13) and a paragraph confirming the ridge landed before the dog edit was
+submitted at 09:59:28. The log shows two describer calls in that turn; the third chat line made
+no describer call (no history on disk to say which look it was).
+
+## Fix
+
+`services/agentLoop.mjs` `runTurn`: a real turn (not a wake, not a held message) whose notes
+hold a `[Generation|Batch|Routine finished` line gets one more line AFTER the notes: the user saw
+these results before typing, their message is the verdict, do not look or report unless asked.
+
+## Evidence
+
+- `node --test tests/agent-wake.test.cjs`: 9/9, incl. the new case (line present after a landing,
+  read after the auto-look note; absent on the next quiet turn; absent on a wake).
+- `npm run lint` exit 0; `npm test` 3493 pass, 0 fail.
+
+## Not done
+
+- The auto-look itself still runs at landing (it feeds the wake report and the next edit).
+- A WAKE turn may still check a doubted point with question looks (edit_046 did two): that
+  turn is the report, so it was left alone.

@@ -1,0 +1,3 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1226", "at": "2026-10-21T11:03:34+01:00", "actor": "claude", "column": "todo", "title": "Cosmo: a message typed after a result landed is the verdict - no re-look, no report"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1226", "at": "2026-10-21T11:04:14+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "fixing now"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1226", "at": "2026-10-21T11:06:20+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "shipped, CI pending"}

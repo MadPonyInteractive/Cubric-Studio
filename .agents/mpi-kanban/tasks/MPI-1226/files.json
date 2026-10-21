@@ -1,0 +1,9 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-1226/",
+    "services/agentLoop.mjs",
+    "tests/agent-wake.test.cjs",
+    "docs/agent-chat.md"
+  ]
+}

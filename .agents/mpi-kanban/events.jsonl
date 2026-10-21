@@ -6391,3 +6391,6 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1216", "at": "2026-10-21T01:44:05+01:00", "actor": "Flux.3 integration 14", "from": "todo", "to": "doing", "reason": "Fabio: go on the edit-size fix"}
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1222", "at": "2026-10-21T02:31:11+01:00", "actor": "Flux.3 integration 14", "column": "todo", "title": "Dev radial Restart engine restarts NOW, even mid-generation (Settings keeps the wait)"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1216", "at": "2026-10-21T03:59:19+01:00", "actor": "Flux.3 integration 15", "from": "doing", "to": "doing", "reason": "zoom + Cosmo 8:5 2K fixed and benched; waiting on Fabio's live look"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1226", "at": "2026-10-21T11:03:34+01:00", "actor": "claude", "column": "todo", "title": "Cosmo: a message typed after a result landed is the verdict - no re-look, no report"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1226", "at": "2026-10-21T11:04:14+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "fixing now"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1226", "at": "2026-10-21T11:06:20+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "shipped, CI pending"}

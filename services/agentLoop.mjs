@@ -3067,7 +3067,15 @@ ${knowledgeIndex}`.trim();
             this._registerWorkspaceEntry(workspace);
             this._masked = !!(workspace?.activeEntry?.filePath && workspace.masked);
             const entrySize = workspace?.activeEntry?.filePath ? await _imageSize(workspace.activeEntry.filePath) : '';
-            const opening = [this._appStateLine(project, workspace, entrySize), this._pinnedSettingsLine(pinned), handover, woke, heldLine, running, await this._globalNotesLine(), await this._projectNotesLine(project), ...this._notes.splice(0)];
+            // MPI-1226 (Fabio, live 2026-10-21): the result was on his screen before he typed
+            // "Nice one, now add a dog", and the turn still spent three looks and a paragraph
+            // confirming it landed. Typed after it landed, the message is his verdict. After the
+            // notes, so it is read after the auto-look's "check that point" advice it overrides.
+            const notes = this._notes.splice(0);
+            const seenLine = !wake && !held && notes.some((n) => /^\[(Generation|Batch|Routine) finished/.test(n))
+                ? '[The user saw these results in the gallery before typing this message: their message is their verdict on them. Do not look at a result or report on it unless they ask about it; go straight to what they asked.]'
+                : '';
+            const opening = [this._appStateLine(project, workspace, entrySize), this._pinnedSettingsLine(pinned), handover, woke, heldLine, running, await this._globalNotesLine(), await this._projectNotesLine(project), ...notes, seenLine];
             contentParts.unshift(...opening.filter(Boolean).map((t) => ({ type: 'text', text: t })));
 
             // Add user message to LLM context (plain text for OpenAI compat)

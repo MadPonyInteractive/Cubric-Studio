@@ -213,6 +213,29 @@ describe('the wake itself', () => {
         assert.match(String(refused?.content), /WAKE_NO_MOVE/);
     });
 
+    // MPI-1226 (Fabio, live 2026-10-21): "Nice one, now add a dog" still bought three looks and
+    // a paragraph saying the ridge landed. Typed after the result, the message is the verdict.
+    test('a message typed after a result landed is the verdict; a wake is not told that', async (t) => {
+        const h = await makeSessions();
+        t.after(h.restore);
+        const SEEN = /saw these results in the gallery before typing/;
+        const opening = (req) => String(req.messages.findLast((m) => m.role === 'user').content);
+
+        await dispatchAndLand(h, A);
+        await h.send('nice one, now add a dog', A);
+        const typed = opening(h.seen.at(-1));
+        assert.match(typed, SEEN);
+        assert.ok(typed.indexOf('You looked at it') < typed.search(SEEN), 'read after the auto-look advice it overrides');
+
+        await h.send('and a cat', A);
+        assert.doesNotMatch(opening(h.seen.at(-1)), SEEN, 'nothing landed since: zero bytes');
+
+        await dispatchAndLand(h, A);
+        h.wake(A);
+        await flush();
+        assert.doesNotMatch(opening(h.seen.at(-1)), SEEN, 'a wake has no message to be a verdict');
+    });
+
     test('a conversation that never ran, or has nothing pending, does not wake', async (t) => {
         const h = await makeSessions();
         t.after(h.restore);
