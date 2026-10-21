@@ -1,0 +1,9 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-1220/",
+    "js/components/Primitives/MpiCanvas/managers/InputController.js",
+    "js/components/Organisms/MpiStepPaint/MpiStepPaint.js",
+    "tests/desktop/canvas-press-drops-text-focus.spec.js"
+  ]
+}

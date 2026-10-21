@@ -594,6 +594,9 @@ export const MpiStepPaint = ComponentFactory.create({
         _unsubs.push(on(canvasEl, 'mousedown', (ev) => {
             if (!_loaded || ev.button !== 0) return;
             ev.preventDefault();
+            // Same as InputController: preventDefault keeps the prompt field (or
+            // Cosmo's chat) focused, so the brush hotkeys typed into it (MPI-1220).
+            document.activeElement?.blur?.();
             // Space wins over the brush, exactly as InputController orders it: every
             // one of its draw branches is guarded on `!this.isSpacePressed`.
             if (_spaceHeld) {

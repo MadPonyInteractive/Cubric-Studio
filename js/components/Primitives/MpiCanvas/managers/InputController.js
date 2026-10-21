@@ -181,6 +181,10 @@ export class InputController {
                 && (e.button === 0 || e.button === 2);
             if (e.button !== 0 && !pointsClick) return;
             e.preventDefault();
+            // preventDefault also cancels the browser's own blur, so a text box
+            // focused before the press (Cosmo's chat) kept eating B/E and every
+            // other painting hotkey. Drop that focus here instead (MPI-1220).
+            document.activeElement?.blur?.();
 
             const c = this._getContainerCoords(e);
             const i = this._getImageCoords(e);
