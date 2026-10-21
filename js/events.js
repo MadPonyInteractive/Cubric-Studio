@@ -141,8 +141,9 @@ export const Events = new EventBus();
  *                    estimateCost().display verbatim, or null when it cannot be quoted (MPI-876).
  * 'agent:result'     { toolCallId, ok, output?, error? }   — generation result card
  * 'agent:compacting' { turnId, on: boolean }               — compaction status notice
- * 'agent:long'       { turnId }                            — the chat passed half its compaction point,
- *                      once per conversation (MPI-1125): the chat offers Start fresh / Compact / Keep going
+ * 'agent:long'       { turnId, local }                     — the chat passed its long-chat point (half the
+ *                      compaction point on a 1M+ window, 75% below), once per conversation (MPI-1125,
+ *                      MPI-1235): the chat offers Start fresh / Compact / Keep going; `local` = no cost line
  * 'agent:error'      { turnId, code, message }             — agent error line
  * 'agent:user'       { turnId, id, text, attachments }     — a request carried over from another
  *                      conversation (D5); the chat draws its bubble once, by id

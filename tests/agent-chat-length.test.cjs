@@ -14,9 +14,9 @@ const assert = require('node:assert/strict');
 const ENDPOINT = { profile: { id: 'deepinfra', name: 'DeepInfra', baseURL: 'http://127.0.0.1:9' }, key: 'k' };
 const PROJECT = { folderPath: 'C:/Projects/Alpha', name: 'Alpha' };
 
-async function setup({ promptTokens, saveOk = true }) {
+async function setup({ promptTokens, saveOk = true, window = 1_048_576, profileId = 'deepinfra' }) {
     const { AgentLoop } = await import('../services/agentLoop.mjs');
-    const { DeepInfraEngine } = await import('../services/llmEngines.mjs');
+    const { DeepInfraEngine, OllamaEngine } = await import('../services/llmEngines.mjs');
     const saved = [];
     const tools = {
         readKnowledge: async () => ({ ok: true, entries: [] }),
@@ -26,18 +26,46 @@ async function setup({ promptTokens, saveOk = true }) {
         writeGlobalMemory: async (note) => { saved.push({ global: true, ...note }); return { ok: saveOk }; },
         discardAttachments: async () => {},
     };
-    const loop = new AgentLoop({ tools, resolveEndpoint: async () => ENDPOINT, lookupContextWindow: async () => 1_048_576 });
+    const loop = new AgentLoop({ tools, resolveEndpoint: async () => ENDPOINT, lookupContextWindow: async () => window });
     const events = [];
     loop._emit = (event, data) => events.push({ event, data });
     const orig = DeepInfraEngine.prototype.chat;
-    DeepInfraEngine.prototype.chat = async (req) => (/compact handoff/.test(String(req.messages.at(-1).content))
+    const origOllama = OllamaEngine.prototype.chat;
+    DeepInfraEngine.prototype.chat = OllamaEngine.prototype.chat = async (req) => (/compact handoff/.test(String(req.messages.at(-1).content))
         ? { text: 'Goal: a fox. Decided: Krea 2.' }
         : { text: 'reply', usage: { prompt_tokens: promptTokens } });
-    const turn = (text) => loop.runTurn(text, [], PROJECT, 'auto', 'deepinfra', `t-${text}`, { model: 'fake' });
-    return { loop, events, saved, turn, restore: () => { DeepInfraEngine.prototype.chat = orig; } };
+    const turn = (text) => loop.runTurn(text, [], PROJECT, 'auto', profileId, `t-${text}`, { model: 'fake' });
+    return { loop, events, saved, turn, restore: () => { DeepInfraEngine.prototype.chat = orig; OllamaEngine.prototype.chat = origOllama; } };
 }
 
 const longs = (events) => events.filter((e) => e.event === 'agent:long').length;
+const lastLong = (events) => events.filter((e) => e.event === 'agent:long').at(-1)?.data;
+
+// MPI-1235: under 1M the card waits for 75% of the compaction point. Ollama's 64k compacts at
+// 32,768, so the card shows at 24,576, not at 16,384 where Ornith's first turn already was.
+test('a 64k window offers the card at 75% of the compaction point', async (t) => {
+    const below = await setup({ promptTokens: 24_575, window: 65_536 });
+    t.after(below.restore);
+    await below.turn('one');
+    assert.equal(longs(below.events), 0, 'one below 75% shows nothing');
+    below.restore();
+    const at = await setup({ promptTokens: 24_576, window: 65_536 });
+    t.after(at.restore);
+    await at.turn('one');
+    assert.equal(longs(at.events), 1);
+});
+
+test('the card says whether the model is local, so a local one skips the cost line', async (t) => {
+    const cloud = await setup({ promptTokens: 105_000 });
+    t.after(cloud.restore);
+    await cloud.turn('one');
+    assert.equal(lastLong(cloud.events).local, false);
+    cloud.restore();
+    const local = await setup({ promptTokens: 24_576, window: 65_536, profileId: 'ollama' });
+    t.after(local.restore);
+    await local.turn('one');
+    assert.equal(lastLong(local.events).local, true);
+});
 
 // MPI-1233: a 1,048,576 window compacts at 20% (~209.7k), so the card shows past ~104.9k.
 test('past half the compaction point the card is offered once per chat', async (t) => {

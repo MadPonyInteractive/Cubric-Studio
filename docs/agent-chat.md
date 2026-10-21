@@ -325,8 +325,9 @@ Every event but `agent:session` also carries `session`, the key of its conversat
 - **Generate** is fired, not awaited. On settle: `agent:result`, a queued "[Generation finished: card
   <groupId> ...]" (or failed) line for the next turn, and a queued `look` on an image (a message pushed
   mid-turn could split a tool call from its result). No regeneration on its own.
-- **Long-chat card** (MPI-1125, Fabio): past HALF the compaction point the loop emits `agent:long`
-  once per conversation (`_longOffered`, cleared by a reset) and the chat draws three buttons that act
+- **Long-chat card** (MPI-1125, Fabio): past `_longAt()` (HALF the compaction point on a 1M+ window,
+  75% below: MPI-1235, Ollama's 64k reached half on the first turn) the loop emits `agent:long { local }`
+  once per conversation; `local` (Ollama) drops "cost a little more" from the card's title (`_longOffered`, cleared by a reset) and the chat draws three buttons that act
   with no agent turn: Start fresh (`POST /agent/shorten { choice: 'fresh' }`: the compaction handoff
   is written to `last-chat.md`, the project's note or a global one on the landing chat, then the
   conversation resets; a failed save keeps the chat), Compact (`choice: 'compact'`, `_compact` now)

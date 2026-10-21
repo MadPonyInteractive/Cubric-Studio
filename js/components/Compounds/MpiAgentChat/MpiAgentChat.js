@@ -1008,12 +1008,13 @@ export const MpiAgentChat = ComponentFactory.create({
         }
 
         /**
-         * MPI-1125 (Fabio): the chat passed half its compaction point. Three buttons that act
+         * MPI-1125 (Fabio): the chat passed its long-chat point. Three buttons that act
          * at once, no agent turn: Start fresh keeps the important parts as a note and clears
          * the chat, Compact summarises it now, Keep going just closes the card (it still
          * compacts on its own later). Live only: a reload does not redraw it.
+         * `local` (MPI-1235): a local model costs nothing, so the title says slower only.
          */
-        function _appendLong() {
+        function _appendLong(local) {
             if (qs('.mpi-agent-chat__confirm-card--long', transcript)) return;
             const div = document.createElement('div');
             div.className = 'mpi-agent-chat__entry mpi-agent-chat__entry--confirm';
@@ -1021,7 +1022,9 @@ export const MpiAgentChat = ComponentFactory.create({
             card.className = 'mpi-agent-chat__confirm-card mpi-agent-chat__confirm-card--long';
             const titleEl = document.createElement('div');
             titleEl.className = 'mpi-agent-chat__confirm-title';
-            titleEl.textContent = 'This chat is getting long, so replies get slower and cost a little more.';
+            titleEl.textContent = local
+                ? 'This chat is getting long, so replies get slower.'
+                : 'This chat is getting long, so replies get slower and cost a little more.';
             const subEl = document.createElement('div');
             subEl.className = 'mpi-agent-chat__confirm-size';
             subEl.textContent = 'Start fresh saves the important parts to my notes first. You can also ask me to note anything worth keeping.';
@@ -1095,7 +1098,7 @@ export const MpiAgentChat = ComponentFactory.create({
                     _appendCompacting(data.on);
                     break;
                 case 'agent:long':
-                    _appendLong();
+                    _appendLong(data.local);
                     break;
                 case 'agent:error':
                     _appendError(data.code, data.message);

@@ -2849,6 +2849,15 @@ ${knowledgeIndex}`.trim();
         return this._contextWindow * (this._contextWindow >= BIG_WINDOW ? COMPACT_SHARE_BIG : COMPACT_SHARE);
     }
 
+    /**
+     * The prompt_tokens that offer the long-chat card: half the compaction point on a 1M+
+     * window, 75% of it below. MPI-1235: on Ollama's 64k, half was 16k, which the ~8k
+     * always-sent floor plus one catalogue read already passes on the first turn.
+     */
+    _longAt() {
+        return this._compactAt() * (this._contextWindow >= BIG_WINDOW ? 0.50 : 0.75);
+    }
+
     _shouldCompact() {
         if (!this._lastUsage || !this._contextWindow) return false;
         return (this._lastUsage.prompt_tokens || 0) >= this._compactAt();
@@ -3330,11 +3339,12 @@ ${knowledgeIndex}`.trim();
             this._lastChat = { profileId, model };
             if (!yielded && this._shouldCompact()) {
                 await this._compact(turnId, { model, baseURL: profile.baseURL, key, profileId });
-            } else if (!this._longOffered && (this._lastUsage?.prompt_tokens || 0) >= this._compactAt() / 2) {
-                // MPI-1125 (Fabio): past half the compaction point the user picks, once per chat:
+            } else if (!this._longOffered && (this._lastUsage?.prompt_tokens || 0) >= this._longAt()) {
+                // MPI-1125 (Fabio): past the long-chat point the user picks, once per chat:
                 // start fresh, compact now, or keep going. The app's card, never a model turn.
+                // `local`: a local model costs nothing, so the card does not say it does (MPI-1235).
                 this._longOffered = true;
-                this._emit('agent:long', { turnId });
+                this._emit('agent:long', { turnId, local: profileId === 'ollama' });
             }
         } catch (err) {
             this._emit('agent:error', { turnId, code: 'ENDPOINT_ERROR', message: err.message });
