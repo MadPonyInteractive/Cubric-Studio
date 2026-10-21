@@ -79,6 +79,12 @@ starts after the Phase 3 keyframe-anchor bench below proves mid-shot and multi-a
 MPI-1088 (Hairstyle picker from a Hairstyles element - blocked on MPI-815 Elements and its
 "Flow slots consuming elements" follow-up). Both carry the `UMBRELLA: MPI-1134` line.
 
+**Member since 2026-10-21 (Fabio):** MPI-1231 Storyboard Flow - ask for a storyboard, get a
+stack of editable panels (not one sheet); the first step of long-form video, feeding MPI-1191 as
+its keys or Story shots as anchors. Its name collides with Phase 6's Storyboard workspace: settle
+at its brainstorm whether the panels ARE that page's shots. MPI-1191 widened the same day to
+LTX 2.3 (`LTXVAddGuide`) as well as H3, so the Phase 3 keyframe bench gets an LTX arm.
+
 ## Parallel Batch: Phase 1 — Story foundation (no UI) — `auto`
 
 Run with `mpi-execute-parallel` once Phase 0's MPI-815 is done. Ownership is provisional; the
@@ -195,6 +201,9 @@ Cosmo listening (MPI-1169); this phase builds on both.
   **Verify:** one bridged pair renders without a visible jump at either seam; Fabio's yes.
 
 ## Plan Drift
+
+- 2026-10-21: Fabio added the Storyboard Flow (MPI-1231) and widened Keyframes to Video
+  (MPI-1191) to LTX 2.3. Bench the LTX arm alongside H3 in Phase 3.
 
 - 2026-10-18: Fabio flagged core `MiniMaxH3AddGuide` (anchors at any frame, chainable) for Infinite
   Video / Story / Mix. Phase 3 keyframe bench + Phase 7 gap-fill added; notes in

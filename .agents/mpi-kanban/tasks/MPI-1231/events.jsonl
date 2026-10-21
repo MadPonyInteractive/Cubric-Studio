@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1231", "at": "2026-10-21T14:24:04+01:00", "actor": "claude", "column": "todo", "title": "Storyboard Flow: ask for a storyboard, get a stack of editable panels that feed Keyframes to Video"}

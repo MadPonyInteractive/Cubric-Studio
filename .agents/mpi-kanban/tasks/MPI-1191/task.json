@@ -1,13 +1,13 @@
 {
   "schema": "mpi-kanban/task-card/v1",
   "id": "MPI-1191",
-  "title": "Keyframes to Video Flow: animate a set of drawings or 3D key poses on MiniMax H3",
-  "description": "UMBRELLA: MPI-1134 - Story and Infinite Video. Plan: tasks/MPI-1134/plan.md. Joined 2026-10-19 (Fabio, umbrella pass).  Idea, not a blocker (Fabio, 2026-10-18). Users with drawings or 3D animation that has only the main key poses drop in N pictures, set how many frames each one covers (a slider per picture), write one prompt; H3 makes the in-betweens. One MiniMaxH3AddGuide per picture at its frame_idx. Mid-shot / many-anchor runs are unproven: the MPI-1134 Phase 3 keyframe bench comes first. Brief: tasks/MPI-1191/brief.md.",
+  "title": "Keyframes to Video Flow: animate a set of pictures (drawings, 3D key poses, storyboard panels) on LTX 2.3 or MiniMax H3",
+  "description": "UMBRELLA: MPI-1134 - Story and Infinite Video. Plan: tasks/MPI-1134/plan.md. Joined 2026-10-19 (Fabio, umbrella pass). Widened 2026-10-21 (Fabio): LTX 2.3 takes keyframes too (LTXVAddGuide), so the Flow offers both models; 4-5 pictures or more; Storyboard Flow MPI-1231 panels are one input.  Idea, not a blocker (Fabio, 2026-10-18). Users with drawings or 3D animation that has only the main key poses drop in N pictures, set how many frames each one covers (a slider per picture), write one prompt; H3 makes the in-betweens. One MiniMaxH3AddGuide per picture at its frame_idx. Mid-shot / many-anchor runs are unproven: the MPI-1134 Phase 3 keyframe bench comes first. Brief: tasks/MPI-1191/brief.md.",
   "column": "todo",
   "maturity": "idea",
   "status": "active",
   "created_at": "2026-10-18T19:25:50+01:00",
-  "updated_at": "2026-10-19T21:39:36+01:00",
+  "updated_at": "2026-10-21T14:30:00+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

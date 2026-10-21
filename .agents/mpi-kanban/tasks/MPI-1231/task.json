@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1231",
+  "title": "Storyboard Flow: ask for a storyboard, get a stack of editable panels that feed Keyframes to Video",
+  "description": "UMBRELLA: MPI-1134 - Story and Infinite Video. Plan: tasks/MPI-1134/plan.md. Joined 2026-10-21 (Fabio). Idea. The user (or Cosmo) asks for a storyboard of a scene and gets a numbered set of panel pictures, consistent cast, the video's aspect ratio. Output is a STACK of panels the user edits one by one, not one sheet (Fabio: shape not settled). Panels are the first step of long-form video: they feed the Keyframes to Video Flow (MPI-1191) as its keys, or seed Story shots. Cosmo calls the Flow instead of planning every frame itself. Brief: tasks/MPI-1231/brief.md.",
+  "column": "todo",
+  "maturity": "idea",
+  "status": "active",
+  "created_at": "2026-10-21T14:24:04+01:00",
+  "updated_at": "2026-10-21T14:24:04+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
