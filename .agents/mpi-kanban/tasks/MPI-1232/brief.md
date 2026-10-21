@@ -32,9 +32,22 @@ First logged as a note on MPI-1181 (2026-10-19).
   | 3072x2048 | 200 fixed | 294 | 70 | 24 | 12 | 6 |
   | 3072x2048 | 20% of tile | 140 | 40 | 20 | 12 | 6 |
 
-  So 512 on 1024 is 16 (4x4), not 4; ~4 tiles on 1024 = 768. **Overlap should scale with the tile**
-  (a fixed 200 is 78% of a 256 tile) - bench 20%. Open: offer the size in px (the node's own
-  value) or as a grid ("2x2, 3x3", the app solves the px) since Fabio thinks in tile counts.
+  So 512 on 1024 is 16 (4x4), not 4; ~4 tiles on 1024 = 768. **Overlap is DYNAMIC** (Fabio
+  2026-10-21: 200 works at 1024, scale it from the tile size); a fixed 200 is 78% of a 256 tile.
+  Bench ~20% of the tile, floor it so the cloud mask still has room; `tileCount.js` takes the
+  same rule so the label stays exact.
+- **Tile size is picked in PIXELS, with the live count** (Fabio: "whichever is more accurate").
+  A grid ("2x2") cannot be honoured: Impact tiles are SQUARE, so a 3072x2048 at 1536 is 3x2,
+  and the px is the node's own value - exact by construction.
+- **The describer sees the WHOLE picture, not just the tile** (Fabio 2026-10-21). A tile alone is
+  often unreadable: on his "Flux 3 tests" UFO picture (`upscale_002`, 6048x3456 after
+  t2i -> upscale -> detail -> upscale) the grass + trees field left of the people, under the UFO,
+  went to mush over repeated prompt-less tile passes - the model has no idea what it is.
+  `describeImage` takes ONE image + an optional `crop` (`llmService.js:1122`), so the cheap route:
+  caption the whole picture ONCE, then ask per tile with that caption + the tile's place
+  ("lower left") as CONTEXT and "describe only what is inside this crop". Context names the
+  thing; the answer must not carry the whole scene in (the Make seamless 16K trap). Alternative:
+  one image = the whole picture with the tile outlined. Bench both on the UFO picture's field.
 - **The detailer's guide follows the tile.** `DetailerForEachPipe` guide 1024 (bbox) / max 1536:
   a small tile is ENLARGED to 1024 to sample (256 -> 4x = the extra detail Fabio wants), but a
   1536 tile is SHRUNK to 1024 to sample and pasted back soft. Guide = max(1024, tile), max size
@@ -86,7 +99,7 @@ First logged as a note on MPI-1181 (2026-10-19).
 
 ## Open questions
 
-- ~~Tile size option~~ - DECIDED (above). Open: px or grid control, and overlap scaling.
+- ~~Tile size option~~ - DECIDED (above): px + live count, dynamic overlap. Open: the overlap rule.
 - **People pass (Fabio's old workflow, from memory):** two passes - a BACKGROUND pass whose tiles
   have the people SUBTRACTED, and a PEOPLE pass. Matches finding 4: `filter_out_segs_opt` on
   `ImpactMakeTileSEGS` = the subtraction; `person_yolov8n-seg.pt` (ships) or `face_yolov8n.pt`
