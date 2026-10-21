@@ -38,6 +38,7 @@ import { recordAudioIntoProject } from '../components/Blocks/MpiAudioRecorder/Mp
 import { MpiGalleryToolbar } from '../components/Compounds/MpiGalleryToolbar/MpiGalleryToolbar.js';
 import { getEngine } from '../services/comfyController.js';
 import { blockedByNoEngine } from '../services/engineGate.js';
+import { cancelRunningOnLane } from '../services/generationService.js';
 
 // ── Module-scoped refs ──────────────────────────────────────────────────────
 
@@ -432,11 +433,31 @@ async function _restartEngine() {
     }
 }
 
-/** Stop and start the engine. Callers own the idle guard. */
-async function _performRestart(remote) {
+/**
+ * MPI-1222 — the dev radial's restart: NOW, whatever is running. It is pressed when the
+ * engine is wedged or starved (Fabio, 2026-10-21: a second ComfyUI on the GPU hung a
+ * generation), and MPI-805's wait would hold it behind the very generation it exists to
+ * free. The running job is stopped through the queue's own Stop, so its row ends as
+ * cancelled. Settings keeps the wait: a user there has not said to drop their work.
+ */
+async function _restartEngineNow() {
+    if (await blockedByNoEngine()) return;
+    const remote = remoteEngineClient.isRemote();
+    await _performRestart(remote, () => cancelRunningOnLane(remote ? 'remote' : 'local'));
+}
+
+/**
+ * Stop and start the engine. Callers own the idle guard.
+ * @param {boolean} remote
+ * @param {() => void} [onStopped] runs once the engine is down (local) or just before the
+ *   Pod restarts it (remote). Local stops FIRST so a pending job the cancel promotes meets
+ *   a stopped engine, which the generation gate starts, not the dying one.
+ */
+async function _performRestart(remote, onStopped) {
     Events.emit('ui:info', { message: 'Restarting the engine…' });
     try {
         if (remote) {
+            onStopped?.();
             const r = await fetch('/proxy/restart-comfy', { method: 'POST' });
             if (!r.ok) throw new Error(`restart-comfy ${r.status}`);
         } else {
@@ -445,6 +466,7 @@ async function _performRestart(remote) {
             // still-dying process, hits its already-running early-return, and never
             // spawns a fresh one (engine wedged, gen gate keeps restarting).
             await new Promise(r => setTimeout(r, 2000));
+            onStopped?.();
             const r = await fetch('/comfy/start', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -532,7 +554,7 @@ function _syncRadial() {
             return;
         }
         if (action === 'restart-engine') {
-            _restartEngine();
+            _restartEngineNow();
             return;
         }
     });

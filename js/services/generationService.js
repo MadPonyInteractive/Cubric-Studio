@@ -1000,7 +1000,18 @@ export function cancelBatch(batchId) {
     }
 }
 
-// ── Result stacks (MPI-949 Phase 3) ─────────────────────────────────────────────
+/**
+ * MPI-1222 — stops the job running on one engine lane through the queue's own Stop, so
+ * its row ends as cancelled. The dev radial's restart-now calls it: that restart exists
+ * to unwedge an engine, so it cannot wait behind the generation the wedge is holding.
+ * @param {'local'|'remote'} lane
+ */
+export function cancelRunningOnLane(lane) {
+    const active = _lanes[lane]?.active;
+    if (active) cancelRunningCueJob(active.queueJobId);
+}
+
+// ── Result stacks (MPI-949 Phase 3)─────────────────────────────────────────────
 // A Gallery stack run fills a NEW stack whose `expected` says how many cards are coming.
 // Once no job of that run is live — finished, failed, cancelled, or lost to a restart,
 // which this queue does not survive — the stack settles: `expected` goes, or the whole

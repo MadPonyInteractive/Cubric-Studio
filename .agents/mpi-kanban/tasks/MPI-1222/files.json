@@ -1,0 +1,10 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-1222/",
+    "js/shell/navigation.js",
+    "js/services/generationService.js",
+    "js/events.js",
+    "tests/engine-restart-now.test.cjs"
+  ]
+}

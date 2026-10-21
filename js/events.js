@@ -179,7 +179,7 @@ export const Events = new EventBus();
  * 'download:uninstall-failed' { modelId, message, remoteUnsupported?, reason?, error? } — nothing uninstalled; downloadService already toasted it (MPI-1157)
  * 'download:installing'   { modelId: string }                      — custom node install in progress
  * 'comfy:needs-restart'   { modelId: string }                      — ComfyUI restart required after custom node install
- * 'engine:restart'        —                                        — restart ComfyUI now, on the user's explicit ask (Settings button, dev radial). navigation.js owns the handler: it refuses on a busy queue rather than destroying an in-flight generation (MPI-805)
+ * 'engine:restart'        —                                        — restart ComfyUI now, on the user's explicit ask (Settings button; the dev radial skips this event and restarts at once, MPI-1222). navigation.js owns the handler: it schedules on a busy queue rather than destroying an in-flight generation (MPI-805)
  * 'engine:downloading'    { progress: number, speed: string, downloadedBytes: number, totalBytes: number } — engine download progress
  * 'engine:extracting'     { progress: number }                     — engine extraction in progress
  * 'engine:patching'       { progress: number }                     — engine patching in progress
