@@ -185,8 +185,9 @@ the failing direction — squatter on a port, launch, exit code 1 with
 (`splash/splash.html`, loaded instantly by `main.js`) and then the shell on
 `127.0.0.1:$CUBRIC_PORT`; the splash is destroyed once the shell has painted AND loaded
 a real HTTP response (MPI-410), so `firstWindow()` hands back a window that closes
-underneath the test. Use `tests/desktop/shellWindow.js` (`const window = await
-shellWindow(app)`).
+underneath the test. Use `tests/desktop/shellWindow.js` (`await shellWindow(app)`): it also
+waits out its zoom pin's `resize`, which a still-hidden window (one frame a second until
+the landing is ready) delivered mid-spec, shutting an open dropdown (MPI-1230).
 
 **Drive the app through its own seams, not the pointer.** Under `CUBRIC_E2E=1` the
 GPU is off and rendering throttles, which makes real pointer clicks flaky. Existing

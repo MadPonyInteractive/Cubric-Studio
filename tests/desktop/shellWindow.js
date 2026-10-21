@@ -12,7 +12,8 @@
  * this process was handed, and export it so specs assert the same thing.
  *
  * It also waits for that window's shell to have BOOTED, not merely parsed — see the
- * comment on the wait below. A spec can assume hotkeys and IPC listeners are live.
+ * comments on the waits below. A spec can assume hotkeys and IPC listeners are live, and
+ * that no resize from the harness's own zoom pin is still to come.
  */
 
 /** Host:port the shell is served from — the run's CUBRIC_PORT, else the 3000 default. */
@@ -52,6 +53,16 @@ async function shellWindow(app, timeoutMs = 30000) {
         localStorage.setItem('mpi_ui_zoom_factor', '1');
         window.require('electron').webFrame.setZoomFactor(1);
       });
+      // MPI-1230: and WAIT OUT the `resize` that zoom change fires, or it closes whatever
+      // dropdown the spec opens first (MpiDropdown closes on `resize`). Chromium dispatches
+      // it on the next frame, but main.js keeps the window HIDDEN until the landing has
+      // content (`shell:landing-ready`: the project list and every mascot clip's first
+      // frame, MPI-966), and a hidden window draws about one frame a second. A dev box
+      // reveals in under a second; the runner's software decoder takes seconds over those
+      // clips, so the resize landed up to a second into the spec (CI 39601605307:
+      // "resolved to 0 elements", a different step on each attempt). A frame runs the
+      // resize steps before its rAF callbacks, so two frames on, it has been and gone.
+      await win.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
       return win;
     }
     await new Promise(r => setTimeout(r, 250));

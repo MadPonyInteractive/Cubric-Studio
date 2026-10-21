@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1230",
+  "title": "Desktop specs get a fully booted, revealed window (CI red on llm-settings-remote)",
+  "description": "shellWindow hands a spec the window before main.js reveals it; the late reveal closes an open dropdown on slow runners.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-21T14:18:36+01:00",
+  "updated_at": "2026-10-21T14:19:15+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

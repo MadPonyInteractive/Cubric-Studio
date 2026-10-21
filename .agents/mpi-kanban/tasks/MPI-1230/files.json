@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/task-files/v1", "files": [".agents/mpi-kanban/tasks/MPI-1230/", ".agents/mpi-kanban/tasks/MPI-1230", "tests/desktop/shellWindow.js", "tests/desktop/launch.js", "tests/desktop/shell-window-revealed.spec.js", "docs/testing.md", "docs/testing-desktop-specs.md", "js/shell.js", "main.js", "tests/desktop/shell-window-no-late-resize.spec.js"]}
