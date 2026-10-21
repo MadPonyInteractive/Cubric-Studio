@@ -36,3 +36,7 @@ Ollama Cloud) beat the local picks (ornith:9b 23/34 on the older tests).
 ## CI
 
 - Tests run 39622026934 on f29d8d820: success.
+
+## Rules maps (reopen, 2026-10-21)
+
+- Fabio said yes to the doc-drift question: MpiOllamaCloudDialog added to `.claude/rules/component-events-primitives.md` (own entry + MpiLlmSettings note) and `.claude/rules/component-mounts.md` (the agent-row mount). Docs only, no code.
