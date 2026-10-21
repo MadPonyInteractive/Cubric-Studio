@@ -26,3 +26,8 @@ only missing deps are custom nodes (they carry no size), and told that one "add 
   `pony` (0 GB, local) gets CONFIRM_DOWNLOAD (old code answered NOTHING_TO_DOWNLOAD).
 - `npm run lint` exit 0; `npm test` 3497 pass, 0 fail.
 - Not live-tested: Fabio has a DeepInfra key saved, so the keyless case cannot show on his app.
+- CI run 39601605307 (head 21140f352, contains 877938f5c): first attempt red on desktop shard 3,
+  `llm-settings-remote.spec.js:29`, a spec this diff cannot reach (green locally 4/4). Cause: the
+  desktop harness hands over the window before `_bootApp` finishes, so boot's second navigation
+  and the 18+ gate close the spec's open dropdown on a slow runner. Re-run of the failed shard:
+  all green. Harness fix proposed as its own session.
