@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1221",
+  "title": "Seedance 2 refusal shows the error dialog, not a toast",
+  "description": "A Seedance 2.0 refusal (BytePlus *SensitiveContentDetected*, wrapped as DeepInfra HTTP 500 with a provider 400) was coded PROVIDER_ERROR and raised the 'Cloud generation failed' dialog. A model refusing is not an error: classify it CONTENT_FILTERED and show it as a toast.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-21T02:09:08+01:00",
+  "updated_at": "2026-10-21T02:10:49+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
