@@ -1,3 +1,5 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1227", "at": "2026-10-21T12:35:00+01:00", "actor": "claude", "column": "todo", "title": "Docs + tooling defaults: local model master store moves G:/CubricModels -> M:/CubricModels"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1227", "at": "2026-10-21T12:35:00+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "starting now"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1227", "at": "2026-10-21T12:54:06+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "shipped 212ed8027, pre-push green, CI run 39593373417 success"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1227", "at": "2026-10-21T12:58:13+01:00", "actor": "claude", "from": "done", "to": "doing", "reason": "Fabio OK: repoint .claude/rules/comfy_engine.md line 26 too"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1227", "at": "2026-10-21T12:58:38+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "comfy_engine.md line 26 repointed, pre-push green"}
