@@ -16,7 +16,7 @@ const test = require('node:test');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const { followBlocker, followTarget, workspaceGenerationOpts } = require('../js/shell/agentDispatch.js');
+const { followBlocker, followTarget, workspaceGenerationOpts, maskedGenerationOpts } = require('../js/shell/agentDispatch.js');
 const { state } = require('../js/state.js');
 
 const IDLE = { pointerHeld: false, overlayDepth: 0, canvasMode: 'none' };
@@ -93,6 +93,23 @@ test.describe('workspaceGenerationOpts — an edit lands in the card that owns t
     test('a clip made from a still is a new card, not a video entry in the image card', () => {
         stand('gallery');
         assert.equal(workspaceGenerationOpts([{ role: 'inputImage', url: url('t2i_001') }], 'video'), null);
+        reset();
+    });
+
+    // MPI-1224, Fabio 2026-10-21: Seedance i2v on an entry of the OPEN image card landed
+    // i2v_003.mp4 in that card's history, where the image workspace cannot show it.
+    test('a clip made from an entry of the OPEN image card is a new card too', () => {
+        stand('group-history', 'g-open');
+        assert.equal(workspaceGenerationOpts([{ role: 'inputImage', url: url('t2i_009') }], 'video'), null);
+        assert.equal(workspaceGenerationOpts([{ role: 'inputImage', url: url('t2i_009') }], 'image')?.groupId, 'g-open',
+            'an edit of the open card still lands in it');
+        reset();
+    });
+
+    test('a masked run lands in the masked card only when it makes that card\'s media type', () => {
+        stand('group-history', 'g-open');
+        assert.equal(maskedGenerationOpts('g-open', 'video'), null);
+        assert.equal(maskedGenerationOpts('g-open', 'image')?.groupId, 'g-open');
         reset();
     });
 

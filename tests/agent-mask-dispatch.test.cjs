@@ -195,7 +195,7 @@ test('an op with no image slot filled cannot be broken by a mask', () => {
 // no card to name, so every agent submit was `scope: 'gallery'`. A Cue press in that same
 // workspace sends `existingGroup` + `scope: 'groupHistory'`.
 
-const CARD = { id: GROUP_ID, name: 't2i_003', history: [] };
+const CARD = { id: GROUP_ID, name: 't2i_003', type: 'image', history: [] };
 
 test('a masked submit lands in the history of the card the mask was painted on', () => {
     state.currentProject = { itemGroups: [{ id: 'other' }, CARD] };
@@ -278,7 +278,8 @@ test.describe('workspaceGenerationOpts', () => {
 
     test('the submit routes by it, and never renames the card it adds to', () => {
         const src = fs.readFileSync(path.join(repoRoot, 'js', 'shell', 'agentDispatch.js'), 'utf8');
-        assert.match(src, /maskedGenerationOpts\(built\.maskGroupId\) \|\| workspaceGenerationOpts\(config\.mediaItems, config\.model\.mediaType/);
+        assert.match(src, /const mediaType = config\.model\.mediaType \|\| 'image';/);
+        assert.match(src, /maskedGenerationOpts\(built\.maskGroupId, mediaType\) \|\| workspaceGenerationOpts\(config\.mediaItems, mediaType\)/);
         // Live read 2 named its result "Dawn sky with red eyes": routed into the open card,
         // that name would have replaced "Boy fishing flat cartoon".
         assert.match(src, /_reportDone\(jobId, done, historyOpts \? undefined : input\.cardName/);

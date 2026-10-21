@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1224",
+  "title": "Agent i2v from an open image card lands the video in that card's history, where it cannot be seen",
+  "description": "Fabio 2026-10-21, project Flux 3 tests: Cosmo ran Seedance 2.0 i2v on i2i_001 while the image card was open; i2v_003.mp4 landed as an entry of the IMAGE card. workspaceGenerationOpts lets the OPEN card keep any output type (MPI-890 rule); only a not-open card is type-checked (MPI-891). A history workspace is typed: the user's prompt box there only runs that card's media type, so a clip from a still must be a new gallery card. Fix: the open card and a masked card must hold the output's media type too. One fix covers cloud and local (agentDispatch picks the landing before enqueueGeneration).",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-21T02:50:53+01:00",
+  "updated_at": "2026-10-21T02:51:38+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

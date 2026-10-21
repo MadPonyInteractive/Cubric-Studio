@@ -436,13 +436,16 @@ async function _maskAreas(dataUrl) {
  * `enqueueGeneration` wants the live group, and the reader publishes an id precisely so
  * dispatch never holds a component's object across a job.
  *
+ * MPI-1224: only when the run makes that card's media type — see `workspaceGenerationOpts`.
+ *
  * @param {string|null} maskGroupId
+ * @param {string} [mediaType] - the output's `model.mediaType`
  * @returns {{ existingGroup: object, scope: string, groupId: string }|null} the opts the
  *   history path uses, or null when there is nothing to route to.
  */
-export function maskedGenerationOpts(maskGroupId) {
+export function maskedGenerationOpts(maskGroupId, mediaType = 'image') {
     if (!maskGroupId) return null;
-    const group = (state.currentProject?.itemGroups || []).find(g => g.id === maskGroupId);
+    const group = (state.currentProject?.itemGroups || []).find(g => g.id === maskGroupId && g.type === mediaType);
     return group ? { existingGroup: group, scope: 'groupHistory', groupId: group.id } : null;
 }
 
@@ -463,7 +466,13 @@ export function maskedGenerationOpts(maskGroupId) {
  * entry: "If the agent is going to perform something like an edit to an image, that needs
  * to happen in the history workspace." `_followWork` then opens that history. A card that
  * is not open must also hold the output's media type — a still turned into a clip is a new
- * card, not a video entry in an image card. The open card keeps MPI-890's rule unchanged.
+ * card, not a video entry in an image card.
+ *
+ * MPI-1224 (Fabio 2026-10-21): the OPEN card too. It was exempt from the media-type rule,
+ * so a Seedance i2v on an entry of the open image card landed `i2v_003.mp4` in that
+ * card's history, which the image workspace cannot show. A history workspace is typed —
+ * its prompt box only offers models of the card's own media type (`_adoptModel`) — so the
+ * user's own path can never do this, and the agent must not either.
  *
  * @param {Array<{url:string}>} mediaItems
  * @param {string} [mediaType] - the output's `model.mediaType`
@@ -474,10 +483,10 @@ export function workspaceGenerationOpts(mediaItems, mediaType = 'image') {
     const source = extractAbsPath(mediaItems?.[0]?.url);
     if (!source) return null;
     const same = (p) => p?.replace(/\\/g, '/').toLowerCase() === source.replace(/\\/g, '/').toLowerCase();
-    const owns = (g) => g?.history?.some(item => same(extractAbsPath(item?.filePath)));
+    const owns = (g) => g?.type === mediaType && g.history?.some(item => same(extractAbsPath(item?.filePath)));
     const groups = state.currentProject?.itemGroups || [];
     const open = groups.find(g => g.id === openId);
-    const group = owns(open) ? open : groups.find(g => g.type === mediaType && owns(g));
+    const group = owns(open) ? open : groups.find(owns);
     return group ? { existingGroup: group, scope: 'groupHistory', groupId: group.id } : null;
 }
 
@@ -597,8 +606,9 @@ async function _submitGeneration(jobId, input = {}) {
     // `groupHistory` gen owns its own frames (MpiGroupHistoryBlock's `scope !==
     // 'groupHistory'` guard is what draws them). Both read the OPEN project's cards, so
     // a run sent to a closed one is always a new card.
+    const mediaType = config.model.mediaType || 'image';
     const historyOpts = target.open
-        ? maskedGenerationOpts(built.maskGroupId) || workspaceGenerationOpts(config.mediaItems, config.model.mediaType || 'image')
+        ? maskedGenerationOpts(built.maskGroupId, mediaType) || workspaceGenerationOpts(config.mediaItems, mediaType)
         : null;
 
     return _enqueueAgentRun(jobId, input, config, target, historyOpts, built.run);
