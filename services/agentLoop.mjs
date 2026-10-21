@@ -2239,6 +2239,9 @@ ${knowledgeIndex}`.trim();
                     // can install from the Models panel since. This re-read is the truth, as the
                     // Flow branch's installFlow(…, false) and the MCP twin already treat it.
                     return JSON.stringify({ ok: false, error: { code: 'ALREADY_INSTALLED', message: `Nothing to install: ${m.name || args.modelId} is installed (since your last list_models). Go on with what the user asked.` } });
+                } else if (m.provider) {
+                    // MPI-1229: a cloud model has no weights; not installed means no API key (as the MCP twin says).
+                    return JSON.stringify({ ok: false, error: { code: 'NOTHING_TO_DOWNLOAD', message: `Nothing to install: ${m.name || args.modelId} runs in the cloud, so nothing downloads. It runs once the user adds their API key in Settings: tell them so.` } });
                 } else {
                     card = { modelName: m.name || args.modelId, downloadGb: m.missingDownloadGb ?? null };
                 }

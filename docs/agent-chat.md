@@ -162,7 +162,8 @@ JSON Schema `parameters`, OpenAI `tools` format. An invented tool is refused wit
   Errors: `BAD_REQUEST` (400), `RUNTIME_ERROR`.
 - **`POST /connector/install { modelId }`** -> `{ ok, modelId, downloadGb, started: true }`; progress is
   `GET /comfy/downloads/status` (a finished job reads `done`, then drops out: absent after seen = finished). No gate here: a CLI agent's user is its own gate. Errors: `BAD_REQUEST`,
-  `UNKNOWN_MODEL`, `ALREADY_INSTALLED`, `OFFLINE`, `APP_UNAVAILABLE`.
+  `UNKNOWN_MODEL`, `ALREADY_INSTALLED`, `NOTHING_TO_DOWNLOAD` (a cloud model with no API key: its
+  `GET /connector/models` entry carries `provider`, MPI-1229), `OFFLINE`, `APP_UNAVAILABLE`.
 - **`POST /connector/describe { imagePath, question?, crop?, box? }`** -> `{ ok, output: { text, box? } }`.
   `imagePath` absolute; a `crop` is cut with `sharp` to the agent dir first; no `question` = the caption
   instruction; relayed as `agent.describe` to `llmService.describeImage` ([llm.md](llm.md)). **`box`** (needs

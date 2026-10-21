@@ -330,6 +330,24 @@ describe('(a) install gate', () => {
         const result = JSON.parse(loop._messages.find((m) => m.role === 'tool' && m.tool_call_id === 'tc-1').content);
         assert.equal(result.error.code, 'ALREADY_INSTALLED');
     });
+
+    // MPI-1229: a cloud model with no key has nothing to download; its card read "0.0 GB" and a
+    // Yes was answered "already installed". The key is the user's errand.
+    test('a cloud model with no key gets NOTHING_TO_DOWNLOAD naming the key, and no card', async () => {
+        const engineResponses = [
+            { text: '', toolCalls: [{ id: 'tc-1', type: 'function', function: { name: 'install_model', arguments: '{"modelId":"test-model"}' } }] },
+            { text: 'It needs a key.' },
+        ];
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses });
+        tools.listModels = async () => ({ ok: true, flows: [], models: [{ id: 'test-model', name: 'Test Model', provider: 'deepinfra', missingDownloadGb: 0, installed: false }] });
+        await loop.runTurn('Make a clip with test-model', [], null, 'auto', 'deepinfra', 'turn-cloud');
+
+        assert.ok(!fakeRes.events.some((e) => e.event === 'agent:confirm'), 'no card for a cloud model');
+        assert.equal(tools.calls.installModel.length, 0);
+        const result = JSON.parse(loop._messages.find((m) => m.role === 'tool' && m.tool_call_id === 'tc-1').content);
+        assert.equal(result.error.code, 'NOTHING_TO_DOWNLOAD');
+        assert.match(result.error.message, /API key/);
+    });
 });
 
 // ---------------------------------------------------------------------------

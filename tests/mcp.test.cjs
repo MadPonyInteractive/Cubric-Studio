@@ -54,7 +54,9 @@ test.before(async () => {
             { id: 'krea2', name: 'Krea 2', type: 'image', installed: true, guides: ['krea-2'], ops: [{ op: 't2i', task: 't2i', rank: 1, params: { ratio: ['1:1'] } }] },
             { id: 'h3', name: 'H3', type: 'video', installed: true, ops: [{ op: 't2v', task: 't2v', rank: 1 }] },
             { id: 'wan', name: 'Wan', type: 'video', installed: false, missingDownloadGb: 12.3, ops: [{ op: 'i2v', task: 'i2v' }] },
-            { id: 'veo-cloud', name: 'Veo', type: 'video', installed: false, missingDownloadGb: 0, ops: [{ op: 't2v', task: 't2v' }] },
+            // MPI-1229: a local model whose only missing pieces are its custom nodes, which have no size.
+            { id: 'pony', name: 'Pony', type: 'image', installed: false, missingDownloadGb: 0, ops: [{ op: 't2i', task: 't2i' }] },
+            { id: 'veo-cloud', name: 'Veo', type: 'video', provider: 'deepinfra', installed: false, missingDownloadGb: 0, ops: [{ op: 't2v', task: 't2v' }] },
         ],
         flows: [{ id: 'outpaint', title: 'Outpaint', installed: false }],
     }));
@@ -596,6 +598,8 @@ test('install_model sends a Flow to install_flow, and refuses what is installed 
     assert.equal((await answer('install_model', { modelId: 'krea2' })).error.code, 'ALREADY_INSTALLED');
     assert.equal((await answer('install_model', { modelId: 'nope' })).error.code, 'UNKNOWN_MODEL');
     assert.equal((await answer('install_model', { modelId: 'veo-cloud' })).error.code, 'NOTHING_TO_DOWNLOAD', 'a cloud model wants a key, not a download');
+    // MPI-1229: 0 GB alone is not cloud: this one still has nodes to install.
+    assert.equal((await answer('install_model', { modelId: 'pony' })).error.code, 'CONFIRM_DOWNLOAD');
 });
 
 test('install_flow quotes without starting, names the licence screen, then starts on the repeated size', async () => {

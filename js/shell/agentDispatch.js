@@ -1969,6 +1969,8 @@ async function _listModels(jobId) {
             id: model.id,
             name: model.name,
             type: model.mediaType,
+            // MPI-1229: a cloud model's `installed` is its API key, never a download.
+            ...(model.provider ? { provider: model.provider } : {}),
             installed: isOperationInstalled(model, null),
             ops,
             missingDepIds,
@@ -2048,6 +2050,10 @@ async function _installModel(jobId, input = {}) {
     const { modelId } = input;
     const model = getModelById(modelId);
     if (!model) return _fail(jobId, 'UNKNOWN_MODEL', `No model with id "${modelId}".`);
+    // MPI-1229: no weights means an empty dep list, which read as ALREADY_INSTALLED with no key.
+    if (model.provider && !isOperationInstalled(model, null)) {
+        return _fail(jobId, 'NOTHING_TO_DOWNLOAD', `${model.name} is a cloud model: nothing downloads. It runs once the user adds its API key in Settings.`);
+    }
 
     const engine = remoteEngineClient.effectiveEngine();
     const allDepIds = resolveFullUniverse(model, null, engine);

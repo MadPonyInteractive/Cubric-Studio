@@ -567,12 +567,10 @@ const TOOLS = {
                     ? { ok: false, error: { code: 'IS_A_FLOW', message: `"${modelId}" is a Flow: use install_flow.` } }
                     : { ok: false, error: { code: 'UNKNOWN_MODEL', message: `No model "${modelId}". Use a model id exactly as list_models gives it.` } };
             }
-            if (!(m.missingDownloadGb > 0)) {
-                // A cloud model has no weights: `installed: false` there means no API key.
-                return m.installed
-                    ? { ok: false, error: { code: 'ALREADY_INSTALLED', message: `${m.name} is already installed.` } }
-                    : { ok: false, error: { code: 'NOTHING_TO_DOWNLOAD', message: `${m.name} is a cloud model: nothing downloads. It runs once the user adds its API key in Settings.` } };
-            }
+            if (m.installed) return { ok: false, error: { code: 'ALREADY_INSTALLED', message: `${m.name} is already installed.` } };
+            // A cloud model has no weights: `installed: false` there means no API key. Named by
+            // `provider` (MPI-1229): 0 GB alone is also a local model missing only its nodes.
+            if (m.provider) return { ok: false, error: { code: 'NOTHING_TO_DOWNLOAD', message: `${m.name} is a cloud model: nothing downloads. It runs once the user adds its API key in Settings.` } };
             const size = `${m.missingDownloadGb} GB`;
             const refused = askDownload(size, confirmDownload, `${m.name} downloads ${size}`, 'install_model');
             if (refused) return refused;
