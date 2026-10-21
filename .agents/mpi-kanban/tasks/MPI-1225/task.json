@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1225",
+  "title": "Cosmo asks the spend card twice: a Yes the route then refuses",
+  "description": "Live 2026-10-21 01:51-01:52: Fabio clicked Yes on a Seedance 2.0 spend card, the run never reached generation.submit (refused by the connector generate route's own checks, unlogged), Cosmo retried and a second spend card asked again. The quote route skipped those checks, so the card priced a run that could not be sent. Quote now runs the same checks first (no card for a doomed call), and generate logs every refusal.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-21T03:00:42+01:00",
+  "updated_at": "2026-10-21T03:09:12+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
