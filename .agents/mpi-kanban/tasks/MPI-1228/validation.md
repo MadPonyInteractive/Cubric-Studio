@@ -30,6 +30,8 @@ model generates in the same turn.
   ALREADY_INSTALLED, and no card": before the fix it hangs on the unanswered card (red, killed at
   the 120 s timeout); after, it passes with the other install-gate tests (5/5).
 - `npm run lint` exit 0; `npm test` 3496 pass, 0 fail. Code commit 915fb3fc3.
+- Live (Fabio, 2026-10-21): installed Pony Mix mid-chat, asked for a picture, Cosmo went straight
+  to generating with no install card. PASS.
 
 ## Not changed
 
