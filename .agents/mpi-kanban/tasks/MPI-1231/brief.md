@@ -17,6 +17,18 @@ we can make it a flow. This way, Cosmo does less work." Member of MPI-1134 (Stor
   edits), reorder, drop or redo. Fabio: "probably a stack or something like that. Not sure, but we'll
   get to it."
 
+## One overview picture too (Fabio, 2026-10-21)
+
+- Besides the stack, the Flow writes ONE tiled overview image, 4K or 8K, every panel in order.
+- **Each tile carries its number** rendered in its top-left corner, so the user can look at one
+  picture and say "Cosmo, edit tile 2" or "redo 3".
+- The number is the panel's index in the stack: editing tile N edits panel N, and the overview is
+  re-made from the stack afterwards (the overview is a view of the stack, never edited directly).
+- Reuse, do not rebuild: the sheet maker already packs cards in order into one picture at
+  2048/4096/8192/16384 long edge (`routes/imageSheet.js`, MCP `make_sheet`,
+  `js/utils/sheetLayout.js`). New part is the number overlay (an opt-in label on each cell, so
+  character sheets stay clean), plus Cosmo mapping "tile N" to the Nth panel card.
+
 ## Where the panels go next
 
 - **Keyframes to Video Flow (MPI-1191):** the panels ARE the keys; the Flow fills the motion between
