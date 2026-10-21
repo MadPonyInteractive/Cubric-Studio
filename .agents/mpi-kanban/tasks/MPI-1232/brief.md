@@ -18,10 +18,27 @@ First logged as a note on MPI-1181 (2026-10-19).
 
 ### What the decisions pull in (check while planning)
 
-- **Tile size is three numbers, not one.** `DetailerForEachPipe` uses guide 1024 (bbox) / max 1536:
-  a 512 tile is enlarged to 1024 before sampling (more detail, 4x the tiles), a 2048 tile is capped
-  at 1536. Size the guide/max from the tile size, or a big tile silently samples small. Bounds per
-  model (native side), and `tileCount.js` must take the size so the label count stays right.
+- **Tile size = `ImpactMakeTileSEGS` `bbox_size`** (Fabio). Offered 256 / 512 / 768 / 1024 / 1536,
+  **default 1024**. The count shows live in the label (`tileCount.js` takes the size). Use cases:
+  a 1024x1024 detail at 1.0 gets ONE tile today (bbox clamps to the short side) - Fabio wants ~4;
+  a 3K picture he wants in ~4 big tiles.
+- **Real counts are higher than size alone suggests** - overlap + the cloud-mask padding (+22 px)
+  eat each step (`tileCount.js`, 2026-10-21, factor 1.0):
+
+  | picture | overlap | 256 | 512 | 768 | 1024 | 1536 |
+  |---|---|---|---|---|---|---|
+  | 1024x1024 | 200 fixed (today) | 49 | 16 | 4 | 1 | 1 |
+  | 1024x1024 | 20% of tile | 25 | 9 | 4 | 1 | 1 |
+  | 3072x2048 | 200 fixed | 294 | 70 | 24 | 12 | 6 |
+  | 3072x2048 | 20% of tile | 140 | 40 | 20 | 12 | 6 |
+
+  So 512 on 1024 is 16 (4x4), not 4; ~4 tiles on 1024 = 768. **Overlap should scale with the tile**
+  (a fixed 200 is 78% of a 256 tile) - bench 20%. Open: offer the size in px (the node's own
+  value) or as a grid ("2x2, 3x3", the app solves the px) since Fabio thinks in tile counts.
+- **The detailer's guide follows the tile.** `DetailerForEachPipe` guide 1024 (bbox) / max 1536:
+  a small tile is ENLARGED to 1024 to sample (256 -> 4x = the extra detail Fabio wants), but a
+  1536 tile is SHRUNK to 1024 to sample and pasted back soft. Guide = max(1024, tile), max size
+  to match, per model.
 - **Removing Grid touches:** every template's Grid path (`MpiGridDimensions`, `Input_*` grid ids),
   `PromptBoxControls.js`, `promptControlDefaults.js`, `generationControls.js`, `commandRegistry.js`,
   `generationService.js`, plus the agent's upscale routes (MPI-1053) and the MCP/Cosmo params.
@@ -69,8 +86,12 @@ First logged as a note on MPI-1181 (2026-10-19).
 
 ## Open questions
 
-- ~~Tile size option~~ - DECIDED: a Tile size control (above). Still open: the steps offered
-  (e.g. 512 / 768 / 1024 / 1536) and the default (model's native side).
+- ~~Tile size option~~ - DECIDED (above). Open: px or grid control, and overlap scaling.
+- **People pass (Fabio's old workflow, from memory):** two passes - a BACKGROUND pass whose tiles
+  have the people SUBTRACTED, and a PEOPLE pass. Matches finding 4: `filter_out_segs_opt` on
+  `ImpactMakeTileSEGS` = the subtraction; `person_yolov8n-seg.pt` (ships) or `face_yolov8n.pt`
+  for the people pass. Bench: whole person vs face only (a full-body person bigger than the guide
+  is sampled shrunk).
 - **With Describe on, what the box text does:** my pick = appended to every tile as a style line
   (never a scene). A per-tile edit grid = later.
 - **Caption cost/time:** 1920x1080 x2 = 15 tiles, 4000x6000 x2 = 150 captions. Local describer
