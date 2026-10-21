@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1229",
+  "title": "Cosmo: no 0 GB install card for a cloud model with no API key",
+  "description": "A keyless cloud model got an Install? 0.0 GB card and Yes answered already installed; the list now names a cloud model's provider so every install gate says add the key.",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-10-21T13:37:06+01:00",
+  "updated_at": "2026-10-21T13:39:56+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
