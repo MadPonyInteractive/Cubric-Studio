@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1218",
+  "title": "With the 2.1.2 release: push the website privacy fix for the saved Hugging Face token",
+  "description": "Cubric Studio (Website) commit 0d1de08 (local, unpushed) rewrites privacy/index.html: the HF licence token is now saved encrypted (MPI-1215), not 'not saved'. Fabio said push it with 2.1.2 so the page and the app change the same day. On release: git -C 'c:/AI/Mpi/Cubric Studio (Website)' push origin main.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-10-21T01:21:09+01:00",
+  "updated_at": "2026-10-21T01:21:09+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
