@@ -312,6 +312,24 @@ describe('(a) install gate', () => {
         const result = loop._messages.find((m) => m.role === 'tool' && m.tool_call_id === 'tc-1');
         assert.equal(JSON.parse(result.content).error.code, 'UNKNOWN_MODEL');
     });
+
+    // MPI-1228 (Fabio, 2026-10-21): he installed ILL Anime Beauty from the Models panel mid-chat,
+    // asked for a picture on it, and got "Install ILL Anime Beauty? Download: 0.0 GB". The
+    // model's last list_models said not installed; the gate's own re-read said installed.
+    test('a model installed outside the chat gets ALREADY_INSTALLED, and no card', async () => {
+        const engineResponses = [
+            { text: '', toolCalls: [{ id: 'tc-1', type: 'function', function: { name: 'install_model', arguments: '{"modelId":"test-model"}' } }] },
+            { text: 'It is installed already.' },
+        ];
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses });
+        tools.listModels = async () => ({ ok: true, flows: [], models: [{ id: 'test-model', name: 'Test Model', missingDownloadGb: 0, installed: true }] });
+        await loop.runTurn('Make a picture with test-model', [], null, 'auto', 'deepinfra', 'turn-installed');
+
+        assert.ok(!fakeRes.events.some((e) => e.event === 'agent:confirm'), 'no card for an installed model');
+        assert.equal(tools.calls.installModel.length, 0);
+        const result = JSON.parse(loop._messages.find((m) => m.role === 'tool' && m.tool_call_id === 'tc-1').content);
+        assert.equal(result.error.code, 'ALREADY_INSTALLED');
+    });
 });
 
 // ---------------------------------------------------------------------------

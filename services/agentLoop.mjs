@@ -2234,6 +2234,11 @@ ${knowledgeIndex}`.trim();
                     card = { flowId: flow.id, modelName: q.title || flow.title, downloadGb: q.downloadGb ?? null, licence: !!q.licence };
                 } else if (!m) {
                     return JSON.stringify({ ok: false, error: { code: 'UNKNOWN_MODEL', message: `No model or Flow "${args.modelId}". Use an id exactly as list_models gives it.` } });
+                } else if (m.installed === true) {
+                    // MPI-1228: the model's list_models answer is from earlier in the chat; the user
+                    // can install from the Models panel since. This re-read is the truth, as the
+                    // Flow branch's installFlow(…, false) and the MCP twin already treat it.
+                    return JSON.stringify({ ok: false, error: { code: 'ALREADY_INSTALLED', message: `Nothing to install: ${m.name || args.modelId} is installed (since your last list_models). Go on with what the user asked.` } });
                 } else {
                     card = { modelName: m.name || args.modelId, downloadGb: m.missingDownloadGb ?? null };
                 }
