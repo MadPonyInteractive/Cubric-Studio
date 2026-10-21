@@ -33,6 +33,16 @@ on run 39442831579 (24/24 Valid, MPI-616 validation.md).
 - [ ] Note: the first signed update bundle carries every signed binary again in
       full (signing changes their bytes), so the 2.1.2 delta is larger than usual
 
+## Website privacy page (from MPI-1215)
+
+2.1.2 saves the Hugging Face licence token encrypted; the live privacy page still
+says "The token is not saved". The fix is commit `0d1de08` in
+`c:\AI\Mpi\Cubric Studio (Website)`, committed locally and NOT pushed, so the page and
+the app change the same day (Fabio, 2026-10-21).
+
+- [ ] Once the 2.1.2 release is public:
+      `git -C "c:/AI/Mpi/Cubric Studio (Website)" push origin main`
+
 ## Release
 
 Follow `/mpi-release` for the rest.
