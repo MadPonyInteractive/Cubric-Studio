@@ -270,10 +270,11 @@ export const loraDeps = {
     'krea2-lora-accelerator': {
         id: 'krea2-lora-accelerator',
         name: 'Krea2 Accelerator LoRA (Turbo distill r128)',
-        origin: 'TheDivergentAI/krea2-turbo-distill-lora',
+        // Repo and file renamed upstream by 2026-10-21; same bytes (HF lfs sha256 = ours).
+        origin: 'TheDivergentAI/Krea2-Turbo-Distill-8step-LoRA',
         filename: 'loras/krea-2/extra/krea2_turbo_distill_r128.safetensors',
         url: 'https://models.cubric.studio/vision/models/loras/krea-2/extra/krea2_turbo_distill_r128.safetensors',
-        mirrorUrl: 'https://huggingface.co/TheDivergentAI/krea2-turbo-distill-lora/resolve/main/krea2_turbo_distill_r128.safetensors',
+        mirrorUrl: 'https://huggingface.co/TheDivergentAI/Krea2-Turbo-Distill-8step-LoRA/resolve/main/krea2_turbo_distill_8step_r128.safetensors',
         size: '893.54MB',
         bytes: 936944890,
         sha256: '0cd8b6a756456229b340d2382f30f91bd8540f9cdee4fb95edb897daf08f8c6f',

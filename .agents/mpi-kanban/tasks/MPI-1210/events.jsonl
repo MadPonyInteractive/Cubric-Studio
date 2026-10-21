@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1210", "at": "2026-10-20T14:45:28+01:00", "actor": "Cubric Studio signing 2", "column": "todo", "title": "2.1.2 release readiness: ship the first signed Windows build"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1210", "at": "2026-10-21T16:55:34+01:00", "actor": "2.1.2 release", "from": "todo", "to": "doing", "reason": "2.1.2 release started; bump waits on the hotkey fixes"}

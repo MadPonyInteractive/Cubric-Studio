@@ -1,0 +1,16 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/core/appVersion.js",
+    "package.json",
+    "package-lock.json",
+    "js/data/releaseNotes.js",
+    "docs/releases/2026-10-21-v2.1.2.md",
+    "docs/releases/UNRELEASED.md",
+    "docs/releases/.approved-2.1.2.json",
+    "README.md",
+    "docs/releases/github-release-checklist.md",
+    ".agents/mpi-kanban/tasks/MPI-1210/",
+    "js/data/modelConstants/loraDeps.js"
+  ]
+}
