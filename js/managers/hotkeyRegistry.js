@@ -133,8 +133,9 @@ export const HOTKEY_REGISTRY = [
         category:         'agent',
         scopeLabel:       'Agent',
         description:      'Toggle Agent mode',
-        // A flies left in the Scene workspace (scene.fly.left).
-        when:             ({ state }) => state.currentPage !== 'scene',
+        // A flies left in the Scene (scene.fly.left). The 360 player shares the Scene PAGE but
+        // flies nothing, so the gate is the Block, not the page (MPI-1238).
+        when:             () => !qs('.mpi-scene-block'),
         allowWhileTyping: false,
     },
 
@@ -324,6 +325,7 @@ export const HOTKEY_REGISTRY = [
         description:      'Delete selected entries',
         allowWhileTyping: false,
     },
+    // Also bound by the Scene and the 360 player (MPI-1238).
     {
         id:               'history.return.gallery',
         key:              'escape',
@@ -426,7 +428,7 @@ export const HOTKEY_REGISTRY = [
         description:      'Hold for Gallery, Models, Flows and your latest workspace',
         allowWhileTyping: false,
         when: ({ state }) =>
-            (state.currentPage === 'gallery' || state.currentPage === 'group-history') &&
+            ['gallery', 'group-history', 'scene'].includes(state.currentPage) &&
             !qs('.mpi-modal') &&
             !qs(MENTION_PICKER_OPEN_SELECTOR),
     },
@@ -445,7 +447,7 @@ export const HOTKEY_REGISTRY = [
         allowWhileTyping: false,
         when: ({ state }) =>
             APP_CONFIG.dev_mode &&
-            (state.currentPage === 'gallery' || state.currentPage === 'group-history') &&
+            ['gallery', 'group-history', 'scene'].includes(state.currentPage) &&
             !qs('.mpi-overlay--body'),
     },
 

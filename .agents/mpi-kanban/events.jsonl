@@ -6426,3 +6426,5 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1236", "at": "2026-10-21T16:20:44+01:00", "actor": "399bb0a6-e02c-4890-9982-7a73d7d63157", "from": "done", "to": "doing", "reason": "Reopened: Fabio asked to add MpiOllamaCloudDialog to the .claude/rules component maps"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1236", "at": "2026-10-21T16:21:14+01:00", "actor": "399bb0a6-e02c-4890-9982-7a73d7d63157", "from": "doing", "to": "done", "reason": "Rules maps updated for MpiOllamaCloudDialog"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1234", "at": "2026-10-21T16:23:21+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio live pass, CI green"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1238", "at": "2026-10-21T16:50:07+01:00", "actor": "8b1e9c1b-e7bb-4433-a3ab-bc61ab2e0269", "column": "todo", "title": "Scene and 360 player: Escape, A and Tab do nothing there"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1238", "at": "2026-10-21T16:50:28+01:00", "actor": "8b1e9c1b-e7bb-4433-a3ab-bc61ab2e0269", "from": "todo", "to": "doing"}

@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1238", "at": "2026-10-21T16:50:07+01:00", "actor": "8b1e9c1b-e7bb-4433-a3ab-bc61ab2e0269", "column": "todo", "title": "Scene and 360 player: Escape, A and Tab do nothing there"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1238", "at": "2026-10-21T16:50:28+01:00", "actor": "8b1e9c1b-e7bb-4433-a3ab-bc61ab2e0269", "from": "todo", "to": "doing"}

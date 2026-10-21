@@ -59,7 +59,7 @@ test('same-gate entries keep bind order and call a shared function once', async 
     } finally { offs.forEach(off => off()); }
 });
 
-test('on the Scene page A flies left and does not toggle Agent mode; elsewhere the reverse', async () => {
+test('in the Scene A flies left and does not toggle Agent mode; elsewhere the reverse', async () => {
     const { Hotkeys, state } = await load();
     const calls = [];
     const offs = [
@@ -68,19 +68,39 @@ test('on the Scene page A flies left and does not toggle Agent mode; elsewhere t
         Hotkeys.bind('scene.fly.left.release', () => calls.push('stop')),
     ];
     const was = state.currentPage;
+    const querySelector = document.querySelector;
     try {
         state.currentPage = 'scene';
+        document.querySelector = (sel) => (sel === '.mpi-scene-block' ? {} : null);
         Hotkeys._handle(key('a'), 'down');
         Hotkeys._handle(key('a'), 'up');
         assert.deepEqual(calls, ['fly', 'stop']);
         calls.length = 0;
+        document.querySelector = querySelector;
         state.currentPage = 'gallery';
         Hotkeys._handle(key('a'), 'down');
         Hotkeys._handle(key('a'), 'up');
         assert.deepEqual(calls, ['agent']);
     } finally {
         state.currentPage = was;
+        document.querySelector = querySelector;
         offs.forEach(off => off());
+    }
+});
+
+// MPI-1238: the 360 player shares the Scene PAGE but mounts no MpiSceneBlock, so A is Agent mode there.
+test('in the 360 player (Scene page, no Scene Block) A toggles Agent mode', async () => {
+    const { Hotkeys, state } = await load();
+    const calls = [];
+    const off = Hotkeys.bind('agentMode.toggle', () => calls.push('agent'));
+    const was = state.currentPage;
+    try {
+        state.currentPage = 'scene';
+        Hotkeys._handle(key('a'), 'down');
+        assert.deepEqual(calls, ['agent']);
+    } finally {
+        state.currentPage = was;
+        off();
     }
 });
 

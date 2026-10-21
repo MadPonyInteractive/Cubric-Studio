@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1238",
+  "title": "Scene and 360 player: Escape, A and Tab do nothing there",
+  "description": "Fabio 2026-10-21: in the 3D Scene and the 360 video player the app's hotkeys are dead. Escape never returns to the gallery (neither Block binds it), A (Agent mode) is gated off the whole Scene page so the 360 player loses it although nothing flies there, and the Tab radial is gated to gallery/group-history only. Scene keeps Q and A as fly keys.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-21T16:50:07+01:00",
+  "updated_at": "2026-10-21T16:50:28+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

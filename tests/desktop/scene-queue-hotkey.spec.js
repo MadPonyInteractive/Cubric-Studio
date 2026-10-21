@@ -6,6 +6,12 @@ const { launchApp, closeApp } = require('./launch');
  * able to access my queue by pressing Q, and I can't"). Q was bound by Gallery and Group History only;
  * every workspace now binds `bindQueueSlideOver` (js/shell/queueSlideOver.js). In the Scene itself Q
  * flies down, so there it must NOT open the queue, while the status bar's `generation-queue:open` still does.
+ *
+ * MPI-1238 — the rest of the app's keys on the Scene page (Fabio, 2026-10-21: "Q doesn't work there,
+ * A doesn't work there, and Escape doesn't work there"). Escape returns to the gallery from both Blocks,
+ * A toggles Agent mode in the 360 player (it flies left in the Scene), and Tab opens the radial in both.
+ * The keys are pressed after REAL clicks on the player's controls, not after a blur: a focused control
+ * is how the user meets them.
  */
 test.setTimeout(180000);
 
@@ -28,24 +34,31 @@ const queueOpen = (window) => window.evaluate(() => {
     return !!p && p.getAttribute('aria-expanded') !== 'false' && getComputedStyle(p).visibility !== 'hidden';
 });
 
+const agentMode = (window) => window.evaluate(async () => !!(await import('/js/state.js')).state.agentMode);
+
 async function openCard(window, id, root) {
     await window.evaluate((gid) => document
         .querySelector(`.mpi-gallery-grid__row-wrap[data-group-id="${gid}"] .mpi-group-card`)
         .dispatchEvent(new MouseEvent('click', { bubbles: true })), id);
     await expect(window.locator(root)).toHaveCount(1, { timeout: 10000 });
-    await window.evaluate(() => document.activeElement?.blur?.());
     await window.waitForTimeout(400);
 }
 
-async function backToGallery(window) {
-    await window.evaluate(async () => {
-        const { navigate, PAGE_GALLERY } = await import('/js/router.js');
-        navigate(PAGE_GALLERY);
-    });
+/** Escape leaves the workspace: the hotkey under test, and the way back for the next leg. */
+async function escapeToGallery(window, root) {
+    await window.keyboard.press('Escape');
+    await expect(window.locator(root)).toHaveCount(0, { timeout: 10000 });
     await expect(window.locator('.mpi-gallery-grid__row-wrap')).toHaveCount(2, { timeout: 15000 });
 }
 
-test('Q opens the queue in the 360 player; in the Scene Q flies, the status bar still opens it', async ({}, testInfo) => {
+async function radialOpens(window) {
+    await window.keyboard.down('Tab');
+    await expect(window.locator('.mpi-radial--visible')).toBeVisible({ timeout: 5000 });
+    await window.keyboard.up('Tab'); // released in the middle: picks nothing
+    await expect(window.locator('.mpi-radial--visible')).toHaveCount(0, { timeout: 5000 });
+}
+
+test('Scene page keys: Q, A, Tab and Escape in the 360 player; Escape and Tab in the Scene, where Q and A fly', async ({}, testInfo) => {
     const { app, window, pageErrors } = await launchApp(testInfo);
     try {
         await window.waitForTimeout(6000);
@@ -74,24 +87,48 @@ test('Q opens the queue in the 360 player; in the Scene Q flies, the status bar 
         }, { name: `mpi623-q-${Date.now()}`, folderPath: testInfo.outputPath('projects'), still: STILL, clip: CLIP });
         await expect(window.locator('.mpi-gallery-grid__row-wrap')).toHaveCount(2, { timeout: 15000 });
 
-        // ── The 360 player: Q toggles the queue open, and shut ──────────────────
+        // ── The 360 player, after the user has clicked its controls ─────────────
         await openCard(window, 'e2e-path', '.mpi-pano-video-block');
+        await window.locator('.mpi-pano-video-block__viewport').click();
+        await window.locator('.mpi-pano-video-block__scrub .mpi-progress__input').click();
+        await window.locator('.mpi-pano-video-block .mpi-radio-group__btn').nth(1).click();
+
         expect(await queueOpen(window), 'closed on arrival').toBe(false);
         await window.keyboard.press('q');
         await expect.poll(() => queueOpen(window), { timeout: 5000 }).toBe(true);
         await window.keyboard.press('q');
         await expect.poll(() => queueOpen(window), { timeout: 5000 }).toBe(false);
-        await backToGallery(window);
 
-        // ── The Scene: Q is fly-down, so no queue; the status bar's open still works ──
+        const before = await agentMode(window);
+        await window.keyboard.press('a');
+        await expect.poll(() => agentMode(window), { timeout: 5000 }).toBe(!before);
+        await window.keyboard.press('a');
+        await expect.poll(() => agentMode(window), { timeout: 5000 }).toBe(before);
+
+        await radialOpens(window);
+        await escapeToGallery(window, '.mpi-pano-video-block');
+
+        // ── The Scene: Q and A fly, so no queue and no Agent mode; the rest still answers ──
         await openCard(window, 'e2e-scene', '.mpi-scene-block');
-        await window.keyboard.down('q');
-        await window.waitForTimeout(300);
-        await window.keyboard.up('q');
+        await window.locator('.mpi-scene-block canvas').first().click();
+        const agentBefore = await agentMode(window);
+        for (const k of ['q', 'a']) {
+            await window.keyboard.down(k);
+            await window.waitForTimeout(300);
+            await window.keyboard.up(k);
+        }
         await window.waitForTimeout(500);
         expect(await queueOpen(window), 'Q flies in the Scene').toBe(false);
+        expect(await agentMode(window), 'A flies in the Scene').toBe(agentBefore);
         await window.evaluate(async () => (await import('/js/events.js')).Events.emit('generation-queue:open'));
         await expect.poll(() => queueOpen(window), { timeout: 5000 }).toBe(true);
+
+        // The open queue takes the first Escape; the second leaves.
+        await window.keyboard.press('Escape');
+        await expect.poll(() => queueOpen(window), { timeout: 5000 }).toBe(false);
+        await expect(window.locator('.mpi-scene-block')).toHaveCount(1);
+        await radialOpens(window);
+        await escapeToGallery(window, '.mpi-scene-block');
 
         expect(pageErrors, 'no page errors').toEqual([]);
     } finally {

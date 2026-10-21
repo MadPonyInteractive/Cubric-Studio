@@ -58,6 +58,7 @@ export const MpiHotkeys = ComponentFactory.create({
                                 <li><span>HOLD W / A / S / D</span><span>Fly forward, left, back, right</span></li>
                                 <li><span>HOLD Q / E</span><span>Fly down, up</span></li>
                                 <li><span>DRAG</span><span>Look around</span></li>
+                                <li><span>ESCAPE</span><span>Return to Gallery (also in the 360 player)</span></li>
                             </ul>
                         </div>
 

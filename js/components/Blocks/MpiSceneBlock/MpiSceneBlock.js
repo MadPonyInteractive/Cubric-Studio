@@ -36,7 +36,7 @@ import { state } from '../../../state.js';
 import { Events } from '../../../events.js';
 import { getSceneItem } from '../../../utils/assetKinds.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
-import { bindQueueSlideOver } from '../../../shell/queueSlideOver.js';
+import { bindQueueSlideOver, bindEscapeToGallery } from '../../../shell/queueSlideOver.js';
 import { Storage } from '../../../core/storage.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { updateGroup } from '../../../services/projectService.js';
@@ -278,6 +278,7 @@ export const MpiSceneBlock = ComponentFactory.create({
             Hotkeys.bind('scene.lens.up', () => stepLens(1)),
             Hotkeys.bind('scene.lens.down', () => stepLens(-1)),
             ...bindQueueSlideOver({ key: false }), // Q flies down here; the status bar still opens the queue
+            bindEscapeToGallery(),
         ];
         const offs = [
             on(canvasEl, 'pointerdown', (e) => { drag = [e.clientX, e.clientY]; canvasEl.setPointerCapture(e.pointerId); }),
