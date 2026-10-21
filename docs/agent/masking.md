@@ -88,8 +88,8 @@ instruction, never a paragraph.
 
 The denoise matters as much as the words, and the right value depends on the goal:
 
-- **0.3 to 0.5: add a little detail.** Sharpens what is there; where in that range depends
-  on the picture's resolution.
+- **0.3 to 0.5: add a little detail.** Sharpens what is there. The higher the picture's
+  resolution, the higher in the range you go.
 - **0.6 to 0.75: change what is there.** A hand with three fingers becoming a hand with five
   needs this. At this strength you get a NEW redhead woman, not a sharper one.
 
