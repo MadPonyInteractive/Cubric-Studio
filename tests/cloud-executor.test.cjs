@@ -391,16 +391,20 @@ test('a fan-out Stopped once SENT keeps what landed, and a failed call says noth
     assert.deepEqual(warnings, [], 'the user Stopped it: no toast for the call that failed');
 });
 
-test('a fan-out where every call fails settles as ONE error', async () => {
+test('a fan-out where every call is refused settles as ONE error and ONE toast', async () => {
     const seen = [];
-    const off = Events.on('ui:error', (p) => seen.push(p.title));
+    const dialogs = [];
+    const offW = Events.on('ui:warning', (p) => seen.push(p.message));
+    const offE = Events.on('ui:error', (p) => dialogs.push(p.title));
+    const off = () => { offW(); offE(); };
     const bodies = [];
     const { outcome, err, exec } = await dispatch(perCall(bodies, () => true),
         { modelId: FAN_MODEL, injectionParams: { Input_Batch_Size: 3 } }).finally(off);
     assert.equal(outcome, 'error');
     assert.equal(err.code, 'CONTENT_FILTERED');
     assert.equal(bodies.length, 3);
-    assert.equal(seen.length, 1, 'one dialog for the batch, not one per call');
+    assert.equal(seen.length, 1, 'one toast for the batch, not one per call');
+    assert.deepEqual(dialogs, [], 'a refusal is not an error dialog (MPI-1221)');
     assert.equal(jobOf(exec).phase, PHASES.ERROR);
 });
 

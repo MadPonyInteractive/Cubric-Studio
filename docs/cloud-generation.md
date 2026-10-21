@@ -109,7 +109,12 @@ The route answers `{ ok:false, error:{ code, message } }` with a message it WROT
 body and the key never reach a log or the renderer: a DeepInfra error body can carry account
 detail. Status mapping is `_codeForStatus`: 401/403 `NO_KEY`, 402 `NO_CREDIT`, 422 or a wrapped
 provider 4xx `PROVIDER_ERROR` (our malformed request, not a refusal), 400/500 `CONTENT_FILTERED`
-(the Gemini family refuses with a 500 and no image; a 200 with no output is the same refusal).
+(the Gemini family refuses with a 500 and no image; a 200 with no output is the same refusal). A wrapped 4xx naming
+safety/block/prohibit/policy/sensitive is a refusal too: Seedance 2.0 (BytePlus) answers a face it
+reads as a real person with `InputImageSensitiveContentDetected.PrivacyInformation`, and the log line
+carries that provider code (MPI-1221).
+
+`CONTENT_FILTERED` is a toast, never the error dialog: the model saying no is not a fault (MPI-1221).
 
 The dialog copy is `cloudErrorMessage` (`ERROR_COPY` in `cloudExecutor.js`):
 

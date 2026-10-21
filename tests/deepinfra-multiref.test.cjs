@@ -16,6 +16,8 @@ test('a refusal reads as filtered; a request we malformed reads as a provider er
     assert.equal(_codeForStatus(500, 'Request to https://aiplatform.googleapis.com/v1/x:generateContent failed with status: 400, response: {"error":{"status":"INVALID_ARGUMENT"}}'), 'PROVIDER_ERROR');
     assert.equal(_codeForStatus(422, ''), 'PROVIDER_ERROR');
     assert.equal(_codeForStatus(500, 'Request to https://x failed with status: 400, response: blocked by safety filters'), 'CONTENT_FILTERED');
+    // MPI-1221: Seedance 2.0 (BytePlus) refuses a face it reads as a real person this way.
+    assert.equal(_codeForStatus(500, 'Request to https://ark.ap-southeast.bytepluses.com/x failed with status: 400, response: {"error":{"code":"InputImageSensitiveContentDetected.PrivacyInformation"}}'), 'CONTENT_FILTERED');
     assert.equal(_codeForStatus(500, ''), 'CONTENT_FILTERED');
     assert.equal(_codeForStatus(402, ''), 'NO_CREDIT');
 });

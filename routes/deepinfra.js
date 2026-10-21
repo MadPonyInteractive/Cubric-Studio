@@ -114,7 +114,10 @@ function _codeForStatus(status, detail = '') {
     if (status === 401 || status === 403) return 'NO_KEY';
     if (status === 402) return 'NO_CREDIT';
     if (status === 422) return 'PROVIDER_ERROR';
-    if (_wrappedStatus(detail) && !/safety|block|prohibit|policy/i.test(detail)) return 'PROVIDER_ERROR';
+    // BytePlus (Seedance) refuses with a wrapped 400 whose code names it, e.g.
+    // `InputImageSensitiveContentDetected.PrivacyInformation` for a face it reads as a real
+    // person (MPI-1221).
+    if (_wrappedStatus(detail) && !/safety|block|prohibit|policy|sensitive/i.test(detail)) return 'PROVIDER_ERROR';
     // The Gemini family answers a refused prompt with a 500 and no image. It is a
     // frequent path for this product's material, not an edge case.
     if (status === 400 || status === 500) return 'CONTENT_FILTERED';
@@ -610,8 +613,11 @@ router.post('/deepinfra/generate', async (req, res) => {
         const detail = typeof json?.detail === 'string' ? json.detail : '';
         const wrapped = _wrappedStatus(detail);
         const host = wrapped && /Request to https?:\/\/([^/\s]+)/.exec(detail)?.[1];
+        // The provider's own error code is a bare identifier, safe to log, and the only way to
+        // tell a refusal from our bug after the fact (MPI-1221).
+        const providerCode = wrapped && /"code"\s*:\s*"([A-Za-z][\w.]{0,80})"/.exec(detail)?.[1];
         logger.warn('system', `deepinfra generate: ${model.id} answered HTTP ${upstream.status}`
-            + (wrapped ? ` (provider ${host || '?'} said ${wrapped})` : ''));
+            + (wrapped ? ` (provider ${host || '?'} said ${wrapped}${providerCode ? ` ${providerCode}` : ''})` : ''));
         return _fail(res, _codeForStatus(upstream.status, detail), null);
     }
 

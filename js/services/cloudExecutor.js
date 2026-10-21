@@ -280,6 +280,10 @@ export function runCloudCommand(payload) {
             const userMessage = cloudErrorMessage(code, message);
             if (code === 'LOW_BALANCE' || code === 'OVER_LIMIT') {
                 if (!payload.byAgent) Events.emit('ui:warning', { message: userMessage });
+            } else if (code === 'CONTENT_FILTERED') {
+                // The model saying no is its answer, not a fault: a toast, never the error
+                // dialog with its log and GitHub buttons (MPI-1221).
+                Events.emit('ui:warning', { message: userMessage });
             } else {
                 Events.emit('ui:error', { title: 'Cloud generation failed', message: userMessage });
             }
