@@ -29,6 +29,13 @@ we can make it a flow. This way, Cosmo does less work." Member of MPI-1134 (Stor
   `js/utils/sheetLayout.js`). New part is the number overlay (an opt-in label on each cell, so
   character sheets stay clean), plus Cosmo mapping "tile N" to the Nth panel card.
 
+## Maybe a Storyboard Element (Fabio, 2026-10-21, not decided)
+
+The storyboard could be an **Element** (MPI-815): its display image is the full numbered sheet, and
+it holds the panels as a stack or as numbered images, so the Story methods can take it like any
+other Element. "We'll see the best approach": weigh it against the card-per-panel and stack-card
+shapes in the open questions below.
+
 ## Where the panels go next
 
 - **Keyframes to Video Flow (MPI-1191):** the panels ARE the keys; the Flow fills the motion between
