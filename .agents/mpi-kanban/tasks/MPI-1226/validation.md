@@ -21,6 +21,16 @@ these results before typing, their message is the verdict, do not look or report
   read after the auto-look note; absent on the next quiet turn; absent on a wake).
 - `npm run lint` exit 0; `npm test` 3493 pass, 0 fail.
 
+## Second half (Fabio, live 2026-10-21, project "test")
+
+Fabio's live check of the first half: "Yeah I like this" got no extra looks (one auto-look only, log 11:36:47).
+But he typed it over the latents while edit_006 was still rendering: his turn answered, then the
+landing woke the chat and reported the same result again. Fix: a real turn marks every job in
+`_inflight` as `_watched`; a watched job that lands OK puts its notes in `_seenNotes` (read by
+the next real turn with the seen line, never by a wake, never counted by `canWake`). A failure
+still goes to `_notes` and wakes. Test: `a result the user typed over while it ran never wakes`
+(10/10 in agent-wake). `npm run lint` 0, `npm test` 3495 pass / 0 fail.
+
 ## Not done
 
 - The auto-look itself still runs at landing (it feeds the wake report and the next edit).

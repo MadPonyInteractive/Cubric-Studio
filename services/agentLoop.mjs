@@ -687,6 +687,11 @@ export class AgentLoop {
         // message pushed the moment a generation settles could land between a tool call and
         // its result, which a provider rejects.
         this._notes = [];
+        // MPI-1226: jobs the user typed a message while they ran, so they are watching the
+        // gallery. Their notes wait for the user's next message and never wake the chat:
+        // live, "I like this" typed over the latents got an answer, then a wake said it again.
+        this._watched = new Set();
+        this._seenNotes = [];
         this._notesProject = null; // folderPath whose project notes this context already lists
         this._globalListed = false; // the global notes are listed once per context (MPI-774 Phase 6)
         this._readIds = new Set(); // knowledge ids read in this context (the guide gate)
@@ -916,6 +921,7 @@ export class AgentLoop {
         this._sets.clear();
         this._projects.clear();
         this._notes = [];
+        this._seenNotes = [];
         this._notesProject = null;
         this._globalListed = false;
         this._readIds.clear();
@@ -2488,6 +2494,8 @@ ${knowledgeIndex}`.trim();
                     const ok = r && r.ok;
                     this._inflight.delete(toolCallId);
                     this._gpuJobs.delete(toolCallId);
+                    // A failure still wakes: the user cannot judge a picture that never came.
+                    const notes = this._watched.delete(toolCallId) && ok ? this._seenNotes : this._notes;
                     const cancelled = this._askedCancel.delete(toolCallId) && !ok;
                     // CANCELLED you did not ask for: the user pressed Stop (an empty run is NO_OUTPUT).
                     // Reported as a failure, the agent queued it again (MPI-1165).
@@ -2530,7 +2538,7 @@ ${knowledgeIndex}`.trim();
                     // A TEXT result (the Transcribe Flow, MPI-1071) makes no card: the note carries
                     // the words themselves, and the subtitles file when there is one.
                     const textOnly = ok && typeof r.output?.text === 'string' && !r.output?.filePath;
-                    this._notes.push(textOnly
+                    notes.push(textOnly
                         ? `[Finished, no card. The text: ${r.output.text}${r.output.srtPath ? ` Subtitles file: ${r.output.srtPath}` : ''}]`
                         : ok
                         ? `[Generation finished: card ${r.output?.groupId}, ${r.output?.type} ${r.output?.filePath}${r.output?.pixelDimensions ? `, ${r.output.pixelDimensions.w}x${r.output.pixelDimensions.h}` : ''}]`
@@ -2552,7 +2560,7 @@ ${knowledgeIndex}`.trim();
                                 // lizard rising behind a warship's bow as "sits on the bow", and the agent
                                 // redid the edit twice; Fabio liked the first best. A question about the
                                 // one doubted point is a fresh, focused read (it skips the saved caption).
-                                this._notes.push(`[You looked at it: ${lr.output?.text || ''} This is a general description and can misplace things: if it seems to miss the ask, check that point with look and a question before any redo.]`);
+                                notes.push(`[You looked at it: ${lr.output?.text || ''} This is a general description and can misplace things: if it seems to miss the ask, check that point with look and a question before any redo.]`);
                             }
                         } catch { /* look failure is non-fatal */ }
                     }
@@ -2564,6 +2572,7 @@ ${knowledgeIndex}`.trim();
                     this._inflight.delete(toolCallId);
                     this._gpuJobs.delete(toolCallId);
                     this._askedCancel.delete(toolCallId);
+                    this._watched.delete(toolCallId);
                     if (opts.batch) {
                         opts.batch.settle(opts.label, { ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } }, false, opts.batchSize || 1);
                         return;
@@ -3071,7 +3080,9 @@ ${knowledgeIndex}`.trim();
             // "Nice one, now add a dog", and the turn still spent three looks and a paragraph
             // confirming it landed. Typed after it landed, the message is his verdict. After the
             // notes, so it is read after the auto-look's "check that point" advice it overrides.
-            const notes = this._notes.splice(0);
+            // A message typed now means the user is watching whatever is still running.
+            if (!wake) for (const id of this._inflight.keys()) this._watched.add(id);
+            const notes = wake ? this._notes.splice(0) : [...this._seenNotes.splice(0), ...this._notes.splice(0)];
             const seenLine = !wake && !held && notes.some((n) => /^\[(Generation|Batch|Routine) finished/.test(n))
                 ? '[The user saw these results in the gallery before typing this message: their message is their verdict on them. Do not look at a result or report on it unless they ask about it; go straight to what they asked.]'
                 : '';

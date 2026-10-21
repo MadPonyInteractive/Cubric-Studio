@@ -44,6 +44,11 @@ function fakeTools() {
             settleOne = null;
             f({ ok: true, output });
         },
+        fail: () => {
+            const f = settleOne;
+            settleOne = null;
+            f({ ok: false, error: { code: 'NO_OUTPUT', message: 'nothing came out' } });
+        },
         readKnowledge: async () => ({ ok: true, entries: [] }),
         readMemory: async () => ({ ok: true, notes: [] }),
         listModels: async () => ({ ok: true, models: [], flows: [] }),
@@ -234,6 +239,31 @@ describe('the wake itself', () => {
         h.wake(A);
         await flush();
         assert.doesNotMatch(opening(h.seen.at(-1)), SEEN, 'a wake has no message to be a verdict');
+    });
+
+    // MPI-1226, second half (live 2026-10-21): "I like this" typed over the latents got an
+    // answer, then the landing woke the chat and said it all again.
+    test('a result the user typed over while it ran never wakes; it waits for their next message', async (t) => {
+        const h = await makeSessions();
+        t.after(h.restore);
+        const opening = (req) => String(req.messages.findLast((m) => m.role === 'user').content);
+
+        await h.send('make a fox', A);
+        await h.send('looking good so far', A);
+        h.tools.land();
+        await flush();
+        assert.equal(h.wake(A).woke, false, 'they are watching it: no second report');
+
+        await h.send('now a cat', A);
+        const typed = opening(h.seen.at(-1));
+        assert.match(typed, /Generation finished/, 'the result still reaches the model');
+        assert.match(typed, /saw these results in the gallery before typing/);
+
+        await h.send('make a fox', A);
+        await h.send('hmm', A);
+        h.tools.fail();
+        await flush();
+        assert.equal(h.wake(A).woke, true, 'a failure still speaks: there is no picture to judge');
     });
 
     test('a conversation that never ran, or has nothing pending, does not wake', async (t) => {

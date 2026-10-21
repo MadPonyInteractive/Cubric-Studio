@@ -56,7 +56,7 @@ file is the contract; that one is the evidence.
 | 7 | Auto / Ask first | Agent row setting; `mode` on `POST /agent/message`; system prompt rules |
 | 8 | Eyes = describer, question, crop; a vision model may `see` | `look` -> `POST /connector/describe`; graph title `Input_Describe_Prompt` |
 | 9 | Boxes for gizmo Flows | `look` with `box: true`; `params` on `POST /connector/generate` |
-| 10 | Looks at each image result, never regenerates alone | loop runs `look` after an image `agent:result`; a message typed after a result landed opens with `seenLine` (the user's verdict: no re-look, no report, MPI-1226) |
+| 10 | Looks at each image result, never regenerates alone | loop runs `look` after an image `agent:result`; a message typed after a result landed opens with `seenLine` (the user's verdict: no re-look, no report, MPI-1226); a job the user typed over while it ran is `_watched`, so its landing notes go to `_seenNotes`, wait for their next message and never wake (a failure still does) |
 | 11 | Fix advice | system prompt + `read_knowledge`; no tool (no History endpoint) |
 | 12 | Prompt not shown | `agent:tool.label` never carries it; the UI never renders `args.prompt` |
 | 13 | Honest limits, in character | limits list in the system prompt; `agent:message` |
