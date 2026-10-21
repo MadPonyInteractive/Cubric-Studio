@@ -65,7 +65,8 @@ For the edit family, a **verb** and a **target**. Add a detail only when the use
 The adjective list replaces the subject instead of transforming it, and the likeness goes.
 
 For `detail`, a few words naming what is in the crop. This beats every model guide's
-generation-prose length, which is for whole pictures.
+generation-prose length, which is for whole pictures. It is a `detail` rule only: an edit
+still says the whole change, sized to what the user asked for.
 
 - Right: `hand over arm`
 - Wrong: `Close-up photograph of a woman's left hand resting naturally on top of her own upper arm, ... five clearly separated fingers ...` (about 150 words)
@@ -85,8 +86,15 @@ instruction, never a paragraph.
 
 > beautiful redhead woman, green eyes, freckles
 
-Under about 0.5 denoise that sharpens what is there. Above it you get a NEW redhead woman, so
-the denoise matters as much as the words.
+The denoise matters as much as the words, and the right value depends on the goal:
+
+- **0.3 to 0.5: add a little detail.** Sharpens what is there; where in that range depends
+  on the picture's resolution.
+- **0.6 to 0.75: change what is there.** A hand with three fingers becoming a hand with five
+  needs this. At this strength you get a NEW redhead woman, not a sharper one.
+
+High `detail` does much of what `inpaint` does, and runs faster, so it is a fine pick for
+fixing a malformed part.
 
 **`inpaint`: add or remove.** To remove, say so; to add, name the thing. Which of the two add
 forms fits depends on how the mask is drawn, which you cannot see.
