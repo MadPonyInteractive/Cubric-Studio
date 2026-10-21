@@ -11,11 +11,24 @@ All three parts done and benched (2026-10-21, "Flux.3 integration 15"), committe
    size of ANOTHER ratio keeps 1 MP so it reframes. validation.md has the numbers.
    The "masked edit" in the old notes was wrong: Cosmo's run was a BOX edit.
 
-Next: Fabio's live look in the app (checklist last item), then close. No code left.
+Fabio's live look PASSED (2026-10-21): no zoom on chained edits; 8.6 MP edit time accepted
+("expected to take a long time anyway").
+
+NEXT PART (folded in, same system): chained FLUX.3 edits through Cosmo / MCP shift the COLOUR
+GRADE a little every now and then (much milder than before the fix, when he had to ask Cosmo to
+undo the saturation). His guess: Cosmo's edit prompts never ask to keep the colour grade.
+EVIDENCE (Fabio, 2026-10-21, project "Flux 3 tests", UFO cliff scene 1280x800): chain
+t2i_003 -> edit_044 -> edit_045 -> edit_046. 003 -> 044 colour barely moved; 045 shifted a lot;
+045 -> 046 "we used turbo, and there was a big difference there as well". Start from those four
+cards' sidecars: compare each prompt, Turbo flag and seed against the measured shift.
+Measure first: per-edit colour drift (mean Lab / saturation vs picture 1) over a chain on the
+bench, prompts with and without a keep-colour clause; read what Cosmo actually wrote (project
+"Flux 3 tests" sidecars, app.log `[agent]`). Then fix where the prompt is written: the FLUX.3
+agent guide `docs/agent/models/flux-3.md` (edit section) and/or the app's keep line
+(`KEEP_CLAUSE` / `withLayoutBoxes`, `js/data/layoutBoxes.js`); never a graph colour hack.
 
 ## Remaining Work
-1. Fabio live check: a chain of edits, a Custom same-ratio bigger-tier edit, one big photo
-   (now ~2.5x slower: 8.6 MP edit ~8.5 min Turbo on 16 GB).
+1. Colour grade drift on chained Cosmo/MCP edits: measure, then fix in the prompt path.
 
 ## Verification
 **Verify mode:** auto

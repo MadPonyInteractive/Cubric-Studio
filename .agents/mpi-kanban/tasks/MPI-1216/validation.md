@@ -55,3 +55,4 @@ Fix `_ref_matches_frame` (generate_flux3.py): picture 1 resized (ImageResizeKJv2
 - `tests/flux3-edit-size.test.cjs` 7/7 (3 new fail on the old graph); `npm test` 3494 tests,
   3492 pass, 0 fail, 2 skipped. Agent corpus/budget tests pass with the flux-3.md line.
 - CI run 39536261773 on `8fb90437`: success. Card held in validating for Fabio's live look.
+- Fabio live (2026-10-21, after restart): "this time there's no zoom"; 8.6 MP edit time fine. Left: a mild colour-grade shift on some chained Cosmo edits (next part).
