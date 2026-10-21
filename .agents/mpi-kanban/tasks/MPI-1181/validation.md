@@ -288,3 +288,6 @@ under gpu_lease; the box table appended to the prompt exactly as `Flux3LayoutPro
   box was drawn on), Layout_Boxes = panel edit box, Input_custom_size false + no Width/Height (log: customSize=false
   defaulted, no tier sent), 1136x912 = source 5:4 kept, prompt ends 'Keep ... unchanged'. Five women sit inside
   the box (x .36-.79, y .51-.81); leaning figure, crouch and distant figures kept.
+- 2026-10-21 POD PROVEN (Fabio, RunPod, stable image v0.28.0 = ComfyUI 0.42.1): licence gate + install, t2i_006
+  (base, 25 s), edit_032 + edit_033 (Turbo, 11 s each) all ran. Found there: the edit resizes picture 1 to 1 MP
+  (size drifts edit to edit) and box edits redraw the whole picture - follow-up card MPI-1216.
