@@ -426,6 +426,46 @@ export class OllamaEngine {
         handle(buf + decoder.decode());
         if (!finished) throw new Error(`Ollama pull of ${model} ended before it finished.`);
     }
+
+    /**
+     * Who the Ollama app is signed in as (MPI-1236): a cloud model runs only on a signed-in
+     * Ollama. `POST` only, `GET /api/me` answers 405. Signed out, Ollama answers 401 with the
+     * `signin_url` that links this computer to an account (read from Ollama's source; this
+     * box was never signed out to see it).
+     */
+    async account() {
+        const res = await fetch(`${this.baseUrl}/api/me`, { method: 'POST', signal: AbortSignal.timeout(5_000) });
+        const body = await res.json().catch(() => ({}));
+        return res.ok
+            ? { signedIn: true, name: body.name || body.email || '' }
+            : { signedIn: false, signinUrl: body.signin_url || null };
+    }
+}
+
+/**
+ * Ollama Cloud (MPI-1236): the models Ollama runs on its own servers. The local app reaches
+ * one by its cloud name, the catalogue name plus `:cloud`, or `-cloud` on a tag that is
+ * already there (`minimax-m3.1-flash` -> `minimax-m3.1-flash:cloud`, `gpt-oss:20b` ->
+ * `gpt-oss:20b-cloud`). Checked against Ollama 0.35.1 `/api/show`, 2026-10-21.
+ */
+export function ollamaCloudName(name) {
+    return name.includes(':') ? `${name}-cloud` : `${name}:cloud`;
+}
+
+/** `{ id, vision }` per catalogue model that can call tools, the only kind that can be the agent. */
+export function ollamaCloudAgentModels(body) {
+    return (Array.isArray(body?.models) ? body.models : [])
+        .filter((m) => typeof m?.name === 'string' && Array.isArray(m.capabilities) && m.capabilities.includes('tools'))
+        .map((m) => ({ id: ollamaCloudName(m.name), vision: m.capabilities.includes('vision') }))
+        // ollama.com answers in a different order on every call: by name, so a list reopened stays put.
+        .sort((a, b) => a.id.localeCompare(b.id));
+}
+
+/** Ollama's public, keyless cloud catalogue, `GET https://ollama.com/api/tags`. Throws on failure. */
+export async function fetchOllamaCloudModels() {
+    const res = await fetch('https://ollama.com/api/tags', { signal: AbortSignal.timeout(10_000) });
+    if (!res.ok) throw new Error(`ollama.com answered ${res.status} ${res.statusText}`);
+    return ollamaCloudAgentModels(await res.json());
 }
 
 /**

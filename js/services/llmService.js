@@ -473,6 +473,20 @@ export function pullOllamaModel(modelId) {
     return postOllama('/llm/ollama/pull', { modelId });
 }
 
+/** Ollama's cloud models the agent can use, which are added, and the sign-in (MPI-1236). Never rejects. */
+export async function ollamaCloudModels() {
+    try {
+        return await (await fetch('/llm/ollama/cloud')).json();
+    } catch (err) {
+        return { ok: false, error: (err && err.message) || 'The app server did not answer.' };
+    }
+}
+
+/** Add one Ollama Cloud model to the user's Ollama: a name, nothing downloaded. */
+export function addOllamaCloudModel(id) {
+    return postOllama('/llm/ollama/cloud/add', { id });
+}
+
 /**
  * The enhancer graph's own text pipeline, read off the graph (MPI-677, 2026-09-13).
  *

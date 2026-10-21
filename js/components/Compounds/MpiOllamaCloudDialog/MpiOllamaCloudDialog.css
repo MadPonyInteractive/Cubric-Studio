@@ -1,0 +1,90 @@
+/* ── MpiOllamaCloudDialog (MPI-1236) ─────────────────────────────────────────── */
+
+.mpi-ollama-cloud {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--surface-1);
+    border-radius: var(--r-1);
+}
+
+.mpi-ollama-cloud__title {
+    font-size: var(--t-lg);
+    font-weight: 700;
+    color: var(--ink-1);
+    line-height: 1.2;
+}
+
+.mpi-ollama-cloud__hint,
+.mpi-ollama-cloud__account-text,
+.mpi-ollama-cloud__status {
+    font-size: var(--t-sm);
+    color: var(--ink-2);
+    line-height: 1.5;
+}
+
+.mpi-ollama-cloud__account {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+}
+
+.mpi-ollama-cloud__account-text {
+    flex: 1 1 16rem;
+    color: var(--ink-1);
+}
+
+.mpi-ollama-cloud__account-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* The catalogue is ~20 rows: it scrolls, the dialog does not grow off screen. */
+.mpi-ollama-cloud__list {
+    display: flex;
+    flex-direction: column;
+    max-height: 50vh;
+    overflow-y: auto;
+    border-top: 1px solid var(--line);
+}
+
+.mpi-ollama-cloud__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--line);
+}
+
+.mpi-ollama-cloud__name {
+    display: flex;
+    flex-direction: column;
+    font-size: var(--t-md);
+    color: var(--ink-1);
+    word-break: break-word;
+}
+
+.mpi-ollama-cloud__meta {
+    font-size: var(--t-xs);
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.mpi-ollama-cloud__status {
+    user-select: text;
+}
+
+.mpi-ollama-cloud__status[hidden] {
+    display: none;
+}
+
+.mpi-ollama-cloud__actions {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--line);
+}

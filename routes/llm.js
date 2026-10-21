@@ -22,6 +22,8 @@
  *   POST /llm/ollama/start    -> { status: 'running'|'started'|'missing'|'failed' }
  *   POST /llm/ollama/install  -> { ok }   ok:false = no silent install here, open the download page
  *   POST /llm/ollama/pull     -> { ok } | { ok:false, error }   body { modelId }
+ *   GET  /llm/ollama/cloud    -> { ok, running, signedIn, account, signinUrl, models: [{ id, vision, added }] }
+ *   POST /llm/ollama/cloud/add -> { ok, id } | { ok:false, error }   body { id } (MPI-1236)
  *   POST /llm/transcribe      -> { ok, text, backend, model } | { ok:false, error:{ code, message } }
  *                                body: a recording; speech to text on Ollama's Gemma 4 12B (MPI-1071)
  *   POST /llm/connection/probe  -> { ok, latencyMs, modelCount }      body { profileId }
@@ -306,6 +308,61 @@ router.post('/llm/ollama/pull', async (req, res) => {
     } catch (err) {
         logger.error('system', `ollama pull failed to start: ${err && err.message}`);
         res.json({ ok: false, error: (err && err.message) || 'The download could not start.' });
+    }
+});
+
+/**
+ * GET /llm/ollama/cloud — Ollama's cloud models the agent can use (MPI-1236), for Settings'
+ * "Add a cloud model" dialog: `{ ok, running, signedIn, account, signinUrl, models: [{ id,
+ * vision, added }] }`. The list is ollama.com's own catalogue; `signedIn` is null while Ollama
+ * is not running, because only a running Ollama can say.
+ */
+router.get('/llm/ollama/cloud', async (_req, res) => {
+    try {
+        const { OllamaEngine, fetchOllamaCloudModels } = await engines();
+        const engine = new OllamaEngine();
+        const running = await engine.isRunning();
+        const [models, account, installed] = await Promise.all([
+            fetchOllamaCloudModels(),
+            running ? engine.account().catch(() => null) : null,
+            running ? engine.listModels() : [],
+        ]);
+        res.json({
+            ok: true,
+            running,
+            signedIn: account ? account.signedIn : null,
+            account: account?.name || '',
+            signinUrl: account?.signinUrl || null,
+            models: models.map((m) => ({ ...m, added: installed.includes(m.id) })),
+        });
+    } catch (err) {
+        logger.warn('system', `ollama cloud list failed: ${err && err.message}`);
+        res.json({ ok: false, error: `Could not read Ollama's list of cloud models (${err && err.message}).` });
+    }
+});
+
+/**
+ * POST /llm/ollama/cloud/add { id } — add one cloud model to the user's Ollama (MPI-1236).
+ * Reached only from the user's click on Add. A cloud model is a name with nothing to download,
+ * so the pull lands in a second and this answers when it has. Only a name ollama.com's catalogue
+ * lists reaches `ollama pull`, as `_pullable` guards the downloads.
+ */
+router.post('/llm/ollama/cloud/add', async (req, res) => {
+    const id = req.body && req.body.id;
+    try {
+        const { OllamaEngine, fetchOllamaCloudModels } = await engines();
+        if (!(await fetchOllamaCloudModels()).some((m) => m.id === id)) {
+            return res.json({ ok: false, error: `Ollama Cloud has no model called ${id}.` });
+        }
+        const status = await ollamaLifecycle.ensureOllama();
+        if (status === 'missing') return res.json({ ok: false, error: 'Install Ollama first: cloud models run through the Ollama app.' });
+        if (status === 'failed') return res.json({ ok: false, error: 'Ollama did not start, so nothing could be added to it.' });
+        await new OllamaEngine().pull(id, () => {});
+        logger.info('system', `ollama cloud model added: ${id}`);
+        res.json({ ok: true, id });
+    } catch (err) {
+        logger.error('system', `ollama cloud add failed (${id}): ${err && err.message}`);
+        res.json({ ok: false, error: (err && err.message) || 'The model could not be added.' });
     }
 });
 

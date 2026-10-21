@@ -1688,6 +1688,24 @@
  */
 
 /**
+ * @typedef {Object} MpiOllamaCloudDialogProps (Compound — js/components/Compounds/MpiOllamaCloudDialog, MPI-1236)
+ * No props. Lists ollama.com's cloud models that can call tools, each with Add (`POST /llm/ollama/cloud/add`,
+ * a name, nothing downloaded), and whether the Ollama app is signed in (Sign in + Check again when not).
+ *
+ * Instance methods (on instance.el):
+ *   show() — Portals the dialog (via MpiModal) and reads `GET /llm/ollama/cloud` again.
+ *   hide() — Removes it.
+ *
+ * Usage:
+ *   const d = MpiOllamaCloudDialog.mount(document.createElement('div'));
+ *   d.on('added', ({ id }) => pick(id));
+ *   d.el.show();
+ *
+ * Emits:
+ * 'added' { id: string } — the model was added to the user's Ollama.
+ */
+
+/**
  * @typedef {Object} MpiAddToProjectProps (Compound — js/components/Compounds/MpiAddToProject)
  * @property {Array<{id:string,name:string}>} [projects=[]] - Selectable target projects for the dropdown.
  * @property {Function} [onConfirm] - async (projectId: string) => void. Copies the selected cards.

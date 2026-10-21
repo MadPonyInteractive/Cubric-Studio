@@ -6,6 +6,7 @@ import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
 import { MpiSpinner } from '../../Primitives/MpiSpinner/MpiSpinner.js';
 import { MpiProgressBar } from '../../Primitives/MpiProgressBar/MpiProgressBar.js';
 import { MpiOllamaSetup } from '../../Compounds/LandingPages/MpiOllamaSetup/MpiOllamaSetup.js';
+import { MpiOllamaCloudDialog } from '../../Compounds/MpiOllamaCloudDialog/MpiOllamaCloudDialog.js';
 import { secretsClient } from '../../../core/secretsClient.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { hasNoEngine } from '../../../services/engineGate.js';
@@ -228,6 +229,7 @@ export const MpiLlmSettings = ComponentFactory.create({
                             <div id="mpiSettingsAgentModelSlot"></div>
                             <span class="mpi-settings__hint" id="mpiSettingsAgentModelNote"></span>
                             <div id="mpiSettingsAgentInstallSlot"></div>
+                            <div id="mpiSettingsAgentCloudSlot"></div>
                         </div>
                         <div class="mpi-settings__form-group">
                             <label class="mpi-settings__field-label">Agent mode</label>
@@ -276,6 +278,9 @@ export const MpiLlmSettings = ComponentFactory.create({
         let _connProfileInst = null;
         const _connInsts = [];
         let _agentModelInst = null;
+        /** "Add a cloud model" under the agent row on Ollama, and the dialog it opens (MPI-1236). */
+        let _cloudBtnInst = null;
+        let _cloudDialog = null;
         /** Each Remote row's Download row (`_renderInstall`), by job. */
         const _installInsts = {};
         /** The spinner shown while the section reads its state (MPI-774). */
@@ -351,13 +356,13 @@ export const MpiLlmSettings = ComponentFactory.create({
 
         function _destroyControls() {
             [_backendInst, _modelInst, _ollamaInst, _describeInst, _describeModelInst,
-                _connProfileInst, _agentModelInst, _loadingSpinner, ..._connInsts, ..._benchInsts,
+                _connProfileInst, _agentModelInst, _loadingSpinner, _cloudBtnInst, _cloudDialog, ..._connInsts, ..._benchInsts,
                 ...Object.values(_installInsts)].forEach(i => i?.destroy());
             _connInsts.length = 0;
             _benchInsts.length = 0;
             for (const job of Object.keys(_installInsts)) delete _installInsts[job];
             _backendInst = _modelInst = _ollamaInst = _describeInst = _describeModelInst = null;
-            _connProfileInst = _agentModelInst = _loadingSpinner = null;
+            _connProfileInst = _agentModelInst = _loadingSpinner = _cloudBtnInst = _cloudDialog = null;
         }
 
         /**
@@ -681,7 +686,7 @@ export const MpiLlmSettings = ComponentFactory.create({
                     });
                 const options = [
                     // In the meta, under the name: the stacked list lifts its 11ch cap (MpiLlmSettings.css).
-                    ...tested.map(m => ({ value: m.id, label: m.id, meta: _modelMeta(m, _agentTestLabel(scoreOf(m), scoreOf(m) === m.communityTest)) })),
+                    ...tested.map(m => ({ value: m.id, label: m.id, meta: _modelMeta(m, _agentTestLabel(scoreOf(m), scoreOf(m) === m.communityTest, _isOllamaCloud(m.id))) })),
                     ...models.filter(m => !scoreOf(m)).map(m => ({ value: m.id, label: m.id, meta: _modelMeta(m) })),
                 ];
                 if (value && _remote?.ok && !options.some(o => o.value === value)) options.unshift({ value, label: value, meta: 'Not listed' });
@@ -923,6 +928,7 @@ export const MpiLlmSettings = ComponentFactory.create({
             _agentModelInst?.destroy();
             _agentModelInst = null;
             _renderInstall('agent', null);
+            _renderCloudButton(root);
             if (_remote === undefined) {
                 _setText(root, '#mpiSettingsAgentModelNote', 'Loading the connection\'s models…');
                 return;
@@ -948,6 +954,30 @@ export const MpiLlmSettings = ComponentFactory.create({
             _setText(root, '#mpiSettingsAgentModelNote', _remote?.ok
                 ? (recommended ? 'The models on top ran the agent tests, ours or your own benchmark: each shows its score and cost.' :'We have not tested the agent on this provider. Pick a model that can call tools, then use Test tool use and Benchmark this model.')
                 : _errorText(_remote));
+        }
+
+        /**
+         * MPI-1236: on the Ollama connection, "Add a cloud model" under the agent row opens the
+         * dialog of Ollama's cloud models. One added becomes the agent model and the list is re-read,
+         * so it shows in the dropdown at once.
+         */
+        function _renderCloudButton(root) {
+            _cloudBtnInst?.destroy();
+            _cloudBtnInst = null;
+            const slot = qs('#mpiSettingsAgentCloudSlot', root);
+            const { profileId } = Storage.getLlmConnection();
+            if (!slot || profileId !== 'ollama') return;
+            _cloudBtnInst = MpiButton.mount(slot, { text: 'Add a cloud model', variant: 'secondary', size: 'sm', info: 'Models Ollama runs on its own servers, free up to an allowance on a free Ollama account' });
+            _cloudBtnInst.on('click', () => {
+                if (!_cloudDialog) {
+                    _cloudDialog = MpiOllamaCloudDialog.mount(document.createElement('div'));
+                    _cloudDialog.on('added', ({ id }) => {
+                        Storage.setAgentPrefs({ ...Storage.getAgentPrefs(), model: id });
+                        _refreshModels(root, 'ollama');
+                    });
+                }
+                _cloudDialog.el.show();
+            });
         }
 
         // MPI-1071: dictation runs on Remote = the DeepInfra key (`/deepinfra/transcribe`) whichever
@@ -1229,9 +1259,10 @@ export const MpiLlmSettings = ComponentFactory.create({
          * provider that reports no cost. "(older tests)" when the score predates the tests the app ships;
          * "(community, 9 runs)" when it is the median of everyone's shared runs (MPI-965).
          */
-        function _agentTestLabel(score, community = false) {
+        function _agentTestLabel(score, community = false, cloud = false) {
             const { passed, cases, perChat, runs } = score;
-            const cost = perChat ? `$${(perChat * 100).toFixed(2)}/100 chats` : perChat === 0 ? 'runs on your GPU' : '';
+            // An Ollama Cloud model bills no money per chat either, but its GPU is Ollama's (MPI-1236).
+            const cost = perChat ? `$${(perChat * 100).toFixed(2)}/100 chats` : perChat === 0 && !cloud ? 'runs on your GPU' : '';
             const source = community ? ` (community, ${runs} runs)` : '';
             return [`${passed}/${cases} tests${source}${_currentTests(score) ? '' : ' (older tests)'}`, cost].filter(Boolean).join(' · ');
         }
@@ -1239,7 +1270,12 @@ export const MpiLlmSettings = ComponentFactory.create({
         /** An option's meta line: `lead` first, then the context window, then "Not downloaded"
          *  for a recommended Ollama model the user's Ollama lacks (MPI-993). */
         function _modelMeta(m, ...lead) {
-            return [...lead, _windowLabel(m), m.installed === false && 'Not downloaded'].filter(Boolean).join(' · ');
+            return [...lead, _isOllamaCloud(m.id) && 'Runs on Ollama\'s servers', _windowLabel(m), m.installed === false && 'Not downloaded'].filter(Boolean).join(' · ');
+        }
+
+        /** An Ollama Cloud model by the name the local app lists it under: `x:cloud` or `x:tag-cloud` (MPI-1236). */
+        function _isOllamaCloud(id) {
+            return Storage.getLlmConnection().profileId === 'ollama' && /[:-]cloud$/.test(id);
         }
 
         function _windowLabel(m) {

@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1236",
+  "title": "Agent settings: add an Ollama Cloud model without a terminal",
+  "description": "Users cannot reach Ollama Cloud models (free ones like MiniMax M3.1 Flash beat local agents); an Add a model window adds one in-app with a sign-in check.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-21T15:49:25+01:00",
+  "updated_at": "2026-10-21T15:52:01+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
