@@ -1,0 +1,18 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1233",
+  "title": "Cosmo compacts at a share of the model's window again: 20% on 1M, 50% below",
+  "description": "Fabio 2026-10-21: drop MPI-1125's fixed 128k cap. Compact at 20% of a >=1M window, 50% of a smaller one; the long-chat card stays at half that.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-21T15:13:40+01:00",
+  "updated_at": "2026-10-21T15:17:11+01:00",
+  "links": {
+    "brief": "brief.md",
+    "checklist": "checklist.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "validation": "validation.md"
+  }
+}

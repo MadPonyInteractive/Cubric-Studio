@@ -1,0 +1,3 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1233", "at": "2026-10-21T15:13:40+01:00", "actor": "11bdb103-a19e-47f1-952a-039fff28283a", "column": "todo", "title": "Cosmo compacts at a share of the model's window again: 20% on 1M, 50% below"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1233", "at": "2026-10-21T15:13:40+01:00", "actor": "11bdb103-a19e-47f1-952a-039fff28283a", "from": "todo", "to": "doing", "reason": "Fabio asked for it in chat, 2026-10-21"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1233", "at": "2026-10-21T15:17:11+01:00", "actor": "11bdb103-a19e-47f1-952a-039fff28283a", "from": "doing", "to": "done", "reason": "20% of a 1M+ window, 50% below, no cap; lint + 3497 tests pass"}
