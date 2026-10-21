@@ -4,7 +4,7 @@
   "fromVersion": "1.5.0",
   "bundleFromVersion": null,
   "oldestServedVersion": "1.5.0",
-  "oldestServedReason": "Every 1.4.x applier aborts on the memory-mapped icudtl.dat (UNKNOWN, fixed in 1.5.0), measured on a 1.4.2 copy at the 2.0.0 release (MPI-595). 2.1.2 ships the same FULL bundle shape, so the line holds. The release body sends pre-1.5.0 installs to the full build.",
+  "oldestServedReason": "Every 1.4.x applier aborts on the memory-mapped icudtl.dat (UNKNOWN, fixed in 1.5.0), measured on a 1.4.2 copy at the 2.0.0 release (MPI-595). 2.1.2 ships the same FULL bundle shape, so the line holds. From 2.1.2 the release body no longer carries the pre-1.5.0 'take the full zip' section (Fabio, 2026-10-21: no install below 1.5.0 remains).",
   "platform": "win32",
   "bundle": "CubricStudio-windows-x64-update-v2.1.2.zip",
   "bundleBuildHash": "40c077e03c96",
