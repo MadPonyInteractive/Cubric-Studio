@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1217", "at": "2026-10-21T01:19:04+01:00", "actor": "claude", "column": "doing", "title": "Pre-push runs unit tests + lint before a code push to master"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1217", "at": "2026-10-21T01:50:49+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Gate shipped in 4fdfc625; pushed through itself green; CI 39522176981 green"}
