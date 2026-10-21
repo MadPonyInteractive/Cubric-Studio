@@ -87,12 +87,15 @@ Qwen-Image 2.1 (`qwen-image-2-1`) is a different model with its own guide,
 
 Two different shapes, and the op tells you which one you are in.
 
-Generation and structure ops (`t2i`, `i2i`, `control`, `detail`, `upscale`, all
+Generation and structure ops (`t2i`, `i2i`, `control`, `upscale`, all
 enhanced through this recipe): one paragraph, the subject in the opening words, this
 model weights what it reads first. Around 55 words. State the lighting's source,
 quality, direction and colour every time; it is the strongest lever this model has.
 Name real materials ("brushed aluminium," not "metal") and real camera gear for a
 photoreal target.
+
+`detail` is NOT this shape: a few words naming what is inside the mask, `hand over arm`
+(`app:masking`).
 
 Every edit op (`kleinEdit`, `edit`, `qwenEdit`) is an instruction, and the enhancer
 never touches any of them; you write the final text. Say what changes, not what the

@@ -50,7 +50,7 @@ result is not for commercial use, and never pick it when another model can do th
 
 Two shapes, and the op tells you which.
 
-**Generation ops (`t2i`, `i2i`, `control`, `detail`, `upscale`; Enhance uses this
+**Generation ops (`t2i`, `i2i`, `control`, `upscale`; Enhance uses this
 recipe).** One long English paragraph describing the FINISHED picture as someone looking
 at it would, never instructions to a renderer. Its maker's own prompt rewriter turns any
 request, three words or three hundred, into a description of about 400 to 500 words; aim
@@ -74,7 +74,8 @@ Colours carry a modifier (deep navy, pale cream), surfaces a material (brushed m
 coarse linen), counts are words (three), ages are life stages (in her thirties). No
 quality words (masterpiece, 8K, highly detailed), no ratio, no "create" or "make sure".
 
-On `detail`, describe only what is inside the mask, as a close-up of it. On `upscale`,
+`detail` is NOT this shape: a few words naming what is inside the mask, `hand over arm`
+(`app:masking`). On `upscale`,
 describe the picture as it already is. On `i2i`, describe the picture you want, not the
 change.
 

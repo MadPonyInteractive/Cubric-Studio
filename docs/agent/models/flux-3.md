@@ -71,7 +71,7 @@ the prompt yourself.
 
 Two shapes, and the op tells you which.
 
-**Generation ops (`t2i`, `i2i`, `detail`, `upscale`).** ONE continuous prose block, typically
+**Generation ops (`t2i`, `i2i`, `upscale`).** ONE continuous prose block, typically
 100 to 350 words (more for a complex scene), in the generative voice: it states the picture,
 never "this image shows", "we can see" or "is visible".
 
@@ -99,7 +99,8 @@ physically there. No quality words, no emotion judgments, no closing sentence ab
 Depth of field, bokeh or blur only when asked for or implied. No invented names, brands,
 logos or celebrities; keep the ones the user named. All prose in English.
 
-On `detail`, describe only what is inside the mask, as a close-up of it. On `i2i` and
+`detail` is NOT this shape: a few words naming what is inside the mask, `hand over arm`
+(`app:masking`). On `i2i` and
 `upscale`, describe the picture you want, not the change.
 
 **`edit` and `inpaint` are an INSTRUCTION** on the images, one prose block, scaled to the

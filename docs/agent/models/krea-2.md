@@ -61,11 +61,14 @@ Both run `t2i`, `i2i`, `control`, `krea2Edit`, `inpaint`, `detail`, `upscale`.
 
 ## The prompt shape
 
-`t2i`, `i2i`, `control`, `detail` and `upscale` all enhance through the same recipe:
+`t2i`, `i2i`, `control` and `upscale` all enhance through the same recipe:
 one flowing paragraph, the subject named in the opening words, then scale and
 perspective, style or medium, lighting and mood, palette, composition, texture. Around
 150 words is the target. No comma soup, no `(word:1.5)` weighting: the encoder reads
 language, and weighting distorts the whole prompt rather than one token.
+
+`detail` is NOT this shape: a few words naming what is inside the mask, `hand over arm`
+(`app:masking`).
 
 `krea2Edit` and `inpaint` are instructions, not descriptions, and the enhancer never
 touches either. You write the final text yourself and submit it for both, and for `inpaint`

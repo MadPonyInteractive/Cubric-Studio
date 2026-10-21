@@ -64,13 +64,24 @@ For the edit family, a **verb** and a **target**. Add a detail only when the use
 
 The adjective list replaces the subject instead of transforming it, and the likeness goes.
 
+For `detail`, a few words naming what is in the crop. This beats every model guide's
+generation-prose length, which is for whole pictures.
+
+- Right: `hand over arm`
+- Wrong: `Close-up photograph of a woman's left hand resting naturally on top of her own upper arm, ... five clearly separated fingers ...` (about 150 words)
+
+Measured on a melted hand: the long one failed on Klein and Qwen-Image 2.1 alike;
+`hand over arm` fixed it on the same mask. Retry a failed `detail` by changing the denoise,
+never by adding words.
+
 ## The shape depends on the op
 
 **`edit` / `kleinEdit` / `krea2Edit` / `qwenEdit`: an instruction.** A verb on what is there.
 
 > convert the boy into a demon version of himself
 
-**`detail`: a description of what is already there.** A noun phrase, never an instruction.
+**`detail`: a description of what is already there.** A short noun phrase, never an
+instruction, never a paragraph.
 
 > beautiful redhead woman, green eyes, freckles
 
