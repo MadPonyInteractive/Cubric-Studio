@@ -6388,3 +6388,5 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1220", "at": "2026-10-21T02:07:17+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "canvas press drops text focus; regression spec red-without/green-with"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1220", "at": "2026-10-21T02:09:35+01:00", "actor": "claude", "from": "done", "to": "doing", "reason": "reopen: done-gate needs CI on the code commit first"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1220", "at": "2026-10-21T02:26:09+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on 6d22f010 (run 39525834185)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1216", "at": "2026-10-21T01:44:05+01:00", "actor": "Flux.3 integration 14", "from": "todo", "to": "doing", "reason": "Fabio: go on the edit-size fix"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1222", "at": "2026-10-21T02:31:11+01:00", "actor": "Flux.3 integration 14", "column": "todo", "title": "Dev radial Restart engine restarts NOW, even mid-generation (Settings keeps the wait)"}

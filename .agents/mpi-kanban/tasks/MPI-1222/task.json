@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1222",
+  "title": "Dev radial Restart engine restarts NOW, even mid-generation (Settings keeps the wait)",
+  "description": "The dev radial's Restart engine waits for the queue to finish (MPI-805 schedule), so a wedged or VRAM-starved generation blocks the very restart meant to fix it. Dev radial: cancel what is running and restart at once. Settings restart keeps waiting.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-10-21T02:31:11+01:00",
+  "updated_at": "2026-10-21T02:31:11+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

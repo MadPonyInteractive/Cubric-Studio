@@ -1,0 +1,9 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-1216/",
+    "comfy_workflows/scripts/workflow_generation/generate_flux3.py",
+    "comfy_workflows/flux3_t2i.json",
+    "tests/flux3-edit-size.test.cjs"
+  ]
+}

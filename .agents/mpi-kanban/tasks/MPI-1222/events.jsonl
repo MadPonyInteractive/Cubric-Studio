@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1222", "at": "2026-10-21T02:31:11+01:00", "actor": "Flux.3 integration 14", "column": "todo", "title": "Dev radial Restart engine restarts NOW, even mid-generation (Settings keeps the wait)"}

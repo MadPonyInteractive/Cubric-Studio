@@ -27,7 +27,10 @@ Also seen: Cosmo's t2i with no size sent, settings panel shut, ran at the graph'
 768x1376 (9:16). Unpinned resolveNamedParams has no project, so nothing resolves a ratio.
 Not raised by Fabio as a bug; mention it, do not fix unasked.
 
-## 2. Masked box edits - FABIO'S DECISION, NOT ANSWERED YET
+## 2. Masked box edits - DECIDED NO (Fabio, 2026-10-21)
+
+"You would be fighting the whole purpose of the model having boxes." Boxes stay layout text
+for the model; "change only here" is Mask edit's job. Do not re-raise.
 
 No FLUX.3 box edit has ever been masked (all 33 edits in that project checked): boxes are
 prompt text only (`withLayoutBoxes`, js/data/generationControls.js), so the model redraws the

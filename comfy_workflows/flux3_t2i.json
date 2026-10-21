@@ -1389,8 +1389,8 @@
         0
       ],
       "false": [
-        "694",
-        2
+        "803",
+        0
       ],
       "boolean": [
         "798",
@@ -1891,6 +1891,94 @@
     "class_type": "MpiBooleanCompare",
     "_meta": {
       "title": "Mpi Boolean Compare"
+    }
+  },
+  "799": {
+    "inputs": {
+      "a": [
+        "474",
+        2
+      ],
+      "b": [
+        "474",
+        3
+      ],
+      "math_expression": "1 if a*b <= 8667136 else sqrt(8667136/(a*b))"
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Edit size: scale to 4K cap"
+    }
+  },
+  "800": {
+    "inputs": {
+      "a": [
+        "474",
+        2
+      ],
+      "b": [
+        "799",
+        0
+      ],
+      "math_expression": "floor(a*b/16 + 0.5)*16"
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Edit size: width /16"
+    }
+  },
+  "801": {
+    "inputs": {
+      "a": [
+        "474",
+        3
+      ],
+      "b": [
+        "799",
+        0
+      ],
+      "math_expression": "floor(a*b/16 + 0.5)*16"
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Edit size: height /16"
+    }
+  },
+  "802": {
+    "inputs": {
+      "width": [
+        "800",
+        0
+      ],
+      "height": [
+        "801",
+        0
+      ],
+      "batch_size": 1
+    },
+    "class_type": "EmptyFlux2LatentImage",
+    "_meta": {
+      "title": "Edit size: latent at picture 1's size"
+    }
+  },
+  "803": {
+    "inputs": {
+      "true": [
+        "694",
+        2
+      ],
+      "false": [
+        "802",
+        0
+      ],
+      "boolean": [
+        "296",
+        4
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Edit size: mask keeps refs latent"
     }
   }
 }

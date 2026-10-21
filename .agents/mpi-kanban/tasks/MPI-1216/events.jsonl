@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1216", "at": "2026-10-21T01:05:42+01:00", "actor": "Flux.3 integration 13", "column": "todo", "title": "FLUX.3 edit keeps picture 1's exact size (no 1 MP resize), and decide masked box edits"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1216", "at": "2026-10-21T01:44:05+01:00", "actor": "Flux.3 integration 14", "from": "todo", "to": "doing", "reason": "Fabio: go on the edit-size fix"}
