@@ -90,8 +90,9 @@ reasoning survives.
 - [x] **Fabio adds three Actions secrets to `MadPonyInteractive/mpi-ci`**:
       `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` - in 2026-10-20.
       The first client secret's Value showed in a chat screenshot, so it was
-      rotated the same day: new secret `mpi-ci-2` (730 days) in GitHub, old one
-      deleted in Azure. Calendar reminder 2028-09-19 still fits.
+      rotated the same day: old one deleted in Azure, new secret re-created under
+      the SAME name `mpi-ci` (730 days, not `mpi-ci-2`; Fabio confirmed
+      2026-10-21) and set in GitHub. Calendar reminder 2028-09-19 still fits.
 - [x] Wire the signing pass into `scripts/build-portable.mjs` (`--sign`, commit
       `6d64c2d2d`) — after the rebrand (rcedit would void an earlier signature),
       before the manifest hashes. Signs every non-Valid `.exe/.dll/.node` in the
