@@ -31,6 +31,14 @@ the next real turn with the seen line, never by a wake, never counted by `canWak
 still goes to `_notes` and wakes. Test: `a result the user typed over while it ran never wakes`
 (10/10 in agent-wake). `npm run lint` 0, `npm test` 3495 pass / 0 fail.
 
+## Third part + live pass (2026-10-21)
+
+Live, "I like it" typed while Chroma rendered still ran Prism's auto-look (~12 s, the local agent
+waited on it). A job is now watched from the START of `runTurn` (before the GPU wait), and a
+watched result gets no auto-look. CI run 39596841039 green on `0cb720b8e`. Fabio's live test
+after restart: Krea 2 run, "Whoa this one looks really good" typed while it rendered: no
+describe in the queue, one reply, no report. PASS.
+
 ## Not done
 
 - The auto-look itself still runs at landing (it feeds the wake report and the next edit).
