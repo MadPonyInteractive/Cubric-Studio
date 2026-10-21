@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1232", "at": "2026-10-21T14:36:40+01:00", "actor": "claude", "column": "todo", "title": "Tile Prompt Flow: split a picture into tiles, upscale or detail each tile with its own prompt"}

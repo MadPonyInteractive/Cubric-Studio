@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1232",
+  "title": "Tile Prompt Flow: split a picture into tiles, upscale or detail each tile with its own prompt",
+  "description": "A Flow, separate from the upscale op's prompt-less Use Tiles (MPI-1038): the picture is cut into tiles, each tile gets its own prompt (typed, or captioned), each is redrawn and stitched back. Doubles as a detailer at 1.0x. Source: Fabio's old per-tile-prompt workflow (he is finding it). Brief: brief.md.",
+  "column": "todo",
+  "maturity": "research",
+  "status": "active",
+  "created_at": "2026-10-21T14:36:40+01:00",
+  "updated_at": "2026-10-21T14:36:40+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
