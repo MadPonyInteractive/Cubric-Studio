@@ -1,0 +1,13 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-1235/",
+    ".agents/mpi-kanban/tasks/MPI-1235",
+    "services/agentLoop.mjs",
+    "tests/agent-chat-length.test.cjs",
+    "js/components/Compounds/MpiAgentChat/MpiAgentChat.js",
+    "js/events.js",
+    "docs/agent-chat.md",
+    "docs/releases/UNRELEASED.md"
+  ]
+}
