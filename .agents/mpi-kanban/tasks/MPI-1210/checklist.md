@@ -6,10 +6,10 @@
 - [x] Version bump 2.1.1 -> 2.1.2 (`mpi-version-bump`, quick path: no op/engine/schema change)
 - [x] `npm test` + `npm run test:desktop` + `npm run release:deps` green
 - [x] Gate 1: Fabio reviews the in-app changelog, runs `npm run release:approve`
-- [ ] `npm run release:check`, commit by pathspec, Fabio OKs push of master
-- [ ] Fabio OKs the `v2.1.2` tag push (CI build); download 6 artifacts
-- [ ] Windows zip signature census: every .exe/.dll/.node `Valid`
-- [ ] Update test from >= 2 releases behind + one real generation; `update-evidence.json`
+- [x] `npm run release:check`, commit by pathspec, Fabio OKs push of master
+- [x] Fabio OKs the `v2.1.2` tag push (CI build); download 6 artifacts
+- [x] Windows zip signature census: every .exe/.dll/.node `Valid`
+- [x] Update test from >= 2 releases behind + one real generation; `update-evidence.json`
 - [ ] Gate 2: Fabio reviews the GitHub release body
 - [ ] Fabio OKs `gh release create`; `releases/latest` = v2.1.2, not draft/prerelease
 - [ ] After public: flip "unsigned" wording (README.md, github-release-checklist.md)
