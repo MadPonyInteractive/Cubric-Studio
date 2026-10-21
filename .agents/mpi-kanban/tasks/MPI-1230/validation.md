@@ -44,3 +44,8 @@ still open and no resize arrived.
   mask-temp-ipc, stack-history). Three of them failed rerun WITHOUT this fix too, with
   "Input file is missing" under a ~200-char scratchpad output path: path length plus the
   load of four parallel apps, not this change.
+
+## CI
+
+Run 39611627775 on d875d6eed: unit + all four desktop shards green on the first attempt, 249
+passed, 0 flaky. `llm-settings-remote.spec.js` 4/4 ok, `shell-window-no-late-resize.spec.js` ok.
