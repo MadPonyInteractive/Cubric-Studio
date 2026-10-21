@@ -24,19 +24,19 @@ with the mpi-ci image: build the image there, drive the workflow loop from here.
 - ComfyUI: `G:/ComfyUi/ComfyUI/` (note the lowercase `i` in `ComfyUi`).
   - Workflows: `G:/ComfyUi/ComfyUI/user/default/workflows/`
     (e.g. `LTX_i2v_t2v_template.json`).
-- **Local model store: `G:/CubricModels/`** — the canonical local copy of every
+- **Local model store: `M:/CubricModels/`** — the canonical local copy of every
   shipped weight, flat by type (`upscale_models/`, `sams/`, `ultralytics/bbox/`,
   `diffusion_models/`, `loras/`, `vae/`, …). This is the SAME layout the R2 bucket
   mirrors (MPI-178). If a build/script needs a weight, it is here AND on R2
   (`https://models.cubric.studio/vision/models/<type>/<file>`) — never re-derive a
   HuggingFace source.
 - **NEVER write a weight into `G:/ComfyUi/ComfyUI/models/`.** That folder is the
-  bench's built-in default only; the bench reaches `G:/CubricModels` through its
+  bench's built-in default only; the bench reaches `M:/CubricModels` through its
   hand-written `extra_model_paths.yaml`. A weight dropped in the bench's own
   `models/` is invisible to the app engine and to R2, so it reads as "installed"
   on the bench and missing everywhere else. **Every weight goes in
-  `G:/CubricModels/<type>/`** — if the node wants a folder type the yaml has no
-  key for, create `G:/CubricModels/<TYPE>/` and add `<key>: <TYPE>/` under
+  `M:/CubricModels/<type>/`** — if the node wants a folder type the yaml has no
+  key for, create `M:/CubricModels/<TYPE>/` and add `<key>: <TYPE>/` under
   `cubric_models:`. The key is the ComfyUI folder-type **id** (read it off the
   node's `add_model_folder_path()` call — it may be lowercase for an uppercase
   dir), and `extra_config.py` registers whatever you write, so a typo fails

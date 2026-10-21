@@ -1,0 +1,18 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1227",
+  "title": "Docs + tooling defaults: local model master store moves G:/CubricModels -> M:/CubricModels",
+  "description": "Fabio moved the local model store to M: (2026-10-21, hash-verified). Live docs and the computeDepHashes default still name G: as the master.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-21T12:35:00+01:00",
+  "updated_at": "2026-10-21T12:35:00+01:00",
+  "links": {
+    "brief": "brief.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl"
+  }
+}

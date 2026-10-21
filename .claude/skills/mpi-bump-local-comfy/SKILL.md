@@ -1,6 +1,6 @@
 ---
 name: mpi-bump-local-comfy
-description: Upgrade the standalone LOCAL ComfyUI authoring bench (G:\ComfyUi) to a target version and keep its hand-maintained extra_model_paths.yaml in sync with the app's dep folder types. Use when the user says "bump my local ComfyUI", "update my test ComfyUI", "upgrade the local bench to <version>", or reports that a weight in G:\CubricModels is missing from a node dropdown in the standalone install.
+description: Upgrade the standalone LOCAL ComfyUI authoring bench (G:\ComfyUi) to a target version and keep its hand-maintained extra_model_paths.yaml in sync with the app's dep folder types. Use when the user says "bump my local ComfyUI", "update my test ComfyUI", "upgrade the local bench to <version>", or reports that a weight in M:\CubricModels is missing from a node dropdown in the standalone install.
 user-invocable: true
 ---
 
@@ -20,7 +20,7 @@ and an upgrade to the wrong one is a silent no-op:
 | **Bench** (this skill) | `G:\ComfyUi\` | Standalone authoring bench. Git checkout, **hand-maintained** yaml | 8188 |
 | Engine | `<repo>\engine\ComfyUI_windows_portable\` | The one Cubric Studio drives. Yaml **generated** by `routes/yamlHelper.js` | 3000-driven |
 
-Both read the same weights at `G:\CubricModels`. Bench context (authoring folder,
+Both read the same weights at `M:\CubricModels`. Bench context (authoring folder,
 models dir, two-stage test flow) is canonical in
 [docs/playbooks/add-model/01-workflow-split.md](../../../docs/playbooks/add-model/01-workflow-split.md) § 0a — read it, don't restate it.
 

@@ -1,0 +1,15 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-1227/",
+    "docs/builder/01-environments.md",
+    "docs/playbooks/add-model/",
+    "docs/runpod-troubleshooting.md",
+    "docs/testing-harnesses.md",
+    "docs/models/",
+    "comfy_workflows/scripts/merge-loras/README.md",
+    ".claude/skills/mpi-bump-local-comfy/SKILL.md",
+    ".claude/commands/mpic-compute-dep-hashes.md",
+    "scripts/computeDepHashes.py"
+  ]
+}

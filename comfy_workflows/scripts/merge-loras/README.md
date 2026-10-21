@@ -16,7 +16,7 @@ The KJNodes `LoraExtractKJ` node writes two files to ComfyUI's output dir (model
 "G:/ComfyUi/python_embeded/python.exe" merge_lora.py \
   <model_extract.safetensors> \
   <clip_extract.safetensors> \
-  <G:/CubricModels/loras/LTX2.3/output.safetensors>
+  <M:/CubricModels/loras/LTX2.3/output.safetensors>
 ```
 
 Load the result with the standard **`LoraLoader`** node (model+clip), strength 1.0/1.0.

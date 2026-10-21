@@ -41,7 +41,7 @@ pixel diffusion at 4K = far too slow, and no Wan-VAE checkpoint exists anyway.
 ## Our path: Z-Image-Turbo → pid_flux1
 
 Z-Image-Turbo uses the Flux 16-ch VAE → `latent_format=flux`, `pid_flux1` checkpoints.
-Downloaded to `G:\CubricModels` (2026-07-03, byte-verified):
+Downloaded to `M:\CubricModels` (2026-07-03, byte-verified):
 
 | File | Size | Folder |
 |---|---|---|

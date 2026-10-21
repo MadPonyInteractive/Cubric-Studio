@@ -57,7 +57,7 @@ weight (`qwen3vl_4b_abliterated`, `qwen3vl_8b`, `qwen_2.5_vl_7b`) — different 
 for the VAE: `vae-flux-ae` is FLUX.**1**'s `ae.safetensors`, not `flux2-vae`. Every Klein
 weight is a new host.
 
-All deps carry **real sha256** (hashed off `G:\CubricModels` masters, per playbook 02).
+All deps carry **real sha256** (hashed off `M:\CubricModels` masters, per playbook 02).
 **Uploaded + verified 2026-07-27**: `sha256sum -c` 14/14 vs disk, then `rclone check`
 (0 differences, 14 matching) and HTTP 200 + byte-exact Content-Length on all 14 URLs.
 

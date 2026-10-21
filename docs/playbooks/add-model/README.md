@@ -162,7 +162,7 @@ Model-specific additions:
 - [ ] **Style LoRA set?** Follow [05 §9](05-prompt-and-styles.md) — assert `len(MpiPromptList.options) == number of style LoRAs`, gate controls per-op AND per-model
 - [ ] **Graph rewrites the prompt** (enhancer, or anything between box and encoder)? Follow [05 §10](05-prompt-and-styles.md) — add a `PreviewAny` titled `Output_prompt`, tapped UPSTREAM of the style concat. `promptEnhance` requires a CLIP with `.generate()` (Qwen3-VL/Gemma ✅, T5/umT5 CRASHES). The system prompt is the deliverable, not the wiring
 - [ ] `/mpic-compute-dep-hashes` → fill all sha256 — hashes from the LOCAL copy under
-      `G:\CubricModels`, so this does NOT wait for the upload; run it in parallel — [02](02-dependencies-r2.md)
+      `M:\CubricModels`, so this does NOT wait for the upload; run it in parallel — [02](02-dependencies-r2.md)
 - [ ] Upload new weights to R2 with `--s3-no-check-bucket`; VERIFY with lsf + HTTP HEAD (don't trust exit code) — [02](02-dependencies-r2.md). Upload is ship-prep (end-user download), NOT test-prep — the app tests locally before it finishes
 - [ ] Add the `ModelDef` (`models.js`); set capabilities, workflows, dependencies, enhanceRecipe — [03](03-model-registry.md)
 - [ ] Rank its ops in `modelConstants/modelPriority.js` — [03](03-model-registry.md). Unranked = invisible to the in-app agent's preference, which reads as the agent ignoring the model
@@ -214,7 +214,7 @@ fp8_scaled Balanced tier, collapsed 3→2):
 8. **R2 + the HF mirror — the user's call, and the default is LEAVE THEM UP.** A released
    build still lists the dep, so deleting the object turns its install into a 404 rather
    than a clean skip. Delete only when the user says so (`rclone deletefile
-   --s3-no-check-bucket`, verify HEAD 404; re-uploadable from `G:\CubricModels`).
+   --s3-no-check-bucket`, verify HEAD 404; re-uploadable from `M:\CubricModels`).
 9. **Changelog** — if the model's UNRELEASED entry named the dropped tier, UPDATE that entry
    (don't add a new one). A stale "three tiers" note ships silently otherwise. Also grep
    UNRELEASED for the thing as a worked EXAMPLE in someone else's entry — MPI-470 left a

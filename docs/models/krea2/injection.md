@@ -205,7 +205,7 @@ condition on the depth image directly and have no equivalent strength.
 > now reaches **every** op including `detail` and `upscale` (`styleOps` in the ModelDef),
 > which the old rack-less detailer/upscaler files could not offer.
 
-## Local install layout (`G:\CubricModels`)
+## Local install layout (`M:\CubricModels`)
 
 ```
 loras/krea-2/style/krea2_*.safetensors      (9 files)
@@ -234,7 +234,7 @@ Two live consequences:
 
 If ComfyUI shows an empty/stale LoRA list after adding files, its model list is cached —
 refresh the browser / reload the workflow. Not a YAML bug. (`extra_model_paths.yaml` already
-maps `cubric_models.loras: loras/` under `base_path: G:/CubricModels`.)
+maps `cubric_models.loras: loras/` under `base_path: M:/CubricModels`.)
 
 > `text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors` (9.38 GB) may also be on disk — it is
 > Qwen2.5-VL-7B (hidden 3584), downloaded for a separate experiment. It is **NOT a Krea2 dep**;

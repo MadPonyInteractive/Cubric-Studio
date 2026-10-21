@@ -20,7 +20,7 @@ strings stay hand-written.
 
 HuggingFace deps: hashed from the remote (HEAD ETag fast-path, else stream download).
 R2 deps (models.cubric.studio): R2's ETag is multipart-MD5 and useless for sha256,
-so these are hashed from the LOCAL master copy under LOCAL_ROOT (default g:/cubricmodels,
+so these are hashed from the LOCAL master copy under LOCAL_ROOT (default m:/cubricmodels,
 override with CUBRIC_MODELS_ROOT) using each dep's `filename` as the relative path.
 
 Stream-based: remote files never written to disk. Runs one file at a time.
@@ -52,7 +52,7 @@ DEPS_PATHS = [
 ]
 
 # Local master copy of R2-hosted weights (R2 ETag is multipart-MD5, unusable for sha256).
-LOCAL_ROOT = Path(os.environ.get('CUBRIC_MODELS_ROOT', 'g:/cubricmodels'))
+LOCAL_ROOT = Path(os.environ.get('CUBRIC_MODELS_ROOT', 'm:/cubricmodels'))
 
 class NoRedirectHandler(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):

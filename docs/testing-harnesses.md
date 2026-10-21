@@ -228,13 +228,13 @@ prints `READY <url>`. Drive that URL, never 3000.
 - **Never pipe the launch into `head` / `grep -m1`** — the consumer exits, stdout dies, and the
   third-party electron npm wrapper throws an EPIPE that takes the app with it (MPI-514). Read the
   URL out of the background task's output file.
-- **To GENERATE, it needs the weights**: `CUBRIC_MODELS_ROOT="G:/CubricModels" npm run app:isolated`.
+- **To GENERATE, it needs the weights**: `CUBRIC_MODELS_ROOT="M:/CubricModels" npm run app:isolated`.
   **The var does NOT sandbox a store on the real engine root**: its `model_roots.json` custom root wins (the var
   moves only the default), so an install lands in the user's store. A scratch store needs a seeded scratch
   `CUBRIC_ENGINE_ROOT` too (memory `tool_sandbox_isolated_app_seed_uw_deps`; MPI-774 Phase 4 `validation.md`).
   A fresh profile answers `OP_UNAVAILABLE` for every op, which points at the engine while the cause
   is the app-side dep state `isOperationInstalled` reads — the engine is already shared and its
-  `extra_model_paths.yaml` already points at `G:/CubricModels`. Verified MPI-546: with the var set,
+  `extra_model_paths.yaml` already points at `M:/CubricModels`. Verified MPI-546: with the var set,
   `isOperationInstalled('krea2','t2i')` → true and a real `t2i` landed a genuine gallery card.
 - **Two agents both running it COLLIDE** on the `userData`-keyed single-instance lock (the profile
   path is fixed). The second dies at ~0.06s, exit 0, having logged only an `EPERM` mask-temp prune

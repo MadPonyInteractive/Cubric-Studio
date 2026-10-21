@@ -12,7 +12,7 @@ reports "All deps already have SHA256 hashes" (MPI-316).
 2. The script will:
    - Find every dep with `sha256: null` - HuggingFace AND R2 (`models.cubric.studio`)
    - HF: hash from the remote (HEAD `X-Linked-ETag`, else streaming download)
-   - R2: hash the LOCAL master copy under `CUBRIC_MODELS_ROOT` (default `g:/cubricmodels`),
+   - R2: hash the LOCAL master copy under `CUBRIC_MODELS_ROOT` (default `m:/cubricmodels`),
      because R2's ETag is multipart-MD5 and useless for sha256
    - Write the hashes back into whichever split file each dep lives in
 3. Verify: `git diff js/data/modelConstants/` to confirm changes

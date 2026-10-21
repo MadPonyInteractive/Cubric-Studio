@@ -121,5 +121,5 @@ ComfyUI writes extracts to its `--output-directory`, set in the launcher. On thi
 ## Files
 
 - Script: [comfy_workflows/scripts/merge-loras/merge_lora.py](../../../comfy_workflows/scripts/merge-loras/merge_lora.py)
-- Proven output: `G:/CubricModels/loras/LTX2.3/LTX23_softenhance_abliterated_detailer_merged.safetensors`
+- Proven output: `M:/CubricModels/loras/LTX2.3/LTX23_softenhance_abliterated_detailer_merged.safetensors`
   (rank 128, 3.7GB, model+clip).
