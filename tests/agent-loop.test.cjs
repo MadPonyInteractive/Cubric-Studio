@@ -9,7 +9,7 @@
  *
  * Tests:
  *   (a) install never runs without a confirm (gate removed → red; gate restored → green)
- *   (b) compaction fires at 50% of the window, capped at 128k tokens, from usage
+ *   (b) compaction fires at 50% of the window (20% of a 1M one), from usage
  *   (c) generate returns control before it settles
  *   (d) probe reports a no-tools model without retrying
  *
@@ -371,18 +371,18 @@ describe('(b) compaction trigger', () => {
         assert.equal(loop._shouldCompact(), false, '49% should not trigger');
     });
 
-    // MPI-1125: a big window compacts at a fixed 128k, not at a share of the window.
-    test('_shouldCompact: a 1M window compacts at the 128k cap', async () => {
+    // MPI-1233: a window of 1M or more compacts at 20% of it, no fixed cap.
+    test('_shouldCompact: a 1M window compacts at 20%', async () => {
         const AgentLoop = await loadAgentLoop();
         const loop = new AgentLoop();
-        loop._contextWindow = 1_048_576;
-        loop._lastUsage = { prompt_tokens: 127_999 };
-        assert.equal(loop._shouldCompact(), false, 'one below the cap should not trigger');
-        loop._lastUsage = { prompt_tokens: 128_000 };
-        assert.equal(loop._shouldCompact(), true, 'the cap should trigger');
+        loop._contextWindow = 1_000_000;
+        loop._lastUsage = { prompt_tokens: 199_999 };
+        assert.equal(loop._shouldCompact(), false, 'one below 20% should not trigger');
+        loop._lastUsage = { prompt_tokens: 200_000 };
+        assert.equal(loop._shouldCompact(), true, '20% should trigger');
     });
 
-    test('_shouldCompact: a 256k window is already at the cap; a 64k one stays at half', async () => {
+    test('_shouldCompact: a 256k and a 64k window compact at half', async () => {
         const AgentLoop = await loadAgentLoop();
         const loop = new AgentLoop();
         loop._contextWindow = 256_000;

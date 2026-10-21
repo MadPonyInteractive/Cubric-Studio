@@ -12,7 +12,7 @@
  * - D3: replies arrive whole per model turn; token streaming is not in slice A.
  * - Non-blocking generate: the loop fires generate and gets back a "started"
  *   tool result; when the HTTP call settles, agent:result is emitted.
- * - Compaction at 50% (or 30% for windows ≥ 1M) of prompt_tokens / contextWindow,
+ * - Compaction at 50% (or 20% for windows ≥ 1M) of prompt_tokens / contextWindow,
  *   from the provider's own usage. No tokenizer.
  * - The connection (profile + key) is the SHARED one every LLM job uses
  *   (`resolveConnection`, llmEngines.mjs). The model is the agent's own pick,
@@ -464,9 +464,11 @@ export const OP_RULES = [
 const STOPPED = { code: 'CANCELLED', message: 'The user pressed Stop: they were not happy with it. Not a failure. Start nothing: say in one short line that it is stopped, ask what to change, and wait for their message.' };
 export const REPEAT_RULE ='To repeat this card: made from text, the same op with its prompt rewritten by the new model\'s guide; made from a picture, that picture (a clip in a picture slot sends its start picture or first frame). Never a finished result as its own reference.';
 
-// MPI-1125 — the most prompt tokens a conversation carries before it compacts, whatever the
-// window. Fabio, 2026-10-13: a fixed size, not a share of a 1M window.
-const COMPACT_CAP = 128_000;
+// MPI-1233 — the share of the window a conversation fills before it compacts. Fabio, 2026-10-21:
+// MPI-1125's fixed 128k cap was costed on DeepSeek's cached rate; MiMo's is ~5x cheaper.
+const BIG_WINDOW = 1_000_000;
+const COMPACT_SHARE_BIG = 0.20;
+const COMPACT_SHARE = 0.50;
 
 const OUT_OF_ROUNDS = 'You are out of tool calls for this turn. In plain words, tell the user what you did, what is still running, and what is left to do. They can reply to continue.';
 
@@ -2839,12 +2841,12 @@ ${knowledgeIndex}`.trim();
     // -------------------------------------------------------------------------
 
     /**
-     * The prompt_tokens that trigger a compaction: half the window, never past COMPACT_CAP.
-     * MPI-1125: every request re-sends the whole history, so on a 1M window the old 30%
-     * let each tool round carry ~300k tokens; the cap keeps a long chat's bill flat.
+     * The prompt_tokens that trigger a compaction: 20% of a window of 1M or more, half of a
+     * smaller one. Every request re-sends the whole history, so the big-window share stays
+     * low (MPI-1233; MPI-1125 had a fixed 128k cap).
      */
     _compactAt() {
-        return Math.min(this._contextWindow * 0.50, COMPACT_CAP);
+        return this._contextWindow * (this._contextWindow >= BIG_WINDOW ? COMPACT_SHARE_BIG : COMPACT_SHARE);
     }
 
     _shouldCompact() {

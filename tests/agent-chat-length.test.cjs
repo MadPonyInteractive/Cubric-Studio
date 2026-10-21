@@ -39,8 +39,9 @@ async function setup({ promptTokens, saveOk = true }) {
 
 const longs = (events) => events.filter((e) => e.event === 'agent:long').length;
 
-test('past half the 128k compaction point the card is offered once per chat', async (t) => {
-    const h = await setup({ promptTokens: 64_000 });
+// MPI-1233: a 1,048,576 window compacts at 20% (~209.7k), so the card shows past ~104.9k.
+test('past half the compaction point the card is offered once per chat', async (t) => {
+    const h = await setup({ promptTokens: 105_000 });
     t.after(h.restore);
     await h.turn('one');
     assert.equal(longs(h.events), 1);
@@ -52,7 +53,7 @@ test('past half the 128k compaction point the card is offered once per chat', as
 });
 
 test('below half the compaction point there is no card', async (t) => {
-    const h = await setup({ promptTokens: 63_999 });
+    const h = await setup({ promptTokens: 104_000 });
     t.after(h.restore);
     await h.turn('one');
     assert.equal(longs(h.events), 0);

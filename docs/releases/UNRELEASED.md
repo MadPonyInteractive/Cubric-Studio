@@ -54,6 +54,7 @@
 - **Custom size on edit.** Klein 4B and 9B, Krea 2, Qwen-Image 2.1, Boogu, Qwen Edit and cloud Seedream 4 / 4.5, FLUX-2 Dev and Klein 9B can now pick the edited picture's frame: a Custom size button, off by default, unlocks the ratio and resolution. A drawn mask keeps the original frame. (MPI-1207)
 
 - **Cosmo now sees pictures, on a cheaper model.** Cosmo's default model is now MiMo-V2.6-Flash: it scores as well as the old default on our agent tests at about 25% less per chat, and can look at a picture itself when a description is not enough (is this the same face, how grainy is it). Scores for every tested model are at bench.cubric.studio. (MPI-1208)
+- **Longer chats with Cosmo before it offers to start fresh.** On a model with a 1M-token memory (the default MiMo-V2.6-Flash), Cosmo now tidies up its chat at about 210k tokens instead of 128k, and the "this chat is getting long" card shows at about 105k instead of 64k. Smaller models still tidy up at half their memory. (MPI-1233)
 
 ## Fixes
 

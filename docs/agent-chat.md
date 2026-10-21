@@ -61,7 +61,7 @@ file is the contract; that one is the evidence.
 | 12 | Prompt not shown | `agent:tool.label` never carries it; the UI never renders `args.prompt` |
 | 13 | Honest limits, in character | limits list in the system prompt; `agent:message` |
 | 14 | Memory while the app is open; per-project notes after it | a conversation per project, `GET /agent/history?project=`; `<project>/Agent/` via `read_memory` / `write_memory` |
-| 15 | Auto-compact at 50%, capped at 128k tokens (MPI-1125) | `usage.prompt_tokens` trigger; `agent:compacting`; handoff entry in history |
+| 15 | Auto-compact at 50% of the window, 20% of a 1M+ one (MPI-1233) | `usage.prompt_tokens` trigger; `agent:compacting`; handoff entry in history |
 | - | Profiles, probe, benchmark | Agent row in `MpiLlmSettings`; `POST /agent/probe`, `/agent/benchmark`; fork-bridge message below |
 
 ## Tools (what the model sees)
@@ -334,8 +334,8 @@ Every event but `agent:session` also carries `session`, the key of its conversat
 - **A wake sends the full tool list** (MPI-1125): `open_project` / `create_project` answer
   `WAKE_NO_MOVE` on a wake instead of being cut from the list, because a different list missed the
   provider's prompt cache (measured 0 of 8,117 tokens cached on a wake).
-- **Compaction:** at the provider's `prompt_tokens >= min(contextWindow * 0.50, COMPACT_CAP)` (no tokenizer;
-  `COMPACT_CAP` 128k, MPI-1125: every request re-sends the history, so 30% of a 1M window was ~300k tokens a round)
+- **Compaction:** at the provider's `prompt_tokens >= contextWindow * 0.20` on a window of 1M or more, `* 0.50`
+  below (no tokenizer; MPI-1233 replaced MPI-1125's fixed 128k cap: every request re-sends the history, so the big-window share stays low)
   the model writes a handoff (goal, decisions, cards, model, settings, open question); restart = system prompt + handoff + the
   newest turns (at most 4) that fit in HALF the trigger, sized by the last call's tokens per char. Four whole turns
   could sit above the trigger alone (a `list_models` answer was ~9.5k tokens; a 32k window triggers at 16.4k), and
