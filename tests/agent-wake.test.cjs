@@ -248,11 +248,15 @@ describe('the wake itself', () => {
         t.after(h.restore);
         const opening = (req) => String(req.messages.findLast((m) => m.role === 'user').content);
 
+        let looks = 0;
+        const look = h.tools.look;
+        h.tools.look = async (a) => { looks += 1; return look(a); };
         await h.send('make a fox', A);
         await h.send('looking good so far', A);
         h.tools.land();
         await flush();
         assert.equal(h.wake(A).woke, false, 'they are watching it: no second report');
+        assert.equal(looks, 0, 'and no auto-look: they judged it themselves');
 
         await h.send('now a cat', A);
         const typed = opening(h.seen.at(-1));

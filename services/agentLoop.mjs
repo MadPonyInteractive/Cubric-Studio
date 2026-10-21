@@ -2500,7 +2500,8 @@ ${knowledgeIndex}`.trim();
                     this._inflight.delete(toolCallId);
                     this._gpuJobs.delete(toolCallId);
                     // A failure still wakes: the user cannot judge a picture that never came.
-                    const notes = this._watched.delete(toolCallId) && ok ? this._seenNotes : this._notes;
+                    const watched = this._watched.delete(toolCallId);
+                    const notes = watched && ok ? this._seenNotes : this._notes;
                     const cancelled = this._askedCancel.delete(toolCallId) && !ok;
                     // CANCELLED you did not ask for: the user pressed Stop (an empty run is NO_OUTPUT).
                     // Reported as a failure, the agent queued it again (MPI-1165).
@@ -2553,7 +2554,9 @@ ${knowledgeIndex}`.trim();
                     // one call over fifty cards must not cost fifty vision calls (MPI-870). Nor
                     // does a tool (no model and no Flow, MPI-904): it changes the size, the frame
                     // or the background, and the user judges that in the gallery (Fabio: no looks).
-                    if (ok && (args.modelId || args.flowId) && r.output?.type === 'image' && r.output?.filePath) {
+                    // Nor a job the user typed over (MPI-1226): he already judged it, and on a local
+                    // agent the reply waited ~12 s on that look (live 2026-10-21).
+                    if (ok && !watched && (args.modelId || args.flowId) && r.output?.type === 'image' && r.output?.filePath) {
                         try {
                             const lr = await this._lookOnce(this._resolveImage(r.output.filePath));
                             if (lr?.ok) {
@@ -2940,6 +2943,9 @@ ${knowledgeIndex}`.trim();
         // generation must see its own predecessor's count, not a cleared one.
         if (wake) this._wakeStreak = (this._wakeStreak || 0) + 1;
         else this._wakeStreak = 0;
+        // MPI-1226: a message typed now means the user is watching whatever is still running.
+        // Marked before any wait for the GPU, or a job landing during it would be looked at.
+        if (!wake) for (const id of this._inflight.keys()) this._watched.add(id);
         this._working = true;
         this._lastMode = mode;
         this._gateWaiting = null;
@@ -3085,8 +3091,6 @@ ${knowledgeIndex}`.trim();
             // "Nice one, now add a dog", and the turn still spent three looks and a paragraph
             // confirming it landed. Typed after it landed, the message is his verdict. After the
             // notes, so it is read after the auto-look's "check that point" advice it overrides.
-            // A message typed now means the user is watching whatever is still running.
-            if (!wake) for (const id of this._inflight.keys()) this._watched.add(id);
             const notes = wake ? this._notes.splice(0) : [...this._seenNotes.splice(0), ...this._notes.splice(0)];
             const seenLine = !wake && !held && notes.some((n) => /^\[(Generation|Batch|Routine) finished/.test(n))
                 ? '[The user saw these results in the gallery before typing this message: their message is their verdict on them. Do not look at a result or report on it unless they ask about it; go straight to what they asked.]'
