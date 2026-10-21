@@ -1,0 +1,3 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1228", "at": "2026-10-21T12:48:21+01:00", "actor": "e62dc0e3-8c13-4348-bf20-eb871d0d55b4", "column": "todo", "title": "Cosmo: no install card for a model the user already installed from the app"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1228", "at": "2026-10-21T12:49:07+01:00", "actor": "e62dc0e3-8c13-4348-bf20-eb871d0d55b4", "from": "todo", "to": "doing"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1228", "at": "2026-10-21T12:53:12+01:00", "actor": "e62dc0e3-8c13-4348-bf20-eb871d0d55b4", "from": "doing", "to": "doing", "reason": "fix 915fb3fc3 shipped, test green; one check left: Fabio sees no install card next time"}
