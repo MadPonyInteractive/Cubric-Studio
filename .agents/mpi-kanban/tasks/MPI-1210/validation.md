@@ -46,3 +46,17 @@
 - Rollback set 0 user-data files; 18/29 byte-identical after the run, 11 = Chromium runtime files.
 - `dev_configs/update-evidence.json` written; `release:check:publish` passed. Test app closed via
   CloseMainWindow, 3000/48188 free; Fabio told to reopen.
+
+## 2026-10-21 published
+
+- Gate 2: Fabio approved the body after dropping the pre-1.5.0 "check your version first" section (and
+  the RunPod 15 November line inside it). `gh release create v2.1.2 --latest` with the 6 CubricStudio-*
+  assets: https://github.com/MadPonyInteractive/Cubric-Studio/releases/tag/v2.1.2
+- `releases/latest`: tag_name v2.1.2, prerelease false, draft false; 6 assets `uploaded`, sizes equal
+  to the local files.
+- Update prompt proven: fresh published 2.1.1 (BUILD_HASH b60ed53033cc) logged
+  `[update] update available: v2.1.1 -> v2.1.2, prompting`; closed via CloseMainWindow.
+- Website `0d1de08` pushed (9ca2de1..0d1de08); live cubric.studio/privacy/ shows "Last updated
+  21 October 2026" and the token line, "The token is not saved" gone.
+- README + github-release-checklist + install-test say signed since 2.1.2 (`e9a020e3b`).
+- Not done here: CI artifacts on mpi-ci run 39653037573 (Fabio's delete); comms (MadPony-Identity workflow).
