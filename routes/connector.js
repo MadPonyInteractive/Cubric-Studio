@@ -676,9 +676,6 @@ async function _checkGenerate(body) {
     };
 
   if (cardName !== undefined) input.cardName = cardName;
-  // MPI-891: the in-app agent's "take the user to where this renders". Only `true` counts,
-  // so a CLI agent that never sends it never moves the user's view.
-  if (body?.follow === true) input.follow = true;
   // MPI-950: one id for every item of an agent fan-out, so its new cards land as ONE stack.
   const rs = body?.resultStack;
   if (!flowId && !tool && rs && /^[\w-]{8,64}$/.test(String(rs.id)) && Number.isInteger(rs.total) && rs.total > 1) {
@@ -728,6 +725,9 @@ router.post('/connector/generate', async (req, res) => {
   }
   const { input, tool, requestId } = checked;
   const { flowId, modelId } = req.body || {};
+  // MPI-891: the in-app agent's "take the user to where this renders". Only `true` counts,
+  // so a CLI agent that never sends it never moves the user's view.
+  if (req.body?.follow === true) input.follow = true;
 
   // MPI-980: a clip in a picture slot goes as its first frame, for a model op and a tool alike.
   if (!flowId && input.media) {
