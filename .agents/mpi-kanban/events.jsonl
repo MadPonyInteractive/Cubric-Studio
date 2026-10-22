@@ -6447,3 +6447,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1243", "at": "2026-10-22T14:44:31+01:00", "actor": "Moss image 7", "from": "done", "to": "doing", "reason": "Reopened: Model Library slide-over clip for MOSS (Fabio, boxes -> result crossfade like FLUX.3)"}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1243", "at": "2026-10-22T14:46:00+01:00", "actor": "Moss image 7", "patch": {"status": "active"}}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1243", "at": "2026-10-22T15:17:43+01:00", "actor": "Moss image 7", "from": "doing", "to": "done", "reason": "Slide-over clip approved by Fabio; CI green on 32e7e34bb"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1249", "at": "2026-10-22T15:52:25+01:00", "actor": "Moss image 7", "column": "doing", "title": "MOSS-Image style LoRAs: anime, gouache, psychedelic, pixel art (Krea2 style-LoRA pattern)"}
