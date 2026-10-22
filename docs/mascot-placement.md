@@ -236,5 +236,7 @@ archived now that `i2v_081` replaces it.
 
 **The set is mixed and the two sizes are not the same shape**: 1536x640 is 2.4:1, 1920x768 is 2.5:1. Fitted into one
 crew band, screwdriver's Studio lands at a slightly different size and height than the other three loops. The
-transition between loops covers the swap, so this may not matter — but the integrating agent should fit on HEIGHT and
-accept the width difference, not stretch either one.
+loops swap bare (no transition), so it showed: fitted to one height, the 1536x640 four sat ~4% smaller and their feet
+~10px above the floor line. Screwdriver is the reference (Fabio, 2026-10-22); the other four draw the same scene 1.244x
+smaller in the file, so `landing.css` sizes them up to match it exactly (MPI-1246). A re-roll of any scene changes
+that ratio: re-measure it (alpha-mask fit of a first frame against screwdriver's) before trusting the CSS numbers.

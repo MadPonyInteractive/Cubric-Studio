@@ -296,20 +296,27 @@
   pointer-events: none;
 }
 
-/* Fitted on HEIGHT, never stretched: three scenes are 1240×516 and screwdriver is
-   1550×620, so it lands ~5% bigger (accepted in docs/mascot-placement.md).
-   At 520px Studio stands ~360px tall, the crew's Studio (rows 112-470 of 516), and
-   row 0.93 — the cable under his feet — sits on the floor line (y = 840).
+/* Fitted on HEIGHT, never stretched. Screwdriver (1550×620) is the reference: at 520px
+   its row 0.93 — the cable under his feet — sits on the floor line (y = 840) and Studio
+   stands ~373px tall (Fabio, 2026-10-22). The other four (1240×516: three loops and
+   connected) draw the same scene 1.244× SMALLER in the file (alpha-mask fit, IoU 0.99),
+   so they take 520 × 1.244 × 516/620 = 538px, and screwdriver's floor row is their 0.915.
+   The scenes swap bare, so any mismatch here shows as a jump between loops (MPI-1246).
    Hidden is 0.001 for the same reason as the crew's clips. */
 .mpi-landing__crew-band-clip {
   position: absolute;
   left: 50%;
-  top: calc(840px - 520px * 0.93);
-  height: 520px;
+  top: calc(840px - 538px * 0.915);
+  height: 538px;
   width: auto;
   translate: -50% 0;
   opacity: 0.001;
   user-select: none;
+}
+
+.mpi-landing__crew-band-clip[src$="/connecting-screwdriver.webm"] {
+  top: calc(840px - 520px * 0.93);
+  height: 520px;
 }
 
 .mpi-landing__crew-band-clip.mpi-landing__crew-clip--live {
