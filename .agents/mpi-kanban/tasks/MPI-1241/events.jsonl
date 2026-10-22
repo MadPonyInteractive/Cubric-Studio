@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1241", "at": "2026-10-22T03:02:35+01:00", "actor": "claude", "column": "doing", "title": "Child-safety gate: plural anatomy words and chastity/pulled-aside wording skip the picture check"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1241", "at": "2026-10-22T03:24:02+01:00", "actor": "claude", "from": "doing", "to": "done"}

@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1241",
+  "title": "Child-safety gate: plural anatomy words and chastity/pulled-aside wording skip the picture check",
+  "description": "A picture the describer would flag as a possible minor is never looked at when the words ask for nudity in forms the lists miss: plural 'penises', 'chastity cage', 'bottom pulled aside to expose'. Found from a user refusal 2026-10-22 that only fired because the prompt also said 'bikini'. Widen SEXUAL/UNCLOTHED (plurals of the anatomy nouns, chastity devices, clothing pulled aside), regression tests in tests/child-safety.test.cjs.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-22T03:02:35+01:00",
+  "updated_at": "2026-10-22T03:24:02+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
