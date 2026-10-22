@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1253",
+  "title": "Boxes: Analyse a picture into boxes (MOSS + FLUX.3)",
+  "description": "Analyse button in the Boxes panel: a vision model reads a picture into named boxes + a scene caption, at the picture's ratio.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-22T21:45:10+01:00",
+  "updated_at": "2026-10-22T22:45:35+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
