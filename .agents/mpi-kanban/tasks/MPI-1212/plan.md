@@ -93,6 +93,30 @@ qwen-image-2-1 + the 7 Flows. Bench project "FLUX3 Flow Bench" (Fabio's Document
   103 Edit Instruction / 184 Edit Guardrails); FLUX.3 ignores it. Next: try a FLUX.3-specific
   approach (prompt that cites <ref_image_0> as a layout guide, or a lower-strength reference / i2i
   route) as an extra variant before calling Scribble a loss. Lady-on-bed (scr2) came out broken.
+- Fabio 2026-10-22 (session "Flux 3 on flows 3"): replacing Qwen-Image 2.1 WHEREVER FLUX.3 holds is a goal
+  of its own - Qwen 2.1 is non-commercial. Qwen today: Character Sheet from Images (whole Flow) and the
+  Editor's Qwen slot (body shape, hairstyle, beard, accessories, makeup, tattoos, undressing, child ages).
+  Run 1 covers only beard (cseq1), tattoo (cseq2) and from-images x2 (csfi1_2, csfi2_1): the other six
+  editor categories need their own cases before the Qwen slot can be called. Scribble retry:
+  `research/scribble3.py` (style-neutral prompt citing <ref_image_0>, Turbo only - base dropped, Fabio:
+  horrible on Scribble), sheet `sheet.py scr1_0 scr2_0 --s3`.
+- Round 2 queued (`research/next.sh 53061`, log `research/next.log`, starts on rest.log "all done"):
+  Fabio: FLUX.3 is useless without BFL-shaped prompts, and the bench fed it Klein/Qwen wording. `bfl.py`
+  = per-case prompts hand-written to BFL's i2i upsampler rules looking at the real inputs (best case);
+  `qwenprompt.py` = template route (image N -> <ref_image_N-1> + medium/backdrop clause); `scribble3.py`.
+  Sheets: `sheet.py <g> --bfl | --s3 | --qp`. Fabio also found the app's Enhancer weak on FLUX.3 edits:
+  our i2i Enhancer gets picture DESCRIPTIONS, BFL's PUP is a VLM that sees them - suspect, not proven.
+- 2026-10-22 05:40Z: rest.sh + round 2 + Make Seamless ALL DONE, verdicts in validation.md, 12 sheets
+  sent to Fabio. Klein stays: Draw It In, Scribble (unless Fabio likes the FLUX.3-prompt sheets), Outpaint,
+  Editor Klein slot, Make Seamless. Qwen-replacement candidates: Editor beard (Fabio: decent), tattoo
+  (mixed), from-images with FLUX.3 prompts (photo ok, anime clause leaks). Open: Fabio's look; the 6
+  untested Qwen editor categories; whether the Pod + 150 GB volume go now (still billing $0.72/hr).
+- 2026-10-22 Fabio's verdicts (validation.md "FABIO'S VERDICTS"): Scribble FAILS (sun stays a drawing);
+  from-images Turbo PASSES with a FLUX.3 prompt; beard Turbo PASSES; tattoo half (close-up miss). Fabio
+  deletes the Pod + volume himself. NEXT: local tests (GPU only on Fabio's go, `gpu_lease.py run --poll 2`):
+  tattoo close-up fix, the 6 untested Qwen editor categories, and a FLUX.3 prompt for from-images that
+  holds for photo AND anime. research/*.py hit an app's `/proxy/*`: locally point them at an
+  `app:isolated` instance with the LOCAL engine, and re-check their `engine == remote` guards.
 - Then: validation.md verdicts for the rest, Fabio's look, delete Pod + volume (volume 150 GB bills
   while it exists).
 

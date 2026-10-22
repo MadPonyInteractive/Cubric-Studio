@@ -11,11 +11,23 @@ VARS = [('base', 'today'), ('flux3turbo', 'FLUX.3 Turbo'), ('flux3base', 'FLUX.3
 CELL = 640
 
 
-def sheet(name):
+S3 = [('base', 'today'), ('flux3turbo', 'F3 Turbo, Flow prompt'), ('s3p-turbo', 'F3 Turbo, F3 prompt'),
+      ('s3lo-turbo', 'F3 Turbo, F3 prompt + ref 0.25 MP')]
+MODES = {'--s3': S3,
+         '--bfl': [('base', 'today'), ('flux3turbo', 'F3 Turbo, Flow prompt'), ('bfl-turbo', 'F3 Turbo, BFL prompt'),
+                   ('flux3base', 'F3 base, Flow prompt'), ('bfl-base', 'F3 base, BFL prompt')],
+         '--qp': [('base', 'today'), ('flux3turbo', 'F3 Turbo, Flow prompt'), ('qpf3a-turbo', 'F3 Turbo, tags + clause'),
+                  ('qpf3a-base', 'F3 base, tags + clause'), ('qpf3b-turbo', 'F3 Turbo, + soft light')]}
+
+
+def sheet(name, VARS=VARS, suffix=''):
     g = json.load(open(os.path.join(HERE, 'graphs', f'{name}.json'), encoding='utf-8'))['graph']
-    nid = next(k for k, v in g.items() if v.get('_meta', {}).get('title') == 'Output_Image')
     out = os.path.join(HERE, 'out', name)
-    seeds = sorted({f.split('_')[1] for f in os.listdir(out)})
+    # the first Output_Image* node that saved files (the editor's Qwen leg ends in Output_Image_2)
+    have = {f.split('_')[2] for f in os.listdir(out)}
+    nid = next(k for t in ('Output_Image', 'Output_Image_2') for k, v in g.items()
+               if v.get('_meta', {}).get('title') == t and k in have)
+    seeds = sorted({f.split('_')[1] for f in os.listdir(out) if f.split('_')[1].isdigit()})
     canvas = Image.new('RGB', (CELL * len(VARS), (CELL + 28) * len(seeds) + 28), 'white')
     d = ImageDraw.Draw(canvas)
     for c, (_, label) in enumerate(VARS):
@@ -30,11 +42,12 @@ def sheet(name):
                 im.thumbnail((CELL, CELL))
                 canvas.paste(im, (c * CELL, y + 24))
     os.makedirs(os.path.join(HERE, 'sheets'), exist_ok=True)
-    dst = os.path.join(HERE, 'sheets', f'{name}.jpg')
+    dst = os.path.join(HERE, 'sheets', f'{name}{suffix}.jpg')
     canvas.save(dst, quality=88)
     print(dst)
 
 
 if __name__ == '__main__':
-    for n in sys.argv[1:]:
-        sheet(n)
+    mode = next((a for a in sys.argv[1:] if a in MODES), None)
+    for n in [a for a in sys.argv[1:] if a not in MODES]:
+        sheet(n, MODES[mode], '_' + mode[2:]) if mode else sheet(n)

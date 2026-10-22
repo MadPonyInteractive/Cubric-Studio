@@ -1,0 +1,405 @@
+{
+ "case": "seam2",
+ "flowId": "make-seamless",
+ "prompt_id": "4a00a437-40d5-4046-a542-bd81ecbaf2b6",
+ "seed": null,
+ "body": {
+  "fields": {
+   "direction": "both"
+  },
+  "params": {},
+  "media": [
+   {
+    "role": "image1",
+    "url": "/project-file?path=C%3A%5CUsers%5CFabio%5CDocuments%5CCubric%20Studio%5CProjects%5CFLUX3%20Flow%20Bench%5CMedia%5Ct2i_002.png"
+   }
+  ],
+  "flowId": "make-seamless",
+  "folderPath": "C:\\Users\\Fabio\\Documents\\Cubric Studio\\Projects\\FLUX3 Flow Bench",
+  "cardName": "seam2 replay"
+ },
+ "graph": {
+  "1": {
+   "inputs": {
+    "image": "None",
+    "channel": "alpha",
+    "block_if_empty": true,
+    "string": "/workspace/comfyui/input/win_2_img.png"
+   },
+   "class_type": "MpiLoadImage",
+   "_meta": {
+    "title": "Input_Image"
+   }
+  },
+  "2": {
+   "inputs": {
+    "image": "None",
+    "channel": "red",
+    "block_if_empty": true,
+    "string": "/workspace/comfyui/input/win_2_mask.png"
+   },
+   "class_type": "MpiLoadImage",
+   "_meta": {
+    "title": "Input_Mask"
+   }
+  },
+  "3": {
+   "inputs": {
+    "int": 2616182338
+   },
+   "class_type": "MpiInt",
+   "_meta": {
+    "title": "Input_Seed"
+   }
+  },
+  "4": {
+   "inputs": {
+    "string": "Continue the picture seamlessly across this area, matching the textures, lines, colours and light on both sides, with no visible join."
+   },
+   "class_type": "MpiText",
+   "_meta": {
+    "title": "Seamless instruction (baked)"
+   }
+  },
+  "5": {
+   "inputs": {
+    "value": "The image shows a dense, vibrant green mossy ground scattered with small, flat, grayish stones, dry brown and tan leaves, and thin, brittle twigs in various shades of brown and gray, all under even, diffuse natural light."
+   },
+   "class_type": "PrimitiveStringMultiline",
+   "_meta": {
+    "title": "Input_Positive"
+   }
+  },
+  "6": {
+   "inputs": {
+    "delimiter": " ",
+    "string_a": [
+     "4",
+     0
+    ],
+    "string_b": [
+     "5",
+     0
+    ]
+   },
+   "class_type": "StringConcatenate",
+   "_meta": {
+    "title": "Join Prompt"
+   }
+  },
+  "7": {
+   "inputs": {
+    "regex_pattern": "\\s+$",
+    "replace": "",
+    "case_insensitive": true,
+    "multiline": false,
+    "dotall": false,
+    "count": 0,
+    "string": [
+     "6",
+     0
+    ]
+   },
+   "class_type": "RegexReplace",
+   "_meta": {
+    "title": "Trim Empty Prompt"
+   }
+  },
+  "8": {
+   "inputs": {
+    "unet_name": "flux-2-klein-9b-int8-convrot.safetensors",
+    "weight_dtype": "default"
+   },
+   "class_type": "UNETLoader",
+   "_meta": {
+    "title": "Load Diffusion Model"
+   }
+  },
+  "9": {
+   "inputs": {
+    "clip_name": "qwen_3_8b_int8_convrot.safetensors",
+    "type": "flux2",
+    "device": "default"
+   },
+   "class_type": "CLIPLoader",
+   "_meta": {
+    "title": "Load CLIP"
+   }
+  },
+  "10": {
+   "inputs": {
+    "vae_name": "flux2-vae.safetensors"
+   },
+   "class_type": "VAELoader",
+   "_meta": {
+    "title": "Load VAE"
+   }
+  },
+  "11": {
+   "inputs": {
+    "int": 4
+   },
+   "class_type": "MpiInt",
+   "_meta": {
+    "title": "steps"
+   }
+  },
+  "12": {
+   "inputs": {
+    "float": 1.0
+   },
+   "class_type": "MpiFloat",
+   "_meta": {
+    "title": "cfg"
+   }
+  },
+  "13": {
+   "inputs": {
+    "padding": 64,
+    "mask": [
+     "2",
+     1
+    ]
+   },
+   "class_type": "MpiMaskSquareBbox",
+   "_meta": {
+    "title": "Mpi Mask Square Bbox"
+   }
+  },
+  "14": {
+   "inputs": {
+    "downscale_algorithm": "bilinear",
+    "upscale_algorithm": "bicubic",
+    "preresize": false,
+    "preresize_mode": "ensure minimum resolution",
+    "preresize_min_width": 1024,
+    "preresize_min_height": 1024,
+    "preresize_max_width": 16384,
+    "preresize_max_height": 16384,
+    "mask_fill_holes": false,
+    "mask_expand_pixels": 6,
+    "mask_invert": false,
+    "mask_blend_pixels": 32,
+    "mask_hipass_filter": 0.1,
+    "extend_for_outpainting": false,
+    "extend_up_factor": 1.0,
+    "extend_down_factor": 1.0,
+    "extend_left_factor": 1.0,
+    "extend_right_factor": 1.0,
+    "context_from_mask_extend_factor": 1.0,
+    "output_resize_to_target_size": true,
+    "output_target_width": 1024,
+    "output_target_height": 1024,
+    "output_padding": "32",
+    "device_mode": "gpu (much faster)",
+    "image": [
+     "1",
+     0
+    ],
+    "mask": [
+     "2",
+     1
+    ],
+    "optional_context_mask": [
+     "13",
+     0
+    ]
+   },
+   "class_type": "InpaintCropImproved",
+   "_meta": {
+    "title": "Inpaint Crop (the band)"
+   }
+  },
+  "15": {
+   "inputs": {
+    "pixels": [
+     "14",
+     1
+    ],
+    "vae": [
+     "10",
+     0
+    ]
+   },
+   "class_type": "VAEEncode",
+   "_meta": {
+    "title": "Encode the crop"
+   }
+  },
+  "16": {
+   "inputs": {
+    "clip": [
+     "9",
+     0
+    ],
+    "text": [
+     "7",
+     0
+    ]
+   },
+   "class_type": "CLIPTextEncode",
+   "_meta": {
+    "title": "CLIP Text Encode (Prompt)"
+   }
+  },
+  "17": {
+   "inputs": {
+    "conditioning": [
+     "16",
+     0
+    ]
+   },
+   "class_type": "ConditioningZeroOut",
+   "_meta": {
+    "title": "Conditioning Zero Out"
+   }
+  },
+  "18": {
+   "inputs": {
+    "guidance": 4.0,
+    "conditioning": [
+     "16",
+     0
+    ]
+   },
+   "class_type": "FluxGuidance",
+   "_meta": {
+    "title": "FluxGuidance"
+   }
+  },
+  "19": {
+   "inputs": {
+    "samples": [
+     "15",
+     0
+    ],
+    "mask": [
+     "14",
+     2
+    ]
+   },
+   "class_type": "SetLatentNoiseMask",
+   "_meta": {
+    "title": "Set Latent Noise Mask"
+   }
+  },
+  "20": {
+   "inputs": {
+    "sampler_name": "euler_ancestral",
+    "scheduler": "simple",
+    "denoise": 1.0,
+    "LanPaint_NumSteps": 2,
+    "LanPaint_PromptMode": "Image First",
+    "LanPaint_Info": "LanPaint KSampler. For more info, visit https://github.com/scraed/LanPaint. If you find it useful, please give a star \u2b50\ufe0f!",
+    "Inpainting_mode": "\ud83d\uddbc\ufe0f Image Inpainting",
+    "model": [
+     "25",
+     0
+    ],
+    "positive": [
+     "18",
+     0
+    ],
+    "negative": [
+     "17",
+     0
+    ],
+    "latent_image": [
+     "19",
+     0
+    ],
+    "seed": [
+     "3",
+     0
+    ],
+    "steps": [
+     "11",
+     0
+    ],
+    "cfg": [
+     "12",
+     0
+    ]
+   },
+   "class_type": "LanPaint_KSampler",
+   "_meta": {
+    "title": "LanPaint KSampler"
+   }
+  },
+  "21": {
+   "inputs": {
+    "samples": [
+     "20",
+     0
+    ],
+    "vae": [
+     "10",
+     0
+    ]
+   },
+   "class_type": "VAEDecode",
+   "_meta": {
+    "title": "VAE Decode"
+   }
+  },
+  "22": {
+   "inputs": {
+    "stitcher": [
+     "14",
+     0
+    ],
+    "inpainted_image": [
+     "21",
+     0
+    ]
+   },
+   "class_type": "InpaintStitchImproved",
+   "_meta": {
+    "title": "Inpaint Stitch"
+   }
+  },
+  "23": {
+   "inputs": {
+    "passthrough": [
+     "22",
+     0
+    ]
+   },
+   "class_type": "MpiClearVram",
+   "_meta": {
+    "title": "free VRAM after the run"
+   }
+  },
+  "24": {
+   "inputs": {
+    "images": [
+     "23",
+     0
+    ]
+   },
+   "class_type": "PreviewImage",
+   "_meta": {
+    "title": "Output_Image"
+   }
+  },
+  "25": {
+   "inputs": {
+    "strength": 1.0,
+    "model": [
+     "8",
+     0
+    ]
+   },
+   "class_type": "DifferentialDiffusion",
+   "_meta": {
+    "title": "Differential Diffusion"
+   }
+  }
+ },
+ "outputs": [
+  "1",
+  "23",
+  "24",
+  "2"
+ ]
+}
