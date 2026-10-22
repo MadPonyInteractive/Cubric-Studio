@@ -1,0 +1,10 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-1244/",
+    "routes/downloadManager.js",
+    "tests/download-retry.test.cjs",
+    "tests/download-crawl-reconnect.test.cjs",
+    "docs/download-manager.md"
+  ]
+}
