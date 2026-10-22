@@ -3617,13 +3617,16 @@ function _sentNote(body, pinned = null) {
 
 /**
  * A Use Tiles run's tile count, from the quote: the status bar's own number (MPI-1237).
- * Told nothing, Cosmo guessed ~25 while the bar counted 40 (Fabio, 2026-10-21).
+ * Told nothing, Cosmo guessed ~25 while the bar counted 40 (Fabio, 2026-10-21). Told the count
+ * only for "asked how many", it said "many tiles" and sent him to the chat's 0-of-1 line
+ * (Fabio, 2026-10-22, MPI-1232): the start message itself must name the count and the bar.
  */
 function _tilesNote(quoted) {
     if (quoted?.tiles === undefined) return '';
+    const where = ' The chat\'s line counts the whole run as one job, never the tiles: never point the user there for tile progress.';
     return quoted.tiles
-        ? ` It runs as ${quoted.tiles} tiles, one after another; the status bar counts the same ${quoted.tiles}. Asked how many tiles, that is the number.`
-        : ' It runs in tiles; the status bar counts them. Asked how many, point the user there: never guess a number.';
+        ? ` It runs as ${quoted.tiles} tiles, one after another; the status bar counts the same ${quoted.tiles}. Asked how many tiles, that is the number. Telling the user it started, name the ${quoted.tiles} tiles and say the status bar at the bottom counts them.${where}`
+        : ` It runs in tiles; the status bar counts them. Asked how many, point the user there: never guess a number. Telling the user it started, say the status bar at the bottom counts the tiles.${where}`;
 }
 
 /**

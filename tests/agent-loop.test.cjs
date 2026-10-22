@@ -901,6 +901,10 @@ test('a Use Tiles run tells Cosmo its tile count, now and on the next turn', asy
     tools.generate = () => new Promise(() => {});
     await loop.runTurn('upscale it with tiles', [], project, 'auto', 'deepinfra', 't1');
     assert.match(toolResult(loop).message, /runs as 40 tiles, one after another; the status bar counts the same 40/);
+    // MPI-1232 (Fabio, 2026-10-22): told the count only "asked how many", Cosmo said "many tiles"
+    // and pointed at the chat's 0-of-1 line. The start reply must name both.
+    assert.match(toolResult(loop).message, /Telling the user it started, name the 40 tiles and say the status bar at the bottom counts them/);
+    assert.match(toolResult(loop).message, /never point the user there for tile progress/);
     await loop.runTurn('how many tiles?', [], project, 'auto', 'deepinfra', 't2');
     assert.match(lastUser(loop), /\[Running now: Big upscale, 40 tiles \(toolCallId/);
 
@@ -909,6 +913,7 @@ test('a Use Tiles run tells Cosmo its tile count, now and on the next turn', asy
     unknown.tools.generate = () => new Promise(() => {});
     await unknown.loop.runTurn('upscale it with tiles', [], project, 'auto', 'deepinfra', 't1');
     assert.match(toolResult(unknown.loop).message, /status bar counts them\. Asked how many, point the user there: never guess/);
+    assert.match(toolResult(unknown.loop).message, /say the status bar at the bottom counts the tiles\. The chat's line counts the whole run as one job/);
 
     const plain = await makeLoop({ engineResponses: [gen('g3'), { text: 'Upscaling.' }] });
     plain.tools.generate = () => new Promise(() => {});
