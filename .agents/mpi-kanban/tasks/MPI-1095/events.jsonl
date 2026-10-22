@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1095", "at": "2026-10-11T19:38:16+01:00", "actor": "Video edit 20", "column": "todo", "title": "Land LTX 2.5 in the app - new LTX models (replace or beside 2.3), the Flows that use LTX follow"}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1095", "at": "2026-10-18T11:38:33+01:00", "actor": "claude", "reason": "Joined umbrella MPI-1179 (New Models to Test) as the LTX 2.5 row."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1095", "at": "2026-10-22T02:13:49+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio 2026-10-22: start research. Stage 1 = 2.5 model alone, dev-gated; Flows after that release."}

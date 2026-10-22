@@ -37,7 +37,8 @@ the new DiffVAE, which may fix 2.3's VAE "swim"), MPI-707, MPI-745 (BFS head swa
 
 ## Research questions
 
-- Does 2.5 load on the shipped engine (ComfyUI v0.39.0)? MPI-578's blocker was an older ComfyUI.
+- Does 2.5 load on the shipped engine (ComfyUI v0.42.1; this line said v0.39.0 until 2026-10-22)? MPI-578's blocker was an older ComfyUI.
+  ANSWERED 2026-10-22: yes, core support is in v0.42.1; the custom-node pin predates 2.5. See `research/findings.md`.
 - Per op above: does 2.5 do it, through the same nodes? Audio included (2.5 ships its own audio VAE).
 - Per baked LoRA above: a 2.5 build exists? If not, does the 2.3 file load on 2.5 and still work?
 - Weights: sizes, licence (gated on HF), and which quant tiers exist for the fast card.
