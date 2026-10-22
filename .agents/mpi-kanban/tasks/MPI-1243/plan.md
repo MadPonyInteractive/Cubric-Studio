@@ -56,10 +56,11 @@ Playbook: `docs/playbooks/add-model/` (enforced by `/mpi-add-model`). Research +
   paragraph), RECIPE_REGISTRY, guide `docs/agent/models/moss-image.md`. npm test + lint green.
 - Stage 1 local (12B): 15/15 on the final text after 6 iterations (`docs/recipes/research/moss-image/validation.md`):
   budget 80-300 (prompt says under 250), no-medium = photograph. Committed with the evidence.
-- R2 upload of the 3 weights running since 04:52 (rclone, 3M cap, sequential), ETA ~06:35.
-- NEXT: HEAD-verify the 3 URLs (byte-exact Content-Length). Fabio's yes for the DeepInfra 26B twice-green
-  (~1.5 c/sweep x2; key per ~/.claude/memory/general.md). Then one t2i (Turbo + SFT, + boxes, + a lettering
-  prompt) in `npm run app:isolated` for Fabio's eye.
+- R2: all 3 weights uploaded 04:52-06:29, `rclone lsl` byte-exact vs G:/models, public URL 200 with
+  byte-exact Content-Length (browser UA; plain urllib gets 403 from the CDN), no orphan multiparts.
+- Recipe twice-green on DeepInfra 26B (sweeps 2 + 3, 15/15 each), ~4.5 c spent on Fabio's yeses. Pushed.
+- NEXT: one t2i (Turbo + SFT, + boxes, + a lettering prompt) in `npm run app:isolated` for Fabio's eye
+  (Stage 2 of the recipe too).
 
 ## Completed
 
