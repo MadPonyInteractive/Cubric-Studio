@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1242", "at": "2026-10-22T03:19:55+01:00", "actor": "claude", "column": "doing", "title": "Dev updates panel offers the pending app update"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1242", "at": "2026-10-22T03:26:40+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Button verified in an isolated instance; lint clean, tests green"}
