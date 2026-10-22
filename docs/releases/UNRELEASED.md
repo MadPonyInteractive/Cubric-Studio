@@ -69,3 +69,5 @@
 - The Model picker now lists featured models first, the same order as the Model Library, and MOSS-Image is featured (MPI-1245).
 - The child-safety check reads more wording: plural body words and clothing "pulled aside" now get the picture looked at (MPI-1241).
 - Cosmo now tells you exactly how many tiles a Use Tiles upscale runs, the same number the status bar counts (MPI-1237).
+- Flow steps with a drawing area (Crop, Cut-out, Place, Paint, Edges) open at full width at once, instead of widening a pixel at a time for a few seconds (MPI-1255).
+- Less noise in the log: the mascot freeze warnings now appear only with speed diagnostics on, and a RunPod connect that stops early no longer logs a false freeze (MPI-1255).
