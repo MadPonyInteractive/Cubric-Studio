@@ -8,4 +8,11 @@
   -> canary deleted (`canary survived = false`).
 - Fixed helper: `node --test tests/sandbox-roots-hygiene.test.cjs` -> pass 2, fail 0.
 - `npx eslint tests/helpers/sandbox-roots.cjs tests/sandbox-roots-hygiene.test.cjs` -> 0.
-- Pending: CI on the fix commit.
+- Pushed 01:28Z by session "Moss image 1" together with 73cc5be36: CI run 39705903851 green.
+- Full `npm test` with BOTH roots inherited from a non-temp canary
+  (`C:/Users/Fabio/.mpi1240-canary/{models,engine}`): 3510 pass, 0 fail, 2 skipped; canary
+  files intact afterwards. Real M:/CubricModels never used for this run.
+- Other unit tests that touch the roots all pin a temp root before requiring the helper
+  (disk-gate-names-model, install-start-settles, local-disk-gate-partial, remote-uploads,
+  import-model-subfolder). Desktop specs (`tests/desktop/*.spec.js`) still inherit
+  CUBRIC_MODELS_ROOT into the launched app: read-only, no delete path, not in `npm test`.

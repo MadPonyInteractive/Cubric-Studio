@@ -37,9 +37,12 @@ pre-push hook ran it in a worktree.
 - Helper: an inherited root outside `os.tmpdir()` is replaced, never adopted or deleted.
 - `tests/sandbox-roots-hygiene.test.cjs`: canary child-process test.
 
+2026-10-22 (session "Mystery drive wipe"): full suite run with both roots on a non-temp canary,
+3510 pass, canary intact; CI green on 73cc5be36. Closed.
+
 ## Remaining Work
 
-CI green on the fix commit -> close. Your call for Fabio: the 3 tests that inherit a root
+None. Your call for Fabio: the 3 tests that inherit a root
 (`orphan-sweep`, `remote-restart-clears-flag`, `universal-nodes-drift`) are now safe via the helper.
 
 ## Plan Drift
