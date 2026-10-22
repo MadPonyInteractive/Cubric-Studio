@@ -38,7 +38,7 @@ import {
     TTS_KNOBS, ttsKnobParams,
 } from './commandRegistry.js';
 import { PROMPT_CONTROL_DEFAULTS } from './promptControlDefaults.js';
-import { layoutRows, endsWithBoxTable, boxName } from './layoutBoxes.js';
+import { layoutRows, endsWithBoxTable, boxName, mossLayoutPrompt } from './layoutBoxes.js';
 import { MODELS } from './modelConstants/models.js';
 import { canonicalModelId } from './modelConstants/resolveModelDeps.js';
 import { getExtension, isImageFile, isVideoFile, isAudioFile } from '../utils/file.js';
@@ -345,15 +345,22 @@ export function modelTakesBoxes(model, operation) {
  * table, FLUX.3 drew a new picture from the box text and dropped the subject (Fabio's tiger,
  * 2026-10-20).
  *
+ * `moss`: the whole prompt becomes MOSS-Image's layout JSON (`mossLayoutPrompt`), which places
+ * boxes in output pixels, hence `size`.
+ *
  * @param {object} model - the ModelDef; `layoutBoxes.format` picks the table
  * @param {string} prompt
  * @param {Array<{x:number,y:number,w:number,h:number,desc?:string}>} boxes
  * @param {string} [operation]
+ * @param {{width:number,height:number}} [size] - the output frame (`moss` only)
  * @returns {string}
  */
-export function withLayoutBoxes(model, prompt, boxes, operation) {
+export function withLayoutBoxes(model, prompt, boxes, operation, size) {
     let text = String(prompt || '').trim();
-    if (model?.layoutBoxes?.format !== 'flux3' || !Array.isArray(boxes) || !boxes.length) return text;
+    const format = model?.layoutBoxes?.format;
+    if (!Array.isArray(boxes) || !boxes.length) return text;
+    if (format === 'moss' && size?.width && size?.height) return mossLayoutPrompt(text, boxes, size.width, size.height);
+    if (format !== 'flux3') return text;
     // An Enhance in box mode already wrote the table (the user's boxes, reconciled): keep it.
     if (endsWithBoxTable(text)) return text;
     const rows = layoutRows(boxes);

@@ -472,6 +472,33 @@ export const modelDeps = {
         bytes: 5807427339,
         sha256: '8949ecfc1bf3871b08be02cf43ec7276a4914e1a86eade6b5eb8f4204426bc92',
     },
+    // ── MOSS-Image transformers (MPI-1243) ─────────────────────────────────────
+    // Both ship on the one card, FLUX.3's shape: the Turbo button picks between them inside one
+    // graph. Turbo is a COMMUNITY merge (toxicdog, Apache-2.0, "experimental"); OpenMOSS ships only
+    // SFT + Base. Base is not shipped (bench A/B only). Encoder: `moss-image-qwen35-9b-clip`; VAE
+    // reused: `vae-flux2`. Bench: MPI-1180 validation.md.
+    'moss-image-turbo-transformer': {
+        id: 'moss-image-turbo-transformer',
+        name: 'MOSS-Image SFT-Turbo Transformer (int8_convrot)',
+        origin: 'toxicdog/MOSS-Image-SFT-Turbo-INT8-ConvRot (diffusion_models/moss_image_sft_turbo_int8_convrot.safetensors)',
+        filename: 'diffusion_models/moss_image_sft_turbo_int8_convrot.safetensors',
+        url: 'https://models.cubric.studio/vision/models/diffusion_models/moss_image_sft_turbo_int8_convrot.safetensors',
+        mirrorUrl: 'https://huggingface.co/toxicdog/MOSS-Image-SFT-Turbo-INT8-ConvRot/resolve/main/diffusion_models/moss_image_sft_turbo_int8_convrot.safetensors',
+        size: '5.04GB',
+        bytes: 5413707240,
+        sha256: '2a837150ea1b116d939e7516d82b1469c0afc6e311b00a196df557cd258ed223',
+    },
+    'moss-image-sft-transformer': {
+        id: 'moss-image-sft-transformer',
+        name: 'MOSS-Image SFT Transformer (int8_convrot)',
+        origin: 'Comfy-Org/MOSS-Image (diffusion_models/moss_image_sft_int8_convrot.safetensors)',
+        filename: 'diffusion_models/moss_image_sft_int8_convrot.safetensors',
+        url: 'https://models.cubric.studio/vision/models/diffusion_models/moss_image_sft_int8_convrot.safetensors',
+        mirrorUrl: 'https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/diffusion_models/moss_image_sft_int8_convrot.safetensors',
+        size: '5.04GB',
+        bytes: 5413698958,
+        sha256: 'b4d1475bc7eeffd7b809e82ea13a1fba1fb85c4e18365af3813722faa5c0fe4f',
+    },
     // ── LTX-2.3 transformers (MPI-127) ─────────────────────────────────────────
     // Ship deps = exactly what LTX_i2v_t2v_template.json references (workflow scan
     // 2026-06-25). Support weights (video/audio VAE, gemma clip, text projection,

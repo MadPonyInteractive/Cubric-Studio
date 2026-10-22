@@ -48,6 +48,24 @@ export function layoutRows(boxes = []) {
     });
 }
 
+/**
+ * MOSS-Image's layout prompt (MPI-1243): what core `MOSSImageLayoutPrompt` builds, the WHOLE
+ * prompt as JSON - `summary.caption` = the prompt, one `object` item per box, bbox = pixel edges
+ * `[y0, x0, y1, x1]` with the origin at the frame's centre. A `<name>` the prompt cites reads as
+ * the name in words: MOSS has no box ids.
+ */
+export function mossLayoutPrompt(prompt, boxes, width, height) {
+    const caption = String(prompt || '').replace(/<([A-Za-z][A-Za-z0-9_]*)>/g, (_, n) => n.replace(/_/g, ' ')).trim();
+    // core rounds to 9 places before floor/ceil, so a float error never moves an edge a pixel
+    const px = (v, side, edge) => edge(Number((v * side / SCALE).toFixed(9))) - Math.floor(side / 2);
+    const items = layoutRows(boxes).map(({ bbox: [y0, x0, y1, x1], desc }) => ({
+        label: 'object',
+        caption: desc,
+        bbox: [px(y0, height, Math.floor), px(x0, width, Math.floor), px(y1, height, Math.ceil), px(x1, width, Math.ceil)],
+    }));
+    return JSON.stringify({ summary: { caption }, items, bbox_coord_space: 'abs_centralized', bbox_format: 'yxyx' });
+}
+
 /** BFL's upsampler input for a request with locked boxes (`bbox.upsampling_input`). */
 export function upsamplingInput(prompt, rows) {
     return `ORIGINAL PROMPT:\n${String(prompt).trim()}\n\n`

@@ -269,6 +269,20 @@ export const assetDeps = {
         bytes: 9350798360,
         sha256: '8bfd0f6e12abf2d2d697ecc888e5e90b0d6741d6708f05799f53afa560452e8f',
     },
+    // MOSS-Image text encoder (MPI-1243): Qwen3.5-9B w4a8 GPTQ, Comfy-Org's repack (Apache-2.0),
+    // CLIPLoader `type: moss_image`. The 9.7 GB int8 cut was not benched; this one rendered every
+    // text line exact on the MPI-1180 bench.
+    'moss-image-qwen35-9b-clip': {
+        id: 'moss-image-qwen35-9b-clip',
+        name: 'MOSS-Image Text Encoder (Qwen3.5-9B w4a8)',
+        origin: 'Comfy-Org/MOSS-Image (text_encoders/qwen3.5_9b_w4a8_gptq.safetensors)',
+        filename: 'text_encoders/qwen3.5_9b_w4a8_gptq.safetensors',
+        url: 'https://models.cubric.studio/vision/models/text_encoders/qwen3.5_9b_w4a8_gptq.safetensors',
+        mirrorUrl: 'https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/text_encoders/qwen3.5_9b_w4a8_gptq.safetensors',
+        size: '6.84GB',
+        bytes: 7343591088,
+        sha256: '4cc6a1543ad2061806da46f35f90cadb4801dcba246c44782cf42ec0feb6407c',
+    },
     // Qwen-Image-Edit-2511 text encoder (MPI-300). Qwen2.5-VL-7B (hidden 3584) — NOT
     // the boogu Qwen3-VL-8B nor the krea2 Qwen3-VL-4B. Full-precision TE tested &
     // REJECTED (hallucinates + stretches anatomy); fp8_scaled is the only good TE.

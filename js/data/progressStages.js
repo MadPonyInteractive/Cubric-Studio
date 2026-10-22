@@ -105,6 +105,9 @@ export const PROGRESS_STAGES = Object.freeze({
     // turbo 8 steps then the same 3-step pass. The prompt enhancer does NOT emit its own
     // bar, it fills ~10-20% of one; user-confirmed 2026-07-20.)
     'krea2_t2i.json':            Object.freeze({ postTile: 1 }),
+    // MOSS-Image (MPI-1243): t2i only, ONE sampler bar on Turbo (8/8) and SFT (25/25), no
+    // load bar (counted live on the MPI-1180 bench, ComfyUI 0.42.1).
+    'moss_t2i.json':             Object.freeze({ single: 1 }),
     // Chroma — NO ENTRY, deliberately, and unlike Krea2 there is not even a `postTile`
     // to justify a key. Same one-master-template problem: t2i/i2i/depth each emit ONE
     // bar (a single ClownsharKSampler pass — Chroma has no accelerator second pass, so
