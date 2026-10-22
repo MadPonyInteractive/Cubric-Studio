@@ -919,6 +919,9 @@ export const MpiModelManager = ComponentFactory.create({
                 // exits. In fullscreen show native controls + unmute; restore on exit.
                 thumb.classList.add('mpi-detail__thumb--play');
                 _unsubs.push(on(thumb, 'click', () => {
+                    // Already fullscreen: the native controls own the click (play/pause);
+                    // forcing play here undid their toggle, so a click never played.
+                    if (document.fullscreenElement === vid) return;
                     if (vid.requestFullscreen) {
                         vid.controls = true; vid.muted = false;
                         vid.requestFullscreen()

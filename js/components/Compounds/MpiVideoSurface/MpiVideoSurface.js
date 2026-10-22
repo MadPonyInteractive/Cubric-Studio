@@ -99,6 +99,9 @@ export const MpiVideoSurface = ComponentFactory.create({
         _unsubs.push(on(el, 'click', (ev) => {
             // If any ancestor opted out via data-no-toggle, ignore.
             if (ev.target.closest('[data-no-toggle]')) return;
+            // Fullscreen <video> gets Chromium's own media UI, which toggles play on
+            // a click too (a beat later) — toggling here as well cancels it out.
+            if (document.fullscreenElement === video) return;
             if (video.paused) video.play().catch(() => {/* noop */});
             else              video.pause();
         }));
