@@ -33,3 +33,9 @@ add it to the Flow's `requiredModels` rack (or make it the default); where it lo
 - A Flow is wired per `/mpi-add-flow` playbook; a rack change touches the Flow's workflow inject map.
 
 ## Noticed
+
+- 2026-10-22: quitting the app deletes EVERY `cubric-vision` Pod on the RunPod account it does not
+  track (`_sweepOrphanPods` on quit teardown, `routes/remotePodLifecycle.js`): Fabio's :3000 quit at
+  04:02:57Z killed the isolated bench Pod. Same for a user with two machines on one account.
+- 2026-10-22: a connected Pod that vanishes (404) self-heals to local with no toast in that instance
+  (`_selfHealIfPodDead`); the next generation would silently run on the local GPU.

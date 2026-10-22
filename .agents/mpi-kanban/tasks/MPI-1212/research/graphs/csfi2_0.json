@@ -1,0 +1,138 @@
+{
+ "case": "csfi2",
+ "flowId": "character-sheet-from-images",
+ "prompt_id": "33d054c9-53b4-48fb-afcd-8d85269d3e54",
+ "seed": 3702739349,
+ "body": {
+  "fields": {
+   "positive": "",
+   "Input_Remove_Head": false
+  },
+  "params": {
+   "box1": {
+    "x": -65,
+    "y": -3,
+    "width": 995,
+    "height": 1243
+   }
+  },
+  "media": [
+   {
+    "role": "image1",
+    "url": "/project-file?path=C%3A%5CUsers%5CFabio%5CDocuments%5CCubric%20Studio%5CProjects%5CDeepinfra%20model%20tests%5CMedia%5Cedit_002.png"
+   }
+  ],
+  "flowId": "character-sheet-from-images",
+  "folderPath": "C:\\Users\\Fabio\\Documents\\Cubric Studio\\Projects\\FLUX3 Flow Bench",
+  "cardName": "csfi2 replay"
+ },
+ "graph": {
+  "35": {
+   "inputs": {
+    "clip_name": "qwen3vl_4b_abliterated_fp8_scaled.safetensors",
+    "type": "krea2",
+    "device": "default"
+   },
+   "class_type": "CLIPLoader",
+   "_meta": {
+    "title": "Load CLIP"
+   }
+  },
+  "36": {
+   "inputs": {
+    "max_length": 512,
+    "sampling_mode": "on",
+    "sampling_mode.temperature": 0.2,
+    "sampling_mode.top_k": 64,
+    "sampling_mode.top_p": 0.95,
+    "sampling_mode.min_p": 0.05,
+    "sampling_mode.repetition_penalty": 1.05,
+    "sampling_mode.seed": 0,
+    "sampling_mode.presence_penalty": 0.0,
+    "thinking": false,
+    "use_default_template": true,
+    "clip": [
+     "35",
+     0
+    ],
+    "image": [
+     "41",
+     0
+    ],
+    "prompt": [
+     "38",
+     0
+    ]
+   },
+   "class_type": "TextGenerate",
+   "_meta": {
+    "title": "Generate Text"
+   }
+  },
+  "37": {
+   "inputs": {
+    "source": [
+     "48",
+     0
+    ]
+   },
+   "class_type": "PreviewAny",
+   "_meta": {
+    "title": "Output_prompt"
+   }
+  },
+  "38": {
+   "inputs": {
+    "value": "<|im_start|>user\n<|vision_start|><|image_pad|><|vision_end|>Look only at the person's head. Is the face pointing straight at the camera, or is the head turned to one side (a three-quarter or profile view)? Reply with one word: FRONT or TURNED.<|im_end|>\n<|im_start|>assistant\n"
+   },
+   "class_type": "PrimitiveStringMultiline",
+   "_meta": {
+    "title": "Input_Describe_Prompt"
+   }
+  },
+  "41": {
+   "inputs": {
+    "upscale_method": "nearest-exact",
+    "megapixels": 1.0,
+    "resolution_steps": 16,
+    "image": [
+     "43",
+     0
+    ]
+   },
+   "class_type": "ImageScaleToTotalPixels",
+   "_meta": {
+    "title": "Scale Image to Total Pixels"
+   }
+  },
+  "43": {
+   "inputs": {
+    "image": "None",
+    "channel": "alpha",
+    "block_if_empty": true,
+    "string": "/workspace/comfyui/input/b47f27f12702d2bd34e1016d59236e67af47331c7fa3b4e0bb419cc194da9966.png"
+   },
+   "class_type": "MpiLoadImage",
+   "_meta": {
+    "title": "Input_Image"
+   }
+  },
+  "48": {
+   "inputs": {
+    "passthrough": [
+     "36",
+     0
+    ]
+   },
+   "class_type": "MpiClearVram",
+   "_meta": {
+    "title": "Mpi Clear Vram"
+   }
+  }
+ },
+ "outputs": [
+  "48",
+  "43",
+  "37"
+ ]
+}

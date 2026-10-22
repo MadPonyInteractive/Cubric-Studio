@@ -6,7 +6,7 @@ ReferenceMultiLatent both set `reference_latents`), so the Klein graphs keep the
 nodes and only the loaders, the schedule and (base) the negative change.
 
   python flowbench.py dry                       swap every Klein Flow template, check it, no GPU
-  python flowbench.py capture <port> <flow> [prompt_id]   save a run's compiled graph from /history
+  python flowbench.py capture <port> <flow> <prompt_id>   save a run's compiled graph (app instance /proxy/*)
   python flowbench.py run <port> <flow> <seed>... [--variants base,turbo,flux3base]
       replays research/graphs/<flow>.json as-is ("base" = today's model) and swapped; GPU,
       so ONLY under `gpu_lease.py run --poll 2` and only after Fabio says the GPU is free.
@@ -73,6 +73,79 @@ def swap(graph, variant):
     return g
 
 
+QWEN_UNETS = ('qwen_image_2.1',)
+
+
+def swap_qwen(graph, variant):
+    """Return a copy of `graph` with its Qwen-Image 2.1 stage on FLUX.3, wired the way the app's own
+    flux3_t2i.json is: MpiFlux3References (prompt + refs -> positive/negative), EmptyFlux2LatentImage,
+    flux2 VAE, euler/simple. A Klein stage in the same graph (editor's helper passes) stays Klein.
+    The Flow's prompt goes in as written (it says "image 1"); re-wording it is wiring work."""
+    g = copy.deepcopy(graph)
+    qwen = [k for k, v in g.items() if v['class_type'] == 'UNETLoader'
+            and str(v['inputs'].get('unet_name', '')).startswith(QWEN_UNETS)]
+    assert qwen, 'no Qwen-Image UNETLoader in this graph'
+    for k in qwen:
+        g[k]['inputs']['unet_name'] = FLUX3['unet'][variant]
+    for k, v in list(g.items()):   # the cache patch is Qwen-only: link its consumers past it
+        if v['class_type'] == 'QwenImage21Cache':
+            for n in g.values():
+                for name, val in n['inputs'].items():
+                    if val == [k, 0]:
+                        n['inputs'][name] = v['inputs']['model']
+            del g[k]
+    steps, cfg = FLUX3['steps'][variant], FLUX3['cfg'][variant]
+    # Each Qwen encode becomes MpiFlux3References UNDER THE SAME ID: both nodes answer
+    # (positive, negative, latent at picture 1's size), so every link - MpiIfElse picks included -
+    # stays valid. Qwen's `resolution` 0 = own size = 'keep resolution'; N = refs scaled to N x N.
+    negs = {}
+    for k, v in list(g.items()):
+        if v['class_type'] != 'TextEncodeQwenImage21':
+            continue
+        inp = v['inputs']
+        clip, vae = inp['clip'], inp['vae']
+        g[clip[0]]['inputs'].update(clip_name=FLUX3['clip'], type='flux3')
+        g[vae[0]]['inputs']['vae_name'] = 'flux2-vae.safetensors'
+        if clip[0] not in negs:
+            neg = _new_id(g)
+            g[neg] = {'class_type': 'CLIPTextEncode', '_meta': {'title': 'MPI-1212 negative'},
+                      'inputs': {'clip': clip, 'text': ''}}
+            if variant == 'flux3turbo':   # cfg 1 ignores it; zeroed as flux3_t2i.json does
+                z = _new_id(g)
+                g[z] = {'class_type': 'ConditioningZeroOut', 'inputs': {'conditioning': [neg, 0]}}
+                neg = z
+            negs[clip[0]] = neg
+        res = inp.get('resolution') or 0
+        refs = {f'ref_image_{i}': inp[f'images.image_{i + 1}'] for i in range(10)
+                if isinstance(inp.get(f'images.image_{i + 1}'), list)}
+        g[k] = {'class_type': 'MpiFlux3References', '_meta': {'title': 'MPI-1212 FLUX.3 for ' + v['_meta']['title']},
+                'inputs': {'resolution': 'resize' if res else 'keep resolution',
+                           'megapixels': round((res / 1024) ** 2, 2) if res else 1, 'clip': clip, 'vae': vae,
+                           'prompt': inp['prompt'], 'negative': [negs[clip[0]], 0], **refs}}
+    assert negs, 'no Qwen encode in this graph'
+    touched = 0
+    for k, v in list(g.items()):
+        if v['class_type'] != 'KSampler' or not _runs_on(g, v['inputs'].get('model'), qwen):
+            continue
+        lat = g[v['inputs']['latent_image'][0]]
+        if lat['class_type'] == 'EmptyLatentImage':
+            lat['class_type'] = 'EmptyFlux2LatentImage'
+        v['inputs'].update(steps=steps, cfg=cfg, sampler_name='euler', scheduler='simple')
+        touched += 1
+    assert touched, 'no sampler driven by the Qwen model'
+    for k, v in list(g.items()):   # the flux2 VAE decodes RGB: drop the 2.1 RGBA split after it
+        src = v['inputs'].get('image')
+        dec = g[src[0]] if isinstance(src, list) else {}
+        if v['class_type'] == 'SplitImageWithAlpha' and dec.get('class_type') == 'VAEDecode' \
+                and g[dec['inputs']['vae'][0]]['inputs'].get('vae_name') == 'flux2-vae.safetensors':
+            for n in g.values():
+                for name, val in n['inputs'].items():
+                    if val == [k, 0]:
+                        n['inputs'][name] = src
+            del g[k]
+    return g
+
+
 def _runs_on(g, link, loaders, depth=0):
     """True when a MODEL link leads back to one of `loaders` (through LoRA / patch nodes)."""
     if not isinstance(link, list) or depth > 40:
@@ -112,25 +185,25 @@ def _negative_with_refs(g, positive, clip):
     return clone(positive)
 
 
-def check(g):
-    """Every link points at a node that exists, and no Klein weight is left."""
+def check(g, banned=KLEIN_UNETS):
+    """Every link points at a node that exists, and no swapped-out weight is left."""
     for k, v in g.items():
         for name, val in v['inputs'].items():
             if isinstance(val, list) and len(val) == 2 and isinstance(val[0], str):
                 assert val[0] in g, f'{k}.{name} -> missing node {val[0]}'
-            assert not (isinstance(val, str) and val.startswith(KLEIN_UNETS)), f'{k}.{name} still {val}'
+            assert not (isinstance(val, str) and val.startswith(banned)), f'{k}.{name} still {val}'
 
 
 def _api(port, path, body=None):
-    req = urllib.request.Request(f'http://127.0.0.1:{port}{path}',
+    req = urllib.request.Request(f'http://127.0.0.1:{port}/proxy{path}',
                                  data=json.dumps(body).encode() if body else None,
                                  headers={'Content-Type': 'application/json'})
     return json.load(urllib.request.urlopen(req, timeout=60))
 
 
 def capture(port, flow, pid=None):
-    h = _api(port, '/history')
-    pid = pid or list(h)[-1]
+    # the app proxy has no /history list: pid from /proxy/queue or the instance app.log
+    h = _api(port, f'/history/{pid}')
     item = h[pid]
     os.makedirs(os.path.join(HERE, 'graphs'), exist_ok=True)
     out = os.path.join(HERE, 'graphs', f'{flow}.json')
@@ -141,6 +214,8 @@ def capture(port, flow, pid=None):
 
 def _seed(g, seed):
     for v in g.values():
+        if v.get('_meta', {}).get('title') == 'Input_Seed':   # app graphs: MpiInt feeds every sampler
+            v['inputs']['int'] = seed
         for name in ('seed', 'noise_seed'):
             if name in v['inputs'] and not isinstance(v['inputs'][name], list):
                 v['inputs'][name] = seed
@@ -153,9 +228,11 @@ def run(port, flow, seeds, variants):
     ok = True
     for seed in seeds:
         for var in variants:
-            g = copy.deepcopy(cap['graph']) if var == 'base' else swap(cap['graph'], var)
+            qwen = any(str(v['inputs'].get('unet_name', '')).startswith(QWEN_UNETS) for v in cap['graph'].values())
+            g = copy.deepcopy(cap['graph']) if var == 'base' else (swap_qwen if qwen else swap)(cap['graph'], var)
             _seed(g, seed)
-            check(g)
+            if var != 'base':
+                check(g, QWEN_UNETS if qwen else KLEIN_UNETS)
             pid = _api(port, '/prompt', {'prompt': g})['prompt_id']
             t0 = time.time()
             while True:
@@ -167,11 +244,11 @@ def run(port, flow, seeds, variants):
             secs = round(time.time() - t0, 1)
             print(flow, var, seed, st.get('status_str'), secs, 's', flush=True)
             ok &= st.get('status_str') == 'success'
-            for node_out in h[pid]['outputs'].values():
+            for nid, node_out in h[pid]['outputs'].items():
                 for i, im in enumerate(node_out.get('images', [])):
                     q = urllib.parse.urlencode({k: im[k] for k in ('filename', 'subfolder', 'type')})
-                    with urllib.request.urlopen(f'http://127.0.0.1:{port}/view?{q}') as src:
-                        open(os.path.join(outdir, f'{var}_{seed}_{i}.png'), 'wb').write(src.read())
+                    with urllib.request.urlopen(f'http://127.0.0.1:{port}/proxy/view?{q}') as src:
+                        open(os.path.join(outdir, f'{var}_{seed}_{nid}_{i}.png'), 'wb').write(src.read())
     return ok
 
 
@@ -190,7 +267,7 @@ if __name__ == '__main__':
     if cmd == 'dry':
         dry()
     elif cmd == 'capture':
-        capture(sys.argv[2], sys.argv[3], sys.argv[4] if len(sys.argv) > 4 else None)
+        capture(sys.argv[2], sys.argv[3], sys.argv[4])
     elif cmd == 'run':
         args = sys.argv[4:]
         variants = ['base', 'flux3turbo', 'flux3base']
