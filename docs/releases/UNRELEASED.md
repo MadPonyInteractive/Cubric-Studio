@@ -51,3 +51,7 @@
 > or three times inside one unreleased version reads like user-visible history but
 > never shipped, and the entry is then simply false. Full gate:
 > `.claude/skills/mpi-release/references/copy-review.md` § Gate 0.
+
+## Fixes
+
+- The child-safety check reads more wording: plural body words and clothing "pulled aside" now get the picture looked at (MPI-1241).

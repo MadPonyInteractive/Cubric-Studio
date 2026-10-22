@@ -88,8 +88,10 @@ const SEXUAL = _rx([
     'erotic(?:a|ism)?', 'provocative(?:ly)?', 'suggestive(?:ly)?', 'nsfw', 'porn(?:o|ographic|ography)?', 'hentai', 'ecchi',
     'lewd', 'fetish(?:es|ism)?', 'kinky', 'aroused', 'arousal', 'orgasm(?:s|ic)?', 'horny', 'sluts?', 'slutty', 'whores?',
     'cunts?', 'puss(?:y|ies)', 'tits', 'titties', 'boobs', 'breasts', 'nipples?', 'areola(?:e|s)?', 'genital(?:s|ia)?',
-    'vagina(?:l)?', 'vulva', 'labia', 'penis', 'erection', 'testicles', 'anus', 'asshole', 'ass', 'buttocks', 'pubic(?: hair)?',
-    'crotch', 'cameltoe', 'upskirt', 'downblouse', 'cleavage', 'busty', 'voluptuous', 'sultry', 'flirt(?:y|ing|atious|s)?',
+    // Plurals too: "penises" walked a possible minor's picture past the check (MPI-1241).
+    'vagina(?:s|l)?', 'vulvas?', 'labia', 'penis(?:es)?', 'erections?', 'testicles?', 'anus(?:es)?', 'assholes?', 'ass(?:es)?',
+    'buttocks', 'pubic(?: hair)?', 'crotch(?:es)?', 'cameltoes?', 'private parts', 'chastity (?:cages?|caged|belts?|devices?)',
+    'upskirt', 'downblouse', 'cleavage', 'busty', 'voluptuous', 'sultry', 'flirt(?:y|ing|atious|s)?',
     'bedroom eyes', 'come hither', 'pin ?ups?', 'boudoir', 'playboy', 'strippers?', 'striptease', 'stripping',
     'pole danc(?:e|ing|er)', 'lap dance', 'bdsm', 'bondage', 'dominatrix', 'spank(?:s|ed|ing)?', 'molest(?:ed|ing|ation)?',
     'rape(?:d)?', 'incest', 'fuck(?:s|ed|ing)?', 'cum', 'cumshot', 'blowjob', 'handjob', 'masturbat(?:e|es|ing|ion)',
@@ -472,6 +474,9 @@ const UNDRESS = _rx([
     '(?:remove|removes|removing|take off|takes off|taking off|took off|pull off) (?:all )?(?:of )?(?:her |his |their |the )?(?:clothes|clothing|outfit|dress|shirt|top|bra|pants|trousers|skirt|underwear)',
     '(?:clothes|clothing|outfit|dress|shirt|top|bra|pants|skirt) off', 'undress(?:es|ed|ing)?', 'disrob(?:e|es|ing)',
     'strip(?:s|ped|ping)? (?:her|him|them|down|naked|nude|off)',
+    // Clothing moved aside, not off: "bikini bottom pulled aside to expose" (MPI-1241).
+    '(?:pull|push|tug|mov)(?:s|ed|ing|e|es)? (?:her |his |their |the )?(?:bikini|swimsuit|swimwear|panties|underwear|thong|knickers|briefs|shorts|skirt|bottoms?)(?: bottoms?)? (?:aside|down|to the side)',
+    '(?:bikini|swimsuit|swimwear|panties|underwear|thong|knickers|briefs|shorts|skirt|bottoms?)(?: bottoms?)? (?:pulled|pushed|tugged|moved) (?:aside|down|to the side)',
     'tira(?:r)? a roupa', 'despi(?:r|da|do)', 'quitar(?:le)? la ropa', 'desnudar(?:la|lo)?', 'desvestir(?:la|lo)?',
     'déshabiller', 'enlever (?:ses|les) vêtements', 'ausziehen', 'entkleiden', 'spogliar(?:e|la|lo)', 'togliere i vestiti',
 ]);
