@@ -2622,6 +2622,26 @@ export const MpiPromptBox = ComponentFactory.create({
                 : null
         );
 
+        /**
+         * The picked style LoRA's label, or null for none (MPI-1249). The enhancer writes the
+         * picture in it; without it a recipe called an Anime pick "a dramatic color photograph".
+         * An enhancement written for another style gets the same kind of note as No Background.
+         */
+        const _styleNow = () => {
+            const index = Number(_activeControls.get('styleSelect')?.getValue?.()) || 0;
+            return (index > 0 && model?.styleLoraLabels?.[index]) || null;
+        };
+        const _styleMismatchNote = (enh) => (
+            enh && (enh.style ?? null) !== _styleNow()
+                ? {
+                    text: _styleNow()
+                        ? `Enhanced before the ${_styleNow()} style was picked. Press Enhance to rewrite it in that style.`
+                        : `Enhanced for the ${enh.style} style. Press Enhance to rewrite it without one.`,
+                    kind: 'warn',
+                }
+                : null
+        );
+
         // MPI-1181: the Boxes an enhancement was planned around, as a comparable key.
         function _boxKey(boxes) {
             return JSON.stringify((boxes ?? []).map(b => [b.x, b.y, b.w, b.h, b.desc ?? '', b.name ?? '']));
@@ -2653,6 +2673,7 @@ export const MpiPromptBox = ComponentFactory.create({
             // close-all. Tearing down whatever is there costs nothing when there is
             // nothing, and the button is unreachable under an open backdrop anyway.
             const transparent = _transparentOn();
+            const style = _styleNow();
             const boxesAtOpen = _boxesNow();
             _closeEnhanceDialog();
             _enhanceDialog = MpiEnhanceDialog.mount(document.createElement('div'), {
@@ -2671,6 +2692,8 @@ export const MpiPromptBox = ComponentFactory.create({
                         .map((item, i) => ({ tag: `Image ${i + 1}`, url: item.url })),
                 // MPI-1049: No Background on, so the recipe describes no setting.
                 transparent,
+                // MPI-1249: the picked style, so the recipe writes the picture in it.
+                style,
                 // MPI-1181: the Boxes drawn for this op; FLUX.3's t2i plans around them.
                 boxes: _activeControls.get('boxes')?.getInjectionParams?.().Layout_Boxes,
                 // Reopening on an existing enhancement, so Cancel is non-destructive and
@@ -2685,7 +2708,7 @@ export const MpiPromptBox = ComponentFactory.create({
                         // A model mismatch OUTRANKS the stored note: both ride the same
                         // one line, and "these words are for another model" is the more
                         // urgent of the two. Re-enhancing replaces it either way.
-                        note: _modelMismatchNote(_enhanced) ?? _transparentMismatchNote(_enhanced) ?? _enhanced.note,
+                        note: _modelMismatchNote(_enhanced) ?? _transparentMismatchNote(_enhanced) ?? _styleMismatchNote(_enhanced) ?? _enhanced.note,
                     }
                     : undefined,
             });
@@ -2712,8 +2735,8 @@ export const MpiPromptBox = ComponentFactory.create({
                         note: note || null,
                         modelId: model?.id ?? null,
                         modelName: model?.name ?? null,
-                        // MPI-1049: the No Background state it was written for.
-                        transparent,
+                        // MPI-1049/1249: the No Background state and style it was written for.
+                        transparent, style,
                         // MPI-1181: and the Boxes.
                         boxes: boxesAtOpen,
                         // Recorded so the NEXT enhancement can tell this negative

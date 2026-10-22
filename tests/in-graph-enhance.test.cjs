@@ -364,7 +364,7 @@ test('the guard never reaches the ComfyUI queue', () => {
     for (const banned of ['runComfyEnhance', 'enqueueGeneration', 'enhanceFlow', 'generationService']) {
         assert.ok(!body.includes(banned), `settleInGraphEnhance must not touch ${banned} (it would queue behind its own job and deadlock)`);
     }
-    assert.ok(/enhance\)\(\{ prompt, model, backend \}\)/.test(body), 'the pick is passed explicitly so enhance() cannot resolve to ComfyUI');
+    assert.ok(/enhance\)\(\{ prompt, model, backend(, style)? \}\)/.test(body), 'the pick is passed explicitly so enhance() cannot resolve to ComfyUI');
 });
 
 test('scan: nothing in the app assigns the in-graph enhancer flag except the guard', () => {

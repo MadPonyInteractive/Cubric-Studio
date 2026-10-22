@@ -38,7 +38,7 @@
  * Nothing here ever sees it.
  */
 
-import { resolveRecipe, FALLBACK_RECIPE_ID, getRecipe, withReferences, withImageLooks, withPictureLines, TRANSPARENT_BACKGROUND_RULE } from '../data/recipes/registry.js';
+import { resolveRecipe, FALLBACK_RECIPE_ID, getRecipe, withReferences, withImageLooks, withPictureLines, TRANSPARENT_BACKGROUND_RULE, styleRule } from '../data/recipes/registry.js';
 import { layoutRows, upsamplingInput, editPlacementInput, reconcileBoxes, splitBoxTable } from '../data/layoutBoxes.js';
 import { composeSystemPrompt } from '../data/recipes/styles.js';
 import { clientLogger } from './clientLogger.js';
@@ -840,6 +840,7 @@ async function _enhanceFlowOn(backend, { prompt, injectionParams, modelId }) {
  * @param {Array<{tag:string,url:string}>} [a.pictures] the staged IMAGES, described for an r2v run (MPI-1084)
  * @param {string} [a.backend]      explicit override; defaults to the preference, then ComfyUI
  * @param {boolean} [a.transparent] No Background is on (MPI-1049): the brief says so
+ * @param {string}  [a.style]       the picked style LoRA's label (MPI-1249): the picture is in it
  * @param {Array<{x:number,y:number,w:number,h:number,desc?:string}>} [a.boxes] the user's Boxes
  *        (MPI-1181): a recipe with a `<mode>_bbox` mode plans around them and returns the
  *        caption plus the reconciled table; any other mode reads them as layout hints
@@ -850,7 +851,7 @@ async function _enhanceFlowOn(backend, { prompt, injectionParams, modelId }) {
  *          parsed. `text` is then the positive half alone — the caller must not
  *          re-split it.
  */
-export async function enhance({ prompt, model, recipeKey, mode, operation, references, pictures, backend, transparent, boxes } = {}) {
+export async function enhance({ prompt, model, recipeKey, mode, operation, references, pictures, backend, transparent, style, boxes } = {}) {
     const idea = String(prompt || '').trim();
     if (!idea) return { ok: false, error: 'Write a prompt first, then Enhance.' };
 
@@ -875,10 +876,13 @@ export async function enhance({ prompt, model, recipeKey, mode, operation, refer
     // the register axis is v1.1 (MPI-19/MPI-24); a recipe without
     // `styleVocabulary` is byte-identical whatever style is asked for.
     // MPI-1049: No Background outranks the recipe's "the brief is fixed" on the setting alone,
-    // so it rides in the system prompt, where that rule lives.
-    const system = transparent
-        ? `${composeSystemPrompt(modeRecipe)}\n\n${TRANSPARENT_BACKGROUND_RULE}`
-        : composeSystemPrompt(modeRecipe);
+    // so it rides in the system prompt, where that rule lives. MPI-1249: a picked style LoRA
+    // outranks the recipe's "no medium named = a photograph" the same way.
+    const system = [
+        composeSystemPrompt(modeRecipe),
+        transparent ? TRANSPARENT_BACKGROUND_RULE : null,
+        style ? styleRule(style) : null,
+    ].filter(Boolean).join('\n\n');
     const chosen = chooseBackend({ override: backend ?? await runnableBackend(backendPreference()) });
 
     // MPI-1056: a request the child-safety gate refuses is never sent to the enhancer.
@@ -1029,7 +1033,10 @@ export async function settleInGraphEnhance(payload, deps = {}) {
     if (backend === 'comfy') return payload;
 
     const model = await (deps.getModel ?? (async (id) => (await import('../data/modelRegistry.js')).getModelById(id)))(payload.modelId);
-    const result = await (deps.enhance ?? enhance)({ prompt, model, backend });
+    // MPI-1249: the style the rack will apply, by the index the prompt box injected.
+    const styleIndex = Number(injection['Input_Style_Selector.selector']) || 0;
+    const style = styleIndex > 0 ? model?.styleLoraLabels?.[styleIndex] : undefined;
+    const result = await (deps.enhance ?? enhance)({ prompt, model, backend, style });
     const text = result?.ok ? String(result.text || '').trim() : '';
     if (!text) {
         const why = String(result?.error || 'The enhancer returned no text.').trim();

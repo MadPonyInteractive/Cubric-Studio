@@ -247,6 +247,20 @@ export function withPictureLines(text, captions = []) {
  */
 export const TRANSPARENT_BACKGROUND_RULE = 'NO BACKGROUND. The user turned on a transparent background, and it outranks the brief on ONE point only: the setting. Drop every place, ground, floor, water, sky, horizon and object the brief puts around the subject, and never invent one. Keep the subject exactly as the brief gives it: who or what it is, its pose, clothing, expression, colours and the light falling on it. If the brief has the subject in or on something (water, sand, a chair), show the whole subject alone, as if cut out of that scene. Say once that it stands isolated with nothing behind it. Begin with "This is an RGBA image with transparency." and end with "The image has alpha channel and the background is transparent."';
 
+/**
+ * Appended to the enhancer's SYSTEM prompt when a style LoRA is picked (MPI-1249). The enhancer
+ * never saw the pick, so a recipe's "no medium named = a photograph" turned "a woman skydiving"
+ * with Anime on into "A dramatic color photograph shows...", and the word outweighed the LoRA
+ * (Fabio, 2026-10-22, MOSS). The label is all we have, so the LLM reads whether it names a
+ * medium (Anime, Gouache) or a photographic look (Lenovo, Canon).
+ *
+ * @param {string} label  the picked entry of the ModelDef's `styleLoraLabels`
+ * @returns {string}
+ */
+export function styleRule(label) {
+    return `STYLE. The user picked the "${label}" style, which sets the look of the picture, and it outranks any rule that makes a picture with no named medium a photograph. If "${label}" names a medium or an art style (anime, gouache, watercolour, pixel art, sketch, illustration, painting and the like), the picture IS that medium: open with it, describe everything as that medium shows it, and never call the picture a photograph, photo or render. If it names a camera, a film stock or a photographic look, the picture is a photograph with that look. Everything else in the brief stays as given.`;
+}
+
 /** All recipes, for the target picker. */
 export function listRecipes() {
     return RECIPE_REGISTRY;
