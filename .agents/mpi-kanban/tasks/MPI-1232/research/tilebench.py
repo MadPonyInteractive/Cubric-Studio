@@ -16,7 +16,7 @@ HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[4]
 BENCH = 'http://127.0.0.1:8188'
 GRAPHS = {'krea2': 'krea2_t2i_sfw.json', 'flux3': 'flux3_t2i.json'}
-SEED, DENOISE, FACTOR = 12345, 0.2, 2.0
+SEED, DENOISE, FACTOR = 12345, float(os.environ.get('DENOISE', '0.2')), 2.0
 
 
 def tile_rects(iw, ih, bbox=1024, overlap=200, irregularity=0.7):
@@ -94,10 +94,17 @@ def build(model, variant, faces, image_name, captions):
     det = g[det_id]['inputs']
     if variant != 'A':
         det['wildcard'] = ('[CONCAT]' if variant == 'C' else '') + '[ASC]' + '[SEP]'.join(captions)
-    if faces:
+    if faces == 2:  # stage 3: whole people leave the grid and get one prompt-less pass
+        # BOXES, not silhouettes: the app ships the model under ultralytics/bbox/ (assetDeps.js), and the Subpack
+        # only hands out a SEGM detector for a model in segm/ - here SegmDetectorSEGS dies on NO_SEGM_DETECTOR.
+        g['9001'] = {'class_type': 'UltralyticsDetectorProvider', 'inputs': {'model_name': 'bbox/person_yolov8n-seg.pt'}}
+        g['9002'] = {'class_type': 'BboxDetectorSEGS', 'inputs': {'bbox_detector': ['9001', 0], 'image': g[tile_id]['inputs']['images'],
+                     'threshold': 0.5, 'dilation': 10, 'crop_factor': 1.5, 'drop_size': 10, 'labels': 'all'}}
+    elif faces:
         g['9001'] = {'class_type': 'UltralyticsDetectorProvider', 'inputs': {'model_name': 'bbox/face_yolov8n.pt'}}
         g['9002'] = {'class_type': 'BboxDetectorSEGS', 'inputs': {'bbox_detector': ['9001', 0], 'image': g[tile_id]['inputs']['images'],
                      'threshold': 0.5, 'dilation': 10, 'crop_factor': 3.0, 'drop_size': 10, 'labels': 'all'}}
+    if faces:
         g[tile_id]['inputs']['filter_out_segs_opt'] = ['9002', 0]
         for n in g.values():  # everything that read the tile result now reads the face pass
             for k, v in n['inputs'].items():
@@ -128,7 +135,7 @@ def cmd_run(model, variant, faces, src, caps_path, tag):
     dest.write_bytes(_req('/view?' + q))
     msgs = {m[0]: m[1].get('timestamp') for m in st.get('messages', [])}
     secs = (msgs['execution_success'] - msgs['execution_start']) / 1000 if 'execution_start' in msgs else time.time() - t0
-    line = {'tag': tag, 'model': model, 'variant': variant, 'faces': int(faces), 'seconds': round(secs, 1),
+    line = {'tag': tag, 'model': model, 'variant': variant, 'faces': int(faces), 'denoise': DENOISE, 'seconds': round(secs, 1),
             'wildcard': g[det_id]['inputs']['wildcard'][:200]}
     with open(HERE / 'runs.jsonl', 'a', encoding='utf-8', newline='\n') as f:
         f.write(json.dumps(line) + '\n')

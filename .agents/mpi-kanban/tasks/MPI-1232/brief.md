@@ -138,6 +138,74 @@ Sheets: `research/out/sheets/<model>_<region>.png` (input | A B C faces off | A 
   FLUX.3 once faces are on; B vs C no clear difference on this photo - stage 2 (the UFO field, where a tile alone
   is unreadable) is where the prompt has to earn its place.
 
+## Stage 2 results (2026-10-22, Krea 2 turbo, face pass on, UFO field)
+
+Input: `upscale_002` crop (0,1450)-(1344,2450) = the hazy valley left of the people (`research/input_field.png`),
+2x = 12 tiles. Original t2i_004 shows it was "a dim patchwork of fields fading into evening haze" (its own prompt,
+`research/prompt_t2i_004.txt`); by upscale_002 it is mush. Captions: the app's describer graph
+(`image_descriptor.json`, qwen3vl 4B) on the bench, `research/captions_field_<m>.json`. Sheets:
+`research/out/sheets/field_whole.png` (whole crop, downscaled) + `field_field.png` / `field_edge.png` (1:1).
+
+- **Captions, all four methods fail to name the field.** 1 tile alone and 2 tile + whole-picture caption: "blurry,
+  pixelated noise / underwater / corrupted data". 3 whole picture with the tile outlined: names THINGS, but wrong
+  ones ("dark ocean", "cliff face", "stormy clouds"). 4 tile + the card's own t2i prompt as context: still "blurry,
+  grainy" - the 4B anchors on the pixels and ignores the context. No method carried the UFO or people in. Even the
+  whole-picture caption never mentions the valley.
+- **Denoise 0.2 (shipped): the tile prompt does NOTHING.** A, cap1, cap3 and a hand-written correct ("oracle")
+  caption all come back equal to the input. Describer quality is moot at 0.2.
+- **Denoise 0.45: the tile prompt decides the content.** A (no prompt) invents rippled water; oracle paints farm
+  fields with hedgerows (right thing, too close/flat, no haze); cap3 ("ocean/cliff") paints a rock cliff. Seams
+  start to show at 0.45 (vertical striations on a tile edge in cap3, a hard band at the top in oracle).
+- **Read:** per-tile prompts only matter where denoise is high enough to repaint, and there a WRONG caption is
+  worse than none. The local 4B describer cannot recover content a picture has lost; the card's own prompt is the
+  only true source, and the 4B would not use it as context. Fabio's mush came from repeated prompt-less passes.
+  ~270-300 s per run.
+- **Method 5 (Fabio 2026-10-22): the outline + "using the whole scene as a clue, what real thing fills that area,
+  how would it look sharp; never call it blurry".** Captions jump: 4B ~5/12 "valley", 5 "cliff", 1 "sea"; 8B
+  (`qwen3vl_8b_int8_convrot`, `DESCRIBER=` env) 8/12 "misty valley / layered hills / trees", 3 "mossy ground" (the
+  bottom tiles, which hold the grass strip). Redrawn at 0.45 (`out/sheets/field_whole_d45.png`): BOTH still fail.
+  8B painted a small UFO with a beam into the valley (its captions said "lit by the UFO's beam") + floating pebbles;
+  4B made a patchwork (rock mass, grass, hills, one per tile). The oracle is coherent only because every tile got
+  the SAME caption. **The blocker at 0.45 is tiles that disagree**: 12 overlapping tiles, 12 ideas, vertical seams.
+  32B not tried: 26 GB on a 16 GB card.
+- **Fabio's rule (2026-10-22): a detail prompt NAMES the thing in a few words** ("a field with green grass"); detail
+  words make it hallucinate. A short prompt is a steer: he masks a face + "Asian woman" to change ethnicity. So the
+  face pass stays prompt-less unless the user writes one (a describer's face guess would steer identity).
+  Method 6 = the outline + "name what fills it in five words or fewer".
+- **Method 6 results (short names, 0.45, `out/sheets/field_whole_short.png`):** NO hallucinated objects (no UFO, no
+  pebbles) on 4B or 8B - Fabio's rule holds. But the names are wrong and the content follows them: 4B "stormy
+  ocean / cliff face / stormy sky" -> a fog-and-rock mass; 8B "foggy valley below cliff" x6 -> fog, not fields. Only the
+  oracle ("patchwork of fields") made fields. On an already-mushed picture the small describers cannot name what
+  was there. Not yet tested: a READABLE picture (a fresh t2i upscaled once), the real use case. The run right after
+  the 8B describer took 780 s (vs ~300): likely memory left behind by the 8B.
+- **Readable picture (t2i_004 untouched, 1344x768 -> 2x, 8 tiles, Krea 2 turbo, face pass on, 0.35;
+  `out/sheets/fresh_whole.png` + `fresh_crops.png`):** 4B short names were scene-level ("UFO hovering over cliff",
+  "five people standing on cliff edge", "cloudy sky with sunset hues") - tiles of 1068 px cover big chunks. Neither
+  run added a UFO or people. Field: no prompt washed the farm patchwork into haze and stretched the UFO beam into a
+  long streak; names kept more hedgerow lines and the beam near the input (both softer than the input). People: no
+  prompt kept everyone; names turned the grey-haired man brown-haired (the face pass misses backs of heads). UFO: both
+  fine. Mixed: names help the far field, cost one hair colour. ~200-210 s per run.
+- **Names + people (method 7, Fabio: scenery in a few words, people by hair + clothing; `out/sheets/fresh_people.png`):**
+  the 4B contradicted itself across overlapping tiles - "grey-haired man in navy hoodie" in one, "bald man in navy
+  hoodie" in another, the main people tile still just "five people standing on cliff edge", and one tile listed
+  people outside its box. Result: the grey-haired man came out BALDING (short names: brown-haired; no prompt: grey,
+  the best). Field = as short names (better than no prompt). People words steer, but to the describer's mistakes too.
+  Candidate: people leave the grid like faces (stage 3's `person_yolov8n-seg` subtraction) and get a prompt-less
+  pass, while scenery tiles keep short names.
+- **Stage 3 people pass (Fabio's go, t2i_004 2x, 0.35; `out/sheets/fresh_peoplepass.png`, `fresh_greyman.png`):**
+  person boxes (`bbox/person_yolov8n-seg.pt` via BboxDetectorSEGS, crop 1.5) subtracted from the grid + one prompt-less
+  DetailerForEachPipe over them (`tilebench.py ... faces=2`). Boxes, not silhouettes: the app ships the model under
+  `ultralytics/bbox/` (assetDeps.js:994) and the Impact Subpack only gives a SEGM detector for a model in `segm/`
+  (SegmDetectorSEGS died on NO_SEGM_DETECTOR); silhouettes = moving that dep. Scenery-only names (method 8, "ignoring
+  any people"): "rocky cliff edge", "cloudy sky with sunset hues", "UFO hovering over landscape" - no people words.
+  Grey-haired man: no prompt + face pass = grey (best); short names = brown; names + people = balding; people pass
+  = grey, a touch darker; people pass + scenery names = dark grey. The people pass keeps describer mistakes off
+  people; the whole-person redraw at 0.35 darkens slightly. Field keeps the scenery-name gain. ~215-230 s per run.
+- **Fabio's denoise bands (2026-10-22):** 0.2 ~nothing on a high-res picture (only a low-res one shows it);
+  0.3-0.45 slight changes (detail); >0.65-0.7 inpainting/recreate; >0.75-0.8 foreign content. Trial and error per
+  model. Open for wiring: Tiles' 0.2 default does ~nothing on a big picture - default 0.3, or scale it by the
+  input's resolution? (Fabio's call.)
+
 ## Related
 
 MPI-1038 (Use Tiles today), MPI-1175 (tile count in the label), MPI-1181 (FLUX.3 tile bench +
