@@ -1,0 +1,2161 @@
+{
+ "case": "cseq8",
+ "flowId": "character-sheet-editor",
+ "prompt_id": "35363d0f-b797-4718-8346-67c3a24e318e",
+ "seed": 3987961670,
+ "body": {
+  "fields": {
+   "change": "clothes",
+   "words": "Cardigan and jeans with boots. ",
+   "Input_Age": 10,
+   "Input_Remove_Head": true
+  },
+  "params": {},
+  "media": [
+   {
+    "role": "image1",
+    "url": "/project-file?path=C%3A%5CUsers%5CFabio%5CDocuments%5CCubric%20Studio%5CProjects%5CQwen%202.1%5CMedia%5CflowCSFI_003.png"
+   }
+  ],
+  "flowId": "character-sheet-editor",
+  "folderPath": "C:\\Users\\Fabio\\Documents\\Cubric Studio\\Projects\\FLUX3 Flow Bench",
+  "cardName": "cseq8 replay"
+ },
+ "graph": {
+  "2": {
+   "inputs": {
+    "image": "None",
+    "channel": "alpha",
+    "block_if_empty": true,
+    "string": "C:\\AI\\Mpi\\Cubric-Vision\\engine\\ComfyUI_windows_portable\\ComfyUI\\input\\mpi_staged\\0840680a93a9be67.png"
+   },
+   "class_type": "MpiLoadImage",
+   "_meta": {
+    "title": "Input_Image"
+   }
+  },
+  "3": {
+   "inputs": {
+    "string": "Change the character in this character sheet to be a younger version of themselves as a 10-year-old child, with a child's smooth face, no beard and no wrinkles, wearing the same clothes. Make the same change in the close-up portrait on the right. Keep everything else exactly as it is."
+   },
+   "class_type": "MpiText",
+   "_meta": {
+    "title": "Input_Positive"
+   }
+  },
+  "4": {
+   "inputs": {
+    "int": 1178206233
+   },
+   "class_type": "MpiInt",
+   "_meta": {
+    "title": "Input_Seed"
+   }
+  },
+  "5": {
+   "inputs": {
+    "int": 0
+   },
+   "class_type": "MpiInt",
+   "_meta": {
+    "title": "Input_Lock"
+   }
+  },
+  "6": {
+   "inputs": {
+    "math_expression": "a*b/1048576",
+    "a": [
+     "2",
+     2
+    ],
+    "b": [
+     "2",
+     3
+    ]
+   },
+   "class_type": "MpiMath",
+   "_meta": {
+    "title": "exact size: megapixels = w * h / 2^20"
+   }
+  },
+  "7": {
+   "inputs": {
+    "math_expression": "a // 4",
+    "a": [
+     "2",
+     2
+    ]
+   },
+   "class_type": "MpiMath",
+   "_meta": {
+    "title": "panel quarter: front width, back x"
+   }
+  },
+  "8": {
+   "inputs": {
+    "math_expression": "a // 2",
+    "a": [
+     "2",
+     2
+    ]
+   },
+   "class_type": "MpiMath",
+   "_meta": {
+    "title": "portrait x = half the width"
+   }
+  },
+  "9": {
+   "inputs": {
+    "math_expression": "a // 2 - a // 4",
+    "a": [
+     "2",
+     2
+    ]
+   },
+   "class_type": "MpiMath",
+   "_meta": {
+    "title": "back panel width"
+   }
+  },
+  "10": {
+   "inputs": {
+    "math_expression": "a - a // 2",
+    "a": [
+     "2",
+     2
+    ]
+   },
+   "class_type": "MpiMath",
+   "_meta": {
+    "title": "portrait width"
+   }
+  },
+  "11": {
+   "inputs": {
+    "operator": ">",
+    "b_value": 0.0,
+    "a": [
+     "5",
+     0
+    ]
+   },
+   "class_type": "MpiCompare",
+   "_meta": {
+    "title": "locked? (Input_Lock > 0)"
+   }
+  },
+  "12": {
+   "inputs": {
+    "operator": "==",
+    "b_value": 1.0,
+    "a": [
+     "5",
+     0
+    ]
+   },
+   "class_type": "MpiCompare",
+   "_meta": {
+    "title": "lock on all three panels? (Input_Lock == 1)"
+   }
+  },
+  "13": {
+   "inputs": {
+    "ckpt_name": "sam3.1_multiplex_fp16.safetensors"
+   },
+   "class_type": "CheckpointLoaderSimple",
+   "_meta": {
+    "title": "SAM3 Model"
+   }
+  },
+  "14": {
+   "inputs": {
+    "value": "head, hair, face"
+   },
+   "class_type": "PrimitiveStringMultiline",
+   "_meta": {
+    "title": "lock 1 vocabulary (all three panels)"
+   }
+  },
+  "15": {
+   "inputs": {
+    "value": "face"
+   },
+   "class_type": "PrimitiveStringMultiline",
+   "_meta": {
+    "title": "lock 2 vocabulary (front + portrait)"
+   }
+  },
+  "16": {
+   "inputs": {
+    "true": [
+     "14",
+     0
+    ],
+    "false": [
+     "15",
+     0
+    ],
+    "boolean": [
+     "12",
+     0
+    ]
+   },
+   "class_type": "MpiIfElse",
+   "_meta": {
+    "title": "vocabulary by lock"
+   }
+  },
+  "17": {
+   "inputs": {
+    "clip": [
+     "13",
+     1
+    ],
+    "text": [
+     "16",
+     0
+    ]
+   },
+   "class_type": "CLIPTextEncode",
+   "_meta": {
+    "title": "SAM3 vocabulary"
+   }
+  },
+  "18": {
+   "inputs": {
+    "x": 0,
+    "y": 0,
+    "image": [
+     "2",
+     0
+    ],
+    "width": [
+     "7",
+     0
+    ],
+    "height": [
+     "2",
+     3
+    ]
+   },
+   "class_type": "ImageCrop",
+   "_meta": {
+    "title": "crop: front body"
+   }
+  },
+  "19": {
+   "inputs": {
+    "threshold": 0.5,
+    "refine_iterations": 2,
+    "individual_masks": false,
+    "model": [
+     "13",
+     0
+    ],
+    "image": [
+     "18",
+     0
+    ],
+    "conditioning": [
+     "17",
+     0
+    ]
+   },
+   "class_type": "SAM3_Detect",
+   "_meta": {
+    "title": "SAM3 lock, front body"
+   }
+  },
+  "20": {
+   "inputs": {
+    "y": 0,
+    "image": [
+     "2",
+     0
+    ],
+    "width": [
+     "9",
+     0
+    ],
+    "height": [
+     "2",
+     3
+    ],
+    "x": [
+     "7",
+     0
+    ]
+   },
+   "class_type": "ImageCrop",
+   "_meta": {
+    "title": "crop: back body"
+   }
+  },
+  "21": {
+   "inputs": {
+    "threshold": 0.5,
+    "refine_iterations": 2,
+    "individual_masks": false,
+    "model": [
+     "13",
+     0
+    ],
+    "image": [
+     "20",
+     0
+    ],
+    "conditioning": [
+     "17",
+     0
+    ]
+   },
+   "class_type": "SAM3_Detect",
+   "_meta": {
+    "title": "SAM3 lock, back body"
+   }
+  },
+  "22": {
+   "inputs": {
+    "y": 0,
+    "image": [
+     "2",
+     0
+    ],
+    "width": [
+     "10",
+     0
+    ],
+    "height": [
+     "2",
+     3
+    ],
+    "x": [
+     "8",
+     0
+    ]
+   },
+   "class_type": "ImageCrop",
+   "_meta": {
+    "title": "crop: portrait"
+   }
+  },
+  "23": {
+   "inputs": {
+    "threshold": 0.5,
+    "refine_iterations": 2,
+    "individual_masks": false,
+    "model": [
+     "13",
+     0
+    ],
+    "image": [
+     "22",
+     0
+    ],
+    "conditioning": [
+     "17",
+     0
+    ]
+   },
+   "class_type": "SAM3_Detect",
+   "_meta": {
+    "title": "SAM3 lock, portrait"
+   }
+  },
+  "24": {
+   "inputs": {
+    "value": 0.0,
+    "width": [
+     "9",
+     0
+    ],
+    "height": [
+     "2",
+     3
+    ]
+   },
+   "class_type": "SolidMask",
+   "_meta": {
+    "title": "no lock on the back view (lock 2)"
+   }
+  },
+  "25": {
+   "inputs": {
+    "true": [
+     "82",
+     0
+    ],
+    "false": [
+     "24",
+     0
+    ],
+    "boolean": [
+     "12",
+     0
+    ]
+   },
+   "class_type": "MpiIfElse",
+   "_meta": {
+    "title": "back view: SAM3 only at lock 1"
+   }
+  },
+  "26": {
+   "inputs": {
+    "value": 0.0,
+    "width": [
+     "2",
+     2
+    ],
+    "height": [
+     "2",
+     3
+    ]
+   },
+   "class_type": "SolidMask",
+   "_meta": {
+    "title": "empty sheet-sized mask"
+   }
+  },
+  "27": {
+   "inputs": {
+    "x": 0,
+    "y": 0,
+    "operation": "add",
+    "destination": [
+     "26",
+     0
+    ],
+    "source": [
+     "89",
+     0
+    ]
+   },
+   "class_type": "MaskComposite",
+   "_meta": {
+    "title": "paste: front body"
+   }
+  },
+  "28": {
+   "inputs": {
+    "y": 0,
+    "operation": "add",
+    "destination": [
+     "27",
+     0
+    ],
+    "source": [
+     "25",
+     0
+    ],
+    "x": [
+     "7",
+     0
+    ]
+   },
+   "class_type": "MaskComposite",
+   "_meta": {
+    "title": "paste: back body"
+   }
+  },
+  "29": {
+   "inputs": {
+    "y": 0,
+    "operation": "add",
+    "destination": [
+     "28",
+     0
+    ],
+    "source": [
+     "96",
+     0
+    ],
+    "x": [
+     "8",
+     0
+    ]
+   },
+   "class_type": "MaskComposite",
+   "_meta": {
+    "title": "paste: portrait"
+   }
+  },
+  "30": {
+   "inputs": {
+    "max_hole_size": 0,
+    "mask": [
+     "29",
+     0
+    ]
+   },
+   "class_type": "MpiMaskFillHoles",
+   "_meta": {
+    "title": "fill holes"
+   }
+  },
+  "31": {
+   "inputs": {
+    "expand": 6,
+    "tapered_corners": true,
+    "mask": [
+     "30",
+     0
+    ]
+   },
+   "class_type": "GrowMask",
+   "_meta": {
+    "title": "grow the lock 6"
+   }
+  },
+  "32": {
+   "inputs": {
+    "mask": [
+     "31",
+     0
+    ]
+   },
+   "class_type": "InvertMask",
+   "_meta": {
+    "title": "edit everything else (white = may change)"
+   }
+  },
+  "33": {
+   "inputs": {
+    "padding": 64,
+    "mask": [
+     "32",
+     0
+    ]
+   },
+   "class_type": "MpiMaskSquareBbox",
+   "_meta": {
+    "title": "Mpi Mask Square Bbox"
+   }
+  },
+  "34": {
+   "inputs": {
+    "unet_name": "flux-2-klein-9b-int8-convrot.safetensors",
+    "weight_dtype": "default"
+   },
+   "class_type": "UNETLoader",
+   "_meta": {
+    "title": "Load Diffusion Model"
+   }
+  },
+  "35": {
+   "inputs": {
+    "clip_name": "qwen_3_8b_int8_convrot.safetensors",
+    "type": "flux2",
+    "device": "default"
+   },
+   "class_type": "CLIPLoader",
+   "_meta": {
+    "title": "Load CLIP"
+   }
+  },
+  "36": {
+   "inputs": {
+    "vae_name": "flux2-vae.safetensors"
+   },
+   "class_type": "VAELoader",
+   "_meta": {
+    "title": "Load VAE"
+   }
+  },
+  "37": {
+   "inputs": {
+    "int": 4
+   },
+   "class_type": "MpiInt",
+   "_meta": {
+    "title": "steps"
+   }
+  },
+  "38": {
+   "inputs": {
+    "float": 1.0
+   },
+   "class_type": "MpiFloat",
+   "_meta": {
+    "title": "cfg"
+   }
+  },
+  "39": {
+   "inputs": {
+    "downscale_algorithm": "bilinear",
+    "upscale_algorithm": "bicubic",
+    "preresize": false,
+    "preresize_mode": "ensure minimum resolution",
+    "preresize_min_width": 1024,
+    "preresize_min_height": 1024,
+    "preresize_max_width": 16384,
+    "preresize_max_height": 16384,
+    "mask_fill_holes": false,
+    "mask_expand_pixels": 6,
+    "mask_invert": false,
+    "mask_blend_pixels": 32,
+    "mask_hipass_filter": 0.1,
+    "extend_for_outpainting": false,
+    "extend_up_factor": 1.0,
+    "extend_down_factor": 1.0,
+    "extend_left_factor": 1.0,
+    "extend_right_factor": 1.0,
+    "context_from_mask_extend_factor": 1.0,
+    "output_resize_to_target_size": true,
+    "output_padding": "32",
+    "device_mode": "gpu (much faster)",
+    "image": [
+     "2",
+     0
+    ],
+    "mask": [
+     "32",
+     0
+    ],
+    "optional_context_mask": [
+     "33",
+     0
+    ],
+    "output_target_width": [
+     "2",
+     2
+    ],
+    "output_target_height": [
+     "2",
+     3
+    ]
+   },
+   "class_type": "InpaintCropImproved",
+   "_meta": {
+    "title": "Inpaint Crop (the part the lock leaves open)"
+   }
+  },
+  "40": {
+   "inputs": {
+    "true": [
+     "39",
+     1
+    ],
+    "false": [
+     "2",
+     0
+    ],
+    "boolean": [
+     "11",
+     0
+    ]
+   },
+   "class_type": "MpiIfElse",
+   "_meta": {
+    "title": "reference picture: the crop when locked"
+   }
+  },
+  "41": {
+   "inputs": {
+    "upscale_method": "nearest-exact",
+    "resolution_steps": 16,
+    "image": [
+     "40",
+     0
+    ],
+    "megapixels": [
+     "6",
+     0
+    ]
+   },
+   "class_type": "ImageScaleToTotalPixels",
+   "_meta": {
+    "title": "Scale Image to Total Pixels (exact size)"
+   }
+  },
+  "42": {
+   "inputs": {
+    "pixels": [
+     "41",
+     0
+    ],
+    "vae": [
+     "36",
+     0
+    ]
+   },
+   "class_type": "VAEEncode",
+   "_meta": {
+    "title": "Encode ref 1"
+   }
+  },
+  "43": {
+   "inputs": {
+    "image": [
+     "41",
+     0
+    ]
+   },
+   "class_type": "GetImageSize",
+   "_meta": {
+    "title": "Get Image Size"
+   }
+  },
+  "44": {
+   "inputs": {
+    "clip": [
+     "35",
+     0
+    ],
+    "text": [
+     "3",
+     0
+    ]
+   },
+   "class_type": "CLIPTextEncode",
+   "_meta": {
+    "title": "CLIP Text Encode (Prompt)"
+   }
+  },
+  "45": {
+   "inputs": {
+    "conditioning": [
+     "44",
+     0
+    ]
+   },
+   "class_type": "ConditioningZeroOut",
+   "_meta": {
+    "title": "Conditioning Zero Out"
+   }
+  },
+  "46": {
+   "inputs": {
+    "conditioning": [
+     "44",
+     0
+    ],
+    "latent": [
+     "42",
+     0
+    ]
+   },
+   "class_type": "ReferenceLatent",
+   "_meta": {
+    "title": "Set Reference Latent 1"
+   }
+  },
+  "47": {
+   "inputs": {
+    "guidance": 4.0,
+    "conditioning": [
+     "74",
+     0
+    ]
+   },
+   "class_type": "FluxGuidance",
+   "_meta": {
+    "title": "FluxGuidance (LanPaint)"
+   }
+  },
+  "48": {
+   "inputs": {
+    "noise_seed": [
+     "4",
+     0
+    ]
+   },
+   "class_type": "RandomNoise",
+   "_meta": {
+    "title": "RandomNoise"
+   }
+  },
+  "49": {
+   "inputs": {
+    "sampler_name": "lcm"
+   },
+   "class_type": "KSamplerSelect",
+   "_meta": {
+    "title": "KSamplerSelect"
+   }
+  },
+  "50": {
+   "inputs": {
+    "model": [
+     "67",
+     0
+    ],
+    "positive": [
+     "74",
+     0
+    ],
+    "negative": [
+     "45",
+     0
+    ],
+    "cfg": [
+     "38",
+     0
+    ]
+   },
+   "class_type": "CFGGuider",
+   "_meta": {
+    "title": "CFG Guider"
+   }
+  },
+  "51": {
+   "inputs": {
+    "steps": [
+     "37",
+     0
+    ],
+    "width": [
+     "43",
+     0
+    ],
+    "height": [
+     "43",
+     1
+    ]
+   },
+   "class_type": "Flux2Scheduler",
+   "_meta": {
+    "title": "Flux2Scheduler"
+   }
+  },
+  "52": {
+   "inputs": {
+    "noise": [
+     "48",
+     0
+    ],
+    "guider": [
+     "50",
+     0
+    ],
+    "sampler": [
+     "49",
+     0
+    ],
+    "sigmas": [
+     "51",
+     0
+    ],
+    "latent_image": [
+     "42",
+     0
+    ]
+   },
+   "class_type": "SamplerCustomAdvanced",
+   "_meta": {
+    "title": "free edit sampler"
+   }
+  },
+  "53": {
+   "inputs": {
+    "samples": [
+     "42",
+     0
+    ],
+    "mask": [
+     "39",
+     2
+    ]
+   },
+   "class_type": "SetLatentNoiseMask",
+   "_meta": {
+    "title": "Set Latent Noise Mask (locked)"
+   }
+  },
+  "54": {
+   "inputs": {
+    "sampler_name": "euler_ancestral",
+    "scheduler": "simple",
+    "denoise": 1.0,
+    "LanPaint_NumSteps": 2,
+    "LanPaint_PromptMode": "Image First",
+    "LanPaint_Info": "LanPaint KSampler. For more info, visit https://github.com/scraed/LanPaint. If you find it useful, please give a star \u2b50\ufe0f!",
+    "Inpainting_mode": "\ud83d\uddbc\ufe0f Image Inpainting",
+    "model": [
+     "67",
+     0
+    ],
+    "positive": [
+     "47",
+     0
+    ],
+    "negative": [
+     "45",
+     0
+    ],
+    "latent_image": [
+     "53",
+     0
+    ],
+    "seed": [
+     "4",
+     0
+    ],
+    "steps": [
+     "37",
+     0
+    ],
+    "cfg": [
+     "38",
+     0
+    ]
+   },
+   "class_type": "LanPaint_KSampler",
+   "_meta": {
+    "title": "LanPaint KSampler (locked)"
+   }
+  },
+  "55": {
+   "inputs": {
+    "true": [
+     "54",
+     0
+    ],
+    "false": [
+     "52",
+     0
+    ],
+    "boolean": [
+     "11",
+     0
+    ]
+   },
+   "class_type": "MpiIfElse",
+   "_meta": {
+    "title": "sampled latent: LanPaint when locked"
+   }
+  },
+  "56": {
+   "inputs": {
+    "samples": [
+     "55",
+     0
+    ],
+    "vae": [
+     "36",
+     0
+    ]
+   },
+   "class_type": "VAEDecode",
+   "_meta": {
+    "title": "VAE Decode"
+   }
+  },
+  "57": {
+   "inputs": {
+    "stitcher": [
+     "39",
+     0
+    ],
+    "inpainted_image": [
+     "56",
+     0
+    ]
+   },
+   "class_type": "InpaintStitchImproved",
+   "_meta": {
+    "title": "Inpaint Stitch (locked: the sheet's own size)"
+   }
+  },
+  "58": {
+   "inputs": {
+    "upscale_method": "lanczos",
+    "crop": "disabled",
+    "image": [
+     "56",
+     0
+    ],
+    "width": [
+     "2",
+     2
+    ],
+    "height": [
+     "2",
+     3
+    ]
+   },
+   "class_type": "ImageScale",
+   "_meta": {
+    "title": "back to the sheet's size (free edit)"
+   }
+  },
+  "59": {
+   "inputs": {
+    "true": [
+     "57",
+     0
+    ],
+    "false": [
+     "58",
+     0
+    ],
+    "boolean": [
+     "11",
+     0
+    ]
+   },
+   "class_type": "MpiIfElse",
+   "_meta": {
+    "title": "result: the stitch when locked"
+   }
+  },
+  "61": {
+   "inputs": {
+    "images": [
+     "59",
+     0
+    ]
+   },
+   "class_type": "PreviewImage",
+   "_meta": {
+    "title": "Output_Image"
+   }
+  },
+  "62": {
+   "inputs": {
+    "lora_name": "None",
+    "strength_model": 1.0,
+    "model": [
+     "34",
+     0
+    ]
+   },
+   "class_type": "MpiLoraModel",
+   "_meta": {
+    "title": "Input_Lora_Phase1_1"
+   }
+  },
+  "63": {
+   "inputs": {
+    "lora_name": "None",
+    "strength_model": 1.0,
+    "model": [
+     "62",
+     0
+    ]
+   },
+   "class_type": "MpiLoraModel",
+   "_meta": {
+    "title": "Input_Lora_Phase1_2"
+   }
+  },
+  "64": {
+   "inputs": {
+    "lora_name": "None",
+    "strength_model": 1.0,
+    "model": [
+     "63",
+     0
+    ]
+   },
+   "class_type": "MpiLoraModel",
+   "_meta": {
+    "title": "Input_Lora_Phase1_3"
+   }
+  },
+  "65": {
+   "inputs": {
+    "lora_name": "None",
+    "strength_model": 1.0,
+    "model": [
+     "64",
+     0
+    ]
+   },
+   "class_type": "MpiLoraModel",
+   "_meta": {
+    "title": "Input_Lora_Phase1_4"
+   }
+  },
+  "66": {
+   "inputs": {
+    "lora_name": "None",
+    "strength_model": 1.0,
+    "model": [
+     "65",
+     0
+    ]
+   },
+   "class_type": "MpiLoraModel",
+   "_meta": {
+    "title": "Input_Lora_Phase1_5"
+   }
+  },
+  "67": {
+   "inputs": {
+    "lora_name": "None",
+    "strength_model": 1.0,
+    "model": [
+     "66",
+     0
+    ]
+   },
+   "class_type": "MpiLoraModel",
+   "_meta": {
+    "title": "Input_Lora_Phase1_6"
+   }
+  },
+  "68": {
+   "inputs": {
+    "image": "None",
+    "channel": "alpha",
+    "block_if_empty": false,
+    "string": ""
+   },
+   "class_type": "MpiLoadImage",
+   "_meta": {
+    "title": "Input_Image_2"
+   }
+  },
+  "69": {
+   "inputs": {
+    "boolean": false
+   },
+   "class_type": "MpiSimpleBoolean",
+   "_meta": {
+    "title": "Input_Reference"
+   }
+  },
+  "70": {
+   "inputs": {
+    "mode": "both_true",
+    "a": [
+     "68",
+     4
+    ],
+    "b": [
+     "69",
+     0
+    ]
+   },
+   "class_type": "MpiBooleanCompare",
+   "_meta": {
+    "title": "reference picture given AND wanted"
+   }
+  },
+  "71": {
+   "inputs": {
+    "upscale_method": "nearest-exact",
+    "megapixels": 1.0,
+    "resolution_steps": 16,
+    "image": [
+     "103",
+     0
+    ]
+   },
+   "class_type": "ImageScaleToTotalPixels",
+   "_meta": {
+    "title": "Reference picture to 1 MP"
+   }
+  },
+  "72": {
+   "inputs": {
+    "pixels": [
+     "71",
+     0
+    ],
+    "vae": [
+     "36",
+     0
+    ]
+   },
+   "class_type": "VAEEncode",
+   "_meta": {
+    "title": "Encode ref 2"
+   }
+  },
+  "73": {
+   "inputs": {
+    "conditioning": [
+     "46",
+     0
+    ],
+    "latent": [
+     "72",
+     0
+    ]
+   },
+   "class_type": "ReferenceLatent",
+   "_meta": {
+    "title": "Set Reference Latent 2"
+   }
+  },
+  "74": {
+   "inputs": {
+    "true": [
+     "73",
+     0
+    ],
+    "false": [
+     "46",
+     0
+    ],
+    "boolean": [
+     "70",
+     0
+    ]
+   },
+   "class_type": "MpiIfElse",
+   "_meta": {
+    "title": "conditioning: + the reference picture when given"
+   }
+  },
+  "75": {
+   "inputs": {
+    "clip": [
+     "13",
+     1
+    ],
+    "text": [
+     "15",
+     0
+    ]
+   },
+   "class_type": "CLIPTextEncode",
+   "_meta": {
+    "title": "SAM3 \"face\" (the chin line)"
+   }
+  },
+  "76": {
+   "inputs": {
+    "threshold": 0.5,
+    "refine_iterations": 2,
+    "individual_masks": false,
+    "model": [
+     "13",
+     0
+    ],
+    "image": [
+     "18",
+     0
+    ],
+    "conditioning": [
+     "75",
+     0
+    ]
+   },
+   "class_type": "SAM3_Detect",
+   "_meta": {
+    "title": "SAM3 face, front body"
+   }
+  },
+  "77": {
+   "inputs": {
+    "padding": 0,
+    "divisible_by": 1,
+    "mask": [
+     "76",
+     0
+    ]
+   },
+   "class_type": "MpiMaskBbox",
+   "_meta": {
+    "title": "front face box"
+   }
+  },
+  "78": {
+   "inputs": {
+    "mpi_box": [
+     "77",
+     1
+    ]
+   },
+   "class_type": "MpiFromBox",
+   "_meta": {
+    "title": "face box numbers"
+   }
+  },
+  "79": {
+   "inputs": {
+    "math_expression": "a + b + b // 2",
+    "a": [
+     "78",
+     3
+    ],
+    "b": [
+     "78",
+     1
+    ]
+   },
+   "class_type": "MpiMath",
+   "_meta": {
+    "title": "shoulder line = chin + half a face"
+   }
+  },
+  "80": {
+   "inputs": {
+    "x": 0,
+    "y": 0,
+    "width": [
+     "9",
+     0
+    ],
+    "height": [
+     "79",
+     0
+    ]
+   },
+   "class_type": "MpiBox",
+   "_meta": {
+    "title": "back body above the shoulders"
+   }
+  },
+  "81": {
+   "inputs": {
+    "image": [
+     "20",
+     0
+    ],
+    "mpi_box": [
+     "80",
+     0
+    ]
+   },
+   "class_type": "MpiBoxMask",
+   "_meta": {
+    "title": "back body: above-the-shoulders mask"
+   }
+  },
+  "82": {
+   "inputs": {
+    "x": 0,
+    "y": 0,
+    "operation": "multiply",
+    "destination": [
+     "21",
+     0
+    ],
+    "source": [
+     "81",
+     0
+    ]
+   },
+   "class_type": "MaskComposite",
+   "_meta": {
+    "title": "back lock cut at the shoulders"
+   }
+  },
+  "83": {
+   "inputs": {
+    "padding": 0,
+    "divisible_by": 1,
+    "mask": [
+     "19",
+     0
+    ]
+   },
+   "class_type": "MpiMaskBbox",
+   "_meta": {
+    "title": "front face box (lock 2)"
+   }
+  },
+  "84": {
+   "inputs": {
+    "mpi_box": [
+     "83",
+     1
+    ]
+   },
+   "class_type": "MpiFromBox",
+   "_meta": {
+    "title": "front face box numbers"
+   }
+  },
+  "85": {
+   "inputs": {
+    "math_expression": "a + b // 3",
+    "a": [
+     "84",
+     3
+    ],
+    "b": [
+     "84",
+     1
+    ]
+   },
+   "class_type": "MpiMath",
+   "_meta": {
+    "title": "front brow line = face top + a third"
+   }
+  },
+  "86": {
+   "inputs": {
+    "x": 0,
+    "width": [
+     "7",
+     0
+    ],
+    "height": [
+     "2",
+     3
+    ],
+    "y": [
+     "85",
+     0
+    ]
+   },
+   "class_type": "MpiBox",
+   "_meta": {
+    "title": "front: brow line down"
+   }
+  },
+  "87": {
+   "inputs": {
+    "image": [
+     "18",
+     0
+    ],
+    "mpi_box": [
+     "86",
+     0
+    ]
+   },
+   "class_type": "MpiBoxMask",
+   "_meta": {
+    "title": "front: brow-line-down mask"
+   }
+  },
+  "88": {
+   "inputs": {
+    "x": 0,
+    "y": 0,
+    "operation": "multiply",
+    "destination": [
+     "19",
+     0
+    ],
+    "source": [
+     "87",
+     0
+    ]
+   },
+   "class_type": "MaskComposite",
+   "_meta": {
+    "title": "front face lock cut at the brows"
+   }
+  },
+  "89": {
+   "inputs": {
+    "true": [
+     "19",
+     0
+    ],
+    "false": [
+     "88",
+     0
+    ],
+    "boolean": [
+     "12",
+     0
+    ]
+   },
+   "class_type": "MpiIfElse",
+   "_meta": {
+    "title": "front lock: whole at lock 1, from the brows at lock 2"
+   }
+  },
+  "90": {
+   "inputs": {
+    "padding": 0,
+    "divisible_by": 1,
+    "mask": [
+     "23",
+     0
+    ]
+   },
+   "class_type": "MpiMaskBbox",
+   "_meta": {
+    "title": "portrait face box (lock 2)"
+   }
+  },
+  "91": {
+   "inputs": {
+    "mpi_box": [
+     "90",
+     1
+    ]
+   },
+   "class_type": "MpiFromBox",
+   "_meta": {
+    "title": "portrait face box numbers"
+   }
+  },
+  "92": {
+   "inputs": {
+    "math_expression": "a + b // 3",
+    "a": [
+     "91",
+     3
+    ],
+    "b": [
+     "91",
+     1
+    ]
+   },
+   "class_type": "MpiMath",
+   "_meta": {
+    "title": "portrait brow line = face top + a third"
+   }
+  },
+  "93": {
+   "inputs": {
+    "x": 0,
+    "width": [
+     "10",
+     0
+    ],
+    "height": [
+     "2",
+     3
+    ],
+    "y": [
+     "92",
+     0
+    ]
+   },
+   "class_type": "MpiBox",
+   "_meta": {
+    "title": "portrait: brow line down"
+   }
+  },
+  "94": {
+   "inputs": {
+    "image": [
+     "22",
+     0
+    ],
+    "mpi_box": [
+     "93",
+     0
+    ]
+   },
+   "class_type": "MpiBoxMask",
+   "_meta": {
+    "title": "portrait: brow-line-down mask"
+   }
+  },
+  "95": {
+   "inputs": {
+    "x": 0,
+    "y": 0,
+    "operation": "multiply",
+    "destination": [
+     "23",
+     0
+    ],
+    "source": [
+     "94",
+     0
+    ]
+   },
+   "class_type": "MaskComposite",
+   "_meta": {
+    "title": "portrait face lock cut at the brows"
+   }
+  },
+  "96": {
+   "inputs": {
+    "true": [
+     "23",
+     0
+    ],
+    "false": [
+     "95",
+     0
+    ],
+    "boolean": [
+     "12",
+     0
+    ]
+   },
+   "class_type": "MpiIfElse",
+   "_meta": {
+    "title": "portrait lock: whole at lock 1, from the brows at lock 2"
+   }
+  },
+  "97": {
+   "inputs": {
+    "text": "hair",
+    "clip": [
+     "13",
+     1
+    ]
+   },
+   "class_type": "CLIPTextEncode",
+   "_meta": {
+    "title": "SAM3 \"hair\" (the reference)"
+   }
+  },
+  "98": {
+   "inputs": {
+    "threshold": 0.5,
+    "refine_iterations": 2,
+    "individual_masks": false,
+    "model": [
+     "13",
+     0
+    ],
+    "image": [
+     "68",
+     0
+    ],
+    "conditioning": [
+     "97",
+     0
+    ]
+   },
+   "class_type": "SAM3_Detect",
+   "_meta": {
+    "title": "SAM3 reference hair"
+   }
+  },
+  "99": {
+   "inputs": {
+    "image": [
+     "68",
+     0
+    ]
+   },
+   "class_type": "GetImageSize",
+   "_meta": {
+    "title": "reference size"
+   }
+  },
+  "100": {
+   "inputs": {
+    "batch_size": 1,
+    "color": 8421504,
+    "width": [
+     "99",
+     0
+    ],
+    "height": [
+     "99",
+     1
+    ]
+   },
+   "class_type": "EmptyImage",
+   "_meta": {
+    "title": "mid grey"
+   }
+  },
+  "101": {
+   "inputs": {
+    "x": 0,
+    "y": 0,
+    "resize_source": false,
+    "destination": [
+     "100",
+     0
+    ],
+    "source": [
+     "68",
+     0
+    ],
+    "mask": [
+     "98",
+     0
+    ]
+   },
+   "class_type": "ImageCompositeMasked",
+   "_meta": {
+    "title": "reference: the hair on grey"
+   }
+  },
+  "102": {
+   "inputs": {
+    "operator": "==",
+    "b_value": 2.0,
+    "a": [
+     "5",
+     0
+    ]
+   },
+   "class_type": "MpiCompare",
+   "_meta": {
+    "title": "hairstyle lock? (Input_Lock == 2)"
+   }
+  },
+  "103": {
+   "inputs": {
+    "true": [
+     "101",
+     0
+    ],
+    "false": [
+     "68",
+     0
+    ],
+    "boolean": [
+     "102",
+     0
+    ]
+   },
+   "class_type": "MpiIfElse",
+   "_meta": {
+    "title": "reference: cut out to the hair at lock 2"
+   }
+  },
+  "104": {
+   "inputs": {
+    "boolean": false
+   },
+   "class_type": "MpiSimpleBoolean",
+   "_meta": {
+    "title": "Input_Headless"
+   }
+  },
+  "105": {
+   "inputs": {
+    "input": [
+     "59",
+     0
+    ],
+    "boolean": [
+     "104",
+     0
+    ]
+   },
+   "class_type": "MpiIfElseInverted",
+   "_meta": {
+    "title": "the edit, when Headless front body is on"
+   }
+  },
+  "106": {
+   "inputs": {
+    "image": [
+     "105",
+     1
+    ]
+   },
+   "class_type": "GetImageSize",
+   "_meta": {
+    "title": "the edit size"
+   }
+  },
+  "107": {
+   "inputs": {
+    "x": 0,
+    "y": 0,
+    "width": [
+     "113",
+     0
+    ],
+    "height": [
+     "106",
+     1
+    ]
+   },
+   "class_type": "MpiBox",
+   "_meta": {
+    "title": "the far-left region (front body only)"
+   }
+  },
+  "108": {
+   "inputs": {
+    "text": "face, hat, moustache",
+    "clip": [
+     "13",
+     1
+    ]
+   },
+   "class_type": "CLIPTextEncode",
+   "_meta": {
+    "title": "SAM3 vocabulary"
+   }
+  },
+  "109": {
+   "inputs": {
+    "threshold": 0.5,
+    "refine_iterations": 2,
+    "individual_masks": false,
+    "model": [
+     "13",
+     0
+    ],
+    "image": [
+     "129",
+     0
+    ],
+    "conditioning": [
+     "108",
+     0
+    ]
+   },
+   "class_type": "SAM3_Detect",
+   "_meta": {
+    "title": "head + hat, on the head crop only"
+   }
+  },
+  "110": {
+   "inputs": {
+    "value": 0.0,
+    "width": [
+     "106",
+     0
+    ],
+    "height": [
+     "106",
+     1
+    ]
+   },
+   "class_type": "SolidMask",
+   "_meta": {
+    "title": "empty sheet-sized canvas"
+   }
+  },
+  "111": {
+   "inputs": {
+    "operation": "add",
+    "destination": [
+     "110",
+     0
+    ],
+    "source": [
+     "119",
+     0
+    ],
+    "x": [
+     "130",
+     2
+    ],
+    "y": [
+     "130",
+     3
+    ]
+   },
+   "class_type": "MaskComposite",
+   "_meta": {
+    "title": "paste the head mask back at the crop's offset"
+   }
+  },
+  "112": {
+   "inputs": {
+    "pad": false,
+    "image": [
+     "105",
+     1
+    ],
+    "mpi_box": [
+     "107",
+     0
+    ]
+   },
+   "class_type": "MpiBoxCrop",
+   "_meta": {
+    "title": "crop to the far-left region"
+   }
+  },
+  "113": {
+   "inputs": {
+    "math_expression": "a // 4",
+    "a": [
+     "106",
+     0
+    ]
+   },
+   "class_type": "MpiMath",
+   "_meta": {
+    "title": "left 25% of the sheet width"
+   }
+  },
+  "114": {
+   "inputs": {
+    "expand": 6,
+    "tapered_corners": true,
+    "mask": [
+     "111",
+     0
+    ]
+   },
+   "class_type": "GrowMask",
+   "_meta": {
+    "title": "Grow Mask"
+   }
+  },
+  "115": {
+   "inputs": {
+    "images": [
+     "116",
+     0
+    ]
+   },
+   "class_type": "PreviewImage",
+   "_meta": {
+    "title": "Output_Image_3"
+   }
+  },
+  "116": {
+   "inputs": {
+    "x": 0,
+    "y": 0,
+    "resize_source": true,
+    "destination": [
+     "105",
+     1
+    ],
+    "source": [
+     "118",
+     0
+    ],
+    "mask": [
+     "114",
+     0
+    ]
+   },
+   "class_type": "ImageCompositeMasked",
+   "_meta": {
+    "title": "Image Composite Masked"
+   }
+  },
+  "117": {
+   "inputs": {
+    "x": 0,
+    "y": 0,
+    "width": 32,
+    "height": 32,
+    "edge": "original",
+    "image": [
+     "105",
+     1
+    ]
+   },
+   "class_type": "Image Crop Location Exact",
+   "_meta": {
+    "title": "Image Crop Location Exact"
+   }
+  },
+  "118": {
+   "inputs": {
+    "upscale_method": "nearest-exact",
+    "crop": "disabled",
+    "image": [
+     "117",
+     0
+    ],
+    "width": [
+     "106",
+     0
+    ],
+    "height": [
+     "106",
+     1
+    ]
+   },
+   "class_type": "ImageScale",
+   "_meta": {
+    "title": "Upscale Image"
+   }
+  },
+  "119": {
+   "inputs": {
+    "max_hole_size": 0,
+    "mask": [
+     "109",
+     0
+    ]
+   },
+   "class_type": "MpiMaskFillHoles",
+   "_meta": {
+    "title": "Mpi Mask Fill Holes"
+   }
+  },
+  "121": {
+   "inputs": {
+    "text": "face",
+    "clip": [
+     "13",
+     1
+    ]
+   },
+   "class_type": "CLIPTextEncode",
+   "_meta": {
+    "title": "SAM3 'face' only - finds WHERE the head is"
+   }
+  },
+  "122": {
+   "inputs": {
+    "threshold": 0.5,
+    "refine_iterations": 2,
+    "individual_masks": false,
+    "model": [
+     "13",
+     0
+    ],
+    "image": [
+     "112",
+     0
+    ],
+    "conditioning": [
+     "121",
+     0
+    ]
+   },
+   "class_type": "SAM3_Detect",
+   "_meta": {
+    "title": "face only"
+   }
+  },
+  "123": {
+   "inputs": {
+    "padding": 0,
+    "divisible_by": 1,
+    "mask": [
+     "122",
+     0
+    ]
+   },
+   "class_type": "MpiMaskBbox",
+   "_meta": {
+    "title": "face box (empty -> 0 box -> whole quarter, as before)"
+   }
+  },
+  "124": {
+   "inputs": {
+    "mpi_box": [
+     "123",
+     1
+    ]
+   },
+   "class_type": "MpiFromBox",
+   "_meta": {
+    "title": "Mpi From Box"
+   }
+  },
+  "125": {
+   "inputs": {
+    "math_expression": "c - a",
+    "a": [
+     "124",
+     0
+    ],
+    "c": [
+     "124",
+     2
+    ]
+   },
+   "class_type": "MpiMath",
+   "_meta": {
+    "title": "head x: one face-width left"
+   }
+  },
+  "126": {
+   "inputs": {
+    "math_expression": "a * 3",
+    "a": [
+     "124",
+     0
+    ]
+   },
+   "class_type": "MpiMath",
+   "_meta": {
+    "title": "head width: three face-widths"
+   }
+  },
+  "127": {
+   "inputs": {
+    "math_expression": "b + a + a // 20",
+    "a": [
+     "124",
+     1
+    ],
+    "b": [
+     "124",
+     3
+    ]
+   },
+   "class_type": "MpiMath",
+   "_meta": {
+    "title": "head height: quarter top to just under the chin"
+   }
+  },
+  "128": {
+   "inputs": {
+    "y": 0,
+    "width": [
+     "126",
+     0
+    ],
+    "height": [
+     "127",
+     0
+    ],
+    "x": [
+     "125",
+     0
+    ]
+   },
+   "class_type": "MpiBox",
+   "_meta": {
+    "title": "head box"
+   }
+  },
+  "129": {
+   "inputs": {
+    "pad": false,
+    "image": [
+     "112",
+     0
+    ],
+    "mpi_box": [
+     "128",
+     0
+    ]
+   },
+   "class_type": "MpiBoxCrop",
+   "_meta": {
+    "title": "crop to the head - the vocabulary never sees the body"
+   }
+  },
+  "130": {
+   "inputs": {
+    "mpi_box": [
+     "129",
+     1
+    ]
+   },
+   "class_type": "MpiFromBox",
+   "_meta": {
+    "title": "head crop offset"
+   }
+  },
+  "131": {
+   "inputs": {
+    "true": [
+     "116",
+     0
+    ],
+    "false": [
+     "59",
+     0
+    ],
+    "boolean": [
+     "104",
+     0
+    ]
+   },
+   "class_type": "MpiIfElse",
+   "_meta": {
+    "title": "the run's last picture: the head removal when on, else the edit"
+   }
+  },
+  "132": {
+   "inputs": {
+    "passthrough": [
+     "131",
+     0
+    ]
+   },
+   "class_type": "MpiClearVram",
+   "_meta": {
+    "title": "free VRAM: the run's last step"
+   }
+  }
+ },
+ "outputs": [
+  "115",
+  "68",
+  "132",
+  "2",
+  "61"
+ ]
+}

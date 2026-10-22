@@ -119,6 +119,44 @@ qwen-image-2-1 + the 7 Flows. Bench project "FLUX3 Flow Bench" (Fabio's Document
   `app:isolated` instance with the LOCAL engine, and re-check their `engine == remote` guards.
 - Then: validation.md verdicts for the rest, Fabio's look, delete Pod + volume (volume 150 GB bills
   while it exists).
+- 2026-10-22 (session "Flux 3 on flows 4") LOCAL BENCH READY, nothing run on the GPU:
+  - Port 48188 = the local ComfyUI itself: `flowbench._url` hits it natively (/prompt /history /view, no
+    /proxy - the app's /proxy is Pod-only, it 503s locally) and REFUSES unless `MPI_KANBAN_GPU_SLOT` is set,
+    i.e. only under `gpu_lease.py run`. Any other port = an app instance's /proxy as before.
+  - `flowbench._localize`: captured graphs load `/workspace/comfyui/input/<name>`; on 48188 the project file
+    the app staged it from (`LOCAL_INPUTS`: cseq1/2, csfi1_2, csfi2_1 only - add a line per new case) is
+    UPLOADED via ComfyUI `/upload/image` and the bare name injected. GOTCHA: MpiLoadImage refuses an absolute
+    path outside input/output/temp, blocks the graph, and ComfyUI still says `success` with 0 images (first
+    tattoo run, 3 s/run, empty columns). Runs now count images and fail on 0.
+  - `replay.py`: remote-only guard replaced by `_engine()` - local engine allowed under the lease, its queue
+    and history read from 48188. New cases cseq3..8 (body, hair, accessories, makeup, undress, child age 10)
+    from Fabio's Qwen 2.1 project; undress + child ran on Klein then, the app routes them to Qwen now
+    (MPI-1159 / age <= 12 rebuild leg). Their Qwen baselines = GPU runs through an isolated app.
+  - `bfl.py cseq2_0` = tattoo fix prompt (all three views incl. close-up, nothing but the tattoo); editor
+    graphs take it in `Input_Positive` (node 5, read by every edit encode; the back-view leg 198 untouched).
+  - FLUX.3 weights all present in M:\CubricModels (turbo, base, qwen3vl_4b_abliterated, flux2-vae, sam3.1).
+  - Run (on Fabio's go only), from the repo root, Bash in the background:
+    `python <gpu_lease.py> run --poll 2 -- python <abs research>/bfl.py 48188 cseq2_0 --seeds 111,222 --variants bfl_turbo,bfl_base`
+    then `sheet.py cseq2_0 --bfl`. Fabio's own app must have its engine up on 48188.
+  - Fabio: the hand-written BFL-style prompt won from-images on EVERY run (template route lost). So the
+    wiring question is no longer "which template": a BFL prompt is written per run, looking at the pictures.
+    In the app that means an Enhancer that SEES the inputs and writes BFL-shaped prompts (ours gets picture
+    descriptions only). The "one prompt for photo AND anime" item is that writer's job, not a fixed template.
+    New editor cases (cseq3..8) get hand-written BFL prompts too, after their Qwen baselines are captured.
+  - Fabio: FLUX.3 cannot do nudity without a LoRA (none exists yet; no nipples, no genitalia when it works).
+    Undressing stays on Qwen, cseq7 is not benched on FLUX.3, and any NUDE sheet fails on FLUX.3 in every
+    category. So FLUX.3 can at most replace Qwen for CLOTHED characters; the Qwen slot stays needed. Whether a
+    clothed-only FLUX.3 route is worth wiring is Fabio's product call after the clothed cases (cseq3..6, 8).
+- 2026-10-22 night bench DONE except cseq5 (sling bag): reads in validation.md "LOCAL BENCH". Tattoo fix =
+  FAIL (Turbo keeps the bikini despite the prompt). FLUX.3 Turbo wins body (cseq3) and child age 10 (cseq8_3),
+  Qwen ahead on hair (cseq4), makeup tie (cseq6_2). The PC RESTARTED overnight before cseq5 ran (cause
+  unknown, not diagnosed); the isolated app on 57569 died with it.
+  NEXT: Fabio judges the sheets (cseq2_0/3_0/4_0/6_2/8_3 `_bfl.jpg`). Then, on his GPU go, cseq5:
+  relaunch `CUBRIC_AGENT_PROFILE=%LOCALAPPDATA%\Temp\cubric-agent-profile-mpi1212 node scripts/launch-instance.mjs`
+  only if a replay is needed (cseq5_0.json is already captured - not needed); run
+  `gpu_lease.py run --poll 2 -- python <research>/flowbench.py run 48188 cseq5_0 111 222 --variants base`, then
+  `... bfl.py 48188 cseq5_0 --seeds 111,222 --variants bfl_turbo,bfl_base`, then `sheet.py cseq5_0 --bfl`.
+  Fabio's engine must be up on 48188. Then Fabio's product call on a clothed-only FLUX.3 route.
 
 ## Plan Drift
 

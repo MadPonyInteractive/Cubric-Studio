@@ -66,3 +66,42 @@ FABIO'S VERDICTS 2026-10-22 (final for run 1 + round 2):
 - Editor tattoo: one Turbo run passed; base copied the full-body tattoo very well but missed the close-up.
   Not a pass yet - the close-up miss is the thing to fix.
 - Pod: Fabio deletes it (and the volume) himself. Further tests run LOCALLY.
+- From-images, which prompt (Fabio 2026-10-22): the hand-written BFL-style prompt (bfl.py, csfi*_bfl) gave the
+  best result on every run, ahead of the template route (qwenprompt.py, csfi*_qp). Agent's first read had the
+  template ahead on the photo man (csfi1); Fabio's look overrides it.
+- PASS BAR (Fabio 2026-10-22): FLUX.3 adding a bikini (any clothing) to a nude character is a big fail and keeps
+  it out of the Character Sheet Flows. Run 1 tattoo (Flow prompt): every FLUX.3 front view wore the black
+  bikini, both seeds, Turbo and base; the reference photo wears that bikini, so copying vs censoring is not
+  settled. Settled by: cseq2_0 BFL rerun (prompt says no bikini) and cseq7 undress on FLUX.3.
+- Undressing on FLUX.3 (Fabio 2026-10-22, his own tests): FAILS without a LoRA, and no community nudity LoRA for
+  FLUX.3 exists yet. 1-2 successes out of his tries, and those had breasts without nipples and no genitalia.
+  -> Undressing stays on Qwen; cseq7 is NOT benched on FLUX.3. The same anatomy loss applies to ANY nude
+  sheet FLUX.3 redraws (the tattoo case's sheet is nude), so a nude input fails every Editor category on FLUX.3.
+  Revisit when a FLUX.3 nudity LoRA appears.
+- Tattoo back view, run 1 (Fabio 2026-10-22, agent confirmed on hip crops): FLUX.3's view from behind draws a
+  FRONT pelvis - a front bikini-bottom V over a groin shape where the glutes should be (Turbo both seeds, base
+  seed 111); base seed 222 has glutes but flat, cleft barely there. Qwen draws real glutes. Anatomy fail on
+  top of the bikini carry.
+
+LOCAL BENCH 2026-10-22 night (Fabio asleep; GPU ok'd, everything under gpu_lease; agent's first read, Fabio judges):
+- Tattoo fix, BFL prompt (sheet `cseq2_0_bfl.jpg`; Turbo ~80 s, base ~400 s locally). Close-up FIXED: all four
+  runs tattoo the shoulders and chest. Bikini NOT fixed on Turbo: both seeds still wear the black bikini top and a
+  thong V, despite the prompt naming it. Base seed 111: no bikini, nipples present, back view reads as glutes;
+  base seed 222: black panels shaped like a bikini top over the breasts. The reference's CHOKER now comes over
+  (both base runs, Turbo seed 111 close-up). -> Turbo fails Fabio's bar; base 1 of 2 at 5x Qwen's time. Fail.
+Clothed Qwen-slot cases, Qwen vs FLUX.3 with hand-written BFL prompts, 2 seeds (sheets `cseqN_*_bfl.jpg`;
+Qwen ~70-90 s, Turbo ~35-55 s, base ~155-220 s locally). Sheet columns 2 and 4 are empty on purpose (no Flow-
+prompt FLUX.3 runs locally):
+- Body, extremely overweight (cseq3_0): FLUX.3 goes FURTHER than Qwen - Turbo clearly heavier in all three views,
+  dress, heels and bob kept, face stays her; base heaviest but the face drifts rounder/older. Qwen is only plump
+  for "extremely". Agent: Turbo WINS on following the words.
+- Hair, black-pink bob with fringe (cseq4_0): both deliver the cut on all three views. FLUX.3 (both) makes a
+  blunt helmet bob, jet black top, hard pink band - reads as a wig; Qwen's gradient and fringe look natural.
+  Agent: Qwen ahead, FLUX.3 a usable second.
+- Makeup from a photo (cseq6_2, the face-crop leg; the mannequin leg ran on FLUX.3 too): all three put the
+  spiderweb + orange eyeshadow + black lips on the close-up and the small front face. Qwen's is boldest and
+  closest to the photo; FLUX.3 Turbo slightly lighter. Agent: TIE, Qwen by a hair.
+- Child age 10, dressed (cseq8_3, the Qwen rebuild leg after Klein's two passes): FLUX.3 gives real child
+  proportions (short body, bigger head, younger smiling face) on both seeds; Qwen's full bodies stay teen-tall.
+  All three close-ups copy the input portrait (cardigan V neckline included). Agent: FLUX.3 WINS (Turbo).
+  (sheet.py now takes Output_Image_2 first on cseq* graphs - Output_Image there is the mannequin helper.)

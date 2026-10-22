@@ -3,8 +3,9 @@ the graph(s) the app compiled, so flowbench.py can swap FLUX.3 into the exact sa
 
   python replay.py <port> <case>...     cases: see CASES below, or `all`
 
-Refuses to submit unless the instance's engine is `remote`: this never touches the local GPU,
-which is why it runs without gpu_lease (the lease guards the local card only).
+A `remote` engine runs without gpu_lease (the lease guards the local card only). A LOCAL engine
+is refused unless the script runs under `gpu_lease.py run` (MPI_KANBAN_GPU_SLOT set); its queue
+and history are then read from the ComfyUI itself on 48188, since the app's /proxy is Pod-only.
 Each case's graphs land in research/graphs/<case>_<n>.json (n = pass, a Flow may queue several).
 """
 import json, os, sys, threading, time, urllib.parse, urllib.request
@@ -27,6 +28,13 @@ CASES = {  # case -> (flowId, sidecar relative to PROJ)
     'cse2': ('character-sheet-editor', r'Qwen 2.1\Media\.meta\a63308ee-dbca-48ad-be76-156d3bc939e1.json'),   # Klein: basketball jersey
     'cseq1': ('character-sheet-editor', r'Qwen 2.1\Media\.meta\b2f92c7a-b14c-4698-a6b5-2cfabe667c52.json'),  # Qwen: Viking beard
     'cseq2': ('character-sheet-editor', r'Qwen 2.1\Media\.meta\d879a30e-c24e-43d1-a582-c9430a31fb8b.json'),  # Qwen: body tattoo
+    # the six Qwen-slot categories run 1 never covered (local bench)
+    'cseq3': ('character-sheet-editor', r'Qwen 2.1\Media\.meta\c386fc11-db6a-4d41-ac6c-a5a683114471.json'),  # body: extremely overweight
+    'cseq4': ('character-sheet-editor', r'Qwen 2.1\Media\.meta\706fbef8-56fc-44ff-8436-efdc05552983.json'),  # hair: black-pink bob
+    'cseq5': ('character-sheet-editor', r'Qwen 2.1\Media\.meta\fa74aeb5-b88f-4edd-bb9b-b831d2187a32.json'),  # accessories: sling bag
+    'cseq6': ('character-sheet-editor', r'Qwen 2.1\Media\.meta\988414a1-75cb-4834-baa6-7958f9144739.json'),  # makeup
+    'cseq7': ('character-sheet-editor', r'Qwen 2.1\Media\.meta\cae39864-7754-4894-98ad-82582e339fd2.json'),  # undress (Klein then, Qwen since MPI-1159)
+    'cseq8': ('character-sheet-editor', r'Qwen 2.1\Media\.meta\449c652e-5625-4a20-90c6-43fefaf9fecb.json'),  # child age 10, dressed
 }
 
 
@@ -35,6 +43,15 @@ def _http(port, path, body=None, timeout=60):
                                  data=json.dumps(body).encode() if body is not None else None,
                                  headers={'Content-Type': 'application/json'})
     return json.load(urllib.request.urlopen(req, timeout=timeout))
+
+
+def _engine(port):
+    # remote: the app's /proxy pass-through to the Pod; local: the ComfyUI itself (48188), lease held only
+    if _http(port, '/connector/models')['engine'] == 'remote':
+        return lambda p, **kw: _http(port, '/proxy' + p, **kw)
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('local engine without a GPU lease - run under `gpu_lease.py run --poll 2 --`')
+    return lambda p, **kw: _http(48188, p, **kw)
 
 
 def _path(url):
@@ -66,12 +83,12 @@ def body_for(flow, sc):
     return {'fields': fields, 'params': params, 'media': media}, d.get('seed')
 
 
-def _watch_queue(port, seen, stop):
+def _watch_queue(eng, seen, stop):
     # the proxy has no /history list and the app logs no prompt id: catch each prompt
     # while it sits in the Pod's queue (a Flow pass takes 10 s+, a 1 s poll never misses one)
     while not stop.is_set():
         try:
-            q = _http(port, '/proxy/queue', timeout=10)
+            q = eng('/queue', timeout=10)
             for item in q.get('queue_running', []) + q.get('queue_pending', []):
                 seen.setdefault(item[1], None)
         except Exception:
@@ -97,10 +114,9 @@ def replay(port, case, catalogue):
     flow = next(f for f in catalogue['flows'] if f['id'] == flow_id)
     body, seed = body_for(flow, sc) if sc else _seamless_body(SEAMLESS[case])
     body.update(flowId=flow_id, folderPath=BENCH, cardName=f'{case} replay')
-    if _http(port, '/connector/models')['engine'] != 'remote':
-        sys.exit('engine is not remote - refusing (this would run on the local GPU)')
+    eng = _engine(port)
     seen, stop = {}, threading.Event()
-    watcher = threading.Thread(target=_watch_queue, args=(port, seen, stop), daemon=True)
+    watcher = threading.Thread(target=_watch_queue, args=(eng, seen, stop), daemon=True)
     watcher.start()
     t0 = time.time()
     res = _http(port, '/connector/generate', body, timeout=1800)
@@ -111,7 +127,7 @@ def replay(port, case, catalogue):
     print(case, flow_id, 'ok' if res.get('ok') else res.get('error'), secs, 's', 'prompts', ids, flush=True)
     os.makedirs(os.path.join(HERE, 'graphs'), exist_ok=True)
     for n, pid in enumerate(ids):
-        h = _http(port, f'/proxy/history/{pid}').get(pid)
+        h = eng(f'/history/{pid}').get(pid)
         if not h:
             print('  no history for', pid)
             continue
@@ -130,8 +146,7 @@ TEXTURES = {  # Make Seamless has no past run: Klein 9B makes the photos on the 
 
 
 def textures(port):
-    if _http(port, '/connector/models')['engine'] != 'remote':
-        sys.exit('engine is not remote - refusing (this would run on the local GPU)')
+    _engine(port)
     for name, prompt in TEXTURES.items():
         res = _http(port, '/connector/generate', {'modelId': 'klein-9b', 'operation': 't2i', 'positive': prompt,
                                                 'ratio': '1:1', 'folderPath': BENCH, 'cardName': name}, timeout=900)

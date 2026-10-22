@@ -25,7 +25,9 @@ def sheet(name, VARS=VARS, suffix=''):
     out = os.path.join(HERE, 'out', name)
     # the first Output_Image* node that saved files (the editor's Qwen leg ends in Output_Image_2)
     have = {f.split('_')[2] for f in os.listdir(out)}
-    nid = next(k for t in ('Output_Image', 'Output_Image_2') for k, v in g.items()
+    # editor graphs (cseq*): Output_Image is the mannequin helper when it runs; the sheet is Output_Image_2
+    order = ('Output_Image_2', 'Output_Image') if name.startswith('cseq') else ('Output_Image', 'Output_Image_2')
+    nid = next(k for t in order for k, v in g.items()
                if v.get('_meta', {}).get('title') == t and k in have)
     seeds = sorted({f.split('_')[1] for f in os.listdir(out) if f.split('_')[1].isdigit()})
     canvas = Image.new('RGB', (CELL * len(VARS), (CELL + 28) * len(seeds) + 28), 'white')

@@ -194,8 +194,50 @@ def check(g, banned=KLEIN_UNETS):
             assert not (isinstance(val, str) and val.startswith(banned)), f'{k}.{name} still {val}'
 
 
+LOCAL_ENGINE = 48188   # port 48188 = the local ComfyUI itself (native /prompt /history /view), not an app
+POD_INPUT = '/workspace/comfyui/input/'
+MEDIA = os.path.expandvars(r'%USERPROFILE%\Documents\Cubric Studio\Projects')
+LOCAL_INPUTS = {  # Pod input name -> the project file the app staged it from (the replayed sidecars' mediaItems)
+    'flowCSE_059.png': r'Qwen 2.1\Media\flowCSE_059.png', 'imported_022.jpg': r'Qwen 2.1\Media\imported_022.jpg',
+    'imported_009.jpg': r'Qwen 2.1\Media\imported_009.jpg', 'imported_012.jpg': r'Qwen 2.1\Media\imported_012.jpg',
+    'flowCSFI_011.png': r'Qwen 2.1\Media\flowCSFI_011.png', 'edit_002.png': r'Deepinfra model tests\Media\edit_002.png',
+}
+
+
+def _url(port, path):
+    if int(port) != LOCAL_ENGINE:
+        return f'http://127.0.0.1:{port}/proxy{path}'
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('local engine without a GPU lease - run under `gpu_lease.py run --poll 2 --`')
+    return f'http://127.0.0.1:{port}{path}'
+
+
+def _upload(port, path):
+    # MpiLoadImage refuses an absolute path outside ComfyUI's input/output/temp and then BLOCKS the graph,
+    # which still reports success with no images: put the file into input/ and hand it the bare name
+    boundary, name = 'mpi1212bench', os.path.basename(path)
+    body = (f'--{boundary}\r\nContent-Disposition: form-data; name="overwrite"\r\n\r\ntrue\r\n'
+            f'--{boundary}\r\nContent-Disposition: form-data; name="image"; filename="{name}"\r\n'
+            'Content-Type: application/octet-stream\r\n\r\n').encode() + open(path, 'rb').read() + f'\r\n--{boundary}--\r\n'.encode()
+    req = urllib.request.Request(_url(port, '/upload/image'), data=body,
+                                 headers={'Content-Type': f'multipart/form-data; boundary={boundary}'})
+    return json.load(urllib.request.urlopen(req, timeout=60))['name']
+
+
+def _localize(port, g):
+    # captured graphs load Pod paths; locally upload the same project files into the engine's input/
+    for v in g.values():
+        for k, s in v['inputs'].items():
+            if isinstance(s, str) and s.startswith(POD_INPUT):
+                name = s[len(POD_INPUT):]
+                assert name in LOCAL_INPUTS, f'no local copy for Pod input {name}: add it to LOCAL_INPUTS'
+                v['inputs'][k] = _upload(port, os.path.join(MEDIA, LOCAL_INPUTS[name]))
+
+
 def _api(port, path, body=None):
-    req = urllib.request.Request(f'http://127.0.0.1:{port}/proxy{path}',
+    if int(port) == LOCAL_ENGINE and body and 'prompt' in body:
+        _localize(port, body['prompt'])
+    req = urllib.request.Request(_url(port, path),
                                  data=json.dumps(body).encode() if body else None,
                                  headers={'Content-Type': 'application/json'})
     return json.load(urllib.request.urlopen(req, timeout=60))
@@ -242,12 +284,13 @@ def run(port, flow, seeds, variants):
                 if st.get('completed') or st.get('status_str') == 'error':
                     break
             secs = round(time.time() - t0, 1)
-            print(flow, var, seed, st.get('status_str'), secs, 's', flush=True)
-            ok &= st.get('status_str') == 'success'
+            made = sum(len(o.get('images', [])) for o in h[pid]['outputs'].values())   # blocked loader = success, 0 images
+            print(flow, var, seed, st.get('status_str'), made, 'images', secs, 's', flush=True)
+            ok &= st.get('status_str') == 'success' and made > 0
             for nid, node_out in h[pid]['outputs'].items():
                 for i, im in enumerate(node_out.get('images', [])):
                     q = urllib.parse.urlencode({k: im[k] for k in ('filename', 'subfolder', 'type')})
-                    with urllib.request.urlopen(f'http://127.0.0.1:{port}/proxy/view?{q}') as src:
+                    with urllib.request.urlopen(_url(port, f'/view?{q}')) as src:
                         open(os.path.join(outdir, f'{var}_{seed}_{nid}_{i}.png'), 'wb').write(src.read())
     return ok
 

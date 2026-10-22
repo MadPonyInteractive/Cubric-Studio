@@ -60,12 +60,14 @@ def main(port, graphs, seeds, variants, build=build, tag='s3'):
                     st = h.get(pid, {}).get('status', {})
                     if st.get('completed') or st.get('status_str') == 'error':
                         break
-                print(name, tag + var, seed, st.get('status_str'), round(time.time() - t0, 1), 's', flush=True)
-                ok &= st.get('status_str') == 'success'
+                # a blocked loader ends 'success' with only the loaders' empty previews: no image = failed
+                made = sum(len(o.get('images', [])) for o in h[pid]['outputs'].values())
+                print(name, tag + var, seed, st.get('status_str'), made, 'images', round(time.time() - t0, 1), 's', flush=True)
+                ok &= st.get('status_str') == 'success' and made > 0
                 for nid, node_out in h[pid]['outputs'].items():
                     for i, im in enumerate(node_out.get('images', [])):
                         q = urllib.parse.urlencode({k: im[k] for k in ('filename', 'subfolder', 'type')})
-                        with urllib.request.urlopen(f'http://127.0.0.1:{port}/proxy/view?{q}') as r:
+                        with urllib.request.urlopen(fb._url(port, f'/view?{q}')) as r:
                             open(os.path.join(outdir, f'{tag}{var.replace("_", "-")}_{seed}_{nid}_{i}.png'), 'wb').write(r.read())
     return ok
 

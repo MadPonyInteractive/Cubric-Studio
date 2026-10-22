@@ -1,0 +1,137 @@
+{
+ "case": "cseq6",
+ "flowId": "character-sheet-editor",
+ "prompt_id": "41b9c6af-1f4a-4ab5-ba9e-eab1eab40e03",
+ "seed": 3905253788,
+ "body": {
+  "fields": {
+   "change": "makeup",
+   "words": "",
+   "Input_Age": -1,
+   "Input_Remove_Head": false
+  },
+  "params": {},
+  "media": [
+   {
+    "role": "image1",
+    "url": "/project-file?path=C%3A%5CUsers%5CFabio%5CDocuments%5CCubric%20Studio%5CProjects%5CQwen%202.1%5CMedia%5CflowCSFI_011.png"
+   },
+   {
+    "role": "image2",
+    "url": "/project-file?path=C%3A%5CUsers%5CFabio%5CDocuments%5CCubric%20Studio%5CProjects%5CQwen%202.1%5CMedia%5Cimported_024.jpg"
+   }
+  ],
+  "flowId": "character-sheet-editor",
+  "folderPath": "C:\\Users\\Fabio\\Documents\\Cubric Studio\\Projects\\FLUX3 Flow Bench",
+  "cardName": "cseq6 replay"
+ },
+ "graph": {
+  "35": {
+   "inputs": {
+    "clip_name": "qwen3vl_4b_abliterated_fp8_scaled.safetensors",
+    "type": "krea2",
+    "device": "default"
+   },
+   "class_type": "CLIPLoader",
+   "_meta": {
+    "title": "Load CLIP"
+   }
+  },
+  "36": {
+   "inputs": {
+    "max_length": 512,
+    "sampling_mode": "on",
+    "sampling_mode.temperature": 0.2,
+    "sampling_mode.top_k": 64,
+    "sampling_mode.top_p": 0.95,
+    "sampling_mode.min_p": 0.05,
+    "sampling_mode.repetition_penalty": 1.05,
+    "sampling_mode.seed": 0,
+    "sampling_mode.presence_penalty": 0.0,
+    "thinking": false,
+    "use_default_template": true,
+    "clip": [
+     "35",
+     0
+    ],
+    "image": [
+     "41",
+     0
+    ],
+    "prompt": [
+     "38",
+     0
+    ]
+   },
+   "class_type": "TextGenerate",
+   "_meta": {
+    "title": "Generate Text"
+   }
+  },
+  "37": {
+   "inputs": {
+    "source": [
+     "48",
+     0
+    ]
+   },
+   "class_type": "PreviewAny",
+   "_meta": {
+    "title": "Output_prompt"
+   }
+  },
+  "38": {
+   "inputs": {
+    "value": "<|im_start|>user\n<|vision_start|><|image_pad|><|vision_end|>Describe only the makeup on the face in this picture: the eyeshadow, eyeliner, lashes, brows, blush, contour, lipstick and any face paint, naming each colour, shape and pattern and where it is on the face. Answer with one phrase, and nothing else.<|im_end|>\n<|im_start|>assistant\n"
+   },
+   "class_type": "PrimitiveStringMultiline",
+   "_meta": {
+    "title": "Input_Describe_Prompt"
+   }
+  },
+  "41": {
+   "inputs": {
+    "upscale_method": "nearest-exact",
+    "megapixels": 1.0,
+    "resolution_steps": 16,
+    "image": [
+     "43",
+     0
+    ]
+   },
+   "class_type": "ImageScaleToTotalPixels",
+   "_meta": {
+    "title": "Scale Image to Total Pixels"
+   }
+  },
+  "43": {
+   "inputs": {
+    "image": "None",
+    "channel": "alpha",
+    "block_if_empty": true,
+    "string": "C:\\AI\\Mpi\\Cubric-Vision\\engine\\ComfyUI_windows_portable\\ComfyUI\\input\\mpi_staged\\d009a1965dea0534.jpg"
+   },
+   "class_type": "MpiLoadImage",
+   "_meta": {
+    "title": "Input_Image"
+   }
+  },
+  "48": {
+   "inputs": {
+    "passthrough": [
+     "36",
+     0
+    ]
+   },
+   "class_type": "MpiClearVram",
+   "_meta": {
+    "title": "Mpi Clear Vram"
+   }
+  }
+ },
+ "outputs": [
+  "37",
+  "43",
+  "48"
+ ]
+}
