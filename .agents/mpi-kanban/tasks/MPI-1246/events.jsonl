@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1246", "at": "2026-10-22T12:51:13+01:00", "actor": "claude", "column": "doing", "title": "Connecting scenes: three loops + connected sit smaller and higher than screwdriver"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1246", "at": "2026-10-22T12:53:29+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "CSS shipped; offline mask overlay matches screwdriver within 2px; awaiting Fabio's eye on a real connect"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1246", "at": "2026-10-22T15:56:31+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio confirmed on a real connect: all four scenes line up"}
