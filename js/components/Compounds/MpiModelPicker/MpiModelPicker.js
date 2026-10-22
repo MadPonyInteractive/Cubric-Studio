@@ -109,7 +109,9 @@ export const MpiModelPicker = ComponentFactory.create({
         }
 
         function _mediaBlock(list, media, activeId) {
-            const items = list.filter(m => m.mediaType === media);
+            // Featured first, stable — the Model Library's own order (MPI-1245).
+            const items = list.filter(m => m.mediaType === media)
+                .sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
             if (!items.length) return;
 
             const head = ce('div', {

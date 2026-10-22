@@ -2210,6 +2210,7 @@ const ALL_MODELS = [
     {
         id: 'moss-image',
         sizeTier: 'balanced',
+        featured: true,
         name: 'MOSS-Image',
         dropdownMeta: 'PHOTO',
         mediaType: 'image',

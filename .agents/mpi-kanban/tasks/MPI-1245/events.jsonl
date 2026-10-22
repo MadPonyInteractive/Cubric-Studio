@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1245", "at": "2026-10-22T12:39:04+01:00", "actor": "2be1ab0d-e14b-410d-8c9b-9f3ac377c9b6", "column": "doing", "title": "Model picker: featured models first, feature MOSS-Image"}
