@@ -2218,6 +2218,8 @@ const ALL_MODELS = [
         dropdownMeta: 'PHOTO',
         mediaType: 'image',
         image: 'moss-image.webp',
+        // Slide-over clip: boxes drawn -> result, plain fades (MPI-1243). The tile keeps `image`.
+        video: 'moss-image.mp4',
         defaultUpscale: '4x-NMKD-Siax',
         type: 'moss',
         enhanceRecipe: 'moss-image',

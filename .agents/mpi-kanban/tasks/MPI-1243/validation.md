@@ -93,3 +93,4 @@ price (~1.5 cents a sweep).
 - inpaint (sign -> "FRESH FISH"): Turbo 16 s, SFT 52 s, outside the mask unchanged, text exact.
 - detail (face, 0.4): Turbo 8 s, SFT 16 s.
 - **Fabio in his own app: detail, upscale, image-to-image passed.** Inpaint passed too (2026-10-22, Moss image 7: he added a cat).
+- 2026-10-22 (Moss image 7) Slide-over clip: comfy_workflows/display/moss-image.mp4, 960x540 H.264 24 fps 7.5 s 0.49 MB, boxes canvas (Fabio's screenshot, cropped) 2 s -> fade 1 s -> t2i_031 3.5 s -> fade 1 s back; plain fades like FLUX.3, ffmpeg xfade (HyperFrames not needed, Fabio). ModelDef `video:`. Contact strip checked; lint + npm test 3515/0. Not checked: in the app.
