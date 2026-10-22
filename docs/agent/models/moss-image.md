@@ -32,6 +32,11 @@ Not for an instruction edit or putting a reference into a picture: pick an edit 
 - `i2i` restyles the whole picture: `denoise` says how far it may move. `upscale` is a single
   pass by default; `tiles: true` redraws it in tiles, and then the prompt is only the look
   ("sharp photograph, fine film grain"), never the scene.
+- Style rack: `None` plus four LoRAs (Anime, Gouache, Psychedelic Pop, Pixel Art), offered on
+  every op. Each appends its own trigger phrase after the prompt automatically: never write
+  one into the prompt. Prefer Turbo with a style: SFT adds more detail but leaves it messy.
+  The prompt still names the medium ("A pixel art illustration of ..."), so the words and
+  the LoRA pull the same way.
 
 ## Boxes (`t2i`)
 

@@ -2197,9 +2197,12 @@ const ALL_MODELS = [
         },
         imageSizedOps: ['detail', 'upscale'],
         // Index-aligned with the Input_Style_Selector trigger lines and the MpiStyleLoras slots
-        // (MPI-1249). No styleLoraImages yet: the picker shows placeholder cards until Fabio's
-        // previews land as moss-style-{none,anime,gouache,psychedelic,pixelart}.webp.
+        // (MPI-1249). Previews made on Turbo; index 0 is the no-style baseline.
         styleLoraLabels: ['None', 'Anime', 'Gouache', 'Psychedelic Pop', 'Pixel Art'],
+        styleLoraImages: [
+            'moss-style-none.webp', 'moss-style-anime.webp', 'moss-style-gouache.webp',
+            'moss-style-psychedelic.webp', 'moss-style-pixelart.webp',
+        ],
         // One graph: the rack sits upstream of the user LoRAs on every branch.
         styleOps: ['t2i', 'i2i', 'inpaint', 'detail', 'upscale'],
         layoutBoxes: { ops: ['t2i'], format: 'moss' },
