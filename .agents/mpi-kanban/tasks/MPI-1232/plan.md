@@ -66,10 +66,42 @@ checked before the first run; anything missing = stop and ask).
 - FLUX.3 blocked: Fabio reinstalling models into `M:\CubricModels` (FLUX.3 Klein + flux2-vae in his queue).
   A copy of `flux3-image-klein-base-int8-convrot` sits in `G:/models/diffusion_models` - delete it once M: has FLUX.3.
 
+### Current (2026-10-22 ~13:50): stage 1 COMPLETE, 14 runs (12 turbo + 2 FLUX.3 base). Findings in brief.md
+"Stage 1 results". Fabio's verdict: face pass ships, base = turbo (bench on turbo). Next: stage 2 (UFO field, describer context). Open to-do
+from Fabio in checklist.md: Cosmo's upscale should open the image workspace (latents visible).
+
+### Update 2026-10-22 (later the same day)
+
+- Driver updated (Fabio). Running FLUX.3 B/C f1 turbo + base checks A/B f1 (`TURBO=0` env on tilebench, tag `_base`;
+  sheets.py adds the BASE columns when they exist).
+- **FLUX.3 A f1 (turbo, faces on): the face pass RESCUES it** - no dotted mesh, both faces close to the input.
+  The faces-off mesh/painted look comes from faces being re-denoised across 3-4 tiles (MPI-1181's drift).
+- Folded in (Fabio's report): Cosmo started a tiled upscale and said "many tiles, progress line in the chat";
+  `_tilesNote` (services/agentLoop.mjs) gave the count only "asked how many". Now the start reply must name the
+  count + the status bar, and never point at the chat's 0-of-1 line. Test in tests/agent-loop.test.cjs; 209 pass.
+
+### Update 2026-10-22 (morning)
+
+- Overnight (turbo on): 5/12 landed before the machine crashed (a peer's video-model run): Krea 2 A/B/C f0, A/B f1,
+  ~200-240 s each, all 2560x1600. `stage1.sh` now skips outputs that exist; resumed for Krea 2 C f1 + all FLUX.3.
+- `research/sheets.py <model>` (run with plain `python`, PIL is in user site) -> `out/sheets/<model>_<region>.png`:
+  input | A B C faces off | A B C faces on, 1:1 crops of both faces + shirt + mural seams.
+- Krea 2 so far: no seams anywhere; identity holds in every variant. B/C slightly crisper than A (beard, paisley).
+  Faces ON is the clear win: the young man's face goes soft in A f0, sharp and true in A f1. The shirt band at
+  y~1430 is in the SOURCE (input_face.png), not a seam.
+- Resumed batch: Krea 2 C f1 (256 s) + FLUX.3 A/B/C f0 (135-155 s) landed. Krea 2 stage 1 COMPLETE (6/6).
+  FLUX.3 f1 x3 NOT run: Fabio stopped the GPU for a driver update. Resume = `bash research/stage1.sh flux3` (skips done).
+- FLUX.3 Turbo, faces off, every variant BAD: beard -> dotted mesh, young man's face painted/posterised; B and C add
+  wet blotches on his cheek. Reproduces MPI-1181 brief.md:340 ("Turbo tile upscale: bad", Fabio 2026-10-19).
+  Per-tile prompts do not rescue it. Open (Fabio's call): 2 base (turbo off) runs, A f1 + B f1, ~4-5 min each.
+- G: FLUX.3 copy is byte-identical to M: (sha256 8949ecfc...) but still there: auto mode blocked the delete; Fabio's to remove.
+
 ## Plan Drift
 
 - Stage 1 keeps today's fixed overlap 200 (20% of 1024 = 205, same thing); overlap only matters in stage 3 (small tiles).
 - Face pass runs with no wildcard in every variant, so it is constant and the tile variants stay comparable.
+- 2026-10-22: every bench run is TURBO ON (Fabio: turbo-off upscales take forever). Krea 2 = turbo distill LoRA
+  (3/6 steps), FLUX.3 = distilled Klein (8 steps). The first turbo-off Krea 2 run was killed after ~12 min unfinished.
 
 ## Done when
 

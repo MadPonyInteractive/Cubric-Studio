@@ -120,6 +120,24 @@ Krea 2 + FLUX.3 Klein, one photo with faces at 2x: today's prompt-less tiles vs 
 `[ASC]` (replace) vs `[CONCAT]`, with and without the face exclusion. Eye-check faces and the
 overlap areas at 1:1.
 
+**DECIDED (Fabio, 2026-10-22, stage 1 sheets):** base vs turbo - no real difference (bench and ship tile runs on
+turbo); faces on slightly better than off -> the face pass ships. Per-tile prompts are judged in stage 2 (UFO field).
+
+## Stage 1 results (2026-10-22, turbo on)
+
+Sheets: `research/out/sheets/<model>_<region>.png` (input | A B C faces off | A B C faces on, 1:1).
+
+- **Krea 2 (6/6):** no seams; identity holds everywhere. B/C a touch crisper than A. Faces ON clearly better
+  (young man soft in f0, sharp and true in f1). ~200-255 s per run.
+- **FLUX.3 Turbo (6/6):** faces OFF all three bad - dotted-mesh beard, painted face, B/C add wet blotches on the
+  cheek (= MPI-1181's "Turbo tile upscale: bad"). Faces ON rescues every variant: no mesh, no blotches, both faces
+  close to the input. The faces-off damage is each face re-denoised across 3-4 overlapping tiles. ~165-185 s.
+- **FLUX.3 base (turbo off), A/B faces on:** about the same as turbo faces on, a touch softer, ~240 s. Not worth it.
+- **My read for the decision:** the face pass (face SEGS subtracted from the grid + one face redraw) is the win on
+  both models and should ship with Describe on or off. Per-tile prompts: small gain on Krea 2, none visible on
+  FLUX.3 once faces are on; B vs C no clear difference on this photo - stage 2 (the UFO field, where a tile alone
+  is unreadable) is where the prompt has to earn its place.
+
 ## Related
 
 MPI-1038 (Use Tiles today), MPI-1175 (tile count in the label), MPI-1181 (FLUX.3 tile bench +

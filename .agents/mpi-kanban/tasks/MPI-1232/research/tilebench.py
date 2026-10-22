@@ -6,9 +6,10 @@
 A = prompt-less tiles (today), B = [ASC] per-tile wildcard (replaces the conditioning),
 C = [CONCAT][ASC] (keeps the graph's positive, appends the tile text).
 faces 1 = face SEGS subtracted from the grid (filter_out_segs_opt) + one face pass after.
+Turbo on by default; TURBO=0 runs the base path (slow).
 Always run under gpu_lease.py. Nothing here touches the app or :3000.
 """
-import json, math, sys, time, uuid, urllib.request, urllib.parse
+import json, math, os, sys, time, uuid, urllib.request, urllib.parse
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -80,7 +81,7 @@ FIELD = {'MpiInt': 'int', 'MpiFloat': 'float', 'MpiText': 'string', 'MpiSimpleBo
 def build(model, variant, faces, image_name, captions):
     g = json.loads((REPO / 'comfy_workflows' / GRAPHS[model]).read_text(encoding='utf-8'))
     sets = {'Input_wf_type': 7, 'Input_Tile_Upscale': True, 'Input_Upscale_Factor': FACTOR, 'Input_denoise': DENOISE,
-            'Input_Seed': SEED, 'Input_is_Turbo': False, 'Input_Auto_Grid': False, 'Input_Positive': '',
+            'Input_Seed': SEED, 'Input_is_Turbo': os.environ.get('TURBO', '1') == '1', 'Input_Auto_Grid': False, 'Input_Positive': '',
             'Input_Negative': '', 'Input_Image': image_name}
     for n in g.values():
         t = n.get('_meta', {}).get('title', '')
