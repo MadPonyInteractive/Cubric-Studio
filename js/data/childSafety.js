@@ -165,9 +165,10 @@ const MONTHS_OLD = /(?<![\p{L}\p{N}])\d{1,2}[\s_-]*(?:months?|weeks?|days?)[\s_-
 
 /**
  * "not a child", "no kids", "no nudity", "non-sexual": a careful prompt saying what is NOT there.
- * Only these few heads: "without clothes" IS nudity, so "without" never negates.
+ * "without" negates only a minor word ("without childlike proportions" refused an adult, MPI-1239):
+ * "without clothes" IS nudity, so it never negates a clothing word.
  */
-const NEGATED = /(?<![\p{L}])(?:not|no|never|non)[\s-]+(?:an?\s+|the\s+)?(?:child|children|kids?|minors?|teens?|teenagers?|underage|sexual|sexualised|sexualized|suggestive|sexy|erotic|nsfw|nude|nudity|naked|swimwear|swimsuits?|bikinis?|underwear|lingerie)(?![\p{L}])/giu;
+const NEGATED = /(?<![\p{L}])(?:(?:not|no|never|non)[\s-]+(?:an?\s+|the\s+)?(?:child|children|childlike|kids?|minors?|teens?|teenagers?|underage|sexual|sexualised|sexualized|suggestive|sexy|erotic|nsfw|nude|nudity|naked|swimwear|swimsuits?|bikinis?|underwear|lingerie)|without[\s-]+(?:an?\s+|any\s+)?(?:child|children|childlike|kids?|minors?|teens?|teenagers?|underage))(?![\p{L}])/giu;
 
 /** More than a few letters outside the Latin script: the lists cannot read it, the judge can. */
 const _foreign = (text) => (text.match(/(?![\p{Script=Latin}])\p{L}/gu) || []).length >= 3;

@@ -24,7 +24,8 @@ show one. Child words (child, kid, toddler, little girl, young boy, underage...)
 words (teen, teenager, schoolgirl, lolita, high schooler...) as 16. Words adults are called too are
 NOT minor words: girl, boy, young woman, petite, menina, Mädchen. "baby oil", "sugar baby",
 "babydoll", "kid gloves", "a minor detail", "twenty-five-year-old" and English "kind" are excluded
-on purpose. "not a child", "no kids", "no nudity", "non-sexual" are read as negations.
+on purpose. "not a child", "no kids", "no nudity", "non-sexual" are read as negations;
+"without" negates only a minor word ("without childlike proportions", MPI-1239), never clothing.
 
 An NSFW model is one whose id holds `nsfw` (SDXL NSFW, Krea 2 NSFW), or a model / LoRA param holding
 it. Chroma and Pony are not (Fabio's pick). Klein 9B turns its NSFW LoRA on from a word list

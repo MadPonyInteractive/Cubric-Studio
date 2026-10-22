@@ -198,6 +198,23 @@ test('adult content is never refused (an 18+ app)', async () => {
     for (const text of cases) assert.strictEqual((await verdict(text)).verdict, 'ok', text);
 });
 
+test('MPI-1239: a negated child word is not a minor; "without" never negates clothing', async () => {
+    const ok = [
+        'a 25-year-old man, delicate features without childlike proportions, penis visible',
+        'an adult woman, not childlike, nude',
+        'a woman without kids, naked',
+        'without any children in the scene, a nude couple',
+    ];
+    for (const text of ok) assert.strictEqual((await verdict(text)).verdict, 'ok', text);
+    const refused = [
+        ['a childlike figure, nude', 'unclothed'],
+        ['a 12-year-old without clothes', 'unclothed'],
+        ['a teen without underwear', 'unclothed'],
+        ['without childlike proportions, a child, nude', 'unclothed'],
+    ];
+    for (const [text, reason] of refused) assert.strictEqual((await verdict(text)).reason, reason, text);
+});
+
 test('a minor in an ordinary scene is fine (films show characters at many ages)', async () => {
     const cases = [
         'a 16-year-old girl in a bikini at a pool party',
