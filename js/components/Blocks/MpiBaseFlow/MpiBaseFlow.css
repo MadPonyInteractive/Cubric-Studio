@@ -466,6 +466,10 @@
     margin: 0;
 }
 .mpi-base-flow__canvas { line-height: 0; }
+/* The column's width, not the gizmo's: shrink-wrapped, a `width: 100%` stage measured its
+   own canvas, which its ResizeObserver then set from the stage, so it grew 1px a frame to
+   the cap (a ResizeObserver loop error each frame, MPI-1255). The side layout sizes it by flex. */
+.mpi-base-flow__work > .mpi-base-flow__canvas { align-self: stretch; }
 
 /* ── Side layout: the step's fields sit BESIDE the canvas (MPI-620) ─────── */
 /* Opt-in per step (`fieldsSide`). The default stacked form keeps its 900px cap;

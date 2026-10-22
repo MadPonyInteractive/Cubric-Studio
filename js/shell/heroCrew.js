@@ -26,6 +26,7 @@ import { PAGE_LANDING } from '../router.js';
 import { gid, qs, qsa, ce, on } from '../utils/dom.js';
 import { createMascotClipQueue } from '../utils/mascotClipQueue.js';
 import { clientLogger } from '../services/clientLogger.js';
+import { APP_CONFIG } from '../../dev_configs/app_config.js';
 
 /**
  * Stage order, left to right. Position, size, accent and paint order live in the CSS.
@@ -238,11 +239,12 @@ function _paintClip(m, id) {
     // that never lands leaves him frozen on his last frame, and the next clip overtakes it
     // within 5 s, so the freeze is judged per mascot: no new clip on screen for 8 s while
     // swaps keep coming = one line, and one more when he moves again (MPI-1142: Reel froze
-    // on Fabio's landing with nothing in app.log).
+    // on Fabio's landing with nothing in app.log). Speed diagnostics only, like [health].
     else {
         next.play().then(() => next.requestVideoFrameCallback(show), (err) => {
-            if (err.name !== 'AbortError') clientLogger.warn('mascot', `${m.key} ${id} would not play: ${err.name} ${_mediaState(next)}`);
+            if (err.name !== 'AbortError' && APP_CONFIG.speed_diagnostics) clientLogger.warn('mascot', `${m.key} ${id} would not play: ${err.name} ${_mediaState(next)}`);
         });
+        if (!APP_CONFIG.speed_diagnostics) return;
         m.shownAt ||= Date.now();
         setTimeout(() => {
             // A hidden window or an unrendered crew presents no frames: not a freeze.
@@ -361,9 +363,14 @@ function _paintBand(band, id) {
     const connecting = id !== CREW_CLIP;
     band.stage.classList.toggle(CONNECTING, connecting);
     _parkCrew(band.members, connecting);
+    // Off stage under the crew: a scene overtaken before its first frame (a connect that
+    // aborts at once) is not a frozen band, and its freeze check reads `parked`.
+    band.parked = !connecting;
     if (connecting) { _paintClip(band, id); return; }
     band.seq++;   // a scene still waiting for its first frame must not flip back in
-    band.shown.pause();
+    // Both clips: the one still loading that scene would otherwise keep decoding unseen.
+    band.a.pause();
+    band.b.pause();
     band.shown.classList.remove(LIVE);
 }
 
@@ -475,15 +482,17 @@ function _mount() {
     // nothing and no clip can show, yet still reads `visible` in Electron: any gap in page
     // frames restarts every mascot's clock, or the first check back reads the whole absence
     // as a freeze (12529 s on Fabio's log). One mascot stuck while the page draws still counts.
-    let raf = 0;
-    const beat = (t) => {
-        if (t - _frameAt > FRAME_GAP_MS) for (const m of members) m.shownAt = Date.now();
-        _frameAt = t;
+    if (APP_CONFIG.speed_diagnostics) {
+        let raf = 0;
+        const beat = (t) => {
+            if (t - _frameAt > FRAME_GAP_MS) for (const m of members) m.shownAt = Date.now();
+            _frameAt = t;
+            raf = requestAnimationFrame(beat);
+        };
+        _frameAt = performance.now();
         raf = requestAnimationFrame(beat);
-    };
-    _frameAt = performance.now();
-    raf = requestAnimationFrame(beat);
-    cleanups.push(() => cancelAnimationFrame(raf));
+        cleanups.push(() => cancelAnimationFrame(raf));
+    }
     for (const m of members) {
         cleanups.push(
             // Both cut the current clip short — neither can wait up to 5s behind an idle —
