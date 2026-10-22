@@ -64,6 +64,12 @@ Playbook: `docs/playbooks/add-model/` (enforced by `/mpi-add-model`). Research +
 - NEXT: recipe Stage 2 = press Enhance on MOSS in `npm run app:isolated` (2-3 short ideas, one needing
   lettering), render the enhanced prompts, show Fabio; he decides `draft -> validated`. Then `mpi-end-session`.
 
+2026-10-22 (Moss image 5):
+- Recipe Stage 2 DONE: 3 ideas enhanced on the default ComfyUI 4B AND DeepInfra 26B, all 6 rendered on
+  MOSS Turbo (record: `docs/recipes/research/moss-image/validation.md` § Stage 2, images `research/stage2/`).
+  26B clean; the 4B invents text and skips the medium opening. Isolated app closed.
+- NEXT: Fabio's verdict -> if yes, flip the moss-image recipe `draft -> validated`, then `mpi-end-session`.
+
 ## Completed
 
 Steps 1-3; step 4 recipe + guide (Stage 1 local only).

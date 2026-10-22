@@ -25,6 +25,16 @@
 - **Fabio's eye, 2026-10-22: "it looks right"** on all three (boxes "only work in that area, similar to
   our mask edits. That's good.").
 
+## Recipe Stage 2, 2026-10-22 (Moss image 5)
+
+- Three ideas (Lisbon poster with "VISIT LISBOA", fox reading at dusk, fisherman at sunrise) enhanced
+  twice: the app's default ComfyUI 4B enhancer (job captured from `llmService.enhance` in an
+  `app:isolated` renderer, sha256-matched) and DeepInfra Gemma 4 26B (3 calls, $0.00036, Fabio's yes).
+  All six rendered on MOSS Turbo, seed 1234, under gpu_lease. Record:
+  `docs/recipes/research/moss-image/validation.md` § Stage 2; images `research/stage2/`.
+- 26B: every rule kept, lettering exact. 4B: invented "Morning Tide" text on the fisherman, no
+  medium opening and a sound on the fox. Same system prompt: the 4B is the weak link.
+
 ## Not yet verified
 
-- Enhance pressed in the app on MOSS (the recipe's Stage 2 renders; `draft -> validated` is Fabio's).
+- Fabio's eye on the Stage 2 renders; `draft -> validated` is his.
