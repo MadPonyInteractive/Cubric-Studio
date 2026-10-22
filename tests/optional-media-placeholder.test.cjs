@@ -77,7 +77,7 @@ assert.deepStrictEqual(violations, [], violations.join('\n  '));
 // Positive control: the replacement really is in place on the graph that used to be the
 // reference case. Without this, an empty violations list could just mean the derivation
 // stopped finding files.
-const ltx = JSON.parse(fs.readFileSync(path.join(WF_DIR, 'ltx_i2v_t2v.json'), 'utf8'));
+const ltx = JSON.parse(fs.readFileSync(path.join(WF_DIR, 'ltx_i2v_t2v_int8.json'), 'utf8'));
 const stageNode = Object.values(ltx).find(n => n._meta?.title === 'Input_Video_Latent');
 assert.strictEqual(stageNode?.class_type, 'MpiStageLatents',
     'LTX Input_Video_Latent must be the MpiStageLatents node');

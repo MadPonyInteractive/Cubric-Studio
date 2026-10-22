@@ -52,6 +52,10 @@
 > never shipped, and the entry is then simply false. Full gate:
 > `.claude/skills/mpi-release/references/copy-review.md` § Gate 0.
 
+## Important
+
+- LTX 2.3 now comes in one version, the faster Balanced one. The High version is retired: it looked no better in our tests. If you only had High, install LTX 2.3 again in Models; High's 39 GB file is cleared the next time you uninstall a model (MPI-1095).
+
 ## New
 
 - New model: MOSS-Image, a text-to-image model that writes exact lettering on signs and posters, with a fast Turbo mode and Boxes for placing things. It also does image-to-image, inpaint, detail and upscale on your pictures (MPI-1243).

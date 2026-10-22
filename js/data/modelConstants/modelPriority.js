@@ -73,27 +73,28 @@ const EDIT = [
 
 const T2V = [
     ['minimax-h3', 't2v_ms'],
+    // MPI-1095: LTX 2.5 above 2.3 (Fabio 2026-10-22: better acting, faster). Dev-only for now.
+    ['ltx-25', 't2v_ms'],
     ['ltx-23-balanced', 't2v_ms'],
     ['wan22-5b', 't2v'],
-    ['ltx-23', 't2v_ms'],
 ];
 
 // wan-22 is i2v only — it has no t2v op to rank.
 const I2V = [
     ['minimax-h3', 'i2v_ms'],
+    ['ltx-25', 'i2v_ms'],
     ['ltx-23-balanced', 'i2v_ms'],
     ['wan-22', 'i2v_ms'],
     ['wan22-5b', 'i2v'],
-    ['ltx-23', 'i2v_ms'],
 ];
 
 // MPI-1060: LTX 2.3 added as ref2v_ms via the Ingredients IC-LoRA sheet approach.
 // H3 stays rank 1 (dedicated reference model, 9-picture + video + multi-audio surface);
-// LTX-balanced at rank 2 (faster, sheet-based, good consistency); LTX-high at rank 3.
+// LTX-balanced at rank 2 (faster, sheet-based, good consistency). LTX-high retired (MPI-1095).
 const REF2V = [
     ['minimax-h3-ref2va', 'ref2v_ms'],
+    ['ltx-25', 'ref2v_ms'],
     ['ltx-23-balanced', 'ref2v_ms'],
-    ['ltx-23', 'ref2v_ms'],
 ];
 
 /**
@@ -134,8 +135,10 @@ const NOTES = {
     // MPI-1060: LTX uses the Ingredients IC-LoRA sheet approach. One line per picture in
     // the prompt (Picture n + a description), then the scene; the app composes the sheet.
     // No video references, one optional audio clip. Start frame optional.
-    'ltx-23-balanced:ref2v_ms': 'sheet-based approach (Ingredients IC-LoRA): several reference pictures composed into one sheet, one description line per picture in the prompt. No video references; one audio clip optional for lip-sync or voice clone. Faster tier',
-    'ltx-23:ref2v_ms': 'the high-quality tier of the sheet-based reference op above, same rules, higher detail and more VRAM',
+    'ltx-23-balanced:ref2v_ms': 'sheet-based approach (Ingredients IC-LoRA): several reference pictures composed into one sheet, one description line per picture in the prompt. No video references; one audio clip optional for lip-sync or voice clone',
+    // MPI-1095: the same sheet op on LTX 2.5 (same Ingredients wiring, 2.5 build of the LoRA).
+    'ltx-25:ref2v_ms': 'the LTX 2.5 build of the sheet-based reference op above, same rules; more natural acting than LTX 2.3',
+    'ltx-25': 'newer than LTX 2.3: more natural acting and movement, and faster. Same prompting and the same two audio modes',
     // MPI-941 Phase 9 (Fabio, corrected after a live Krea test): rank is untouched either way.
     'krea2:detail': KREA2_SKIN,
     'krea2:upscale': KREA2_SKIN,

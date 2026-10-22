@@ -16,8 +16,8 @@ the LTX Flows and the new 2.5-only Flows (tile upscaler etc., MPI-578).
 ## Stage 1 (model alone, dev-gated)
 
 - [x] Bench tests on G: (2.3 vs 2.5, same prompts and seeds) - 2026-10-22, 8 cases; Fabio: 2.5 WINS on acting
-- [ ] Gemma 4 file choice (one file for both 2.5 cards) + abliteration option
-- [ ] Tier bench (Fabio 2026-10-22), once 2.5's setup is final: finished 2.5 vs 2.3 Balanced (int8,
+- [x] Gemma 4 file choice (one file for both 2.5 cards) + abliteration option - Fabio 2026-10-22: official int8; heretic benched (25h) and dropped
+- [x] Tier bench DONE 2026-10-22 (i2v_start / i2v_both / i2v_audio_in): Fabio DEPRECATES 2.3 High. Was: once 2.5's setup is final: finished 2.5 vs 2.3 Balanced (int8,
       `ltx_i2v_t2v_int8.json`) vs 2.3 High (bf16, `ltx_i2v_t2v.json`; Fabio installs it in the app ->
       M:/CubricModels). LAST step of the comparisons; High never joins any other test (too slow).
       A couple of image-to-video cases only. Batch by model: all 2.3 Balanced, all 2.3 High, all 2.5.

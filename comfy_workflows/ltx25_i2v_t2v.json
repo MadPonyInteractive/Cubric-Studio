@@ -1,7 +1,7 @@
 {
   "1": {
     "inputs": {
-      "vae_name": "LTX23_video_vae_bf16.safetensors"
+      "vae_name": "ltx-2.5-video-vae-conv-bf16.safetensors"
     },
     "class_type": "VAELoader",
     "_meta": {
@@ -10,7 +10,7 @@
   },
   "2": {
     "inputs": {
-      "vae_name": "LTX23_audio_vae_bf16.safetensors",
+      "vae_name": "ltx-2.5-audio-vae-bf16.safetensors",
       "device": "main_device",
       "weight_dtype": "bf16"
     },
@@ -21,7 +21,7 @@
   },
   "4": {
     "inputs": {
-      "unet_name": "ltx-2.3-22b-distilled-1.1_transformer_only_bf16.safetensors",
+      "unet_name": "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
       "weight_dtype": "default"
     },
     "class_type": "UNETLoader",
@@ -387,7 +387,7 @@
   },
   "125": {
     "inputs": {
-      "model_name": "ltx-2.3-spatial-upscaler-x2-1.1.safetensors"
+      "model_name": "ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors"
     },
     "class_type": "LatentUpscaleModelLoader",
     "_meta": {
@@ -613,32 +613,6 @@
       "title": "Input_Use_Audio"
     }
   },
-  "191": {
-    "inputs": {
-      "lora_name": "ltx-2.3\\ltx2.3-transition.safetensors",
-      "model": [
-        "627",
-        0
-      ],
-      "strength_model": [
-        "192",
-        2
-      ]
-    },
-    "class_type": "MpiLoraModel",
-    "_meta": {
-      "title": "Transition Lora"
-    }
-  },
-  "192": {
-    "inputs": {
-      "boolean": false
-    },
-    "class_type": "MpiBoolean",
-    "_meta": {
-      "title": "Input_Use_Transition"
-    }
-  },
   "198": {
     "inputs": {
       "audio": [
@@ -814,12 +788,12 @@
       "strength_model": 1,
       "strength_clip": 1,
       "model": [
-        "387",
+        "366",
         0
       ],
       "clip": [
-        "387",
-        1
+        "370",
+        0
       ]
     },
     "class_type": "MpiLoraModelClip",
@@ -928,7 +902,7 @@
       "start_percent": 0,
       "end_percent": 1,
       "model": [
-        "277",
+        "901",
         0
       ],
       "positive": [
@@ -951,20 +925,6 @@
     "class_type": "LTXVReferenceAudio",
     "_meta": {
       "title": "LTXV Reference Audio (ID-LoRA)"
-    }
-  },
-  "277": {
-    "inputs": {
-      "lora_name": "ltx-2.3\\id-lora-talkvid\\ltx-2.3-id-lora-talkvid-3k.safetensors",
-      "strength_model": 1,
-      "model": [
-        "901",
-        0
-      ]
-    },
-    "class_type": "MpiLoraModel",
-    "_meta": {
-      "title": "talk3_ID_Lora"
     }
   },
   "293": {
@@ -1403,44 +1363,13 @@
   "370": {
     "inputs": {
       "any": [
-        "408",
+        "916",
         0
       ]
     },
     "class_type": "MpiReroute",
     "_meta": {
       "title": "Clip_Connect"
-    }
-  },
-  "387": {
-    "inputs": {
-      "lora_name": "ltx-2.3\\LTX23_softenhance_abliterated_detailer_merged.safetensors",
-      "strength_model": 1,
-      "strength_clip": 1,
-      "model": [
-        "366",
-        0
-      ],
-      "clip": [
-        "370",
-        0
-      ]
-    },
-    "class_type": "MpiLoraModelClip",
-    "_meta": {
-      "title": "Merged Loras"
-    }
-  },
-  "408": {
-    "inputs": {
-      "clip_name1": "gemma_3_12B_it_fp4_mixed.safetensors",
-      "clip_name2": "ltx-2.3_text_projection_bf16.safetensors",
-      "type": "ltxv",
-      "device": "default"
-    },
-    "class_type": "DualCLIPLoader",
-    "_meta": {
-      "title": "Load CLIP (Dual)"
     }
   },
   "426": {
@@ -2128,10 +2057,10 @@
   },
   "900": {
     "inputs": {
-      "lora_name": "ltx-2.3\\ltx-2.3-22b-ic-lora-ingredients-0.9.safetensors",
+      "lora_name": "ltx-2.5\\ltx-2.5-22b-ic-lora-ingredients-0.9.safetensors",
       "strength_model": 1,
       "model": [
-        "191",
+        "627",
         0
       ]
     },
@@ -2147,7 +2076,7 @@
         0
       ],
       "false": [
-        "191",
+        "627",
         0
       ],
       "boolean": [
@@ -2446,6 +2375,17 @@
     "class_type": "LTXVCropGuides",
     "_meta": {
       "title": "Ref S2 crop"
+    }
+  },
+  "916": {
+    "inputs": {
+      "clip_name": "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+      "type": "ltxv",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
     }
   }
 }

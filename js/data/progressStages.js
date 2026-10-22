@@ -41,8 +41,12 @@ export const PROGRESS_STAGES = Object.freeze({
     // That is accepted behaviour, not a bug to fix here: the count matches the graph.
     // MPI-466: the four LTX keys (t2v/i2v x arch) collapsed to ONE file per tier, and
     // `_int8` normalizes back to this row the same way `_fp8`/`_mxfp8` used to — the
-    // variant swaps the loader, not the sampler graph.
+    // variant swaps the loader, not the sampler graph. MPI-1095 retired the bf16 file itself;
+    // this key stays as the row `ltx_i2v_t2v_int8.json` normalizes to.
     'ltx_i2v_t2v.json': Object.freeze({ single: 3, preview: 2, stage2: 3 }),
+    // MPI-1095: LTX 2.5 runs the 2.3 graph node for node (only loaders differ), so the same bars.
+    // To be confirmed by a live count on the first in-app run.
+    'ltx25_i2v_t2v.json': Object.freeze({ single: 3, preview: 2, stage2: 3 }),
     // WAN — verified single=2 (one bar per sampler; no separate model-load bar).
     // MPI-470 deprecated t2v_ms, so the `wan22_t2v.json` row went with its graph.
     'wan22_i2v.json': Object.freeze({ single: 2, preview: 1, stage2: 1 }),

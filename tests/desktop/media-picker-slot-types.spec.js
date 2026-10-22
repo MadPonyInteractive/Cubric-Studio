@@ -11,7 +11,7 @@ const { launchApp, closeApp } = require('./launch');
 
 test.setTimeout(90000);
 
-const MODELS = ['sdxl-realistic', 'ltx-23', 'minimax-h3-ref2va'];
+const MODELS = ['sdxl-realistic', 'ltx-23-balanced', 'minimax-h3-ref2va'];
 
 // Same pinning as prompt-box-voice.spec.js: the runner has no weights, and the box only
 // mounts on an installed model.
@@ -97,7 +97,7 @@ test('Choose media opens on every type the model takes, and never on 3D Scenes',
     expect(sdxl.accept).toBe('image/*');
     expect(sdxl.label).toBe('Add a reference image');
 
-    const ltx = await openedTiles(window, 'ltx-23');
+    const ltx = await openedTiles(window, 'ltx-23-balanced');
     expect(ltx.titles, 'LTX takes an audio track').toContain('AUD');
     expect(ltx.titles).not.toContain('SCN');
 

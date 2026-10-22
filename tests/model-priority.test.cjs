@@ -20,13 +20,14 @@ const RANKED = [
     ['edit', [['qwen-image-2-1', 'edit'], ['flux3-klein', 'edit'], ['klein-9b', 'kleinEdit'], ['klein-4b', 'kleinEdit'],
         ['boogu-edit-high', 'edit'], ['boogu-edit-balanced', 'edit'], ['qwen-edit', 'qwenEdit'],
         ['krea2', 'krea2Edit']]],   // FLUX.3 second (Fabio 2026-10-20), provisional
-    ['t2v', [['minimax-h3', 't2v_ms'], ['ltx-23-balanced', 't2v_ms'], ['wan22-5b', 't2v'], ['ltx-23', 't2v_ms']]],
-    ['i2v', [['minimax-h3', 'i2v_ms'], ['ltx-23-balanced', 'i2v_ms'], ['wan-22', 'i2v_ms'],
-        ['wan22-5b', 'i2v'], ['ltx-23', 'i2v_ms']]],
+    // MPI-1095: LTX 2.5 above 2.3 (Fabio 2026-10-22).
+    ['t2v', [['minimax-h3', 't2v_ms'], ['ltx-25', 't2v_ms'], ['ltx-23-balanced', 't2v_ms'], ['wan22-5b', 't2v']]],
+    ['i2v', [['minimax-h3', 'i2v_ms'], ['ltx-25', 'i2v_ms'], ['ltx-23-balanced', 'i2v_ms'], ['wan-22', 'i2v_ms'],
+        ['wan22-5b', 'i2v']]],
     ['t2i', [['krea2', 't2i'], ['klein-9b', 't2i'], ['chroma-flash', 't2i'], ['chroma-hyper', 't2i'],
         ['klein-4b', 't2i'], ['sdxl-realistic', 't2i']]],
-    // MPI-1060: LTX added at ranks 2 and 3 (H3 stays rank 1).
-    ['ref2v', [['minimax-h3-ref2va', 'ref2v_ms'], ['ltx-23-balanced', 'ref2v_ms'], ['ltx-23', 'ref2v_ms']]],
+    // MPI-1060: LTX added at rank 2 (H3 stays rank 1); the High tier at 3 retired with its card (MPI-1095).
+    ['ref2v', [['minimax-h3-ref2va', 'ref2v_ms'], ['ltx-25', 'ref2v_ms'], ['ltx-23-balanced', 'ref2v_ms']]],
 ];
 
 test('every ranked pair is a model that exists and an op it really supports', () => {
@@ -236,17 +237,12 @@ test('a character sheet is steered to the reference op, and a re-run away from i
 });
 
 // MPI-1060: LTX ref2v_ms ranking and notes.
-test('LTX appears at ranks 2 and 3 in ref2v; notes say sheet-based and mention audio', () => {
-    assert.equal(opPriority('ltx-23-balanced', 'ref2v_ms').rank, 2);
-    assert.equal(opPriority('ltx-23', 'ref2v_ms').rank, 3);
+test('LTX appears at ranks 2 (2.5) and 3 (2.3) in ref2v; notes say sheet-based and mention audio', () => {
+    assert.equal(opPriority('ltx-25', 'ref2v_ms').rank, 2);
+    assert.equal(opPriority('ltx-23-balanced', 'ref2v_ms').rank, 3);
     assert.equal(opPriority('ltx-23-balanced', 'ref2v_ms').task, 'ref2v');
-    assert.equal(opPriority('ltx-23', 'ref2v_ms').task, 'ref2v');
     // Note should mention the sheet-based approach and audio
     assert.match(opPriority('ltx-23-balanced', 'ref2v_ms').note, /sheet/);
     assert.match(opPriority('ltx-23-balanced', 'ref2v_ms').note, /audio/);
-    // High tier note distinguishes it from balanced
-    assert.match(opPriority('ltx-23', 'ref2v_ms').note, /high-quality/);
-    // Both models actually support ref2v_ms in supportedOps
     assert.ok(opsOf('ltx-23-balanced').includes('ref2v_ms'), 'ltx-23-balanced supports ref2v_ms');
-    assert.ok(opsOf('ltx-23').includes('ref2v_ms'), 'ltx-23 supports ref2v_ms');
 });

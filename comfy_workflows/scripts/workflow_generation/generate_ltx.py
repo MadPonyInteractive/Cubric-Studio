@@ -1,10 +1,13 @@
 """
 generate_ltx.py
-LTX-2.3 handler: from ONE i2v+t2v API export, produce TWO app workflow files —
-one per quality tier, each serving every op and both stages:
+LTX-2.3 handler: from ONE i2v+t2v API export, produce the app workflow file,
+serving every op and both stages:
 
-  ltx_i2v_t2v.json       — bf16 transformer  (the `ltx-23` HIGH card)
   ltx_i2v_t2v_int8.json  — int8 transformer  (the `ltx-23-balanced` card)
+
+MPI-1095 (2026-10-22) RETIRED the bf16 HIGH tier (`ltx-23`, `ltx_i2v_t2v.json`):
+the tier bench showed it no better than int8 Balanced or LTX 2.5. Its dep entry
+stays (DEPRECATED) so the orphan sweep can reclaim the 42 GB from users' disks.
 
 MPI-466 collapsed this from TWELVE files (i2v/t2v x bf16/fp8/mxfp8 x
 stage-1/stage-2). Three things went away at once:
@@ -47,8 +50,7 @@ STAGE_LATENTS_TITLE = "Input_Video_Latent"   # MpiStageLatents: the whole two-st
 # quantization is baked in the safetensors metadata and UNETLoader reads it there;
 # naming a dtype the node does not list is a value_not_in_list reject.
 VARIANTS = {
-    "":      ("ltx-2.3-22b-distilled-1.1_transformer_only_bf16.safetensors",         "default"),
-    "_int8": ("ltx-2.3-22b-distilled-1.1_transformer_only_int8_convrot.safetensors", "default"),
+    "_int8":("ltx-2.3-22b-distilled-1.1_transformer_only_int8_convrot.safetensors", "default"),
 }
 
 # Titles that MUST survive into every output (sanity gate).

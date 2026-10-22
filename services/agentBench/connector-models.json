@@ -1732,66 +1732,6 @@
       }
     },
     {
-      "id": "ltx-23",
-      "name": "LTX 2.3",
-      "type": "video",
-      "installed": false,
-      "ops": [
-        {
-          "op": "t2v_ms",
-          "installed": false,
-          "params": {
-            "ratios": [
-              "1:1",
-              "9:16",
-              "16:9",
-              "21:9"
-            ],
-            "qualityTiers": [
-              "very_low",
-              "low",
-              "medium",
-              "high",
-              "very_high",
-              "2k",
-              "4k"
-            ],
-            "turbo": false,
-            "styles": []
-          }
-        },
-        {
-          "op": "i2v_ms",
-          "installed": false,
-          "params": {
-            "ratios": [
-              "1:1",
-              "9:16",
-              "16:9",
-              "21:9"
-            ],
-            "qualityTiers": [
-              "very_low",
-              "low",
-              "medium",
-              "high",
-              "very_high",
-              "2k",
-              "4k"
-            ],
-            "turbo": false,
-            "styles": []
-          }
-        }
-      ],
-      "missingDownloadGb": 57.76,
-      "fit": {
-        "floorVramGb": 16,
-        "ramGbAtYourVram": 44,
-        "runs": true
-      }
-    },
-    {
       "id": "ltx-23-balanced",
       "name": "LTX 2.3",
       "type": "video",

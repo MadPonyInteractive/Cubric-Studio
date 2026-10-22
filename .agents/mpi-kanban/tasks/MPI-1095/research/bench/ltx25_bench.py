@@ -4,6 +4,7 @@ Graph: comfy_workflows/ltx_i2v_t2v_int8.json (the runtime split of raw/ltx_i2v_t
 level with the app's own title-keyed injections, full single run (is_preview / is_continue false).
 Variants:
   23    the file untouched (fast card today)
+  23hi  2.3 High: the bf16 transformer, the only difference from ltx_i2v_t2v.json (tier bench)
   25    2.5 int8 transformer, Gemma 4 int8 (projection bundled -> CLIPLoader replaces DualCLIPLoader, the only
         node-type change 2.5 forces), 2.5 conv video VAE, 2.5 audio VAE, 2.5 spatial x2 upscaler, 2.5 Ingredients.
         The baked 2.3 LoRAs (merged / transition / talkvid) are BYPASSED (wired around); the taeltx2_3 preview stays.
@@ -34,6 +35,12 @@ TALK = ('a naturalistic medium close-up on a quiet city street in soft afternoon
         'in a tired but gentle voice: "I waited all afternoon, and you never even called." her lips move clearly with every word. '
         'the camera is steady on a tripod. the audio is her voice only, clear and close.')
 CAFE = WOMAN_CAFE.split('### Target Description\n', 1)[1]  # the same scene with no sheet description
+CAFE_TALK = ('a warm, naturalistic medium shot inside a small city cafe on a sunny morning. the woman with wavy copper-red hair and '
+             'freckles, in her olive-green utility jacket over a mustard-yellow sweater, sits at a wooden table by the big street window, '
+             'looks toward someone just off camera and speaks in a tired but gentle voice, her lips moving clearly with every word. '
+             'the camera is steady. the audio is her voice only, clear and close.')
+AUDIO_I2V = {'Input_Start_Frame': {'image': START}, 'Input_Audio': {'audio': VOICE},
+             'Input_Use_Transition': {'boolean': True}}  # the app forces Transition on with any audio (PromptBoxControls.js audioMode)
 
 BASE = {'Input_Width': {'int': 960}, 'Input_Height': {'int': 512}, 'Input_Duration': {'int': 5}, 'Input_Seed': {'int': 42},
         'Input_Video_Latent': {'is_preview': False, 'is_continue': False}}
@@ -46,6 +53,9 @@ CASES = {
     'ref2v': {'Input_Image': {'image': SHEET}, 'Input_Positive': {'string': WOMAN_CAFE}},
     'voice_ref': {'Input_Use_Reference_Audio': {'boolean': True}, 'Input_Audio': {'audio': VOICE}, 'Input_Positive': {'string': TALK}},
     'audio_in': {'Input_Use_Input_Audio': {'boolean': True}, 'Input_Audio': {'audio': VOICE}, 'Input_Positive': {'string': TALK}},
+    # image-to-video with audio, app-faithful: on 2.3 the lip-sync case Transition exists for (docs/models/ltx/model-set.md)
+    'i2v_voice_ref': {**AUDIO_I2V, 'Input_Use_Reference_Audio': {'boolean': True}, 'Input_Positive': {'string': CAFE}},
+    'i2v_audio_in': {**AUDIO_I2V, 'Input_Use_Input_Audio': {'boolean': True}, 'Input_Positive': {'string': CAFE_TALK}},
 }
 V25 = {
     'Load Diffusion Model': {'unet_name': 'ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors'},
@@ -72,7 +82,9 @@ def bypass(g, nid):
 def build(variant, case):
     g = json.load(open(SHIPPED, encoding='utf-8'))
     T = {v['_meta']['title']: k for k, v in g.items()}
-    if variant != '23':
+    if variant == '23hi':  # 2.3 High: ltx_i2v_t2v.json differs from the int8 graph ONLY in this file
+        g[T['Load Diffusion Model']]['inputs']['unet_name'] = 'ltx-2.3-22b-distilled-1.1_transformer_only_bf16.safetensors'
+    elif variant != '23':
         for title, ins in V25.items():
             g[T[title]]['inputs'].update(ins)
         vae = 'ltx-2.5-video-vae-bf16.safetensors' if variant == '25d' else 'ltx-2.5-video-vae-conv-bf16.safetensors'
@@ -124,13 +136,13 @@ def sbs(case, right='25'):
 if __name__ == '__main__':
     os.makedirs(OUT, exist_ok=True)
     if sys.argv[1:2] == ['--check']:
-        for v in ('23', '25', '25d', '25h'):
+        for v in ('23', '23hi', '25', '25d', '25h'):
             for c in CASES:
                 g, _ = build(v, c)
                 refs = [x[0] for n in g.values() for x in n['inputs'].values() if isinstance(x, list) and len(x) == 2 and isinstance(x[0], str)]
                 assert all(r in g for r in refs), (v, c, [r for r in refs if r not in g])
-                assert v == '23' or 'ltx-2.3' not in json.dumps(g).lower(), (v, c)  # no 2.3 weight left on 2.5
-        print('ok', len(CASES), 'cases x 4 variants')
+                assert v.startswith('23') or 'ltx-2.3' not in json.dumps(g).lower(), (v, c)  # no 2.3 weight left on 2.5
+        print('ok', len(CASES), 'cases x 5 variants')
     elif sys.argv[1:2] == ['--sbs']:
         for c in sys.argv[2:]:
             sbs(*c.split(':'))

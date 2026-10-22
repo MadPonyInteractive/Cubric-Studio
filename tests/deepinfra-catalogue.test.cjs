@@ -80,7 +80,8 @@ test('a release build lists the fifteen, never the devOnly schnell test model', 
         const shipped = require(path.join(root, 'js/data/modelConstants/models.js')).MODELS;
         assert.ok(!shipped.some(m => m.devOnly), 'no devOnly model in a release build');
         assert.equal(shipped.filter(m => m.provider === 'deepinfra').length, 15);
-        assert.equal(shipped.length, MODELS.length - 1, 'only the test model drops out');
+        // MPI-1095 added a second devOnly model (LTX 2.5): exactly the devOnly ones drop out.
+        assert.equal(shipped.length, MODELS.length - MODELS.filter(m => m.devOnly).length, 'only the devOnly models drop out');
     } finally {
         fs.rmSync(root, { recursive: true, force: true });
     }

@@ -1,0 +1,88 @@
+# MPI-1095 stage 1: retire LTX 2.3 High, land LTX 2.5 (int8, dev-gated)
+
+## Current State
+
+- Research + benches DONE (`research/findings.md`). Fabio 2026-10-22: 2.5 wins on acting (~35-40% faster);
+  official Gemma 4 int8 encoder (heretic dropped); both audio modes (Reference clone, Original lip-sync) work on
+  2.5 with NO extra LoRA; 2.3 High (bf16) DEPRECATED after the tier bench.
+- 2.5 stack proven on the bench (`research/bench/ltx25_bench.py`, variant `25`): the shipped int8 graph with
+  6 loaders re-pointed, DualCLIPLoader -> CLIPLoader (Gemma 4 carries its projection), the 3 baked 2.3 LoRAs
+  (Merged, Transition, talk ID) removed. Runs on the shipped engine (ComfyUI v0.42.1, ComfyUI-LTXVideo pin
+  `3b9c5cde`): no engine or node bump.
+- High is card `ltx-23` (bf16, `ltx_i2v_t2v.json`); Balanced is `ltx-23-balanced` (int8). Every LTX Flow already
+  requires `ltx-23-balanced` only (`flowsRegistry.js`), so retiring High touches no Flow.
+- `models.js` carries a peer's uncommitted MOSS hunks (MPI-1243): commit our hunks only
+  (`~/.claude/memory/tools/git-shared-tree.md`).
+
+## Implementation
+
+- [ ] **A. Retire 2.3 High** (ships to users in 2.1.3), per `docs/playbooks/add-model/README.md` § Removing:
+  `generate_ltx.py` drops the bf16 row, regen, `git rm comfy_workflows/ltx_i2v_t2v.json`; delete the `ltx-23`
+  ModelDef; KEEP `ltx23-transformer-bf16` in `modelDeps.js`, marked DEPRECATED (the orphan sweep reclaims users'
+  42 GB on their next uninstall); drop `ltx_i2v_t2v.json` from `progressStages.js`, the three `ltx-23` rows from
+  `modelPriority.js`, `git rm` `ltx23_high_preview.mp4`; re-point the tests that use `ltx-23` as an exemplar
+  (model-priority, model-update-check, resolve-model-deps, connector-agent-tools, cue-all-eligibility,
+  routine-model, media-picker spec, optional-media-placeholder, llm-service, output-prompt-capture) to
+  `ltx-23-balanced` / the int8 file; regenerate `services/agentBench/connector-models.json`; UNRELEASED changelog
+  line. R2/HF copies of the bf16 stay up (default). **Verify:** `npm run lint` + `npm test` green; grep for
+  `'ltx-23'` / `ltx_i2v_t2v.json` / `ltx23_high` finds only the deprecated dep and history.
+- [ ] **B. Add `ltx-25`** through `/mpi-add-model` (its playbook governs every step):
+  - Raw: copy `raw/ltx_i2v_t2v_template.json` in the G: ComfyUI canvas (I drive it in the browser pane on
+    :8188, Fabio reviews), make exactly the bench's changes, save as `raw/ltx25_i2v_t2v_template.json`; a
+    generator emits `ltx25_i2v_t2v.json`. Drop `Input_Use_Transition` with its LoRA and check what the audioMode
+    control's injection does on a graph without it (`tests/inject-params-titles.test.cjs`).
+  - Deps (new, `sha256` from the local copies): `ltx25-transformer-int8` 21.5 GB, `ltx25-gemma4-clip-int8`
+    15.4 GB, `ltx25-video-vae-conv` 1.45 GB, `ltx25-audio-vae` 0.36 GB, `ltx25-spatial-upscaler` 1.0 GB,
+    `ltx25-lora-ingredients` 1.3 GB. Reused: `ltx23-preview-taehv` ONLY if the preview test shows it decodes
+    2.5 latents, else the latent-rgb fallback; `ComfyUI-LTXVideo`, `ComfyUI-MpiNodes`, `comfyui-kjnodes`.
+  - ModelDef `ltx-25`: `devOnly: true`, `modelFamily: 'LTX-2.5'`, `name: 'LTX 2.5'`, `type: 'ltx'`, same
+    capabilities and ops as Balanced (`t2v_ms`, `i2v_ms`, `ref2v_ms`, audio + routing, `referenceSheet`); int8
+    only (no 2.5 High, no nvfp4: same reasoning that just retired 2.3 High). Live-counted `progressStages`;
+    priority rows; the `ltx` enhancer recipe's guide (`docs/agent/models/ltx.md`) names 2.5; preview clip from
+    the bench.
+  - R2 upload of ~41 GB: **Fabio's yes first**. ~$0.62/month storage at R2's $0.015/GB-month, egress free;
+    one upload. Until then the app tests from the local copies.
+  **Verify:** `npm run lint` + `npm test`; `npm run app:isolated` (own profile + port, never :3000) with dev
+  mode: 2.5 shows only in the dev build, and t2v, i2v start, i2v start+end, ref2v, Reference audio and Original
+  audio each produce a clip with sound; preview -> Finish works; the High card is gone, Balanced still runs.
+
+## Completed
+
+- [x] A (2026-10-22, uncommitted): `ltx-23` card, `ltx_i2v_t2v.json`, `ltx23_high_preview.*` gone; bf16 dep
+  kept DEPRECATED; priority rows + note removed; 10 tests re-pointed (Boogu is the twin-name example now);
+  `connector-models.json` entry dropped (byte-exact round trip); agent guide + UNRELEASED `## Important` line.
+  `progressStages` KEEPS the `ltx_i2v_t2v.json` key: `ltx_i2v_t2v_int8.json` normalizes to it.
+- [x] B wiring (uncommitted): raw `raw/ltx25_i2v_t2v_template.json` made in the G: ComfyUI canvas (browser
+  pane, graph API on a copy of the 2.3 raw; 228 nodes, 10 groups) -> converted, injection gate passes ->
+  `generate_ltx25.py` (+ registry row) -> `ltx25_i2v_t2v.json`; diff vs the 2.3 int8 file = exactly the bench's
+  changes. 6 deps (sha256 local = HF lfs oid, all 6), `ltx-25` ModelDef devOnly, progress row (same bars as
+  2.3, NOT live-counted yet), rank 2 above 2.3 in t2v/i2v/ref2v + notes, guide names `ltx-25`, preview clip
+  from `i2v_start_25`. lint + `npm test` green.
+
+## Remaining Work
+
+- Fabio reviews the raw in the G: ComfyUI (`ltx25_i2v_t2v_template`); if he changes it, re-copy to `raw/` and
+  re-run convert -> gate -> `generate_ltx25.py`.
+- 2.5 weights COPIED to `M:/CubricModels` 2026-10-22 (sizes match; no R2 yet).
+- Fabio said YES (2026-10-22, "LTX 2.5 model 4") to the in-app GPU check, run in the next session. Any GPU run
+  beyond it: ask first. The check: (`npm run app:isolated`, every op + preview + live bar count + does
+  `taeltx2_3` decode 2.5 previews).
+- R2 upload (~41 GB, ~$0.62/mo): Fabio's yes. Commit A + B at handoff/close. `docs/models/ltx/` 2.5 page.
+- Stage 2 (2.5 in the LTX Flows, Keyframes to Video MPI-1191, 2.5-only Flows) waits for the release.
+
+## Plan Drift
+
+- None yet.
+
+## Verification
+
+**Verify mode:** auto
+
+`npm run lint` + `npm test` green after A and after B; the isolated-app run above, every op with a visible
+result. Fabio touchpoints that are not verification: reviewing the 2.5 raw graph, and the R2 upload yes.
+
+## Preservation Notes
+
+- `docs/models/ltx/`: a 2.5 page (model set, no Transition/ID LoRA needed, Gemma 4 CLIPLoader, timings) +
+  mark the bf16 High tier retired in `model-set.md` / `tiers.md`.
+- Ask before touching `.claude/rules/` (model maps).

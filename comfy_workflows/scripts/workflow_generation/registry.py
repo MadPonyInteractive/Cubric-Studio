@@ -20,6 +20,7 @@ HANDLERS = [
     ("sdxl_",     "sdxl"),   # sdxl_t2i_template.json — the ONE master template (MPI-365)
     ("wan22_5b_", "wan5b"),  # wan22_5b_ti2v_template.json — MUST precede wan22_ (first match wins)
     ("wan22_",    "wan"),    # wan22_i2v_template.json (t2v deprecated, MPI-470)
+    ("ltx25_",    "ltx25"),  # MPI-1095: ltx25_i2v_t2v_template.json - the 2.3 graph with 2.5 loaders, ONE file
     ("ltx_",      "ltx"),    # source = ltx_i2v_t2v_template.json (output lowercased by sync)
     ("krea2_",    "krea2"),  # MPI-242: krea2_t2i_template.json — no op split; stamps
                              # the optional-image placeholder + asserts the style rack.

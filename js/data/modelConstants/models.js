@@ -1382,94 +1382,8 @@ const ALL_MODELS = [
         ],
     },
     {
-        id: 'ltx-23',
-        // MPI-200: this is now the HIGH (quality-ceiling) tier — the bf16 transformer.
-        // The balanced tier ships as the separate `ltx-23-balanced` card below (same
-        // modelFamily), per the sizeTier contract "one tier per card". The L/B/H badge
-        // + dropdown letter surface only when 2+ tiers of LTX-2.3 are installed.
-        sizeTier: 'high',
-        modelFamily: 'LTX-2.3',
-        name: 'LTX 2.3',
-        dropdownMeta: 'VIDEO',
-        mediaType: 'video',
-        // MPI-128: dual-latent (video+audio) stage-2 staging wired, so the
-        // previewStage toggle + preview→Finish are unlocked. multiStage:true shows
-        // the toggle on the shared _ms ops. NO branchingContinue → Finish-only
-        // (Continue button hidden): the refined LTX workflow locks stage-2 to
-        // stage-1 and the prompt has no effect on the continuation, so a re-prompted
-        // branch is meaningless. audio:true surfaces the audio media slot + the
-        // Reference|Original mode UI.
-        // singleFileStages (MPI-466): LTX migrated onto MpiStageLatents, so ONE graph
-        // carries both passes and `resolveWorkflowFile` must stop appending _stage2 —
-        // that twin no longer exists and Finish would 404 on it.
-        // referenceSheet: the app composes several pictures into one Ingredients sheet before
-        // dispatch (MPI-1060). Enables _composeReferenceSheet in commandExecutor and the
-        // ref2v_ms op's start-frame slot (Input_Start_Frame, gated by requiresCapability).
-        capabilities: { batch: false, multiStage: true, audio: true, audioRouting: true, singleFileStages: true, referenceSheet: true },
-        video: 'ltx23_high_preview.mp4',
-        type: 'ltx',
-        // LTX has 6 flat user LoRA slots (Input_Lora_1..6), no high/low staging →
-        // no loraStages. The Input_Lora_* nodes have a live strength_clip input
-        // (default 1.0) and some LTX LoRAs use it, so surface both knobs. (MPI-224)
-        loraStrengths: ['model', 'clip'],
-        supportedOps: ['t2v_ms', 'i2v_ms', 'ref2v_ms'],
-        gen_speed: 'medium',
-        description: 'This video generator is one of the best open source models available. It comes with synchronized audio — reference-voice and direct-audio modes.',
-        // ONE graph for both ops (MPI-466). t2v / start-frame / end-frame / both are
-        // reachable in the same file because routing derives from which media strings
-        // are filled, not from an op boolean — so the op→file map no longer encodes
-        // the mode. supportedOps still splits them: it drives which media slots the UI
-        // offers, which is a different question from which graph runs.
-        workflows: {
-            t2v_ms: 'ltx_i2v_t2v.json',
-            i2v_ms: 'ltx_i2v_t2v.json',
-            // MPI-1060: Reference to Video shares the same combined graph — the fill-driven
-            // IC branch activates when Input_Image is loaded, so ref2v_ms and the other ops
-            // all resolve to the same file; `supportedOps` still splits them for the UI.
-            ref2v_ms: 'ltx_i2v_t2v.json',
-        },
-        // MPI-190: engine split REVERTED, GGUF fully removed. cu130 (MPI-187/189)
-        // collapsed the aimdo cold-fault tax that was the GGUF transformer's only
-        // justification, so both engines now run the SAME bf16 transformer + the SAME
-        // workflow files — no `engines:` block, no `_gguf` suffix. The bf16 also removes
-        // the ComfyUI-GGUF dequant upcast spike that OOM'd LTX i2v on the 24GB 4090
-        // (MPI-185). bf16 i2v proven CLEAN on the 4090; the Q8 weights + GGUF deps are
-        // deleted (R2 + registry).
-        // FLAT model: one transformer serves both t2v and i2v, so there is no
-        // separable install unit — both ops ship together (like an image model).
-        // `dependencies` (not commonDeps/operations) ⇒ no per-op install toggle in
-        // the manager; install once, both ops work. When a future op needs its OWN
-        // weights, split it into operations{} then and a toggle appears.
-        // First model with non-merged baked LoRAs (transition/soft/talkvid) shipped
-        // as deps, NOT user slots — see [[project-ltx-transition-lora-enables-lipsync]].
-        //
-        // NO engine split (MPI-190): the bf16 transformer runs on BOTH engines now, so
-        // it sits in `dependencies` with the rest — no `engines:` block. The Gemma CLIP
-        // (fp4_mixed) is likewise shared. The baked LoRA is the merged
-        // soft+abliterated+detailer file. (MPI-168)
-        dependencies: [
-            'ltx23-transformer-bf16',
-            'ltx23-video-vae',
-            'ltx23-audio-vae',
-            // 22MB tiny TAEHV, live previews only (MPI-508). It feeds the `vae` input of
-            // MpiVideoSamplingPreview, which decodes real frames instead of the blocky
-            // latent_rgb_factors fallback (MPI-575 moved this off KJNodes' node).
-            'ltx23-preview-taehv',
-            'ltx23-text-projection',
-            'ltx23-gemma-clip',
-            'ltx23-spatial-upscaler',
-            'ltx23-lora-merged',
-            'ltx23-lora-transition',
-            'ltx23-lora-talkvid',
-            // Ingredients IC-LoRA (MPI-1060): Reference to Video. The shared graph names it
-            // on every run (ComfyUI validates the lazy branch too), so it is on both tiers.
-            'ltx23-lora-ingredients',
-            'ComfyUI-LTXVideo',
-            'ComfyUI-MpiNodes',
-            'comfyui-kjnodes',
-        ],
-    },
-    {
+        // MPI-1095 (2026-10-22): the bf16 HIGH card `ltx-23` is RETIRED - the tier bench showed
+        // it no better than this card or LTX 2.5 - so this is the only LTX 2.3 card.
         // MPI-200: LTX-2.3 BALANCED tier. Same base as `ltx-23` HIGH, but the 42GB
         // bf16 transformer is replaced by a 20GB one that FITS 32GB — which kills the
         // aimdo stage-2 eviction thrash MPI-197 traced (bf16-never-fits → 48s@10s /
@@ -1530,6 +1444,47 @@ const ALL_MODELS = [
             // The three LoRAs above sit on both tiers because the shipped t2v/i2v
             // graphs load them on both — that is not the case here.
             'ltx23-lora-foley',
+            'ComfyUI-LTXVideo',
+            'ComfyUI-MpiNodes',
+            'comfyui-kjnodes',
+        ],
+    },
+    {
+        // MPI-1095: LTX 2.5, BESIDE LTX 2.3 (Fabio 2026-10-22: 2.5 wins on acting, ~35-40% faster).
+        // Dev-gated until stage 1 ships. The 2.3 Balanced graph with 2.5 loaders: Gemma 4 on a plain
+        // CLIPLoader (projection bundled), and none of the three baked 2.3 LoRAs. 2.5 needs no
+        // Transition LoRA to lip-sync image-to-video, and voice reference holds without the talk ID
+        // LoRA (bench, research/findings.md). int8 only: the same tier bench retired 2.3's bf16 High.
+        id: 'ltx-25',
+        devOnly: true,
+        sizeTier: 'balanced',
+        modelFamily: 'LTX-2.5',
+        name: 'LTX 2.5',
+        dropdownMeta: 'VIDEO',
+        mediaType: 'video',
+        // Same capability set as LTX 2.3: one graph for both stages, audio routing, Ingredients sheet.
+        capabilities: { batch: false, multiStage: true, audio: true, audioRouting: true, singleFileStages: true, referenceSheet: true },
+        video: 'ltx25_preview.mp4',
+        type: 'ltx',
+        loraStrengths: ['model', 'clip'],
+        supportedOps: ['t2v_ms', 'i2v_ms', 'ref2v_ms'],
+        gen_speed: 'fast',
+        description: 'The newest LTX video generator, with more natural acting than LTX 2.3 and faster. It comes with synchronized audio: reference-voice and direct-audio modes.',
+        workflows: {
+            t2v_ms: 'ltx25_i2v_t2v.json',
+            i2v_ms: 'ltx25_i2v_t2v.json',
+            ref2v_ms: 'ltx25_i2v_t2v.json',
+        },
+        dependencies: [
+            'ltx25-transformer-int8',
+            'ltx25-video-vae-conv',
+            'ltx25-audio-vae',
+            // The graph's live-preview decoder is still the 2.3 TAEHV (no 2.5 one exists);
+            // whether it reads 2.5 latents is checked in the app (MPI-1095).
+            'ltx23-preview-taehv',
+            'ltx25-gemma4-clip',
+            'ltx25-spatial-upscaler',
+            'ltx25-lora-ingredients',
             'ComfyUI-LTXVideo',
             'ComfyUI-MpiNodes',
             'comfyui-kjnodes',

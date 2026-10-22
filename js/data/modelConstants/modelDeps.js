@@ -508,6 +508,10 @@ export const modelDeps = {
     // transformer existed to dodge, and bf16 also removes the ComfyUI-GGUF dequant
     // upcast spike that OOM'd LTX i2v on the 24GB 4090. Loads via UNETLoader from
     // diffusion_models/. One transformer, one dep, both engines.
+    // ── DEPRECATED (MPI-1095, 2026-10-22) — the HIGH card `ltx-23` it served is retired
+    // (tier bench: no better than int8 Balanced or LTX 2.5). No model lists it any more.
+    // The entry STAYS so the orphan sweep can reclaim the 42 GB from users who have it;
+    // deleting it would strand the file forever (docs/playbooks/add-model § Removing).
     'ltx23-transformer-bf16': {
         id: 'ltx23-transformer-bf16',
         name: 'LTX-2.3 22B Distilled Transformer (bf16)',
@@ -569,6 +573,17 @@ export const modelDeps = {
         size: '20.03GB',
         bytes: 21505993424,
         sha256: '30fe2173fdb18881eb2482ece17ca044bedb8f28a38550ea7230da796fb8b614',
+    },
+    // MPI-1095 LTX 2.5. Lightricks/LTX-2.5 is gated, so no HF mirrorUrl (a user download would 401). int8 only: the 2.3 tier bench retired bf16 High.
+    'ltx25-transformer-int8': {
+        id: 'ltx25-transformer-int8',
+        name: 'LTX-2.5 22B Distilled Transformer (int8_convrot)',
+        origin: 'Lightricks/LTX-2.5',
+        filename: 'diffusion_models/ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors',
+        url: 'https://models.cubric.studio/vision/models/diffusion_models/ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors',
+        size: '20.03GB',
+        bytes: 21504034224,
+        sha256: 'c4279eeff115cbeaca494bd2183e7d768c38fe85a184dc6afbb7159157c44334',
     },
     // ── MiniMax H3 transformers (MPI-452) ──────────────────────────────────────
     // NOT ON R2, AND THAT IS DELIBERATE — do not "fix" it by re-hosting. The

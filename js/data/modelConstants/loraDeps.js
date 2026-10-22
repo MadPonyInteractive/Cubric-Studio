@@ -616,6 +616,18 @@ export const loraDeps = {
         bytes: 1308778338,
         sha256: '515e4e139001ac6282357a5b35372e42e98b3affd5fcc886a52242abeed19559',
     },
+    // MPI-1095 LTX 2.5 Ingredients IC-LoRA (Reference to Video). Same sheet wiring as the 2.3 one;
+    // Lightricks' repo is gated, so no HF mirrorUrl.
+    'ltx25-lora-ingredients': {
+        id: 'ltx25-lora-ingredients',
+        name: 'LTX-2.5 Ingredients IC-LoRA (baked — reference to video)',
+        origin: 'Lightricks/LTX-2.5-22b-IC-LoRA-Ingredients',
+        filename: 'loras/ltx-2.5/ltx-2.5-22b-ic-lora-ingredients-0.9.safetensors',
+        url: 'https://models.cubric.studio/vision/models/loras/ltx-2.5/ltx-2.5-22b-ic-lora-ingredients-0.9.safetensors',
+        size: '1.22GB',
+        bytes: 1308787472,
+        sha256: 'ff873a5beada3c579a8137c7c53343916f78bcc9a529ba910143073fe8715e95',
+    },
     // Klein turbo/accelerator LoRA — DROPPED 2026-07-27, deliberately not a dep.
     // klein-4b-transformer ships the DISTILLED checkpoint (see modelDeps.js), which is
     // already a cfg 1.0 / 4-step weight, so the base+turbo two-tier pair this entry

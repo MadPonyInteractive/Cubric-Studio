@@ -166,6 +166,28 @@ export const assetDeps = {
         bytes: 364855188,
         sha256: '5bc10fa4adecf99dda132d916e23048cbd56797702c5fa50eb5d2079048a38c3',
     },
+    // MPI-1095 LTX 2.5. Lightricks/LTX-2.5 is gated, so no HF mirrorUrl (a user download would 401). The faster conv decoder; the diffusion ("DFR") one was never benched.
+    'ltx25-video-vae-conv': {
+        id: 'ltx25-video-vae-conv',
+        name: 'LTX-2.5 Video VAE (conv, bf16)',
+        origin: 'Lightricks/LTX-2.5',
+        filename: 'vae/ltx-2.5-video-vae-conv-bf16.safetensors',
+        url: 'https://models.cubric.studio/vision/models/vae/ltx-2.5-video-vae-conv-bf16.safetensors',
+        size: '1.35GB',
+        bytes: 1452269922,
+        sha256: '685b06ee3d9b2039647698fc4ea33175112462fc374e2777312c907897dfce8d',
+    },
+    // MPI-1095 LTX 2.5. Lightricks/LTX-2.5 is gated, so no HF mirrorUrl (a user download would 401).
+    'ltx25-audio-vae': {
+        id: 'ltx25-audio-vae',
+        name: 'LTX-2.5 Audio VAE (bf16)',
+        origin: 'Lightricks/LTX-2.5',
+        filename: 'vae/ltx-2.5-audio-vae-bf16.safetensors',
+        url: 'https://models.cubric.studio/vision/models/vae/ltx-2.5-audio-vae-bf16.safetensors',
+        size: '347.96MB',
+        bytes: 364866540,
+        sha256: 'c52733d37f6a7fb7949c3dc0fb468c6cb2169e4d836983a73babb9f0d54837a5',
+    },
     // ── Tiny TAEHV preview decoders (MPI-508) ───────────────────────────────
     // Both live in `vae/`, NOT `vae_approx/`, and that is deliberate: a VAELoader NODE
     // reads them, not core's previewer, and VAELoader reads the `vae` folder key.
@@ -402,6 +424,28 @@ export const assetDeps = {
         size: '949.62MB',
         bytes: 995743560,
         sha256: '5f416311fa8172b65af67530758964708d29a317b830d689a51143b7f91913ed',
+    },
+    // MPI-1095 LTX 2.5. Lightricks/LTX-2.5 is gated, so no HF mirrorUrl (a user download would 401). The projection is bundled, so a plain CLIPLoader loads it (no separate projection dep).
+    'ltx25-gemma4-clip': {
+        id: 'ltx25-gemma4-clip',
+        name: 'Gemma 4 12B int8_convrot + LTX-2.5 projection (LTX CLIP)',
+        origin: 'Lightricks/LTX-2.5',
+        filename: 'text_encoders/gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors',
+        url: 'https://models.cubric.studio/vision/models/text_encoders/gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors',
+        size: '14.32GB',
+        bytes: 15372969374,
+        sha256: '6ce688a0aa98a5fa36a9f1e6c3f42152a498cc2b53ee8c15674c64244f91487f',
+    },
+    // MPI-1095 LTX 2.5. Lightricks/LTX-2.5 is gated, so no HF mirrorUrl (a user download would 401).
+    'ltx25-spatial-upscaler': {
+        id: 'ltx25-spatial-upscaler',
+        name: 'LTX-2.5 Spatial Upscaler x2 (stage-2)',
+        origin: 'Lightricks/LTX-2.5',
+        filename: 'latent_upscale_models/ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors',
+        url: 'https://models.cubric.studio/vision/models/latent_upscale_models/ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors',
+        size: '949.65MB',
+        bytes: 995778752,
+        sha256: 'eb5a71fe4068ee87ccdb1c3aa635e547ca76bd2d30ae20ae889f2c325c0677e8',
     },
     // The H3 two-pass shape's upscaler: stage 1 samples at half-res, this lifts the VIDEO
     // half of the packed AV latent (LTXVSeparateAVLatent -> here -> LTXVConcatAVLatent),

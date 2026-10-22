@@ -345,15 +345,16 @@ function testEngineResolution() {
 
     // Real registry (MPI-190): the LTX-2.3 engine split was REVERTED — bf16 runs
     // on BOTH engines, no GGUF weight or node. Both universes are identical.
+    // MPI-1095 retired the bf16 High card: the one LTX 2.3 card left is the int8 one.
     const { MODELS } = require('../js/data/modelConstants/models.js');
-    const ltx = MODELS.find(m => m.id && m.id.startsWith('ltx'));
+    const ltx = MODELS.find(m => m.id === 'ltx-23-balanced');
     if (ltx) {
         const local = resolveFullUniverse(ltx, null, 'local');
         const remote = resolveFullUniverse(ltx, null, 'remote');
-        assert.ok(local.includes('ltx23-transformer-bf16') && !local.includes('ltx23-transformer-gguf'),
-            'LTX local universe has bf16, not GGUF');
-        assert.ok(remote.includes('ltx23-transformer-bf16') && !remote.includes('ltx23-transformer-gguf'),
-            'LTX remote universe has bf16 too (split reverted), not GGUF');
+        assert.ok(local.includes('ltx23-transformer-int8') && !local.includes('ltx23-transformer-gguf'),
+            'LTX local universe has int8, not GGUF');
+        assert.ok(remote.includes('ltx23-transformer-int8') && !remote.includes('ltx23-transformer-gguf'),
+            'LTX remote universe has int8 too (split reverted), not GGUF');
         assert.ok(!local.includes('ComfyUI-GGUF') && !remote.includes('ComfyUI-GGUF'),
             'neither engine includes the retired Pod-only GGUF node');
     }
@@ -372,21 +373,21 @@ function testWorkflowFileResolution() {
     const noSplit = { id: 'ns', workflows: { t2v_ms: 'IMG_t2i.json' } };
     assert.strictEqual(resolveWorkflowFile(noSplit, 't2v_ms', 'remote'), 'IMG_t2i.json', 'no engines: block → no suffix');
 
-    // Real LTX-2.3 registry entry (MPI-190): no engines: block → same bf16 file
-    // on both engines, no _gguf suffix.
+    // Real LTX-2.3 registry entry (MPI-190): no engines: block → same file
+    // on both engines, no _gguf suffix. The int8 card since MPI-1095 retired bf16 High.
     const { MODELS } = require('../js/data/modelConstants/models.js');
-    const ltx = MODELS.find(m => m.id && m.id.startsWith('ltx'));
+    const ltx = MODELS.find(m => m.id === 'ltx-23-balanced');
     if (ltx) {
         // Lowercase: models.js stores workflow filenames lowercase and the files on
         // disk match, so a case-sensitive FS (Linux/mac) resolves them. Do not
         // "restore" the old CamelCase spelling — it only ever worked on Windows.
-        assert.strictEqual(resolveWorkflowFile(ltx, 't2v_ms', 'local'), 'ltx_i2v_t2v.json');
-        assert.strictEqual(resolveWorkflowFile(ltx, 't2v_ms', 'remote'), 'ltx_i2v_t2v.json');
+        assert.strictEqual(resolveWorkflowFile(ltx, 't2v_ms', 'local'), 'ltx_i2v_t2v_int8.json');
+        assert.strictEqual(resolveWorkflowFile(ltx, 't2v_ms', 'remote'), 'ltx_i2v_t2v_int8.json');
         // MPI-466: LTX carries capabilities.singleFileStages now — ONE graph holds both
         // passes, so stage 2 resolves to the SAME file. A `_stage2` name here would 404.
-        assert.strictEqual(resolveWorkflowFile(ltx, 't2v_ms', 'remote', { stage2: true }), 'ltx_i2v_t2v.json');
+        assert.strictEqual(resolveWorkflowFile(ltx, 't2v_ms', 'remote', { stage2: true }), 'ltx_i2v_t2v_int8.json');
         // Both ops share the graph: routing derives from media presence, not the filename.
-        assert.strictEqual(resolveWorkflowFile(ltx, 'i2v_ms', 'local'), 'ltx_i2v_t2v.json');
+        assert.strictEqual(resolveWorkflowFile(ltx, 'i2v_ms', 'local'), 'ltx_i2v_t2v_int8.json');
     }
 }
 

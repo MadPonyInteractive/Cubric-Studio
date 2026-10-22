@@ -11,7 +11,7 @@ const { DEPS } = require('../js/data/modelConstants/dependencies.js');
 const { MODELS } = require('../js/data/modelConstants/models.js');
 const { missingFilesMessage, modelsMissingFiles } = require('../js/shell/modelUpdateCheck.js');
 
-const ltx = MODELS.find(m => m.id === 'ltx-23');
+const ltx = MODELS.find(m => m.id === 'ltx-23-balanced');  // the High card `ltx-23` retired (MPI-1095)
 const universe = resolveFullUniverse(ltx, null, 'local');
 const deps = universe.map(id => DEPS[id]);
 const NEW_DEP = 'ltx23-lora-ingredients';
@@ -71,9 +71,9 @@ function scan(ids, onDisk) {
 }
 const universeOf = id => resolveFullUniverse(MODELS.find(m => m.id === id), null, 'local');
 
-test('LTX High installed, then the Ingredients LoRA joins both tiers: only High is named', () => {
-    const disk = universeOf('ltx-23').filter(id => id !== NEW_DEP);
-    assert.deepStrictEqual(scan(['ltx-23', 'ltx-23-balanced'], disk), ['ltx-23']);
+test('LTX installed, then the Ingredients LoRA joins it: LTX is named', () => {
+    const disk = universeOf('ltx-23-balanced').filter(id => id !== NEW_DEP);
+    assert.deepStrictEqual(scan(['ltx-23-balanced'], disk), ['ltx-23-balanced']);
 });
 
 test('a never-installed sibling sharing a big encoder is not named (the Boogu false alarm)', () => {
@@ -83,7 +83,7 @@ test('a never-installed sibling sharing a big encoder is not named (the Boogu fa
 });
 
 test('a fully installed model is never named', () => {
-    assert.deepStrictEqual(scan(['ltx-23'], universeOf('ltx-23')), []);
+    assert.deepStrictEqual(scan(['ltx-23-balanced'], universeOf('ltx-23-balanced')), []);
 });
 
 test('the tier is in the name only where two cards share one', () => {
@@ -95,15 +95,16 @@ test('the tier is in the name only where two cards share one', () => {
         deps: DEPS,
     });
     assert.strictEqual(solo.name, 'Qwen-Image 2.1');
-    const models = MODELS.filter(m => m.id === 'ltx-23' || m.id === 'ltx-23-balanced');
-    const disk = new Set(universeOf('ltx-23').filter(id => id !== NEW_DEP));
+    const models = MODELS.filter(m => m.id === 'boogu-edit-high' || m.id === 'boogu-edit-balanced');
+    const shared = universeOf('boogu-edit-high').find(id => universeOf('boogu-edit-balanced').includes(id) && DEPS[id].type !== 'custom_nodes');
+    const disk = new Set(universeOf('boogu-edit-high').filter(id => id !== shared));
     const [hit] = modelsMissingFiles(models, {
         universe: m => resolveFullUniverse(m, null, 'local'),
         statusOf: () => new Map([...disk].map(d => [d, true])),
         isUsable: () => false,
         deps: DEPS,
     });
-    assert.strictEqual(hit.name, 'LTX 2.3 High');
+    assert.strictEqual(hit.name, 'Boogu Image Edit High');
 });
 
 // ── MPI-1078: a plugin's, Flow's or the engine's file is not a model's progress ────

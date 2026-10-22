@@ -116,11 +116,11 @@ test('NOT_BATCHABLE — a t2i step takes no input, first or later (D1, selectCue
     }
 });
 
-test('image → video chain is legal (i2v_ms on ltx-23)', async () => {
-    // imageUpscale → ltx-23/i2v_ms: image in, video out
+test('image → video chain is legal (i2v_ms on ltx-23-balanced)', async () => {
+    // imageUpscale → ltx-23-balanced/i2v_ms: image in, video out
     const r = normalizeRoutine(raw([
         toolStep('imageUpscale'),
-        modelStep('ltx-23', 'i2v_ms'),
+        modelStep('ltx-23-balanced', 'i2v_ms'),
     ]));
     const v = validateRoutine(r, lookups);
     assert.strictEqual(v.ok, true, `expected ok; got ${v.code}: ${v.message}`);
@@ -270,11 +270,11 @@ test('NOT_BATCHABLE — flow with two required inputs', async () => {
 });
 
 test('MEDIA_KIND_BREAK — image → video → image chain', async () => {
-    // imageUpscale (out:image) → ltx-23 i2v_ms (in:image, out:video)
+    // imageUpscale (out:image) → ltx-23-balanced i2v_ms (in:image, out:video)
     // → imageUpscale (in:image) — but previous step outputs video → break
     const r = normalizeRoutine(raw([
         toolStep('imageUpscale'),
-        modelStep('ltx-23', 'i2v_ms'),
+        modelStep('ltx-23-balanced', 'i2v_ms'),
         toolStep('imageUpscale'),
     ]));
     const v = validateRoutine(r, lookups);

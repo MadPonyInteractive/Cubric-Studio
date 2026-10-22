@@ -1,9 +1,6 @@
 # LTX 2.3: how to prompt it
 
-LTX 2.3 is Lightricks' native joint audio-video model: one pass generates picture and sound together, and it can also take a reference audio clip in. Two Vision cards share this guide, with the same ops and only the transformer's precision differing:
-
-- `ltx-23`: the high, quality-ceiling tier (full bf16 transformer).
-- `ltx-23-balanced`: the fast tier (int8 transformer; everything else is shared).
+LTX 2.3 is Lightricks' native joint audio-video model: one pass generates picture and sound together, and it can also take a reference audio clip in. Two Vision cards use this guide: `ltx-23-balanced` (LTX 2.3, int8 transformer) and `ltx-25` (LTX 2.5, int8, dev builds only for now). The bf16 High card `ltx-23` is retired (MPI-1095). LTX 2.5 prompts exactly like 2.3 and takes the same two audio modes; it acts more naturally and runs faster, so prefer it when both are installed.
 
 Both offer `t2v_ms` (text to video), `i2v_ms` (image to video) and `ref2v_ms` (Reference to Video, below), and all resolve to the same `ltx-2.3` enhancer recipe: `ref2v_ms` gets its own `r2v` mode (the `t2v` one while no picture is staged), an i2v request gets the `t2v` instruction. In practice, real production work reaches for this model image-to-video almost exclusively. A plate is mandatory overhead on every shot, but it also fixes the framing for you, so lean on it instead of re-describing what the picture already shows.
 
@@ -79,9 +76,9 @@ A wide shot from behind frames Maya on the mountain trail as she adjusts the sho
 
 ## Settings
 
-- Ratios (per op, from `connector-models.json`): identical across `t2v_ms` and `i2v_ms` on both `ltx-23` and `ltx-23-balanced`: `1:1`, `9:16`, `16:9`, `21:9`.
-- Quality tiers (same source): identical across both ops on both cards: `very_low, low, medium, high, very_high, 2k, 4k`. Auto opens on `medium`.
-- Turbo is `false` on every op of both cards, and neither offers a style picker. The shipped workflow is already an 8-step, CFG-1 distilled build on both tiers, so there is nothing to toggle.
+- Ratios (per op, from `connector-models.json`): identical across `t2v_ms` and `i2v_ms`: `1:1`, `9:16`, `16:9`, `21:9`.
+- Quality tiers (same source): identical across all ops: `very_low, low, medium, high, very_high, 2k, 4k`. Auto opens on `medium`.
+- Turbo is `false` on every op, and there is no style picker. The shipped workflow is already an 8-step, CFG-1 distilled build, so there is nothing to toggle.
 - Media roles. `t2v_ms`: `inputAudio` (optional). `i2v_ms`: `startFrame` (required), `endFrame` (optional), `inputAudio` (optional). `ref2v_ms`: `inputImage` .. `inputImage9` (= Picture 1-9; with none it is plain text to video, so send at least one), `inputStartFrame` (optional), `inputAudio` (optional).
 - `inputAudio` is more than a reference track: staging it can drive lip-sync or a transferred voice identity, chosen elsewhere in the UI, not by you. Either way, expect the supplied clip's real content to often come through rather than exactly what you wrote; word the Audio Integration sentence to match what's actually in the file when you know it.
 - There is no working negative box on this distilled build. The recipe already treats every constraint as inline, positive prose: say what you don't want as a positive statement in the paragraph.

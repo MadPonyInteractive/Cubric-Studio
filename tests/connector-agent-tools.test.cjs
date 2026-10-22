@@ -232,7 +232,7 @@ test('list_models ops carry their media roles, gated per model the way the Promp
 
     // The shared video ops declare an audio slot; only a model that takes audio gets it.
     assert.deepEqual(roles('t2v_ms', 'minimax-h3'), [], 'H3 fl2va makes sound but takes none');
-    assert.deepEqual(roles('t2v_ms', 'ltx-23'), ['inputAudio'], 'LTX takes reference audio');
+    assert.deepEqual(roles('t2v_ms', 'ltx-23-balanced'), ['inputAudio'], 'LTX takes reference audio');
     assert.deepEqual(mediaRolesFor(registry, 'i2v_ms', findModelDef('minimax-h3')).filter((r) => r.required).map((r) => r.role), ['startFrame']);
 
     const ref = mediaRolesFor(registry, 'ref2v_ms', findModelDef('minimax-h3-ref2va'));
@@ -241,7 +241,7 @@ test('list_models ops carry their media roles, gated per model the way the Promp
         { role: 'inputImage2', type: 'image', required: false, tag: 'Picture 2' },
     ]);
     assert.ok(ref.some((r) => r.role === 'inputAudio' && r.tag === 'Audio 1'), 'ref2va takes audio references');
-    assert.deepEqual(mediaRolesFor(registry, 'no-such-op', findModelDef('ltx-23')), []);
+    assert.deepEqual(mediaRolesFor(registry, 'no-such-op', findModelDef('ltx-23-balanced')), []);
 });
 
 test('a start frame says the clip opens on it, so a character sheet goes to a reference op', async () => {

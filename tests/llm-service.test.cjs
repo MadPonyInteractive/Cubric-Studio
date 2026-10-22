@@ -208,7 +208,7 @@ function testTheEnhancerBorrowsKleinsEncoder() {
         'qwen3vl_4b_abliterated_fp8_scaled.safetensors');
     // An encoder TextGenerate raises on is never borrowed, nor a loader the graph cannot take.
     assert.deepStrictEqual(enhancerClipParams(WORKFLOW('wan22_i2v.json')), {}, 'umT5 must never write a prompt');
-    assert.deepStrictEqual(enhancerClipParams(WORKFLOW('ltx_i2v_t2v.json')), {}, 'a DualCLIPLoader is not borrowable');
+    assert.deepStrictEqual(enhancerClipParams(WORKFLOW('ltx_i2v_t2v_int8.json')), {}, 'a DualCLIPLoader is not borrowable');
 
     // Both keys must address a real node AND widget: the injector skips a miss silently.
     const loader = Object.values(WORKFLOW('qwen3vl_4b_prompt_enhancer.json'))
