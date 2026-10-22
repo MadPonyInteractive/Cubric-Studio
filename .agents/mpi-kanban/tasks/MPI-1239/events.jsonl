@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1239", "at": "2026-10-22T01:41:56+01:00", "actor": "claude", "column": "doing", "title": "Child-safety gate: 'without childlike proportions' reads as a child"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1239", "at": "2026-10-22T01:44:11+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "negation fixed, tests both ways"}
