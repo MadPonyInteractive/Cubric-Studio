@@ -54,6 +54,23 @@
       "title": "Input_Seed"
     }
   },
+  "88": {
+    "inputs": {
+      "delimiter": "",
+      "string_a": [
+        "93",
+        0
+      ],
+      "string_b": [
+        "101",
+        3
+      ]
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Concatenate Text"
+    }
+  },
   "93": {
     "inputs": {
       "string": ""
@@ -61,6 +78,18 @@
     "class_type": "MpiText",
     "_meta": {
       "title": "Input_Positive"
+    }
+  },
+  "94": {
+    "inputs": {
+      "source": [
+        "88",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Preview as Text"
     }
   },
   "95": {
@@ -124,8 +153,8 @@
       "lora_name": "None",
       "strength_model": 1,
       "model": [
-        "689",
-        0
+        "101",
+        1
       ]
     },
     "class_type": "MpiLoraModel",
@@ -145,6 +174,39 @@
     "class_type": "MpiLoraModel",
     "_meta": {
       "title": "Input_Lora_6"
+    }
+  },
+  "101": {
+    "inputs": {
+      "lora_1": "moss\\MOSS-Image-Anime-LoRA-ComfyUI.safetensors",
+      "lora_2": "moss\\MOSS-Image-Gouache-LoRA-ComfyUI.safetensors",
+      "lora_3": "moss\\MOSS-Image-Psychedelic-LoRA-ComfyUI.safetensors",
+      "lora_4": "moss\\MOSS-Image-PixelArt-16x16-ComfyUI.safetensors",
+      "lora_5": "None",
+      "style": [
+        "103",
+        0
+      ]
+    },
+    "class_type": "MpiStyleLoras",
+    "_meta": {
+      "title": "Mpi Style Loras"
+    }
+  },
+  "103": {
+    "inputs": {
+      "selector": 0,
+      "triggers": "moss_seinen_style\nmoss_vgouache_style\nmoss_psychpop_style\npixel art 16x16 game icon",
+      "strength_model": 1,
+      "strength_clip": 0,
+      "model": [
+        "689",
+        0
+      ]
+    },
+    "class_type": "MpiStyleSelector",
+    "_meta": {
+      "title": "Input_Style_Selector"
     }
   },
   "111": {
@@ -402,7 +464,7 @@
   "374": {
     "inputs": {
       "any": [
-        "93",
+        "88",
         0
       ]
     },
@@ -684,7 +746,7 @@
         0
       ],
       "text": [
-        "93",
+        "88",
         0
       ]
     },
@@ -772,7 +834,7 @@
         0
       ],
       "text": [
-        "93",
+        "88",
         0
       ]
     },
@@ -1140,7 +1202,7 @@
         0
       ],
       "text": [
-        "93",
+        "88",
         0
       ]
     },
@@ -1369,7 +1431,7 @@
         0
       ],
       "prompt": [
-        "93",
+        "88",
         0
       ]
     },
@@ -1527,7 +1589,7 @@
         0
       ],
       "text": [
-        "93",
+        "88",
         0
       ]
     },
@@ -1712,7 +1774,7 @@
         0
       ],
       "text": [
-        "93",
+        "88",
         0
       ]
     },
@@ -1926,7 +1988,7 @@
   "789": {
     "inputs": {
       "any": [
-        "93",
+        "88",
         0
       ]
     },
@@ -1972,7 +2034,7 @@
   "795": {
     "inputs": {
       "any": [
-        "93",
+        "88",
         0
       ]
     },

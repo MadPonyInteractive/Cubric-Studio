@@ -15,6 +15,7 @@ from pathlib import Path
 
 from generate_klein import _prune_to_captures, _assert_and_bake_wf_type
 from generate_flux3 import _bake_turbo
+from generate_krea2 import _assert_style_rack
 
 SCRIPTS_DIR = Path(__file__).parent
 WORKFLOWS_DIR = SCRIPTS_DIR.parent.parent  # comfy_workflows/
@@ -49,9 +50,10 @@ def build(source_path: Path, out_dir: Path) -> list[Path]:
     _assert_and_bake_wf_type(workflow)
     _bake_turbo(workflow)
     _assert_weights(workflow)
+    n_styles = _assert_style_rack(workflow)
     out_path = out_dir / OUT_NAME
     out_path.write_text(json.dumps(workflow, indent=2), encoding="utf-8")
-    print(f"  [OK]   {OUT_NAME} ({len(workflow)} nodes)")
+    print(f"  [OK]   {OUT_NAME} ({len(workflow)} nodes, {n_styles} style LoRAs)")
     return [out_path]
 
 
