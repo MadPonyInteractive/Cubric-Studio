@@ -733,7 +733,9 @@
      outlined             clickable: the LTX start-frame toggle, i2v's Start/Last frame
                           choice, the open clip's frame swap (mounted MpiButtons)
      filled               clickable AND on: the picture chosen as the start frame
-   The outline replaced the swap icon as the "clickable" cue (Fabio, 2026-10-11). */
+   The outline replaced the swap icon as the "clickable" cue (Fabio, 2026-10-11).
+   Every look sits on the Gallery's own background, so it reads over any picture
+   behind the strip (MPI-1252). */
 .mpi-prompt-box-media-strip__tag {
     position: absolute;
     top: 0;
@@ -741,8 +743,9 @@
     max-width: 100%;
     height: 1.125rem;
     display: block;
-    padding: 0;
+    padding: 0 var(--s-1);
     border: 1px solid transparent;
+    background: var(--surface-0);
     color: var(--ink-2);
     font-size: var(--t-2xs);
     font-weight: 600;
@@ -762,7 +765,7 @@
     padding: 0 var(--s-1);
     border: 1px solid var(--accent-heat);
     border-radius: 0;
-    background: transparent;
+    background: var(--surface-0);
     color: var(--accent-heat);
     font-size: var(--t-2xs);
     font-weight: 600;
@@ -774,7 +777,7 @@
 }
 
 .mpi-btn.mpi-btn--ghost.mpi-prompt-box-media-strip__tag:hover:not(:disabled) {
-    background: color-mix(in oklch, var(--accent-heat) 18%, transparent);
+    background: color-mix(in oklch, var(--accent-heat) 18%, var(--surface-0));
     color: var(--accent-heat);
 }
 
