@@ -15,6 +15,9 @@ const test = require('node:test');
 // its list-files, and the primary root silently drops out of the union.
 process.env.CUBRIC_ENGINE_ROOT = require('node:fs')
     .mkdtempSync(path.join(os.tmpdir(), 'cubric-engine-extra-folders-'));
+// A dev shell that exports CUBRIC_MODELS_ROOT (a real models drive) would union
+// that drive's loras into list-files below. The test owns its roots.
+delete process.env.CUBRIC_MODELS_ROOT;
 
 const { buildExtraModelPathsYaml } = require('../routes/yamlHelper');
 const { normalizeExtraModelFolders } = require('../routes/shared');
