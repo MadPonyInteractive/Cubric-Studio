@@ -1697,6 +1697,12 @@ export const MpiGalleryGrid = ComponentFactory.create({
                                 ? 'Describe reads one image at a time'
                                 : _stackCount ? 'Describe reads one image, not a stack'
                                     : (_selectedVideoCount > 0 ? 'Describe reads a still image, not a video' : 'Caption this image into a prompt') },
+                        // MPI-1253: only while the prompt box's model takes Boxes on text-to-image.
+                        ...(state.s_boxesReady && targetIds.length === 1 && !_stackCount && _selectedVideoCount === 0
+                            && group.history?.[group.selectedIndex]?.filePath
+                            ? [{ key: 'create-boxes', icon: 'shape_rect_stroke', label: 'Create boxes',
+                                info: 'Read this picture into boxes, with its ratio, to make a new one laid out the same' }]
+                            : []),
                         // MPI-623 (A9): offered, never guessed — a 2:1 still may be a banner.
                         ...(targetIds.length === 1 && canConvertToPano(group)
                             ? [{ key: 'convert-pano', icon: 'cube', label: 'Convert to 360 pano',
@@ -1743,6 +1749,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                         if (key === 'card-notes') emit('card-notes', { group });
                         if (key === 'archive')    _archive(selected, !group.archived);
                         if (key === 'describe')   emit('describe', { group: selected[0] });
+                        if (key === 'create-boxes') Events.emit('boxes:create', { filePath: group.history[group.selectedIndex].filePath });
                         if (key === 'convert-pano') emit('convert-pano', { group: selected[0] });
                         if (key === 'convert-pano-video') emit('convert-pano-video', { group: selected[0] });
                         if (key === 'download')   emit('download', { groups: selected });

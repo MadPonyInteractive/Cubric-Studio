@@ -401,31 +401,32 @@ export const MpiPromptBox = ComponentFactory.create({
             });
             _boxesBtn.el.setActive(true);
         }
-        // MPI-1253: on t2i, the gallery picture dropped on the open panel to analyse. Panel only:
-        // a t2i run takes no picture.
+        // MPI-1253: the card picked with right-click > Create boxes, to lay a new picture out
+        // like it (a magazine cover). t2i only, panel only: a t2i run takes no picture, and an
+        // edit's boxes are the user's own.
         let _boxesGuide = null;
-        /** Analyse: the describer reads the frame's picture into boxes. On t2i the ratio follows
-         *  the picture; an empty prompt gets its caption. Queued, so it shows a row and Stop. */
+        let _analysing = false;
+        /** Analyse: the describer reads the guide picture into boxes, the ratio follows it, an
+         *  empty prompt gets its caption. Queued, so it shows a row and Stop. */
         async function _analyseBoxes() {
             const frame = _boxFrame();
-            if (!frame.url || !_boxesCtrl()) return;
+            if (!frame.guide || !_boxesCtrl() || _analysing) return;
             const op = activeOperation;
+            _analysing = true;
             _boxesPanel?.el.setBusy(true);
-            const res = await describeImage({ imagePath: frame.url, question: ANALYSE_QUESTION, scope: 'gallery', queued: true });
-            _boxesPanel?.el.setBusy(false);
+            const res = await describeImage({ imagePath: frame.url, question: ANALYSE_QUESTION, scope: 'gallery', queued: true })
+                .finally(() => { _analysing = false; _boxesPanel?.el.setBusy(false); });
             if (!res.ok) { if (!res.cancelled) _showMediaToast(res.error); return; }
             const found = boxesFromAnalysis(res.text);
             if (!found?.boxes.length) { _showMediaToast('Analyse found no boxes in this picture. Press it again.'); return; }
             if (activeOperation !== op || !_boxesCtrl()) return; // the user moved on while it ran
-            if (op !== 'edit') {
-                const img = new Image();
-                img.src = frame.url;
-                await img.decode().catch(() => {});
-                const ratioSelector = img.naturalWidth && ratioSettingsFromParams({ Width: img.naturalWidth, Height: img.naturalHeight }, {}, model);
-                if (ratioSelector) {
-                    applyPromptReuseSettings({ modelId: model.id, mediaType: model.mediaType, operation: op, sharedUpdates: { ratioSelector } });
-                    el.refreshControls(); // remounts the controls; the boxes are set after
-                }
+            const img = new Image();
+            img.src = frame.url;
+            await img.decode().catch(() => {});
+            const ratioSelector = img.naturalWidth && ratioSettingsFromParams({ Width: img.naturalWidth, Height: img.naturalHeight }, {}, model);
+            if (ratioSelector) {
+                applyPromptReuseSettings({ modelId: model.id, mediaType: model.mediaType, operation: op, sharedUpdates: { ratioSelector } });
+                el.refreshControls(); // remounts the controls; the boxes are set after
             }
             _boxesCtrl()?.setValue(found.boxes);
             if (!positiveValue.trim() && found.caption) {
@@ -442,10 +443,24 @@ export const MpiPromptBox = ComponentFactory.create({
         function _syncBoxes() {
             _boxesBtnSlot.classList.toggle('hide', !_boxesCtrl());
             _boxesLabel();
+            _setBoxesReady(!!_boxesCtrl() && activeOperation !== 'edit');
             if (_boxesPanel?.el.isOpen()) _openBoxes();
         }
+        /** state.s_boxesReady: the card menus offer Create boxes while it names this box. */
+        function _setBoxesReady(ready) {
+            const next = ready ? _wsKey : (state.s_boxesReady === _wsKey ? null : state.s_boxesReady);
+            if (state.s_boxesReady !== next) state.s_boxesReady = next;
+        }
         _boxesBtn.on('click', () => (_boxesPanel?.el.isOpen() ? _closeBoxes() : _openBoxes()));
-        _unsubs.push(() => { _boxesPanel?.el.destroy(); _boxesBtn.destroy?.(); });
+        _unsubs.push(
+            Events.on('boxes:create', ({ filePath }) => {
+                if (state.s_boxesReady !== _wsKey || !filePath) return;
+                _boxesGuide = resolveMediaUrl(filePath);
+                _openBoxes();
+                _analyseBoxes();
+            }),
+            () => { _setBoxesReady(false); _boxesPanel?.el.destroy(); _boxesBtn.destroy?.(); },
+        );
 
         // ── Media state ────────────────────────────────────────────────────────
         /** @type {Array<{id:string, url:string, file:File|null, mediaType:'image'|'video'|'audio', source:'file'|'app', role?:string}>} */
@@ -866,16 +881,6 @@ export const MpiPromptBox = ComponentFactory.create({
             _unsubs.push(on(el, 'drop', (e) => {
                 el.classList.remove('mpi-prompt-box--drag-over');
                 _disarm();
-                // MPI-1253: a card dropped on the open Boxes panel on t2i is the picture to
-                // analyse, not a reference (staging it would switch the op to edit).
-                if (_boxesPanel?.el.isOpen() && activeOperation !== 'edit' && _boxesPanel.el.contains(e.target)) {
-                    try {
-                        const { filePath, type } = JSON.parse(e.dataTransfer.getData('application/mpi-media') || '{}');
-                        if (type === 'image' && filePath) { _boxesGuide = resolveMediaUrl(filePath); _refreshBoxFrame(); }
-                        else _showMediaToast('Drop a picture from the gallery here to analyse it.');
-                    } catch { /* malformed */ }
-                    return;
-                }
                 _handleMediaDrop(e);
             }));
         }
