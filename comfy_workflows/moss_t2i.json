@@ -1624,11 +1624,11 @@
   },
   "738": {
     "inputs": {
-      "sampler_name": "er_sde",
+      "sampler_name": "euler",
       "scheduler": "simple",
       "denoise": 1,
       "model": [
-        "100",
+        "801",
         0
       ],
       "positive": [
@@ -1744,7 +1744,7 @@
   },
   "753": {
     "inputs": {
-      "float": 2.5
+      "float": 3
     },
     "class_type": "MpiFloat",
     "_meta": {
@@ -1941,6 +1941,22 @@
     "class_type": "MpiBooleanCompare",
     "_meta": {
       "title": "Mpi Boolean Compare"
+    }
+  },
+  "801": {
+    "inputs": {
+      "double_layers": "",
+      "single_layers": "22",
+      "start_percent": 0,
+      "end_percent": 0.5,
+      "model": [
+        "100",
+        0
+      ]
+    },
+    "class_type": "SkipLayerGuidanceDiTSimple",
+    "_meta": {
+      "title": "SFT layer skip (OpenMOSS: layer 22)"
     }
   }
 }
