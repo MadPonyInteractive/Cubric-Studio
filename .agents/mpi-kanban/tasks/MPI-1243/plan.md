@@ -70,6 +70,20 @@ Playbook: `docs/playbooks/add-model/` (enforced by `/mpi-add-model`). Research +
   26B clean; the 4B invents text and skips the medium opening. Isolated app closed.
 - NEXT: Fabio's verdict -> if yes, flip the moss-image recipe `draft -> validated`, then `mpi-end-session`.
 
+2026-10-22 (Moss image 6), REOPENED on Fabio's smoke test (card back in doing, status active):
+- DONE: i2i/inpaint/detail/upscale ON (ModelDef opInject 2/5/6/7, workflows, tileUpscale, imageSizedOps,
+  defaultUpscale; graph unchanged: FLUX.3's branches already ride MOSS's UNET; MOSS ignores the inpaint
+  reference latents). `progressStages` moss entry removed. Rank note + guide + README + UNRELEASED updated.
+  Benched (validation.md § Ops bench); Fabio passed detail, upscale, i2i in his own app.
+- DONE: recipe heal v3 (own "Camera, subject and moment" section + "Before you reply, check" list +
+  mood ban), status `draft`, test line updated. Skydiver check 12B: camera 5/5, size 5/5, mood 0/5.
+- NEXT: (1) Fabio tests INPAINT in his app. (2) Recipe: the 12B still invents signs 4/5 (vendor's
+  "designed image -> write copy" line over-applied) — one more wording pass, re-run
+  `node docs/recipes/research/moss-image/skydiver_check.mjs gemma3:12b 5` under gpu_lease (free).
+  (3) Stage 1 `npm run recipe:test -- moss-image` local 12B, then DeepInfra 26B twice-green: ASK
+  Fabio for the price first (~1.5 c a sweep). (4) Fabio renders the skydiver on v3 and re-validates.
+  (5) mpi-end-session: code commit, CI green, close commit alone.
+
 ## Completed
 
 Steps 1-3; step 4 recipe + guide (Stage 1 local only).

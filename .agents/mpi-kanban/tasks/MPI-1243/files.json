@@ -24,6 +24,8 @@
     "docs/agent/models/moss-image.md",
     "js/data/recipes/registry.js",
     "tests/recipe-registry.test.cjs",
-    "docs/recipes/research/moss-image/"
+    "docs/recipes/research/moss-image/",
+    "docs/releases/UNRELEASED.md",
+    "docs/recipes/research/moss-image/skydiver_check.mjs"
   ]
 }

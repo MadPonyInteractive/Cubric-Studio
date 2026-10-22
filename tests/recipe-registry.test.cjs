@@ -103,7 +103,8 @@ function testDraftStaysHumanOnly() {
     // Fabio's own flips are named here, one line each, with the date he said it.
     const FABIO_VALIDATED = {
         'qwen-image-2.1': '2026-10-09', // "validate the Qwen recipe", MPI-1048
-        'moss-image': '2026-10-22', // "flip moss-image to validated", MPI-1243
+        // moss-image: validated 2026-10-22, back to draft the same day for the field-test heal
+        // (MPI-1243); its line returns when Fabio re-validates.
     };
     for (const r of RECIPE_REGISTRY) {
         const want = FABIO_VALIDATED[r.modelId] ? 'validated' : 'draft';

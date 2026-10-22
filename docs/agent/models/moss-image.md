@@ -1,7 +1,8 @@
 # MOSS-Image: how to prompt it
 
-One Vision card resolves to this recipe: `moss-image` (MOSS-Image, OpenMOSS). Text to image
-only (`t2i`): it has no edit and no image-to-image. Licence Apache-2.0, no gate.
+One Vision card resolves to this recipe: `moss-image` (MOSS-Image, OpenMOSS). Ops: `t2i`, plus
+`i2i`, `inpaint`, `detail` and `upscale` on a picture. It has no `edit`: it cannot read a
+reference picture. Licence Apache-2.0, no gate.
 
 **Its strength is lettering.** Signs, posters, covers, labels and menus come out spelled as
 written, even inside long prompts. It was trained on captions that DESCRIBE a finished image, so
@@ -14,7 +15,8 @@ the prompt you write is that description, never an instruction.
 - The request is long and detailed: it reads prompts of thousands of words.
 - A fast draft: Turbo makes an image in about ten seconds.
 
-Not for editing a picture or putting a reference into one: pick an edit model.
+Not for an instruction edit or putting a reference into a picture: pick an edit model. Its
+`inpaint` is the way to put new lettering onto an existing picture: mask the area, describe it.
 
 ## Settings
 
@@ -24,7 +26,12 @@ Not for editing a picture or putting a reference into one: pick an edit model.
 - Tiers `1k` and `2k`: a tier is only the picture's size. The ratio is a param: never write it
   into the prompt.
 - No negative prompt by default. Do not add the vendor's `nsfw, worst quality, ...` list.
-- Media roles: none. `t2i` takes no image.
+- Media roles: `t2i` takes none. `i2i`, `inpaint`, `detail` and `upscale` take one picture
+  (`inputImage`); `inpaint` and `detail` run only on a painted mask, and their prompt describes
+  only the masked area.
+- `i2i` restyles the whole picture: `denoise` says how far it may move. `upscale` is a single
+  pass by default; `tiles: true` redraws it in tiles, and then the prompt is only the look
+  ("sharp photograph, fine film grain"), never the scene.
 
 ## Boxes (`t2i`)
 
@@ -49,6 +56,11 @@ long, detailed request or a lot of text to place. A description of the finished 
    reading order, alignment, line breaks, relative size, font style, colour, spacing. Keep the
    user's wording, language, spelling and capitals; never translate it. A line break the user
    wants goes in as a real line break inside the quotes.
+
+Where the user says the picture is taken from, the camera stands there: a photograph taken from
+a plane as someone jumps shows them from behind, in the open door. An action keeps its moment.
+Say how much of the frame the main subject fills, and keep it large unless the user asked for
+it small or far away. End on something visible, never on what the picture conveys or evokes.
 
 Keep everything the user gave: subjects, counts, actions, style, mood, colours, exclusions.
 Fill what they left open with concrete choices. A designed image with no text given (a poster,
@@ -75,6 +87,8 @@ Daylight street photograph of a small corner bakery seen straight on at eye leve
   exactly, and say where it sits.
 - Text broke onto lines the user did not want: put the line breaks into the quoted text.
 - Plain or flat: the prompt was short. Write the full description.
+- The subject came out small, far away or seen from the wrong side: the prompt never said where
+  the camera is or how much of the frame the subject fills. Say both.
 - Too smooth, too sharp, "AI-looking": Turbo is on. Rerun with `turbo: false`.
 
 ## Sources

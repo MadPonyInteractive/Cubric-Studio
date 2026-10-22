@@ -2200,13 +2200,16 @@ const ALL_MODELS = [
     },
 
     // ── MOSS-Image (MPI-1243) ─────────────────────────────────────────────────
-    // OpenMOSS, 5B, text-to-image only (no edit, no image-to-image upstream). Strong at exact
-    // lettering and long prompts. Bench + verdict: MPI-1180 validation.md; notes: docs/models/moss/.
+    // OpenMOSS, 5B, text-to-image (no reference edit upstream). Strong at exact lettering and long
+    // prompts. Bench + verdict: MPI-1180 validation.md; notes: docs/models/moss/.
     //
     // FLUX.3's shape on a copy of its raw: one graph, Turbo injects Input_is_Turbo and an MpiIfElse
     // picks the UNET — SFT-Turbo int8 (community merge, 8 steps, cfg 1) on true, official SFT int8
     // (25 steps, cfg 2.5) on false. Both install with the card. Boxes: the app writes MOSS's layout
     // JSON as the whole prompt (`withLayoutBoxes` format `moss`); no box node in the graph.
+    // i2i / inpaint / detail / upscale are FLUX.3's own branches on MOSS's UNET (Fabio, 2026-10-22).
+    // Inpaint keeps FLUX.3's MpiFlux3References conditioning: MOSS's extra_conds reads only
+    // cross_attn, so the reference latents it adds are ignored. No `edit`: nothing reads a reference.
     {
         id: 'moss-image',
         sizeTier: 'balanced',
@@ -2215,9 +2218,10 @@ const ALL_MODELS = [
         dropdownMeta: 'PHOTO',
         mediaType: 'image',
         image: 'moss-image.webp',
+        defaultUpscale: '4x-NMKD-Siax',
         type: 'moss',
         enhanceRecipe: 'moss-image',
-        supportedOps: ['t2i'],
+        supportedOps: ['t2i', 'i2i', 'inpaint', 'detail', 'upscale'],
         loraStrengths: ['model'],
         capabilities: {
             multiStage: false, audio: false,
@@ -2225,10 +2229,16 @@ const ALL_MODELS = [
             styleLoras: false,
             batch: false,
             turboToggle: true,
+            tileUpscale: true,
         },
         opInject: {
-            t2i: { Input_wf_type: 1 },
+            t2i:     { Input_wf_type: 1 },
+            i2i:     { Input_wf_type: 2 },
+            inpaint: { Input_wf_type: 5 },
+            detail:  { Input_wf_type: 6 },
+            upscale: { Input_wf_type: 7 },
         },
+        imageSizedOps: ['detail', 'upscale'],
         layoutBoxes: { ops: ['t2i'], format: 'moss' },
         qualityTiers: ['1k', '2k'],
         // FLUX.3's 1k/2k table (every edge /32). Benched at 1024x1024 only (MPI-1180).
@@ -2267,17 +2277,22 @@ const ALL_MODELS = [
             },
         },
         gen_speed: 'fast',
-        description: 'MOSS-Image from OpenMOSS makes images from text, and is especially good at exact lettering: signs, posters, covers and labels come out spelled as you wrote them, even with long, detailed prompts. Turbo (on by default) makes an image in about ten seconds; turn it off for the slower SFT model, which is softer and more natural. Both are installed together. Apache-2.0.',
+        description: 'MOSS-Image from OpenMOSS makes images from text, and is especially good at exact lettering: signs, posters, covers and labels come out spelled as you wrote them, even with long, detailed prompts. It also does image-to-image, inpaint, detail and upscale, but it cannot edit from a reference image. Turbo (on by default) makes an image in about ten seconds; turn it off for the slower SFT model, which is softer and more natural. Both are installed together. Apache-2.0.',
         workflows: {
-            t2i: 'moss_t2i.json',   // baked by generate_moss.py
+            // ONE file for all five ops, baked by generate_moss.py.
+            t2i:     'moss_t2i.json',
+            i2i:     'moss_t2i.json',
+            inpaint: 'moss_t2i.json',
+            detail:  'moss_t2i.json',
+            upscale: 'moss_t2i.json',
         },
         dependencies: [
             'moss-image-turbo-transformer',  // Turbo on
             'moss-image-sft-transformer',    // Turbo off
             'moss-image-qwen35-9b-clip',
             'vae-flux2',
-            // The rest is FLUX.3's list: the graph keeps FLUX.3's other op branches (unused on t2i
-            // but validated by ComfyUI), so their packs and the upscaler must be present.
+            // The rest is FLUX.3's list: the graph keeps FLUX.3's op branches (edit unused but
+            // validated by ComfyUI), so their packs and the upscaler must be present.
             '4x-NMKD-Siax',
             'ComfyUI-MpiNodes',
             'comfyui-kjnodes',
