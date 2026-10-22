@@ -3266,7 +3266,6 @@ async function _runCustomNodeInstall(modelJob, onNode = null) {
     }
 
     _setModelStatus(modelJob, 'done', 'local done');
-    _broadcastModelComplete(modelJob);
     // A custom node was installed. The frontend gets `comfy:needs-restart` (→
     // state.comfyNeedsRestart) and the gen gate restarts ComfyUI. But that flag is
     // FRONTEND-ONLY and dies on an app restart — and if the node was installed while
@@ -3282,6 +3281,9 @@ async function _runCustomNodeInstall(modelJob, onNode = null) {
         processState.comfyNeedsRestart = true;
     }
     _broadcast('comfy:needs-restart', { modelId: modelJob.modelId });
+    // AFTER the restart flag, as the remote path already orders it: the "installed"
+    // toast reads that flag to offer Restart engine (MPI-1247).
+    _broadcastModelComplete(modelJob);
 }
 
 // ── Cancel ────────────────────────────────────────────────────────────────────

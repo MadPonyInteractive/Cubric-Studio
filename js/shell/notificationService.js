@@ -21,6 +21,7 @@ import { FLOWS, flowDepKey } from '../data/flowsRegistry.js';
 import { StatusBar } from './statusBar.js';
 import { getCommandAccent } from '../data/commandRegistry.js';
 import { activeGenerations } from '../services/activeGenerations.js';
+import { remoteEngineClient } from '../services/remoteEngineClient.js';
 
 let ipcRenderer = null;
 try {
@@ -259,6 +260,15 @@ export function initNotificationService() {
                     subtitle: 'Cubric Studio',
                     body: message,
                 });
+                return;
+            }
+            // MPI-1247 — new custom nodes load only on an engine restart, which the next
+            // generation would otherwise pay for. Offer it now; the flag is set before this
+            // event on both engines (downloadManager.js orders them).
+            const needsRestart = remoteEngineClient.isRemote() ? state.remoteComfyNeedsRestart : state.comfyNeedsRestart;
+            if (needsRestart) {
+                StatusBar.notify(`${message} Restart the engine to load it now, or it restarts before your next generation.`, 'success', undefined,
+                    { action: { text: 'Restart engine', onClick: () => Events.emit('engine:restart') } });
                 return;
             }
             StatusBar.notify(message, 'success');

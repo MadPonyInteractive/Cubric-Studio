@@ -168,7 +168,8 @@ test('internal heal jobs are started silent, and both toast sites honour it', as
     // 4. notificationService gates on the FACT, not on a list of ids it has to maintain.
     assert.match(notif, /data\.silent === true\) return;/,
         'notificationService must suppress a silent job by its flag');
-    assert.doesNotMatch(notif, /'engine:/,
+    // `engine:restart` is an Events name, not a job id: the installed toast's button (MPI-1247).
+    assert.doesNotMatch(notif, /'engine:(?!restart')/,
         'no engine job-id literal may come back here — the allowlist is what leaked '
         + 'engine:node-drift in the first place (MPI-576)');
 });
