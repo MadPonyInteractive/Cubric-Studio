@@ -47,6 +47,7 @@ const IMAGE_ORDER = [
     'klein-4b',
     'sdxl-realistic',
     'flux3-klein',   // MPI-1181, provisional: below Fabio's order until benched against it
+    'moss-image',    // MPI-1243, provisional: t2i only; its note says what it is for
     'qwen-image-2-1',
     'ill-anime',
     'ill-anime-beauty',
@@ -145,6 +146,8 @@ const NOTES = {
     // MPI-1181: base vs Turbo on the bench, 42 s vs 9 s at 1088x896 on a 16 GB card.
     'flux3-klein': 'photographs and skin with turbo: false (the base model); Turbo is about four times faster but plasticky on skin, fine for products and lettering. Up to 4K',
     'flux3-klein:edit': 'takes up to ten images in one edit, the most of any editor here',
+    // MPI-1243 (MPI-1180 bench): exact text on every test prompt; Turbo ~11 s per 1 MP image.
+    'moss-image': 'exact lettering (signs, posters, covers) and long detailed prompts; text-to-image only. Turbo is fast, turbo: false is the slower, softer, more natural SFT model',
     'chroma-flash': 'candid, real-life, influencer-style photography',
     'chroma-hyper': 'candid, real-life photography, on the faster tier',
     'sdxl-realistic': 'realistic by an older standard: today it sits below Klein 9B',

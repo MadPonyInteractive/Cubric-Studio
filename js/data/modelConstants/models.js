@@ -2199,6 +2199,94 @@ const ALL_MODELS = [
         ],
     },
 
+    // ── MOSS-Image (MPI-1243) ─────────────────────────────────────────────────
+    // OpenMOSS, 5B, text-to-image only (no edit, no image-to-image upstream). Strong at exact
+    // lettering and long prompts. Bench + verdict: MPI-1180 validation.md; notes: docs/models/moss/.
+    //
+    // FLUX.3's shape on a copy of its raw: one graph, Turbo injects Input_is_Turbo and an MpiIfElse
+    // picks the UNET — SFT-Turbo int8 (community merge, 8 steps, cfg 1) on true, official SFT int8
+    // (25 steps, cfg 2.5) on false. Both install with the card. Boxes: the app writes MOSS's layout
+    // JSON as the whole prompt (`withLayoutBoxes` format `moss`); no box node in the graph.
+    {
+        id: 'moss-image',
+        sizeTier: 'balanced',
+        name: 'MOSS-Image',
+        dropdownMeta: 'PHOTO',
+        mediaType: 'image',
+        image: 'moss-image.webp',
+        type: 'moss',
+        enhanceRecipe: 'moss-image',
+        supportedOps: ['t2i'],
+        loraStrengths: ['model'],
+        capabilities: {
+            multiStage: false, audio: false,
+            negativePrompt: true,   // live on SFT (cfg 2.5); Turbo hides it
+            styleLoras: false,
+            batch: false,
+            turboToggle: true,
+        },
+        opInject: {
+            t2i: { Input_wf_type: 1 },
+        },
+        layoutBoxes: { ops: ['t2i'], format: 'moss' },
+        qualityTiers: ['1k', '2k'],
+        // FLUX.3's 1k/2k table (every edge /32). Benched at 1024x1024 only (MPI-1180).
+        ratios: {
+            '1k': {
+                portrait: [
+                    { label: '1:1', w: 1024, h: 1024, icon: 'rect_1_1' },
+                    { label: '3:4', w: 896, h: 1152, icon: 'rect_3_4' },
+                    { label: '4:5', w: 896, h: 1088, icon: 'rect_4_5' },
+                    { label: '5:8', w: 800, h: 1280, icon: 'rect_5_8' },
+                    { label: '9:16', w: 768, h: 1344, icon: 'rect_9_16' },
+                ],
+                landscape: [
+                    { label: '1:1', w: 1024, h: 1024, icon: 'rect_1_1' },
+                    { label: '4:3', w: 1152, h: 896, icon: 'rect_4_3' },
+                    { label: '5:4', w: 1088, h: 896, icon: 'rect_5_4' },
+                    { label: '8:5', w: 1280, h: 800, icon: 'rect_8_5' },
+                    { label: '16:9', w: 1344, h: 768, icon: 'rect_16_9' },
+                ],
+            },
+            '2k': {
+                portrait: [
+                    { label: '1:1', w: 1472, h: 1472, icon: 'rect_1_1' },
+                    { label: '3:4', w: 1248, h: 1664, icon: 'rect_3_4' },
+                    { label: '4:5', w: 1280, h: 1600, icon: 'rect_4_5' },
+                    { label: '5:8', w: 1120, h: 1792, icon: 'rect_5_8' },
+                    { label: '9:16', w: 1088, h: 1920, icon: 'rect_9_16' },
+                ],
+                landscape: [
+                    { label: '1:1', w: 1472, h: 1472, icon: 'rect_1_1' },
+                    { label: '4:3', w: 1664, h: 1248, icon: 'rect_4_3' },
+                    { label: '5:4', w: 1600, h: 1280, icon: 'rect_5_4' },
+                    { label: '8:5', w: 1792, h: 1120, icon: 'rect_8_5' },
+                    { label: '16:9', w: 1920, h: 1088, icon: 'rect_16_9' },
+                ],
+            },
+        },
+        gen_speed: 'fast',
+        description: 'MOSS-Image from OpenMOSS makes images from text, and is especially good at exact lettering: signs, posters, covers and labels come out spelled as you wrote them, even with long, detailed prompts. Turbo (on by default) makes an image in about ten seconds; turn it off for the slower SFT model, which is softer and more natural. Both are installed together. Apache-2.0.',
+        workflows: {
+            t2i: 'moss_t2i.json',   // baked by generate_moss.py
+        },
+        dependencies: [
+            'moss-image-turbo-transformer',  // Turbo on
+            'moss-image-sft-transformer',    // Turbo off
+            'moss-image-qwen35-9b-clip',
+            'vae-flux2',
+            // The rest is FLUX.3's list: the graph keeps FLUX.3's other op branches (unused on t2i
+            // but validated by ComfyUI), so their packs and the upscaler must be present.
+            '4x-NMKD-Siax',
+            'ComfyUI-MpiNodes',
+            'comfyui-kjnodes',
+            'ComfyUI-Impact-Pack',
+            'ComfyUI-UltimateSDUpscale',
+            'comfyui-inpaint-cropandstitch',
+            'LanPaint',
+        ],
+    },
+
     // ── Audio models (MPI-1012) ───────────────────────────────────────────────
     // Sound & Music and Text to Speech were Flows until 2026-10-02 (Fabio: "It doesn't have
     // inputs. All it has is two parameters and a prompt. I don't think it should be a

@@ -40,6 +40,7 @@ import { illustrious } from './illustrious.recipe.js';
 import { wan30 } from './wan-3.0.recipe.js';
 import { qwenImage21 } from './qwen-image-2.1.recipe.js';
 import { flux3 } from './flux-3.recipe.js';
+import { mossImage } from './moss-image.recipe.js';
 
 /** Generation modes a recipe may declare. `r2v` is reference-to-video (MPI-26). `i2i` is an
  *  image EDIT (MPI-1181, FLUX.3): an instruction on the staged images, not a scene. `t2v_bbox`
@@ -81,6 +82,7 @@ export const RECIPE_REGISTRY = [
     wan30,
     qwenImage21,
     flux3,
+    mossImage,
 ].map(normalizeRecipe);
 
 /**
