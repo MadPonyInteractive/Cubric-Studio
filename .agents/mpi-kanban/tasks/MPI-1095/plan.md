@@ -2,6 +2,10 @@
 
 ## Current State
 
+- 2026-10-22 ("LTX 2.5 model 5"): stage-1 code committed, in-app GPU check passed, all six 2.5 deps on R2,
+  LTX ladder moved down one rung (`422b0aca3`). NEXT: the DiffVAE A/B (Remaining Work, Fabio's yes for that
+  one run), then Fabio's raw review, the `docs/models/ltx/` 2.5 page, close-out. Fabio is also shooting 4K
+  showcase clips on a 5090 Pod for the download-library overlay (10-30 s); his 2K dinosaur morphed its scales.
 - Research + benches DONE (`research/findings.md`). Fabio 2026-10-22: 2.5 wins on acting (~35-40% faster);
   official Gemma 4 int8 encoder (heretic dropped); both audio modes (Reference clone, Original lip-sync) work on
   2.5 with NO extra LoRA; 2.3 High (bf16) DEPRECATED after the tier bench.
@@ -59,20 +63,36 @@
   2.3, NOT live-counted yet), rank 2 above 2.3 in t2v/i2v/ref2v + notes, guide names `ltx-25`, preview clip
   from `i2v_start_25`. lint + `npm test` green.
 
+- [x] In-app GPU check (2026-10-22, "LTX 2.5 model 5"): all six ops on LTX 2.5 produce clips with sound,
+  preview -> Finish works, bars match the progress row (uncached), `taeltx2_3` draws 2.5 previews, High
+  gone, Balanced runs. Table: `validation.md`.
+
 ## Remaining Work
 
 - Fabio reviews the raw in the G: ComfyUI (`ltx25_i2v_t2v_template`); if he changes it, re-copy to `raw/` and
   re-run convert -> gate -> `generate_ltx25.py`.
 - 2.5 weights COPIED to `M:/CubricModels` 2026-10-22 (sizes match; no R2 yet).
-- Fabio said YES (2026-10-22, "LTX 2.5 model 4") to the in-app GPU check, run in the next session. Any GPU run
-  beyond it: ask first. The check: (`npm run app:isolated`, every op + preview + live bar count + does
-  `taeltx2_3` decode 2.5 previews).
+- In-app GPU check DONE (see Completed). Any further GPU run: ask Fabio first.
+- DiffVAE ("DFR", Fabio 2026-10-22: "let's wire that"; his 2K dinosaur `i2v_007` in project "LTX 2.5"
+  morphs its scales). Prepped, NOT run: shipped engine 0.42.1 loads it (`comfy/sd.py:630`, plain
+  `VAELoader`); file copied to `M:/CubricModels/vae/ltx-2.5-video-vae-bf16.safetensors` (1,472,223,346 B,
+  from `G:/models/vae`). A/B = `research/dfr/dino2k_dfr_prompt.json` (the exact engine graph of `i2v_007`,
+  history `0d5e9aff`, seed 753222358, node `1` swapped to the DiffVAE, output `mpi1095_dfr/`) vs the
+  original (`dino2k_conv_graph.json`, 458 s engine). Fabio: run it AFTER the handoff, under the lease, his
+  yes given for that one run. Expect a slower / tiled decode (ComfyUI budgets 1700/cell). If it wins: new
+  dep for the DiffVAE, node `1` in the raw -> regenerate `ltx25_i2v_t2v.json`, R2 1.47 GB (~$0.02/mo,
+  ask). Its encoder also encodes the i2v start frame, so the latent can differ slightly from conv's.
+- LTX ladder moved down one rung (Fabio 2026-10-22, both LTX cards): `422b0aca3`, committed, NOT pushed.
+  New `high` 1536x896 is UNMEASURED on the GPU (time, VRAM, look); a run needs Fabio's yes.
+- R2 upload DONE 2026-10-22 23:04: all six deps on R2, sizes match, md5 verified (`validation.md`). `M:/_stage/mpi1095`
+  still to delete (Fabio). Open: no second route for the 2.5 deps (HF re-host ~41 GB, Fabio, before devOnly comes off).
 - R2 upload (~41 GB, ~$0.62/mo): Fabio's yes. Commit A + B at handoff/close. `docs/models/ltx/` 2.5 page.
 - Stage 2 (2.5 in the LTX Flows, Keyframes to Video MPI-1191, 2.5-only Flows) waits for the release.
 
 ## Plan Drift
 
-- None yet.
+- 2026-10-22: the `ltx25` progress row was copied from 2.3 "unverified"; the live check confirmed it as is
+  (no edit). The preview decoder stays (it decodes 2.5).
 
 ## Verification
 

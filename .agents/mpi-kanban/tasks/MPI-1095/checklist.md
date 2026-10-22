@@ -22,5 +22,6 @@ the LTX Flows and the new 2.5-only Flows (tile upscaler etc., MPI-578).
       M:/CubricModels). LAST step of the comparisons; High never joins any other test (too slow).
       A couple of image-to-video cases only. Batch by model: all 2.3 Balanced, all 2.3 High, all 2.5.
       Answers: keep or deprecate 2.3 High. No 2.5 High in it; Fabio decides what follows from the result.
-- [ ] Plan from the research
-- [ ] `/mpi-add-model` wiring with `devOnly: true`
+- [x] Plan from the research
+- [x] `/mpi-add-model` wiring with `devOnly: true`
+- [x] In-app GPU check, every op + preview -> Finish + bar count + preview decoder (2026-10-22, `validation.md`)

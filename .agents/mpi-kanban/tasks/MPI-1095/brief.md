@@ -47,3 +47,7 @@ the new DiffVAE, which may fix 2.3's VAE "swim"), MPI-707, MPI-745 (BFS head swa
 
 Same prompts, seeds and inputs as the 2.3 cards, op by op, 2.3 vs 2.5 side by side for Fabio's eye. The bench
 needs the right ComfyUI: `/mpi-bump-local-comfy` for the bench, `/mpi-bump-engine` only when shipping.
+
+## Noticed
+
+- 2026-10-22: `js/data/progressStages.js` LTX note says a Continue/Finish RE-RUNS the stage-1 sampler (not cached). On the current engine a Finish straight after its own preview is served from cache on BOTH 2.3 Balanced and 2.5 (1 bar, 3/3), so the status bar can end at "Stage 1/3". The row is right for the uncached case (3 bars, measured). Pre-existing, not 2.5.
