@@ -24,14 +24,16 @@
  * No negative: the template prompt says "no negative prompt", and Vision never defaults the
  * vendor's `nsfw, ...` negative (docs/models/moss/README.md § Hard rules).
  *
- * STATUS: `draft`. Stage 1 evidence: `docs/recipes/research/moss-image/`.
+ * STATUS: `validated` — by Fabio, 2026-10-22, after the Stage 2 renders (Lisbon poster, fox,
+ * fisherman on DeepInfra 26B and the default ComfyUI 4B). Evidence: `docs/recipes/research/moss-image/`.
+ * Known ceiling: the 4B default enhancer invents unasked text and skips the medium opening.
  */
 
 export const mossImage = {
     modelId: 'moss-image',
     family: 'moss',
     displayName: 'MOSS-Image',
-    status: 'draft',
+    status: 'validated',
     notes:
         'MOSS-Image 5B (OpenMOSS), text-to-image, trained on descriptive captions and strongest at exact lettering. Built on the Comfy-Org ComfyUI template\'s prompt-upsampler system prompt, verbatim (MIT, itself written from OpenMOSS\'s prompt-enhancer skill): one to three paragraphs of plain English prose, 80-200 words, that describe the finished image (medium and main subject first, then setting and composition, then lighting, colours and detail), quote every visible text exactly in double quotes with its position and type, and give positions in words. No coordinates, lists, JSON, quality keywords or negative.',
     modes: {

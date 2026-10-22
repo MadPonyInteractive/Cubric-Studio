@@ -34,3 +34,4 @@ Evidence: `.agents/mpi-kanban/tasks/MPI-1180/validation.md` + `research/bench/ru
 ## Noticed
 
 - `editPlacementInput` (js/data/layoutBoxes.js) tells the enhancer "the edited image; the attached images do not show it" also on a t2i model with no box mode (MOSS). Wording only; the caption still wraps into the layout JSON. (2026-10-22)
+- The app's DEFAULT enhancer (ComfyUI `qwen3vl_4b`) breaks recipe rules the 26B keeps: on MOSS it invented unasked text ("Morning Tide", which MOSS printed), skipped the medium opening, wrote a sound. Every recipe's Stage 1 count runs on 12B/26B, never the 4B most users get. Cross-recipe, not this card. (2026-10-22)
