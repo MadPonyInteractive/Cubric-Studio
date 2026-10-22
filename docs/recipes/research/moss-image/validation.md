@@ -3,7 +3,7 @@
 Recipe: `js/data/recipes/moss-image.recipe.js`, mode `t2v` only. Status stays `draft`: the
 `validated` flip is Fabio's, after Stage 2 renders.
 
-- **Date:** 2026-10-22 (MPI-1243, session "Moss image 4").
+- **Date:** 2026-10-22 (MPI-1243, session "Moss image 4"). Local probe below; the count that ships is the DeepInfra 26B section.
 - **Engine:** `huihui_ai/gemma-4-abliterated:12b` (Ollama), the local wording probe.
 - **Judge:** `gemma3:12b` (Ollama).
 - **Runs:** 3 per tier, four job tiers + `general` (no `styleVocabulary`, so no register tiers).
@@ -22,7 +22,9 @@ runs; Fabio's yes for two sweeps, 2026-10-22):
   traditional armor": the input says "extremely detailed", and the template's ban quotes the phrase.
 - Iteration 7 (below), sweep 2: **15/15 ALL PASS**, 154-241 words, no "detailed" in any output.
   The local 12B is also 15/15 on this text.
-- **Green ONCE on the 26B, on the final text.** Twice-green owes one more 26B sweep (~1.5 cents).
+- Sweep 3 (same text, Fabio's yes): **15/15 ALL PASS**, 138-243 words.
+- **TWICE-GREEN on the 26B on the final text** (sweeps 2 + 3). Spent: three sweeps, ~4.5 cents.
+  Stage 2 (renders, Fabio's eye, incl. a lettering prompt) decides `validated`.
 
 ## Iterations
 
