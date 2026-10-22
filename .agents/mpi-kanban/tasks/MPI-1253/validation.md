@@ -45,6 +45,23 @@ an edit's boxes are the user's own). History cards get no item: that workspace h
 - NOT re-run on the real describer this round: the analysis code path (question, parser) is
   unchanged from the earlier benched run above.
 
+## Rework 2: Create boxes on any op, t2i lock (Fabio 2026-10-22)
+
+Create boxes shows on every op while the model takes Boxes on t2i, and switches the box to t2i.
+While the layout picture is loaded the other ops grey out and adds are refused; the panel's
+Remove picture unlocks them.
+
+- `npm test`: 3532 pass, 0 fail. eslint clean. Same live setup (real clicks and drags, stubbed
+  `/llm/describe`):
+  - SDXL: no Create boxes in the menu.
+  - FLUX.3 with a card staged on edit: Create boxes -> op t2i, staged picture dropped
+    (imageCount 0), 2 boxes, guide drawn, Remove picture shown.
+  - Locked: edit chip info "... remove the layout picture in Boxes to use it"; a real click on
+    it leaves the op on t2i; a real card drag onto the box is refused with "Remove the layout
+    picture in Boxes first." (imageCount 0).
+  - Remove picture: guide gone, the 2 boxes kept, edit back to "needs 1 image"; a real drag
+    then stages (imageCount 1).
+
 ## Not this card
 
 Prism reads "cancelled" after every successful describe, the stock gallery Describe included

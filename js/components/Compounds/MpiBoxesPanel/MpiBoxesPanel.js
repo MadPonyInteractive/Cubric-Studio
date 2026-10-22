@@ -25,7 +25,7 @@ import { boxName, uniqueBoxName } from '../../../data/layoutBoxes.js';
  *
  * Instance methods (on instance.el):
  *   open({ boxes, frame: {url?, w?, h?, guide?}, mode: 't2i'|'edit', accent, onChange(boxes),
- *          onCite(name), onRename(from, to), onClose(), onAnalyse() }) — fill and slide up
+ *          onCite(name), onRename(from, to), onClose(), onAnalyse(), onRemovePicture() }) — fill and slide up
  *   setFrame(frame) — redraw the frame (ratio, custom size or picture changed)
  *   setBusy(bool) — Analyse running: its button waits
  *   hide() — slide down
@@ -50,6 +50,7 @@ export const MpiBoxesPanel = ComponentFactory.create({
                     <div class="mpi-boxes__kicker">Boxes</div>
                     <div class="mpi-boxes__actions">
                         <div id="boxes-analyse"></div>
+                        <div id="boxes-unguide"></div>
                         <div id="boxes-clear"></div>
                         <div id="boxes-close"></div>
                     </div>
@@ -94,6 +95,12 @@ export const MpiBoxesPanel = ComponentFactory.create({
             info: 'Read the picture into boxes, each with what is in it (replaces the boxes)',
         });
         analyseBtn.on('click', () => cb.onAnalyse?.());
+        // The layout picture keeps the PromptBox on t2i; removing it unlocks the other ops.
+        const unguideBtn = MpiButton.mount(qs('#boxes-unguide', el), {
+            icon: 'eraser', label: 'Remove picture', labelPosition: 'right', size: 'sm', variant: 'ghost',
+            info: 'Take the picture away (the boxes stay) so the other ops work again',
+        });
+        unguideBtn.on('click', () => cb.onRemovePicture?.());
         let busy = false;
         const _syncAnalyse = () => analyseBtn.el.setDisabled?.(busy || !qs('.mpi-boxes__picture', frameEl));
 
@@ -269,6 +276,7 @@ export const MpiBoxesPanel = ComponentFactory.create({
             // else the picture's own shape; else square.
             aspect = frame.w && frame.h ? frame.w / frame.h : 1;
             dimEl.classList.toggle('hide', !frame.url);
+            qs('#boxes-unguide', el).classList.toggle('hide', !frame.guide);
             if (frame.url) {
                 const img = document.createElement('img');
                 // A t2i guide is stretched to the frame: its boxes are fractions of the
@@ -285,9 +293,9 @@ export const MpiBoxesPanel = ComponentFactory.create({
             _fit();
         };
 
-        el.open = ({ boxes: initial = [], frame = {}, mode: m = 't2i', accent, onChange, onCite, onRename, onClose, onAnalyse } = {}) => {
+        el.open = ({ boxes: initial = [], frame = {}, mode: m = 't2i', accent, onChange, onCite, onRename, onClose, onAnalyse, onRemovePicture } = {}) => {
             el.dataset.accent = accent || 'studio';
-            cb = { onChange, onCite, onRename, onClose, onAnalyse };
+            cb = { onChange, onCite, onRename, onClose, onAnalyse, onRemovePicture };
             mode = m;
             qs('#boxes-drop-hint', el).classList.toggle('hide', mode === 'edit');
             qs('#boxes-analyse', el).classList.toggle('hide', mode === 'edit');
@@ -312,6 +320,7 @@ export const MpiBoxesPanel = ComponentFactory.create({
             clearBtn.destroy?.();
             closeBtn.destroy?.();
             analyseBtn.destroy?.();
+            unguideBtn.destroy?.();
             dimBar.destroy?.();
             el.remove();
         };

@@ -61,7 +61,7 @@
 ## New
 
 - New model: MOSS-Image, a text-to-image model that writes exact lettering on signs and posters, with a fast Turbo mode and Boxes for placing things. It also does image-to-image, inpaint, detail and upscale on your pictures (MPI-1243).
-- Boxes can now read a picture for you, to make a new one laid out the same way (a magazine cover, a poster). Right-click a card and pick Create boxes: each thing in the picture gets its own named box, with what it is and any lettering written out, the shape follows the picture, and an empty prompt gets a caption for the whole scene. Works on MOSS-Image and FLUX.3 Klein (MPI-1253).
+- Boxes can now read a picture for you, to make a new one laid out the same way (a magazine cover, a poster). Right-click a card and pick Create boxes: each thing in the picture gets its own named box, with what it is and any lettering written out, the shape follows the picture, and an empty prompt gets a caption for the whole scene. While that picture is in Boxes the prompt box stays on text to image; Remove picture in the Boxes panel frees the other modes. Works on MOSS-Image and FLUX.3 Klein (MPI-1253).
 - When an update is ready, the Dev updates panel (the bell) shows an "Update to v…" button at the top, naming the version the posts below talk about (MPI-1242).
 
 ## Fixes

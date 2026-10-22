@@ -1697,7 +1697,8 @@ export const MpiGalleryGrid = ComponentFactory.create({
                                 ? 'Describe reads one image at a time'
                                 : _stackCount ? 'Describe reads one image, not a stack'
                                     : (_selectedVideoCount > 0 ? 'Describe reads a still image, not a video' : 'Caption this image into a prompt') },
-                        // MPI-1253: only while the prompt box's model takes Boxes on text-to-image.
+                        // MPI-1253: while the prompt box's model takes Boxes on text-to-image (any op:
+                        // picking it switches the box to t2i).
                         ...(state.s_boxesReady && targetIds.length === 1 && !_stackCount && _selectedVideoCount === 0
                             && group.history?.[group.selectedIndex]?.filePath
                             ? [{ key: 'create-boxes', icon: 'shape_rect_stroke', label: 'Create boxes',

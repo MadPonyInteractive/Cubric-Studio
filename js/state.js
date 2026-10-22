@@ -87,8 +87,8 @@ const _state = {
                                // agentDispatch.openPrompt, TAKEN (set back to null) by the gallery on
                                // mount or on `prompt:open`. A slot, not an event payload, because
                                // navigation is async and the gallery may not exist yet.
-    s_boxesReady: null,         // MPI-1253: 'gallery' | 'history' — the prompt box whose model takes Boxes
-                               // on t2i, so a card's right-click offers Create boxes. null = none.
+    s_boxesReady: null,         // MPI-1253: 'gallery' while the gallery prompt box's model takes Boxes on
+                               // t2i, so a card's right-click offers Create boxes. null = none.
 
     // ── Flow inputs (session-only, MPI-256) ─────────────────────────────────────
     s_flowInputs: {},           // { [flowId]: Object } — per-Flow last-collected inputs, so a

@@ -31,6 +31,7 @@ import { attachDictation } from '../../../services/dictation.js';
 import { thumbSrc } from '../../../utils/displayImage.js';
 import { PAGE_LANDING } from '../../../router.js';
 import { layoutRows, ANALYSE_QUESTION, boxesFromAnalysis } from '../../../data/layoutBoxes.js';
+import { modelTakesBoxes } from '../../../data/generationControls.js';
 import { describeImage } from '../../../services/llmService.js';
 import { applyPromptReuseSettings } from '../../../services/projectService.js';
 import { ratioSettingsFromParams } from '../../../utils/promptReuse.js';
@@ -398,6 +399,7 @@ export const MpiPromptBox = ComponentFactory.create({
                 onRename: _renamePromptTag,
                 onClose: () => _boxesBtn.el.setActive(false),
                 onAnalyse: _analyseBoxes,
+                onRemovePicture: () => _setBoxesGuide(null),
             });
             _boxesBtn.el.setActive(true);
         }
@@ -406,6 +408,14 @@ export const MpiPromptBox = ComponentFactory.create({
         // edit's boxes are the user's own.
         let _boxesGuide = null;
         let _analysing = false;
+        // While the layout picture is loaded the box stays on t2i: the other ops grey out and a
+        // picture added to the box is refused, until the panel's Remove picture (Fabio, 2026-10-22).
+        const _layoutLocked = () => !!_boxesGuide && activeOperation === 't2i';
+        function _setBoxesGuide(url) {
+            _boxesGuide = url;
+            _refreshOpStrip();
+            _refreshBoxFrame();
+        }
         /** Analyse: the describer reads the guide picture into boxes, the ratio follows it, an
          *  empty prompt gets its caption. Queued, so it shows a row and Stop. */
         async function _analyseBoxes() {
@@ -443,7 +453,10 @@ export const MpiPromptBox = ComponentFactory.create({
         function _syncBoxes() {
             _boxesBtnSlot.classList.toggle('hide', !_boxesCtrl());
             _boxesLabel();
-            _setBoxesReady(!!_boxesCtrl() && activeOperation !== 'edit');
+            // Any op: Create boxes switches to t2i itself. Gallery only, History has no t2i.
+            const takes = modelTakesBoxes(model, 't2i');
+            _setBoxesReady(_wsKey === 'gallery' && takes);
+            if (!takes && _boxesGuide) _setBoxesGuide(null); // a model without Boxes drops the picture
             if (_boxesPanel?.el.isOpen()) _openBoxes();
         }
         /** state.s_boxesReady: the card menus offer Create boxes while it names this box. */
@@ -455,7 +468,9 @@ export const MpiPromptBox = ComponentFactory.create({
         _unsubs.push(
             Events.on('boxes:create', ({ filePath }) => {
                 if (state.s_boxesReady !== _wsKey || !filePath) return;
-                _boxesGuide = resolveMediaUrl(filePath);
+                // As a t2i chip click: the Block syncs, a staged picture drops (t2i takes none).
+                if (activeOperation !== 't2i') Events.emit('workspace:set-operation', { operation: 't2i' });
+                _setBoxesGuide(resolveMediaUrl(filePath));
                 _openBoxes();
                 _analyseBoxes();
             }),
@@ -691,6 +706,7 @@ export const MpiPromptBox = ComponentFactory.create({
         }
 
         function _tryAddMedia({ url, file, mediaType, source, role, name, stackId, count }) {
+            if (_layoutLocked()) { _showMediaToast('Remove the layout picture in Boxes first.'); return false; }
             // MPI-949: one stack chip per box — a second stack replaces the first.
             if (stackId) {
                 const prev = _stackChip();
@@ -1581,8 +1597,7 @@ export const MpiPromptBox = ComponentFactory.create({
 
         el.injectMedia = ({ url, mediaType, role, name, stackId, count }) => {
             if (!_acceptsMediaType(mediaType)) { _showIncompatibleToast(); return false; }
-            _tryAddMedia({ url, file: null, mediaType, source: 'app', role, name, stackId, count });
-            return true;
+            return _tryAddMedia({ url, file: null, mediaType, source: 'app', role, name, stackId, count }) !== false;
         };
 
         // MPI-949: a stack's History workspace runs one job per member with no stack chip
@@ -2326,7 +2341,8 @@ export const MpiPromptBox = ComponentFactory.create({
             return filteredCmds.map(cmd => {
                 const isTextOnly = isTextOnlyOp(cmd.key);
                 const textOnlyBlocked = hasMedia && isTextOnly;
-                const stackReason = _stackBlockedReason(cmd.key);
+                const stackReason = _stackBlockedReason(cmd.key)
+                    || (_layoutLocked() && cmd.key !== 't2i' ? 'remove the layout picture in Boxes to use it' : null);
                 const disabled = !cmd.available || textOnlyBlocked || !!stackReason;
                 const reason = disabled ? ((!textOnlyBlocked && stackReason) || _opBlockedReason(cmd, textOnlyBlocked)) : null;
                 const describe = cmd.info || cmd.label;
