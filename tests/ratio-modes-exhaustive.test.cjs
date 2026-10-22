@@ -161,9 +161,9 @@ test('ratio tables are deep-frozen (krea2 1k aliases FLUX_RATIOS)', async () => 
 test('a foreign tier never silently downgrades quality', async () => {
     const { getModelRatios } = await import('../js/utils/ratios.js');
     // ltx has no '1k' tier. Falling back to its FIRST tier would hand back
-    // very_low (384px); it must land on 'medium' (512px) as it always did.
-    assert.strictEqual(getModelRatios('ltx', undefined, '1k')[0].w, 512);
-    assert.strictEqual(getModelRatios('ltx', undefined, undefined)[0].w, 512);
+    // very_low (448px); it must land on 'medium' (704px since the MPI-1095 ladder move).
+    assert.strictEqual(getModelRatios('ltx', undefined, '1k')[0].w, 704);
+    assert.strictEqual(getModelRatios('ltx', undefined, undefined)[0].w, 704);
     // krea2 has no 'medium'; it has no 'medium' to fall back to either, so it
     // uses its own first tier (1k) rather than a hardcoded name.
     assert.strictEqual(getModelRatios('krea2', 'portrait', 'medium')[0].w, 1024);

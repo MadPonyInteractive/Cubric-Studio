@@ -65,8 +65,15 @@ Tiers reuse the WAN quality-tier names (`very_low … very_high`, plus `2k`/`4k`
 rule above); 1:1 = the short edge of each tier's pair. Values below are the
 shipped [`LTX_RATIOS`](../../../js/utils/ratios.js).
 
-**21:9 cinematic** (MPI-551) is also /64-clean throughout. Its `low` (2.29) and
-`medium` (2.50) are the widest ratio drift in the table — the closest /64 pairs
+**Ladder moved down one rung 2026-10-22** (MPI-1095, Fabio's call, the same move H3
+made in MPI-687): the old 640×320 `very_low` was unusable and 960×512 too soft as
+the default, so old `low` → `very_low`, `medium` → `low`, `high` → `medium`, and a new
+`high` of 1536×896 sits above it. The table shows the moved names. Tier names in the
+sections below that predate the move (motion dial, ControlNet) mean the OLD sizes:
+check the pixels, not the name. Saved `qualityTier` strings were not migrated.
+
+**21:9 cinematic** (MPI-551) is also /64-clean throughout. Its `very_low` (2.29) and
+`low` (2.50) are the widest ratio drift in the table — the closest /64 pairs
 at those areas, kept because tightening either breaks the ascending megapixel
 ladder (see § Aspect-ratio exactness). **On t2v it can compound with the
 letterbox artifact** — see [black-bars-and-nag.md](black-bars-and-nag.md); i2v is
@@ -74,10 +81,10 @@ clean.
 
 | Tier | 16:9 | 9:16 | 1:1 | 21:9 | basis | motion / audio (from earlier tuning) |
 |---|---|---|---|---|---|---|
-| very_low | 640×320 | 320×640 | 384×384 | 768×320 | motion-draft (off-menu, deliberate); /64-snapped from 352 | max motion, audio hallucinates |
-| low | 768×448 | 448×768 | 448×448 | 1024×448 | official training res (detailed/short) | strong motion, audio loose |
-| medium | 960×512 | 512×960 | 512×512 | 1280×512 | canonical is Lightricks 960×544 but 544 is /32-only → /64-snapped to 512 for local 2-stage | balanced |
-| high | 1216×704 | 704×1216 | 704×704 | 1664×704 | `inference.py` default (30 fps); 9:16 = IC-LoRA "best portrait" | good audio, less motion |
+| very_low | 768×448 | 448×768 | 448×448 | 1024×448 | official training res (detailed/short) | strong motion, audio loose |
+| low | 960×512 | 512×960 | 512×512 | 1280×512 | canonical is Lightricks 960×544 but 544 is /32-only → /64-snapped to 512 for local 2-stage | balanced |
+| medium (default) | 1216×704 | 704×1216 | 704×704 | 1664×704 | `inference.py` default (30 fps); 9:16 = IC-LoRA "best portrait" | good audio, less motion |
+| high | 1536×896 | 896×1536 | 896×896 | 2048×896 | MPI-1095: ~1.4 MP, between 1216×704 and 1080p, /64-clean; unmeasured | expect between medium and very_high |
 | very_high | 1920×1088 | 1088×1920 | 1088×1088 | 2560×1088 | official 1080p production out | best audio, near-static |
 | 2K | 2560×1472 | 1472×2560 | 1472×1472 | 3840×1600 | Lightricks 1440p (2560×1440) snapped to /64 | detail tier |
 | 4K | 3840×2176 | 2176×3840 | 2176×2176 | 5120×2176 | Lightricks 4K-UHD (3840×2160) snapped to /64 | detail tier |

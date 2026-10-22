@@ -38,11 +38,11 @@ test('resolveRatioDimensions: krea2 at 1k vs 2k matches the pre-extraction pixel
 test('resolveRatioDimensions: a second model family (LTX) matches its own table', () => {
     assert.deepEqual(
         resolveRatioDimensions('ltx', { orientation: 'portrait', qualityTier: 'medium', ratioLabel: '1:1' }),
-        { width: 512, height: 512, orientation: 'portrait' },
+        { width: 704, height: 704, orientation: 'portrait' },
     );
     assert.deepEqual(
         resolveRatioDimensions('ltx', { orientation: 'landscape', qualityTier: 'high', ratioLabel: '16:9' }),
-        { width: 1216, height: 704, orientation: 'landscape' },
+        { width: 1536, height: 896, orientation: 'landscape' },
     );
 });
 

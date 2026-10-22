@@ -185,30 +185,38 @@ export const WAN_5B_RATIOS = {
 // 21:9 t2v canvas can come back with bars INSIDE an already-letterboxed frame.
 // i2v is clean — the start frame pins composition edge to edge. Full diagnosis:
 // docs/models/ltx/black-bars-and-nag.md.
+//
+// MOVED DOWN ONE RUNG 2026-10-22 (MPI-1095, Fabio's call, the H3 move of MPI-687 below):
+// the old 640x320 `very_low` was unusable and 960x512 too soft to be the default, so old
+// `low` -> `very_low`, old `medium` -> `low`, old `high` (1216x704) -> `medium`, and a new
+// `high` (1536x896, ~1.4 MP, between 1216x704 and 1080p, /64-clean) sits above it.
+// `very_high`, `2k` and `4k` are untouched. Same no-migration trade as H3: a saved
+// `qualityTier` string now resolves one rung larger than it did. Both LTX cards (2.3, 2.5)
+// read this table.
 export const LTX_RATIOS = {
     very_low: [
-        { label: "1:1", w: 384, h: 384, icon: "rect_1_1" },
-        { label: "9:16", w: 320, h: 640, icon: "rect_9_16" },
-        { label: "16:9", w: 640, h: 320, icon: "rect_16_9" },
-        { label: "21:9", w: 768, h: 320, icon: "rect_21_9" }
-    ],
-    low: [
         { label: "1:1", w: 448, h: 448, icon: "rect_1_1" },
         { label: "9:16", w: 448, h: 768, icon: "rect_9_16" },
         { label: "16:9", w: 768, h: 448, icon: "rect_16_9" },
         { label: "21:9", w: 1024, h: 448, icon: "rect_21_9" }
     ],
-    medium: [
+    low: [
         { label: "1:1", w: 512, h: 512, icon: "rect_1_1" },
         { label: "9:16", w: 512, h: 960, icon: "rect_9_16" },
         { label: "16:9", w: 960, h: 512, icon: "rect_16_9" },
         { label: "21:9", w: 1280, h: 512, icon: "rect_21_9" }
     ],
-    high: [
+    medium: [
         { label: "1:1", w: 704, h: 704, icon: "rect_1_1" },
         { label: "9:16", w: 704, h: 1216, icon: "rect_9_16" },
         { label: "16:9", w: 1216, h: 704, icon: "rect_16_9" },
         { label: "21:9", w: 1664, h: 704, icon: "rect_21_9" }
+    ],
+    high: [
+        { label: "1:1", w: 896, h: 896, icon: "rect_1_1" },
+        { label: "9:16", w: 896, h: 1536, icon: "rect_9_16" },
+        { label: "16:9", w: 1536, h: 896, icon: "rect_16_9" },
+        { label: "21:9", w: 2048, h: 896, icon: "rect_21_9" }
     ],
     very_high: [
         { label: "1:1", w: 1088, h: 1088, icon: "rect_1_1" },
