@@ -55,3 +55,4 @@
 ## Fixes
 
 - The child-safety check reads more wording: plural body words and clothing "pulled aside" now get the picture looked at (MPI-1241).
+- Cosmo now tells you exactly how many tiles a Use Tiles upscale runs, the same number the status bar counts (MPI-1237).
