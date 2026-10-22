@@ -56,6 +56,7 @@
 
 - LTX 2.3 now comes in one version, the faster Balanced one. The High version is retired: it looked no better in our tests. If you only had High, install LTX 2.3 again in Models; High's 39 GB file is cleared the next time you uninstall a model (MPI-1095).
 - LTX quality steps moved up one size. Medium is now 1216x704 (what High used to be), Low and Very Low are the old Medium and Low, and a new High of 1536x896 sits above. The old Very Low is gone. A clip on the same setting now comes out sharper and takes longer (MPI-1095).
+- The NVIDIA PiD Upscaler is licensed by NVIDIA for research or evaluation only, so it is not for commercial work. Installing it now shows the licence first, and its tile in Models carries the non-commercial flag. If you already have it, use the SDXL models' upscale for work you sell or do for a client (MPI-1250).
 
 ## New
 
