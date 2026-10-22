@@ -1624,7 +1624,7 @@
   },
   "738": {
     "inputs": {
-      "sampler_name": "euler",
+      "sampler_name": "er_sde",
       "scheduler": "simple",
       "denoise": 1,
       "model": [
