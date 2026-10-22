@@ -46,4 +46,6 @@ app's own panels. Name them when asked; the user picks them there.
 - Every tile gets the WHOLE prompt. Describe the look ("sharp photo, fine skin texture, film
   grain") or send none. Never describe the scene: each tile would paint it again.
 - A big picture is many tiles: say in one line that it takes a while.
+- How many tiles: the generate result says, the same number the status bar counts. Never work
+  it out from the size yourself (overlap makes it far more than size / 1024).
 - Leave denoise at the op's default unless the user wants more change.

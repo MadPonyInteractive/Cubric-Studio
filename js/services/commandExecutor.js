@@ -40,7 +40,7 @@ import { INJECTORS } from './workflowInjectors/index.js';
 import { buildComfyViewUrl, collectComfyOutputUrls, readComfyOutputText, splatViewFileInfo } from '../utils/comfyOutputUrls.js';
 import { canonicalizeInjectionKeys } from '../utils/injectionKeys.js';
 import { imageSize, upscaleRefusal, loadRefusal } from '../utils/upscaleLimit.js';
-import { tileCount } from '../utils/tileCount.js';
+import { runTileCount } from '../utils/tileCount.js';
 import { generationStore, PHASES } from './generationStore.js';
 import { settleInGraphEnhance } from './llmService.js';
 import { cloudEditPass1, cloudEditPass2, CLOUD_RESULT_TITLE } from '../utils/cloudEditGraph.js';
@@ -378,12 +378,8 @@ async function _upscaleRefusal(params, operation) {
 // "# of Detected SEGS"), so its stages counted up bare. Each tile is ONE sampler bar with
 // nothing before or after it (Krea 2 at 1x, app.log 2026-10-18: 4 tiles, 4 bars), so the
 // count the prompt box shows IS the stage total. 0 = not a tile run, or no readable size.
-async function _tileStages(params) {
-    if (params.Input_Tile_Upscale !== true) return 0;
-    const image = _decodeProjectFileUrl(params.Input_Image);
-    if (!image || /^(data|blob|http)/.test(image)) return 0;
-    const size = await imageSize(image);
-    return size ? tileCount(size.width, size.height, Number(params.Input_Upscale_Factor) || 1) : 0;
+function _tileStages(params) {
+    return runTileCount(params, _decodeProjectFileUrl(params.Input_Image));
 }
 
 /** Each output of a cut run, pasted back into the photo — a URL save-generation streams. */

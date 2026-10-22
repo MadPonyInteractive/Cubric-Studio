@@ -10,6 +10,8 @@
  * ComfyUI rounds the scaled size with Python's round() (half to even).
  */
 
+import { imageSize } from './upscaleLimit.js';
+
 /** Python's round(): halves go to the even neighbour. */
 function _pyRound(x) {
     const r = Math.round(x);
@@ -47,4 +49,19 @@ export function tileCount(width, height, factor, { bbox = 1024, overlap = 200, i
         return step === bbox ? 1 : n;
     };
     return along(w) * along(h);
+}
+
+/**
+ * The tiles a RESOLVED run will sample: the status bar's stage total (MPI-1175) and the
+ * number Cosmo is told (MPI-1237), so the two can never differ.
+ *
+ * @param {Object} params  the run's injection params
+ * @param {?string} image  its source picture, a disk path
+ * @returns {Promise<number>} 0 = not a tile run, or no readable size
+ */
+export async function runTileCount(params, image) {
+    if (params?.Input_Tile_Upscale !== true) return 0;
+    if (!image || /^(data|blob|http)/.test(image)) return 0;
+    const size = await imageSize(image);
+    return size ? tileCount(size.width, size.height, Number(params.Input_Upscale_Factor) || 1) : 0;
 }

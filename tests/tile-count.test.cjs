@@ -47,3 +47,20 @@ test('one sampler bar per tile reads 1/N .. N/N under the tile total', async () 
     }
     assert.deepEqual(seen, ['1/3', '2/3', '3/3']);
 });
+
+// MPI-1237 — the status bar's stage total and the number Cosmo is told are ONE function.
+test('runTileCount: a resolved tile run counts from the picture on disk, anything else is 0', async () => {
+    const { runTileCount } = await load('js/utils/tileCount.js');
+    const asked = [];
+    global.fetch = async (url) => { asked.push(url); return { ok: true, json: async () => ({ width: 1920, height: 1080 }) }; };
+    try {
+        assert.equal(await runTileCount({ Input_Tile_Upscale: true, Input_Upscale_Factor: 2 }, 'C:/p/a.png'), 15);
+        assert.match(asked[0], /image-size\?path=C%3A%2Fp%2Fa\.png/);
+        assert.equal(await runTileCount({ Input_Tile_Upscale: false, Input_Upscale_Factor: 2 }, 'C:/p/a.png'), 0, 'tiles off');
+        assert.equal(await runTileCount({ Input_Tile_Upscale: true }, 'http://x/a.png'), 0, 'not a disk path');
+        global.fetch = async () => ({ ok: false });
+        assert.equal(await runTileCount({ Input_Tile_Upscale: true }, 'C:/p/a.png'), 0, 'unreadable size');
+    } finally {
+        delete global.fetch;
+    }
+});

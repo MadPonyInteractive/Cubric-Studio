@@ -78,6 +78,7 @@ import { voiceWavFile } from '../utils/toWavFile.js';
 import { describeImage } from '../services/llmService.js';
 import { transcribeBlob } from '../services/dictation.js';
 import { estimateRunCost } from '../services/cloudExecutor.js';
+import { runTileCount } from '../utils/tileCount.js';
 import { formatPrice } from '../data/modelConstants/deepinfraPricing.js';
 import { downloadService } from '../services/downloadService.js';
 import { remoteEngineClient } from '../services/remoteEngineClient.js';
@@ -945,7 +946,7 @@ function _enqueueAgentRun(jobId, input, config, target, historyOpts, { width = 0
  *
  * @param {object} input - the `generation.submit` body, plus `count` for a fan-out.
  */
-function _quoteGeneration(jobId, input = {}) {
+async function _quoteGeneration(jobId, input = {}) {
     const count = Math.max(1, Math.round(Number(input.count) || 1));
     // A Flow carries no model id (`model.id: null`), but its edit slot can resolve to a
     // cloud model (MPI-918), and then every run bills like one.
@@ -968,16 +969,22 @@ function _quoteGeneration(jobId, input = {}) {
         pinned ? pinnedModel() : null, pinned ? state.agentPinnedOp : null);
     const model = owner.model;
     const operation = String(owner.operation || '');
-    // `provider` is the whole discriminator (MPI-851): a model that has one runs on the
-    // user's own key and bills them, and a model that has none cannot cost anything.
-    if (!model?.provider) return _report(jobId, { ok: true, output: { billed: false } });
-
-    const modelName = model.name || model.id;
     // Best effort from here down. Every failure below loses the NUMBER, never the card:
     // the answer stays `billed: true` and the gate says it cannot be quoted.
-    const named = resolveNamedParams(owner.project, model, operation, owner.named);
-    const params = { ...(named.ok ? named.injectionParams : {}), ...owner.injectionParams };
-    const media = resolveAgentMedia(operation, model, input.media || []);
+    const named = model ? resolveNamedParams(owner.project, model, operation, owner.named) : null;
+    const params = { ...(named?.ok ? named.injectionParams : {}), ...owner.injectionParams };
+    const media = model ? resolveAgentMedia(operation, model, input.media || []) : null;
+    // MPI-1237: a Use Tiles run's count rides on every quote, billed or not, through the
+    // status bar's own count. Told nothing, Cosmo said ~25 to the bar's 40 (Fabio, 2026-10-21).
+    // null = tiles on, size unreadable: Cosmo points at the status bar instead.
+    const image = media?.ok ? media.mediaItems.find(m => m.mediaType === 'image')?.url : null;
+    const tiles = params.Input_Tile_Upscale === true
+        ? { tiles: (await runTileCount(params, extractAbsPath(image) || image)) || null } : {};
+    // `provider` is the whole discriminator (MPI-851): a model that has one runs on the
+    // user's own key and bills them, and a model that has none cannot cost anything.
+    if (!model?.provider) return _report(jobId, { ok: true, output: { billed: false, ...tiles } });
+
+    const modelName = model.name || model.id;
     const quote = estimateRunCost(model, params, media.ok ? media.mediaItems : []);
 
     // A fan-out is N separate calls and N bills of this same run, so the total is the
@@ -995,6 +1002,7 @@ function _quoteGeneration(jobId, input = {}) {
         count,
         usd,
         display: display && quote.display?.startsWith('up to ') ? display.replace(/^about /, 'up to ') : display,
+        ...tiles,
     } });
 }
 

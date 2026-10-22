@@ -1641,21 +1641,27 @@ export class AgentLoop {
      *   model and every Flow that runs locally — those raise no card at all. A Flow whose
      *   edit slot runs on a cloud model bills (MPI-918) and does.
      */
-    async _askSpend(turnId, body, count) {
-        let quote = null;
-        try {
-            const r = await this._tools.quoteGeneration(count > 1 ? { ...body, count } : body);
-            if (r?.ok && r.output?.billed) quote = r.output;
-        } catch {
-            // An app that cannot answer a quote cannot answer a generate either: the call
-            // below fails the same way and spends nothing. Never a reason to raise a card.
-        }
+    async _askSpend(turnId, body, count, quoted) {
+        const out = quoted !== undefined ? quoted : await this._quote(count > 1 ? { ...body, count } : body);
+        const quote = out?.billed ? out : null;
         if (!quote) return null;
         const price = quote.display || null;
         // A No carries the figure too (MPI-1017): told nothing, the agent priced the run it
         // had just been refused off the model's blurb, $0.50 under a card that said $1.90.
         return await this._confirmSpend(turnId, { modelName: quote.modelName, count: quote.count || count, price }, 'generate', body)
             ? { price } : { declined: true, price };
+    }
+
+    /** The app's quote of a run (price, and a Use Tiles run's tile count), or null. */
+    async _quote(body) {
+        try {
+            const r = await this._tools.quoteGeneration(body);
+            return r?.ok ? r.output : null;
+        } catch {
+            // An app that cannot answer a quote cannot answer a generate either: the call
+            // below fails the same way and spends nothing. Never a reason to raise a card.
+            return null;
+        }
     }
 
     /**
@@ -2443,8 +2449,10 @@ ${knowledgeIndex}`.trim();
                 // the user money. A fan-out asked once for the whole batch in `_fanOut`; a
                 // local model is quoted `billed: false` and is never asked about at all.
                 let spend = null;
+                let quoted = null;
                 if (!opts.batch) {
-                    spend = await this._askSpend(turnId, body, 1);
+                    quoted = await this._quote(body);
+                    spend = await this._askSpend(turnId, body, 1, quoted);
                     if (spend?.declined) {
                         return JSON.stringify({ ok: false, declined: true, code: 'SPEND_DECLINED', message: `The user said no to spending on this generation. Nothing was generated and nothing was billed.${_declinedPriceNote(spend.price)} Ask what they would like instead, ending on [options: A | B]; do not send it again unless they say so.` });
                     }
@@ -2488,7 +2496,8 @@ ${knowledgeIndex}`.trim();
                 } else {
                     await this._trackUnfinished(askedIn, args, 'running');
                 }
-                this._inflight.set(toolCallId, args.cardName || String(args.prompt || args.flowId || '').slice(0, 60) || _opLabel(args));
+                this._inflight.set(toolCallId, (args.cardName || String(args.prompt || args.flowId || '').slice(0, 60) || _opLabel(args))
+                    + (quoted?.tiles ? `, ${quoted.tiles} tiles` : quoted?.tiles === null ? ', in tiles the status bar counts' : ''));
                 // MPI-913: a billed model runs in the cloud and a Pod on RunPod; anything else is
                 // a ComfyUI job on this PC's card, which a local agent model must not sit on.
                 if (!(opts.batch ? opts.batch.billed : spend !== null) && this._tools.engineIsLocal?.() === true) {
@@ -2630,7 +2639,7 @@ ${knowledgeIndex}`.trim();
                 pending.then(settle).catch(settleThrow);
 
                 const lands = _isTool(args) && sourceIsCard ? ` It lands as the ${LANDS_ON_CARD}.` : '';
-                return JSON.stringify({ ok: true, started: true, toolCallId, message: `Generation started. The result will appear in the chat when ready.${lands}${snapNote}${_sentNote(body, this._pinned)}${_priceNote(spend)}` });
+                return JSON.stringify({ ok: true, started: true, toolCallId, message: `Generation started. The result will appear in the chat when ready.${lands}${snapNote}${_sentNote(body, this._pinned)}${_tilesNote(quoted)}${_priceNote(spend)}` });
             }
             case 'look': {
                 const ref = this._resolveImage(args.image);
@@ -3604,6 +3613,17 @@ function _sentNote(body, pinned = null) {
     }
     const sent = _SENT_KEYS.filter((k) => body[k] !== undefined).map((k) => `${k} ${typeof body[k] === 'object' ? JSON.stringify(body[k]) : body[k]}`);
     return ` Settings you sent: ${sent.length ? sent.join(', ') : 'none'}. Every other setting runs at its default. Tell the user only settings listed here; to change one, send it.`;
+}
+
+/**
+ * A Use Tiles run's tile count, from the quote: the status bar's own number (MPI-1237).
+ * Told nothing, Cosmo guessed ~25 while the bar counted 40 (Fabio, 2026-10-21).
+ */
+function _tilesNote(quoted) {
+    if (quoted?.tiles === undefined) return '';
+    return quoted.tiles
+        ? ` It runs as ${quoted.tiles} tiles, one after another; the status bar counts the same ${quoted.tiles}. Asked how many tiles, that is the number.`
+        : ' It runs in tiles; the status bar counts them. Asked how many, point the user there: never guess a number.';
 }
 
 /**

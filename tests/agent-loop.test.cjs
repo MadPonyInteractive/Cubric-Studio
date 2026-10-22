@@ -887,6 +887,35 @@ test('a job still running tells the NEXT turn, names the id to cancel, and a qui
     assert.doesNotMatch(lastUserMessage(), /Running now:/);
 });
 
+// MPI-1237 (Fabio, 2026-10-21): mid tile-run Cosmo said ~25 tiles while the status bar said
+// 40. The quote carries the bar's own count; the started reply and every later turn's
+// running line say it, and an unknown count points at the bar instead of a guess.
+test('a Use Tiles run tells Cosmo its tile count, now and on the next turn', async () => {
+    const project = { folderPath: '/project', name: 'Test' };
+    const gen = (id) => ({ text: '', toolCalls: [{ id, type: 'function', function: { name: 'generate', arguments: JSON.stringify({ modelId: 'krea2', operation: 'upscale', tiles: true, upscaleFactor: 2, cardName: 'Big upscale' }) } }] });
+    const toolResult = (loop) => JSON.parse(loop._messages.filter((m) => m.role === 'tool').at(-1).content);
+    const lastUser = (loop) => loop._messages.filter((m) => m.role === 'user').at(-1).content;
+
+    const { loop, tools } = await makeLoop({ engineResponses: [gen('g1'), { text: 'Upscaling.' }, { text: '40 tiles.' }],
+        toolOpts: { quote: { billed: false, tiles: 40 } } });
+    tools.generate = () => new Promise(() => {});
+    await loop.runTurn('upscale it with tiles', [], project, 'auto', 'deepinfra', 't1');
+    assert.match(toolResult(loop).message, /runs as 40 tiles, one after another; the status bar counts the same 40/);
+    await loop.runTurn('how many tiles?', [], project, 'auto', 'deepinfra', 't2');
+    assert.match(lastUser(loop), /\[Running now: Big upscale, 40 tiles \(toolCallId/);
+
+    const unknown = await makeLoop({ engineResponses: [gen('g2'), { text: 'Upscaling.' }],
+        toolOpts: { quote: { billed: false, tiles: null } } });
+    unknown.tools.generate = () => new Promise(() => {});
+    await unknown.loop.runTurn('upscale it with tiles', [], project, 'auto', 'deepinfra', 't1');
+    assert.match(toolResult(unknown.loop).message, /status bar counts them\. Asked how many, point the user there: never guess/);
+
+    const plain = await makeLoop({ engineResponses: [gen('g3'), { text: 'Upscaling.' }] });
+    plain.tools.generate = () => new Promise(() => {});
+    await plain.loop.runTurn('upscale it', [], project, 'auto', 'deepinfra', 't1');
+    assert.doesNotMatch(toolResult(plain.loop).message, /runs (as \d+ tiles|in tiles)/, 'no count in the quote, no tile line');
+});
+
 // A wake turn never carries the line either: `_inflight` is empty by construction when one
 // starts (`_maybeDrained` only fires the wake once every job has settled), so this is the
 // same "zero bytes" guarantee proven directly rather than through that timing.

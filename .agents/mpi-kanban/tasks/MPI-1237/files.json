@@ -1,0 +1,13 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-1237/",
+    "js/shell/agentDispatch.js",
+    "js/utils/tileCount.js",
+    "js/services/commandExecutor.js",
+    "services/agentLoop.mjs",
+    "docs/agent/upscaling.md",
+    "tests/agent-loop.test.cjs",
+    "tests/tile-count.test.cjs"
+  ]
+}
