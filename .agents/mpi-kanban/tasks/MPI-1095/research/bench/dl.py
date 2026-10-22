@@ -12,7 +12,9 @@ jobs = [  # (repo, file, local_dir) - small first so the graph can be wired earl
     ('Lightricks/LTX-2.5-22b-IC-LoRA-Ingredients', 'ltx-2.5-22b-ic-lora-ingredients-0.9.safetensors', G + '/loras/ltx-2.5'),
     ('Lightricks/LTX-2.5', 'text_encoders/gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors', G),
     ('Lightricks/LTX-2.5', 'diffusion_models/ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors', G),
-    ('Kijai/LTX2.3_comfy', 'diffusion_models/ltx-2.3-22b-distilled-1.1_transformer_only_int8_convrot.safetensors', G),
+    ('DeepNeuralNerd/Gemma-4-12B-it-uncensored-heretic-DeepNeuralNerd-LTX_2.5_ComfyUI',
+     'Gemma-4-12B-it-uncensored-heretic - DeepNeuralNerd -LTX 2.5-ComfyUI-int8convrot.safetensors', G + '/text_encoders'),
+    # the 2.3 int8 transformer comes from Fabio's app install in M:/CubricModels (mapped in the bench's extra_model_paths)
 ]
 for repo, f, d in jobs:
     t = time.time()

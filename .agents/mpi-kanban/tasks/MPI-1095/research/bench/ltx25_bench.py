@@ -6,11 +6,11 @@ Variants:
   23    the file untouched (fast card today)
   25    2.5 int8 transformer, Gemma 4 int8 (projection bundled -> CLIPLoader replaces DualCLIPLoader, the only
         node-type change 2.5 forces), 2.5 conv video VAE, 2.5 audio VAE, 2.5 spatial x2 upscaler, 2.5 Ingredients.
-        The baked 2.3 LoRAs (merged / transition / talkvid) and the taeltx2_3 preview stay as shipped.
+        The baked 2.3 LoRAs (merged / transition / talkvid) are BYPASSED (wired around); the taeltx2_3 preview stays.
   25d   25 with the diffusion ("DFR") video VAE instead of the conv one
-  25bare 25 with the merged 2.3 LoRA at strength 0 (is the merge doing anything on 2.5?)
+  25h   25 with DeepNeuralNerd's "heretic" (abliterated) Gemma 4 int8 encoder, 13.2 GB, instead of the official 15.4 GB
 
-usage (repo root, bench :8188 up, ONLY under the lease):
+usage (repo root, bench :8188 up, ONLY under the lease; order tags BY MODEL - all 23 first, then all 25 - never pairs):
   python <mpi-lib>/scripts/gpu_lease.py run --timeout 10800 --poll 2 -- "C:/Program Files/Python314/python.exe" -I <this> 23:t2v 25:t2v ...
   python -I <this> --check          build every case offline, no POST
   python -I <this> --sbs t2v ...    hstack 23|25 into a VP9 webm for Fabio's eye
@@ -55,6 +55,20 @@ V25 = {
 }
 
 
+HERETIC = 'Gemma-4-12B-it-uncensored-heretic - DeepNeuralNerd -LTX 2.5-ComfyUI-int8convrot.safetensors'  # 25h text encoder
+LORAS23 = ('Transition Lora', 'talk3_ID_Lora', 'Merged Loras')  # baked 2.3 LoRAs, bypassed on every 2.5 variant (Fabio 2026-10-22)
+
+
+def bypass(g, nid):
+    """Re-point every consumer of node nid's output 0 to its 'model' source (output 1 to its 'clip'), then drop it."""
+    src = {0: g[nid]['inputs']['model'], 1: g[nid]['inputs'].get('clip')}
+    for v in g.values():
+        for k, x in v['inputs'].items():
+            if isinstance(x, list) and len(x) == 2 and x[0] == nid:
+                v['inputs'][k] = src[x[1]]
+    del g[nid]
+
+
 def build(variant, case):
     g = json.load(open(SHIPPED, encoding='utf-8'))
     T = {v['_meta']['title']: k for k, v in g.items()}
@@ -63,10 +77,11 @@ def build(variant, case):
             g[T[title]]['inputs'].update(ins)
         vae = 'ltx-2.5-video-vae-bf16.safetensors' if variant == '25d' else 'ltx-2.5-video-vae-conv-bf16.safetensors'
         g['1']['inputs']['vae_name'] = vae  # '1' = the video VAE (both VAELoaders are titled "Load VAE"; 632 is the preview)
+        clip = HERETIC if variant == '25h' else 'gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors'
         g['408'] = {'class_type': 'CLIPLoader', '_meta': {'title': 'Load CLIP'},
-                    'inputs': {'clip_name': 'gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors', 'type': 'ltxv', 'device': 'default'}}
-        if variant == '25bare':
-            g[T['Merged Loras']]['inputs'].update(strength_model=0, strength_clip=0)
+                    'inputs': {'clip_name': clip, 'type': 'ltxv', 'device': 'default'}}
+        for title in LORAS23:
+            bypass(g, T[title])
     for title, ins in {**BASE, **CASES[case]}.items():
         g[T[title]]['inputs'].update(ins)
     return g, T
@@ -109,9 +124,12 @@ def sbs(case, right='25'):
 if __name__ == '__main__':
     os.makedirs(OUT, exist_ok=True)
     if sys.argv[1:2] == ['--check']:
-        for v in ('23', '25', '25d', '25bare'):
+        for v in ('23', '25', '25d', '25h'):
             for c in CASES:
                 g, _ = build(v, c)
+                refs = [x[0] for n in g.values() for x in n['inputs'].values() if isinstance(x, list) and len(x) == 2 and isinstance(x[0], str)]
+                assert all(r in g for r in refs), (v, c, [r for r in refs if r not in g])
+                assert v == '23' or 'ltx-2.3' not in json.dumps(g).lower(), (v, c)  # no 2.3 weight left on 2.5
         print('ok', len(CASES), 'cases x 4 variants')
     elif sys.argv[1:2] == ['--sbs']:
         for c in sys.argv[2:]:
