@@ -52,6 +52,10 @@
 > never shipped, and the entry is then simply false. Full gate:
 > `.claude/skills/mpi-release/references/copy-review.md` § Gate 0.
 
+## New
+
+- When an update is ready, the Dev updates panel (the bell) shows an "Update to v…" button at the top, naming the version the posts below talk about (MPI-1242).
+
 ## Fixes
 
 - The child-safety check reads more wording: plural body words and clothing "pulled aside" now get the picture looked at (MPI-1241).

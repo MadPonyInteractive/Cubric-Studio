@@ -1,1 +1,1 @@
-{"schema": "mpi-kanban/task-files/v1", "files": ["js/components/Organisms/MpiDevUpdates/MpiDevUpdates.js", "js/components/Organisms/MpiDevUpdates/MpiDevUpdates.css", ".agents/mpi-kanban/tasks/MPI-1242/", "tests/extra-model-folders.test.cjs"]}
+{"schema": "mpi-kanban/task-files/v1", "files": ["js/components/Organisms/MpiDevUpdates/MpiDevUpdates.js", "js/components/Organisms/MpiDevUpdates/MpiDevUpdates.css", ".agents/mpi-kanban/tasks/MPI-1242/", "tests/extra-model-folders.test.cjs", "docs/releases/UNRELEASED.md"]}
