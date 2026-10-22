@@ -2182,7 +2182,7 @@ const ALL_MODELS = [
         loraStrengths: ['model'],
         capabilities: {
             multiStage: false, audio: false,
-            negativePrompt: true,   // live on SFT (cfg 2.5); Turbo hides it
+            negativePrompt: true,   // live on SFT (cfg 3); Turbo hides it
             styleLoras: true,
             batch: false,
             turboToggle: true,

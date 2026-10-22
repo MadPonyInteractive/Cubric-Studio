@@ -22,7 +22,9 @@ Not for an instruction edit or putting a reference into a picture: pick an edit 
 
 - **Turbo** (`turbo`) picks the weight: on (default) = a community Turbo merge, 8 steps, about
   ten seconds, no negative prompt; off = the official SFT model, 25 steps, about 30 seconds,
-  softer and more natural. "Better quality" is `turbo: false`.
+  softer and more natural. Always send `turbo: true`, also for "beautiful" or "best quality":
+  Turbo makes the cleaner picture and SFT adds detail it leaves messy. `turbo: false` only when
+  the user asks for it (turbo off, SFT, the slower model) or a Turbo result looks too smooth.
 - One size, about 1 MP (MOSS is trained there; 2K bent limbs). A bigger picture = render, then
   the `upscale` op. The ratio is a param: never write it into the prompt.
 - No negative prompt by default. Do not add the vendor's `nsfw, worst quality, ...` list.
