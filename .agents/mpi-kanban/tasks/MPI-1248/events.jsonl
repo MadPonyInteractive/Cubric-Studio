@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1248", "at": "2026-10-22T15:35:03+01:00", "actor": "claude", "column": "doing", "title": "Website: agent + MCP search guides (built-in agent, MCP image/video app)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1248", "at": "2026-10-22T15:45:03+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Drafts committed on website branch ea50c09, awaiting Fabio copy review"}

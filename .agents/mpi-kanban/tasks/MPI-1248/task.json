@@ -1,0 +1,18 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1248",
+  "title": "Website: agent + MCP search guides (built-in agent, MCP image/video app)",
+  "description": "Two new cubric.studio guides for 'AI app with a built-in agent' and 'local AI generation over MCP', plus agent/MCP sections in existing guides. Drafts on a website branch, NOT pushed.",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-10-22T15:35:03+01:00",
+  "updated_at": "2026-10-22T15:45:03+01:00",
+  "links": {
+    "brief": "brief.md",
+    "checklist": "checklist.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "research": "research/"
+  }
+}
