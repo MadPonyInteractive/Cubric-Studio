@@ -460,13 +460,20 @@ export function buildPromptReuseSettings(payload = {}, model = {}) {
     if (payload.previewOnly === true) sharedUpdates.previewStage = true;
     else if (_hasComponent(components, 'previewStage')) sharedUpdates.previewStage = PROMPT_CONTROL_DEFAULTS.previewStage;
 
-    if (typeof params.Auto_Grid === 'boolean') opUpdates.useGrid = params.Auto_Grid;
-    else if (_hasComponent(components, 'useGrid')) opUpdates.useGrid = PROMPT_CONTROL_DEFAULTS.useGrid;
+    // useGrid is removed (MPI-1232): old sidecars carry Input_Auto_Grid=true when Grid was on.
+    // Map that to useTiles=true so a rerun gets the tile path rather than silently doing nothing.
+    if (params.Input_Auto_Grid === true) sharedUpdates.useTiles = true;
 
     if (typeof params.Input_Tile_Upscale === 'boolean') sharedUpdates.useTiles = params.Input_Tile_Upscale;
     else if (_hasComponent(components, 'useTiles')) sharedUpdates.useTiles = PROMPT_CONTROL_DEFAULTS.useTiles;
 
-    const upscale = _number(params.Upscale_Factor);
+    // tileSize (MPI-1232): read back from the run's injected Input_Tile_Size.
+    const tileSize = _number(params.Input_Tile_Size);
+    if (tileSize != null) sharedUpdates.tileSize = tileSize;
+    else if (_hasComponent(components, 'tileSize')) sharedUpdates.tileSize = PROMPT_CONTROL_DEFAULTS.tileSize;
+
+    // upscaleFactor: fix dead key — runs inject Input_Upscale_Factor, not Upscale_Factor.
+    const upscale = _number(params.Input_Upscale_Factor);
     if (upscale != null) opUpdates.upscaleFactor = upscale;
     else if (_hasComponent(components, 'upscaleFactor')) opUpdates.upscaleFactor = PROMPT_CONTROL_DEFAULTS.upscaleFactor;
 

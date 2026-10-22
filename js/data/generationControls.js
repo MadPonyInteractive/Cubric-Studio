@@ -42,6 +42,7 @@ import { layoutRows, endsWithBoxTable, boxName, mossLayoutPrompt } from './layou
 import { MODELS } from './modelConstants/models.js';
 import { canonicalModelId } from './modelConstants/resolveModelDeps.js';
 import { getExtension, isImageFile, isVideoFile, isAudioFile } from '../utils/file.js';
+import { overlapFor } from '../utils/tileCount.js';
 
 // Twin of PromptBoxControls' `_mediaTypeOf`: audio has no shared bucket (MPI-1012).
 function _mediaTypeOf(model) {
@@ -415,6 +416,19 @@ function _denoiseDefault(operation) {
     return typeof opDefault === 'number' ? opDefault : PROMPT_CONTROL_DEFAULTS.denoise;
 }
 
+/**
+ * The denoise default for `operation`, accounting for whether tiles is on (MPI-1232).
+ * When tiles is on the default rises to `PROMPT_CONTROL_DEFAULTS.tilesDenoise` (0.3)
+ * because each tile is re-denoised from its crop; too low and seams read through.
+ * A user's saved value still wins — this is only the fallback when nothing is saved.
+ * @param {string} operation
+ * @param {boolean} tilesOn
+ * @returns {number}
+ */
+export function denoiseDefaultFor(operation, tilesOn) {
+    return tilesOn ? PROMPT_CONTROL_DEFAULTS.tilesDenoise : _denoiseDefault(operation);
+}
+
 const _isValidDenoise = (v) => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 1;
 
 // ── duration (MPI-820) ───────────────────────────────────────────────────────
@@ -677,10 +691,19 @@ export function resolveNamedParams(project, model, operation, named = {}) {
         return _err('INVALID_DURATION', `"${operation}" does not produce a clip, so it has no duration to set.`);
     }
 
+    // showsTiles / tilesOn — computed once and shared by the denoise default (below) and
+    // the tile injection block (further down). The INVALID_TILES validation stays in the
+    // tile block because it only fires when `tiles` was explicitly sent; moving it here
+    // would validate the named param before the rest of the named-param checks finish.
+    const showsTiles = modelShowsTiles(model, operation);
+    const tilesOn = showsTiles && (tiles ?? getSharedSettings(project || {}, _mediaTypeOf(model)).useTiles === true);
+
     // denoise (MPI-817). The same hole duration had: the PromptBox control injects
     // `{ Denoise: v }` and this function never did, so an agent run kept the workflow's BAKED
     // value while the sidecar recorded the project's slider. Same ladder: asked, else the
     // project's own value for this op, else the op's default.
+    // MPI-1232: denoiseDefaultFor raises the default to 0.3 when tiles is on; the non-tile
+    // path keeps 0.2 (or the op's own override). A user's saved value wins either way.
     if (modelShowsDenoise(model, operation)) {
         if (denoiseWanted !== undefined && !_isValidDenoise(denoiseWanted)) {
             return _err('INVALID_DENOISE', 'denoise must be a number between 0 and 1.');
@@ -688,26 +711,36 @@ export function resolveNamedParams(project, model, operation, named = {}) {
         const saved = getOpSettings(project || {}, model?.id, operation).denoise;
         injectionParams.Denoise = denoiseWanted !== undefined
             ? denoiseWanted
-            : (_isValidDenoise(saved) ? saved : _denoiseDefault(operation));
+            : (_isValidDenoise(saved) ? saved : denoiseDefaultFor(operation, tilesOn));
         _from('denoise', denoiseWanted !== undefined, injectionParams.Denoise);
     } else if (denoiseWanted !== undefined) {
         return _err('INVALID_DENOISE', `"${operation}" has no denoise: it does not start from a picture it keeps.`);
     }
 
-    // Use Tiles + upscale factor (MPI-1038). Same ladder: asked, else the project's own
-    // (tiles is shared across models, Grid and factor per op), else the default. As in the
-    // PromptBox, tiles on turns Grid off and is the only way to 1x (detail only).
-    const showsTiles = modelShowsTiles(model, operation);
+    // Use Tiles + tile params + upscale factor (MPI-1038, MPI-1232).
+    // Same ladder: asked, else the project's own (tiles + tile size shared, factor per op),
+    // else the default. Tiles on is the only way to 1x (detail only).
+    // Input_Auto_Grid is no longer injected (MPI-1232): the app always takes the non-grid
+    // USDU path when tiles is off; the grid nodes remain in the graph, baked off.
+    // showsTiles / tilesOn already computed above.
     if (tiles !== undefined && (typeof tiles !== 'boolean' || !showsTiles)) {
         return _err('INVALID_TILES', showsTiles ? 'tiles must be a boolean.' : `${modelName} has no tile upscale on "${operation}".`);
     }
-    const tilesOn = showsTiles && (tiles ?? getSharedSettings(project || {}, _mediaTypeOf(model)).useTiles === true);
     if (showsTiles) {
         injectionParams.Input_Tile_Upscale = tilesOn;
         _from('tiles', tiles !== undefined, tilesOn);
+        if (tilesOn) {
+            const shared = getSharedSettings(project || {}, _mediaTypeOf(model));
+            const tileSz = Number(shared.tileSize) || 1024;
+            const tileOvlp = overlapFor(tileSz);
+            const tileGuide = Math.max(1024, tileSz);
+            injectionParams.Input_Tile_Size    = tileSz;
+            injectionParams.Input_Tile_Overlap = tileOvlp;
+            injectionParams.Input_Tile_Guide   = tileGuide;
+            injectionParams.Input_Tile_Max     = Math.round(1.5 * tileGuide);
+        }
     }
     const opSaved = getOpSettings(project || {}, model?.id, operation);
-    if (components.includes('useGrid')) injectionParams.Input_Auto_Grid = !tilesOn && opSaved.useGrid === true;
     if (components.includes('upscaleFactor')) {
         const allowed = tilesOn ? [1, ...UPSCALE_FACTORS] : UPSCALE_FACTORS;
         if (upscaleFactor !== undefined && !allowed.includes(upscaleFactor)) {

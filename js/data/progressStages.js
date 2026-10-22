@@ -108,7 +108,8 @@ export const PROGRESS_STAGES = Object.freeze({
     // quality 25 steps @ cfg 3.5 then a 3-step accelerator-LoRA pass at denoise 0.19,
     // turbo 8 steps then the same 3-step pass. The prompt enhancer does NOT emit its own
     // bar, it fills ~10-20% of one; user-confirmed 2026-07-20.)
-    'krea2_t2i.json':            Object.freeze({ postTile: 1 }),
+    //
+    // MPI-1232: 'krea2_t2i.json' {postTile: 1} removed - no file of that name ships (sfw/nsfw), and its refiner is gone.
     // MOSS-Image (MPI-1243) — NO ENTRY since it gained detail + upscale: like Chroma below, its
     // one file's bar count varies by op (masks, tile grid), so `single: 1` would read "Stage 3/1".
     // Chroma — NO ENTRY, deliberately, and unlike Krea2 there is not even a `postTile`

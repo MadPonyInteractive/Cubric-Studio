@@ -29,35 +29,39 @@ test('describe_model lists tiles and the factors on upscale, and nothing on t2i'
     assert.deepEqual(namedParamsFor(noTiles, 'upscale').upscaleFactors, [1.5, 2, 3, 4]);
 });
 
-test('asked tiles + 1x reach the graph, and Grid goes off', () => {
+test('asked tiles + 1x reach the graph', () => {
     for (const model of [KREA2, KLEIN]) {
         const r = resolveNamedParams(null, model, 'upscale', { tiles: true, upscaleFactor: 1 });
         assert.equal(r.ok, true, model.id);
         assert.equal(r.injectionParams.Input_Tile_Upscale, true);
         assert.equal(r.injectionParams.Input_Upscale_Factor, 1);
-        assert.equal(r.injectionParams.Input_Auto_Grid, false);
+        // Input_Auto_Grid is no longer injected (MPI-1232): the graph's baked false runs USDU.
+        assert.equal(r.injectionParams.Input_Auto_Grid, undefined);
     }
 });
 
-test('unset, an agent upscale runs the defaults: no tiles, no grid, 1.5x', () => {
+test('unset, an agent upscale runs the defaults: no tiles, 1.5x', () => {
     const r = resolveNamedParams(null, KREA2, 'upscale', {});
     assert.equal(r.injectionParams.Input_Tile_Upscale, false);
-    assert.equal(r.injectionParams.Input_Auto_Grid, false);
+    // Input_Auto_Grid is no longer injected (MPI-1232).
+    assert.equal(r.injectionParams.Input_Auto_Grid, undefined);
     assert.equal(r.injectionParams.Input_Upscale_Factor, 1.5);
 });
 
 test('with a project, unset values are what its panel says: shared tiles, per-op factor', () => {
     const project = {
         shared: { image: { useTiles: true } },
-        modelSettings: { krea2: { operations: { upscale: { upscaleFactor: 1, useGrid: true } } } },
+        modelSettings: { krea2: { operations: { upscale: { upscaleFactor: 1 } } } },
     };
     const r = resolveNamedParams(project, KREA2, 'upscale', {});
     assert.equal(r.injectionParams.Input_Tile_Upscale, true);
     assert.equal(r.injectionParams.Input_Upscale_Factor, 1);
-    assert.equal(r.injectionParams.Input_Auto_Grid, false, 'tiles on wins over a saved Grid');
+    // Input_Auto_Grid is no longer injected (MPI-1232).
+    assert.equal(r.injectionParams.Input_Auto_Grid, undefined);
     const asked = resolveNamedParams(project, KREA2, 'upscale', { tiles: false, upscaleFactor: 2 });
     assert.equal(asked.injectionParams.Input_Tile_Upscale, false, 'asked wins');
-    assert.equal(asked.injectionParams.Input_Auto_Grid, true, 'and the saved Grid is back');
+    // Grid no longer injected either way.
+    assert.equal(asked.injectionParams.Input_Auto_Grid, undefined);
 });
 
 test('1x without tiles, a bad factor, or tiles off an upscale op are refused by name', () => {

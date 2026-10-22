@@ -19,12 +19,20 @@ export const PROMPT_CONTROL_DEFAULTS = Object.freeze({
     // value only stands when nobody, human or agent, had an opinion.
     duration: 3,
     motionIntensity: 0,
-    useGrid: false,
     // Upscale op's tile path (Input_Tile_Upscale, MPI-1038). OFF matches the graph's
-    // baked switch, so a caller that never sends it gets the Grid path as before.
+    // baked switch, so a caller that never sends it gets the non-tile USDU path as before.
     useTiles: false,
+    // Tile bbox size (Input_Tile_Size, MPI-1232). 1024 matches the graph's baked value.
+    // Shared like useTiles: a way of working that holds when you switch models.
+    tileSize: 1024,
+    // "Describe each tile" (MPI-1232). Phase 3 builds the describer; for now the saved
+    // value is stored and Phase 3 fills Input_Tile_Prompts from it. ON by default.
+    tileDescribe: true,
     upscaleFactor: 1.5,
     denoise: 0.2,
+    // Tiles denoise default (MPI-1232). Higher than the plain i2i default because each tile
+    // is re-denoised from its crop; too low and tile borders read through as seams.
+    tilesDenoise: 0.3,
     // PiD upscaler (Input_Type MpiAnySwitch, 1-indexed): 1=flux, 2=sd3, 3=qwen, 4=sdxl.
     // Default 1 (flux) matches the workflow's baked select.
     pidVariant: 1,

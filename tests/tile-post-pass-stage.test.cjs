@@ -45,7 +45,7 @@ test('krea2 upscaler, grid off: 1/2 during the tile, 2/2 on the refiner', async 
     assert.deepStrictEqual([p.stage(), p.total()], [2, 2], 'refiner is stage 2');
 });
 
-test('krea2 upscaler, grid on (4 tiles): 1/5..4/5 then 5/5', async () => {
+test('4-tile upscale with post-tile pass: 1/5..4/5 then 5/5', async () => {
     const { createStageProgress } = await import('../js/services/phaseProgress.js');
     const p = createStageProgress({ postTileBars: 1 });
 
@@ -102,12 +102,12 @@ test('an unrecorded post-tile bar still self-corrects the total', async () => {
     assert.deepStrictEqual([p.stage(), p.total()], [2, 2], 'total self-corrects past the tile count');
 });
 
-test('replays a REAL logged 8-tile grid run (Use Grid on, krea2 upscaler)', async () => {
+test('replays a REAL logged 8-tile USDU run (krea2 upscaler)', async () => {
     // Transcribed from logs/app.log 2026-07-25T21:50:43..21:51:53 — the run the user
     // reported as "9/9 twice". Ground truth from that log: total_tiles=8, each tile's
     // inner bar is 0/3..3/3 with tqdm duplicating several lines, the final "USDU: 8/8"
-    // is printed TWICE, and the refiner is a single 0/2..2/2 bar afterwards.
-    // The two "9/9" the user saw are that refiner's two steps, not a repeated tile.
+    // is printed TWICE, and the post-tile pass is a single 0/2..2/2 bar afterwards.
+    // The two "9/9" the user saw are that pass's two steps, not a repeated tile.
     const { createStageProgress } = await import('../js/services/phaseProgress.js');
     const p = createStageProgress({ postTileBars: 1 });
 

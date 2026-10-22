@@ -70,10 +70,24 @@ Decisions and findings: `brief.md`. Footprint map with file:line: `research/foot
   (wrong: its tile pipe DOES take Input_Positive), moss-image.md:35, rules rows (ask Fabio before editing
   `.claude/rules/` - CLAUDE.md rule 5), releaseNotes/UNRELEASED.
 
-### Open (Fabio's calls, ask before Phase 2 lands)
-- Tiles denoise default: today 0.2 does ~nothing on a big picture (his bands). My pick 0.3.
-- Overlap rule at small tiles (stage 3 half 2, not benched): 20% floor 64 - one bench run at 512 in Phase 1 verify.
-- People-pass darkening at 0.35 (grey hair a shade darker): try the people pass at 0.25 in Phase 1 verify?
+### Decided (Fabio 2026-10-22, "Tile upscaler improvements 5")
+- Tiles denoise default **0.3** (was 0.2). People pass denoise **0.25** (own value, not the tile denoise). Face pass
+  keeps the tile denoise. Overlap **20% of tile, floor 64**. GPU go for Phase 1 verify: one run per family, turbo on, leased.
+
+## Parallel Batch: Phase 1 + Phase 2 (2026-10-22)
+- **P1 graphs** (comfy-worker). Ownership: `comfy_workflows/raw/{chroma,flux3,klein,krea2,moss,sdxl}_t2i_template.json`,
+  `comfy_workflows/raw/qwen_image_2_1.json`, the 6 matching `comfy_workflows/scripts/workflow_generation/*_t2i_template.json`,
+  the 14 runtime `comfy_workflows/*.json`. **Verify:** sync script clean + a JSON check that every runtime graph has the
+  4 new `Input_*` nodes, person + face detector chains; GPU bench later by the orchestrator.
+- **P2 app** (frontend-worker). Ownership: `js/utils/{tileCount,promptReuse}.js`, `js/data/{routineModel,progressStages,
+  projectModel,promptControlDefaults,commandRegistry,generationControls}.js`, `js/services/{progressAggregator,
+  commandExecutor,generationService}.js`, `js/shell/agentDispatch.js`, `MpiGalleryBlock.js`, `PromptBoxControls.js`,
+  `tests/{tile-count,tile-post-pass-stage,agent-tiles}.test.cjs`, `tests/desktop/prompt-box-use-tiles.spec.js`.
+  **Verify:** `npm test`, `npm run lint`.
+- Contract between them: MpiInt `Input_Tile_Size` (bbox_size, default 1024), `Input_Tile_Overlap` (min_overlap, 205),
+  `Input_Tile_Guide` (guide_size, 1024), `Input_Tile_Max` (max_size, 1536); MpiText `Input_Tile_Prompts` (wildcard,
+  default "" - Phase 3 fills it). App injects the four ints when Tiles is on. People-pass denoise 0.25 is BAKED in the
+  graph (no input): it protects people whatever the user's denoise. Face pass uses the tile denoise.
 - Silhouettes instead of boxes = move `person-yolov8n-seg` to `ultralytics/segm/` (assetDeps.js:994) - later.
 - Separate checklist to-do stays open: Cosmo's upscale opens the image workspace.
 
@@ -141,7 +155,25 @@ checked before the first run; anything missing = stop and ask).
 - FLUX.3 blocked: Fabio reinstalling models into `M:\CubricModels` (FLUX.3 Klein + flux2-vae in his queue).
   A copy of `flux3-image-klein-base-int8-convrot` sits in `G:/models/diffusion_models` - delete it once M: has FLUX.3.
 
-### Current (2026-10-22 late): BENCH DONE, wiring plan written (top of this file), nothing wired yet
+### Current (2026-10-22 night, session "Tile upscaler improvements 5"): Phase 1 + 2 RUNNING in parallel
+
+- Fabio answered the Open calls (see "Decided"). Claim `state/files/ca54f9c1-mpi1232.json` covers both batches.
+- **Phase 1 landed (uncommitted, NOT staged):** 7 raw + 6 gen templates + 14 runtime. Scripted patch (not a frontend
+  round trip) - scratch `patch_tile_group2.py` / `convert_and_bake.mjs` in the session scratchpad, converted against the
+  bench :8188. Orchestrator fix: `Input_Tile_Guide`/`Input_Tile_Max` are **MpiFloat** (DetailerForEachPipe guide/max
+  are FLOAT; an MpiInt link fails the type check). Worker had staged everything + marked the claim complete - undone.
+- **Phase 2 landed + reviewed:** tileRects/overlapFor, Tile size + Describe each tile controls, Grid gone, 4 ints
+  injected, `denoiseDefaultFor(op, tilesOn)` (tiles 0.3 / op default 0.2) used by BOTH the agent path and the slider
+  (slider follows the tiles toggle while no denoise is saved). npm test 3532/0 fail, lint 0, desktop spec passes.
+- **GPU bench:** krea2, flux3, moss, qwen pass (validation.md). Fabio 2026-10-23: a change copied into every graph is
+  benched on ONE model, **Klein 9B** (no turbo toggle - one distilled checkpoint) - `bash research/phase1.sh klein_9b_t2i`.
+  No more per-family runs. Re-convert after any raw edit: `node research/convert_nostage.mjs` (no commit/stage, :8188).
+- **Decided (Fabio 2026-10-23):** both labels say "up to N tiles" (people boxes drop tiles; count unknown up front);
+  the stage total stays the grid count and self-corrects. `_tileStages` unchanged on purpose. Phase 4: Cosmo's
+  `_tilesNote` must say "up to N" too.
+- **Next:** Phase 3 (Describe each tile: outlines route + describer + one queue row).
+
+### Earlier (2026-10-22 late): BENCH DONE, wiring plan written (top of this file), nothing wired yet
 
 - Fabio chose: scenery short names per tile + prompt-less people pass + face pass. Stage 3 (people pass) ran on
   t2i_004 at 0.35: describer mistakes no longer reach people; slight darkening. Next action: Phase 1 + Phase 2 of the

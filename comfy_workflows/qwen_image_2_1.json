@@ -1471,14 +1471,24 @@
   },
   "117": {
     "inputs": {
-      "bbox_size": 1024,
       "crop_factor": 1.5,
-      "min_overlap": 200,
       "filter_segs_dilation": 30,
       "mask_irregularity": 0.7,
       "irregular_mask_mode": "Reuse fast",
       "images": [
         "116",
+        0
+      ],
+      "filter_out_segs_opt": [
+        "137",
+        0
+      ],
+      "bbox_size": [
+        "131",
+        0
+      ],
+      "min_overlap": [
+        "132",
         0
       ]
     },
@@ -1517,9 +1527,7 @@
   },
   "119": {
     "inputs": {
-      "guide_size": 1024,
       "guide_size_for": true,
-      "max_size": 1536,
       "steps": 15,
       "cfg": 1,
       "sampler_name": "euler",
@@ -1527,7 +1535,6 @@
       "feather": 10,
       "noise_mask": true,
       "force_inpaint": true,
-      "wildcard": "",
       "refiner_ratio": 0.2,
       "cycle": 1,
       "inpaint_model": false,
@@ -1546,12 +1553,24 @@
         "118",
         0
       ],
+      "guide_size": [
+        "133",
+        0
+      ],
+      "max_size": [
+        "134",
+        0
+      ],
       "seed": [
         "8",
         0
       ],
       "denoise": [
         "60",
+        0
+      ],
+      "wildcard": [
+        "135",
         0
       ]
     },
@@ -1563,7 +1582,7 @@
   "120": {
     "inputs": {
       "image": [
-        "119",
+        "141",
         0
       ]
     },
@@ -1721,6 +1740,198 @@
     "class_type": "MpiBooleanCompare",
     "_meta": {
       "title": "Keep Source Canvas"
+    }
+  },
+  "131": {
+    "inputs": {
+      "int": 1024
+    },
+    "class_type": "MpiInt",
+    "_meta": {
+      "title": "Input_Tile_Size"
+    }
+  },
+  "132": {
+    "inputs": {
+      "int": 205
+    },
+    "class_type": "MpiInt",
+    "_meta": {
+      "title": "Input_Tile_Overlap"
+    }
+  },
+  "133": {
+    "inputs": {
+      "float": 1024
+    },
+    "class_type": "MpiFloat",
+    "_meta": {
+      "title": "Input_Tile_Guide"
+    }
+  },
+  "134": {
+    "inputs": {
+      "float": 1536
+    },
+    "class_type": "MpiFloat",
+    "_meta": {
+      "title": "Input_Tile_Max"
+    }
+  },
+  "135": {
+    "inputs": {
+      "string": ""
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Input_Tile_Prompts"
+    }
+  },
+  "136": {
+    "inputs": {
+      "model_name": "bbox/person_yolov8n-seg.pt"
+    },
+    "class_type": "UltralyticsDetectorProvider",
+    "_meta": {
+      "title": "UltralyticsDetectorProvider"
+    }
+  },
+  "137": {
+    "inputs": {
+      "threshold": 0.5,
+      "dilation": 10,
+      "crop_factor": 1.5,
+      "drop_size": 10,
+      "labels": "all",
+      "bbox_detector": [
+        "136",
+        0
+      ],
+      "image": [
+        "116",
+        0
+      ]
+    },
+    "class_type": "BboxDetectorSEGS",
+    "_meta": {
+      "title": "BBOX Detector (SEGS)"
+    }
+  },
+  "138": {
+    "inputs": {
+      "guide_size": 1024,
+      "guide_size_for": true,
+      "max_size": 1536,
+      "steps": 15,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 0.25,
+      "feather": 10,
+      "noise_mask": true,
+      "force_inpaint": true,
+      "wildcard": "",
+      "refiner_ratio": 0.2,
+      "cycle": 1,
+      "inpaint_model": false,
+      "noise_mask_feather": 10,
+      "tiled_encode": false,
+      "tiled_decode": false,
+      "image": [
+        "119",
+        0
+      ],
+      "segs": [
+        "137",
+        0
+      ],
+      "basic_pipe": [
+        "118",
+        0
+      ],
+      "seed": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "DetailerForEachPipe",
+    "_meta": {
+      "title": "People detailer"
+    }
+  },
+  "139": {
+    "inputs": {
+      "model_name": "bbox/face_yolov8n.pt"
+    },
+    "class_type": "UltralyticsDetectorProvider",
+    "_meta": {
+      "title": "UltralyticsDetectorProvider"
+    }
+  },
+  "140": {
+    "inputs": {
+      "threshold": 0.5,
+      "dilation": 10,
+      "crop_factor": 3,
+      "drop_size": 10,
+      "labels": "all",
+      "bbox_detector": [
+        "139",
+        0
+      ],
+      "image": [
+        "138",
+        0
+      ]
+    },
+    "class_type": "BboxDetectorSEGS",
+    "_meta": {
+      "title": "BBOX Detector (SEGS)"
+    }
+  },
+  "141": {
+    "inputs": {
+      "guide_size": 1024,
+      "guide_size_for": true,
+      "max_size": 1536,
+      "steps": 15,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "feather": 10,
+      "noise_mask": true,
+      "force_inpaint": true,
+      "wildcard": "",
+      "refiner_ratio": 0.2,
+      "cycle": 1,
+      "inpaint_model": false,
+      "noise_mask_feather": 10,
+      "tiled_encode": false,
+      "tiled_decode": false,
+      "image": [
+        "138",
+        0
+      ],
+      "segs": [
+        "140",
+        0
+      ],
+      "basic_pipe": [
+        "118",
+        0
+      ],
+      "seed": [
+        "8",
+        0
+      ],
+      "denoise": [
+        "60",
+        0
+      ]
+    },
+    "class_type": "DetailerForEachPipe",
+    "_meta": {
+      "title": "Face detailer"
     }
   }
 }

@@ -1645,15 +1645,15 @@ export const MpiGalleryBlock = ComponentFactory.create({
 
                 // Placeholder ratio rules:
                 //   - Ratio-control ops (t2i, i2i, t2v, i2v): use injected Width/Height.
-                //   - Grid-mode upscale (Auto_Grid=true): keep square (1024) since
+                //   - Tile upscale (Input_Tile_Upscale=true): keep square (1024) since
                 //     tile previews arrive mixed shapes and a stable square box
                 //     is the best fit until completion overwrites dims.
-                //   - No-ratio-control ops without grid (upscale/detail/change/
+                //   - No-ratio-control ops without tiles (upscale/detail/change/
                 //     remove/edit): leave 0/0 so the card adopts input thumb aspect
                 //     via _cacheLoadedAspectRatio.
-                const gridActive = injectionParams.Auto_Grid === true;
-                const placeholderW = injectionParams.Width  || (gridActive ? 1024 : 0);
-                const placeholderH = injectionParams.Height || (gridActive ? 1024 : 0);
+                const tilesActive = injectionParams.Input_Tile_Upscale === true;
+                const placeholderW = injectionParams.Width  || (tilesActive ? 1024 : 0);
+                const placeholderH = injectionParams.Height || (tilesActive ? 1024 : 0);
 
                 const mkPlaceholder = (id) => ({
                     id,

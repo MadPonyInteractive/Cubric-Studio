@@ -78,7 +78,8 @@ export function buildWeightMap(workflow) {
             classType === 'MaskDetailerPipe' ||
             classType === 'FaceDetailer' ||
             classType === 'DetailerForEach' ||
-            classType === 'DetailerForEachDebug'
+            classType === 'DetailerForEachDebug' ||
+            classType === 'DetailerForEachPipe'
         ) {
             // One sampler pass per detected segment (detail area). Step-emitting;
             // the segment count comes at runtime from "# of Detected SEGS: N".

@@ -2365,15 +2365,12 @@
   },
   "717": {
     "inputs": {
-      "guide_size": 1024,
       "guide_size_for": true,
-      "max_size": 1536,
       "sampler_name": "euler",
       "scheduler": "beta",
       "feather": 10,
       "noise_mask": true,
       "force_inpaint": true,
-      "wildcard": "",
       "refiner_ratio": 0.2,
       "cycle": 1,
       "inpaint_model": false,
@@ -2392,6 +2389,14 @@
         "734",
         0
       ],
+      "guide_size": [
+        "755",
+        0
+      ],
+      "max_size": [
+        "756",
+        0
+      ],
       "seed": [
         "503",
         0
@@ -2407,23 +2412,37 @@
       "denoise": [
         "502",
         0
+      ],
+      "wildcard": [
+        "757",
+        0
       ]
     },
     "class_type": "DetailerForEachPipe",
     "_meta": {
-      "title": "Tile detailer (Klein 9B)"
+      "title": "Tile detailer"
     }
   },
   "719": {
     "inputs": {
-      "bbox_size": 1024,
       "crop_factor": 1.5,
-      "min_overlap": 200,
       "filter_segs_dilation": 30,
       "mask_irregularity": 0.7,
       "irregular_mask_mode": "Reuse fast",
       "images": [
         "720",
+        0
+      ],
+      "filter_out_segs_opt": [
+        "759",
+        0
+      ],
+      "bbox_size": [
+        "753",
+        0
+      ],
+      "min_overlap": [
+        "754",
         0
       ]
     },
@@ -2583,7 +2602,7 @@
         0
       ],
       "false": [
-        "717",
+        "763",
         0
       ],
       "boolean": [
@@ -2652,6 +2671,210 @@
     "class_type": "MpiIfElse",
     "_meta": {
       "title": "Mpi If Else"
+    }
+  },
+  "753": {
+    "inputs": {
+      "int": 1024
+    },
+    "class_type": "MpiInt",
+    "_meta": {
+      "title": "Input_Tile_Size"
+    }
+  },
+  "754": {
+    "inputs": {
+      "int": 205
+    },
+    "class_type": "MpiInt",
+    "_meta": {
+      "title": "Input_Tile_Overlap"
+    }
+  },
+  "755": {
+    "inputs": {
+      "float": 1024
+    },
+    "class_type": "MpiFloat",
+    "_meta": {
+      "title": "Input_Tile_Guide"
+    }
+  },
+  "756": {
+    "inputs": {
+      "float": 1536
+    },
+    "class_type": "MpiFloat",
+    "_meta": {
+      "title": "Input_Tile_Max"
+    }
+  },
+  "757": {
+    "inputs": {
+      "string": ""
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Input_Tile_Prompts"
+    }
+  },
+  "758": {
+    "inputs": {
+      "model_name": "bbox/person_yolov8n-seg.pt"
+    },
+    "class_type": "UltralyticsDetectorProvider",
+    "_meta": {
+      "title": "UltralyticsDetectorProvider"
+    }
+  },
+  "759": {
+    "inputs": {
+      "threshold": 0.5,
+      "dilation": 10,
+      "crop_factor": 1.5,
+      "drop_size": 10,
+      "labels": "all",
+      "bbox_detector": [
+        "758",
+        0
+      ],
+      "image": [
+        "720",
+        0
+      ]
+    },
+    "class_type": "BboxDetectorSEGS",
+    "_meta": {
+      "title": "BBOX Detector (SEGS)"
+    }
+  },
+  "760": {
+    "inputs": {
+      "guide_size": 1024,
+      "guide_size_for": true,
+      "max_size": 1536,
+      "sampler_name": "euler",
+      "scheduler": "beta",
+      "denoise": 0.25,
+      "feather": 10,
+      "noise_mask": true,
+      "force_inpaint": true,
+      "wildcard": "",
+      "refiner_ratio": 0.2,
+      "cycle": 1,
+      "inpaint_model": false,
+      "noise_mask_feather": 10,
+      "tiled_encode": false,
+      "tiled_decode": false,
+      "image": [
+        "717",
+        0
+      ],
+      "segs": [
+        "759",
+        0
+      ],
+      "basic_pipe": [
+        "734",
+        0
+      ],
+      "seed": [
+        "503",
+        0
+      ],
+      "steps": [
+        "725",
+        0
+      ],
+      "cfg": [
+        "726",
+        0
+      ]
+    },
+    "class_type": "DetailerForEachPipe",
+    "_meta": {
+      "title": "People detailer"
+    }
+  },
+  "761": {
+    "inputs": {
+      "model_name": "bbox/face_yolov8n.pt"
+    },
+    "class_type": "UltralyticsDetectorProvider",
+    "_meta": {
+      "title": "UltralyticsDetectorProvider"
+    }
+  },
+  "762": {
+    "inputs": {
+      "threshold": 0.5,
+      "dilation": 10,
+      "crop_factor": 3,
+      "drop_size": 10,
+      "labels": "all",
+      "bbox_detector": [
+        "761",
+        0
+      ],
+      "image": [
+        "760",
+        0
+      ]
+    },
+    "class_type": "BboxDetectorSEGS",
+    "_meta": {
+      "title": "BBOX Detector (SEGS)"
+    }
+  },
+  "763": {
+    "inputs": {
+      "guide_size": 1024,
+      "guide_size_for": true,
+      "max_size": 1536,
+      "sampler_name": "euler",
+      "scheduler": "beta",
+      "feather": 10,
+      "noise_mask": true,
+      "force_inpaint": true,
+      "wildcard": "",
+      "refiner_ratio": 0.2,
+      "cycle": 1,
+      "inpaint_model": false,
+      "noise_mask_feather": 10,
+      "tiled_encode": false,
+      "tiled_decode": false,
+      "image": [
+        "760",
+        0
+      ],
+      "segs": [
+        "762",
+        0
+      ],
+      "basic_pipe": [
+        "734",
+        0
+      ],
+      "seed": [
+        "503",
+        0
+      ],
+      "steps": [
+        "725",
+        0
+      ],
+      "cfg": [
+        "726",
+        0
+      ],
+      "denoise": [
+        "502",
+        0
+      ]
+    },
+    "class_type": "DetailerForEachPipe",
+    "_meta": {
+      "title": "Face detailer"
     }
   }
 }

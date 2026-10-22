@@ -13,6 +13,7 @@
 
 import { MpiOptionSelector } from '../../Compounds/MpiOptionSelector/MpiOptionSelector.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
+import { MpiCheckbox } from '../../Primitives/MpiCheckbox/MpiCheckbox.js';
 import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
 import { MpiStylePicker } from '../../Primitives/MpiStylePicker/MpiStylePicker.js';
 import { MpiProgressBar } from '../../Primitives/MpiProgressBar/MpiProgressBar.js';
@@ -25,7 +26,7 @@ import { PROMPT_CONTROL_DEFAULTS } from '../../../data/promptControlDefaults.js'
 import { Events } from '../../../events.js';
 import { getModelRatios, usesQualityTier } from '../../../utils/ratios.js';
 import { durationRangeFor } from '../../../data/modelConstants/deepinfraSizing.js';
-import { tileCount } from '../../../utils/tileCount.js';
+import { tileCount, overlapFor } from '../../../utils/tileCount.js';
 import { imageSize } from '../../../utils/upscaleLimit.js';
 import { fixedDurationFor } from '../../../data/modelConstants/deepinfraPricing.js';
 // MPI-547 — the qualityTier resolve (per-model bucket wins, legacy shared
@@ -33,7 +34,7 @@ import { fixedDurationFor } from '../../../data/modelConstants/deepinfraPricing.
 // are shared with `js/shell/agentDispatch.js`'s named-param resolver via this
 // ONE module, so an agent submit can never silently resolve a different tier
 // than this control shows (see generationControls.js's own module comment).
-import { resolveEffectiveQualityTier, resolveThreeLayerDefault, modelTakesBoxes } from '../../../data/generationControls.js';
+import { resolveEffectiveQualityTier, resolveThreeLayerDefault, modelTakesBoxes, denoiseDefaultFor, modelShowsTiles } from '../../../data/generationControls.js';
 
 // ── Scope helpers ─────────────────────────────────────────────────────────────
 //
@@ -762,61 +763,8 @@ export const PROMPT_BOX_CONTROLS = {
     },
 
     /**
-     * useGrid — Grid upscaling toggle for model-tied `upscale` op.
-     * Injects boolean into node titled "Auto_Grid". Persists per-model under
-     * modelSettings[modelId].useGrid.
-     */
-    useGrid: {
-        nodeTitle: 'Input_Auto_Grid',
-        scope: 'perOp',
-        defaultValue: PROMPT_CONTROL_DEFAULTS.useGrid,
-        mount(hostEl, opts = {}) {
-            const saved = _readSaved(this, opts);
-            // Tiles is shared across models, Grid is per model: Tiles on wins (MPI-1038).
-            const tilesOn = opts.model?.capabilities?.tileUpscale === true && _readSaved({ scope: 'shared' }, opts).useTiles === true;
-            const initialActive = saved.useGrid === true && !tilesOn;
-            this.value = initialActive;
-
-            this._instance = MpiButton.mount(hostEl, {
-                icon: 'grid',
-                label: 'Use Grid',
-                labelPosition: 'right',
-                size: 'sm',
-                variant: 'primary',
-                toggleable: true,
-                active: initialActive,
-                info: 'Use grid — tile-based upscaling for higher detail',
-            });
-
-            this._instance.on('click', ({ active }) => {
-                this.value = !!active;
-                _emitUpdate(this, opts, 'useGrid', !!active);
-                Events.emit('promptbox:upscale-split', { modelId: opts.model?.id, by: 'grid', active: !!active });
-            });
-
-            // Grid and Tiles are two ways to split the same upscale: one on turns the other off.
-            this._unsubSplit = Events.on('promptbox:upscale-split', ({ modelId, by, active }) => {
-                if (by !== 'tiles' || !active || modelId !== opts.model?.id || !this.value) return;
-                this.value = false;
-                this._instance?.el?.setActive?.(false);
-                _emitUpdate(this, opts, 'useGrid', false);
-            });
-        },
-        destroy() {
-            this._unsubSplit?.();
-            this._unsubSplit = null;
-        },
-        getValue() {
-            return this.value === true;
-        },
-        getInjectionParams() {
-            return { Input_Auto_Grid: this.value === true };
-        },
-    },
-
-    /**
      * useTiles — the upscale op's tile path (MPI-1038): the picture is enlarged, cut into
-     * 1024 px Impact tiles and each tile is redrawn by the model's own detailer settings,
+     * tiles and each tile is redrawn by the model's own detailer settings,
      * blended through cloud masks so no seam shows. Injects `Input_Tile_Upscale`, which
      * switches the graph's `upscale` output between the Grid path and the tiles.
      * Capability-gated (`tileUpscale`): only a graph carrying the "Tile Upscale" group.
@@ -847,13 +795,122 @@ export const PROMPT_BOX_CONTROLS = {
                 _emitUpdate(this, opts, 'useTiles', !!active);
                 Events.emit('promptbox:upscale-split', { modelId: opts.model?.id, by: 'tiles', active: !!active });
             });
+        },
+        destroy() {
+        },
+        getValue() {
+            return this.value === true;
+        },
+        getInjectionParams() {
+            return { Input_Tile_Upscale: this.value === true };
+        },
+    },
+
+    /**
+     * tileSize — Tile bbox size picker shown while Use Tiles is on (MPI-1232).
+     * Options: 256 / 512 / 768 / 1024 / 1536 px; default 1024.
+     * The label carries the live tile count (identical to the Upscale · N tiles label).
+     * Injects Input_Tile_Size. Shared scope: a tile-size preference holds across models.
+     */
+    tileSize: {
+        nodeTitle: 'Input_Tile_Size',
+        scope: 'shared',
+        defaultValue: PROMPT_CONTROL_DEFAULTS.tileSize,
+        mount(hostEl, opts = {}) {
+            const saved = _readSaved(this, opts);
+            const tilesOn = opts.model?.capabilities?.tileUpscale === true && _readSaved({ scope: 'shared' }, opts).useTiles === true;
+            this.value = Number(saved.tileSize) || PROMPT_CONTROL_DEFAULTS.tileSize;
+
+            hostEl.className = 'mpi-prompt-box__slider-control';
+            hostEl.style.display = tilesOn ? '' : 'none';
+
+            const lblRow = document.createElement('div');
+            lblRow.className = 'mpi-prompt-box__slider-lbl';
+            const nameEl = document.createElement('span');
+            nameEl.className = 'mpi-prompt-box__slider-name';
+            lblRow.appendChild(nameEl);
+            hostEl.appendChild(lblRow);
+
+            const radioHost = document.createElement('div');
+            hostEl.appendChild(radioHost);
+
+            this._renderLabel = () => {
+                const up = PROMPT_BOX_CONTROLS.upscaleFactor;
+                const factor = typeof up?.value === 'number' ? up.value : (PROMPT_CONTROL_DEFAULTS.upscaleFactor);
+                const sz = this.value || PROMPT_CONTROL_DEFAULTS.tileSize;
+                const n = up?._size ? tileCount(up._size.width, up._size.height, factor, { bbox: sz, overlap: overlapFor(sz) }) : 0;
+                nameEl.textContent = n ? `Tile size · up to ${n} tile${n === 1 ? '' : 's'}` : 'Tile size';
+            };
+
+            const TILE_OPTIONS = [256, 512, 768, 1024, 1536];
+            this._instance = MpiRadioGroup.mount(radioHost, {
+                options: TILE_OPTIONS.map(v => ({ label: String(v), value: String(v) })),
+                value: String(this.value),
+                name: 'tileSize',
+                size: 'sm',
+                columns: TILE_OPTIONS.length,
+                info: 'Tile bbox size in pixels',
+            });
+            this._instance.on('select', ({ value }) => {
+                const v = Number(value);
+                if (!TILE_OPTIONS.includes(v)) return;
+                this.value = v;
+                _emitUpdate(this, opts, 'tileSize', v);
+                this._renderLabel();
+                // let upscaleFactor re-render its count too
+                PROMPT_BOX_CONTROLS.upscaleFactor._renderLabel?.();
+            });
+            this._renderLabel();
 
             this._unsubSplit = Events.on('promptbox:upscale-split', ({ modelId, by, active }) => {
-                if (by !== 'grid' || !active || modelId !== opts.model?.id || !this.value) return;
-                this.value = false;
-                this._instance?.el?.setActive?.(false);
-                _emitUpdate(this, opts, 'useTiles', false);
-                Events.emit('promptbox:upscale-split', { modelId, by: 'tiles', active: false });
+                if (by !== 'tiles' || modelId !== opts.model?.id) return;
+                hostEl.style.display = active ? '' : 'none';
+                if (active) this._renderLabel();
+            });
+        },
+        destroy() {
+            this._unsubSplit?.();
+            this._unsubSplit = null;
+            this._renderLabel = null;
+        },
+        getValue() {
+            return this.value ?? this.defaultValue;
+        },
+        getInjectionParams() {
+            return { Input_Tile_Size: this.value ?? this.defaultValue };
+        },
+    },
+
+    /**
+     * tileDescribe — "Describe each tile" checkbox shown while Use Tiles is on (MPI-1232).
+     * Default on. Phase 3 builds the describer; for now the value is saved only.
+     * Does NOT inject Input_Tile_Prompts (Phase 3 will).
+     */
+    tileDescribe: {
+        nodeTitle: null,
+        scope: 'shared',
+        defaultValue: PROMPT_CONTROL_DEFAULTS.tileDescribe,
+        mount(hostEl, opts = {}) {
+            const saved = _readSaved(this, opts);
+            const tilesOn = opts.model?.capabilities?.tileUpscale === true && _readSaved({ scope: 'shared' }, opts).useTiles === true;
+            this.value = saved.tileDescribe !== undefined ? saved.tileDescribe === true : PROMPT_CONTROL_DEFAULTS.tileDescribe;
+
+            hostEl.style.display = tilesOn ? '' : 'none';
+
+            this._instance = MpiCheckbox.mount(hostEl, {
+                checked: this.value,
+                label: 'Describe each tile',
+                name: 'tileDescribe',
+                info: 'Names each tile in a few words. People and faces are never described.',
+            });
+            this._instance.on('change', ({ checked }) => {
+                this.value = !!checked;
+                _emitUpdate(this, opts, 'tileDescribe', !!checked);
+            });
+
+            this._unsubSplit = Events.on('promptbox:upscale-split', ({ modelId, by, active }) => {
+                if (by !== 'tiles' || modelId !== opts.model?.id) return;
+                hostEl.style.display = active ? '' : 'none';
             });
         },
         destroy() {
@@ -861,10 +918,11 @@ export const PROMPT_BOX_CONTROLS = {
             this._unsubSplit = null;
         },
         getValue() {
-            return this.value === true;
+            return this.value !== false;
         },
         getInjectionParams() {
-            return { Input_Tile_Upscale: this.value === true };
+            // Phase 3 fills Input_Tile_Prompts from tileDescribe; do not inject here.
+            return {};
         },
     },
 
@@ -901,8 +959,13 @@ export const PROMPT_BOX_CONTROLS = {
             hostEl.appendChild(radioHost);
 
             this._renderLabel = () => {
-                const n = tiles && this._size ? tileCount(this._size.width, this._size.height, this.value) : 0;
-                nameEl.textContent = n ? `Upscale · ${n} tile${n === 1 ? '' : 's'}` : 'Upscale';
+                if (tiles && this._size) {
+                    const sz = PROMPT_BOX_CONTROLS.tileSize?.value ?? PROMPT_CONTROL_DEFAULTS.tileSize;
+                    const n = tileCount(this._size.width, this._size.height, this.value, { bbox: sz, overlap: overlapFor(sz) });
+                    nameEl.textContent = n ? `Upscale · up to ${n} tile${n === 1 ? '' : 's'}` : 'Upscale';
+                } else {
+                    nameEl.textContent = 'Upscale';
+                }
             };
 
             // The group renders its options once, so a tiles flip re-mounts it.
@@ -967,9 +1030,11 @@ export const PROMPT_BOX_CONTROLS = {
 
     /**
      * denoise — Denoise strength slider (float, 0..1, step 0.01) for per-op use.
-     * Currently driven by `upscale` (default 0.20) and `detail` (default 0.30).
-     * Injects float into node titled "Denoise". Persists per-op under
-     * modelSettings[modelId].operations[opName].denoise.
+     * Currently driven by `upscale` (default 0.20, or 0.30 when tiles is on) and
+     * `detail` (default 0.30). Injects float into node titled "Denoise". Persists
+     * per-op under modelSettings[modelId].operations[opName].denoise.
+     * MPI-1232: when the Use Tiles toggle fires and no denoise is saved for this op,
+     * the slider moves to the tile-aware default (denoiseDefaultFor).
      */
     denoise: {
         nodeTitle: 'Input_Denoise',
@@ -977,7 +1042,11 @@ export const PROMPT_BOX_CONTROLS = {
         defaultValue: PROMPT_CONTROL_DEFAULTS.denoise, // fallback only; per-op override via commandRegistry.commands[op].defaults
         mount(hostEl, opts = {}) {
             const saved = _readSaved(this, opts);
-            const fallback = _resolveDefault(this, 'denoise', opts);
+            // tiles state from the shared bucket — same source as the useTiles control.
+            // _readSaved({ scope: 'shared' }, opts) is safe when state.currentProject is null.
+            const sharedNow = _readSaved({ scope: 'shared' }, opts);
+            const tilesNow = modelShowsTiles(opts.model, opts.opName) && !!sharedNow.useTiles;
+            const fallback = denoiseDefaultFor(opts.opName, tilesNow);
             const savedNum = Number(saved.denoise ?? fallback);
             const initial = Number.isFinite(savedNum) ? Math.min(1, Math.max(0, savedNum)) : fallback;
             this.value = initial;
@@ -1027,6 +1096,19 @@ export const PROMPT_BOX_CONTROLS = {
                 _renderLabel(v);
                 _emitUpdate(this, opts, 'denoise', v);
             });
+
+            // MPI-1232: when tiles flips and no denoise is saved, move slider to the
+            // tile-aware default (0.3 on / 0.2 off) so the PromptBox and the agent
+            // path use the same value.
+            this._unsubSplit = Events.on('promptbox:upscale-split', ({ modelId, by, active }) => {
+                if (by !== 'tiles' || modelId !== opts.model?.id) return;
+                const hasSaved = typeof saved.denoise === 'number' && Number.isFinite(saved.denoise);
+                if (hasSaved) return;
+                const newDefault = denoiseDefaultFor(opts.opName, !!active);
+                this.value = newDefault;
+                this._instance.el?.setValueQuiet(newDefault);
+                _renderLabel(newDefault);
+            });
         },
         getValue() {
             return this.value ?? this.defaultValue;
@@ -1034,6 +1116,11 @@ export const PROMPT_BOX_CONTROLS = {
         getInjectionParams() {
             const v = Math.min(1, Math.max(0, Number(this.value ?? this.defaultValue) || 0));
             return { Denoise: v };
+        },
+        destroy() {
+            this._instance?.destroy?.();
+            this._unsubSplit?.();
+            this._unsubSplit = null;
         },
     },
 
@@ -2185,6 +2272,9 @@ export function visibleControlIds(model, operation, ctx = {}) {
         // Use Tiles (MPI-1038) needs the graph's "Tile Upscale" group and its
         // Input_Tile_Upscale switch; a model opts in once its template carries them.
         if (id === 'useTiles' && model?.capabilities?.tileUpscale !== true) return false;
+
+        // Tile size + Describe each tile (MPI-1232): only when the model has the tile group.
+        if ((id === 'tileSize' || id === 'tileDescribe') && model?.capabilities?.tileUpscale !== true) return false;
 
         // No Background (MPI-1049): only a model that says how to ask for alpha.
         if (id === 'transparentBackground' && !model?.transparentPrompt) return false;
