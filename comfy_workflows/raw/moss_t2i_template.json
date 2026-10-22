@@ -8825,12 +8825,12 @@
       "widgets_values": [
         "",
         "",
-        ""
+        ", "
       ],
       "widgets_values_named": {
         "string_a": "",
         "string_b": "",
-        "delimiter": ""
+        "delimiter": ", "
       }
     },
     {
