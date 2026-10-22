@@ -1,0 +1,8 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "tests/helpers/sandbox-roots.cjs",
+    "tests/sandbox-roots-hygiene.test.cjs",
+    ".agents/mpi-kanban/tasks/MPI-1240/"
+  ]
+}

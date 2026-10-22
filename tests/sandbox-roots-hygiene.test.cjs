@@ -17,7 +17,9 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
+const { execFileSync } = require('child_process');
 
 const TESTS_DIR = __dirname;
 
@@ -35,4 +37,24 @@ test('a test that pins the models root must pin the engine root too', () => {
     }
     assert.deepEqual(offenders, [], 'these tests read the real models library through '
         + 'getCustomRoot() — require("./helpers/sandbox-roots.cjs") before any app require');
+});
+
+// MPI-1240: a root inherited from the shell (CUBRIC_MODELS_ROOT is a user env var on the dev
+// machine) is the REAL library. The helper must swap it for a temp root, never adopt and delete it.
+test('the helper never adopts or deletes an inherited root outside the temp dir', () => {
+    const canary = fs.mkdtempSync(path.join(path.dirname(__dirname), '.mpi1240-canary-'));
+    try {
+        fs.writeFileSync(path.join(canary, 'weight.safetensors'), 'real');
+        const helper = path.join(__dirname, 'helpers', 'sandbox-roots.cjs');
+        const out = execFileSync(process.execPath,
+            ['-e', `const r = require(${JSON.stringify(helper)}); console.log(JSON.stringify(r));`],
+            { env: { ...process.env, CUBRIC_MODELS_ROOT: canary, CUBRIC_ENGINE_ROOT: canary }, encoding: 'utf8' });
+        const { ROOT, ENGINE } = JSON.parse(out);
+        assert.ok(fs.existsSync(path.join(canary, 'weight.safetensors')), 'the helper deleted the inherited real root');
+        for (const dir of [ROOT, ENGINE]) {
+            assert.ok(!path.relative(os.tmpdir(), dir).startsWith('..'), `${dir} is not a temp dir`);
+        }
+    } finally {
+        fs.rmSync(canary, { recursive: true, force: true });
+    }
 });

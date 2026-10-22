@@ -18,14 +18,24 @@
  *
  * Both env vars are captured at module load by routes/shared.js and read at call
  * time by routes/platformEngine.js, so this must run before those are required.
- * Already-set values win: a test with its own root keeps it.
+ * An already-set root wins ONLY inside the temp dir: a test with its own temp root keeps it.
+ * Anything else was inherited from the shell, i.e. the developer's REAL root, and the exit
+ * hook below deletes whatever ROOT is. MPI-1240: `CUBRIC_MODELS_ROOT=M:/CubricModels` became
+ * a user env var on 2026-10-21, `orphan-sweep` and two other files adopted it, swept it and
+ * deleted the whole local model store on exit. CI never saw it: the runner has no such var.
  */
 const os = require('os');
 const path = require('path');
 const fs = require('fs');
 
+const TMP = path.resolve(os.tmpdir());
+const inTmp = (p) => {
+    const rel = path.relative(TMP, path.resolve(p));
+    return !!rel && !rel.startsWith('..') && !path.isAbsolute(rel);
+};
+
 const set = (name, dir) => {
-    if (!process.env[name]) process.env[name] = dir;
+    if (!process.env[name] || !inTmp(process.env[name])) process.env[name] = dir;
     return process.env[name];
 };
 
