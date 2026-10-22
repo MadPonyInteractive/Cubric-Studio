@@ -34,6 +34,11 @@ the verdict opens the add-model card.
 
 ## Current State
 
+2026-10-22 (Moss image 3): step 5 run 2 DONE - 24/24 success under the lease, numbers + contact sheet +
+recommendation (WIRE: turbo euler 8 steps ~6 s bar, SFT 25 steps ~27 s, ~7-8 GB warm / ~12.2 GB cold VRAM) in
+`validation.md`. Card at `validating`: waiting on Fabio's eye on `research/bench/run2_grid.jpg` and his go to open
+the `/mpi-add-model` card. Video research (side session) saved at the scratchpad path in the session notes; its
+bench asks (CFG 3.0, 2-4 MP, small text, Spectrum on SFT) are listed in validation.md as add-model open items.
 2026-10-22 (Moss image 2): raw copied, weights on G:/models. Step 4 DONE by the agent on Fabio's explicit
 go ("you can apply them yourself"): 7 nodes' `widgets_values` + `widgets_values_named` only, no wiring or
 node changes; compact `ensure_ascii=False` dump round-trips the minified raw byte-identical (asserted before
