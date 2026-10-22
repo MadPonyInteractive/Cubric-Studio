@@ -95,6 +95,19 @@ squirrel x.31 y.85 on all. New unit test pins the sky case for all three keys.
 ComfyUI describer cap 512 -> 1024 (node 36): answers ran 550-950 tokens, 512 cut the JSON.
 NOT run: the local ComfyUI qwen3-vl 4B on the new question (needs the GPU, Fabio rendering).
 
+## Fabio's check + rework 5 (2026-10-23)
+
+Fabio, own app, Gemma 4 26B: meadow picture and a 9:16 storefront both "10 times faster.
+And 100% correct" (boxes on the girl, squirrel, sign, window, people).
+- Caption: a second Create boxes kept the FIRST picture's caption (empty-prompt rule). Now
+  the caption also replaces the last one Create boxes wrote itself (`_autoCaption`); a typed
+  or edited prompt stays. Live, stubbed describer: run 1 wrote caption 1, run 2 replaced it,
+  run 3 after an edit left "caption 2 + my edit".
+- "Cubric" read as "Cubic": Gemma 4 on `FLUX3 Flow Bench/Media/t2i_007.png`, 4 paid runs
+  (~$0.001): the shipped question 2/2 "Cubic Studio", plus "copy lettering letter by letter,
+  even when not a real word" 2/2 "Cubic Studio". A model misread, not a wording one: not shipped.
+  The desc field is editable.
+
 ## Not this card
 
 Prism reads "cancelled" after every successful describe, the stock gallery Describe included

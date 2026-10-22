@@ -408,6 +408,7 @@ export const MpiPromptBox = ComponentFactory.create({
             _boxesBtn.el.setActive(true);
         }
         let _analysing = false;
+        let _autoCaption = null; // the last caption Create boxes wrote into the prompt
         // While the layout picture is loaded the box stays on t2i: the other ops grey out and a
         // picture added to the box is refused, until the panel's Remove picture (Fabio, 2026-10-22).
         const _layoutLocked = () => !!_boxesGuide && activeOperation === 't2i';
@@ -439,7 +440,11 @@ export const MpiPromptBox = ComponentFactory.create({
                 el.refreshControls(); // remounts the controls; the boxes are set after
             }
             _boxesCtrl()?.setValue(found.boxes);
-            if (!positiveValue.trim() && found.caption) {
+            // The caption goes into an empty prompt, or over the last one Create boxes wrote
+            // itself; a prompt the user typed or edited stays.
+            const prompt = positiveValue.trim();
+            if ((!prompt || prompt === _autoCaption) && found.caption) {
+                _autoCaption = found.caption.trim();
                 _writeMode(found.caption, 'positive');
                 if (promptMode === 'positive') { textareaEl.value = found.caption; updateHeight(); }
                 emit('input', { positive: positiveValue, negative: negativeValue, negativeAudio: negativeAudioValue, activeMode: promptMode });
