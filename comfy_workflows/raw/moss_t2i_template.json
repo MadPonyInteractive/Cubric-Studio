@@ -12181,7 +12181,7 @@
         "randomize",
         50,
         1,
-        "euler",
+        "er_sde",
         "simple",
         1
       ],
@@ -12190,7 +12190,7 @@
         "control_after_generate": "randomize",
         "steps": 50,
         "cfg": 1,
-        "sampler_name": "euler",
+        "sampler_name": "er_sde",
         "scheduler": "simple",
         "denoise": 1
       }
