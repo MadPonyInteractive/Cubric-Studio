@@ -122,3 +122,9 @@ Official 2.5 example workflows live in ComfyUI-LTXVideo `example_workflows/2.5/`
    voice side by side with 2.3 (same prompts, seeds).
 3. Per baked LoRA: run the 2.3 file on 2.5, by eye; drop or keep.
 4. Then `/mpi-add-model` with `devOnly: true`.
+
+## Bench setup (2026-10-22, session "LTX 2.5 model 2")
+
+- HF token: `C:/Users/Fabio/.secrets/hf.txt` (Mad-Pony-Interactive) reads both gated repos (200); the ambient `~/.cache/huggingface/token` (MadPonyInteractive) gets 403.
+- Downloader: `research/bench/dl.py` (hf_hub_download, resumes from `.incomplete`). DONE: duration head, 2.5 audio VAE, both 2.5 video VAEs, 2.5 + 2.3 spatial upscalers (in `G:/ComfyUi/ComfyUI/models/{model_patches,latent_upscale_models}`, G:/models has no mapping for those), 2.5 Ingredients (`G:/models/loras/ltx-2.5/`). PAUSED at Fabio's request (his app downloads): Gemma 4 int8 (4.5/15.4 GB), 2.5 int8 transformer, 2.3 int8 transformer (Kijai/LTX2.3_comfy; no 2.3 transformer left on any local drive).
+- Bench driver: `research/bench/ltx25_bench.py` (shipped int8 runtime graph, 6 loaders re-pointed, Gemma 4 via CLIPLoader since the projection is bundled; 8 cases x variants 23/25/25d/25bare; `--check` passes). Run under `gpu_lease.py run --poll 2`.
