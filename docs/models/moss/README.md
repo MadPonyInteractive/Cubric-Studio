@@ -21,6 +21,7 @@ graph branches (Fabio, 2026-10-22). No `edit`: nothing in MOSS reads a reference
 | Settings | Shared KSampler `er_sde`/`simple` for both weights. Turbo on euler was the same quality, ~1 s faster per image; not switched (it needs a graph change). i2i (`er_sde`/`beta`) and inpaint (LanPaint) take the t2i steps (8 / 25); detail and upscale take FLUX.3's `MpiMath` steps `8 if a else 15` |
 | Progress | No `progressStages` entry: detail and upscale vary the bar count, so `single: 1` would read "Stage 3/1" (same as FLUX.3 and Chroma) |
 | Boxes | `layoutBoxes: { ops: ['t2i'], format: 'moss' }`. The app replaces the prompt with what core `MOSSImageLayoutPrompt` builds (`mossLayoutPrompt`, `js/data/layoutBoxes.js`): `summary.caption` = the prompt, one `object` item per box, pixel `yxyx` edges centred on the frame. A `<name>` in the prompt reads as the name in words. No box node in the graph. Text and character labels are not offered yet |
+| Resolution | Trained to ~1 MP: the final stage "caps target image area at" 1024² (tech report arXiv 2610.23374 § 3.3), multiples of 16. The USERGUIDE recommends 1, 1.5 or 2 MP and calls the rest extrapolation; its own examples use 1456x1456. The `2k` tier (FLUX.3's 1472², 1920x1088, ~2.1 MP) bent limbs in Fabio's renders, 1K was clean, so on 2026-10-22 MOSS went 1K only (no tier radio, orientation mode); bigger = the upscale op |
 | Speed (bench, 1024x1024, 16 GB card) | Turbo ~6 s sampler, ~11 s per image; SFT ~27 s sampler, ~31 s per image. Peak VRAM ~7-8 GB with the encoder cached, ~12.2 GB cold |
 
 ## Hard rules

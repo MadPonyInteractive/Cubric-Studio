@@ -92,4 +92,4 @@ price (~1.5 cents a sweep).
   lettering kept on all four; Turbo tiles slightly crosshatch the beard. SFT 15 steps (`MpiMath`) is enough.
 - inpaint (sign -> "FRESH FISH"): Turbo 16 s, SFT 52 s, outside the mask unchanged, text exact.
 - detail (face, 0.4): Turbo 8 s, SFT 16 s.
-- **Fabio in his own app: detail, upscale, image-to-image passed.** Inpaint still to test (his).
+- **Fabio in his own app: detail, upscale, image-to-image passed.** Inpaint passed too (2026-10-22, Moss image 7: he added a cat).

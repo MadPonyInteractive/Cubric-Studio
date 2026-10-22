@@ -93,3 +93,10 @@ Steps 1-3; step 4 recipe + guide (Stage 1 local only).
 Step 4: DeepInfra twice-green. Step 5: R2 verify, in-app runs, Fabio's eye.
 
 ## Plan Drift
+
+2026-10-22 (Moss image 7):
+- Fabio passed INPAINT (added a cat): all four ops passed in his app.
+- Fabio: signs are WANTED. Recipe v4 drops the sign ban (2 lines). Stage 1 DeepInfra 12B --runs 2: 10/10 pass.
+  Ollama is no longer an enhancer target for checks (judge still runs there, hard-wired).
+- NEXT: Fabio restarts his app, re-enhances + renders the skydiver on v4 -> verdict draft->validated
+  (+ restore the FABIO_VALIDATED line in tests/recipe-registry.test.cjs). Then mpi-end-session.

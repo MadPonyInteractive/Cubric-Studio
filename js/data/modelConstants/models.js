@@ -2240,41 +2240,23 @@ const ALL_MODELS = [
         },
         imageSizedOps: ['detail', 'upscale'],
         layoutBoxes: { ops: ['t2i'], format: 'moss' },
-        qualityTiers: ['1k', '2k'],
-        // FLUX.3's 1k/2k table (every edge /32). Benched at 1024x1024 only (MPI-1180).
+        // 1K only (Fabio 2026-10-22): MOSS is trained to ~1 MP and 2K came out with bent limbs;
+        // bigger goes through the upscale op. FLUX.3's 1k sizes (docs/models/moss/README.md).
         ratios: {
-            '1k': {
-                portrait: [
-                    { label: '1:1', w: 1024, h: 1024, icon: 'rect_1_1' },
-                    { label: '3:4', w: 896, h: 1152, icon: 'rect_3_4' },
-                    { label: '4:5', w: 896, h: 1088, icon: 'rect_4_5' },
-                    { label: '5:8', w: 800, h: 1280, icon: 'rect_5_8' },
-                    { label: '9:16', w: 768, h: 1344, icon: 'rect_9_16' },
-                ],
-                landscape: [
-                    { label: '1:1', w: 1024, h: 1024, icon: 'rect_1_1' },
-                    { label: '4:3', w: 1152, h: 896, icon: 'rect_4_3' },
-                    { label: '5:4', w: 1088, h: 896, icon: 'rect_5_4' },
-                    { label: '8:5', w: 1280, h: 800, icon: 'rect_8_5' },
-                    { label: '16:9', w: 1344, h: 768, icon: 'rect_16_9' },
-                ],
-            },
-            '2k': {
-                portrait: [
-                    { label: '1:1', w: 1472, h: 1472, icon: 'rect_1_1' },
-                    { label: '3:4', w: 1248, h: 1664, icon: 'rect_3_4' },
-                    { label: '4:5', w: 1280, h: 1600, icon: 'rect_4_5' },
-                    { label: '5:8', w: 1120, h: 1792, icon: 'rect_5_8' },
-                    { label: '9:16', w: 1088, h: 1920, icon: 'rect_9_16' },
-                ],
-                landscape: [
-                    { label: '1:1', w: 1472, h: 1472, icon: 'rect_1_1' },
-                    { label: '4:3', w: 1664, h: 1248, icon: 'rect_4_3' },
-                    { label: '5:4', w: 1600, h: 1280, icon: 'rect_5_4' },
-                    { label: '8:5', w: 1792, h: 1120, icon: 'rect_8_5' },
-                    { label: '16:9', w: 1920, h: 1088, icon: 'rect_16_9' },
-                ],
-            },
+            portrait: [
+                { label: '1:1', w: 1024, h: 1024, icon: 'rect_1_1' },
+                { label: '3:4', w: 896, h: 1152, icon: 'rect_3_4' },
+                { label: '4:5', w: 896, h: 1088, icon: 'rect_4_5' },
+                { label: '5:8', w: 800, h: 1280, icon: 'rect_5_8' },
+                { label: '9:16', w: 768, h: 1344, icon: 'rect_9_16' },
+            ],
+            landscape: [
+                { label: '1:1', w: 1024, h: 1024, icon: 'rect_1_1' },
+                { label: '4:3', w: 1152, h: 896, icon: 'rect_4_3' },
+                { label: '5:4', w: 1088, h: 896, icon: 'rect_5_4' },
+                { label: '8:5', w: 1280, h: 800, icon: 'rect_8_5' },
+                { label: '16:9', w: 1344, h: 768, icon: 'rect_16_9' },
+            ],
         },
         gen_speed: 'fast',
         description: 'MOSS-Image from OpenMOSS makes images from text, and is especially good at exact lettering: signs, posters, covers and labels come out spelled as you wrote them, even with long, detailed prompts. It also does image-to-image, inpaint, detail and upscale, but it cannot edit from a reference image. Turbo (on by default) makes an image in about ten seconds; turn it off for the slower SFT model, which is softer and more natural. Both are installed together. Apache-2.0.',

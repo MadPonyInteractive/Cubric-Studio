@@ -98,3 +98,10 @@ exact). The 4B default ComfyUI enhancer breaks three of its rules (medium openin
 unasked text). That is the small model, not the recipe: same system prompt both times.
 
 Fabio's eye: pending (the `draft -> validated` flip is his).
+
+### v4, 2026-10-22 (Moss image 7): sign rule removed
+
+Fabio: unasked signs in a scene photograph are WANTED ("they make the scene more realistic"). Dropped the
+"no sign, sticker or label" line and its check-list twin; invented dates/prices/names stay banned.
+Stage 1 on DeepInfra `google/gemma-3-12b-it` (his Enhance model), judge local gemma3:12b, `--runs 2`:
+**10/10 ALL PASS** (bare, medium, directed, overlong, general x2). Log: `.agents/mpi-kanban/tasks/MPI-1243/stage1-di12b.log`.

@@ -22,9 +22,9 @@ Not for an instruction edit or putting a reference into a picture: pick an edit 
 
 - **Turbo** (`turbo`) picks the weight: on (default) = a community Turbo merge, 8 steps, about
   ten seconds, no negative prompt; off = the official SFT model, 25 steps, about 30 seconds,
-  softer and more natural. "Better quality" is `turbo: false`, never a higher tier.
-- Tiers `1k` and `2k`: a tier is only the picture's size. The ratio is a param: never write it
-  into the prompt.
+  softer and more natural. "Better quality" is `turbo: false`.
+- One size, about 1 MP (MOSS is trained there; 2K bent limbs). A bigger picture = render, then
+  the `upscale` op. The ratio is a param: never write it into the prompt.
 - No negative prompt by default. Do not add the vendor's `nsfw, worst quality, ...` list.
 - Media roles: `t2i` takes none. `i2i`, `inpaint`, `detail` and `upscale` take one picture
   (`inputImage`); `inpaint` and `detail` run only on a painted mask, and their prompt describes
