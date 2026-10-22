@@ -1,8 +1,8 @@
 {
   "id": "518ef688-8658-4957-931a-1478aea73695",
   "revision": 0,
-  "last_node_id": 800,
-  "last_link_id": 1314,
+  "last_node_id": 801,
+  "last_link_id": 1315,
   "nodes": [
     {
       "id": 59,
@@ -12119,7 +12119,7 @@
         {
           "name": "model",
           "type": "MODEL",
-          "link": 1191
+          "link": 1315
         },
         {
           "name": "positive",
@@ -12181,7 +12181,7 @@
         "randomize",
         50,
         1,
-        "er_sde",
+        "euler",
         "simple",
         1
       ],
@@ -12190,7 +12190,7 @@
         "control_after_generate": "randomize",
         "steps": 50,
         "cfg": 1,
-        "sampler_name": "er_sde",
+        "sampler_name": "euler",
         "scheduler": "simple",
         "denoise": 1
       }
@@ -12716,10 +12716,10 @@
         "Node name for S&R": "MpiFloat"
       },
       "widgets_values": [
-        2.5
+        3
       ],
       "widgets_values_named": {
-        "float": 2.5
+        "float": 3
       }
     },
     {
@@ -13954,6 +13954,55 @@
       ],
       "widgets_values_named": {
         "mode": "a_true_b_false"
+      }
+    },
+    {
+      "id": 801,
+      "type": "SkipLayerGuidanceDiTSimple",
+      "pos": [
+        4542.978109957811,
+        -2013.6373528392191
+      ],
+      "size": [
+        340,
+        160
+      ],
+      "flags": {},
+      "order": 250,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 1191
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            1315
+          ]
+        }
+      ],
+      "title": "SFT layer skip (OpenMOSS: layer 22)",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.42.1",
+        "Node name for S&R": "SkipLayerGuidanceDiTSimple"
+      },
+      "widgets_values": [
+        "",
+        "22",
+        0,
+        0.5
+      ],
+      "widgets_values_named": {
+        "double_layers": "",
+        "single_layers": "22",
+        "start_percent": 0,
+        "end_percent": 0.5
       }
     }
   ],
@@ -15858,7 +15907,7 @@
       1191,
       736,
       0,
-      738,
+      801,
       0,
       "MODEL"
     ],
@@ -16411,6 +16460,14 @@
       101,
       1,
       99,
+      0,
+      "MODEL"
+    ],
+    [
+      1315,
+      801,
+      0,
+      738,
       0,
       "MODEL"
     ]
