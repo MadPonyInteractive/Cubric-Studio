@@ -22,7 +22,9 @@
     received MOSS layout JSON (`summary.caption` = the prompt, two `object` items, `abs_centralized`
     `yxyx`, edges checked by hand).
 
+- **Fabio's eye, 2026-10-22: "it looks right"** on all three (boxes "only work in that area, similar to
+  our mask edits. That's good.").
+
 ## Not yet verified
 
-- Fabio's eye on the three images (user-ux).
-- Enhance pressed in the app on MOSS (the recipe's Stage 2 renders).
+- Enhance pressed in the app on MOSS (the recipe's Stage 2 renders; `draft -> validated` is Fabio's).

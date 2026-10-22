@@ -59,8 +59,10 @@ Playbook: `docs/playbooks/add-model/` (enforced by `/mpi-add-model`). Research +
 - R2: all 3 weights uploaded 04:52-06:29, `rclone lsl` byte-exact vs G:/models, public URL 200 with
   byte-exact Content-Length (browser UA; plain urllib gets 403 from the CDN), no orphan multiparts.
 - Recipe twice-green on DeepInfra 26B (sweeps 2 + 3, 15/15 each), ~4.5 c spent on Fabio's yeses. Pushed.
-- NEXT: one t2i (Turbo + SFT, + boxes, + a lettering prompt) in `npm run app:isolated` for Fabio's eye
-  (Stage 2 of the recipe too).
+- In-app runs DONE (Turbo sign 13.8 s, SFT sign 32.3 s, Turbo + boxes 9.7 s, all text exact, boxes placed,
+  layout JSON checked in ComfyUI history). Fabio: "it looks right". Weights copied G: -> M:/CubricModels.
+- NEXT: recipe Stage 2 = press Enhance on MOSS in `npm run app:isolated` (2-3 short ideas, one needing
+  lettering), render the enhanced prompts, show Fabio; he decides `draft -> validated`. Then `mpi-end-session`.
 
 ## Completed
 
