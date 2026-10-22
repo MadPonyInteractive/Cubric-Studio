@@ -44,6 +44,8 @@ HANDLERS = [
                              # there is no op split, no tier axis and no content axis.
     ("flux3_",    "flux3"),  # MPI-1181: flux3_t2i_template.json — Klein's shape, ONE runtime
                              # file; Turbo picks the UNET at run time (Input_is_Turbo).
+    ("moss_",     "moss"),   # MPI-1243: moss_t2i_template.json — a copy of FLUX.3's raw with
+                             # MOSS loaders; same Turbo switch, ONE runtime file.
 ]
 
 
