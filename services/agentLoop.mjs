@@ -458,7 +458,7 @@ export const OP_RULES = [
     { id: 'shape', when: (o) => o.params?.ratios?.length > 0 && (o.media || []).some((m) => m.type === 'image') && !EDIT_OPS.has(o.op),
         text: 'Shape: a ratio here only crops the picture before the run (never letterboxes): it cuts part of the frame away and changes nothing else. Leave ratio out and the picture\'s own shape is used; only when the user asks for a ratio, say in one line before you generate that part of the picture will be cropped.' },
     { id: 'text', when: (o) => o.params?.ratios?.length > 0 && !o.params?.duration,
-        text: 'Words in a picture: quote them exactly, in double quotes, and say where they go. Never refuse, never send the user to another app, never warn in advance that they may be misspelled; a miss is re-run.' },
+        text: 'Words in a picture: quote them exactly, in double quotes, and say where they go. Never refuse, never send the user to another app, never warn in advance that they may be misspelled. Re-run for the words only when the user says they are wrong, never on your own reading of the result: a look misreads small, angled or wrapped lettering.' },
 ];
 /** A generation the user Stopped (CANCELLED, not asked for by the agent): what the model is told (MPI-1165). */
 const STOPPED = { code: 'CANCELLED', message: 'The user pressed Stop: they were not happy with it. Not a failure. Start nothing: say in one short line that it is stopped, ask what to change, and wait for their message.' };
