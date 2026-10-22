@@ -585,6 +585,42 @@ const FLUX_KOMMUNITY = {
     ],
 };
 
+// NVIDIA PiD upscaler — NVIDIA Source Code License v1 (MPI-1250). Shipped ungated from
+// 2026-07-03 until this entry; research: docs/models/pid/upscaler.md § Licence.
+//
+// §3.3 limits the Work to research or evaluation, with NO carve-out for outputs (unlike
+// Klein 9B §2.d), so upscaling commercial work is commercial use of the Work. §3.1 allows
+// redistribution under the licence with a complete copy, so the weights stay on R2 and the
+// copy is bundled under `licences/pid/`, byte-identical to Comfy-Org/PixelDiT's LICENSE and
+// nvidia/PixelDiT-1300M-1024px's (3,997 bytes, fetched 2026-10-22; nvidia/PiD has no
+// LICENSE of its own and its README points at that one). No HF gate, so no `verify`; no
+// notice in the Work, so no `poweredBy`.
+/** @type {LicenceDescriptor} */
+const NVIDIA_PID = {
+    id: 'nvidia-nscl-v1-pid',
+    version: 1,
+    name: 'NVIDIA Source Code License v1',
+    modelName: 'NVIDIA PiD Upscaler',
+    nonCommercial: true,
+    summary: 'The NVIDIA PiD Upscaler is licensed for research or evaluation only. No commercial use '
+           + 'is allowed, so do not upscale work you will sell or use for a client with it. This step '
+           + 'shows you the terms before the download starts.',
+    licenceUrl: '/licences/pid/LICENSE.txt',
+    sections: [
+        {
+            heading: 'Section 3: Limitations',
+            items: [
+                'Redistribution. You may reproduce or distribute the Work only if (a) you do so under this license, (b) you include a complete copy of this license with your distribution, and (c) you retain without modification any copyright, patent, trademark, or attribution notices that are present in the Work.',
+                'Use Limitation. The Work and any derivative works thereof only may be used or intended for use non-commercially. Notwithstanding the foregoing, NVIDIA Corporation and its affiliates may use the Work and any derivative works commercially. As used herein, "non-commercially" means for research or evaluation purposes only.',
+                'Termination. If you violate any term of this license, then your rights under this license (including the grant in Section 2.1) will terminate immediately.',
+            ],
+        },
+    ],
+    acknowledgements: [
+        'I will use the NVIDIA PiD Upscaler for research or evaluation only, and I understand that rules out upscaling images for commercial use.',
+    ],
+};
+
 /** @type {Record<string, LicenceDescriptor>} */
 export const MODEL_LICENCES = {
     'minimax-h3':        MINIMAX_H3,   // first/last-frame to video+audio
@@ -610,6 +646,7 @@ export const MODEL_LICENCES = {
     'stable-audio-3':    STABLE_AUDIO_3,
     'qwen-image-2-1':    QWEN_IMAGE_21,  // MPI-936; the ModelDef id must match or the gate never fires
     'flux3-klein':       FLUX_KOMMUNITY, // MPI-1181; same rule: the ModelDef id must match
+    'nvidia-pid':        NVIDIA_PID,     // MPI-1250; same rule: the ModelDef id must match
 };
 
 /** Where a user requests access to a `verify` licence — the licensor's own model page. */

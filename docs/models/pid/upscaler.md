@@ -1,5 +1,8 @@
 # PiD (Pixel Diffusion Decoder) — upscaler research
 
+> **Licence: research or evaluation only (NVIDIA NSCL v1), gated non-commercial since
+> MPI-1250.** Facts and what we re-host: [licence.md](licence.md).
+
 **Status: models downloaded, live testing NOT yet done (2026-07-03).** Facts below are
 source-verified (ComfyUI PR #14103 `nodes_pid.py`, nv-tlabs/PiD, arXiv 2605.23902). Timing
 + quality-per-degrade_sigma go in § Live notes as we test. ComfyUI target: **0.27** (PiD

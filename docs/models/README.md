@@ -68,6 +68,7 @@ one-graph shape, the 1k/2k/4k tiers, custom size on an unmasked edit, and the up
 | File | Holds |
 |---|---|
 | [upscaler.md](pid/upscaler.md) | Source-verified compat/tier/knobs; `degrade_sigma` is the only tuning knob; image-only. Read before building/testing PiD. |
+| [licence.md](pid/licence.md) | NVIDIA NSCL v1: research/evaluation only, no output carve-out; gated non-commercial (MPI-1250); what we re-host on R2. |
 
 ### [seedvr2/](seedvr2/) — SeedVR2 video upscaler (**rejected full-frame, live for the face detailer**)
 | File | Holds |

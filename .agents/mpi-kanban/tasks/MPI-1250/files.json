@@ -1,0 +1,11 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-1250/",
+    "js/data/modelConstants/licences.js",
+    "licences/pid/",
+    "docs/models/pid/",
+    "tests/licence-gate.test.cjs",
+    "docs/models/README.md"
+  ]
+}

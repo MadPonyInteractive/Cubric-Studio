@@ -275,3 +275,15 @@ test('the probe target is really gated, and the licence really is not', {
         t.diagnostic(`${l.verify.repoId}: probe ${probe.status}, LICENSE.md ${licenceDoc.status}`);
     }
 });
+
+// MPI-1250 — PiD shipped for months with no gate while NSCL v1 §3.3 bars commercial use.
+// The key must be the ModelDef id, or the gate and the tile flag both miss in silence.
+test('the PiD upscaler is gated and flagged non-commercial', async () => {
+    const { getModelLicence } = await licences();
+    const { MODELS } = await import('../js/data/modelConstants/models.js');
+    assert.ok(MODELS.some(m => m.id === 'nvidia-pid'), 'nvidia-pid ModelDef missing');
+    const l = getModelLicence('nvidia-pid');
+    assert.ok(l, 'nvidia-pid must be gated');
+    assert.strictEqual(l.nonCommercial, true);
+    assert.strictEqual(l.licenceUrl, '/licences/pid/LICENSE.txt');
+});
