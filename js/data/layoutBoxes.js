@@ -66,6 +66,42 @@ export function mossLayoutPrompt(prompt, boxes, width, height) {
     return JSON.stringify({ summary: { caption }, items, bbox_coord_space: 'abs_centralized', bbox_format: 'yxyx' });
 }
 
+/**
+ * The Boxes panel's Analyse (MPI-1253): the describer lays a picture out as a caption plus
+ * named boxes. `bbox_2d` is Qwen-VL's own grounding key and grid ([x1, y1, x2, y2], 0-1000),
+ * so the app's describer answers in the shape it was trained on.
+ */
+export const ANALYSE_QUESTION = 'Lay this picture out as boxes so an image generator can redraw it. Answer with JSON only, no other text:\n'
+    + '{"caption": "the whole picture in 2 to 4 sentences: subject, setting, style, lighting, colours", "items": [{"name": "1 to 3 word name", '
+    + '"desc": "what is in the box and how it looks; for lettering, the exact words in quotes and how the letters look", "bbox_2d": [x1, y1, x2, y2]}]}\n'
+    + 'One item per main subject, object and block of lettering, at most 10, largest first. bbox_2d is the box\'s left, top, right and bottom '
+    + 'edge on a 0 to 1000 scale of the picture\'s width and height.';
+
+/**
+ * The describer's answer -> `{ caption, boxes }` in the panel's shape (fractions, unique
+ * names), or null when it holds no JSON. A box off the grid or with no area is dropped.
+ */
+export function boxesFromAnalysis(text, max = 10) {
+    const s = String(text || '');
+    const at = s.indexOf('{');
+    let data = null;
+    for (let end = s.lastIndexOf('}'); at >= 0 && end > at && !data; end = s.lastIndexOf('}', end - 1)) {
+        try { data = JSON.parse(s.slice(at, end + 1)); } catch { /* shorter */ }
+    }
+    if (!data || typeof data !== 'object') return null;
+    const boxes = [];
+    for (const it of Array.isArray(data.items) ? data.items : []) {
+        const bb = it?.bbox_2d || it?.bbox;
+        if (!Array.isArray(bb) || bb.length !== 4 || !bb.every((v) => Number.isFinite(Number(v)))) continue;
+        const [x1, y1, x2, y2] = bb.map((v) => Math.max(0, Math.min(SCALE, Number(v))) / SCALE);
+        if (x2 - x1 < 0.01 || y2 - y1 < 0.01) continue;
+        const name = uniqueBoxName(boxName(it.name || it.label).toLowerCase() || 'box', boxes);
+        boxes.push({ x: x1, y: y1, w: x2 - x1, h: y2 - y1, desc: String(it.desc || it.caption || '').trim(), name });
+        if (boxes.length >= max) break;
+    }
+    return { caption: String(data.caption || data.summary?.caption || '').trim(), boxes };
+}
+
 /** BFL's upsampler input for a request with locked boxes (`bbox.upsampling_input`). */
 export function upsamplingInput(prompt, rows) {
     return `ORIGINAL PROMPT:\n${String(prompt).trim()}\n\n`

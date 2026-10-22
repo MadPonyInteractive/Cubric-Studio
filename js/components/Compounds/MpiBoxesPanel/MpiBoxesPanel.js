@@ -20,10 +20,14 @@ import { boxName, uniqueBoxName } from '../../../data/layoutBoxes.js';
  * Boxes are `{ x, y, w, h, desc, name }`, fractions of the frame. Every edit calls
  * `onChange` with a fresh copy; there is no OK button.
  *
+ * Analyse (MPI-1253) asks the PromptBox to read the frame's picture into boxes: picture 1 on
+ * edit, on t2i a gallery card dropped on the panel (`frame.guide`, never on the run).
+ *
  * Instance methods (on instance.el):
- *   open({ boxes, frame: {url?, w?, h?}, mode: 't2i'|'edit', accent, onChange(boxes),
- *          onCite(name), onRename(from, to), onClose() }) — fill and slide up
+ *   open({ boxes, frame: {url?, w?, h?, guide?}, mode: 't2i'|'edit', accent, onChange(boxes),
+ *          onCite(name), onRename(from, to), onClose(), onAnalyse() }) — fill and slide up
  *   setFrame(frame) — redraw the frame (ratio, custom size or picture changed)
+ *   setBusy(bool) — Analyse running: its button waits
  *   hide() — slide down
  *   isOpen()
  */
@@ -45,6 +49,7 @@ export const MpiBoxesPanel = ComponentFactory.create({
                 <div class="mpi-boxes__header">
                     <div class="mpi-boxes__kicker">Boxes</div>
                     <div class="mpi-boxes__actions">
+                        <div id="boxes-analyse"></div>
                         <div id="boxes-clear"></div>
                         <div id="boxes-close"></div>
                     </div>
@@ -54,7 +59,7 @@ export const MpiBoxesPanel = ComponentFactory.create({
                     <div class="mpi-boxes__dim-lbl"><span>Darken</span><span id="boxes-dim-val">0%</span></div>
                     <div id="boxes-dim-bar"></div>
                 </div>
-                <p class="mpi-boxes__hint">Drag on the picture to draw a box, a tag to move it, a corner to resize it. Double-click a tag to rename. Click a name to cite it in the prompt.</p>
+                <p class="mpi-boxes__hint">Drag on the picture to draw a box, a tag to move it, a corner to resize it. Double-click a tag to rename. Click a name to cite it in the prompt.<span id="boxes-drop-hint"> Drop a gallery picture on the frame and press Analyse to box it out.</span></p>
             </div>
             <div class="mpi-boxes__stage" id="boxes-stage">
                 <div class="mpi-boxes__frame" id="boxes-frame"></div>
@@ -83,6 +88,14 @@ export const MpiBoxesPanel = ComponentFactory.create({
         clearBtn.on('click', () => { boxes = []; _changed(true); });
         const closeBtn = MpiButton.mount(qs('#boxes-close', el), { icon: 'close', variant: 'ghost', size: 'sm', info: 'Close Boxes (they stay on the run)' });
         closeBtn.on('click', () => { el.hide(); cb.onClose?.(); });
+        // MPI-1253: the describer reads the frame's picture into boxes (the PromptBox runs it).
+        const analyseBtn = MpiButton.mount(qs('#boxes-analyse', el), {
+            icon: 'eye', label: 'Analyse', labelPosition: 'right', size: 'sm', variant: 'ghost',
+            info: 'Read the picture into boxes, each with what is in it (replaces the boxes)',
+        });
+        analyseBtn.on('click', () => cb.onAnalyse?.());
+        let busy = false;
+        const _syncAnalyse = () => analyseBtn.el.setDisabled?.(busy || !qs('.mpi-boxes__picture', frameEl));
 
         const _setDim = (v) => {
             dim = clamp(Number(v) || 0, 0, 100);
@@ -258,7 +271,9 @@ export const MpiBoxesPanel = ComponentFactory.create({
             dimEl.classList.toggle('hide', !frame.url);
             if (frame.url) {
                 const img = document.createElement('img');
-                img.className = 'mpi-boxes__picture';
+                // A t2i guide is stretched to the frame: its boxes are fractions of the
+                // picture, and the ratio Analyse picks is only the nearest one.
+                img.className = `mpi-boxes__picture${frame.guide ? ' mpi-boxes__picture--guide' : ''}`;
                 img.alt = '';
                 img.draggable = false;
                 if (!(frame.w && frame.h)) img.onload = () => { aspect = img.naturalWidth / img.naturalHeight || 1; _fit(); };
@@ -266,13 +281,15 @@ export const MpiBoxesPanel = ComponentFactory.create({
                 frameEl.appendChild(img);
                 _setDim(dim);
             }
+            _syncAnalyse();
             _fit();
         };
 
-        el.open = ({ boxes: initial = [], frame = {}, mode: m = 't2i', accent, onChange, onCite, onRename, onClose } = {}) => {
+        el.open = ({ boxes: initial = [], frame = {}, mode: m = 't2i', accent, onChange, onCite, onRename, onClose, onAnalyse } = {}) => {
             el.dataset.accent = accent || 'studio';
-            cb = { onChange, onCite, onRename, onClose };
+            cb = { onChange, onCite, onRename, onClose, onAnalyse };
             mode = m;
+            qs('#boxes-drop-hint', el).classList.toggle('hide', mode === 'edit');
             boxes = initial.map((b, i) => ({ ...b, name: b.name || `obj_${i + 1}` }));
             frameKey = '';
             el.setFrame(frame);
@@ -280,6 +297,9 @@ export const MpiBoxesPanel = ComponentFactory.create({
             el.classList.add('mpi-boxes--open');
             requestAnimationFrame(_fit);
         };
+
+        /** Analyse is running (its queue row shows the progress): the button waits. */
+        el.setBusy = (on_) => { busy = !!on_; _syncAnalyse(); };
 
         el.hide = () => el.classList.remove('mpi-boxes--open');
         el.isOpen = () => el.classList.contains('mpi-boxes--open');
@@ -290,6 +310,7 @@ export const MpiBoxesPanel = ComponentFactory.create({
             _rowInputs.forEach((inp) => inp.destroy?.());
             clearBtn.destroy?.();
             closeBtn.destroy?.();
+            analyseBtn.destroy?.();
             dimBar.destroy?.();
             el.remove();
         };

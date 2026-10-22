@@ -30,7 +30,11 @@ import { MpiEnhanceDialog } from '../../Compounds/MpiEnhanceDialog/MpiEnhanceDia
 import { attachDictation } from '../../../services/dictation.js';
 import { thumbSrc } from '../../../utils/displayImage.js';
 import { PAGE_LANDING } from '../../../router.js';
-import { layoutRows } from '../../../data/layoutBoxes.js';
+import { layoutRows, ANALYSE_QUESTION, boxesFromAnalysis } from '../../../data/layoutBoxes.js';
+import { describeImage } from '../../../services/llmService.js';
+import { applyPromptReuseSettings } from '../../../services/projectService.js';
+import { ratioSettingsFromParams } from '../../../utils/promptReuse.js';
+import { resolveMediaUrl } from '../../../utils/mediaActions.js';
 
 /**
  * MpiPromptBox — Prompt input Block with self-composing operation slots.
@@ -393,8 +397,46 @@ export const MpiPromptBox = ComponentFactory.create({
                 onCite: (name) => _insertPromptText(`<${name}>`),
                 onRename: _renamePromptTag,
                 onClose: () => _boxesBtn.el.setActive(false),
+                onAnalyse: _analyseBoxes,
             });
             _boxesBtn.el.setActive(true);
+        }
+        // MPI-1253: on t2i, the gallery picture dropped on the open panel to analyse. Panel only:
+        // a t2i run takes no picture.
+        let _boxesGuide = null;
+        /** Analyse: the describer reads the frame's picture into boxes. On t2i the ratio follows
+         *  the picture; an empty prompt gets its caption. Queued, so it shows a row and Stop. */
+        async function _analyseBoxes() {
+            const frame = _boxFrame();
+            if (!frame.url || !_boxesCtrl()) return;
+            const op = activeOperation;
+            _boxesPanel?.el.setBusy(true);
+            const res = await describeImage({ imagePath: frame.url, question: ANALYSE_QUESTION, scope: 'gallery', queued: true });
+            _boxesPanel?.el.setBusy(false);
+            if (!res.ok) { if (!res.cancelled) _showMediaToast(res.error); return; }
+            const found = boxesFromAnalysis(res.text);
+            if (!found?.boxes.length) { _showMediaToast('Analyse found no boxes in this picture. Press it again.'); return; }
+            if (activeOperation !== op || !_boxesCtrl()) return; // the user moved on while it ran
+            if (op !== 'edit') {
+                const img = new Image();
+                img.src = frame.url;
+                await img.decode().catch(() => {});
+                const ratioSelector = img.naturalWidth && ratioSettingsFromParams({ Width: img.naturalWidth, Height: img.naturalHeight }, {}, model);
+                if (ratioSelector) {
+                    applyPromptReuseSettings({ modelId: model.id, mediaType: model.mediaType, operation: op, sharedUpdates: { ratioSelector } });
+                    el.refreshControls(); // remounts the controls; the boxes are set after
+                }
+            }
+            _boxesCtrl()?.setValue(found.boxes);
+            if (!positiveValue.trim() && found.caption) {
+                _writeMode(found.caption, 'positive');
+                if (promptMode === 'positive') { textareaEl.value = found.caption; updateHeight(); }
+                emit('input', { positive: positiveValue, negative: negativeValue, negativeAudio: negativeAudioValue, activeMode: promptMode });
+            }
+            _boxesLabel();
+            _dropIfBoxesMoved();
+            _saveDraft();
+            if (_boxesPanel?.el.isOpen()) _openBoxes();
         }
         /** Op or model changed (_refreshOpSlot): show the button where boxes work, refill an open panel. */
         function _syncBoxes() {
@@ -824,6 +866,16 @@ export const MpiPromptBox = ComponentFactory.create({
             _unsubs.push(on(el, 'drop', (e) => {
                 el.classList.remove('mpi-prompt-box--drag-over');
                 _disarm();
+                // MPI-1253: a card dropped on the open Boxes panel on t2i is the picture to
+                // analyse, not a reference (staging it would switch the op to edit).
+                if (_boxesPanel?.el.isOpen() && activeOperation !== 'edit' && _boxesPanel.el.contains(e.target)) {
+                    try {
+                        const { filePath, type } = JSON.parse(e.dataTransfer.getData('application/mpi-media') || '{}');
+                        if (type === 'image' && filePath) { _boxesGuide = resolveMediaUrl(filePath); _refreshBoxFrame(); }
+                        else _showMediaToast('Drop a picture from the gallery here to analyse it.');
+                    } catch { /* malformed */ }
+                    return;
+                }
                 _handleMediaDrop(e);
             }));
         }
@@ -1833,7 +1885,7 @@ export const MpiPromptBox = ComponentFactory.create({
                 const img = _mediaItems.find((m) => m.mediaType === 'image');
                 if (img?.url) return _activeControls.get('customSize')?.getValue?.() === true ? { url: img.url, ...wh } : { url: img.url };
             }
-            return wh;
+            return _boxesGuide && activeOperation !== 'edit' ? { url: _boxesGuide, guide: true, ...wh } : wh;
         }
 
         /** Ratio, custom size or the picture changed: the open Boxes panel redraws its frame

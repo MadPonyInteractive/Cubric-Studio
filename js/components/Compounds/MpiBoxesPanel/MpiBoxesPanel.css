@@ -146,6 +146,10 @@
     z-index: 0;
 }
 
+.mpi-boxes__picture--guide {
+    object-fit: fill;
+}
+
 .mpi-boxes__box {
     position: absolute;
     z-index: 1;
