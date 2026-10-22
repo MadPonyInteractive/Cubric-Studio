@@ -67,15 +67,27 @@ export function mossLayoutPrompt(prompt, boxes, width, height) {
 }
 
 /**
- * The Boxes panel's Analyse (MPI-1253): the describer lays a picture out as a caption plus
- * named boxes. `bbox_2d` is Qwen-VL's own grounding key and grid ([x1, y1, x2, y2], 0-1000),
- * so the app's describer answers in the shape it was trained on.
+ * Create boxes (MPI-1253): the describer lays a picture out as a caption plus named boxes.
+ * Each box is NAMED edges, never an array: every vision family is trained on its own array
+ * order (Qwen [x1,y1,x2,y2], Gemma/Gemini [y1,x1,y2,x2]) and answers in it whatever the
+ * question says, so Gemma 4 drew a top strip of sky down the left side. Named edges came back
+ * right on Gemma 4 26B and Qwen3-VL 30B alike (2026-10-23, Fabio's meadow picture).
  */
 export const ANALYSE_QUESTION = 'Lay this picture out as boxes so an image generator can redraw it. Answer with JSON only, no other text:\n'
     + '{"caption": "the whole picture in 2 to 4 sentences: subject, setting, style, lighting, colours", "items": [{"name": "1 to 3 word name", '
-    + '"desc": "what is in the box and how it looks; for lettering, the exact words in quotes and how the letters look", "bbox_2d": [x1, y1, x2, y2]}]}\n'
-    + 'One item per main subject, object and block of lettering, at most 10, largest first. bbox_2d is the box\'s left, top, right and bottom '
-    + 'edge on a 0 to 1000 scale of the picture\'s width and height.';
+    + '"desc": "what is in the box and how it looks; for lettering, the exact words in quotes and how the letters look", '
+    + '"box": {"top": 0, "left": 0, "bottom": 1000, "right": 1000}}]}\n'
+    + 'One item per main subject, object and block of lettering, at most 10, largest first. box gives each edge of the item\'s box '
+    + 'on a 0 to 1000 scale: top and bottom measured down from the top of the picture, left and right measured across from its left side.';
+
+/** An item's box as `[left, top, right, bottom]` on 0-1000. An array is read in its key's own
+ *  family order (`box_2d` Google's, `bbox_2d`/`bbox` Qwen's) for a model that ignores the ask. */
+function _edges(it) {
+    const o = it?.box;
+    if (o && typeof o === 'object' && !Array.isArray(o)) return [o.left, o.top, o.right, o.bottom];
+    if (Array.isArray(it?.box_2d)) { const [t, l, b, r] = it.box_2d; return [l, t, r, b]; }
+    return it?.bbox_2d || it?.bbox;
+}
 
 /**
  * The describer's answer -> `{ caption, boxes }` in the panel's shape (fractions, unique
@@ -91,7 +103,7 @@ export function boxesFromAnalysis(text, max = 10) {
     if (!data || typeof data !== 'object') return null;
     const boxes = [];
     for (const it of Array.isArray(data.items) ? data.items : []) {
-        const bb = it?.bbox_2d || it?.bbox;
+        const bb = _edges(it);
         if (!Array.isArray(bb) || bb.length !== 4 || !bb.every((v) => Number.isFinite(Number(v)))) continue;
         const [x1, y1, x2, y2] = bb.map((v) => Math.max(0, Math.min(SCALE, Number(v))) / SCALE);
         if (x2 - x1 < 0.01 || y2 - y1 < 0.01) continue;

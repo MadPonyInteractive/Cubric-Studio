@@ -77,6 +77,24 @@ Fixed meanwhile, same live setup (real clicks, stubbed describer), `npm test` 35
 - Eye per row: hid "head" on the frame (node `.hide`, eye grey), run count stayed 2.
   View-only, resets when the panel remounts.
 
+## Rework 4: box order (2026-10-23)
+
+Fabio's describer: Remote, DeepInfra `google/gemma-4-26B-A4B-it`. Bench on
+`Big Photos Test/Media/flowObjectStamp_003.png` (same meadow scene: tall girl, top sky, wide
+pink field, small squirrel), 1024 px JPEG as the describe route sends, script
+`research/box-order/boxbench.mjs` (answers + overlays beside it) (drawn as asked and transposed). 4 paid runs, ~$0.0014 total:
+- Gemma 4, the shipped question (`bbox_2d` [x1,y1,x2,y2]): 64.5 s (DeepInfra slow that call),
+  sky `[0,0,289,1000]` = a LEFT strip as asked; transposed, every box lands (sky top, fields
+  bands, squirrel exact). Gemma answers top-first whatever the question says. Fabio's bug.
+- Gemma 4 asked `box_2d` [ymin,xmin,ymax,xmax]: 7.2 s, all right, girl hat to feet.
+- Gemma 4 asked NAMED edges `box:{top,left,bottom,right}`: 10.9 s, all right.
+- Qwen3-VL-30B (DeepInfra) asked named edges: 27.2 s, all right (girl 146-888 x 382-680).
+Shipped: named edges; `box_2d` read top-first, `bbox_2d`/`bbox` left-first as fallbacks. The
+three saved answers through `boxesFromAnalysis`: girl x.39 y.16 w.29 h.75, sky full-width top,
+squirrel x.31 y.85 on all. New unit test pins the sky case for all three keys.
+ComfyUI describer cap 512 -> 1024 (node 36): answers ran 550-950 tokens, 512 cut the JSON.
+NOT run: the local ComfyUI qwen3-vl 4B on the new question (needs the GPU, Fabio rendering).
+
 ## Not this card
 
 Prism reads "cancelled" after every successful describe, the stock gallery Describe included

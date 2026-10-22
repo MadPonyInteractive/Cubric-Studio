@@ -1,0 +1,3 @@
+Lay this picture out as boxes so an image generator can redraw it. Answer with JSON only, no other text:
+{"caption": "the whole picture in 2 to 4 sentences: subject, setting, style, lighting, colours", "items": [{"name": "1 to 3 word name", "desc": "what is in the box and how it looks; for lettering, the exact words in quotes and how the letters look", "box_2d": [ymin, xmin, ymax, xmax]}]}
+One item per main subject, object and block of lettering, at most 10, largest first. box_2d is the box's top, left, bottom and right edge on a 0 to 1000 scale of the picture's width and height.

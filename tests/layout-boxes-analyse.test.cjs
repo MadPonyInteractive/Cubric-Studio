@@ -3,8 +3,8 @@
 /**
  * layout-boxes-analyse.test.cjs — MPI-1253.
  *
- * The Boxes panel's Analyse: the describer answers `{caption, items:[{name, desc, bbox_2d}]}`
- * with bbox_2d = [x1, y1, x2, y2] on 0-1000; `boxesFromAnalysis` turns it into panel boxes.
+ * Create boxes: the describer answers `{caption, items:[{name, desc, box:{top,left,bottom,right}}]}`
+ * on 0-1000 (older answers: bbox_2d [x1,y1,x2,y2]); `boxesFromAnalysis` turns it into panel boxes.
  */
 
 const assert = require('node:assert/strict');
@@ -39,6 +39,18 @@ test('boxes off the grid are clamped, empty ones dropped, the count capped', () 
     assert.equal(boxes.length, 10);
     assert.deepEqual([boxes[0].x, boxes[0].w], [0, 1]);
     assert.ok(!boxes.some((b) => b.name === 'flat' || b.name === 'bad'));
+});
+
+test('named edges are read by name; an array is read in its own key\'s order', () => {
+    // Gemma 4's answer on Fabio's meadow picture: the sky is the TOP strip. Read as [x1,y1,x2,y2]
+    // it became a strip down the left side, the reported bug.
+    const items = [
+        { name: 'sky', box: { top: 0, left: 0, bottom: 253, right: 1000 } },
+        { name: 'sky google', box_2d: [0, 0, 253, 1000] },
+        { name: 'sky qwen', bbox_2d: [0, 0, 1000, 253] },
+    ];
+    const { boxes } = boxesFromAnalysis(JSON.stringify({ caption: '', items }));
+    for (const b of boxes) assert.deepEqual([b.x, b.y, b.w, b.h], [0, 0, 1, 0.253], b.name);
 });
 
 test('no JSON in the answer is null, not an empty layout', () => {

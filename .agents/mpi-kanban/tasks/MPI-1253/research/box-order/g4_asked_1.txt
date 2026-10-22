@@ -1,0 +1,42 @@
+```json
+{
+  "caption": "An anime-style illustration of a young girl standing in a lush green meadow by a lake under a bright blue sky. She is wearing a white sundress and a straw hat, holding a single yellow flower. The scene is set against a backdrop of majestic mountains and a field of pink flowers, with bright, sunny lighting and a vibrant color palette of blue, green, and pink.",
+  "items": [
+    {
+      "name": "anime girl",
+      "desc": "A young girl with long silver hair, wearing a white sundress and a straw hat, smiling and holding a yellow flower.",
+      "bbox_2d": [383, 161, 906, 686]
+    },
+    {
+      "name": "mountains",
+      "desc": "Large, blue-toned mountains with snow-capped peaks under a clear sky.",
+      "bbox_2d": [102, 0, 305, 1000]
+    },
+    {
+      "name": "lake",
+      "desc": "A calm blue lake reflecting the sky and the surrounding mountains.",
+      "bbox_2d": [277, 0, 478, 1000]
+    },
+    {
+      "name": "pink flower field",
+      "desc": "A long, flowing bed of vibrant pink flowers stretching along the lakeshore.",
+      "bbox_2d": [277, 0, 577, 1000]
+    },
+    {
+      "name": "meadow",
+      "desc": "A bright green grassy meadow with scattered small white and yellow wildflowers in the foreground.",
+      "bbox_2d": [430, 0, 1000, 1000]
+    },
+    {
+      "name": "squirrel",
+      "desc": "A small, cute brown squirrel standing near the girl's feet.",
+      "bbox_2d": [847, 314, 926, 406]
+    },
+    {
+      "name": "sky",
+      "desc": "A bright blue sky filled with fluffy white clouds.",
+      "bbox_2d": [0, 0, 289, 1000]
+    }
+  ]
+}
+```

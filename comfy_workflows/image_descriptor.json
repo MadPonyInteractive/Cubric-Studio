@@ -12,7 +12,7 @@
   },
   "36": {
     "inputs": {
-      "max_length": 512,
+      "max_length": 1024,
       "sampling_mode": "on",
       "sampling_mode.temperature": 0.2,
       "sampling_mode.top_k": 64,

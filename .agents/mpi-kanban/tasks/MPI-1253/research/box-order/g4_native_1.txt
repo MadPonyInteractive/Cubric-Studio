@@ -1,0 +1,42 @@
+```json
+{
+  "caption": "An anime-style digital painting of a young girl with long silver hair wearing a white summer dress and a straw hat, standing in a lush green field. She is holding a single yellow flower against a backdrop of a serene blue lake, pink flower fields, and distant mountains under a bright blue sky. The scene is illuminated by bright, sunny daylight with vibrant colors.",
+  "items": [
+    {
+      "name": "anime girl",
+      "desc": "A young girl with long silver hair, wearing a white summer dress and a straw hat with a blue ribbon, holding a yellow flower.",
+      "box_2d": [160, 386, 904, 672]
+    },
+    {
+      "name": "mountains",
+      "desc": "Distant blue and green mountains peaking under a bright sky with fluffy white clouds.",
+      "box_2d": [105, 0, 288, 1000]
+    },
+    {
+      "name": "lake",
+      "desc": "A calm blue lake reflecting the sky and clouds.",
+      "box_2d": [278, 0, 473, 1000]
+    },
+    {
+      "name": "pink fields",
+      "desc": "Long, flowing rows of bright pink flowers stretching across the landscape.",
+      "box_2d": [279, 0, 583, 1000]
+    },
+    {
+      "name": "green meadow",
+      "desc": "A vast, bright green grass field with small white and yellow flowers in the foreground.",
+      "box_2d": [431, 0, 1000, 1000]
+    },
+    {
+      "name": "squirrel",
+      "desc": "A small, cute brown squirrel standing on the grass near the girl's feet.",
+      "box_2d": [846, 314, 929, 405]
+    },
+    {
+      "name": "sky",
+      "desc": "A bright blue sky filled with many white, puffy clouds.",
+      "box_2d": [0, 0, 253, 1000]
+    }
+  ]
+}
+```

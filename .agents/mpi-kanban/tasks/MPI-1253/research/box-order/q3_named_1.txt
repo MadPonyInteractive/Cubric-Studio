@@ -1,0 +1,117 @@
+```json
+{
+  "caption": "A young girl with long silver hair and a straw hat stands in a vibrant meadow, holding a yellow flower, with a squirrel at her feet. The scene is set against a backdrop of a calm lake reflecting a blue sky and snow-capped mountains, with pink flower beds and green grass. The style is bright and colorful anime, with soft lighting and vivid, saturated colors.",
+  "items": [
+    {
+      "name": "girl",
+      "desc": "A young girl with long silver hair, wearing a white dress and a straw hat with a blue ribbon, holding a yellow flower. She has a gentle smile and is standing on a green lawn.",
+      "box": {
+        "top": 146,
+        "left": 382,
+        "bottom": 888,
+        "right": 680
+      }
+    },
+    {
+      "name": "squirrel",
+      "desc": "A small brown squirrel with a bushy tail, sitting on the grass and holding a nut in its paws.",
+      "box": {
+        "top": 815,
+        "left": 314,
+        "bottom": 914,
+        "right": 421
+      }
+    },
+    {
+      "name": "sunflower",
+      "desc": "A single yellow sunflower with a green stem, held by the girl.",
+      "box": {
+        "top": 296,
+        "left": 493,
+        "bottom": 347,
+        "right": 550
+      }
+    },
+    {
+      "name": "hat",
+      "desc": "A wide-brimmed straw hat with a blue ribbon, worn by the girl.",
+      "box": {
+        "top": 146,
+        "left": 382,
+        "bottom": 281,
+        "right": 620
+      }
+    },
+    {
+      "name": "dress",
+      "desc": "A white, short-sleeved, button-up dress with a ruffled hem, worn by the girl.",
+      "box": {
+        "top": 279,
+        "left": 403,
+        "bottom": 688,
+        "right": 680
+      }
+    },
+    {
+      "name": "sandals",
+      "desc": "White sandals with straps, worn by the girl.",
+      "box": {
+        "top": 801,
+        "left": 465,
+        "bottom": 888,
+        "right": 555
+      }
+    },
+    {
+      "name": "mountains",
+      "desc": "Snow-capped mountains in the background, with green slopes, reflected in the lake.",
+      "box": {
+        "top": 100,
+        "left": 0,
+        "bottom": 258,
+        "right": 1000
+      }
+    },
+    {
+      "name": "lake",
+      "desc": "A calm lake with a clear blue surface, reflecting the sky and clouds.",
+      "box": {
+        "top": 254,
+        "left": 0,
+        "bottom": 441,
+        "right": 1000
+      }
+    },
+    {
+      "name": "sky",
+      "desc": "A bright blue sky with white, fluffy clouds, and a few faint contrails.",
+      "box": {
+        "top": 0,
+        "left": 0,
+        "bottom": 258,
+        "right": 1000
+      }
+    },
+    {
+      "name": "flowers",
+      "desc": "Rows of pink flowers, possibly tulips, bordering the lake.",
+      "box": {
+        "top": 254,
+        "left": 0,
+        "bottom": 588,
+        "right": 1000
+      }
+    },
+    {
+      "name": "grass",
+      "desc": "A lush green lawn with small white and yellow wildflowers, where the girl stands.",
+      "box": {
+        "top": 436,
+        "left": 0,
+        "bottom": 1000,
+        "right": 1000
+      }
+    }
+  ]
+}
+```

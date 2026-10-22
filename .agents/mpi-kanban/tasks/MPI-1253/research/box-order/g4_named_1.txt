@@ -1,0 +1,67 @@
+```json
+{
+  "caption": "An anime-style illustration of a young girl in a white summer dress standing in a lush green meadow by a tranquil lake. The scene features vibrant pink flower fields, distant mountains under a bright blue sky with fluffy white clouds, and warm, sunny lighting. The color palette is bright and cheerful, dominated by blues, greens, pinks, and white.",
+  "items": [
+    {
+      "name": "girl in white dress",
+      "desc": "A young anime girl with long silver hair, wearing a straw hat with a blue ribbon and a white sundress, smiling and holding a single yellow flower.",
+      "box": {
+        "top": 158,
+        "left": 385,
+        "bottom": 905,
+        "right": 671
+      }
+    },
+    {
+      "name": "lake and mountains",
+      "desc": "A calm blue lake reflecting the sky and mountains, with large green mountains in the background under a bright blue sky with white clouds.",
+      "box": {
+        "top": 102,
+        "left": 0,
+        "bottom": 478,
+        "right": 1000
+      }
+    },
+    {
+      "name": "pink flower fields",
+      "desc": "Long, sweeping bands of vibrant pink flowers stretching across the landscape between the lake and the green meadow.",
+      "box": {
+        "top": 275,
+        "left": 0,
+        "bottom": 588,
+        "right": 1000
+      }
+    },
+    {
+      "name": "green meadow",
+      "desc": "A vast, bright green grassy meadow in the foreground with scattered small white and yellow flowers.",
+      "box": {
+        "top": 435,
+        "left": 0,
+        "bottom": 1000,
+        "right": 1000
+      }
+    },
+    {
+      "name": "small squirrel",
+      "desc": "A tiny, cute brown squirrel sitting on the grass near the girl's feet.",
+      "box": {
+        "top": 846,
+        "left": 314,
+        "bottom": 926,
+        "right": 405
+      }
+    },
+    {
+      "name": "yellow flowers foreground",
+      "desc": "A cluster of bright yellow and white daisies in the bottom foreground.",
+      "box": {
+        "top": 872,
+        "left": 0,
+        "bottom": 1000,
+        "right": 1000
+      }
+    }
+  ]
+}
+```
