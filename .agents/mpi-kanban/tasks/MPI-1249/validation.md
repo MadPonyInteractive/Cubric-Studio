@@ -13,3 +13,6 @@
 - Cosmo: "using moss image" searched the project for a moss picture (Fabio, twice). Model-rule clause "with/using/on a name = model or Flow; unknown -> list_models" (b9ed5143c). Fabio retested after restart: Cosmo picked MOSS-Image on Turbo. PASS.
 - MOSS guide: "Better quality is turbo: false" replaced by Turbo-by-default (dbf20f20d).
 - npm test 3521/0 and lint green on every commit; pre-push green on each push.
+- Cosmo lettering loop (Fabio, FLUX3 Flow Bench): 4 MOSS runs for one billboard; it read its own result as "Cubric" (wrapped round the corner) and re-ran per the text OP_RULE "a miss is re-run". Rule now re-runs only when the user says the words are wrong (4dab8d6b4). npm test 3521/0. Not live-tested: Fabio retests after a restart.
+- Fabio retested after restart: ONE MOSS Turbo run, Cosmo stopped and offered a fresh run. PASS. Left: it still REPORTED a misreading ("reads Cubic Studio") that is false in the picture; flagged to Fabio, not changed.
+- Fabio: Cosmo should ask him to check the lettering, never claim it wrong itself. Text OP_RULE reworded (038de0c4d; +~15 tokens, only on describe_model of a text-capable image op). npm test 3521/0. Not live-tested.
