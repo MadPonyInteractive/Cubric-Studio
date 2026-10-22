@@ -29,6 +29,43 @@ clearly, `modelParams` arm, graph variant or `byModel` graph for the reference n
 gate (FLUX Kommunity: commercial under US$5M revenue) rides on the model as everywhere else.
 Per `/mpi-add-flow` playbook.
 
+### Phase 2a - Character Sheet Editor: clothed-only FLUX.3 route (Fabio YES, 2026-10-22)
+
+Scope (Fabio): body shape, child age, accessories -> FLUX.3 Turbo. Hair, makeup, tattoos, beard, clothes/undress
+and ANY nude character stay on Qwen. FLUX.3 optional: not installed = today's Qwen route, unchanged.
+Facts (mapped 2026-10-22, file:line in validation.md "PHASE 2A MAP"):
+- Editor slots `flowsRegistry.js:1725-1729`: klein-9b (FLUX.2) + optional qwen-image-2-1. Leg 1 routes by
+  `operationBy.field: 'change'` (`:1731-1753`); child age = chain rebuild leg `flowCharacterSheetImages` (Qwen
+  from-images graph, ages 0-12, `:1756-1769`). Prompts are code templates (`characterSheetEditor.js`), no Enhancer.
+- `flux3-klein` ModelDef exists (`models.js:2031`), but its `flux3_t2i.json` has none of the Editor's titled nodes
+  (lock, face crop, back pass, Output_Image_3, Lora_Phase*): needs its own Flow graphs.
+- Routing is fixed BEFORE the describe answers arrive (`flowService.js:434-525` vs `:706-717`): today the app
+  cannot know an ADULT sheet is nude when it picks the model. Child rebuild is safe: SHEET_CLOTHES_CHECKS + the
+  words gate already refuse anything but ordinary clothes at 0-17.
+Steps:
+1. Prompt gate FIRST (GPU, Fabio's go): turn the bench's hand-written BFL prompts (`research/bfl.py` cseq3/5/8) into
+   per-category TEMPLATES (sheet layout + per-view sentences + keep-list), render them for cseq3_0/5_0/8_3, bench
+   vs the hand-written sheets. Template loses = stop and wire the seeing Enhancer first (FLUX.3 i2i recipe already
+   `seesPictures`, `flux-3.recipe.js:109`). Verify: Fabio's verdict per sheet.
+2. Graphs: `flow_character_sheet_edit_flux3.json` + `flow_character_sheet_images_flux3.json` built from the Qwen
+   twins by flowbench `swap_qwen` (TextEncodeQwenImage21 -> MpiFlux3References same id, flux2 VAE, Turbo 16/1),
+   committed as real workflow files. Verify: graph link check + one local run each = bench sheet.
+3. Clothed check before routing: run the existing clothes question (SHEET_CLOTHES_CHECKS, 9/10 on bench) for
+   adults too when change is body/accessories AND flux3-klein is installed; answer NOTHING/UNDERWEAR on any view
+   -> Qwen. Needs the describe step moved ahead of op/model choice in `flowService.js` (a real refactor: brief
+   Fabio before starting). Verify: unit test nude sheet -> Qwen op, clothed -> FLUX.3 op.
+4. Wiring: third optional slot `{ models: ['flux3-klein'], for: [new ops] }`, ops in commandRegistry,
+   universal_workflows, operationRegistry.js, operation_registry.json; routing rules for body/accessories + the
+   rebuild leg; FLUX.3-specific templates from step 1. Verify: `tests/character-sheet-editor.test.cjs` extended
+   (routing pinned per category x installed/not x clothed/not), `npm run lint`, `npm test`.
+5. Copy: Flow description, slot label, Accessories/Body option info (`flowsRegistry.js:1721/1727/1789/1801`);
+   fix stale `docs/playbooks/add-flow/existing-flows/character-sheet-editor.md` (:62 says hair on Klein, :16
+   misses beard). UNRELEASED.md line. Privacy unaffected (local model).
+6. Fabio's eye-test in `app:isolated`: one body, one accessory, one child-age run with FLUX.3 installed + one nude
+   body edit (must go Qwen).
+Open: undress cases' keep-list wording; whether body edits on Klein-era L1 string (`characterSheetEditor.js:354`)
+also improve Qwen - out of scope, noted only.
+
 ## Current State
 
 2026-10-20: plan written. TWO SEPARATE GATES (Fabio, 2026-10-20):
@@ -157,6 +194,35 @@ qwen-image-2-1 + the 7 Flows. Bench project "FLUX3 Flow Bench" (Fabio's Document
   `gpu_lease.py run --poll 2 -- python <research>/flowbench.py run 48188 cseq5_0 111 222 --variants base`, then
   `... bfl.py 48188 cseq5_0 --seeds 111,222 --variants bfl_turbo,bfl_base`, then `sheet.py cseq5_0 --bfl`.
   Fabio's engine must be up on 48188. Then Fabio's product call on a clothed-only FLUX.3 route.
+- 2026-10-22 afternoon (session "Flux 3 on flows 5"): cseq5_0 sling bag RAN (sheet `cseq5_0_bfl.jpg`): Turbo ties
+  Qwen, base 1 of 2 (seed 222 puts the bag on his back). LOCAL BENCH COMPLETE. GOTCHA fixed: locally captured
+  graphs load `<engine input>\mpi_staged\<hash>.png`, and the app EMPTIES mpi_staged on every engine start -> 0
+  images in 3 s. `flowbench.LOCAL_STAGED` maps staged name -> project file (name = sha256(path|size|mtimeMs)[:16])
+  and `_localize` re-uploads when the staged file is gone; add a line per new local case.
+  NEXT: Fabio's verdicts on cseq3/4/5/6/8 sheets + his product call on a clothed-only FLUX.3 route.
+- 2026-10-22: Fabio YES to the clothed-only route (body, child age, accessories on FLUX.3 Turbo). 2.1.2 shipped
+  2026-10-21, so the Phase 2 gate is open. Plan = "Phase 2a" above. NEXT: step 1 prompt gate (GPU go needed),
+  and Fabio's OK on step 3's describe-before-route refactor.
+- 2026-10-22 step 1 RAN (`research/tpl.py`, sheets `*_tpl.jpg`, reads in validation.md "PHASE 2A STEP 1"): template
+  HOLDS child age, WEAKER on body (1 seed), FAILS accessory (seed 111 breaks the layout). LOCAL_STAGED now covers
+  cseq3_0/5_0/8_3 (cseq8_3's input = `FLUX3 Flow Bench\Media\flowCSE_012.png`). NEXT: Fabio's verdict; agent's pick
+  = wire the child-age leg on a template now, body/accessories wait for the seeing Enhancer.
+- 2026-10-22 Fabio YES -> child-age leg WIRED (uncommitted): Editor slot 3 `Child ages` [flux3-klein, qwen-image-2-1]
+  optional, `for: flowCharacterSheetImages` (slot 2 dropped it); `byModel` on that op ->
+  `comfy_workflows/flow_character_sheet_images_flux3.json` (= `research/build_flux3_graph.py` swap of the Qwen twin;
+  the from-images Flow itself never resolves it); `buildRebuildPromptFlux3` + builder takes `modelIds` (flowService
+  passes the leg's per-op ids). No new op: commandRegistry is a live peer's (MPI-1232). Tests updated as contract
+  changes (character-sheet-editor, flow-model-choice byModel owner = any flow that runs the op and slots the model,
+  flow-licence-surface); lint + `npm test` green (3577). Doc + UNRELEASED line done.
+  NEXT: Fabio's eye test in `app:isolated` (age 10 + age 1/0 unbenched on FLUX.3; Qwen-only fallback), then close.
+  Body/accessories: parked on the seeing Enhancer (Phase 2a steps 3-4 for those two).
+- 2026-10-22 LATE - Fabio REJECTED the Editor route: FLUX.3 must replace Klein 9B or Qwen WHOLE (dropdown on that
+  model's own row, next to its LoRA cog), never a third model doing two or three things. It replaces neither, so
+  the wiring is REVERTED (code == HEAD; `flow_character_sheet_images_flux3.json` deleted; patch kept at
+  scratchpad only). Eye test also found MPI-1254 (child close-up keeps the adult chest; shipped Qwen route too).
+  OPEN for Fabio: is anything left for this card? The only whole-model swap still standing is Character Sheet from
+  Images (Qwen-only Flow; FLUX.3 Turbo passed there, but only with per-picture prompts = needs a seeing Enhancer).
+  Otherwise close MPI-1212 as rejected.
 
 ## Plan Drift
 

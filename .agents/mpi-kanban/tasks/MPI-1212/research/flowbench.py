@@ -202,6 +202,11 @@ LOCAL_INPUTS = {  # Pod input name -> the project file the app staged it from (t
     'imported_009.jpg': r'Qwen 2.1\Media\imported_009.jpg', 'imported_012.jpg': r'Qwen 2.1\Media\imported_012.jpg',
     'flowCSFI_011.png': r'Qwen 2.1\Media\flowCSFI_011.png', 'edit_002.png': r'Deepinfra model tests\Media\edit_002.png',
 }
+# locally captured graphs load `<engine input>\mpi_staged\<sha256(path|size|mtimeMs)[:16]>.<ext>`, and the app
+# EMPTIES mpi_staged on every engine start: staged name -> its project file, re-uploaded when gone
+LOCAL_STAGED = {'cdf2ab569063e2c6.png': r'Qwen 2.1\Media\flowCSE_062.png',
+                'cef360fceb0c0627.png': r'Qwen 2.1\Media\flowCSE_044.png',
+                'f61e9ed5d8cc96fa.png': r'FLUX3 Flow Bench\Media\flowCSE_012.png'}   # cseq8_3: the Klein leg's aged sheet
 
 
 def _url(port, path):
@@ -232,6 +237,10 @@ def _localize(port, g):
                 name = s[len(POD_INPUT):]
                 assert name in LOCAL_INPUTS, f'no local copy for Pod input {name}: add it to LOCAL_INPUTS'
                 v['inputs'][k] = _upload(port, os.path.join(MEDIA, LOCAL_INPUTS[name]))
+            elif isinstance(s, str) and '\\mpi_staged\\' in s and not os.path.exists(s):
+                name = os.path.basename(s)
+                assert name in LOCAL_STAGED, f'staged input {name} is gone: add its project file to LOCAL_STAGED'
+                v['inputs'][k] = _upload(port, os.path.join(MEDIA, LOCAL_STAGED[name]))
 
 
 def _api(port, path, body=None):

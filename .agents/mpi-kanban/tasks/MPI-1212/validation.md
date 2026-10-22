@@ -105,3 +105,42 @@ prompt FLUX.3 runs locally):
   proportions (short body, bigger head, younger smiling face) on both seeds; Qwen's full bodies stay teen-tall.
   All three close-ups copy the input portrait (cardigan V neckline included). Agent: FLUX.3 WINS (Turbo).
   (sheet.py now takes Output_Image_2 first on cseq* graphs - Output_Image there is the mannequin helper.)
+- Accessory, black crossbody sling bag (cseq5_0, run 2026-10-22 afternoon on Fabio's GPU go; Qwen ~120 s, Turbo
+  ~66 s, base ~300 s locally): Qwen and Turbo both seeds put the bag on the chest, only the strap across the back
+  (right shoulder to left hip, as asked), face/beard/clothes kept. Turbo's close-ups also show the bag's top at the
+  lower edge as the prompt says; Qwen's show the strap only. Base seed 222 puts the BAG on his back (fail); base
+  111 correct. Agent: Turbo TIES Qwen (slightly closer to the words, ~half the time).
+
+FABIO 2026-10-22: YES to a clothed-only FLUX.3 route in the Editor - body, child age, accessories on FLUX.3 Turbo;
+hair, makeup, nude and undress stay on Qwen. Plan: plan.md "Phase 2a".
+PHASE 2A MAP (read-only sub-agent, 2026-10-22): Editor "Klein" = FLUX.2 klein-9b; no Flow uses flux3-klein;
+routing fixed before describe (`flowService.js:434-525` vs `:706-717`); SHEET_CLOTHES_CHECKS `flowsRegistry.js:523`
+asked only at 0-17; Editor prompts = templates, no Enhancer (`commandRegistry.js:1752`); Enhancer captions pictures
+(`llmService.js:894`) - text-only LLM; flux3 licence FLUX Kommunity, no nonCommercial flag (`licences.js:543`);
+routing tests `tests/character-sheet-editor.test.cjs:510-592`; stale doc
+`docs/playbooks/add-flow/existing-flows/character-sheet-editor.md:62`.
+
+PHASE 2A STEP 1 - TEMPLATE vs HAND-WRITTEN (2026-10-22, Fabio's GPU go; `research/tpl.py`, sheets `cseqN_*_tpl.jpg`,
+columns today | F3 Turbo hand-written | F3 Turbo template; templates fed only category + user words + age + clothes):
+- Child age 10 (cseq8_3): template HOLDS - child proportions, cardigan/jeans/boots, face kept, both seeds; on a par
+  with hand-written (seed 111 smiles less). ~38 s.
+- Body, extremely overweight (cseq3_0): seed 222 template = hand-written; seed 111 noticeably less heavy (close to
+  Qwen) and the heels drift toward flats from behind. The hand-written prompt spelled out belly/hips/arms/chin.
+  Template WEAKER, still at least Qwen's level.
+- Sling bag (cseq5_0): seed 111 template BREAKS the sheet - four panels (an extra back view), bag on the back, close-up
+  with no strap or bag; seed 222 fine (bag front, strap back, close-up strap + bag). Hand-written 2/2. Template FAILS.
+Agent: the plan's gate says template loses -> seeing Enhancer first. That holds for body and accessories; the
+child-age rebuild leg passes on a template and could ship without the Enhancer. Fabio judges.
+FABIO 2026-10-22: wire child age on FLUX.3 Turbo now; body + accessories wait for the seeing Enhancer.
+WIRED 2026-10-22 (uncommitted): `npm run lint` exit 0; `npm test` exit 0 (3577 pass). New pins:
+character-sheet-editor.test.cjs "MPI-1212: on FLUX.3 the child..." (the benched words verbatim, graph by pick, Qwen
+fallback, from-images Flow never gets the FLUX.3 file) + slot ids per install state. NOT yet: a run through the app
+(the graph file is the benched swap, but no app run used it) - Fabio's eye test.
+EYE TEST 2026-10-22 (app:isolated, Qwen 2.1 project, sidecars confirm `[null,null,'flux3-klein']`): bodies child-
+sized, but the close-ups are the Klein age step's, copied (adult chest/cleavage at 1 and 10, the adult woman at 0)
+-> card MPI-1254 (shipped route, not FLUX.3's). The Child ages dropdown snapped back to FLUX.3 (Qwen in two slots,
+flat pick list) - fixed, then reverted with the rest.
+FABIO 2026-10-22 - DECISION: no third model in the Editor. FLUX.3 had to replace Klein 9B or Qwen-Image 2.1 WHOLE
+(a dropdown on that model's own row, beside its LoRA cog); it does neither (Klein-side Flows lost; Qwen keeps
+nudity, hair, tattoos). Editor wiring REVERTED (code back to HEAD, flux3 graph deleted). Kept: research/ scripts +
+sheets, the existing-flows doc's stale hairstyle/beard fix.

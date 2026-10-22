@@ -16,6 +16,7 @@ S3 = [('base', 'today'), ('flux3turbo', 'F3 Turbo, Flow prompt'), ('s3p-turbo', 
 MODES = {'--s3': S3,
          '--bfl': [('base', 'today'), ('flux3turbo', 'F3 Turbo, Flow prompt'), ('bfl-turbo', 'F3 Turbo, BFL prompt'),
                    ('flux3base', 'F3 base, Flow prompt'), ('bfl-base', 'F3 base, BFL prompt')],
+         '--tpl': [('base', 'today'), ('bfl-turbo', 'F3 Turbo, hand-written'), ('tpl-turbo', 'F3 Turbo, template')],
          '--qp': [('base', 'today'), ('flux3turbo', 'F3 Turbo, Flow prompt'), ('qpf3a-turbo', 'F3 Turbo, tags + clause'),
                   ('qpf3a-base', 'F3 base, tags + clause'), ('qpf3b-turbo', 'F3 Turbo, + soft light')]}
 
