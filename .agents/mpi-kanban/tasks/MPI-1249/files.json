@@ -11,6 +11,13 @@
     "js/data/modelConstants/modelDeps.js",
     "js/data/recipes/moss-image.recipe.js",
     "docs/models/moss/README.md",
-    "docs/agent/models/moss-image.md"
+    "docs/agent/models/moss-image.md",
+    "js/data/modelConstants/loraDeps.js",
+    "js/data/recipes/registry.js",
+    "js/services/llmService.js",
+    "js/components/Compounds/MpiEnhanceDialog/MpiEnhanceDialog.js",
+    "js/components/Organisms/MpiPromptBox/MpiPromptBox.js",
+    "tests/enhance-style-rule.test.cjs",
+    "tests/in-graph-enhance.test.cjs"
   ]
 }

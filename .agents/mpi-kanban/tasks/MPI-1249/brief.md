@@ -48,3 +48,4 @@ Local copies: `M:/CubricModels/loras/moss/` (ComfyUI lists them as `moss/...`).
 6. Verify: lint, npm test, one render per style in `npm run app:isolated` (GPU lease), Fabio's eye.
 
 ## Noticed
+- Krea2, Klein and Chroma racks glue the style trigger onto the prompt with an EMPTY StringConcatenate delimiter ("...gardenmonochrome ink wash style") unless the prompt ends in punctuation. Fixed for MOSS only (", ").
