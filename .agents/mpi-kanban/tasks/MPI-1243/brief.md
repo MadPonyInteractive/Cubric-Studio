@@ -30,3 +30,7 @@ Evidence: `.agents/mpi-kanban/tasks/MPI-1180/validation.md` + `research/bench/ru
   REUSE what we ship: `qwen3vl-abliterated-clip` (Qwen3-VL-4B abliterated, engine asset) and the describe graph's
   `boxFromDescribeAnswer` mapping (`docs/llm.md`); do not add another VL model. Node-code tips: greedy decoding, no
   repetition penalty. The AcademiaSD layout node has no licence: ideas only, no code.
+
+## Noticed
+
+- `editPlacementInput` (js/data/layoutBoxes.js) tells the enhancer "the edited image; the attached images do not show it" also on a t2i model with no box mode (MOSS). Wording only; the caption still wraps into the layout JSON. (2026-10-22)

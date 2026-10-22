@@ -21,6 +21,9 @@
     "comfy_workflows/scripts/workflow_generation/registry.py",
     "comfy_workflows/scripts/workflow_generation/moss_t2i.json",
     "js/data/recipes/moss-image.recipe.js",
-    "docs/agent/models/moss-image.md"
+    "docs/agent/models/moss-image.md",
+    "js/data/recipes/registry.js",
+    "tests/recipe-registry.test.cjs",
+    "docs/recipes/research/moss-image/"
   ]
 }

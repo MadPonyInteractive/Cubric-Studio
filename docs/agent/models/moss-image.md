@@ -37,11 +37,11 @@ coordinates, JSON or angle-bracket tags in the prompt yourself, and keep the pro
 
 ## The prompt shape
 
-Plain English prose, one to three paragraphs, usually 80 to 200 words; longer only when there
-is a lot of text to place. A description of the finished picture:
+Plain English prose, one to three paragraphs, usually 80 to 200 words; up to about 250 for a
+long, detailed request or a lot of text to place. A description of the finished picture:
 
 1. Open with the medium and the main subject ("Daylight street photograph of a small corner
-   bakery ...", "Flat vector illustration of ...").
+   bakery ...", "Flat vector illustration of ..."). No medium or style asked for: a photograph.
 2. The setting and the composition: framing, viewpoint, and where things are, in words (left,
    right, top, bottom, foreground, background).
 3. Lighting, colours, materials and the finer details.
@@ -61,7 +61,7 @@ signature.
 
 A one-line idea becomes the full description above. A long, rambling request keeps its concrete
 content and loses its wording: drop the indecision and the praise, say moods as things that can
-be seen, and stay near 200 words. A garbled phrase is written as what it was reaching for.
+be seen, and stay under 250 words. A garbled phrase is written as what it was reaching for.
 
 Example. The user asks: "a bakery sign for Rosa's".
 
