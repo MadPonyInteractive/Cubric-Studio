@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1250", "at": "2026-10-22T16:00:33+01:00", "actor": "claude", "column": "doing", "title": "PiD upscaler: non-commercial licence gate (NVIDIA NSCL v1)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1250", "at": "2026-10-22T16:10:37+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "PiD gated non-commercial, shipped 1b3f8b24d"}
