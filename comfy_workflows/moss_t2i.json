@@ -56,7 +56,7 @@
   },
   "88": {
     "inputs": {
-      "delimiter": "",
+      "delimiter": ", ",
       "string_a": [
         "93",
         0

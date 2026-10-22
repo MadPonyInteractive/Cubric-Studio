@@ -1251,4 +1251,78 @@ export const loraDeps = {
         bytes: 630697104,
         sha256: '37d49218544b9e0bfb8e831d1399f451fbc5068aff6474f42a90c928363c3573'
     },
+
+    // ── MOSS-Image style LoRAs (MPI-1249) ──────────────────────────────────────
+    // Fabio's picks, 2026-10-22: Apache-2.0 only (§4 attribution = the credit blocks). Model
+    // strength only: 0 text-encoder keys in all four. ComfyUI lists them BACKSLASHED
+    // (`moss\...`) — rides the MPI-229 heal. axiomofmind ships Diffusers-key
+    // `pytorch_lora_weights.safetensors` at each repo root that loads NOTHING in ComfyUI;
+    // these are the authors' own `-ComfyUI` files (HF lfs.oid == sha256 below, 2026-10-22).
+    'moss-style-anime': {
+        id: 'moss-style-anime',
+        name: 'MOSS-Image Style — Anime',
+        origin: 'axiomofmind/Moss-image-anime-lora (Apache-2.0)',
+        filename: 'loras/moss/MOSS-Image-Anime-LoRA-ComfyUI.safetensors',
+        url: 'https://models.cubric.studio/vision/models/loras/moss/MOSS-Image-Anime-LoRA-ComfyUI.safetensors',
+        mirrorUrl: 'https://huggingface.co/axiomofmind/Moss-image-anime-lora/resolve/main/MOSS-Image-Anime-LoRA-ComfyUI.safetensors',
+        size: '70.93MB',
+        bytes: 74379584,
+        sha256: '6661f88183757c7be9044578d3907335d6abe83a736995bd502b78db2c5b83cf',
+        credit: {
+            author: 'axiomofmind',
+            work: 'MOSS-Image Anime LoRA',
+            url: 'https://huggingface.co/axiomofmind/Moss-image-anime-lora',
+        },
+    },
+    'moss-style-gouache': {
+        id: 'moss-style-gouache',
+        name: 'MOSS-Image Style — Gouache',
+        origin: 'axiomofmind/Moss-image-gouache-lora (Apache-2.0)',
+        filename: 'loras/moss/MOSS-Image-Gouache-LoRA-ComfyUI.safetensors',
+        url: 'https://models.cubric.studio/vision/models/loras/moss/MOSS-Image-Gouache-LoRA-ComfyUI.safetensors',
+        mirrorUrl: 'https://huggingface.co/axiomofmind/Moss-image-gouache-lora/resolve/main/MOSS-Image-Gouache-LoRA-ComfyUI.safetensors',
+        size: '70.93MB',
+        bytes: 74379584,
+        sha256: '136736fd02a932068982a2211f3010ca579d0186a784b37af592020eb947cedf',
+        credit: {
+            author: 'axiomofmind',
+            work: 'MOSS-Image Gouache LoRA',
+            url: 'https://huggingface.co/axiomofmind/Moss-image-gouache-lora',
+        },
+    },
+    'moss-style-psychedelic': {
+        id: 'moss-style-psychedelic',
+        name: 'MOSS-Image Style — Psychedelic Pop',
+        origin: 'axiomofmind/Moss-image-psychedelic-lora (Apache-2.0)',
+        filename: 'loras/moss/MOSS-Image-Psychedelic-LoRA-ComfyUI.safetensors',
+        url: 'https://models.cubric.studio/vision/models/loras/moss/MOSS-Image-Psychedelic-LoRA-ComfyUI.safetensors',
+        mirrorUrl: 'https://huggingface.co/axiomofmind/Moss-image-psychedelic-lora/resolve/main/MOSS-Image-Psychedelic-LoRA-ComfyUI.safetensors',
+        size: '70.93MB',
+        bytes: 74379584,
+        sha256: '43584190c0d0ba4d3ef124c78bf5ddb1ecc942a6d872b79134a1b2d1bd5dec8a',
+        credit: {
+            author: 'axiomofmind',
+            work: 'MOSS-Image Psychedelic LoRA',
+            url: 'https://huggingface.co/axiomofmind/Moss-image-psychedelic-lora',
+        },
+    },
+    // OUR re-key: upstream ships bare `layers.N...` keys, which ComfyUI's MOSS LoRA map ignores
+    // (it matches `diffusion_model.` only), so the header was rewritten with that prefix,
+    // tensor bytes untouched. R2 only, no mirror: the HF file loads nothing.
+    'moss-style-pixelart': {
+        id: 'moss-style-pixelart',
+        name: 'MOSS-Image Style — Pixel Art 16x16',
+        origin: 'Angais/MOSS-Image-PixelArt-16x16 (Apache-2.0), re-keyed for ComfyUI',
+        filename: 'loras/moss/MOSS-Image-PixelArt-16x16-ComfyUI.safetensors',
+        url: 'https://models.cubric.studio/vision/models/loras/moss/MOSS-Image-PixelArt-16x16-ComfyUI.safetensors',
+        size: '141.81MB',
+        bytes: 148697280,
+        sha256: '4c133b9fb5c064affa2745a1d5623e8b6736fd015d32c9f925354655f9540796',
+        noMirror: true,
+        credit: {
+            author: 'Angais',
+            work: 'MOSS-Image PixelArt 16x16',
+            url: 'https://huggingface.co/Angais/MOSS-Image-PixelArt-16x16',
+        },
+    },
 };

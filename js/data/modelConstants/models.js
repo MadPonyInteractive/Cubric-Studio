@@ -2228,7 +2228,7 @@ const ALL_MODELS = [
         capabilities: {
             multiStage: false, audio: false,
             negativePrompt: true,   // live on SFT (cfg 2.5); Turbo hides it
-            styleLoras: false,
+            styleLoras: true,
             batch: false,
             turboToggle: true,
             tileUpscale: true,
@@ -2241,6 +2241,12 @@ const ALL_MODELS = [
             upscale: { Input_wf_type: 7 },
         },
         imageSizedOps: ['detail', 'upscale'],
+        // Index-aligned with the Input_Style_Selector trigger lines and the MpiStyleLoras slots
+        // (MPI-1249). No styleLoraImages yet: the picker shows placeholder cards until Fabio's
+        // previews land as moss-style-{none,anime,gouache,psychedelic,pixelart}.webp.
+        styleLoraLabels: ['None', 'Anime', 'Gouache', 'Psychedelic Pop', 'Pixel Art'],
+        // One graph: the rack sits upstream of the user LoRAs on every branch.
+        styleOps: ['t2i', 'i2i', 'inpaint', 'detail', 'upscale'],
         layoutBoxes: { ops: ['t2i'], format: 'moss' },
         // 1K only (Fabio 2026-10-22): MOSS is trained to ~1 MP and 2K came out with bent limbs;
         // bigger goes through the upscale op. FLUX.3's 1k sizes (docs/models/moss/README.md).
@@ -2275,6 +2281,10 @@ const ALL_MODELS = [
             'moss-image-sft-transformer',    // Turbo off
             'moss-image-qwen35-9b-clip',
             'vae-flux2',
+            'moss-style-anime',
+            'moss-style-gouache',
+            'moss-style-psychedelic',
+            'moss-style-pixelart',
             // The rest is FLUX.3's list: the graph keeps FLUX.3's op branches (edit unused but
             // validated by ComfyUI), so their packs and the upscaler must be present.
             '4x-NMKD-Siax',
