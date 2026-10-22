@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1251", "at": "2026-10-22T19:38:24+01:00", "actor": "claude", "column": "doing", "title": "Maximised video: a click does not play it (Space does) - video workspace and model-install preview"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1251", "at": "2026-10-22T19:43:02+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "shipped 067a7edb5"}

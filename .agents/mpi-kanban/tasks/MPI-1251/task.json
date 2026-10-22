@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1251",
+  "title": "Maximised video: a click does not play it (Space does) - video workspace and model-install preview",
+  "description": "In native fullscreen Chromium's own media controls toggle play on a click, and our click handler toggles too, so the two cancel out. Workspace (MpiVideoSurface) and the model drawer preview (MpiModelManager thumb click) both hit it.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-22T19:38:24+01:00",
+  "updated_at": "2026-10-22T19:43:02+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
