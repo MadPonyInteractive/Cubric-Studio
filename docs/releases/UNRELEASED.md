@@ -54,6 +54,7 @@
 
 ## New
 
+- New model: MOSS-Image, a text-to-image model that writes exact lettering on signs and posters, with a fast Turbo mode and Boxes for placing things (MPI-1243).
 - When an update is ready, the Dev updates panel (the bell) shows an "Update to v…" button at the top, naming the version the posts below talk about (MPI-1242).
 
 ## Fixes
