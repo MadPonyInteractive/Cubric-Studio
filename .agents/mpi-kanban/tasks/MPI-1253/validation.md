@@ -62,6 +62,21 @@ Remove picture unlocks them.
   - Remove picture: guide gone, the 2 boxes kept, edit back to "needs 1 image"; a real drag
     then stages (imageCount 1).
 
+## Rework 3: Fabio's first real run (2026-10-23)
+
+Fabio's run on an anime meadow picture: 7 boxes, all misplaced, slow. Swap test on his
+screenshot: the squirrel's drawn box is the real one with x and y exchanged, i.e. the
+describer answered [y1,x1,y2,x2] (Gemini/Gemma order) to a question that asks Qwen's
+[x1,y1,x2,y2]. Describer still to confirm (his storage shows both ComfyUI and DeepInfra
+gemma entries); fix pending that.
+
+Fixed meanwhile, same live setup (real clicks, stubbed describer), `npm test` 3532/0:
+- The layout picture lives in `state.promptDraft` (`boxesGuide`): Projects page and back
+  kept the picture, Remove picture and the edit chip's lock reason.
+- Analyse button removed (right-click is the way in): absent from the panel.
+- Eye per row: hid "head" on the frame (node `.hide`, eye grey), run count stayed 2.
+  View-only, resets when the panel remounts.
+
 ## Not this card
 
 Prism reads "cancelled" after every successful describe, the stock gallery Describe included

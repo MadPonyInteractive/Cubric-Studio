@@ -216,6 +216,10 @@ export const MpiPromptBox = ComponentFactory.create({
         let positiveValue      = props.value || _draft.positive || '';
         let negativeValue      = props.negativeValue || _draft.negative || '';
         let negativeAudioValue = props.negativeAudioValue || _draft.negativeAudio || '';
+        // MPI-1253: the card picked with right-click > Create boxes, to lay a new picture out
+        // like it (a magazine cover). t2i only, panel only: a t2i run takes no picture, and an
+        // edit's boxes are the user's own. In the draft, so leaving the project keeps it.
+        let _boxesGuide = _draft.boxesGuide || null;
 
         // Field access by mode, so every read/write site stays a one-liner and a
         // fourth mode would not mean hunting ternaries.
@@ -253,6 +257,7 @@ export const MpiPromptBox = ComponentFactory.create({
                     // `{ source, positive }` — the source is what makes the restore
                     // checkable rather than trusted.
                     enhanced: _enhanced,
+                    boxesGuide: _boxesGuide,
                 },
             };
         }
@@ -398,21 +403,17 @@ export const MpiPromptBox = ComponentFactory.create({
                 onCite: (name) => _insertPromptText(`<${name}>`),
                 onRename: _renamePromptTag,
                 onClose: () => _boxesBtn.el.setActive(false),
-                onAnalyse: _analyseBoxes,
                 onRemovePicture: () => _setBoxesGuide(null),
             });
             _boxesBtn.el.setActive(true);
         }
-        // MPI-1253: the card picked with right-click > Create boxes, to lay a new picture out
-        // like it (a magazine cover). t2i only, panel only: a t2i run takes no picture, and an
-        // edit's boxes are the user's own.
-        let _boxesGuide = null;
         let _analysing = false;
         // While the layout picture is loaded the box stays on t2i: the other ops grey out and a
         // picture added to the box is refused, until the panel's Remove picture (Fabio, 2026-10-22).
         const _layoutLocked = () => !!_boxesGuide && activeOperation === 't2i';
         function _setBoxesGuide(url) {
             _boxesGuide = url;
+            _saveDraft();
             _refreshOpStrip();
             _refreshBoxFrame();
         }
@@ -423,12 +424,11 @@ export const MpiPromptBox = ComponentFactory.create({
             if (!frame.guide || !_boxesCtrl() || _analysing) return;
             const op = activeOperation;
             _analysing = true;
-            _boxesPanel?.el.setBusy(true);
             const res = await describeImage({ imagePath: frame.url, question: ANALYSE_QUESTION, scope: 'gallery', queued: true })
-                .finally(() => { _analysing = false; _boxesPanel?.el.setBusy(false); });
+                .finally(() => { _analysing = false; });
             if (!res.ok) { if (!res.cancelled) _showMediaToast(res.error); return; }
             const found = boxesFromAnalysis(res.text);
-            if (!found?.boxes.length) { _showMediaToast('Analyse found no boxes in this picture. Press it again.'); return; }
+            if (!found?.boxes.length) { _showMediaToast('Create boxes found nothing in this picture. Try it again.'); return; }
             if (activeOperation !== op || !_boxesCtrl()) return; // the user moved on while it ran
             const img = new Image();
             img.src = frame.url;
