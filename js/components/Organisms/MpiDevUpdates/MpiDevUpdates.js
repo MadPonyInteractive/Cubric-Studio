@@ -11,6 +11,7 @@ import {
     acknowledgeAllDevUpdates,
     acknowledgeDevUpdate,
 } from '../../../services/devUpdatesService.js';
+import { getPendingUpdate, runUpdate } from '../../../services/updateChecker.js';
 
 /**
  * MpiDevUpdates — the dev-updates list for the MpiSlideOver panel (MPI-1115).
@@ -21,6 +22,10 @@ import {
  * inside the text open the browser. Empty = "All caught up". "Join the Discord" is always there: getting
  * people into the Discord is what the bell is for.
  *
+ * MPI-1242: when the boot check found a newer version, an "Update to vX.Y.Z" button
+ * sits at the top. Posts announce what is "Coming in 2.1.2", so the button naming
+ * the same version is what joins the post to the install. Same runUpdate as Settings.
+ *
  * Usage (via slide-over event, from the landing bell in js/shell/projectUI.js):
  *   Events.emit('slide-over:open', { title: 'Dev updates', component: MpiDevUpdates });
  */
@@ -30,6 +35,7 @@ export const MpiDevUpdates = ComponentFactory.create({
 
     template: () => `
         <div class="mpi-dev-updates">
+            <div class="mpi-dev-updates__update" hidden></div>
             <div class="mpi-dev-updates__bar"></div>
             <div class="mpi-dev-updates__list"></div>
             <div class="mpi-dev-updates__empty">
@@ -48,6 +54,15 @@ export const MpiDevUpdates = ComponentFactory.create({
         barEl.appendChild(markAll);
         const join = mountButton({ text: 'Join the Discord', variant: 'primary', size: 'md' });
         qs('.mpi-dev-updates__foot', el).appendChild(join);
+
+        const updateEl = qs('.mpi-dev-updates__update', el);
+        getPendingUpdate().then((info) => {
+            if (!info) return;
+            const btn = mountButton({ text: `Update to v${info.latest}`, variant: 'primary', size: 'md' });
+            _unsubs.push(on(btn, 'click', () => runUpdate(info.latest)));
+            updateEl.appendChild(btn);
+            updateEl.hidden = false;
+        });
 
         const _date = (iso) => new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 

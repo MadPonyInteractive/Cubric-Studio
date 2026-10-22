@@ -15,6 +15,12 @@
     justify-content: flex-end;
 }
 
+.mpi-dev-updates__update {
+    display: flex;
+    justify-content: center;
+}
+
+.mpi-dev-updates__update[hidden],
 .mpi-dev-updates__bar[hidden],
 .mpi-dev-updates__empty[hidden] {
     display: none;
