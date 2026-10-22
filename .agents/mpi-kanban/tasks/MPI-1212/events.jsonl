@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1212", "at": "2026-10-20T20:33:14+01:00", "actor": "claude", "column": "todo", "title": "FLUX.3 Klein in the Flows: bench it against Qwen-Image 2.1 and Klein 9B per Flow, swap where it wins"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1212", "at": "2026-10-20T20:57:34+01:00", "actor": "3fd385c9-93ac-4f28-bcc6-5f9e0ea424cd", "from": "todo", "to": "doing", "reason": "bench prep (non-GPU); no app code until 2.1.2"}

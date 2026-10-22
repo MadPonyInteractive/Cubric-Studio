@@ -17,8 +17,11 @@ add it to the Flow's `requiredModels` rack (or make it the default); where it lo
 
 ## Known going in (MPI-1181)
 
-- FLUX.3 licence: FLUX Kommunity, non-commercial model; images commercial only under the revenue
-  limit. Qwen-Image 2.1 is research/non-commercial too. Klein 9B is the commercial-safe one.
+- FLUX.3 licence: FLUX Kommunity v1.0. Under US$5M gross a year (with affiliates) a user may run
+  it in production AND sell the images (§1.e, §2.a.ii); above that, a paid BFL licence
+  (corrected by Fabio 2026-10-20; `licences.js` FLUX_KOMMUNITY). Klein 9B (FLUX Non-Commercial
+  v2.1) is the reverse shape: model use non-commercial, outputs commercial for everyone (§2.d).
+  Qwen-Image 2.1 is research/evaluation only. Licence does NOT decide the default; the bench does.
 - Turbo off (base, 50 steps) for photoreal people; Turbo ~4x faster, plastic skin.
 - Edit keeps reference 1's frame unless Custom size is on.
 - Box-edit relationships (who does what to whom) are the model's limit, not fixable by prompt.
