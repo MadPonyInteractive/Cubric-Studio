@@ -5,5 +5,5 @@
 - [x] Competitor facts verified (research/)
 - [x] Links: hub, sitemap, llms.txt, 3 guides
 - [x] Checks: JSON-LD, links, dashes, 375px
-- [ ] Fabio reviews copy
-- [ ] Merge + push website, IndexNow ping
+- [x] Fabio reviews copy
+- [x] Merge + push website, IndexNow ping
