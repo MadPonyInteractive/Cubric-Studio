@@ -4,3 +4,4 @@
 - Throwaway desktop spec (isolated Electron, own port): LTX ref2v + H3 ref2v prompt boxes, 3 pictures each. All 6 tags (3 plain, 3 toggle) compute `background-color: oklch(0.5 0.022 350)` = `--surface-0`.
 - `tests/desktop/prompt-box-start-frame-toggle.spec.js`: pass. `npm run lint`: clean.
 - Remaining: Fabio's eye-test over a real picture.
+- Fabio eye-test 2026-10-22: "exactly what I asked for". CI Tests run 39842895433 on 5ae61d66f: success (unit + desktop 1-4).

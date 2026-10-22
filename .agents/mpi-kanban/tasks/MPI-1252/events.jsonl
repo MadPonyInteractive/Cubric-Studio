@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1252", "at": "2026-10-22T20:41:08+01:00", "actor": "claude", "column": "doing", "title": "Prompt box chip tags: solid background so names read over any picture"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1252", "at": "2026-10-22T20:44:17+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Tags on --surface-0 shipped; Fabio eye-test remains"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1252", "at": "2026-10-22T21:01:29+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio approved; CI green on 5ae61d66f"}
