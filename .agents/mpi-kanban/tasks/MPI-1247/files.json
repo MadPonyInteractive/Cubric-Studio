@@ -1,0 +1,10 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/shell/notificationService.js",
+    "js/shell/navigation.js",
+    "routes/downloadManager.js",
+    "tests/install-toast-restart.test.cjs",
+    "tests/install-queue-wedge.test.cjs"
+  ]
+}
