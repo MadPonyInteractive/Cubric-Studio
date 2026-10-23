@@ -1467,6 +1467,7 @@ const ALL_MODELS = [
         // not the sampler. ON = conv decoder (fast), OFF (default) = diffusion decoder (~+60 s, steadier
         // fine texture). Same steps either way.
         capabilities: { batch: false, multiStage: true, audio: true, audioRouting: true, singleFileStages: true, referenceSheet: true, h3TurboToggle: true },
+        turboInfo: 'Turbo — faster video decoder, about a minute less on long 2K clips; fine textures like scales can shimmer more',
         video: 'ltx25_preview.mp4',
         type: 'ltx',
         loraStrengths: ['model', 'clip'],

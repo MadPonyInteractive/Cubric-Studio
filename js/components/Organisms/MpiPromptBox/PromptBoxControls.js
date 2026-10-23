@@ -902,7 +902,7 @@ export const PROMPT_BOX_CONTROLS = {
                 checked: this.value,
                 label: 'Describe each tile',
                 name: 'tileDescribe',
-                info: 'Names each tile in a few words. People and faces are never described.',
+                info: 'Names each tile in a few words, leaving people out: a name that mentions a person is dropped.',
             });
             this._instance.on('change', ({ checked }) => {
                 this.value = !!checked;
@@ -1430,9 +1430,11 @@ export const PROMPT_BOX_CONTROLS = {
             this.value = initial;
 
             // Bare icon button in the button strip, mounting exactly like krea2Turbo.
+            // `turboInfo` lets a card that reuses this button say what ITS turbo does
+            // (LTX 2.5 swaps the video decoder, not the steps); H3's line is the default.
             this._instance = MpiButton.mount(hostEl, {
                 icon: 'bolt',
-                info: 'Turbo — 6 steps instead of 25, about a third of the time, slightly less detail',
+                info: opts.model?.turboInfo || 'Turbo — 6 steps instead of 25, about a third of the time, slightly less detail',
                 size: 'sm',
                 variant: 'primary',
                 toggleable: true,
