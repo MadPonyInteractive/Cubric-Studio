@@ -36,3 +36,4 @@ Bench phase: Fabio eye-checks faces + overlaps at 1:1 in `research/`. Wiring val
   run went on). Marker-name guard added after this run (cleanTileName).
 - Phase 4: npm test 3546 tests, 3544 pass, 0 fail (agent-tiles tileSize cases, agent-loop "up to 40 tiles", budget
   16,394); lint 0; desktop prompt-box-use-tiles spec 1 passed.
+- Close: code commit eeda0317e, pre-push lint + unit tests green, CI tests.yml run 39890042995 success; claim audit 28/28 proven.
