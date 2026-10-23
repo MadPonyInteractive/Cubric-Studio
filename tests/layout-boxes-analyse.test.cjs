@@ -72,6 +72,14 @@ test('a bare "box" array is read in the order the describer was asked', () => {
     assert.deepEqual(boxesFromAnalysis(text, 'qwen').boxes[0].x, 0.021);
 });
 
+test('an array is read in the ANSWERING model\'s order whatever its key', () => {
+    // Gemma writes y-first under Qwen's key too; Qwen writes x-first under Google's.
+    const items = [{ name: 'sky', bbox_2d: [0, 0, 253, 1000] }, { name: 'sky b', box_2d: [0, 0, 253, 1000] }];
+    const text = JSON.stringify({ caption: '', items });
+    for (const b of boxesFromAnalysis(text, 'gemma').boxes) assert.deepEqual([b.x, b.y, b.w, b.h], [0, 0, 1, 0.253], b.name);
+    for (const b of boxesFromAnalysis(text, 'qwen').boxes) assert.deepEqual([b.x, b.y, b.w, b.h], [0, 0, 0.253, 1], b.name);
+});
+
 test('snap: a box fits its whole ink block; ink running off into a photo leaves it as drawn', async () => {
     const { snapBoxes } = await import('../js/data/layoutBoxes.js');
     // 200x200 white page: a 3-line text block at x 20-80, y 40-70 (lines 2 px apart),

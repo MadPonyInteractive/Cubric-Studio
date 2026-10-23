@@ -32,7 +32,7 @@ import { thumbSrc } from '../../../utils/displayImage.js';
 import { PAGE_LANDING } from '../../../router.js';
 import { layoutRows, analyseQuestion, boxesFromAnalysis, snapBoxes } from '../../../data/layoutBoxes.js';
 import { modelTakesBoxes } from '../../../data/generationControls.js';
-import { describeImage, describerFamily } from '../../../services/llmService.js';
+import { describeImage, describerFamily, familyOf } from '../../../services/llmService.js';
 import { applyPromptReuseSettings } from '../../../services/projectService.js';
 import { ratioSettingsFromParams } from '../../../utils/promptReuse.js';
 import { resolveMediaUrl } from '../../../utils/mediaActions.js';
@@ -434,8 +434,11 @@ export const MpiPromptBox = ComponentFactory.create({
                 if (!res.cancelled) _showMediaToast(res.error);
                 return;
             }
-            const found = boxesFromAnalysis(res.text, family);
-            clientLogger.info('PromptBox', `Create boxes: ${found?.boxes.length || 0} boxes from ${res.text?.length || 0} chars, op ${op} -> ${activeOperation}`);
+            // Read in the order of the model that answered: the asked family is a guess (Fabio's
+            // describe setting said ComfyUI while Gemma answered, every box mirrored, 2026-10-23).
+            const answered = res.model ? familyOf(res.model) : family;
+            const found = boxesFromAnalysis(res.text, answered);
+            clientLogger.info('PromptBox', `Create boxes: ${found?.boxes.length || 0} boxes from ${res.text?.length || 0} chars, asked ${family}, read ${answered} (${res.model || res.via}), op ${op} -> ${activeOperation}`);
             if (!found?.boxes.length) {
                 // The answer itself, so a format the reader misses can be seen (MPI-1253).
                 clientLogger.warn('PromptBox', `Create boxes: unreadable answer: ${String(res.text).slice(0, 8000)}`);

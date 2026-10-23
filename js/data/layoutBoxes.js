@@ -112,9 +112,13 @@ export function analyseQuestion(family) {
 function _edges(it, family) {
     const o = it?.box;
     if (o && typeof o === 'object' && !Array.isArray(o)) return [o.left, o.top, o.right, o.bottom];
-    const google = Array.isArray(it?.box_2d) ? it.box_2d : family === 'gemma' && Array.isArray(o) ? o : null;
-    if (google) { const [t, l, b, r] = google; return [l, t, r, b]; }
-    return it?.bbox_2d || it?.bbox || o;
+    const arr = [it?.box_2d, it?.bbox_2d, it?.bbox, o].find(Array.isArray);
+    // The answering model's own order beats the key: Gemma writes y-first under `bbox_2d` too
+    // (Rework 4: the sky strip down the left side; Bazaar 2026-10-23, every box mirrored).
+    const yFirst = family === 'gemma' || (family !== 'qwen' && arr === it?.box_2d);
+    if (!arr || !yFirst) return arr;
+    const [t, l, b, r] = arr;
+    return [l, t, r, b];
 }
 
 /** `text` with every string, list and object still open at its end closed (AcademiaSD's `_cerrar`). */
