@@ -43,10 +43,26 @@ Sheets in `research/sheets/`; Fabio judges which model + wording holds identity 
 2026-10-23: stage 1 (face) + stage 2 (full-body orbit) DONE on FLUX.3 Turbo 1K - results, recipe, pass rates
 in validation.md. Driver `research/angles.py` (modes: fast vN, body bN, b4, b5, b6, best, b6sheet); results
 in `research/out/*.json`, sheets in `research/sheets/`, cards in project "FLUX3 Flow Bench".
-NEXT (Fabio said "not yet", await his go): vertical-orbit bench - 5 pitch levels (extreme low, low, level, high,
-extreme high) x 3 yaws (front, 3/4 front L, 3/4 back L) on the face (`stage1_2k.json` source) and the full body
-(`body.json` source), ~30 runs ~11 min; plus pitch-on-a-yaw-result (the two-step case). Objects after.
-Isolated app is DOWN (Fabio closed it): relaunch with `CUBRIC_AGENT_PROFILE=%LOCALAPPDATA%\Temp\cubric-agent-profile-mpi1212
+2026-10-23: vertical-orbit p1 DONE on one seed (111): `angles.py <port> pitch`, results `out/pitch.json`, sheets
+`pitch_face.jpg` / `pitch_body.jpg`, read in validation.md. Body front pitch ladder passes; pitch drowns yaw at the
+strong stops; face low angles still tip the head back; TWO-STEP returns copies.
+Object p1 DONE (`pitch_object.jpg`): pitch passes on a floating speaker at every stop, yaw fails (the back never
+shows). Scene p1 DONE (`pitch_scene.jpg`): pitch moves the whole street; yaw turns the man, the background stays.
+DECISION (Fabio 2026-10-23, after the LoRA test): NO LoRA - akhaliq's FLUX.3 angle LoRA and fal's Qwen route
+dropped ("our prompting was better"; Qwen slow + poor). Direction: rotate CHARACTERS that sit in scenes with the
+prompt recipe; if the scene fights it, fallback = background-removal pass -> rotate the cut-out character -> an
+edit places it back into the scene. Subject rotation on a simple background = its own Flow.
+NEXT: bench "rotate a character in a scene" (the scene p1 source: yaw lands on him, background stays), then the
+cut-out fallback if needed.
+Fabio 2026-10-23 (earlier): training our own angle LoRA is on the table (~$50 a LoRA is fine; later a Discord money
+pool per LoRA, budget + small margin). Cost = steps x GPU time, not dataset size.
+Fabio: subject rotation on a simple background = a Flow of its own. Angle-LoRA survey in validation.md
+(FLUX.3 base LoRA + public training data exist). Proposed next: test akhaliq's FLUX.3 angle LoRA on our 4
+sources before deciding to train our own.
+Older NEXT: Fabio's eye test on the four pitch sheets, then his call on (a) the two-step finding (one combined prompt
+from the front instead), (b) whether to run seeds 222/333 or rework the face-low and yaw+pitch wording first.
+Objects after.
+Isolated app (port 52430 this session; down when the session ends): relaunch with `CUBRIC_AGENT_PROFILE=%LOCALAPPDATA%\Temp\cubric-agent-profile-mpi1212
 node scripts/launch-instance.mjs` (run_in_background), use the printed port. Every GPU run under
 `gpu_lease.py run --poll 2 --timeout <long>`; a peer often holds the GPU.
 

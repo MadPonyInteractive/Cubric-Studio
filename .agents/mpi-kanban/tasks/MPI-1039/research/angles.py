@@ -551,6 +551,263 @@ def body(port, version='b1'):
     img.save(os.path.join(HERE, 'sheets', f'body_{version}.jpg'), quality=90)
 
 
+# Vertical orbit (Fabio 2026-10-23): 5 pitch stops x 3 yaws on the face and the full body, one seed (111). Each
+# prompt = yaw (camera side + frame direction) + pitch (camera height + pointing) + which end of her is nearest
+# the camera + "only the camera moved". Two-step: the 3/4-L+low/high prompt run on this bench's own 3/4-L level.
+PITCH_SEED = 111
+YAWS = {
+    'face': {
+        'front': 'straight in front of her, so she faces the camera with both eyes and both cheeks equally visible. ',
+        'tq L': ('45 degrees round to her left, so she faces partly toward frame-left with her left ear and gold hoop '
+                 'nearer the camera and her right cheek turned away. '),
+        'tqb L': ('135 degrees round to her left, behind her, a lost-profile view: she faces away from the camera, '
+                  'angled toward frame-left; the back of her head, her left ear with the gold hoop and only the edge '
+                  'of her left cheek and jawline show; her eyes and nose are hidden behind her cheek. '),
+    },
+    'body': {
+        'front': ('straight in front of her, so she faces the camera squarely: chest, hips and feet point at the '
+                  'camera, both shoulders equally visible. '),
+        'tq L': ('45 degrees round to her left, so her body is angled halfway between facing the camera and facing '
+                 'frame-left: her left shoulder, left arm and left hip are nearer the camera, her right shoulder and '
+                 'right arm are partly hidden behind her body, and her face shows its left cheek with her nose '
+                 'pointing toward frame-left. '),
+        'tqb L': ('135 degrees round to her left, behind her, a lost-profile view: she faces away from the camera, '
+                  'angled toward frame-left and into the picture; the back of her head, her left ear and only the '
+                  'edge of her left cheek show, her eyes and nose hidden; the back of her sweater, the strap crossing '
+                  'her back and the back pockets of her jeans are seen at an angle. '),
+    },
+}
+PITCHES = {  # (camera height + pointing, what the picture shows)
+    'face': {
+        'xlo': ('an extreme low camera angle, a worm\'s-eye view: the camera is far below her face, at the height of '
+                'her lower chest, pointing steeply upward at about 60 degrees',
+                'Seen from far below, the underside of her jaw and chin fill the middle of the picture, her nostrils '
+                'show, her chin and neck are much nearer the camera than her eyes, her forehead is small and '
+                'foreshortened at the top, and grey backdrop fills the frame above her head. Her head is not tilted '
+                'back: only the camera is much lower. '),
+        'lo': ('a low camera angle: the camera is at the height of her chest, below her face, pointing upward at her',
+               'Seen from below, the underside of her chin and jaw face the camera, her chin is nearer the camera than '
+               'her eyes, and the grey backdrop fills the top of the frame. Her head is not tilted back: only the '
+               'camera is lower. '),
+        'level': ('an eye-level camera: the camera is at the height of her eyes, pointing straight at her',
+                  'Head-to-chest framing. '),
+        'hi': ('a high camera angle: the camera is above her head, pointing down at her',
+               'Seen from above, the top of her head and her hair parting show, her forehead is nearer the camera than '
+               'her chin, and her chin and neck are small. Her head is not tilted down: only the camera is higher. '),
+        'xhi': ('an extreme high camera angle, a bird\'s-eye view: the camera is high directly above her head, '
+                'pointing almost straight down at her',
+                'Seen from far above, the crown of her head and her hair parting fill the top of the picture, her '
+                'face is strongly foreshortened below it, her chin is hidden, her shoulders and the grey floor recede '
+                'far below. Her head is not tilted down: only the camera is much higher. '),
+    },
+    'body': {
+        'xlo': ('an extreme low camera angle, a worm\'s-eye view: the camera is on the floor at her feet, pointing '
+                'steeply upward at her',
+                'Seen from the floor, her sneakers are huge and nearest the camera at the bottom, her legs tower '
+                'upward and narrow sharply, her body tapers to a small head at the very top with the underside of her '
+                'chin showing, and grey backdrop fills the space above. She stands upright with her head level: only '
+                'the camera is on the floor. '),
+        'lo': ('a low camera angle: the camera is at the height of her knees, pointing upward at her',
+               'Seen from below, her feet are nearest the camera and her head farthest: her sneakers and legs are '
+               'large near the bottom, her legs look long, her head is small at the top and the underside of her chin '
+               'shows. She stands upright with her head level: only the camera is lower. '),
+        'level': ('a camera at waist height, pointing straight at her', ''),
+        'hi': ('a high camera angle: the camera is high above her head, pointing down at her',
+               'Seen from above, her head is nearest the camera and her feet farthest: the top of her head, her hair '
+               'parting and her shoulders are large near the top, her legs look short and her sneakers are small on '
+               'the grey floor at the bottom. She stands upright with her head level: only the camera is higher. '),
+        'xhi': ('an extreme high camera angle, a bird\'s-eye view: the camera is high directly above her, pointing '
+                'almost straight down',
+                'Seen from far above, the top of her head and her shoulders are nearest the camera and fill the middle '
+                'of the picture, her body is strongly foreshortened beneath them, her sneakers barely peek out below, '
+                'and the grey floor surrounds her on every side. She stands upright with her head level: only the '
+                'camera is far overhead. '),
+    },
+}
+# Object (Fabio 2026-10-23): a plain floating product shot - nothing to tilt a head, so a miss is the camera's
+# own. A box with distinct faces (grille front, strap on one end, buttons on top, port on the back) shows yaw and
+# pitch as WHICH FACES ARE VISIBLE. Frame terms only: an object has no left/right of its own.
+OBJECT_SOURCE = (
+    'Full-color plain product photograph of a compact rectangular Bluetooth speaker floating in mid-air in the '
+    'center of the frame, seen straight from the front at its own height, against a plain light-grey seamless '
+    'backdrop with soft even studio light. The front is a forest-green fabric grille with a small brass logo badge '
+    'in its lower-left corner. A tan leather carry strap is attached to its right end only (frame-right); the left '
+    'end is plain green. The top face is dark grey with three round rubber buttons; the underside is plain dark grey '
+    'with four small rubber feet. No props, no text, no reflections.')
+OBJ_KEEP = ('Same speaker, same green grille, brass badge, tan leather strap, buttons and feet, floating in mid-air '
+            'against the same plain light-grey backdrop.')
+YAWS['object'] = {
+    'front': ('straight in front of the speaker, so its green front grille faces the camera squarely and the strap '
+              'end is at frame-right. '),
+    'tq L': ('45 degrees round toward its strap end, so the speaker is seen at an angle: the green front grille turns '
+             'partly away toward frame-left and the end with the tan leather strap faces partly toward the camera, '
+             'the front and the strap end showing about equally. '),
+    'tqb L': ('135 degrees round toward its strap end, behind it: the plain dark back panel and the strap end face the '
+              'camera at an angle, and the green front grille is hidden on the far side. '),
+}
+PITCHES['object'] = {
+    'xlo': ('an extreme low camera angle, a worm\'s-eye view: the camera is far below the speaker, pointing steeply '
+            'upward at it',
+            'Seen from far below, the dark underside with its four rubber feet faces the camera and fills much of the '
+            'picture, the top face and its buttons are hidden, and the speaker looms overhead. The speaker has not '
+            'been rotated: only the camera is much lower. '),
+    'lo': ('a low camera angle: the camera is below the speaker, pointing upward at it',
+           'Seen from below, part of the underside with its rubber feet shows, the top face and buttons are hidden, '
+           'and its bottom edge is nearer the camera than its top edge. The speaker has not been rotated: only the '
+           'camera is lower. '),
+    'level': ('a camera level with the speaker, pointing straight at it',
+              'Neither its top face nor its underside shows. '),
+    'hi': ('a high camera angle: the camera is above the speaker, pointing down at it',
+           'Seen from above, the top face with its three round buttons shows, its top edge is nearer the camera than '
+           'its bottom edge, and the underside is hidden. The speaker has not been rotated: only the camera is '
+           'higher. '),
+    'xhi': ('an extreme high camera angle, a bird\'s-eye view: the camera is directly above the speaker, pointing '
+            'almost straight down at it',
+            'Seen from far above, the top face with the three buttons fills most of the speaker\'s outline, the sides '
+            'are thin foreshortened strips below it, and plain grey floor shows all round it. The speaker has not been '
+            'rotated: only the camera is much higher. '),
+}
+# Scene (Fabio 2026-10-23): a waist-up character IN a place - a real orbit must also move the street behind him
+# (sky + buildings from low, cobbles from high, the street ahead of him from behind).
+SCENE_SOURCE = (
+    'Full-color photograph, waist-up shot of a man in his forties with a short grey beard and short dark hair, '
+    'standing on a quiet cobbled old-town street in warm late-afternoon sunlight, facing the camera straight on at '
+    'eye level. He wears a navy cotton chore jacket over a white t-shirt and a brown canvas messenger bag strap over '
+    'his left shoulder only. Behind him: a cream plaster shop front with a red wooden door on frame-left, a blue '
+    'bicycle leaning against the wall on frame-right, and a string of small round lights hanging across the street '
+    'above. Framed from the top of his head to his waist.')
+SCENE_KEEP = ('Same man, same beard, navy jacket, white t-shirt, bag strap, and the same cobbled street, shop front, '
+              'red door, blue bicycle, string lights and late-afternoon light.')
+YAWS['scene'] = {
+    'front': 'straight in front of him, so he faces the camera with both shoulders equally visible. ',
+    'tq L': ('45 degrees round to his left, so he faces partly toward frame-left with his left shoulder and the bag '
+             'strap nearer the camera and his right shoulder turned away; the shop front behind him is now seen at an '
+             'angle, running away diagonally. '),
+    'tqb L': ('135 degrees round to his left, behind him, a lost-profile view: he faces away from the camera, angled '
+              'toward frame-left and into the street; the back of his head, his left ear and only the edge of his left '
+              'cheek and beard show, his eyes and nose hidden; the back of his jacket shows, and the camera now looks '
+              'along the street the way he faces, away from the shop front. '),
+}
+PITCHES['scene'] = {
+    'xlo': ('an extreme low camera angle, a worm\'s-eye view: the camera is far below him, near his waist, pointing '
+            'steeply upward',
+            'Seen from far below, his chest and the underside of his chin and beard are nearest the camera, his head is '
+            'small at the top, and the building fronts and the string lights tower overhead against the sky. He '
+            'stands upright with his head level: only the camera is much lower. '),
+    'lo': ('a low camera angle: the camera is at the height of his waist, pointing upward at him',
+           'Seen from below, the underside of his chin shows, his chest is nearer the camera than his face, and more of '
+           'the building fronts and the sky show above him. He stands upright with his head level: only the camera is '
+           'lower. '),
+    'level': ('an eye-level camera: the camera is at the height of his eyes, pointing straight at him',
+              'Waist-up framing. '),
+    'hi': ('a high camera angle: the camera is above his head, pointing down at him',
+           'Seen from above, the top of his head and his shoulders are nearer the camera, his face is foreshortened, and '
+           'the cobblestones of the street fill the background behind him. He stands upright with his head level: '
+           'only the camera is higher. '),
+    'xhi': ('an extreme high camera angle, a bird\'s-eye view: the camera is high directly above him, pointing almost '
+            'straight down',
+            'Seen from far above, the top of his head and his shoulders fill the middle of the picture, his face is '
+            'mostly hidden, and the cobbled street surrounds him on every side. He stands upright with his head '
+            'level: only the camera is much higher. '),
+}
+PITCH_SUBJECTS = {'face': ('stage1_2k.json', FACE, FAST, P), 'body': ('body.json', OUTFIT, BODY_FAST, P),
+                  'object': (OBJECT_SOURCE, OBJ_KEEP, FAST, 'Create a photograph of the speaker from the first image '),
+                  'scene': (SCENE_SOURCE, SCENE_KEEP, FAST, 'Create a photograph of the man from the first image ')}
+
+
+def pitch_prompt(subj, yaw, pitch):
+    cam, shows = PITCHES[subj][pitch]
+    _, keep, _, prefix = PITCH_SUBJECTS[subj]
+    return prefix + f'from {cam}, placed {YAWS[subj][yaw]}{shows}{keep}'
+
+
+def pitch(port):
+    done = os.path.join(OUT, 'pitch.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    for subj, (srcfile, _, base, _) in PITCH_SUBJECTS.items():
+
+        def step(key, prompt, url, **kw):
+            if key not in res:
+                if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+                    sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+                media = {'media': [{'role': 'inputImage', 'url': url}]} if url else {}
+                res[key] = gen(port, {**base, 'positive': prompt, 'seed': PITCH_SEED, **media, **kw,
+                                      'cardName': f'angles pitch {key}'})
+                json.dump(res, open(done, 'w'), indent=1)
+            return res[key]
+
+        if srcfile.endswith('.json'):  # an earlier bench's source; else srcfile is the t2i prompt for one
+            res[f'{subj} input'] = json.load(open(os.path.join(OUT, srcfile)))['source']
+        src = step(f'{subj} input', srcfile, None, operation='t2i')
+        for yaw in YAWS[subj]:
+            for p in PITCHES[subj]:
+                if (yaw, p) != ('front', 'level'):
+                    step(f'{subj} {yaw} {p}', pitch_prompt(subj, yaw, p), src)
+        tq = res[f'{subj} tq L level']
+        for p in ('lo', 'hi'):  # two-step: yaw edit first, then this pitch edit on its result
+            step(f'{subj} 2step tq L {p}', pitch_prompt(subj, 'tq L', p), tq)
+    for subj in PITCH_SUBJECTS:
+        cell = 220 if subj == 'body' else 300
+        h = (int(cell * 16 / 9) if subj == 'body' else int(cell * 5 / 4)) + 24
+        rows = [[(f'{subj} {y} {p}' if (y, p) != ('front', 'level') else f'{subj} input', f'{y} {p}')
+                 for p in PITCHES[subj]] for y in YAWS[subj]]
+        rows.append([(f'{subj} tq L level', '2step: tq L level'), (None, ''), (f'{subj} 2step tq L lo', '2step tq L lo'),
+                     (None, ''), (f'{subj} 2step tq L hi', '2step tq L hi')])
+        img = Image.new('RGB', (cell * 5, h * len(rows)), 'white')
+        d = ImageDraw.Draw(img)
+        for r, row in enumerate(rows):
+            for c, (k, label) in enumerate(row):
+                if k not in res:
+                    continue
+                im = Image.open(disk(res[k])).convert('RGB')
+                im.thumbnail((cell, h - 24))
+                img.paste(im, (c * cell, r * h + 24))
+                d.text((c * cell + 4, r * h + 4), label, fill='black')
+        img.save(os.path.join(HERE, 'sheets', f'pitch_{subj}.jpg'), quality=90)
+
+
+# akhaliq FLUX.3 angle LoRA (Fabio 2026-10-23): trained on the BASE model, `<mva>` grammar, raw prompts only.
+# Keys renamed to ComfyUI's FLUX.3 names by convert_lora.py (the diffusers names load as nothing).
+MVA_LORA = {'Lora_1': {'lora_name': 'mpi1039\\flux3-klein-angles-akhaliq-comfy.safetensors', 'strength_model': 1.0,
+                      'strength_clip': 1.0}}  # all three keys or comfyController writes the dict into lora_name
+MVA = ['front-left quarter view, eye-level shot', 'left side view, eye-level shot',
+       'back-left quarter view, eye-level shot', 'back view, eye-level shot', 'front view, low-angle shot',
+       'front view, high-angle shot', 'front view, top-down shot', 'back-left quarter view, high-angle shot']
+
+
+def lora(port):
+    done = os.path.join(OUT, 'lora.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    pitch_res = json.load(open(os.path.join(OUT, 'pitch.json')))
+    for turbo in (True, False):
+        tag = 'turbo' if turbo else 'base'
+        for subj, (_, _, base, _) in PITCH_SUBJECTS.items():
+            for view in MVA:
+                key = f'{tag} {subj} {view}'
+                if key not in res:
+                    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+                        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+                    res[key] = gen(port, {**base, 'turbo': turbo, 'positive': f'<mva> {view}', 'seed': PITCH_SEED,
+                                          'injectionParams': MVA_LORA, 'cardName': f'angles lora {key}',
+                                          'media': [{'role': 'inputImage', 'url': pitch_res[f'{subj} input']}]})
+                    json.dump(res, open(done, 'w'), indent=1)
+        cell = 200
+        img = Image.new('RGB', (cell * (len(MVA) + 1), (int(cell * 16 / 9) + 24) * len(PITCH_SUBJECTS)), 'white')
+        d = ImageDraw.Draw(img)
+        h = int(cell * 16 / 9) + 24
+        for r, subj in enumerate(PITCH_SUBJECTS):
+            for c, (k, label) in enumerate([(None, 'input'), *[(f'{tag} {subj} {v}', v.replace(' view,', ',')
+                                                               .replace(' shot', '')) for v in MVA]]):
+                url = pitch_res[f'{subj} input'] if k is None else res.get(k)
+                if not url:
+                    continue
+                im = Image.open(disk(url)).convert('RGB')
+                im.thumbnail((cell, h - 24))
+                img.paste(im, (c * cell, r * h + 24))
+                d.text((c * cell + 4, r * h + 4), label, fill='black')
+        img.save(os.path.join(HERE, 'sheets', f'lora_{tag}.jpg'), quality=90)
+
+
 WINNERS = [('v1', 'tq'), ('v1', 'pr'), ('v2', 'lo straight'), ('v2', 'lo perspective'), ('v4', 'lo 3q'),
            ('v3', 'hi straight'), ('v4', 'hi 3q')]
 
@@ -596,6 +853,10 @@ if __name__ == '__main__':
         sweep(int(sys.argv[1]))
     elif sys.argv[2:3] == ['sweep2']:
         sweep2(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['lora']:
+        lora(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['pitch']:
+        pitch(int(sys.argv[1]))
     elif sys.argv[1:2] == ['b6sheet']:
         b6(0)
     elif sys.argv[2:3] == ['b6']:
