@@ -82,8 +82,9 @@ validation.md): refs now flat-lit; top-down works when described by what is in f
 transfer; front LOW fails (eye level); back LOW works only with wording B (MQ_EDIT_B, "replace the mannequin") but
 copies the mannequin's stiff pose. NEXT: Fabio's eye test on `mannequin2_edits.jpg`, then his call - Blender refs
 (exact, extreme low) or more t2i/wording rounds; pose leak from B needs a fix either way.
-FABIO CHOSE BLENDER 2026-10-23. Source file: `D:\Blender\Projects\OpenPoseBonse_V99\mpi_openPose.blend` (saved by
-4.3; mpi_openPose2/3 are newer siblings - ask which if it matters). CLI = Blender's own headless binary, already
+FABIO CHOSE BLENDER 2026-10-23. WORK FILE (Fabio: work on a copy): `D:\Blender\Projects\OpenPoseBonse_V99\
+mpi_openPose_mannequin.blend` - a copy of `mpi_openPose.blend` (his original, saved by 4.3, NEVER write it), re-saved
+with 4.5 (header v405) with compositing OFF in both scenes and output PNG. Saving the copy is fine. CLI = Blender's own headless binary, already
 installed (4.0/4.2/4.5/5.2 via winget); use 4.5 LTS (`C:\Program Files\Blender Foundation\Blender 4.5\blender.exe
 -b <file> --python <script>`; shim `C:\Users\Fabio\bin\blender.cmd`). Opens fine headless. Rig = Auto-Rig-Pro style
 `OpenPoseBone_v3_rig` (565 bones, 281 `c_` controls, e.g. c_head.x, c_pos, c_traj); view layer `3D_Doll`; camera
