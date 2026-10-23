@@ -6,3 +6,4 @@
 - Added: `_followWork` now logs every decision (follows to X / stays on Y / no follow). npm test: 3553 pass, 0 fail; eslint clean.
 - Noticed: the status bar read LOADING MODEL 12-24% while the latents were drawing (run4 shots 20, 50).
 - 2026-10-23 parked by Fabio: the Pod retry comes later. Log line committed in 159b53e4d. Next: after a Cosmo tiled upscale on the Pod from the gallery, grep app.log for 'agent job: view'.
+- 2026-10-23 evening: Fabio asked Cosmo for a tiled upscale from the gallery and was taken to the history workspace. app.log 20:07:58Z: agent job: view follows to group-history; later turns stay on group-history. Local engine; the follow path is engine-agnostic. Closed on his run.
