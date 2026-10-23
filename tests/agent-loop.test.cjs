@@ -3804,6 +3804,13 @@ describe('(e) the open workspace reaches the agent', () => {
             assert.equal(clean.page, 'group-history', 'losing the entry costs the shortcut, never the turn');
         });
 
+        // MPI-1262: the entry the card's last masked edit ran on reaches the loop the same way.
+        test('the last masked entry is checked like the entry, and dropped outside Media/', async () => {
+            const ws = (filePath) => _sanitiseWorkspace({ page: 'group-history', groupId: 'g1', lastMask: { filePath } }, project);
+            assert.deepEqual((await ws(fileUrl(ENTRY))).lastMask, { filePath: ENTRY });
+            assert.equal((await ws(fileUrl(require('node:path').join(PROJECT, '..', 'secrets.png')))).lastMask, undefined);
+        });
+
         // MPI-1181 (Fabio, 2026-10-20): edit boxes drawn on one picture, Cosmo edited the newest card.
         test('the edit boxes name their picture, checked like the entry, and it resolves', async () => {
             const boxes = (picture) => ({ modelId: 'flux3-klein', picture, ops: { edit: [{ name: 'ladies', x: 0.2, y: 0.3, w: 0.4, h: 0.5 }] } });

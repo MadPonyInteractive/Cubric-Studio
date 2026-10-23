@@ -67,3 +67,23 @@ export function activeMask() {
         return null;
     }
 }
+
+let _last = null;
+
+/**
+ * MPI-1262 — keep the mask a masked edit just ran with. Once it lands, the result is on screen
+ * and holds no mask, so "do it again" had nothing to run on but the whole result (Fabio,
+ * 2026-10-23). Dispatch reuses this one on its own entry (`maskForRun`).
+ *
+ * ponytail: one slot in memory. Lost on reload, and a mask cleared on that entry while it is
+ * not on screen is not seen; read the entry's own mask off the viewer if that ever matters.
+ * @param {{dataUrl: string, url: string, groupId: string}|null} mask
+ */
+export function rememberMask(mask) {
+    _last = mask?.dataUrl && mask.url ? { dataUrl: mask.dataUrl, url: mask.url, groupId: mask.groupId } : null;
+}
+
+/** The last masked edit's mask, the picture under it and its card, or null. */
+export function rememberedMask() {
+    return _last;
+}

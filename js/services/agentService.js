@@ -30,7 +30,7 @@ import { onStream } from './eventStream.js';
 import { state } from '../state.js';
 import { MpiToast } from '../components/Primitives/MpiToast/MpiToast.js';
 import { pinnedModel } from '../shell/agentDispatch.js';
-import { activeMask } from '../shell/activeMask.js';
+import { activeMask, rememberedMask } from '../shell/activeMask.js';
 import { activeFrame } from '../shell/activeFrame.js';
 import { activeStackMember } from '../shell/activeStackMember.js';
 import { isStack, expandStacks } from '../data/stackModel.js';
@@ -242,6 +242,8 @@ function _workspaceForTurn() {
             ? { itemId: item.id, filePath: item.filePath, modelId: item.modelId || null }
             : null,
         masked: activeMask()?.groupId === group.id,
+        // MPI-1262: the entry this card's last masked edit ran on, whose mask a redo reuses.
+        lastMask: rememberedMask()?.groupId === group.id ? { filePath: rememberedMask().url } : null,
         // MPI-984: on a video, the frame on screen. Null on a still.
         frame: activeFrame(),
         // In History the edit's picture 1 is the open entry (MPI-721), not the gallery's chip.

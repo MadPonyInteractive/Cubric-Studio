@@ -53,7 +53,7 @@ import { CARD_MARKS, markOf, matchesGallerySort, byGalleryOrder, describeGallery
 import { navigate, PAGE_GALLERY, PAGE_GROUP_HISTORY } from '../router.js';
 import { on } from '../utils/dom.js';
 import { Overlays } from '../managers/overlayManager.js';
-import { activeMask } from './activeMask.js';
+import { activeMask, rememberMask, rememberedMask } from './activeMask.js';
 import { MODELS, getModelById, isOperationInstalled, getModelDepStatus } from '../data/modelRegistry.js';
 import { DEPS } from '../data/modelConstants/dependencies.js';
 import { resolveFullUniverse } from '../data/modelConstants/resolveModelDeps.js';
@@ -450,6 +450,32 @@ export function maskedGenerationOpts(maskGroupId, mediaType = 'image') {
     return group ? { existingGroup: group, scope: 'groupHistory', groupId: group.id } : null;
 }
 
+/** The ops a remembered mask is reused on: the masked edits, never an upscale of that entry. */
+const REDO_MASK_OPS = new Set([...ONE_AREA_OPS, 'detail', 'i2i']);
+
+/**
+ * MPI-1262 — the mask a run uses: the one painted now, else the last masked edit's
+ * (`rememberedMask`) when this run edits that same entry and the entry is not on screen.
+ * Live, Fabio 2026-10-23: after a masked edit the result was on screen with no mask, and
+ * "do it again" ran whole-picture. On screen with nothing painted, the user cleared it.
+ *
+ * @param {string} operation
+ * @param {Array<{url:string}>} media - the submit's media, as sent
+ * @param {{dataUrl: string, url: string, groupId: string}|null} painted - `activeMask()`
+ * @returns {{dataUrl: string, url: string, groupId: string}|null}
+ */
+export function maskForRun(operation, media, painted) {
+    if (painted?.dataUrl) return painted;
+    const last = rememberedMask();
+    if (!last || !REDO_MASK_OPS.has(operation)) return null;
+    const key = (u) => extractAbsPath(u)?.replace(/\\/g, '/').toLowerCase() || null;
+    const at = key(last.url);
+    if (!at || !(media || []).some(m => key(m?.url) === at)) return null;
+    const group = (state.currentProject?.itemGroups || []).find(g => g.id === last.groupId);
+    if (!group?.history?.some(item => key(item?.filePath) === at)) return null;
+    return key(group.history[group.selectedIndex ?? 0]?.filePath) === at ? null : last;
+}
+
 /**
  * Where a MASKLESS edit of the card the user is standing in lands (MPI-890). The same
  * destination a Cue press in that workspace sends — so latents draw where the user is
@@ -599,12 +625,15 @@ async function _submitGeneration(jobId, input = {}) {
 
     // A mask is painted on a card of the OPEN project; a run sent to another project
     // cannot be editing that card.
+    const painted = target.open ? maskForRun(input.operation, input.media, activeMask()) : null;
     const built = await buildGeneration(input, target.project, {
         pinned: state.agentSettingsPinned === true,
-        painted: target.open ? activeMask() : null,
+        painted,
     });
     if (!built.ok) return _fail(jobId, built.code, built.message);
     const { config } = built;
+    // MPI-1262: kept so a redo on that entry, once the result is on screen, finds it again.
+    if (painted && built.maskGroupId) rememberMask(painted);
 
     // A masked submit is a new version of the card the mask is painted on, and goes
     // where a Cue press in that workspace goes — no gallery placeholder, because a

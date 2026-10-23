@@ -129,6 +129,10 @@ async function _sanitiseWorkspace(workspace, project) {
         const pic = workspace.boxes.picture;
         clean.boxes.picture = typeof pic === 'string' ? ownedMedia(project.folderPath, pic) || null : null;
     }
+    // MPI-1262: the entry the card's last masked edit ran on, the same check.
+    const masked = workspace.lastMask?.filePath;
+    const maskedOwned = typeof masked === 'string' && ownedMedia(project.folderPath, masked);
+    if (maskedOwned) clean.lastMask = { filePath: maskedOwned };
     if (!entry || typeof entry.filePath !== 'string') return clean;
     const owned = ownedMedia(project.folderPath, entry.filePath);
     if (owned) {

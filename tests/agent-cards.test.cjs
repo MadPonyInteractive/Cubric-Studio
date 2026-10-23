@@ -166,6 +166,9 @@ test('a card reads as its entries: what made each, its style, and the entry it c
     assert.match(line, /1 t2i_054\.png \(moss-image t2i, style Anime \(styleSelect 1\)\); 2 upscale_005\.png \(ill-anime upscale, made from 1\), ON SCREEN/);
     assert.match(line, /run it again on the entry it was made FROM/);
     assert.ok(loop._images.has('t2i_054.png'), 'registered, so look and generate take it');
+    // The last masked edit ran on entry 1: Cosmo is told to redo it THERE, with no new mask.
+    const masked = await loop._entriesLine({ folderPath: root }, { page: 'groupHistory', groupId: 'g', activeEntry: { filePath: file('upscale_005.png') }, lastMask: { filePath: file('t2i_054.png') } });
+    assert.match(masked, /last masked edit on this card ran on t2i_054\.png.*Never ask them to paint it again/);
     assert.equal(await loop._entriesLine({ folderPath: root }, { page: 'gallery' }), '', 'off a card: nothing');
 });
 

@@ -355,3 +355,33 @@ test('several painted areas refuse the one-box ops and pass detail', () => {
     }
     assert.equal(resolveMask('detail', PAINTED, 3).error, undefined, 'detail works each area on its own');
 });
+
+// MPI-1262 (Fabio, 2026-10-23): after a masked edit the result was on screen with no mask, and
+// "do it again" ran whole-picture. A redo on the entry the mask was painted on reuses that mask.
+test('a redo on the masked entry reuses its mask, and only there', () => {
+    const { maskForRun } = require('../js/shell/agentDispatch.js');
+    const { rememberMask, rememberedMask } = require('../js/shell/activeMask.js');
+    const ABS = 'C:\\p\\Media\\t2i_003.png';
+    const RESULT = { id: 'i2', filePath: '/project-file?path=C%3A%5Cp%5CMedia%5Cedit_004.png&v=2' };
+    const SOURCE = { id: 'i1', filePath: `/project-file?path=${encodeURIComponent(ABS)}&v=1` };
+    const card = { id: GROUP_ID, type: 'image', history: [SOURCE, RESULT], selectedIndex: 1 };
+    const remembered = { dataUrl: MASK, url: SOURCE.filePath, groupId: GROUP_ID };
+    const agentMedia = [{ role: 'inputImage', url: `/project-file?path=${encodeURIComponent(ABS)}` }];
+    state.currentProject = { itemGroups: [card] };
+
+    rememberMask(null);
+    assert.equal(maskForRun('kleinEdit', agentMedia, null), null, 'nothing remembered');
+    rememberMask(remembered);
+    assert.deepEqual(rememberedMask(), remembered);
+    assert.deepEqual(maskForRun('kleinEdit', agentMedia, null), remembered, 'the result is on screen: the source keeps its mask');
+    assert.equal(maskForRun('kleinEdit', agentMedia, PAINTED), PAINTED, 'a mask painted now wins');
+    assert.equal(maskForRun('upscale', agentMedia, null), null, 'an upscale of that entry is never masked');
+    assert.equal(maskForRun('kleinEdit', [{ role: 'inputImage', url: RESULT.filePath }], null), null, 'another entry');
+    card.selectedIndex = 0;
+    assert.equal(maskForRun('kleinEdit', agentMedia, null), null, 'on screen with nothing painted: the user cleared it');
+    card.selectedIndex = 1;
+    state.currentProject = { itemGroups: [] };
+    assert.equal(maskForRun('kleinEdit', agentMedia, null), null, 'the card is gone');
+    rememberMask(null);
+    state.currentProject = null;
+});
