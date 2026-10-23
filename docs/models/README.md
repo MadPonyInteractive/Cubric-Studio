@@ -34,9 +34,10 @@ and why Alibaba's 4-step accelerator does not run on core ComfyUI.
 Hub: [flux3/README.md](flux3/README.md) — both int8 weights, the reused Qwen3-VL-4B encoder, Klein's
 one-graph shape, the 1k/2k/4k tiers, custom size on an unmasked edit, and the upsampler still to come.
 
-### [ltx/](ltx/) — LTX-2.3 video
+### [ltx/](ltx/) — LTX-2.3 and LTX-2.5 video
 | File | Holds |
 |---|---|
+| [ltx-2.5.md](ltx/ltx-2.5.md) | **LTX 2.5 (`ltx-25`, MPI-1095):** why it ships beside 2.3, the graph's changes, the 7 deps, Turbo = which video VAE (DiffVAE vs conv), audio without LoRAs, the fast-entry morphing limit (De-RoPE), the captured-graph bench trap. 2.3 High retired. |
 | [tiers.md](ltx/tiers.md) | Resolution tiers, timing, the /32 size rule (+/64 pixel-exact), motion-vs-resolution dial. Drives `LTX_RATIOS`. |
 | [workflow-authoring.md](ltx/workflow-authoring.md) | Template-wiring research for the LTX-2.3 workflow. |
 | [model-set.md](ltx/model-set.md) | The base weights + LoRAs (roles, sizes, status), merge-vs-switch delivery. |

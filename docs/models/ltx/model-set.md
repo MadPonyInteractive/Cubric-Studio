@@ -14,7 +14,8 @@ NerdyRodent FINAL set, post-A/B:
   exists in the product — one weight runs on every GPU and `variants.arch` was deleted.
   Bench A/B against the retired fp8: better sound, hands and eyes, ~10 s faster. Proven
   on Ada; Blackwell is inferred from other int8 models, not measured for this weight.
-  bf16 remains the HIGH tier and this paragraph still describes it correctly.
+  bf16 was the HIGH tier until **2026-10-22 (MPI-1095): 2.3 High RETIRED** — it lost the tier
+  bench to Balanced and LTX 2.5. Its dep stays DEPRECATED for the orphan sweep. See `ltx-2.5.md`.
 - **Encoder: heretic gemma fp8_scaled** (`anongecko/gemma-3-12b-it-heretic-fp8-comfy`,
   14.5GB) — video+audio. fp4 hurts, full over-influences.
 - text projection, video + audio VAEs, spatial **+ temporal** upscalers, IC-LoRA

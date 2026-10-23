@@ -99,7 +99,9 @@
   New `high` 1536x896 is UNMEASURED on the GPU (time, VRAM, look); a run needs Fabio's yes.
 - R2 upload DONE 2026-10-22 23:04: all six deps on R2, sizes match, md5 verified (`validation.md`). `M:/_stage/mpi1095`
   still to delete (Fabio). Open: no second route for the 2.5 deps (HF re-host ~41 GB, Fabio, before devOnly comes off).
-- R2 upload (~41 GB, ~$0.62/mo): Fabio's yes. Commit A + B at handoff/close. `docs/models/ltx/` 2.5 page.
+- R2 upload (~41 GB, ~$0.62/mo): Fabio's yes. Commit A + B at handoff/close. `docs/models/ltx/` 2.5 page
+  DONE 2026-10-23: `docs/models/ltx/ltx-2.5.md` (+ models README row, model-set.md marks 2.3 High retired).
+- Turbo tooltip: `PromptBoxControls.js` held 2026-10-23 by the session "Tile upscaler improvements 7".
 - Stage 2 (2.5 in the LTX Flows, Keyframes to Video MPI-1191, 2.5-only Flows) waits for the release.
 
 ## Plan Drift
