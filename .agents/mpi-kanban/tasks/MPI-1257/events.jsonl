@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1257", "at": "2026-10-23T10:58:43+01:00", "actor": "Tile upscaler improvements 6", "column": "todo", "title": "Describe each tile: keep people words out, fix the hover text, price a paid naming run"}

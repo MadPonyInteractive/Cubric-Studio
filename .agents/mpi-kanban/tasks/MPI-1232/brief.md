@@ -216,3 +216,4 @@ the Use Tiles line), MPI-895 (upscale/refine umbrella).
 
 - 2026-10-23: at tile 1024 the describer named people parts ("curly gray hair and beard") on a tile a person only PARTLY covers; the mask keeps the person out of that tile, but the words reach its background area. Option: blank a name with people words, or a stricter question. Fabio's call.
 - 2026-10-23 (close-out): left open when this card closed - (a) Cosmo upscale should open the IMAGE workspace so latents show (checklist, Fabio 2026-10-22); (b) a paid endpoint describer shows no price before a big naming run (no per-call price up front; pick: log the total, show it only past a few cents). Both need a card of their own.
+- 2026-10-23: carded - the Cosmo workspace item is MPI-1256; the people-words leak, the untrue hover text and the paid-naming price are MPI-1257.

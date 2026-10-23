@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1256", "at": "2026-10-23T10:58:39+01:00", "actor": "Tile upscaler improvements 6", "column": "todo", "title": "Cosmo's upscale opens the image workspace so the latents show"}
