@@ -1092,6 +1092,36 @@ export class AgentLoop {
     }
 
     /**
+     * MPI-1262 — the open card's entries, read off disk (`list_cards <groupId>`), and registered
+     * so each ref works in `look` and `generate`. Only the entry on screen ever reached the agent,
+     * so after a detail pass it could not say what made the original (live, Fabio 2026-10-23),
+     * and "do it again" after a masked edit ran on the RESULT, which holds no mask, and asked him
+     * to paint the mask again. `lastMask` is the renderer's word for where that mask still is.
+     * Empty off a card, on a one-entry card, and when the read fails: the turn never waits on it.
+     */
+    async _entriesLine(project, workspace) {
+        const groupId = workspace?.groupId;
+        const onScreen = workspace?.activeEntry?.filePath;
+        if (!project?.folderPath || !groupId || !onScreen || workspace.page === 'scene') return '';
+        let r;
+        try { r = await this._tools.listCards(project.folderPath, groupId); } catch { return ''; }
+        const entries = r?.ok ? r.card?.entries : null;
+        if (!Array.isArray(entries) || entries.length < 2) return '';
+        this._seeCards(r);
+        const shown = path.basename(onScreen);
+        const list = entries.map((e) => {
+            const made = [e.modelId || e.flowId, e.operation].filter(Boolean).join(' ');
+            const bits = [made, e.style && `style ${e.style} (styleSelect ${e.styleSelect})`, e.from && `made from ${e.from}`].filter(Boolean).join(', ');
+            return `${e.n} ${e.ref}${bits ? ` (${bits})` : ''}${e.ref === shown ? ', ON SCREEN' : ''}`;
+        }).join('; ');
+        const masked = workspace.lastMask?.filePath ? path.basename(workspace.lastMask.filePath) : null;
+        const maskLine = masked && masked !== shown
+            ? ` Their last masked edit on this card ran on ${masked}, and its mask is still painted THERE: to redo or adjust that edit, run the masked op on ${masked}, not the entry on screen, and the app applies that same mask. Never ask them to paint it again.`
+            : '';
+        return `[This card's entries, oldest first: ${list}. Each ref works in look and generate; read what made one with list_cards and its groupId. "Again", "redo it" or "try that again" repeat the LAST change: run it again on the entry it was made FROM, never on its result.${maskLine}]`;
+    }
+
+    /**
      * The pinned settings panel, MPI-774 Phase 7 — present only when the user has it OPEN.
      *
      * Told, not asked: the app has already dropped whatever model and settings this turn's
@@ -3144,8 +3174,9 @@ ${knowledgeIndex}`.trim();
             // MPI-890: register the open card's active entry BEFORE the App state line is
             // built, so the line lists it among the refs it is the allowlist for.
             this._registerWorkspaceEntry(workspace);
-            this._masked = !!(workspace?.activeEntry?.filePath && workspace.masked);
+            this._masked = !!(workspace?.activeEntry?.filePath && (workspace.masked || workspace.lastMask));
             const entrySize = workspace?.activeEntry?.filePath ? await _imageSize(workspace.activeEntry.filePath) : '';
+            const entriesLine = await this._entriesLine(project, workspace);
             // MPI-1226 (Fabio, live 2026-10-21): the result was on his screen before he typed
             // "Nice one, now add a dog", and the turn still spent three looks and a paragraph
             // confirming it landed. Typed after it landed, the message is his verdict. After the
@@ -3154,7 +3185,7 @@ ${knowledgeIndex}`.trim();
             const seenLine = !wake && !held && notes.some((n) => /^\[(Generation|Batch|Routine) finished/.test(n))
                 ? '[The user saw these results in the gallery before typing this message: their message is their verdict on them. Do not look at a result or report on it unless they ask about it; go straight to what they asked.]'
                 : '';
-            const opening = [this._appStateLine(project, workspace, entrySize), this._pinnedSettingsLine(pinned), handover, woke, heldLine, running, await this._globalNotesLine(), await this._projectNotesLine(project), ...notes, seenLine];
+            const opening = [this._appStateLine(project, workspace, entrySize), entriesLine, this._pinnedSettingsLine(pinned), handover, woke, heldLine, running, await this._globalNotesLine(), await this._projectNotesLine(project), ...notes, seenLine];
             contentParts.unshift(...opening.filter(Boolean).map((t) => ({ type: 'text', text: t })));
 
             // Add user message to LLM context (plain text for OpenAI compat)

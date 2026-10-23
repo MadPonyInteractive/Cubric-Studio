@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1262",
+  "title": "Cosmo knows a card's entries: redo on the entry it worked on, ask which model redraws, keep the style",
+  "description": "Fabio 2026-10-23: Cosmo saw only the entry on screen, so it could not name the original after a detail pass, a 'do it again' after a masked edit ran on the result instead of the masked entry, and a detail pass on a MOSS-Image anime picture went to ILL Anime and lost the style. Brief: brief.md.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-23T21:26:43+01:00",
+  "updated_at": "2026-10-23T21:27:08+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

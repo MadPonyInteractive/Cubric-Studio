@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1262", "at": "2026-10-23T21:26:43+01:00", "actor": "claude", "column": "todo", "title": "Cosmo knows a card's entries: redo on the entry it worked on, ask which model redraws, keep the style"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1262", "at": "2026-10-23T21:27:08+01:00", "actor": "claude", "from": "todo", "to": "doing"}

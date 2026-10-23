@@ -1,0 +1,6 @@
+- [ ] entries in the App state line + `list_cards <groupId>`
+- [ ] model card on upscale/detail of another model's picture
+- [ ] source style kept on a same-model redraw
+- [ ] masked redo reuses the mask on its own entry
+- [ ] tests + lint
+- [ ] docs/agent-chat.md

@@ -136,6 +136,39 @@ test('a card`s input is that input`s card: its look is read from and kept on its
     assert.deepEqual(stored, [own], 'and a fresh one is kept there, so the next look is a read');
 });
 
+// MPI-1262 (Fabio, live 2026-10-23): a detail pass on a MOSS-Image anime picture, and Cosmo
+// could not say what made the original under it: only the entry on show was ever read.
+test('a card reads as its entries: what made each, its style, and the entry it came from', async (t) => {
+    const { readCard, AgentLoop } = { ...(await esm('services/agentCards.mjs')), ...(await esm('services/agentLoop.mjs')) };
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-entries-'));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const media = path.join(root, 'Media');
+    fs.mkdirSync(path.join(media, '.meta'), { recursive: true });
+    const file = (name) => path.join(media, name);
+    const sidecar = (id, meta) => fs.writeFileSync(path.join(media, '.meta', `${id}.json`), JSON.stringify(meta));
+    sidecar('e1', { filePath: url(file('t2i_054.png')), modelId: 'moss-image', operation: 't2i',
+        generationSettings: { injectionParams: { 'Input_Style_Selector.selector': 1, 'Input_Style_Selector.strength_model': 1 } } });
+    sidecar('e2', { filePath: url(file('upscale_005.png')), modelId: 'ill-anime', operation: 'upscale',
+        generationSettings: { injectionParams: {}, mediaItems: [{ role: 'inputImage', url: url(file('t2i_054.png')) }] } });
+    fs.writeFileSync(path.join(root, 'project.json'), JSON.stringify({ itemGroups: [
+        { id: 'g', type: 'image', name: 't2i_054', createdAt: '2026-10-23T20:04:22Z', selectedIndex: 1, history: ['e1', 'e2'] },
+    ] }));
+
+    const { card, files } = await readCard(root, 'g');
+    assert.deepEqual(card.entries, [
+        { n: 1, ref: 't2i_054.png', modelId: 'moss-image', operation: 't2i', style: 'Anime', styleSelect: 1 },
+        { n: 2, ref: 'upscale_005.png', modelId: 'ill-anime', operation: 'upscale', from: 1, showing: true },
+    ]);
+    assert.equal(files['t2i_054.png'].itemId, 'e1', 'the original is reachable by its ref');
+
+    const loop = new AgentLoop({ tools: { listCards: async (f, id) => ({ ok: true, ...(await readCard(f, id)) }) } });
+    const line = await loop._entriesLine({ folderPath: root }, { page: 'groupHistory', groupId: 'g', activeEntry: { filePath: file('upscale_005.png') } });
+    assert.match(line, /1 t2i_054\.png \(moss-image t2i, style Anime \(styleSelect 1\)\); 2 upscale_005\.png \(ill-anime upscale, made from 1\), ON SCREEN/);
+    assert.match(line, /run it again on the entry it was made FROM/);
+    assert.ok(loop._images.has('t2i_054.png'), 'registered, so look and generate take it');
+    assert.equal(await loop._entriesLine({ folderPath: root }, { page: 'gallery' }), '', 'off a card: nothing');
+});
+
 test('named refusals', async (t) => {
     const { listCards, readCard } = await esm('services/agentCards.mjs');
     const { root } = makeProject(t);

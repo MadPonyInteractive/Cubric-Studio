@@ -20,10 +20,13 @@ import fs from 'fs/promises';
 import { MemoryError } from './agentMemory.mjs';
 import { CARD_MARKS, markOf } from '../js/utils/galleryFilter.js';
 import { isStack } from '../js/data/stackModel.js';
+import { MODELS } from '../js/data/modelConstants/models.js';
 
 export const DEFAULT_LIMIT = 12;
 export const MAX_LIMIT = 30;
 const ROW_PROMPT_CHARS = 200;
+// ponytail: the newest entries only; a card with more is rare and the older ones are rarely the ask.
+export const MAX_ENTRIES = 8;
 
 /** The absolute path behind a `/project-file?path=…` url, or the string itself. */
 function _decode(ref) {
@@ -254,6 +257,8 @@ export async function readCard(folderPath, groupId) {
     const { cards, files } = _split([_row(folderPath, group, meta)]);
     const inputs = meta ? await _inputs(folderPath, project, meta) : { madeFrom: [], files: {} };
     Object.assign(files, inputs.files);
+    const history = await _entries(folderPath, group);
+    Object.assign(files, history.files);
     return {
         card: {
             ...cards[0],
@@ -263,9 +268,70 @@ export async function readCard(folderPath, groupId) {
             ...(meta?.generationMs ? { generationMs: meta.generationMs } : {}),
             settings: meta?.generationSettings?.injectionParams || meta?.flowInputs?.injectionParams || {},
             madeFrom: inputs.madeFrom,
+            ...(history.entries.length > 1 ? { entries: history.entries } : {}),
         },
         files,
     };
+}
+
+/**
+ * A card's entries, oldest first, the newest `MAX_ENTRIES` of them (MPI-1262): what made
+ * each one, its style, and `from`, the entry of THIS card it was made from. Only the entry
+ * on show was ever read, so after a detail pass the agent could not say what made the
+ * original under it (live, Fabio 2026-10-23: "I can't reach generation history"), and a
+ * "do it again" ran on the result instead of the picture the change was made on.
+ * `showing` is the card's own `selectedIndex`; the App state line marks the live one itself.
+ * @returns {Promise<{entries: object[], files: Record<string, object>}>}
+ */
+async function _entries(folderPath, group) {
+    const ids = (Array.isArray(group.history) ? group.history : []).filter((id) => typeof id === 'string' && /^[\w-]+$/.test(id));
+    const metas = await Promise.all(ids.map((id) => _readJson(path.join(folderPath, 'Media', '.meta', `${id}.json`))));
+    const fileOf = metas.map((m) => (m ? _ownedMedia(folderPath, m.filePath) : null));
+    const nOf = new Map(fileOf.map((f, i) => [f && _fileKey(f), i + 1]).filter(([k]) => k));
+    const shown = group.history?.[group.selectedIndex ?? 0];
+    const files = {};
+    const entries = ids.map((itemId, i) => {
+        const meta = metas[i];
+        const file = fileOf[i];
+        if (!meta || !file) return null;
+        const style = styleOf(meta);
+        const from = (meta.generationSettings?.mediaItems || meta.flowInputs?.mediaItems || [])
+            .map((m) => _ownedMedia(folderPath, m.url || m.filePath))
+            .map((f) => f && nOf.get(_fileKey(f)))
+            .find((n) => n && n !== i + 1);
+        files[path.basename(file)] = { path: file, modelId: meta.modelId || null, itemId, groupId: group.id };
+        return {
+            n: i + 1,
+            ref: path.basename(file),
+            ...(meta.modelId ? { modelId: meta.modelId } : {}),
+            ...(meta.flowId ? { flowId: meta.flowId } : {}),
+            ...(meta.operation ? { operation: meta.operation } : {}),
+            ...(style ? { style: style.name, styleSelect: style.styleSelect } : {}),
+            ...(from ? { from } : {}),
+            ...(itemId === shown ? { showing: true } : {}),
+        };
+    }).filter(Boolean).slice(-MAX_ENTRIES);
+    return { entries, files };
+}
+
+/**
+ * The style a generation ran with, off its sidecar: `{ name, styleSelect, stylization }`, or
+ * null for no style (index 0 is every model's no-style entry) or a model with no style rack.
+ * @param {object|null} meta a `.meta` sidecar
+ */
+export function styleOf(meta) {
+    const params = meta?.generationSettings?.injectionParams || {};
+    const styleSelect = params['Input_Style_Selector.selector'];
+    const name = MODELS.find((m) => m.id === meta?.modelId)?.styleLoraLabels?.[styleSelect];
+    if (!Number.isInteger(styleSelect) || styleSelect < 1 || !name) return null;
+    const stylization = params['Input_Style_Selector.strength_model'];
+    return { name, styleSelect, ...(Number.isFinite(stylization) ? { stylization } : {}) };
+}
+
+/** What made a file in a project's Media folder: `{ modelId, style }` off its sidecar, or null. */
+export async function madeWith(file) {
+    const meta = await _sidecarOf(file);
+    return meta?.modelId ? { modelId: meta.modelId, style: styleOf(meta) } : null;
 }
 
 /**
