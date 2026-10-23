@@ -1,0 +1,125 @@
+{
+  "caption": "Black-and-white Vogue magazine cover with bold typography and a woman in sunglasses, styled for modern aesthetics.",
+  "items": [
+    {
+      "label": "character",
+      "bbox_2d": [266, 177, 824, 912],
+      "caption": "Woman with dark hair and sunglasses, wearing a black blazer, looking upward with a confident expression.",
+      "text": []
+    },
+    {
+      "label": "text",
+      "bbox_2d": [47, 47, 889, 182],
+      "caption": "Large, bold, black serif font spelling 'VOGUE' on a light background.",
+      "text": "VOGUE"
+    },
+    {
+      "label": "text",
+      "bbox_2d": [47, 217, 290, 385],
+      "caption": "Bold, black, sans-serif text with a subtitle in smaller font below.",
+      "text": "Style\nSpeaks\nLouder\n—\nIt's not just what\nyou wear, it's how\nyou express\nyourself."
+    },
+    {
+      "label": "text",
+      "bbox_2d": [799, 18, 950, 40],
+      "caption": "Small, black, sans-serif text indicating volume and issue number.",
+      "text": "VOL. 12 ISSUE 04\nAPR 2025"
+    },
+    {
+      "label": "text",
+      "bbox_2d": [799, 187, 950, 214],
+      "caption": "Small, black, sans-serif text with a centered alignment.",
+      "text": "THE MODERN\nWOMAN"
+    },
+    {
+      "label": "text",
+      "bbox_2d": [834, 252, 950, 294],
+      "caption": "Small, black, sans-serif text with a centered alignment.",
+      "text": "GOOD\nTHINGS\nTAKE TIME"
+    },
+    {
+      "label": "text",
+      "bbox_2d": [874, 329, 950, 399],
+      "caption": "Small, black, sans-serif text with a centered alignment.",
+      "text": "Better\nChoices\nBrighter\nDays"
+    },
+    {
+      "label": "text",
+      "bbox_2d": [834, 553, 917, 580],
+      "caption": "Small, black, sans-serif text with a centered alignment.",
+      "text": "TRAVEL\nMORE"
+    },
+    {
+      "label": "text",
+      "bbox_2d": [834, 587, 924, 637],
+      "caption": "Small, black, sans-serif text with a centered alignment.",
+      "text": "New places,\nnew stories,\nsame you -\nbut happier."
+    },
+    {
+      "label": "text",
+      "bbox_2d": [764, 695, 967, 802],
+      "caption": "Bold, black, sans-serif text with a centered alignment.",
+      "text": "Small\nHabits\nBig Changes"
+    },
+    {
+      "label": "text",
+      "bbox_2d": [764, 817, 940, 860],
+      "caption": "Small, black, sans-serif text with a centered alignment.",
+      "text": "Better habits.\nA stronger mind.\nA more successful you."
+    },
+    {
+      "label": "text",
+      "bbox_2d": [366, 750, 602, 872],
+      "caption": "Cursive, white script text with a diagonal line beneath it.",
+      "text": "More\nSelf Love"
+    },
+    {
+      "label": "text",
+      "bbox_2d": [57, 517, 224, 624],
+      "caption": "Bold, black, sans-serif text with a centered alignment.",
+      "text": "Natural\nGlow,\nReal You"
+    },
+    {
+      "label": "text",
+      "bbox_2d": [57, 637, 174, 680],
+      "caption": "Small, black, sans-serif text with a centered alignment.",
+      "text": "Skincare tips\nfor a healthier,\nhappier you."
+    },
+    {
+      "label": "text",
+      "bbox_2d": [238, 935, 525, 945],
+      "caption": "Small, black, sans-serif text with a centered alignment.",
+      "text": "BEAUTY IS A STATE OF MIND"
+    },
+    {
+      "label": "text",
+      "bbox_2d": [47, 912, 194, 960],
+      "caption": "Black barcode with numbers below it.",
+      "text": "9 771234 567003"
+    },
+    {
+      "label": "text",
+      "bbox_2d": [47, 18, 537, 34],
+      "caption": "Small, black, sans-serif text with a centered alignment.",
+      "text": "LIFESTYLE / FASHION / BEAUTY / TRAVEL"
+    },
+    {
+      "label": "text",
+      "bbox_2d": [834, 422, 950, 540],
+      "caption": "Small, black, sans-serif text with a centered alignment.",
+      "text": "TRAVEL\nMORE"
+    },
+    {
+      "label": "text",
+      "bbox_2d": [834, 874, 960, 965],
+      "caption": "Black-and-white leaf pattern with a centered alignment.",
+      "text": ""
+    },
+    {
+      "label": "text",
+      "bbox_2d": [174, 670, 310, 857],
+      "caption": "Close-up of a woman's face with dark hair and makeup.",
+      "text": ""
+    }
+  ]
+}

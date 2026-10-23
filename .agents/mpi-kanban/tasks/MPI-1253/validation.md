@@ -108,6 +108,40 @@ And 100% correct" (boxes on the girl, squirrel, sign, window, people).
   even when not a real word" 2/2 "Cubic Studio". A model misread, not a wording one: not shipped.
   The desc field is editable.
 
+## Rework 6: the video's analyser, on Qwen3-VL (2026-10-23)
+
+The video's Analyze Image is AcademiaSD's MOSS Layout node (github.com/AcademiaSD/comfyui_AcademiaSD,
+`nodes/academia_moss_layout.py`, no licence stated): Qwen3-VL-4B (`qwen3-vl-4b-heretic_int8`,
+the pack's Prompt Enhancer model) loaded as a CLIP, Qwen's own `bbox_2d` [x1,y1,x2,y2] on
+0-1000, up to 20 items labelled character/object/text with the exact letters in a `text`
+field, greedy with no repetition penalty (their comment: the penalty punishes repeated digits
+and moves the boxes), 2048 tokens, picture <= 1 MP.
+Bench `research/qwen-bench/bench.py`: the app's own `image_descriptor.json` on OUR shipped
+`qwen3vl_4b_abliterated_fp8_scaled`, own engine on :48299 under the GPU lease, Vogue cover
+(`FLUX3 Flow Bench/Media/imported_002.jpg`) scored by best IoU against Fabio's 9 saved boxes:
+- A, shipped (named edges, sampling 0.2 / penalty 1.05): 26 s, 5/9, coordinates on a 100-step
+  grid (0, 100, 1000): Qwen 4B does not ground in named edges. ComfyUI users got this.
+- B, AcademiaSD's question, greedy: 36 s, 20 tight boxes, every text block found.
+- C, named edges, greedy: 24 s, 1/9. The format, not the decoding, broke A.
+- D, B plus a `name` per item, greedy injected the app's way (`sampling_mode` off, the `on`
+  keys left in): 34 s, 16 boxes, woman 0.95, VOGUE 0.88; photos as object, lettering as text.
+  The headlines score lower only because Qwen splits title and subtext where Fabio grouped them.
+Shipped: `analyseQuestion(family)` = D's wording (byte-identical to the benched string) with the
+box in the family's format: qwen `bbox_2d`, gemma `box_2d` (7.2 s all right in Rework 4), named
+for an unknown model; `describerFamily()` = qwen for ComfyUI, else by endpoint model id; greedy
+on both paths (ComfyUI `Generate Text.*` dotted keys, endpoint temperature 0); 20 boxes; a cut-off
+answer keeps its whole items; a text item is `kind: 'text'` with `"words": caption` as its desc,
+and MOSS gets it as a `text` item printing the quoted words.
+- `npm run lint` clean, `npm test` 3537 pass / 0 fail; new cases in layout-boxes-analyse (family
+  formats, text item, cut-off, MOSS text) and llm-service (every greedy key reaches a real
+  widget of image_descriptor.json).
+- Live, own `app:isolated`, FLUX.3 Klein, describer set to a Qwen endpoint model, `/llm/describe`
+  answered in the page with D's real answer: a real right-click Create boxes sent the bbox_2d
+  question with `greedy: true`; 16 rows in the panel, caption in the prompt; project.json holds
+  16 boxes, `kind: text` on the lettering; `mossLayoutPrompt` over them: 11 text items of 16.
+NOT run: Gemma 4 26B on the new question (paid, Fabio's describer); a FLUX.3/MOSS render of the
+cover from these boxes (Fabio's eye).
+
 ## Not this card
 
 Prism reads "cancelled" after every successful describe, the stock gallery Describe included

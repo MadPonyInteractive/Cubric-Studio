@@ -58,27 +58,51 @@ export function mossLayoutPrompt(prompt, boxes, width, height) {
     const caption = String(prompt || '').replace(/<([A-Za-z][A-Za-z0-9_]*)>/g, (_, n) => n.replace(/_/g, ' ')).trim();
     // core rounds to 9 places before floor/ceil, so a float error never moves an edge a pixel
     const px = (v, side, edge) => edge(Number((v * side / SCALE).toFixed(9))) - Math.floor(side / 2);
-    const items = layoutRows(boxes).map(({ bbox: [y0, x0, y1, x1], desc }) => ({
-        label: 'object',
-        caption: desc,
-        bbox: [px(y0, height, Math.floor), px(x0, width, Math.floor), px(y1, height, Math.ceil), px(x1, width, Math.ceil)],
-    }));
+    const items = layoutRows(boxes).map(({ bbox: [y0, x0, y1, x1], desc }, i) => {
+        // A lettering box (Create boxes) is a MOSS `text` item: the quoted words are what it prints.
+        const words = boxes[i].kind === 'text' && desc.match(/"([^"]+)"/)?.[1];
+        return {
+            label: words ? 'text' : 'object',
+            caption: desc,
+            ...(words && { text: words }),
+            bbox: [px(y0, height, Math.floor), px(x0, width, Math.floor), px(y1, height, Math.ceil), px(x1, width, Math.ceil)],
+        };
+    });
     return JSON.stringify({ summary: { caption }, items, bbox_coord_space: 'abs_centralized', bbox_format: 'yxyx' });
 }
 
 /**
- * Create boxes (MPI-1253): the describer lays a picture out as a caption plus named boxes.
- * Each box is NAMED edges, never an array: every vision family is trained on its own array
- * order (Qwen [x1,y1,x2,y2], Gemma/Gemini [y1,x1,y2,x2]) and answers in it whatever the
- * question says, so Gemma 4 drew a top strip of sky down the left side. Named edges came back
- * right on Gemma 4 26B and Qwen3-VL 30B alike (2026-10-23, Fabio's meadow picture).
+ * Create boxes (MPI-1253): the describer lays a picture out as a caption plus named boxes, in
+ * the box format ITS family was trained on. A vision model only grounds precisely in its own
+ * format and answers in it whatever the question says: Gemma 4 asked Qwen's [x1,y1,x2,y2] drew
+ * a top strip of sky down the left side, and Qwen3-VL-4B asked named edges guessed on a
+ * 100-step grid (Vogue cover, 1 of 9 boxes right). The wording is AcademiaSD's MOSS Layout
+ * "Analyze Image" (comfyui_AcademiaSD, the video's tool) plus a name per item: Qwen3-VL-4B
+ * greedy, 16 tight boxes, every text block found (MPI-1253 research/qwen-bench).
+ * `named` is for a describer of no known family; it held on Gemma 4 and Qwen3-VL-30B.
  */
-export const ANALYSE_QUESTION = 'Lay this picture out as boxes so an image generator can redraw it. Answer with JSON only, no other text:\n'
-    + '{"caption": "the whole picture in 2 to 4 sentences: subject, setting, style, lighting, colours", "items": [{"name": "1 to 3 word name", '
-    + '"desc": "what is in the box and how it looks; for lettering, the exact words in quotes and how the letters look", '
-    + '"box": {"top": 0, "left": 0, "bottom": 1000, "right": 1000}}]}\n'
-    + 'One item per main subject, object and block of lettering, at most 10, largest first. box gives each edge of the item\'s box '
-    + 'on a 0 to 1000 scale: top and bottom measured down from the top of the picture, left and right measured across from its left side.';
+const MAX_BOXES = 20;
+const BOX_FORMATS = {
+    qwen: ['"bbox_2d": [x1, y1, x2, y2]', 'bbox_2d: x from the left edge (0) to the right edge (1000), y from the top edge (0) to the bottom edge (1000)'],
+    gemma: ['"box_2d": [y1, x1, y2, x2]', 'box_2d: y from the top edge (0) to the bottom edge (1000), x from the left edge (0) to the right edge (1000)'],
+    named: ['"box": {"top": 0, "left": 0, "bottom": 1000, "right": 1000}', 'box: each edge from 0 to 1000, top and bottom measured down from the top edge, left and right across from the left edge'],
+};
+export function analyseQuestion(family) {
+    const [shape, rule] = BOX_FORMATS[family] || BOX_FORMATS.named;
+    return 'Analyze this image to rebuild it as a layout. Output one JSON object and nothing else:\n'
+        + `{"caption": "...", "items": [{"name": "...", "label": "...", ${shape}, "caption": "...", "text": "..."}]}\n`
+        + 'caption: one paragraph describing the whole image: medium and style, setting, lighting, colors and composition.\n'
+        + `items: the elements worth placing, the largest and most important first, at most ${MAX_BOXES}.\n`
+        + '- label "character": a person, animal or creature. "object": a distinct object or region (a product, a car, '
+        + 'a building, a table, the sky). "text": a legible sign, title or text block.\n'
+        + `- ${rule}; the box tightly encloses the element.\n`
+        + '- name: 1 to 3 words naming the element.\n'
+        + '- caption: what the element looks like, at most 25 words (appearance, color, material, pose; for text, its '
+        + 'typography and color). No names of real people.\n'
+        + '- text: only for text items: every character exactly as written, in its own script, one item per text block '
+        + 'with \\n between its lines. Omit the field for other labels.\n'
+        + 'If there is no legible text, use no text items.';
+}
 
 /** An item's box as `[left, top, right, bottom]` on 0-1000. An array is read in its key's own
  *  family order (`box_2d` Google's, `bbox_2d`/`bbox` Qwen's) for a model that ignores the ask. */
@@ -89,17 +113,42 @@ function _edges(it) {
     return it?.bbox_2d || it?.bbox;
 }
 
+/** `text` with every string, list and object still open at its end closed (AcademiaSD's `_cerrar`). */
+function _closeJson(text) {
+    const open = [];
+    let inStr = false, esc = false;
+    for (const ch of text) {
+        if (inStr) { if (esc) esc = false; else if (ch === '\\') esc = true; else if (ch === '"') inStr = false; }
+        else if (ch === '"') inStr = true;
+        else if (ch === '{' || ch === '[') open.push(ch === '{' ? '}' : ']');
+        else if ((ch === '}' || ch === ']') && open.length) open.pop();
+    }
+    return (text + (inStr ? '"' : '')).replace(/[,:\s]+$/, '') + open.reverse().join('');
+}
+
+/** The first JSON object in the answer. One cut off by the token cap keeps its finished items:
+ *  the tail is trimmed back to the last whole item and closed. */
+function _firstJson(s) {
+    const at = s.indexOf('{');
+    for (let end = s.lastIndexOf('}'); at >= 0 && end > at; end = s.lastIndexOf('}', end - 1)) {
+        try { return JSON.parse(s.slice(at, end + 1)); } catch { /* shorter */ }
+    }
+    for (let frag = at >= 0 ? s.slice(at) : ''; frag;) {
+        try { return JSON.parse(_closeJson(frag)); } catch { /* trim an item */ }
+        const k = Math.max(frag.lastIndexOf('},'), frag.lastIndexOf('}]'));
+        frag = k > 0 ? frag.slice(0, k + 1) : '';
+    }
+    return null;
+}
+
 /**
  * The describer's answer -> `{ caption, boxes }` in the panel's shape (fractions, unique
- * names), or null when it holds no JSON. A box off the grid or with no area is dropped.
+ * names), or null when it holds no JSON. A box off the grid or with no area is dropped. A
+ * lettering item becomes `kind: 'text'` with its words quoted at the head of the desc, so the
+ * one editable field carries them to FLUX.3 and MOSS alike (`mossLayoutPrompt`).
  */
-export function boxesFromAnalysis(text, max = 10) {
-    const s = String(text || '');
-    const at = s.indexOf('{');
-    let data = null;
-    for (let end = s.lastIndexOf('}'); at >= 0 && end > at && !data; end = s.lastIndexOf('}', end - 1)) {
-        try { data = JSON.parse(s.slice(at, end + 1)); } catch { /* shorter */ }
-    }
+export function boxesFromAnalysis(text, max = MAX_BOXES) {
+    const data = _firstJson(String(text || ''));
     if (!data || typeof data !== 'object') return null;
     const boxes = [];
     for (const it of Array.isArray(data.items) ? data.items : []) {
@@ -108,7 +157,11 @@ export function boxesFromAnalysis(text, max = 10) {
         const [x1, y1, x2, y2] = bb.map((v) => Math.max(0, Math.min(SCALE, Number(v))) / SCALE);
         if (x2 - x1 < 0.01 || y2 - y1 < 0.01) continue;
         const name = uniqueBoxName(boxName(it.name || it.label).toLowerCase() || 'box', boxes);
-        boxes.push({ x: x1, y: y1, w: x2 - x1, h: y2 - y1, desc: String(it.desc || it.caption || '').trim(), name });
+        let desc = String(it.desc || it.caption || '').trim();
+        // ponytail: the desc field is one line, so the text's own line breaks become spaces
+        const words = it.label === 'text' && typeof it.text === 'string' ? it.text.replace(/"/g, '\'').split(/\s*\n\s*/).filter(Boolean).join(' ') : '';
+        if (words) desc = `"${words}": ${desc}`;
+        boxes.push({ x: x1, y: y1, w: x2 - x1, h: y2 - y1, desc, name, ...(words && { kind: 'text' }) });
         if (boxes.length >= max) break;
     }
     return { caption: String(data.caption || data.summary?.caption || '').trim(), boxes };

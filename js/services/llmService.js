@@ -1080,11 +1080,31 @@ export async function settleInGraphEnhance(payload, deps = {}) {
  * @param {string|undefined} question
  * @returns {object}  injectionParams suitable for `enqueueGeneration`
  */
-export function buildDescribeInjectionParams(question) {
+export function buildDescribeInjectionParams(question, greedy = false) {
     if (!question) return {};
     return {
         Input_Describe_Prompt: `<|im_start|>user\n<|vision_start|><|image_pad|><|vision_end|>${question}<|im_end|>\n<|im_start|>assistant\n`,
+        ...(greedy && GREEDY_DESCRIBE),
     };
+}
+
+/**
+ * Greedy decoding for an answer of coordinates (MPI-1253, Create boxes): no sampling, no
+ * repetition penalty - the penalty punishes the repeated digits of coordinates and moves the
+ * boxes (AcademiaSD's MOSS Layout says so). 2048 tokens: a 20-item layout runs ~1500.
+ */
+const GREEDY_DESCRIBE = {
+    'Generate Text.sampling_mode': 'off',
+    'Generate Text.sampling_mode.repetition_penalty': 1,
+    'Generate Text.max_length': 2048,
+};
+
+/** The box format the describer was trained on (`analyseQuestion`): the ComfyUI describer is
+ *  Qwen3-VL; an endpoint model by its id, `named` when the id says nothing. */
+export async function describerFamily() {
+    if (await runnableBackend(describeBackendPreference()) !== 'endpoint') return 'qwen';
+    const id = String(describeModelPreference() || '').toLowerCase();
+    return id.includes('qwen') ? 'qwen' : /gemma|gemini/.test(id) ? 'gemma' : 'named';
 }
 
 /**
@@ -1122,11 +1142,12 @@ export function buildDescribeInjectionParams(question) {
  * @param {string} [a.scope]      generation scope ('gallery' | 'groupHistory')
  * @param {object} [a.group]      owning group, for the ComfyUI queue context
  * @param {boolean} [a.queued]    endpoint only: run it as a queue job (see above)
+ * @param {boolean} [a.greedy]    with a question: greedy decoding (`GREEDY_DESCRIBE`; endpoint: temperature 0)
  * @returns {Promise<{ok:boolean, via:'comfy'|'endpoint', text?:string, model?:string, errorCode?:string, error?:string, cancelled?:boolean}>}
  *          Never rejects. On failure: `error` is a human-readable message. `via` names the
  *          backend that ran, so a caller can point at the right place to fix it.
  */
-export async function describeImage({ imagePath, question, crop, scope, group, queued = false } = {}) {
+export async function describeImage({ imagePath, question, crop, scope, group, queued = false, greedy = false } = {}) {
     const backend = await runnableBackend(describeBackendPreference());
 
     if (backend === 'endpoint') {
@@ -1143,7 +1164,7 @@ export async function describeImage({ imagePath, question, crop, scope, group, q
                         positive: '',
                         negative: '',
                         mediaItems: [{ url: imagePath, mediaType: 'image', source: scope || 'gallery' }],
-                        describeEndpoint: { profileId, modelId, question, crop, onAnswer: (body) => { answer = body; } },
+                        describeEndpoint: { profileId, modelId, question, crop, greedy, onAnswer: (body) => { answer = body; } },
                     },
                     {
                         onText: (text) => resolve({ ...answer, ok: true, via: 'endpoint', text }),
@@ -1167,6 +1188,7 @@ export async function describeImage({ imagePath, question, crop, scope, group, q
                     imagePath,
                     ...(question ? { question } : {}),
                     ...(crop ? { crop } : {}),
+                    ...(greedy ? { greedy } : {}),
                 }),
             });
             const body = await res.json();
@@ -1185,7 +1207,7 @@ export async function describeImage({ imagePath, question, crop, scope, group, q
     // comfy branch. No install gate: the encoder is an engineAsset (MPI-1045), on disk
     // wherever the engine is.
     const { enqueueGeneration } = await import('./generationService.js');
-    const injectionParams = buildDescribeInjectionParams(question);
+    const injectionParams = buildDescribeInjectionParams(question, greedy);
     const queueOpts = group
         ? { existingGroup: group, scope: scope || 'groupHistory', groupId: group.id }
         : { scope: scope || 'gallery' };

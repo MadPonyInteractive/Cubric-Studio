@@ -30,9 +30,9 @@ import { MpiEnhanceDialog } from '../../Compounds/MpiEnhanceDialog/MpiEnhanceDia
 import { attachDictation } from '../../../services/dictation.js';
 import { thumbSrc } from '../../../utils/displayImage.js';
 import { PAGE_LANDING } from '../../../router.js';
-import { layoutRows, ANALYSE_QUESTION, boxesFromAnalysis } from '../../../data/layoutBoxes.js';
+import { layoutRows, analyseQuestion, boxesFromAnalysis } from '../../../data/layoutBoxes.js';
 import { modelTakesBoxes } from '../../../data/generationControls.js';
-import { describeImage } from '../../../services/llmService.js';
+import { describeImage, describerFamily } from '../../../services/llmService.js';
 import { applyPromptReuseSettings } from '../../../services/projectService.js';
 import { ratioSettingsFromParams } from '../../../utils/promptReuse.js';
 import { resolveMediaUrl } from '../../../utils/mediaActions.js';
@@ -425,7 +425,8 @@ export const MpiPromptBox = ComponentFactory.create({
             if (!frame.guide || !_boxesCtrl() || _analysing) return;
             const op = activeOperation;
             _analysing = true;
-            const res = await describeImage({ imagePath: frame.url, question: ANALYSE_QUESTION, scope: 'gallery', queued: true })
+            const question = analyseQuestion(await describerFamily());
+            const res = await describeImage({ imagePath: frame.url, question, scope: 'gallery', queued: true, greedy: true })
                 .finally(() => { _analysing = false; });
             if (!res.ok) { if (!res.cancelled) _showMediaToast(res.error); return; }
             const found = boxesFromAnalysis(res.text);

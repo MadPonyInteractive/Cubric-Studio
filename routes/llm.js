@@ -542,7 +542,7 @@ function _parseDescribePrompt() {
  *   ENDPOINT_ERROR — any other upstream failure
  */
 router.post('/llm/describe', async (req, res) => {
-    const { profileId, modelId, imagePath, question, crop } = req.body || {};
+    const { profileId, modelId, imagePath, question, crop, greedy } = req.body || {};
 
     if (!profileId || typeof profileId !== 'string') {
         return res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST', message: 'profileId is required.' } });
@@ -664,7 +664,8 @@ router.post('/llm/describe', async (req, res) => {
         // Ollama goes native (MPI-912): its /v1 shim has no `think` flag, so a reasoning
         // vision model thought through its budget and answered EMPTY.
         const { engine } = chatEngineFor(profileId, key, profile.baseURL, profile);
-        const data = await engine.chat({ model, messages });
+        // `greedy` (Create boxes, MPI-1253): coordinates want no sampling.
+        const data = await engine.chat({ model, messages, ...(greedy && { options: { temperature: 0 } }) });
         // MPI-941 Phase 8: the provider's own price for this call (DeepInfra sends it), so the
         // agent's figure counts its looks. Absent on a provider that sends none.
         const costUsd = Number(data.usage?.estimated_cost) || 0;

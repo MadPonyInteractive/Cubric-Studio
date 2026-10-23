@@ -4,10 +4,11 @@ import { createRequire } from 'node:module';
 import fs from 'node:fs';
 const require = createRequire(import.meta.url);
 const sharp = require('C:/AI/Mpi/Cubric-Vision/node_modules/sharp');
-const { ANALYSE_QUESTION } = await import('file:///C:/AI/Mpi/Cubric-Vision/js/data/layoutBoxes.js');
+const { analyseQuestion } = await import('file:///C:/AI/Mpi/Cubric-Vision/js/data/layoutBoxes.js');
 
 const [pic, label, qFile] = process.argv.slice(2);
-const question = qFile ? fs.readFileSync(qFile, 'utf8') : ANALYSE_QUESTION;
+// FAMILY=qwen|gemma|named picks the shipped question (default: gemma, the remote describer)
+const question = qFile ? fs.readFileSync(qFile, 'utf8') : analyseQuestion(process.env.FAMILY || 'gemma');
 const MODEL = process.env.MODEL || 'google/gemma-4-26B-A4B-it';
 const img = await sharp(pic, { limitInputPixels: false }).resize(1024, 1024, { fit: 'inside' }).jpeg({ quality: 85 }).toBuffer();
 const { width: W, height: H } = await sharp(img).metadata();

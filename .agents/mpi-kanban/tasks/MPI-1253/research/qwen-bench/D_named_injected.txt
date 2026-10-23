@@ -1,0 +1,117 @@
+{
+  "caption": "Black-and-white Vogue magazine cover featuring a woman in sunglasses, bold typography, and minimalist design.",
+  "items": [
+    {
+      "name": "Magazine Title",
+      "label": "text",
+      "bbox_2d": [47, 45, 890, 183],
+      "caption": "Large, bold, black serif font spelling 'VOGUE' on a light background.",
+      "text": "VOGUE"
+    },
+    {
+      "name": "Main Image",
+      "label": "character",
+      "bbox_2d": [267, 177, 824, 912],
+      "caption": "Woman in sunglasses, dark blazer, head tilted, black-and-white, high-contrast lighting.",
+      "text": ""
+    },
+    {
+      "name": "Fashion Headline",
+      "label": "text",
+      "bbox_2d": [47, 217, 290, 385],
+      "caption": "Bold, black, sans-serif text with a subtitle in smaller font below.",
+      "text": "Style\nSpeaks\nLouder\n—\nIt's not just what\nyou wear, it's how\nyou express\nyourself."
+    },
+    {
+      "name": "Beauty Headline",
+      "label": "text",
+      "bbox_2d": [37, 514, 262, 627],
+      "caption": "Beige background with bold black text and smaller subtext below.",
+      "text": "BEAUTY\nNatural\nGlow,\nReal You\n\nSkincare tips\nfor a healthier,\nhappier you."
+    },
+    {
+      "name": "Lifestyle Headline",
+      "label": "text",
+      "bbox_2d": [757, 694, 970, 804],
+      "caption": "Bold, black, sans-serif text with a subtitle in smaller font below.",
+      "text": "LIFESTYLE\nSmall\nHabits\nBig Changes\n—\nBetter habits.\nA stronger mind.\nA more successful you."
+    },
+    {
+      "name": "Travel Headline",
+      "label": "text",
+      "bbox_2d": [837, 554, 937, 639],
+      "caption": "Bold, black, sans-serif text with a subtitle in smaller font below.",
+      "text": "TRAVEL\nMORE\nNew places,\nnew stories,\nsame you -\nbut happier."
+    },
+    {
+      "name": "Slogan",
+      "label": "text",
+      "bbox_2d": [367, 750, 602, 874],
+      "caption": "Cursive, handwritten-style script in black on a dark background.",
+      "text": "More\nSelf Love"
+    },
+    {
+      "name": "Publication Info",
+      "label": "text",
+      "bbox_2d": [810, 18, 950, 38],
+      "caption": "Small, black, sans-serif text in top right corner.",
+      "text": "VOL. 12 ISSUE 04\nAPR 2025"
+    },
+    {
+      "name": "Top Navigation",
+      "label": "text",
+      "bbox_2d": [47, 18, 540, 38],
+      "caption": "Small, black, sans-serif text in top left corner.",
+      "text": "LIFESTYLE / FASHION / BEAUTY / TRAVEL"
+    },
+    {
+      "name": "Subheadline",
+      "label": "text",
+      "bbox_2d": [797, 187, 950, 215],
+      "caption": "Small, black, sans-serif text in top right corner.",
+      "text": "THE MODERN\nWOMAN"
+    },
+    {
+      "name": "Right Side Text",
+      "label": "text",
+      "bbox_2d": [857, 250, 950, 399],
+      "caption": "Small, black, sans-serif text in top right corner.",
+      "text": "GOOD\nTHINGS\nTAKE TIME\n—\nBetter\nChoices\nBrighter\nDays"
+    },
+    {
+      "name": "Bottom Slogan",
+      "label": "text",
+      "bbox_2d": [237, 935, 527, 946],
+      "caption": "Small, black, sans-serif text at bottom center.",
+      "text": "BEAUTY IS A STATE OF MIND"
+    },
+    {
+      "name": "Barcode",
+      "label": "object",
+      "bbox_2d": [47, 912, 197, 964],
+      "caption": "Black barcode with numbers below it.",
+      "text": "9 771234 567003"
+    },
+    {
+      "name": "Travel Photo",
+      "label": "object",
+      "bbox_2d": [830, 422, 950, 542],
+      "caption": "Black-and-white photo of a city skyline with a prominent skyscraper.",
+      "text": ""
+    },
+    {
+      "name": "Lifestyle Photo",
+      "label": "object",
+      "bbox_2d": [777, 874, 960, 964],
+      "caption": "Black-and-white photo of a plant with leaves.",
+      "text": ""
+    },
+    {
+      "name": "Beauty Photo",
+      "label": "object",
+      "bbox_2d": [174, 670, 310, 857],
+      "caption": "Close-up of a woman's face with dark hair and makeup.",
+      "text": ""
+    }
+  ]
+}

@@ -610,6 +610,18 @@ function testBuildDescribeInjectionParamsChatMlWrapping() {
     // No question → empty params (graph uses its own baked caption instruction).
     assert.deepStrictEqual(buildDescribeInjectionParams(), {});
     assert.deepStrictEqual(buildDescribeInjectionParams(''), {});
+    // Greedy (Create boxes, MPI-1253): every `Title.widget` key must land on a real widget -
+    // the injector skips a missing title or widget silently, and sampled boxes drift.
+    const greedy = buildDescribeInjectionParams('Boxes?', true);
+    const dotted = Object.keys(greedy).filter((k) => k.includes('.'));
+    assert.strictEqual(dotted.length, 3);
+    for (const k of dotted) {
+        const dot = k.indexOf('.');
+        const node = Object.values(wf).find((n) => n._meta?.title.toLowerCase() === k.slice(0, dot).toLowerCase());
+        assert.ok(node && k.slice(dot + 1) in node.inputs, `${k} reaches no widget in image_descriptor.json`);
+    }
+    assert.strictEqual(greedy['Generate Text.sampling_mode'], 'off');
+    assert.ok(!Object.keys(buildDescribeInjectionParams('Boxes?')).some((k) => k.includes('.')), 'sampling stays as baked without greedy');
 }
 
 function testEnhancerModelMigrationViaModelsEndpoint() {

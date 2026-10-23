@@ -68,7 +68,7 @@ export function runDescribeCommand(payload) {
         };
         if (stopped()) { settleCancelled(); return; }
 
-        const { profileId, modelId, question, crop, onAnswer } = payload.describeEndpoint || {};
+        const { profileId, modelId, question, crop, greedy, onAnswer } = payload.describeEndpoint || {};
         const item = (payload.mediaItems || [])[0];
 
         generationStore.advance(jobId, PHASES.SUBMITTING);
@@ -87,6 +87,7 @@ export function runDescribeCommand(payload) {
                     imagePath: item?.url,
                     ...(question ? { question } : {}),
                     ...(crop ? { crop } : {}),
+                    ...(greedy ? { greedy } : {}),
                 }),
             });
             body = await res.json();
