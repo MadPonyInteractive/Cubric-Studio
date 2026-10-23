@@ -6,13 +6,6 @@ name: Tests
 #
 # windows-latest runs BOTH: Electron needs no xvfb on Windows, and Playwright drives it
 # through the `electron` npm binary, so there is no `npx playwright install` step.
-#
-# @cubric/connector is a `file:../Cubric-Studio/packages/connector` dependency and that
-# sibling does not exist on a lone checkout. npm ci still exits 0 — it creates a dangling
-# symlink rather than failing — and all three consumers (server.js, services/brokerBoot.js,
-# services/connectorResponder.js) dynamic-import it inside try/catch and stay standalone
-# when it is absent. So no PAT, no registry and no vendored copy are needed here.
-# (The dangling symlink itself is a shipped-artifact problem, tracked on MPI-416.)
 
 # MPI-878 — the paths-ignore below. Measured over 48h on master (198 completed runs):
 # 128 of them, 65% of runs and 36.8 of 56 CI-hours, were docs/.agents/.md-only commits

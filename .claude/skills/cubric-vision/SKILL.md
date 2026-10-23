@@ -12,9 +12,7 @@ Everything below is reachable with plain HTTP from any agent on the same
 machine, no SDK and no MCP server.
 
 This skill is the entry point of a family, one skill per job, so each loads only when
-its task comes up. Cubric Connector (formerly Cubric Studio, the hub repo — not this
-app) is the agentic hub that orchestrates the Cubric apps through skills like these;
-each app gets its own, in the same shape.
+its task comes up.
 
 ## Before anything else
 

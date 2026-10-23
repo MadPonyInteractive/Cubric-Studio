@@ -746,10 +746,10 @@ manifest: [../mcp-server.md](../mcp-server.md). The app artifacts carry nothing 
 Claude Desktop bridge ships as a separate release asset, `cubric-studio.mcpb`, packed from
 `mcp/cubric-studio/` and attached next to the six app artifacts (release skill step 6).
 
-**The ownership boundary has not moved.** The Cubric Studio hub owns the contract and the
-runtime — `@cubric/connector` and `@cubric/broker` — and product apps consume them. Never move
-SDK or broker source into this repo (the hub's `README.md` states the same boundary from the
-other side).
+**The Cubric Connector hub is retired.** Its GitHub repo (`MadPonyInteractive/Cubric-Connector`,
+the old shared home of `@cubric/connector` and `@cubric/broker`) was deleted on 2026-10-23, and no
+Cubric app consumes either package. Do not re-add them; the HTTP routes and `/mcp` above are the
+whole outside surface.
 
 Every staged artifact must include:
 

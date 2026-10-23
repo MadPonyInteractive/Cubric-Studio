@@ -36,11 +36,6 @@ still gets a `v*` tag build), PRs to `master`, and `workflow_dispatch`. No
 `npx playwright install` step: Playwright drives the `electron` npm binary, and Electron
 needs no xvfb on Windows.
 
-- **`@cubric/connector` is NOT a blocker.** Its `file:../Cubric-Studio/...` target does
-  not exist on a lone checkout, and `npm ci` does not care — npm creates a dangling
-  symlink and exits 0. All three consumers dynamic-import it inside `try/catch`. No PAT,
-  no registry, no vendored copy. (The dangling symlink in a shipped artifact is a
-  separate problem: MPI-416.)
 - **A push is its own concurrency group — do not "tidy" that back to the ref.**
   `group:` resolves to `github.run_id` for a push and to `github.ref` only for a PR.
   Sessions push straight to master minutes apart; with a shared ref group and
