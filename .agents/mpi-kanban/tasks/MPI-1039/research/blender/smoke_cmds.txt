@@ -1,0 +1,9 @@
+scene new -o <OUT>/smoke2.blend-cli.json
+object add plane -n floor -s 6,6,1
+object add plane -n wall -l 0,3,3 -r 90,0,0 -s 6,3,1
+object add cylinder -n body -l 0,0,0.9 -s 0.25,0.18,0.9
+object add sphere -n head -l 0,0,1.95 -s 0.13,0.13,0.15
+camera add -n lo -l 0,-2.6,0.1 -r 109,0,0 -f 24 --active
+render settings --engine WORKBENCH -rx 1024 -ry 1024 --format PNG
+scene save
+render execute <OUT>/cli_lo.png --overwrite

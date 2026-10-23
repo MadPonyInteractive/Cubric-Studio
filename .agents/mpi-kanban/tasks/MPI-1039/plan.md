@@ -94,7 +94,24 @@ installed (4.0/4.2/4.5/5.2 via winget); use 4.5 LTS (`C:\Program Files\Blender F
 FFMPEG: set `image_settings.file_format = 'PNG'`. (3) Workbench FLAT test (`research/blender/flat_test.py`) rendered
 EMPTY: the doll seen in the viewport is not render-visible in that layer (visible meshes: Seg.002, FLOOR, WALL/BED.001)
 - find which mesh is the doll and unhide it for render. Scripts: `research/blender/inventory.py`, `flat_test.py`.
-NEXT: design the Blender ref renderer WITH Fabio (which mesh, neutral standing pose via c_ controls, flat grey
+FABIO 2026-10-23 (later, SUPERSEDES the "use his doll file" idea): build the refs in a NEW scene with the
+CLI-Anything Blender CLI, not his rig: floor + backdrop wall, grey materials, a basic mannequin in an A-pose or
+relaxed pose (no specific pose), camera per stop. Use the CLI (skills, fewer tokens) rather than raw bpy; CLI/skills
+can be turned off after the job. CLI INSTALLED: `pip install cli-anything-blender` (1.0.0, Python 3.14 user site),
+skill text at github.com/HKUDS/CLI-Anything skills/cli-anything-blender/SKILL.md. It finds Blender through
+`shutil.which('blender')` = the `C:\Users\Fabio\bin\blender.cmd` shim (4.5; on PATH in Git Bash). Windows traps:
+(1) its REPL needs a real Windows console (prompt_toolkit NoConsoleScreenBufferError from Bash); (2) one-shot
+`--project x <cmd>` NEVER saves, so state is lost between calls; (3) needs PYTHONIOENCODING=utf-8 or it dies on
+'charmap'; (4) `render execute` only WRITES `_render_script.py` next to the output - run it yourself:
+`gpu_lease.py run -- <blender.exe> --background --python <script>`. Fix for 1+2: `research/blender/clib.py` runs a
+file of REPL lines in ONE process (`python -X utf8 clib.py cmds.txt`); `smoke_cmds.txt` (replace <OUT>) built floor,
+wall, cylinder+sphere stand-in, low camera, Workbench 1024 -> `cli_smoke.png` worked. Its objects are PRIMITIVES ONLY
+(cube/sphere/cylinder/cone/plane/torus/monkey/empty) - no mesh import. Blender 4.5/5.2 ship NO mannequin asset
+(Essentials = brushes + node groups). Mannequin options for Fabio: (a) Blender's free CC0 "Human Base Meshes" bundle
+(blender.org demo-files, human-base-meshes-bundle-v1.4.1.zip, size unknown - ASK before download), imported by one
+bpy line after the CLI script; (b) a jointed mannequin from CLI primitives (capsule limbs, nose block so front/back
+reads); (c) append the doll mesh from his `mpi_openPose_mannequin.blend` copy.
+OLD NEXT: design the Blender ref renderer WITH Fabio (which mesh, neutral standing pose via c_ controls, flat grey
 Workbench vs EEVEE, camera rig per stop: yaw x pitch x zoom, square masters), render front low first, then rerun the
 two-image edits (`mannequin2 edits`, feed Blender refs).
 Prompt rule (Fabio + playbook 01 § READ THE MODEL'S GUIDE): generic ("the subject"/"they"), no "photograph" in edit
