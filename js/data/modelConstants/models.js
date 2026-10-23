@@ -1463,7 +1463,10 @@ const ALL_MODELS = [
         dropdownMeta: 'VIDEO',
         mediaType: 'video',
         // Same capability set as LTX 2.3: one graph for both stages, audio routing, Ingredients sheet.
-        capabilities: { batch: false, multiStage: true, audio: true, audioRouting: true, singleFileStages: true, referenceSheet: true },
+        // h3TurboToggle arms the shared `h3Turbo` button (Input_is_Turbo): here it picks the VIDEO VAE,
+        // not the sampler. ON = conv decoder (fast), OFF (default) = diffusion decoder (~+60 s, steadier
+        // fine texture). Same steps either way.
+        capabilities: { batch: false, multiStage: true, audio: true, audioRouting: true, singleFileStages: true, referenceSheet: true, h3TurboToggle: true },
         video: 'ltx25_preview.mp4',
         type: 'ltx',
         loraStrengths: ['model', 'clip'],
@@ -1478,6 +1481,8 @@ const ALL_MODELS = [
         dependencies: [
             'ltx25-transformer-int8',
             'ltx25-video-vae-conv',
+            // The Turbo-OFF decoder. Both VAEs install: the switch is per run, so neither may be missing.
+            'ltx25-video-vae-dfr',
             'ltx25-audio-vae',
             // The graph's live-preview decoder is still the 2.3 TAEHV (no 2.5 one exists);
             // whether it reads 2.5 latents is checked in the app (MPI-1095).

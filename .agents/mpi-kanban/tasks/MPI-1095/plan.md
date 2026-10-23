@@ -82,6 +82,19 @@
   yes given for that one run. Expect a slower / tiled decode (ComfyUI budgets 1700/cell). If it wins: new
   dep for the DiffVAE, node `1` in the raw -> regenerate `ltx25_i2v_t2v.json`, R2 1.47 GB (~$0.02/mo,
   ask). Its encoder also encodes the i2v start frame, so the latent can differ slightly from conv's.
+  **RUN 2026-10-23 ("LTX 2.5 model 6"), result in `validation.md` § DiffVAE A/B. Waits on Fabio's eye-test**
+  (`research/dfr/scales_ab_old-left_dfr-right.webm`). Fabio's idea: switch the VAE with a Turbo toggle on the
+  LTX card (none exists today). DiffVAE is the SLOWER decode, so it belongs on Turbo OFF, not ON; confirm with him.
+  **WIRED 2026-10-23 (uncommitted), Fabio's yes:** Fabio added `Input_is_Turbo` -> MpiIfElse -> two VAELoaders
+  (true = conv, false = DiffVAE) in the G: raw; copied to `raw/`, converted (`workflow-to-api.mjs`, single file:
+  `sync-raw-workflows.mjs` would sweep peers' dirty raws), gate passes, `generate_ltx25.build` -> runtime diff =
+  exactly those 4 nodes + every `["1",0]` VAE link moved to `["919",0]`. New dep `ltx25-video-vae-dfr`
+  (`assetDeps.js`, sha256 from the M: copy), on the `ltx-25` dep list; `capabilities.h3TurboToggle: true` mounts
+  the shared `h3Turbo` button on all three LTX ops (default OFF = DiffVAE). lint, `npm test` (3550), release:check green.
+  Still open: (1) R2 upload of the DiffVAE DONE 2026-10-23 11:51 (size + rclone check, `validation.md`);
+  (2) the `h3Turbo` button's tooltip says "6 steps instead of 25" (H3 text) - needs a per-model line in
+  `PromptBoxControls.js`, held by a live peer (MPI-1257) on 2026-10-23; (3) in-app Turbo on/off check DONE
+  2026-10-23: each side loads only its own VAE (`validation.md`). Commit these at handoff/close. Fast-entry morphing in the first ~1 s is NOT fixed by the VAE: that is MPI-707 (De-RoPE).
 - LTX ladder moved down one rung (Fabio 2026-10-22, both LTX cards): `422b0aca3`, committed, NOT pushed.
   New `high` 1536x896 is UNMEASURED on the GPU (time, VRAM, look); a run needs Fabio's yes.
 - R2 upload DONE 2026-10-22 23:04: all six deps on R2, sizes match, md5 verified (`validation.md`). `M:/_stage/mpi1095`

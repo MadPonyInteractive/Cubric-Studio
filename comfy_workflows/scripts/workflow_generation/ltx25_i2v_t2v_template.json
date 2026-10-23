@@ -1,13 +1,4 @@
 {
-  "1": {
-    "inputs": {
-      "vae_name": "ltx-2.5-video-vae-conv-bf16.safetensors"
-    },
-    "class_type": "VAELoader",
-    "_meta": {
-      "title": "Load VAE"
-    }
-  },
   "2": {
     "inputs": {
       "vae_name": "ltx-2.5-audio-vae-bf16.safetensors",
@@ -237,7 +228,7 @@
         0
       ],
       "vae": [
-        "1",
+        "919",
         0
       ]
     },
@@ -376,7 +367,7 @@
         0
       ],
       "vae": [
-        "1",
+        "919",
         0
       ]
     },
@@ -521,7 +512,7 @@
       "strength": 1,
       "bypass": false,
       "vae": [
-        "1",
+        "919",
         0
       ],
       "image": [
@@ -587,7 +578,7 @@
       "strength": 1,
       "bypass": false,
       "vae": [
-        "1",
+        "919",
         0
       ],
       "image": [
@@ -745,7 +736,7 @@
         0
       ],
       "vae": [
-        "1",
+        "919",
         0
       ]
     },
@@ -1074,7 +1065,7 @@
         1
       ],
       "vae": [
-        "1",
+        "919",
         0
       ],
       "latent": [
@@ -1104,7 +1095,7 @@
         1
       ],
       "vae": [
-        "1",
+        "919",
         0
       ],
       "latent": [
@@ -1134,7 +1125,7 @@
         1
       ],
       "vae": [
-        "1",
+        "919",
         0
       ],
       "latent": [
@@ -1164,7 +1155,7 @@
         1
       ],
       "vae": [
-        "1",
+        "919",
         0
       ],
       "latent": [
@@ -2161,7 +2152,7 @@
         1
       ],
       "vae": [
-        "1",
+        "919",
         0
       ],
       "latent": [
@@ -2268,7 +2259,7 @@
         1
       ],
       "vae": [
-        "1",
+        "919",
         0
       ],
       "latent": [
@@ -2386,6 +2377,53 @@
     "class_type": "CLIPLoader",
     "_meta": {
       "title": "Load CLIP"
+    }
+  },
+  "918": {
+    "inputs": {
+      "boolean": true
+    },
+    "class_type": "MpiSimpleBoolean",
+    "_meta": {
+      "title": "Input_is_Turbo"
+    }
+  },
+  "919": {
+    "inputs": {
+      "true": [
+        "920",
+        0
+      ],
+      "false": [
+        "921",
+        0
+      ],
+      "boolean": [
+        "918",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Mpi If Else"
+    }
+  },
+  "920": {
+    "inputs": {
+      "vae_name": "ltx-2.5-video-vae-conv-bf16.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "921": {
+    "inputs": {
+      "vae_name": "ltx-2.5-video-vae-bf16.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
     }
   }
 }

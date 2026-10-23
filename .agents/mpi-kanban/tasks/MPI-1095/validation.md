@@ -40,3 +40,36 @@ Clips (scratch, not shipped): `%TEMP%/claude/C--AI-Mpi-Cubric-Vision/71de6958-58
 All six LTX 2.5 deps on `cubric-models/vision/models/<filename>`, one at a time at `--bwlimit 3M`, 19:24-23:04.
 `rclone lsl` size = local size for every file, rclone md5 verify passed (0 errors in the log). Source staged in
 `M:/_stage/mpi1095` (outside the models root); deleting it was blocked by the safety check, Fabio removes it.
+
+DiffVAE (2026-10-23, Fabio yes, ~$0.02/mo): `vae/ltx-2.5-video-vae-bf16.safetensors` uploaded 11:43-11:51 from
+`M:/_stage/mpi1095/vae/` at `--bwlimit 3M`. `rclone lsl` 1,472,223,346 B = local; `rclone check` 0 differences.
+
+## Turbo switch in the app (2026-10-23, Fabio yes, two runs under the GPU lease)
+
+`app:isolated` (own profile + port, dev mode, attached to engine 48188), `/connector/generate` ltx-25 `t2v_ms`,
+very_low 16:9 (768x448), 2 s, seed 4242. `/connector/models` lists `turbo` on all three ltx-25 ops.
+- `turbo:true`: engine prompt `e4c2c705` sent `Input_is_Turbo: true`; log loaded ONLY
+  `ltx-2.5-video-vae-conv-bf16` (VideoVAE). 98 s incl. cold model load.
+- `turbo:false`: prompt `b7cc703e`, `Input_is_Turbo: false`; log loaded ONLY `ltx-2.5-video-vae-bf16`
+  (`CausalDiffusionVAE`). 47 s warm.
+- Both clips 768x448, 48 frames + audio, the same lizard, clean picture. The lazy MpiIfElse loads one VAE per run.
+- Open: the `h3Turbo` button's tooltip text is H3's ("6 steps instead of 25"); `PromptBoxControls.js` held by a peer.
+
+## DiffVAE A/B (2026-10-23, Fabio yes, local 4060 Ti, under the GPU lease)
+
+`research/dfr/dino2k_dfr_prompt.json` (i2v_007's engine graph, seed 753222358, 2560x1472, 96 frames, node `1`
+= `ltx-2.5-video-vae-bf16`) vs Fabio's `i2v_007` (project "LTX 2.5", conv VAE, 458 s in-app).
+
+- Trap, cost two wasted runs: the captured graph's start-image path (node `514`, `input/mpi_staged/<hash>.png`)
+  is deleted by the app after each run, and `MpiLoadImage` with `block_if_empty: False` then feeds a blank 1x1,
+  so the graph silently becomes text-to-video (a dino on a hillside road). A path outside ComfyUI's
+  input/output/temp also loads as missing. Fix: copy the start picture to `input/mpi1095_dfr/dino_start.png`.
+- Valid run (prompt `9cd9a7dc`): start image loaded; total 659 s; VAEDecode (node 215) 173 s (two broken runs:
+  167 s, 164 s); peak VRAM 15.9 GB of 16 (shared with Fabio's app). Sampling ran slower than the broken runs
+  (325 s vs 226 s stage 1), so the total is not comparable with i2v_007's 458 s. The conv VAE decode was NOT
+  timed; i2v_007's 458 s minus ~350 s of sampling and loads puts it near ~100 s, so DiffVAE ~ +60-70 s. Estimate.
+- Look (agent, stills only): same scene, slightly different motion (the DiffVAE also encodes the start frame).
+  Frame strip 60-84 on the shoulder: the conv clip's scales go blobby/rounded around frames 60-72 and recover
+  by 78; the DiffVAE clip keeps a crisper, more consistent polygon pattern across the same frames. Morphing is
+  temporal: Fabio's eye-test on `research/dfr/scales_ab_old-left_dfr-right.webm` (old left, DiffVAE right)
+  and `full_ab_old-left_dfr-right.webm` decides. Output: engine `output/mpi1095_dfr/dino2k_dfr_img_00001.mp4`.

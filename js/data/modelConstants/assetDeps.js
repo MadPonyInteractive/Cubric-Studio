@@ -166,7 +166,7 @@ export const assetDeps = {
         bytes: 364855188,
         sha256: '5bc10fa4adecf99dda132d916e23048cbd56797702c5fa50eb5d2079048a38c3',
     },
-    // MPI-1095 LTX 2.5. Lightricks/LTX-2.5 is gated, so no HF mirrorUrl (a user download would 401). The faster conv decoder; the diffusion ("DFR") one was never benched.
+    // MPI-1095 LTX 2.5. Lightricks/LTX-2.5 is gated, so no HF mirrorUrl (a user download would 401). The faster conv decoder: the graph picks it when Turbo is ON.
     'ltx25-video-vae-conv': {
         id: 'ltx25-video-vae-conv',
         name: 'LTX-2.5 Video VAE (conv, bf16)',
@@ -176,6 +176,18 @@ export const assetDeps = {
         size: '1.35GB',
         bytes: 1452269922,
         sha256: '685b06ee3d9b2039647698fc4ea33175112462fc374e2777312c907897dfce8d',
+    },
+    // MPI-1095 LTX 2.5 diffusion ("DFR") decoder: the graph picks it when Turbo is OFF. ~+60 s decode
+    // at 2560x1472 x 96 frames, steadier scale texture (dinosaur A/B, 2026-10-23). Gated repo: no mirrorUrl.
+    'ltx25-video-vae-dfr': {
+        id: 'ltx25-video-vae-dfr',
+        name: 'LTX-2.5 Video VAE (diffusion, bf16)',
+        origin: 'Lightricks/LTX-2.5',
+        filename: 'vae/ltx-2.5-video-vae-bf16.safetensors',
+        url: 'https://models.cubric.studio/vision/models/vae/ltx-2.5-video-vae-bf16.safetensors',
+        size: '1.37GB',
+        bytes: 1472223346,
+        sha256: '847e14ca7f3355debca0cea4eaa24ac0fbcdf0061da054ac89ca638a869ddba3',
     },
     // MPI-1095 LTX 2.5. Lightricks/LTX-2.5 is gated, so no HF mirrorUrl (a user download would 401).
     'ltx25-audio-vae': {
