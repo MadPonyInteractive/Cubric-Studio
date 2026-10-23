@@ -1,0 +1,92 @@
+```json
+{
+  "caption": "A vintage-style, collage-like poster with a gritty, cinematic aesthetic, featuring a young woman in techwear as the central figure. The composition blends urban Tokyo street photography with graphic design elements, using a muted color palette of black, red, and cream. The lighting is moody and dramatic, evoking a cyberpunk or futuristic urban atmosphere, with various text overlays and photographic inserts creating a layered, magazine-cover effect.",
+  "items": [
+    {
+      "name": "main title",
+      "label": "text",
+      "box_2d": [36, 43, 155, 956], "caption": "Large, bold, sans-serif typography in a cream color against a dark background.",
+      "text": "TOKYO"
+    },
+    {
+      "name": "central character",
+      "label": "character",
+      "box_2d": [175, 175, 1000, 685], "caption": "A young woman with dark hair and sunglasses, wearing a black technical jacket, looking towards the camera."
+    },
+    {
+      "name": "future is now text",
+      "label": "text",
+      "box_2d": [171, 43, 188, 313], "caption": "Small, elegant serif font in black.",
+      "text": "FUTURE IS NOW"
+    },
+    {
+      "name": "description text",
+      "label": "text",
+      "box_2d": [201, 43, 253, 243], "caption": "Small, clean sans-serif text block.",
+      "text": "Where tradition meets\ntechnology, and every\nstreet tells a story\nof tomorrow."
+    },
+    {
+      "name": "tokyo street scene",
+      "label": "object",
+      "box_2d": [165, 585, 443, 825], "caption": "Nighttime cityscape of Tokyo with neon lights and a red tower structure."
+    },
+    {
+      "name": "japanese vertical text",
+      "label": "text",
+      "box_2d": [188, 855, 425, 935], "caption": "Vertical red and black Japanese characters on a white strip.",
+      "text": "東京未来都市\n20\n25"
+    },
+    {
+      "name": "mirai text block",
+      "label": "text",
+      "box_2d": [553, 65, 665, 253], "caption": "Large red Japanese characters above smaller black text on a cream background.",
+      "text": "未来\nMI-RAI"
+    },
+    {
+      "name": "street scene left",
+      "label": "object",
+      "box_2d": [165, 43, 543, 333], "caption": "Busy Tokyo street at night with many glowing neon signs and shopfronts."
+    },
+    {
+      "name": "train scene",
+      "label": "object",
+      "box_2d": [685, 43, 913, 263], "caption": "A subway train entering a station, captured in a cinematic, low-light style."
+    },
+    {
+      "name": "red silhouette",
+      "label": "character",
+      "box_2d": [695, 665, 913, 885], "caption": "A red-tinted silhouette of a person looking away."
+    },
+    {
+      "name": "coordinates text",
+      "label": "text",
+      "box_2d": [873, 65, 903, 185], "caption": "Small black text showing geographic coordinates.",
+      "text": "35.6895° N\n139.6917° E"
+    },
+    {
+      "name": "bottom text block",
+      "label": "text",
+      "box_2d": [905, 65, 933, 243], "caption": "Small black sans-serif text.",
+      "text": "In a city that never stops moving,\nthe future is already here."
+    },
+    {
+      "name": "footer text",
+      "label": "text",
+      "box_2d": [935, 485, 955, 935], "caption": "Small black text listing various Tokyo districts.",
+      "text": "SHIBUYA · SHINJUKU · HARAJUKU · AKIHABARA"
+    },
+    {
+      "name": "estd text",
+      "label": "text",
+      "box_2d": [833, 885, 873, 935], "caption": "Small black text indicating an establishment date.",
+      "text": "ESTD\n2025"
+    },
+    {
+      "name": "year text",
+      "label": "text",
+      "box_2d": [913, 755, 933, 935], "caption": "Small black text with a year and some characters.",
+      "text": "2025 · 未来 · 東京"
+    }
+  ]
+}
+```

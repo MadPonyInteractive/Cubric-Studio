@@ -1,0 +1,110 @@
+```json
+{
+  "caption": "A high-fashion magazine cover in black and white, featuring a stylish woman in a dark blazer and sunglasses as the central focus. The composition is a classic editorial layout with elegant serif typography, balanced text blocks, and small inset photographic elements, creating a sophisticated and modern aesthetic.",
+  "items": [
+    {
+      "name": "magazine title",
+      "label": "text",
+      "box_2d": [43, 43, 185, 956], "caption": "Large, bold, black serif typeface spanning the top of the cover.",
+      "text": "VOGUE"
+    },
+    {
+      "name": "main model",
+      "label": "character",
+      "box_2d": [185, 285, 855, 833], "caption": "A woman with dark hair, wearing sunglasses and a black blazer, looking towards the camera."
+    },
+    {
+      "name": "fashion headline",
+      "label": "text",
+      "box_2d": [206, 48, 335, 305], "caption": "Large, bold serif text on the left side.",
+      "text": "FASHION\nStyle\nSpeaks\nLouder"
+    },
+    {
+      "name": "beauty headline",
+      "label": "text",
+      "box_2d": [525, 55, 685, 275], "caption": "Elegant serif text on the left side.",
+      "text": "BEAUTY\nNatural\nGlow,\nReal You"
+    },
+    {
+      "name": "lifestyle headline",
+      "label": "text",
+      "box_2d": [705, 735, 835, 925], "caption": "Bold serif text on the right side.",
+      "text": "LIFESTYLE\nSmall\nHabits\nBig Changes"
+    },
+    {
+      "name": "self love text",
+      "label": "text",
+      "box_2d": [705, 355, 855, 545], "caption": "Handwritten style white script text over the model's blazer.",
+      "text": "More\nSelf Love"
+    },
+    {
+      "name": "travel section",
+      "label": "text",
+      "box_2d": [475, 810, 675, 945], "caption": "Text block on the right side with a small city image above it.",
+      "text": "TRAVEL\nMORE\nNew places,\nnew stories,\nsame you -\nbut happier."
+    },
+    {
+      "name": "magazine info",
+      "label": "text",
+      "box_2d": [15, 825, 35, 955], "caption": "Small sans-serif text in the top right corner.",
+      "text": "VOL. 12 ISSUE 04\nAPR 2025"
+    },
+    {
+      "name": "top menu",
+      "label": "text",
+      "box_2d": [15, 55, 30, 575], "caption": "Small sans-serif text at the very top.",
+      "text": "LIFESTYLE / FASHION / BEAUTY / TRAVEL"
+    },
+    {
+      "name": "fashion subtext",
+      "label": "text",
+      "box_2d": [355, 55, 415, 275], "caption": "Small serif text under the fashion headline.",
+      "text": "It's not just what\nyou wear, it's how\nyou express\nyourself."
+    },
+    {
+      "name": "beauty subtext",
+      "label": "text",
+      "box_2d": [695, 55, 740, 215], "caption": "Small serif text under the beauty headline.",
+      "text": "Skincare tips\nfor a healthier,\nhappier you."
+    },
+    {
+      "name": "lifestyle subtext",
+      "label": "text",
+      "box_2d": [845, 735, 885, 950], "caption": "Small serif text under the lifestyle headline.",
+      "text": "Better habits.\nA stronger mind.\nA more successful you."
+    },
+    {
+      "name": "good things text",
+      "label": "text",
+      "box_2d": [255, 845, 365, 955], "caption": "Small serif text on the right side.",
+      "text": "GOOD\nTHINGS\nTAKE TIME\n\nBetter\nChoices\nBrighter\nDays"
+    },
+    {
+      "name": "barcode",
+      "label": "object",
+      "box_2d": [885, 45, 945, 205], "caption": "Standard black and white barcode at the bottom left."
+    },
+    {
+      "name": "bottom quote",
+      "label": "text",
+      "box_2d": [915, 230, 930, 505], "caption": "Small sans-serif text at the bottom center.",
+      "text": "BEAUTY IS A STATE OF MIND"
+    },
+    {
+      "name": "inset photo 1",
+      "label": "object",
+      "box_2d": [685, 175, 855, 335], "caption": "Small black and white close-up photo of a face."
+    },
+    {
+      "name": "inset photo 2",
+      "label": "object",
+      "box_2d": [475, 795, 565, 910], "caption": "Small black and white photo of a city skyline."
+    },
+    {
+      "name": "inset photo 3",
+      "label": "object",
+      "box_2d": [895, 780, 955, 955], "caption": "Small black and white photo of leaves."
+    }
+  ]
+}
+```

@@ -1,0 +1,66 @@
+```json
+{
+  "caption": "A high-fashion magazine cover for Harper's Bazaar Finland, September 2025, featuring a woman in a dramatic, avant-garde black sculptural headpiece and minimal black clothing. The composition is a studio portrait with soft, directional lighting that creates deep shadows and highlights the subject's profile against a neutral, light gray background. The color palette is monochromatic, dominated by black, white, and shades of gray, conveying a sense of sophisticated mystery.",
+  "items": [
+    {
+      "name": "magazine title",
+      "label": "text",
+      "box_2d": [21, 34, 193, 974], "caption": "Large, elegant, black serif typography spanning the top of the cover.",
+      "text": "BAZAAR"
+    },
+    {
+      "name": "edition info",
+      "label": "text",
+      "box_2d": [16, 585, 41, 701], "caption": "Small, black serif text above the main title.",
+      "text": "Harper's"
+    },
+    {
+      "name": "country name",
+      "label": "text",
+      "box_2d": [24, 44, 185, 71], "caption": "Vertical black text on the far left side.",
+      "text": "FINLAND"
+    },
+    {
+      "name": "date",
+      "label": "text",
+      "box_2d": [195, 34, 211, 236], "caption": "Small, black sans-serif text below the main title.",
+      "text": "SEPTEMBER 2025"
+    },
+    {
+      "name": "main model",
+      "label": "character",
+      "box_2d": [115, 284, 1000, 765], "caption": "A woman with a dramatic black sculptural headpiece, posing in profile with a mysterious expression."
+    },
+    {
+      "name": "denim edit text",
+      "label": "text",
+      "box_2d": [301, 78, 431, 182], "caption": "Black sans-serif text block on the left side.",
+      "text": "THE\nDENIM\nEDIT\nWHAT\nTO\nWEAR\nNOW"
+    },
+    {
+      "name": "insider fashion text",
+      "label": "text",
+      "box_2d": [497, 64, 587, 201], "caption": "Black sans-serif text block on the left side.",
+      "text": "INSIDER\nFASHION\nSECRET\nIT BUYS\nREVEALED"
+    },
+    {
+      "name": "jewellery text",
+      "label": "text",
+      "box_2d": [638, 28, 718, 212], "caption": "Black sans-serif text block on the left side.",
+      "text": "WATCHES &\nJEWELLERY\nTO LOVE\nFOREVER"
+    },
+    {
+      "name": "meet the real text",
+      "label": "text",
+      "box_2d": [803, 41, 868, 195], "caption": "Black sans-serif text block on the bottom left.",
+      "text": "MEET\nTHE\nREAL\nIVANA ESSL"
+    },
+    {
+      "name": "main headline",
+      "label": "text",
+      "box_2d": [661, 551, 799, 964], "caption": "Large, elegant, black serif italicized text on the bottom right.",
+      "text": "The Art of\nMystery"
+    }
+  ]
+}
+```

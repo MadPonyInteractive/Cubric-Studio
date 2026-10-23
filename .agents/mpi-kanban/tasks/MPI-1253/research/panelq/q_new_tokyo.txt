@@ -1,0 +1,91 @@
+```json
+{
+  "caption": "A vintage-style, collage-like poster with a distressed, aged paper texture. The composition features a central portrait of a young woman in dark techwear, surrounded by various rectangular panels showing urban Tokyo scenes at night, neon signs, and streetscapes. The color palette is dominated by deep blacks, muted reds, and warm amber tones, creating a cinematic, cyberpunk aesthetic with high contrast and dramatic lighting.",
+  "items": [
+    {
+      "name": "main title",
+      "label": "text",
+      "box_2d": [36, 44, 153, 955], "caption": "Large, bold, white sans-serif typography at the top.",
+      "text": "TOKYO"
+    },
+    {
+      "name": "central character",
+      "label": "character",
+      "box_2d": [175, 184, 1000, 684], "caption": "A young woman with dark hair and sunglasses, wearing a black technical jacket, looking towards the camera."
+    },
+    {
+      "name": "subtitle text",
+      "label": "text",
+      "box_2d": [173, 44, 189, 313], "caption": "Small, white, uppercase sans-serif text.",
+      "text": "FUTURE IS NOW"
+    },
+    {
+      "name": "description text",
+      "label": "text",
+      "box_2d": [203, 44, 255, 223], "caption": "Small, white, serif text block on the left side.",
+      "text": "Where tradition meets\ntechnology, and every\nstreet tells a story\nof tomorrow."
+    },
+    {
+      "name": "city scene left",
+      "label": "object",
+      "box_2d": [263, 44, 543, 313], "caption": "A vertical rectangular panel showing a busy Tokyo street at night with glowing neon signs."
+    },
+    {
+      "name": "city scene right",
+      "label": "object",
+      "box_2d": [163, 583, 435, 813], "caption": "A rectangular panel showing a cityscape with a red Tokyo Tower under a dark sky."
+    },
+    {
+      "name": "vertical red sign",
+      "label": "text",
+      "box_2d": [188, 854, 425, 955], "caption": "A vertical red rectangular sign with white Japanese characters.",
+      "text": "東京未来都市\n20\n25"
+    },
+    {
+      "name": "red text box",
+      "label": "object",
+      "box_2d": [543, 44, 665, 273], "caption": "A red rectangular block containing white Japanese text."
+    },
+    {
+      "name": "mirai text",
+      "label": "text",
+      "box_2d": [555, 73, 605, 244], "caption": "Large white Japanese characters inside a red box.",
+      "text": "未来"
+    },
+    {
+      "name": "mirai subtext",
+      "label": "text",
+      "box_2d": [615, 88, 635, 175], "caption": "Small white text below the Japanese characters.",
+      "text": "MI-RAI"
+    },
+    {
+      "name": "street scene bottom",
+      "label": "object",
+      "box_2d": [435, 700, 703, 955], "caption": "A rectangular panel showing a narrow, neon-lit street with pedestrians."
+    },
+    {
+      "name": "train scene",
+      "label": "object",
+      "box_2d": [703, 44, 955, 273], "caption": "A rectangular panel showing a train in a subway station."
+    },
+    {
+      "name": "coordinates text",
+      "label": "text",
+      "box_2d": [875, 64, 905, 184], "caption": "Small white text showing latitude and longitude.",
+      "text": "35.6895° N\n139.6917° E"
+    },
+    {
+      "name": "bottom description",
+      "label": "text",
+      "box_2d": [913, 64, 943, 223], "caption": "Small white text at the bottom left.",
+      "text": "In a city that never stops moving,\nthe future is already here."
+    },
+    {
+      "name": "bottom info bar",
+      "label": "text",
+      "box_2d": [875, 754, 943, 955], "caption": "Small white text at the bottom right containing dates and locations.",
+      "text": "FTR / NOW\n2025 · 未来 · 東京\nSHIBUYA · SHINJUKU · HARAJUKU · AKIHABARA"
+    }
+  ]
+}
+```

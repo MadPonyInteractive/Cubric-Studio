@@ -1,0 +1,71 @@
+```json
+{
+  "caption": "A high-fashion magazine cover for Harper's Bazaar Finland, featuring a dramatic, high-contrast studio portrait of a woman in avant-garde black attire. The lighting is moody and directional, casting deep shadows that emphasize the sculptural quality of her voluminous black headpiece and the contours of her face and body. The color palette is strictly monochromatic, dominated by deep blacks and soft, pale skin tones against a light grey background. The composition is vertical, with the model positioned slightly off-center, surrounded by elegant, serif typography that frames the subject.",
+  "items": [
+    {
+      "name": "magazine title",
+      "label": "text",
+      "box_2d": [21, 34, 191, 975],
+      "caption": "Large, black, elegant serif typography spanning the top of the cover.",
+      "text": "BAZAAR"
+    },
+    {
+      "name": "magazine subtitle",
+      "label": "text",
+      "box_2d": [15, 585, 41, 701],
+      "caption": "Small, black, serif text above the main title.",
+      "text": "Harper's"
+    },
+    {
+      "name": "country name",
+      "label": "text",
+      "box_2d": [21, 36, 185, 67],
+      "caption": "Vertical black text on the far left edge.",
+      "text": "FINLAND"
+    },
+    {
+      "name": "date",
+      "label": "text",
+      "box_2d": [195, 36, 211, 235],
+      "caption": "Small, black, sans-serif text below the main title.",
+      "text": "SEPTEMBER 2025"
+    },
+    {
+      "name": "model",
+      "label": "character",
+      "box_2d": [115, 285, 1000, 764],
+      "caption": "A woman with a dramatic black sculptural headpiece, wearing black fashion, posing in profile."
+    },
+    {
+      "name": "main headline",
+      "label": "text",
+      "box_2d": [661, 551, 805, 964], "caption": "Large, black, italicized serif text on the right side.",
+      "text": "The Art of\nMystery"
+    },
+    {
+      "name": "denim edit text",
+      "label": "text",
+      "box_2d": [301, 78, 431, 182], "caption": "Black, sans-serif text block on the left side.",
+      "text": "THE\nDENIM\nEDIT\nWHAT\nTO\nWEAR\nNOW"
+    },
+    {
+      "name": "insider fashion text",
+      "label": "text",
+      "box_2d": [496, 65, 588, 201], "caption": "Black, sans-serif text block on the left side.",
+      "text": "INSIDER\nFASHION\nSECRET\nIT BUYS\nREVEALED"
+    },
+    {
+      "name": "watches and jewellery text",
+      "label": "text",
+      "box_2d": [638, 28, 718, 212], "caption": "Black, sans-serif text block on the left side.",
+      "text": "WATCHES &\nJEWELLERY\nTO LOVE\nFOREVER"
+    },
+    {
+      "name": "meet the real text",
+      "label": "text",
+      "box_2d": [805, 41, 871, 196], "caption": "Black, sans-serif text block on the bottom left.",
+      "text": "MEET\nTHE\nREAL\nIVANA ESSL"
+    }
+  ]
+}
+```

@@ -1,0 +1,80 @@
+```json
+{
+  "caption": "A digital moodboard titled 'oceanic' featuring a collection of ethereal, sea-inspired imagery. The composition uses a soft blue-grey background and includes various elements like flowing blue gowns, seashells, pearls, and ocean waves. The style is dreamy and aesthetic, with a color palette of muted blues, teals, and sandy tones, creating a cohesive maritime theme.",
+  "items": [
+    {
+      "name": "blue gown",
+      "label": "object",
+      "box_2d": [83, 83, 558, 342],
+      "caption": "A long, flowing, ethereal gown made of sheer, light blue fabric with ruffled details."
+    },
+    {
+      "name": "fashion illustration",
+      "label": "object",
+      "box_2d": [543, 638, 875, 903], "caption": "A watercolor-style fashion illustration of a flowing blue and teal gown with intricate details."
+    },
+    {
+      "name": "fashion poster",
+      "label": "object",
+      "box_2d": [237, 638, 516, 903], "caption": "A fashion poster featuring a model in a blue gown, with fabric swatches and text."
+    },
+    {
+      "name": "ocean waves",
+      "label": "object",
+      "box_2d": [237, 362, 385, 626], "caption": "Sparkling blue ocean water with sunlight reflecting on the surface."
+    },
+    {
+      "name": "ornate mirror",
+      "label": "object",
+      "box_2d": [402, 373, 592, 626], "caption": "An ornate gold-framed mirror reflecting a cloudy sky."
+    },
+    {
+      "name": "blue flower",
+      "label": "object",
+      "box_2d": [605, 83, 797, 626], "caption": "A large, soft blue flower decorated with pearls and seashells."
+    },
+    {
+      "name": "moodboard title",
+      "label": "text",
+      "box_2d": [168, 435, 193, 841], "caption": "The word 'MOODBOARD' in a clean, spaced-out black serif font.",
+      "text": "M O O D B O A R D"
+    },
+    {
+      "name": "oceanic title",
+      "label": "text",
+      "box_2d": [883, 265, 937, 606], "caption": "The word 'oceanic' in a dark, elegant serif font.",
+      "text": "oceanic"
+    },
+    {
+      "name": "seashell",
+      "label": "object",
+      "box_2d": [167, 835, 267, 965], "caption": "A light tan, ribbed seashell."
+    },
+    {
+      "name": "seashell",
+      "label": "object",
+      "box_2d": [853, 838, 942, 958], "caption": "A grey, ribbed seashell."
+    },
+    {
+      "name": "seashell",
+      "label": "object",
+      "box_2d": [875, 33, 958, 163], "caption": "A light-colored, spiral seashell."
+    },
+    {
+      "name": "oyster shell",
+      "label": "object",
+      "box_2d": [75, 300, 182, 442], "caption": "An open oyster shell with a large pearl inside."
+    },
+    {
+      "name": "pearl necklace",
+      "label": "object",
+      "box_2d": [530, 255, 623, 405], "caption": "A circular string of white pearls."
+    },
+    {
+      "name": "color palette",
+      "label": "object",
+      "box_2d": [812, 83, 863, 626], "caption": "A row of rectangular color swatches in various shades of blue and teal."
+    }
+  ]
+}
+```

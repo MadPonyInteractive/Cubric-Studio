@@ -1,0 +1,123 @@
+```json
+{
+  "caption": "A black and white storyboard layout presented on a white background, featuring eight sequential panels of hand-drawn sketches. The style is a rough, expressive ink illustration with varying line weights, depicting a narrative involving a man, a soccer ball, and a product. The composition is a grid of rectangular panels, each accompanied by technical camera direction text in English and Arabic, using a clean, sans-serif font.",
+  "items": [
+    {
+      "name": "title",
+      "label": "text",
+      "box_2d": [41, 265, 78, 734], "caption": "The word 'STORY BOARD' in large, bold, uppercase sans-serif letters.",
+      "text": "STORY\nBOARD"
+    },
+    {
+      "name": "panel 1",
+      "label": "object",
+      "box_2d": [101, 33, 236, 466], "caption": "A sketch showing a man's profile and another man looking at a soccer ball."
+    },
+    {
+      "name": "panel 1 text",
+      "label": "text",
+      "box_2d": [238, 166, 271, 335], "caption": "Technical camera direction text in green.",
+      "text": "AMORS\nREVERSE CAM"
+    },
+    {
+      "name": "panel 2",
+      "label": "object",
+      "box_2d": [253, 33, 388, 466], "caption": "A sketch of two men interacting, one gesturing with his hand."
+    },
+    {
+      "name": "panel 2 text",
+      "label": "text",
+      "box_2d": [401, 175, 418, 327], "caption": "Technical camera direction text in green.",
+      "text": "STABLE CAM"
+    },
+    {
+      "name": "panel 3",
+      "label": "object",
+      "box_2d": [404, 33, 539, 466], "caption": "A close-up sketch of a soccer ball being kicked by a foot."
+    },
+    {
+      "name": "panel 3 text",
+      "label": "text",
+      "box_2d": [511, 175, 544, 327], "caption": "Technical camera direction text in green.",
+      "text": "ZOOM IN\nSLOW CAMERA"
+    },
+    {
+      "name": "panel 4a",
+      "label": "object",
+      "box_2d": [555, 33, 690, 466], "caption": "A sketch of a man kicking a soccer ball in an outdoor setting."
+    },
+    {
+      "name": "panel 4a text",
+      "label": "text",
+      "box_2d": [703, 86, 768, 414], "caption": "Technical camera direction and Arabic text in green.",
+      "text": "DOCCY OUT FAST CAMERA\nبشوط الكبة"
+    },
+    {
+      "name": "panel 4b",
+      "label": "object",
+      "box_2d": [705, 33, 899, 466], "caption": "A sketch of a man lying down, reaching for a soccer ball in the air."
+    },
+    {
+      "name": "panel 4b text",
+      "label": "text",
+      "box_2d": [903, 204, 954, 314], "caption": "Technical camera direction text in green.",
+      "text": "PAN CAM"
+    },
+    {
+      "name": "panel 4c",
+      "label": "object",
+      "box_2d": [101, 533, 236, 966], "caption": "A close-up sketch of a hand reaching towards the camera."
+    },
+    {
+      "name": "panel 4c text",
+      "label": "text",
+      "box_2d": [238, 595, 271, 804], "caption": "Technical camera direction text in green.",
+      "text": "CRANE DOWN &\nZOOM IN FAST"
+    },
+    {
+      "name": "panel 5",
+      "label": "object",
+      "box_2d": [253, 533, 388, 966], "caption": "A sketch of two men, one holding a small object."
+    },
+    {
+      "name": "panel 5 text",
+      "label": "text",
+      "box_2d": [354, 595, 388, 896], "caption": "Technical camera direction text in green.",
+      "text": "PAN CAM \u27a1\ufe0f DOCCY IN"
+    },
+    {
+      "name": "panel 6",
+      "label": "object",
+      "box_2d": [404, 533, 539, 966], "caption": "A sketch of a woman applying a product to her skin."
+    },
+    {
+      "name": "panel 6 text",
+      "label": "text",
+      "box_2d": [511, 544, 544, 855], "caption": "Technical camera direction and Arabic text in green.",
+      "text": "تضع له الكريم \nTICT DOWN"
+    },
+    {
+      "name": "panel 7a",
+      "label": "object",
+      "box_2d": [555, 533, 768, 966], "caption": "A sketch of a man jumping and a product bottle next to a container."
+    },
+    {
+      "name": "panel 7a text",
+      "label": "text",
+      "box_2d": [703, 595, 768, 914], "caption": "Technical camera direction and Arabic text in green.",
+      "text": "ZOOM IN\nSLOW CAMERA\nيطهر الكريم ببط"
+    },
+    {
+      "name": "panel 7b",
+      "label": "object",
+      "box_2d": [784, 533, 966, 966], "caption": "A sketch of a product bottle and its packaging."
+    },
+    {
+      "name": "panel 7b text",
+      "label": "text",
+      "box_2d": [903, 654, 937, 845], "caption": "Technical camera direction text in green.",
+      "text": "STABCE CAM"
+    }
+  ]
+}
+```
