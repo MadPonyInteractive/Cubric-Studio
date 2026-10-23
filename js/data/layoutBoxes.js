@@ -90,7 +90,8 @@ export function mossLayoutPrompt(prompt, boxes, width, height) {
  * `named` is for a describer of no known family; it held on Gemma 4 and Qwen3-VL-30B.
  */
 // A storyboard of 10 panels + their captions is 21+ items: at 20, panel 7B never arrived (2026-10-23).
-const MAX_BOXES = 30;
+// The Boxes panel draws up to the same count, so a box can still be added after a Create boxes.
+export const MAX_BOXES = 30;
 const BOX_FORMATS = {
     qwen: ['"bbox_2d": [x1, y1, x2, y2]', 'bbox_2d: x from the left edge (0) to the right edge (1000), y from the top edge (0) to the bottom edge (1000)'],
     gemma: ['"box_2d": [y1, x1, y2, x2]', 'box_2d: y from the top edge (0) to the bottom edge (1000), x from the left edge (0) to the right edge (1000)'],

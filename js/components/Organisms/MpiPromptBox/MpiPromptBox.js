@@ -3027,12 +3027,10 @@ export const MpiPromptBox = ComponentFactory.create({
         }
 
         // A Cue pressed while Create boxes reads would run the LAST picture's boxes and caption
-        // (a cloud read never holds the local queue, Fabio 2026-10-23), so it waits for the read.
-        const _emitRun    = () => {
-            if (!_analysis) return emit('run', el.getRunPayload());
-            _showMediaToast('Cue runs once Create boxes has read the picture.');
-            _analysis.then(() => emit('run', el.getRunPayload()));
-        };
+        // (a cloud read never holds the local queue). Waiting for the read ran every waiting
+        // Cue on whatever model was picked by then (Fabio, 2026-10-23), so it is refused instead.
+        const _boxesBusy  = () => !!_analysis && (_showMediaToast('Create boxes is still reading the picture. Cue again once its boxes are in.'), true);
+        const _emitRun    = () => emit('run', el.getRunPayload());
         const _emitCancel = () => emit('cancel', {});
 
         // Seed: if loop just armed but nothing is running/pending, kick off
@@ -3040,6 +3038,7 @@ export const MpiPromptBox = ComponentFactory.create({
         const _seedLoopIfIdle = () => {
             if (!state.loopArmed) return;
             if ((state.generationQueueCount || 0) > 0) return;
+            if (_boxesBusy()) { state.loopArmed = false; return; }
             isGenerating = true;
             stopBtn?.el?.setDisabled?.(false);
             clearBtn?.el?.setDisabled?.(false);
@@ -3143,6 +3142,7 @@ export const MpiPromptBox = ComponentFactory.create({
                     state.loopArmed = false;
                     return;
                 }
+                if (_boxesBusy()) return;
                 isGenerating = true;
                 stopBtn?.el?.setDisabled?.(false);
                 clearBtn?.el?.setDisabled?.(false);
@@ -3209,6 +3209,7 @@ export const MpiPromptBox = ComponentFactory.create({
                 state.loopArmed = false;
                 return;
             }
+            if (_boxesBusy()) return;
             isGenerating = true;
             stopBtn?.el?.setDisabled?.(false);
             clearBtn?.el?.setDisabled?.(false);

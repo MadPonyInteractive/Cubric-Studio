@@ -4,7 +4,7 @@ import { MpiInput } from '../../Primitives/MpiInput/MpiInput.js';
 import { MpiProgressBar } from '../../Primitives/MpiProgressBar/MpiProgressBar.js';
 import { MpiResizeHandle } from '../../Primitives/MpiResizeHandle/MpiResizeHandle.js';
 import { qs, qsa, on } from '../../../utils/dom.js';
-import { boxName, uniqueBoxName } from '../../../data/layoutBoxes.js';
+import { boxName, uniqueBoxName, MAX_BOXES } from '../../../data/layoutBoxes.js';
 import { Storage } from '../../../core/storage.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
 
@@ -38,7 +38,6 @@ import { Hotkeys } from '../../../managers/hotkeyManager.js';
 // ponytail: six family/status tokens, cycled. A seventh box repeats a colour; its name
 // still tells it apart.
 const COLOURS = ['--accent-frost', '--prompt-accent', '--accent-ok', '--video-accent', '--vision-accent', '--accent-err'];
-const MAX_BOXES = 10;
 const MIN_SIZE = 0.03;
 const TAG_IN_Y = 0.04;    // a box this close to the frame top keeps its tag inside (the panel's padding takes any spill)
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
