@@ -1,9 +1,9 @@
 ---
 schema: mpi-kanban/project-knowledge-index/v1
 profile: .agents/mpi-kanban/project-profile.md
-last_refresh: 2026-09-28
-last_refresh_notes: 'Refresh on 1.6.0 (2026-09-28). The no-topic fallback in How To Use now follows 1.6.0: a bounded search for the task''s key terms first, a pointer from the user only if that finds nothing. Pointer sweep: 127 pointers, 0 dead (bare filenames resolve inside their topic; `wrapper.py` lives in the mpi-ci repo its topic names). No topic added or removed.'
-prior_refresh_notes: 'Refresh on 1.5.0 (2026-09-22). Pointer sweep found 0 dead targets - all 104 resolved against disk, the first fully clean sweep in three refreshes. Two topics ADDED for subsystems that had grown docs and live cards with no entry: the in-app agent and the mascot crew. The agent topic exists mainly to separate two things the near-identical names hide - `docs/agent-*.md` at the docs root is the DEVELOPER contract, while `docs/agent/` is the running agent''s own CORPUS, so editing one changes what the shipped agent knows and editing the other does not. Nothing else changed; every existing topic still resolves.'
+last_refresh: 2026-10-23
+last_refresh_notes: 'Refresh on 1.7.0 (2026-10-23). Two stale pointers fixed: the debugging topic named the pre-MPI-708 `%APPDATA%\Cubric Vision` log path and no portable path (now matches CLAUDE.md), and the sibling-website topic pointed at memory `project_website_subdomain_strategy.md`, archived 2026-10-23 - now `project_website_revamp_studio_only.md`, which superseded it. Every other bare filename resolves inside its topic or in project memory. No topic added or removed.'
+prior_refresh_notes: 'Refresh on 1.6.0 (2026-09-28). The no-topic fallback in How To Use now follows 1.6.0: a bounded search for the task''s key terms first, a pointer from the user only if that finds nothing. Pointer sweep: 127 pointers, 0 dead (bare filenames resolve inside their topic; `wrapper.py` lives in the mpi-ci repo its topic names). No topic added or removed.'
 ---
 
 # Project Knowledge Index
@@ -245,12 +245,12 @@ Topic-to-files map. Match the topic closest to the current task and read the lis
 ### Debugging runtime issues
 
 - **Read first:** `docs/DEVELOPMENT.md` § Reading `logs/app.log` — filter by `[category]`, never read the file whole
-- **Notes:** server crashes, python engine, generation failures. **Any Electron run, dev included, logs to `%APPDATA%\Cubric Vision\logs\app.log`** (MPI-418). The repo's own `logs/` only collects processes started without `APP_USER_DATA` — i.e. test harnesses — so reading it while chasing a live app bug shows you nothing.
+- **Notes:** server crashes, python engine, generation failures. **A source/dev Electron run logs to `%APPDATA%\Cubric Studio\logs\app.log`** (MPI-418; `Cubric Vision` before MPI-708, 2026-09-17); **every portable build logs to `<install>\user-data\logs\app.log`**, so ask a tester for that path, never `%APPDATA%`. The repo's own `logs/` only collects processes started without `APP_USER_DATA` — i.e. test harnesses — so reading it while chasing a live app bug shows you nothing.
 
 ### Sibling website / docs
 
 - **Read first:** `c:\AI\Mpi\Cubric Studio (Website)\`, `c:\AI\Mpi\Cubric Studio (Docs)\`, design source at `c:\AI\Mpi\CubricStudio_Redesign\`
-- **Memory:** `project_website_subdomain_strategy.md`
+- **Memory:** `project_website_revamp_studio_only.md` (the site is Cubric Studio only; it replaced the per-app subdomain plan, archived 2026-10-23)
 - **Converter:** `node scripts/convert-images.cjs --prefix=<name> --out=<name>` — batch PNG/JPG → WebP for the sibling carousels; flags and defaults are in the profile's `## Important Commands`
 - **Notes:** separate repos; use absolute paths and `git -C`; CLAUDE.md does NOT auto-load there.
 

@@ -1,8 +1,9 @@
 # Kanban & Agent Coordination Rules
 
 Rules for editing the MPI Kanban board (`.agents/mpi-kanban/`) and agent-to-agent messages.
-Board mutation mechanics live in `<mpi-lib>/task-board-ops/` (`_schema.md`, `mutate.md`,
-`validate.md`) — read the schema FIRST for any card/board write. This file holds the traps
+Board mutation mechanics live in `<mpi-lib>/task-board-ops/` (`_schema.md`, `mutate.md` for
+creating cards, `implement.md` for moving and writing them since 1.7.0, `validate.md`) — read
+the schema FIRST for any card/board write. This file holds the traps
 that schema doc doesn't.
 
 **`<mpi-lib>` = `${CLAUDE_PLUGIN_ROOT}/skills/mpi-lib/`** — the installed Mpi-Kanban
@@ -78,7 +79,7 @@ parking space".
 
 When creating or editing cards (`.agents/mpi-kanban/tasks/<id>/task.json`):
 
-1. `status` is NOT free-form — canonical values are `active`/`accepted`; put blocking info in `description` or `brief.md`. **A `done` move must ALSO move `status` off `active`** — `mutate.md`'s `moveTask` recipe only names `column`/`maturity`/`updated_at`, so following it literally hand-authors a validator violation. Upstream plugin defect (still present in 1.0.1, re-checked 2026-08-09) — file it on `MadPonyInteractive/mpi-kanban`, never patch the installed plugin.
+1. `status` is NOT free-form — canonical values are `active`/`accepted`; put blocking info in `description` or `brief.md`. **A `done` move must ALSO move `status` off `active`** — `task_ops.py move` does it for you (sets `status: "done"`, `task_ops.py:198`); only a hand-edited move can leave it behind. (Until 1.6.x the `moveTask` recipe named only `column`/`maturity`/`updated_at`, so following it hand-authored this violation.)
    **What the validator actually enforces is narrower than it reads** (`validate_board.py:175`, read 2026-08-11): the only rejected combination is `column: "done"` + `status: "active"` — *"is done but still has status active"*. There is no allow-list for `status` on a card, so `done`/`completed`/`accepted` all pass. Do not go hunting for the One True Value when a close-out bounces; the message names the whole rule.
 2. `links`: **OMIT a key you have no file for — never write `null`.** `validate_board.py`
    rejects every null with *"link '<key>' must be a relative path inside the task folder"*
@@ -90,11 +91,11 @@ When creating or editing cards (`.agents/mpi-kanban/tasks/<id>/task.json`):
 3. `description` is a SHORT one-line card summary — long-form goes in `brief.md`.
 4. The `schema` VALUE is validated, not just JSON syntax — copy it VERBATIM from the templates: `task.json` → `mpi-kanban/task-card/v1` (NOT `mpi-kanban/task/v1` — a hand-authored MPI-256 dropped the `-card` and the whole board view wedged while every file still parsed), `board.json` → `mpi-kanban/board/v1`, every `events.jsonl` line → `mpi-kanban/event/v1` keyed `at` (not `ts`). **An event line needs `schema` + `id` + `type` + `at`** — the legacy `{at, event, …}` shape parses fine and fails the validator on all three of `schema`/`type`/`id` (2026-08-09). "Valid JSON" ≠ "valid card"; board-blank-after-a-new-card → suspect a wrong `schema` value FIRST, before reading any reader code.
 5. `maturity` is a fixed enum owned by the skill pack, NOT this file — read `<mpi-lib>/task-board-ops/_schema.md` § Canonical `maturity` values before any card write, and derive it from the destination column. It grew from 5 values to 10 on 2026-07-31 (`todo` gained `research`/`needs-decision`/`blocked`/`deferred`, `done` gained `rejected`); never trust a cached list, here or in memory.
-   **Nor a neighbouring card.** Live cards carry `maturity: "seed"`, which is NOT in the enum and never was — copying the card next to yours is how it spreads. The enum is also gated PER COLUMN (`TASK_MATURITY_BY_COLUMN`), so a legal value can still be illegal where the card sits: `todo` takes only `idea`/`planned`/`research`/`needs-decision`/`blocked`/`deferred`, `doing` only `in-progress`/`validating`, `done` only `complete`/`rejected`. Two separate error messages, and the second one fires on a value you just read off a healthy-looking card. (Cost three validator round-trips, 2026-08-11.)
-6. LIFECYCLE: every card with real work passes `todo → doing → done`. A move = update BOTH `board.json` columns AND `tasks/<id>/task.json` (`column` + `maturity` + `updated_at`) + a `task.moved` event in BOTH event logs. The live board is `board.json` with `todo`/`doing`/`done` columns.
-   **"BOTH event logs" = `tasks/<id>/events.jsonl` + `.agents/mpi-kanban/events.jsonl`.** `board.json` ALSO carries an embedded `events` array, and it is neither of them — it is a stale partial mirror (258 entries against the canonical log's 2311, measured 2026-08-06; 181 of its entries appear nowhere else). Writing a card event there instead of the global `.jsonl` looks right, validates clean, and silently keeps the event out of board-wide history. Append to the two `.jsonl` files; leave the array alone.
+   **Nor a neighbouring card.** Live cards once carried `maturity: "seed"`, which is NOT in the enum and never was (none left, 2026-10-23) — copying the card next to yours is how a bad value spreads. The enum is also gated PER COLUMN (`TASK_MATURITY_BY_COLUMN`), so a legal value can still be illegal where the card sits: `todo` takes only `idea`/`planned`/`research`/`needs-decision`/`blocked`/`deferred`, `doing` only `in-progress`/`validating`, `done` only `complete`/`rejected`. Two separate error messages, and the second one fires on a value you just read off a healthy-looking card. (Cost three validator round-trips, 2026-08-11.)
+6. LIFECYCLE: every card with real work passes `todo → doing → done`. **Move with one command:** `python "<mpi-lib>/scripts/task_ops.py" move MPI-<n> --to <column> --reason "<why>" --root <repo>` — it updates `board.json` AND `tasks/<id>/task.json` (`column` + `maturity` + `status` + `updated_at`), appends `task.moved` to BOTH event logs, and validates before it exits. A hand move is those four writes, and a half-done one leaves the board and the card disagreeing. The live board is `board.json` with `todo`/`doing`/`done` columns.
+   **"BOTH event logs" = `tasks/<id>/events.jsonl` + `.agents/mpi-kanban/events.jsonl`.** (`board.json` no longer carries the embedded `events` array it once had — checked 2026-10-23.)
 
-7. **A move must CREATE the file its DESTINATION COLUMN requires.** `mutate.md` writes the link, not the file. A card closed WITHOUT being built still needs its `validation.md`; "not applicable, merged into MPI-nnn, never built" is the correct content. (Bit 7 card moves in one close-out, 2026-08-01.)
+7. **A move must CREATE the file its DESTINATION COLUMN requires.** `task_ops.py move` refuses the move, writing nothing, until that file exists — write it, then repeat the command. A card closed WITHOUT being built still needs its `validation.md`; "not applicable, merged into MPI-nnn, never built" is the correct content. (Bit 7 card moves in one close-out, 2026-08-01.)
    **Exactly three files are enforced, and only these** (`validate_board.py:193-204`, read 2026-08-11):
    - `column: "doing"` → `checklist.md` must exist
    - `column: "done"` → `validation.md` must exist
