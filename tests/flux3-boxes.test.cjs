@@ -181,6 +181,10 @@ test('the layout picture rides the run as Layout_Guide, Reuse lays it back, the 
     assert.match(read('js/components/Organisms/MpiPromptBox/MpiPromptBox.js'), /if \(_layoutLocked\(\)\) injectionParams\.Layout_Guide = _boxesGuide;/, 'Cue records the picture on a t2i layout run');
     assert.match(read('js/components/Blocks/MpiGalleryBlock/MpiGalleryBlock.js'), /setBoxesGuide\?\.\(payload\.injectionParams\?\.Layout_Guide\)/, 'Reuse settings lays it back, or clears it');
     assert.match(read('js/services/commandExecutor.js'), /delete params\.Layout_Guide;/, 'never a graph param');
+    // And with no Reuse at all: a reload or restart lays it back from the project.
+    const box = read('js/components/Organisms/MpiPromptBox/MpiPromptBox.js');
+    assert.match(box, /getSharedSettings\(state\.currentProject, 'image'\)\.boxesGuide/, 'mount reads the saved picture');
+    assert.match(box, /function _setBoxesGuide\(url\) \{[^}]*sharedUpdates: \{ boxesGuide: url \}/, 'every set or Remove picture saves it');
 });
 
 test('agents send boxes by name: describe_model lists them, the run gets the panel`s list, a bad one is refused', () => {

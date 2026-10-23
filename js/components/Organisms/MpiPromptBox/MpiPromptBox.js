@@ -34,6 +34,7 @@ import { layoutRows, analyseQuestion, boxesFromAnalysis, fitAnalysis, snapBoxes,
 import { modelTakesBoxes } from '../../../data/generationControls.js';
 import { describeImage, describerFamily, enlargedCrop } from '../../../services/llmService.js';
 import { applyPromptReuseSettings } from '../../../services/projectService.js';
+import { getSharedSettings } from '../../../data/projectModel.js';
 import { ratioSettingsFromParams } from '../../../utils/promptReuse.js';
 import { resolveMediaUrl } from '../../../utils/mediaActions.js';
 
@@ -219,8 +220,11 @@ export const MpiPromptBox = ComponentFactory.create({
         let negativeAudioValue = props.negativeAudioValue || _draft.negativeAudio || '';
         // MPI-1253: the card picked with right-click > Create boxes, to lay a new picture out
         // like it (a magazine cover). t2i only, panel only: a t2i run takes no picture, and an
-        // edit's boxes are the user's own. In the draft, so leaving the project keeps it.
-        let _boxesGuide = _draft.boxesGuide || null;
+        // edit's boxes are the user's own. In the draft, so leaving the project keeps it, and in
+        // the project beside the boxes, so a reload or restart does too (Fabio, 2026-10-23).
+        let _boxesGuide = _draft.boxesGuide
+            ?? (_wsKey === 'gallery' && state.currentProject ? getSharedSettings(state.currentProject, 'image').boxesGuide : null)
+            ?? null;
         // The last caption Create boxes wrote into the prompt. In the draft beside the prompt
         // it compares against: kept only in this closure, leaving the gallery and coming back
         // remounted the box with the caption but not this, so the old caption read as typed and stuck
@@ -422,6 +426,7 @@ export const MpiPromptBox = ComponentFactory.create({
         function _setBoxesGuide(url) {
             _boxesGuide = url;
             _saveDraft();
+            applyPromptReuseSettings({ modelId: model?.id, mediaType: 'image', sharedUpdates: { boxesGuide: url } });
             _refreshOpStrip();
             _refreshBoxFrame();
         }

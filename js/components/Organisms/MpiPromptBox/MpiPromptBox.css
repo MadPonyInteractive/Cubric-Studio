@@ -301,6 +301,12 @@
     color: var(--accent-heat-hi);
 }
 
+/* A toggled-on button is FILLED with --accent-heat(-hi): the two rules above painted its label
+   the fill's own colour on hover, and the Boxes count vanished (Fabio, 2026-10-23). */
+.mpi-prompt-box__col .mpi-btn.mpi-ibtn:not(.mpi-btn--ghost).is-active .mpi-ibtn__label {
+    color: var(--ink-1);
+}
+
 /* Strip MpiInput chrome in prompt col — textarea is bare underline field */
 .mpi-prompt-box__col--prompt .mpi-input {
     width: 100%;
