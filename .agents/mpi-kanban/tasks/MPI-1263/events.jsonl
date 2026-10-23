@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1263", "at": "2026-10-23T22:02:17+01:00", "actor": "claude", "column": "todo", "title": "Token diet: shrink always-loaded context (memory indexes, skill list, dead board events, old worktrees)"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1263", "at": "2026-10-23T22:03:50+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "token diet started"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1263", "at": "2026-10-23T22:18:00+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "memory indexes trimmed, skills removed, board events dropped, worktrees deleted; plugin slimming in its own session"}
