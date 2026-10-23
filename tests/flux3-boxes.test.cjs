@@ -178,13 +178,20 @@ test('the layout picture rides the run as Layout_Guide, Reuse lays it back, the 
     assert.equal(payload.injectionParams.Layout_Guide, guide);
 
     const read = (p) => require('node:fs').readFileSync(require('node:path').join(__dirname, '..', p), 'utf8');
-    assert.match(read('js/components/Organisms/MpiPromptBox/MpiPromptBox.js'), /if \(_layoutLocked\(\)\) injectionParams\.Layout_Guide = _boxesGuide;/, 'Cue records the picture on a t2i layout run');
-    assert.match(read('js/components/Blocks/MpiGalleryBlock/MpiGalleryBlock.js'), /setBoxesGuide\?\.\(payload\.injectionParams\?\.Layout_Guide\)/, 'Reuse settings lays it back, or clears it');
+    assert.match(read('js/components/Organisms/MpiPromptBox/MpiPromptBox.js'), /if \(_guideOnT2i\(\)\) injectionParams\.Layout_Guide = _boxesGuide;/, 'Cue records the picture on a t2i layout run');
+    assert.match(read('js/components/Blocks/MpiGalleryBlock/MpiGalleryBlock.js'), /if \(targetOperation === 't2i' && [^\n]*setBoxesGuide\?\.\(payload\.injectionParams\?\.Layout_Guide\)/, 'a t2i Reuse lays it back or clears it; an edit Reuse leaves it parked');
     assert.match(read('js/services/commandExecutor.js'), /delete params\.Layout_Guide;/, 'never a graph param');
     // And with no Reuse at all: a reload or restart lays it back from the project.
     const box = read('js/components/Organisms/MpiPromptBox/MpiPromptBox.js');
     assert.match(box, /getSharedSettings\(state\.currentProject, 'image'\)\.boxesGuide/, 'mount reads the saved picture');
     assert.match(box, /function _setBoxesGuide\(url\) \{[^}]*sharedUpdates: \{ boxesGuide: url \}/, 'every set or Remove picture saves it');
+});
+
+// MPI-1253 (Fabio, 2026-10-23): "Remove picture" was hard to find, so the picture no longer locks the box.
+test('the layout picture parks off t2i: a drop is taken, no op greys out', () => {
+    const src = require('node:fs').readFileSync(require('node:path').join(__dirname, '../js/components/Organisms/MpiPromptBox/MpiPromptBox.js'), 'utf8');
+    assert.doesNotMatch(src, /_layoutLocked|Remove the layout picture in Boxes first|remove the layout picture in Boxes to use it/);
+    assert.match(src, /return _boxesGuide && activeOperation !== 'edit' \? \{ url: _boxesGuide, guide: true/, 'drawn on t2i only, so it is back there with its boxes');
 });
 
 // MPI-1253 (Fabio, 2026-10-23): a reused moodboard prompt survived Create boxes on Tokyo.

@@ -414,14 +414,14 @@ export const MpiPromptBox = ComponentFactory.create({
         }
         let _analysing = false;
         let _analysis = null; // the running Create boxes: a Cue pressed meanwhile waits for its boxes
-        // While the layout picture is loaded the box stays on t2i: the other ops grey out and a
-        // picture added to the box is refused, until the panel's Remove picture (Fabio, 2026-10-22).
-        const _layoutLocked = () => !!_boxesGuide && activeOperation === 't2i';
+        // The layout picture belongs to t2i and is PARKED off it: a dropped picture switches the op
+        // as ever, and back on t2i the picture is there again with its boxes. It locked the box to
+        // t2i until Remove picture, which users could not find (Fabio, 2026-10-23).
+        const _guideOnT2i = () => !!_boxesGuide && activeOperation === 't2i';
         function _setBoxesGuide(url) {
             _boxesGuide = url;
             _saveDraft();
             applyPromptReuseSettings({ modelId: model?.id, mediaType: 'image', sharedUpdates: { boxesGuide: url } });
-            _refreshOpStrip();
             _refreshBoxFrame();
         }
         /** Analyse: the describer reads the guide picture into boxes, the ratio follows it, an
@@ -768,7 +768,6 @@ export const MpiPromptBox = ComponentFactory.create({
         }
 
         function _tryAddMedia({ url, file, mediaType, source, role, name, stackId, count }) {
-            if (_layoutLocked()) { _showMediaToast('Remove the layout picture in Boxes first.'); return false; }
             // MPI-949: one stack chip per box — a second stack replaces the first.
             if (stackId) {
                 const prev = _stackChip();
@@ -2409,8 +2408,7 @@ export const MpiPromptBox = ComponentFactory.create({
             return filteredCmds.map(cmd => {
                 const isTextOnly = isTextOnlyOp(cmd.key);
                 const textOnlyBlocked = hasMedia && isTextOnly;
-                const stackReason = _stackBlockedReason(cmd.key)
-                    || (_layoutLocked() && cmd.key !== 't2i' ? 'remove the layout picture in Boxes to use it' : null);
+                const stackReason = _stackBlockedReason(cmd.key);
                 const disabled = !cmd.available || textOnlyBlocked || !!stackReason;
                 const reason = disabled ? ((!textOnlyBlocked && stackReason) || _opBlockedReason(cmd, textOnlyBlocked)) : null;
                 const describe = cmd.info || cmd.label;
@@ -2983,7 +2981,7 @@ export const MpiPromptBox = ComponentFactory.create({
             const injectionParams = getInjectionParamsFromControls(_activeControls);
             // MPI-1253: the layout picture rides the run like its boxes, so Reuse brings it back
             // (Fabio, 2026-10-23: reused after a restart, the boxes came back over a blank frame).
-            if (_layoutLocked()) injectionParams.Layout_Guide = _boxesGuide;
+            if (_guideOnT2i()) injectionParams.Layout_Guide = _boxesGuide;
             const previewCtrl = _activeControls.get('previewStage');
             const historyMode = _context.historyMode === true;
             const previewOnly = !historyMode && previewCtrl?.getValue?.() === true;

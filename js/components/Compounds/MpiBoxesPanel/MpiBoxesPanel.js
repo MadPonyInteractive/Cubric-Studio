@@ -117,10 +117,10 @@ export const MpiBoxesPanel = ComponentFactory.create({
             if (e?.mpiEscapeOverlayClosed || ctx.activeDismissableUi || ctx.textEntryFocused || ctx.promptBoxFocused) return;
             _close();
         };
-        // The layout picture keeps the PromptBox on t2i; removing it unlocks the other ops.
+        // The layout picture waits on t2i while another op runs; this drops it for good.
         const unguideBtn = MpiButton.mount(qs('#boxes-unguide', el), {
             icon: 'eraser', label: 'Remove picture', labelPosition: 'right', size: 'sm', variant: 'ghost',
-            info: 'Take the picture away (the boxes stay) so the other ops work again',
+            info: 'Take the picture away for good (the boxes stay)',
         });
         unguideBtn.on('click', () => cb.onRemovePicture?.());
 

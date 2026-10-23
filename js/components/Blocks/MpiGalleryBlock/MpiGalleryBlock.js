@@ -1560,7 +1560,8 @@ export const MpiGalleryBlock = ComponentFactory.create({
                 // duration. Without this the live PromptBox lags until next nav.
                 _pb.el.refreshControls?.();
                 // MPI-1253: the picture its boxes were laid out on comes back with them, or none.
-                if (targetModel.layoutBoxes?.ops?.includes(targetOperation)) _pb.el.setBoxesGuide?.(payload.injectionParams?.Layout_Guide);
+                // t2i only: the picture is t2i's, parked on every other op, so an edit Reuse keeps it.
+                if (targetOperation === 't2i' && targetModel.layoutBoxes?.ops?.includes('t2i')) _pb.el.setBoxesGuide?.(payload.injectionParams?.Layout_Guide);
             }
             // MPI-247: re-assert the reused op LAST. clearMedia/injectMedia above
             // fire _emitMediaChange, which auto-switches the op when media state
