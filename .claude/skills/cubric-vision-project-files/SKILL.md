@@ -179,6 +179,11 @@ The same sidecar is the record of **what a setting was actually set to**:
 stylization strength and turbo flag for that take. When a user asks why two
 generations differ, diff two sidecars before theorising.
 
+It also records **the machine that ran it**, on takes made since 2026-10-23 (MPI-1261):
+`generationSettings.engine` (`local` or `remote`, a RunPod Pod), `gpu` (the GPU name),
+`vramTotal` and `ramTotal` (bytes). Cloud-model and tool-only takes carry none of them.
+When a user asks why the same job took longer one time, compare these first.
+
 ## Reference slots are positional
 
 When a user stages reference images in the PromptBox, they become `<Picture 1>`,
