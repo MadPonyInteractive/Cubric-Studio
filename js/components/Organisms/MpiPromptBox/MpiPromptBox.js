@@ -30,7 +30,7 @@ import { MpiEnhanceDialog } from '../../Compounds/MpiEnhanceDialog/MpiEnhanceDia
 import { attachDictation } from '../../../services/dictation.js';
 import { thumbSrc } from '../../../utils/displayImage.js';
 import { PAGE_LANDING } from '../../../router.js';
-import { layoutRows, analyseQuestion, boxesFromAnalysis } from '../../../data/layoutBoxes.js';
+import { layoutRows, analyseQuestion, boxesFromAnalysis, snapBoxes } from '../../../data/layoutBoxes.js';
 import { modelTakesBoxes } from '../../../data/generationControls.js';
 import { describeImage, describerFamily } from '../../../services/llmService.js';
 import { applyPromptReuseSettings } from '../../../services/projectService.js';
@@ -446,6 +446,18 @@ export const MpiPromptBox = ComponentFactory.create({
             const img = new Image();
             img.src = frame.url;
             await img.decode().catch(() => {});
+            if (img.naturalWidth) {
+                // Snap: fit each box to the picture's own ink, at <= 1024 px (snapBoxes).
+                const s = Math.min(1, 1024 / Math.max(img.naturalWidth, img.naturalHeight));
+                const cv = document.createElement('canvas');
+                cv.width = Math.round(img.naturalWidth * s);
+                cv.height = Math.round(img.naturalHeight * s);
+                const cx = cv.getContext('2d', { willReadFrequently: true });
+                cx.drawImage(img, 0, 0, cv.width, cv.height);
+                const before = found.boxes;
+                found.boxes = snapBoxes(before, cx.getImageData(0, 0, cv.width, cv.height));
+                clientLogger.info('PromptBox', `Create boxes: snapped ${found.boxes.filter((b, i) => b !== before[i]).length} of ${before.length}`);
+            }
             clientLogger.info('PromptBox', `Create boxes: applying, picture ${img.naturalWidth}x${img.naturalHeight}`);
             const ratioSelector = img.naturalWidth && ratioSettingsFromParams({ Width: img.naturalWidth, Height: img.naturalHeight }, {}, model);
             if (ratioSelector) {

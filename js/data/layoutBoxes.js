@@ -171,6 +171,85 @@ export function boxesFromAnalysis(text, family, max = MAX_BOXES) {
     return { caption: String(data.caption || data.summary?.caption || '').trim(), boxes };
 }
 
+/**
+ * Create boxes' snap pass: a chat describer places boxes loosely (Gemma 4 drops a text
+ * block's first line, Bazaar cover 2026-10-23), so each box is fitted to the picture's own
+ * ink. Around the box, every pixel that stands out from the window's border colour is ink;
+ * ink within a line gap joins into one block (letters into words, lines into a text block,
+ * never two blocks a heading apart); the box becomes the tight edge of the blocks it covers.
+ * A block running out of the window (lettering on a photo) or landing far from the
+ * describer's box leaves that box as it was. `img` is `{ data, width, height, channels }`,
+ * best at ~640 px on the long side.
+ */
+export function snapBoxes(boxes, img) {
+    const { data, width: W, height: H, channels: ch = 4 } = img;
+    const luma = new Uint8Array(W * H);
+    for (let i = 0; i < W * H; i++) {
+        const p = i * ch;
+        luma[i] = ch < 3 ? data[p] : (data[p] * 299 + data[p + 1] * 587 + data[p + 2] * 114) / 1000;
+    }
+    // Joins gaps up to 2x: letter-spaced caps (~1% wide) and line gaps (~0.8% high) close,
+    // a rule or paragraph 2%+ below a heading stays apart (Bazaar + Vogue covers).
+    const rx = Math.max(2, Math.round(W * 0.012)), ry = Math.max(1, Math.round(H * 0.006));
+    return boxes.map((b) => {
+        const bx0 = b.x * W, by0 = b.y * H, bx1 = (b.x + b.w) * W, by1 = (b.y + b.h) * H;
+        const px = b.w * W / 4 + W * 0.025, py = b.h * H / 4 + H * 0.025;
+        const x0 = Math.max(0, Math.floor(bx0 - px)), x1 = Math.min(W, Math.ceil(bx1 + px));
+        const y0 = Math.max(0, Math.floor(by0 - py)), y1 = Math.min(H, Math.ceil(by1 + py));
+        const w = x1 - x0, h = y1 - y0;
+        if (w < 3 || h < 3) return b;
+        const border = [];
+        for (let x = x0; x < x1; x++) border.push(luma[y0 * W + x], luma[(y1 - 1) * W + x]);
+        for (let y = y0; y < y1; y++) border.push(luma[y * W + x0], luma[y * W + x1 - 1]);
+        border.sort((p, q) => p - q);
+        const bg = border[border.length >> 1];
+        // Ink, then joined: a pixel is in a block when any ink lies within rx/ry (integral image).
+        const sum = new Int32Array((w + 1) * (h + 1));
+        for (let y = 0; y < h; y++) {
+            let row = 0;
+            for (let x = 0; x < w; x++) {
+                row += Math.abs(luma[(y0 + y) * W + x0 + x] - bg) > 32 ? 1 : 0;
+                sum[(y + 1) * (w + 1) + x + 1] = sum[y * (w + 1) + x + 1] + row;
+            }
+        }
+        const inkAt = (x, y) => sum[(y + 1) * (w + 1) + x + 1] - sum[y * (w + 1) + x + 1] - sum[(y + 1) * (w + 1) + x] + sum[y * (w + 1) + x] > 0;
+        const near = (x, y) => {
+            const ax = Math.max(0, x - rx), ay = Math.max(0, y - ry), bx = Math.min(w, x + rx + 1), by = Math.min(h, y + ry + 1);
+            return sum[by * (w + 1) + bx] - sum[ay * (w + 1) + bx] - sum[by * (w + 1) + ax] + sum[ay * (w + 1) + ax] > 0;
+        };
+        const seen = new Uint8Array(w * h);
+        const stack = new Int32Array(w * h);
+        let ux0 = Infinity, uy0 = Infinity, ux1 = -1, uy1 = -1;
+        for (let s = 0; s < w * h; s++) {
+            if (seen[s] || !near(s % w, (s / w) | 0)) continue;
+            // One block: its ink's edges, whether it reaches a cut window edge, its ink inside the box.
+            let n = 0, top = 0, ix0 = Infinity, iy0 = Infinity, ix1 = -1, iy1 = -1, cut = false, inside = 0, ink = 0;
+            stack[top++] = s; seen[s] = 1;
+            while (top) {
+                const p = stack[--top], x = p % w, y = (p / w) | 0;
+                n++;
+                if ((x === 0 && x0 > 0) || (y === 0 && y0 > 0) || (x === w - 1 && x1 < W) || (y === h - 1 && y1 < H)) cut = true;
+                if (inkAt(x, y)) {
+                    ink++;
+                    if (x < ix0) ix0 = x; if (x > ix1) ix1 = x; if (y < iy0) iy0 = y; if (y > iy1) iy1 = y;
+                    if (x0 + x >= bx0 && x0 + x < bx1 && y0 + y >= by0 && y0 + y < by1) inside++;
+                }
+                for (const q of [x > 0 && p - 1, x < w - 1 && p + 1, y > 0 && p - w, y < h - 1 && p + w]) {
+                    if (q !== false && !seen[q] && near(q % w, (q / w) | 0)) { seen[q] = 1; stack[top++] = q; }
+                }
+            }
+            if (!ink || inside < ink * 0.25) continue; // a neighbour the box only grazes
+            if (cut) return b;
+            ux0 = Math.min(ux0, ix0); uy0 = Math.min(uy0, iy0); ux1 = Math.max(ux1, ix1); uy1 = Math.max(uy1, iy1);
+        }
+        if (ux1 < 0) return b;
+        const snapped = { x: (x0 + ux0) / W, y: (y0 + uy0) / H, w: (ux1 - ux0 + 1) / W, h: (uy1 - uy0 + 1) / H };
+        const edges = (r) => [r.x, r.y, r.x + r.w, r.y + r.h];
+        // A missed line grows a box ~1.3x; much more is the box swallowing its neighbours.
+        return iou(edges(b), edges(snapped)) < 0.4 || snapped.w * snapped.h > b.w * b.h * 1.6 ? b : { ...b, ...snapped };
+    });
+}
+
 /** BFL's upsampler input for a request with locked boxes (`bbox.upsampling_input`). */
 export function upsamplingInput(prompt, rows) {
     return `ORIGINAL PROMPT:\n${String(prompt).trim()}\n\n`

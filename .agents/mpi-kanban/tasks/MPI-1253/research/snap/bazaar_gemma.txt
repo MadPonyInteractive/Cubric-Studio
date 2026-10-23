@@ -1,0 +1,127 @@
+```json
+{
+  "caption": "A high-fashion magazine cover for Harper's Bazaar Finland, featuring a dramatic, high-contrast black and white portrait of a woman. The model is posed in profile, wearing an avant-garde, voluminous black sculptural headpiece and a minimalist black outfit. The lighting is moody and directional, creating deep shadows and bright highlights that emphasize her facial features and the texture of the clothing. The composition is vertical, with large, bold typography for the masthead and smaller, elegant text blocks for article teasers, set against a clean, light grey background.",
+  "items": [
+    {
+      "name": "magazine masthead",
+      "label": "text",
+      "box": [
+        21,
+        36,
+        188,
+        973
+      ],
+      "caption": "Large, bold, black serif typography for the magazine title.",
+      "text": "BAZAAR"
+    },
+    {
+      "name": "magazine subtitle",
+      "label": "text",
+      "box": [
+        21,
+        585,
+        45,
+        685
+      ],
+      "caption": "Small, elegant serif text above the main title.",
+      "text": "Harper's"
+    },
+    {
+      "name": "country name",
+      "label": "text",
+      "box": [
+        21,
+        36,
+        177,
+        73
+      ],
+      "caption": "Vertical text on the left side of the masthead.",
+      "text": "FINLAND"
+    },
+    {
+      "name": "issue date",
+      "label": "text",
+      "box": [
+        193,
+        36,
+        208,
+        235
+      ],
+      "caption": "Small, sans-serif text below the masthead.",
+      "text": "SEPTEMBER 2025"
+    },
+    {
+      "name": "model",
+      "label": "character",
+      "box": [
+        115,
+        286,
+        1000,
+        765
+      ],
+      "caption": "A woman in profile wearing a large black sculptural headpiece and a black top.",
+      "text": ""
+    },
+    {
+      "name": "denim edit text",
+      "label": "text",
+      "box": [
+        301,
+        77,
+        428,
+        183
+      ],
+      "caption": "Small, black, sans-serif text block on the left.",
+      "text": "THE\nDENIM\nEDIT\nWHAT\nTO\nWEAR\nNOW"
+    },
+    {
+      "name": "insider fashion text",
+      "label": "text",
+      "box": [
+        497,
+        62,
+        586,
+        201
+      ],
+      "caption": "Small, black, sans-serif text block on the left.",
+      "text": "INSIDER\nFASHION\nSECRET\nIT BUYS\nREVEALED"
+    },
+    {
+      "name": "watches and jewellery text",
+      "label": "text",
+      "box": [
+        637,
+        28,
+        713,
+        214
+      ],
+      "caption": "Small, black, sans-serif text block on the left.",
+      "text": "WATCHES &\nJEWELLERY\nTO LOVE\nFOREVER"
+    },
+    {
+      "name": "meet the real text",
+      "label": "text",
+      "box": [
+        804,
+        41,
+        865,
+        171
+      ],
+      "caption": "Small, black, sans-serif text block on the bottom left.",
+      "text": "MEET\nTHE\nREAL\nIVANA ESSL"
+    },
+    {
+      "name": "main headline",
+      "label": "text",
+      "box": [
+        658,
+        554,
+        798,
+        961
+      ],
+      "caption": "Large, elegant, black serif italicized text on the right.",
+      "text": "The Art of\nMystery"
+    }
+  ]
+}
+```

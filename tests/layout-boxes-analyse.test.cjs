@@ -72,6 +72,27 @@ test('a bare "box" array is read in the order the describer was asked', () => {
     assert.deepEqual(boxesFromAnalysis(text, 'qwen').boxes[0].x, 0.021);
 });
 
+test('snap: a box fits its whole ink block; ink running off into a photo leaves it as drawn', async () => {
+    const { snapBoxes } = await import('../js/data/layoutBoxes.js');
+    // 200x200 white page: a 3-line text block at x 20-80, y 40-70 (lines 2 px apart),
+    // and a black "photo" from x 120 to the right edge, y 100 to the bottom.
+    const W = 200, H = 200, data = new Uint8Array(W * H).fill(235);
+    const ink = (x0, y0, x1, y1) => { for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) data[y * W + x] = 20; };
+    ink(20, 40, 80, 48); ink(20, 50, 80, 58); ink(20, 60, 80, 70);
+    ink(120, 100, 200, 200);
+    const img = { data, width: W, height: H, channels: 1 };
+    // The describer missed the first line and ran wide: the box snaps to the whole block.
+    const [text] = snapBoxes([{ x: 0.08, y: 0.24, w: 0.36, h: 0.13, name: 'headline' }], img);
+    assert.deepEqual([text.x, text.y, text.w, text.h], [0.1, 0.2, 0.3, 0.15]);
+    assert.equal(text.name, 'headline');
+    // Lettering on the photo: its block runs out of the window, the box stays as drawn.
+    const onPhoto = { x: 0.62, y: 0.55, w: 0.2, h: 0.1, name: 'caption' };
+    assert.equal(snapBoxes([onPhoto], img)[0], onPhoto);
+    // A box over blank page has no ink to fit.
+    const blank = { x: 0.05, y: 0.8, w: 0.2, h: 0.1 };
+    assert.equal(snapBoxes([blank], img)[0], blank);
+});
+
 test('no JSON in the answer is null, not an empty layout', () => {
     assert.equal(boxesFromAnalysis('I cannot see the picture.'), null);
 });
