@@ -348,7 +348,7 @@ router.get('/agent/attachment/:id', async (req, res) => {
 
 // Every choice a CHOICE_CARDS card takes (services/agentLoop.mjs, ESM; this file is CJS).
 // MPI-1260: plus a tiles card's tile sizes.
-const _CHOICES = ['review', 'run', 'library', 'use', '256', '512', '768', '1024', '1536'];
+const _CHOICES = ['review', 'run', 'library', 'use', '256', '512', '768', '1024', '1536', 'm0', 'm1', 'm2', 'm3'];
 
 router.post('/agent/confirm', async (req, res) => {
     const { confirmId, yes, choice } = req.body || {};

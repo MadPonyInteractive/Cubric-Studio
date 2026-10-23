@@ -36,6 +36,9 @@ import { MAX_NOTES } from './agentMemory.mjs';
 import { agentToolOp } from '../js/shell/agentToolOps.js';
 import { viewFile as _viewClipFile } from './cardView.js';
 import { GIF_ACTIONS } from './agentGifTools.mjs';
+import { madeWith } from './agentCards.mjs';
+import { MODELS } from '../js/data/modelConstants/models.js';
+import { modelShowsStyleRack } from '../js/data/commandRegistry.js';
 
 // A video or GIF ref (MPI-941 Phase 4): `look` samples it into ONE contact sheet instead of
 // sending it to the describer whole. Mirrors cardView.js's own MOVING set (not exported).
@@ -621,9 +624,13 @@ export function catalogueEntry(list, id) {
  * instead or a reset, which runs nothing. Review: Song's lyrics (MPI-1005). Voice: a library
  * voice Cosmo picked for a line with no sample (MPI-1004). Tiles: the tile size of a Use Tiles
  * run, each with its tile count (MPI-1260); the choices mirror `TILE_SIZES`
- * (js/data/generationControls.js).
+ * (js/data/generationControls.js). Model: which model redraws a picture another one made, m0 its
+ * maker (MPI-1262).
  */
-export const CHOICE_CARDS = Object.freeze({ review: ['review', 'run'], voice: ['library', 'use'], tiles: ['256', '512', '768', '1024', '1536'] });
+export const CHOICE_CARDS = Object.freeze({ review: ['review', 'run'], voice: ['library', 'use'], tiles: ['256', '512', '768', '1024', '1536'], model: ['m0', 'm1', 'm2', 'm3'] });
+
+/** The ops that redraw a picture at its own look, so the model that made it matters (MPI-1262). */
+const REDRAW_OPS = new Set(['upscale', 'detail']);
 
 // ---------------------------------------------------------------------------
 // AgentLoop class — injectable for tests
@@ -711,6 +718,8 @@ export class AgentLoop {
         this._voiceNames = new Map(); // library voice id -> its performer's name, "Elderly Male" (MPI-1004)
         this._reviewEnd = null;     // a review card answered this round: the turn's last context line
         this._ops = new Map();    // "modelId\nop" -> that op's entry (media slots, params), from list_models
+        this._runs = new Set();   // "modelId\nop" installed, free and runnable here (the model card, MPI-1262)
+        this._madeWith = madeWith; // what made a project file, off its sidecar (tests replace it)
         this._boxed = new Set();   // image paths a `look` with box: true measured (the box gate)
         this._overBoxed = new Map(); // image path -> measures whose square was too big for a head
         this._gateWaiting = null;  // knowledge id a refused generate waits on this turn (MPI-916)
@@ -1360,6 +1369,8 @@ export class AgentLoop {
             this._modelNames.set(m.id, m.name || m.id);
             for (const o of m.ops || []) {
                 this._ops.set(`${m.id}\n${o.op}`, o);
+                const runs = (o.installed ?? m.installed) !== false && m.fit?.runs !== false && !o.paid;
+                this._runs[runs ? 'add' : 'delete'](`${m.id}\n${o.op}`);
                 // MPI-1012: a model op's voice slot lists its voices the way a Flow's does.
                 for (const slot of o.media || []) {
                     for (const v of slot.voices || []) for (const id of v.ids || []) this._voiceNames.set(id, v.name);
@@ -1697,6 +1708,31 @@ export class AgentLoop {
             // ONE tile, the same run twice. The smaller size stands for them.
             .filter((s, i, all) => i === 0 || s.tiles !== all[i - 1].tiles);
         return sizes.length ? sizes : null;
+    }
+
+    /**
+     * MPI-1262 (Fabio, 2026-10-23) — the model card's choices for an upscale or detail of a
+     * picture ANOTHER model made: m0 its maker with its style, m1 the agent's pick, then up to two
+     * more models of the pick's category that run the op here, best rank first. Null when no
+     * card: same model, no maker on record, or the maker cannot run the op on this machine.
+     */
+    async _modelChoices(args, maker) {
+        if (!maker || maker.modelId === args.modelId) return null;
+        const op = String(args.operation);
+        const key = (id) => `${id}\n${op}`;
+        if (!this._ops.has(key(maker.modelId))) {
+            try { this._rememberGuides(await this._tools.listModels()); } catch { return null; }
+        }
+        if (!this._runs.has(key(maker.modelId))) return null;
+        const category = (id) => MODELS.find((m) => m.id === id)?.dropdownMeta;
+        const rank = (id) => this._ops.get(key(id))?.rank ?? Infinity;
+        const others = [...this._runs].map((k) => k.split('\n'))
+            .filter(([id, o]) => o === op && id && ![maker.modelId, args.modelId].includes(id) && category(id) && category(id) === category(args.modelId))
+            .map(([id]) => id).sort((a, b) => rank(a) - rank(b)).slice(0, 2);
+        return [maker.modelId, args.modelId, ...others].map((id, i) => ({
+            choice: `m${i}`, modelId: id, name: this._modelNames.get(id) || id,
+            ...(i === 0 && maker.style ? { style: maker.style.name } : {}),
+        }));
     }
 
     /** The app's quote of a run (price, and a Use Tiles run's tile count), or null. */
@@ -2452,6 +2488,37 @@ ${knowledgeIndex}`.trim();
                         }
                     }
                     body.media = resolved;
+                }
+
+                // MPI-1262 (Fabio, 2026-10-23) — an upscale or detail redraws a picture at its own
+                // look, so what made it matters: a Moss Anime picture's detail pass went to ILL
+                // Anime and the look changed. Made by another model that runs the op here: the app
+                // asks which model redraws it, its maker with its style first, and the click runs
+                // it. The same model with no style named keeps the source's style, never style 0
+                // (upscale_005 and detail_011 lost "Anime"). The settings panel's style is theirs.
+                if (!args.flowId && args.modelId && sourceIsCard && REDRAW_OPS.has(args.operation) && !this._pinned) {
+                    const maker = await this._madeWith(sourcePath).catch(() => null);
+                    const choices = !opts.batch && this._follow ? await this._modelChoices(args, maker) : null;
+                    if (choices) {
+                        const choice = await this._askChoice(turnId, { kind: 'model', models: choices, pick: 'm0' }, args);
+                        const picked = choices.find((c) => c.choice === choice);
+                        if (!picked) {
+                            this._reviewEnd = 'The user wrote back instead of choosing a model. Nothing ran.';
+                            return JSON.stringify({ ok: true, replied: true, message: 'Nothing ran: the user answered the model card in words instead. Their message comes next.' });
+                        }
+                        if (picked.modelId !== args.modelId) {
+                            // A style number is its own model's list: never carried to another model.
+                            delete body.styleSelect;
+                            delete body.stylization;
+                            args.modelId = body.modelId = picked.modelId;
+                        }
+                        this._reviewEnd = `Started the ${args.operation} with ${picked.name}${picked.style ? ` in its ${picked.style} style` : ''}, as the user chose.`;
+                    }
+                    const model = MODELS.find((m) => m.id === args.modelId);
+                    if (maker?.style && maker.modelId === args.modelId && body.styleSelect === undefined && modelShowsStyleRack(model, args.operation)) {
+                        body.styleSelect = maker.style.styleSelect;
+                        if (maker.style.stylization !== undefined) body.stylization = maker.style.stylization;
+                    }
                 }
 
                 // No ratio asked for, and it starts from a picture: give it the picture's own

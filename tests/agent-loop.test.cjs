@@ -978,6 +978,78 @@ test('a Use Tiles run with no tile size asks the size first, each with its tile 
     await turnD;
 });
 
+// MPI-1262 (Fabio, 2026-10-23): a detail pass on a Moss Anime picture went to ILL Anime and the look
+// changed; picked by hand, Moss re-ran with style 0. The app asks which model redraws, the maker in
+// its style first, and the same model with no style named keeps the source's.
+test('an upscale or detail of another model\'s picture asks which model redraws it, and keeps its style', async () => {
+    const project = { folderPath: '/project', name: 'Test' };
+    const ops = (rank) => [{ op: 'detail', rank }, { op: 'upscale', rank }];
+    const list = { ok: true, flows: [], models: [
+        { id: 'moss-image', name: 'MOSS-Image', installed: true, ops: ops(4) },
+        { id: 'ill-anime', name: 'ILL Anime', installed: true, ops: ops(2) },
+        { id: 'ill-anime-beauty', name: 'ILL Anime Beauty', installed: true, ops: ops(1) },
+        { id: 'pony-mix', name: 'Pony Mix', installed: true, ops: ops(1) },
+        { id: 'sdxl-realistic', name: 'SDXL', installed: false, ops: ops(1) },
+    ] };
+    const ANIME = { modelId: 'moss-image', style: { name: 'Anime', styleSelect: 1, stylization: 0.8 } };
+    const gen = (id, extra = {}) => ({ text: '', toolCalls: [{ id, type: 'function', function: { name: 'generate', arguments: JSON.stringify({ modelId: 'ill-anime', operation: 'detail', media: [{ role: 'image', image: 'moss.png' }], ...extra }) } }] });
+    const setup = async (responses, maker = ANIME) => {
+        const r = await makeLoop({ engineResponses: responses });
+        r.tools.listModels = async () => list;
+        r.loop._madeWith = async () => maker;
+        r.loop._images.set('moss.png', { path: '/project/Media/moss.png', itemId: 'i1', groupId: 'g1' });
+        r.sent = [];
+        r.tools.generate = (body) => { r.sent.push(body); return new Promise(() => {}); };
+        return r;
+    };
+
+    // The maker first with its style, the pick, then one more ANIME model; Pony Mix (STYLIZED) and
+    // the uninstalled SDXL never. A click on m0 runs Moss in its Anime style and ends the turn.
+    const a = await setup([gen('g1', { styleSelect: 3 }), { text: 'should not be asked' }]);
+    const turn = a.loop.runTurn('detail it', [], project, 'auto', 'deepinfra', 't1');
+    const card = await waitForEvent(a.fakeRes, (e) => e.event === 'agent:confirm');
+    assert.equal(card.data.kind, 'model');
+    assert.equal(card.data.pick, 'm0');
+    assert.deepEqual(card.data.models.map((m) => [m.choice, m.modelId, m.style]),
+        [['m0', 'moss-image', 'Anime'], ['m1', 'ill-anime', undefined], ['m2', 'ill-anime-beauty', undefined]]);
+    assert.equal(a.sent.length, 0, 'nothing runs before the click');
+    await a.loop.confirm(card.data.confirmId, 'm0');
+    await turn;
+    assert.equal(a.sent[0].modelId, 'moss-image');
+    assert.equal(a.sent[0].styleSelect, 1, 'the source\'s style, never the pick\'s number');
+    assert.equal(a.sent[0].stylization, 0.8);
+    assert.equal(a.engine.calls.length, 1, 'the click ended the turn');
+
+    // Another alternative: its own model, no style carried over from anyone.
+    const b = await setup([gen('g2', { styleSelect: 3 })]);
+    const turnB = b.loop.runTurn('detail it', [], project, 'auto', 'deepinfra', 't1');
+    const cardB = await waitForEvent(b.fakeRes, (e) => e.event === 'agent:confirm');
+    await b.loop.confirm(cardB.data.confirmId, 'm2');
+    await turnB;
+    assert.equal(b.sent[0].modelId, 'ill-anime-beauty');
+    assert.equal(b.sent[0].styleSelect, undefined);
+
+    // Written back instead: nothing runs.
+    const c = await setup([gen('g3')]);
+    const turnC = c.loop.runTurn('detail it', [], project, 'auto', 'deepinfra', 't1');
+    const cardC = await waitForEvent(c.fakeRes, (e) => e.event === 'agent:confirm');
+    await c.loop.confirm(cardC.data.confirmId, 'replied');
+    await turnC;
+    assert.equal(c.sent.length, 0);
+
+    // The same model with no style named: no card, the source's style.
+    const d = await setup([gen('g4', { modelId: 'moss-image', operation: 'upscale' }), { text: 'Upscaling.' }]);
+    await d.loop.runTurn('upscale it', [], project, 'auto', 'deepinfra', 't1');
+    assert.ok(!d.fakeRes.events.some((e) => e.event === 'agent:confirm'), 'no card for its own model');
+    assert.equal(d.sent[0].styleSelect, 1);
+
+    // A maker that cannot run here (not installed): the pick runs as sent, no card.
+    const e = await setup([gen('g5'), { text: 'Detailing.' }], { modelId: 'sdxl-realistic', style: null });
+    await e.loop.runTurn('detail it', [], project, 'auto', 'deepinfra', 't1');
+    assert.ok(!e.fakeRes.events.some((ev) => ev.event === 'agent:confirm'));
+    assert.equal(e.sent[0].modelId, 'ill-anime');
+});
+
 // A wake turn never carries the line either: `_inflight` is empty by construction when one
 // starts (`_maybeDrained` only fires the wake once every job has settled), so this is the
 // same "zero bytes" guarantee proven directly rather than through that timing.

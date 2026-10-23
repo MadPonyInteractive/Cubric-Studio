@@ -855,6 +855,14 @@ export const MpiAgentChat = ComponentFactory.create({
                 buttons: ({ sizes = [] }) => sizes.map(({ size, tiles }) => [String(size), `${size} px · ${tiles} tile${tiles === 1 ? '' : 's'}`]),
                 picked: (c) => `Started with ${c} px tiles.`,
             },
+            // MPI-1262: which model redraws (upscale, detail) a picture another model made; m0,
+            // the model that made it, in its style, is the primary.
+            model: {
+                title: () => 'Which model should redraw it?',
+                sub: () => 'Another model made this picture. Its own model keeps the look.',
+                buttons: ({ models = [] }) => models.map(({ choice, name, style }) => [choice, style ? `${name} · ${style}` : name]),
+                picked: (c, { models = [] } = {}) => `Started with ${models.find((m) => m.choice === c)?.name || 'that model'}.`,
+            },
         };
 
         /**
@@ -903,7 +911,7 @@ export const MpiAgentChat = ComponentFactory.create({
             pickedEl.className = 'mpi-agent-chat__confirm-size';
             const _picked = (c) => {
                 pickedEl.textContent = c === 'replied' ? 'You wrote back instead.'
-                    : (typeof spec.picked === 'function' ? (c ? spec.picked(c) : '') : (spec.picked[c] || ''));
+                    : (typeof spec.picked === 'function' ? (c ? spec.picked(c, data) : '') : (spec.picked[c] || ''));
             };
 
             if (live) {
