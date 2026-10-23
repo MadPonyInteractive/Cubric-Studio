@@ -1109,13 +1109,7 @@ export async function describerFamily() {
     if (!picked) {
         try { picked = (await (await fetch('/llm/models')).json()).describers?.[Storage.getLlmConnection().profileId]; } catch { /* named */ }
     }
-    return familyOf(picked);
-}
-
-/** A model id's box family: `qwen`, `gemma` (Google's y-first), else `named`. Create boxes
- *  reads the answer by the model that ANSWERED (`res.model`), which the guess above can miss. */
-export function familyOf(modelId) {
-    const id = String(modelId || '').toLowerCase();
+    const id = String(picked || '').toLowerCase();
     return id.includes('qwen') ? 'qwen' : /gemma|gemini/.test(id) ? 'gemma' : 'named';
 }
 

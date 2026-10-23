@@ -54,7 +54,7 @@ test('named edges are read by name; an array is read in its own key\'s order', (
     for (const b of boxes) assert.deepEqual([b.x, b.y, b.w, b.h], [0, 0, 1, 0.253], b.name);
 });
 
-test('a bare "box" array is read in the order the describer was asked', () => {
+test('a bare "box" array is read in the order given (yx or xy)', () => {
     // Gemma 4 asked for box_2d, Bazaar cover 2026-10-23 (app.log): every item under "box", so
     // all of them were dropped and Create boxes said "found nothing".
     const text = '```json\n' + JSON.stringify({
@@ -64,20 +64,39 @@ test('a bare "box" array is read in the order the describer was asked', () => {
             { name: 'model', label: 'character', box: [115, 286, 1000, 765], caption: 'A woman in profile.', text: '' },
         ],
     }, null, 2) + '\n```';
-    const { boxes } = boxesFromAnalysis(text, 'gemma');
+    const { boxes } = boxesFromAnalysis(text, 'yx');
     assert.deepEqual(boxes.map((b) => b.name), ['magazine_masthead', 'model']);
     assert.deepEqual([boxes[0].x, boxes[0].y], [0.036, 0.021]);
     assert.ok(Math.abs(boxes[0].w - 0.937) < 1e-9 && Math.abs(boxes[0].h - 0.167) < 1e-9);
     assert.equal(boxes[0].desc, '"BAZAAR": Large serif title.');
-    assert.deepEqual(boxesFromAnalysis(text, 'qwen').boxes[0].x, 0.021);
+    assert.deepEqual(boxesFromAnalysis(text, 'xy').boxes[0].x, 0.021);
 });
 
-test('an array is read in the ANSWERING model\'s order whatever its key', () => {
-    // Gemma writes y-first under Qwen's key too; Qwen writes x-first under Google's.
+test('an array of any key is read in the order given', () => {
+    // Gemma writes y-first under Qwen's key too, so the order is the picture's call (fitAnalysis).
     const items = [{ name: 'sky', bbox_2d: [0, 0, 253, 1000] }, { name: 'sky b', box_2d: [0, 0, 253, 1000] }];
     const text = JSON.stringify({ caption: '', items });
-    for (const b of boxesFromAnalysis(text, 'gemma').boxes) assert.deepEqual([b.x, b.y, b.w, b.h], [0, 0, 1, 0.253], b.name);
-    for (const b of boxesFromAnalysis(text, 'qwen').boxes) assert.deepEqual([b.x, b.y, b.w, b.h], [0, 0, 0.253, 1], b.name);
+    for (const b of boxesFromAnalysis(text, 'yx').boxes) assert.deepEqual([b.x, b.y, b.w, b.h], [0, 0, 1, 0.253], b.name);
+    for (const b of boxesFromAnalysis(text, 'xy').boxes) assert.deepEqual([b.x, b.y, b.w, b.h], [0, 0, 0.253, 1], b.name);
+});
+
+test('fitAnalysis: the picture picks the box order, any model, any key', async () => {
+    const { fitAnalysis } = await import('../js/data/layoutBoxes.js');
+    // 200x200 white page, one text block at x 20-80, y 40-70 (y-first: [200, 100, 350, 400]).
+    const W = 200, H = 200, data = new Uint8Array(W * H).fill(235);
+    for (let y = 40; y < 70; y++) for (let x = 20; x < 80; x++) data[y * W + x] = 20;
+    const img = { data, width: W, height: H, channels: 1 };
+    const answer = (key, v) => JSON.stringify({ caption: 'c', items: [{ name: 'title', [key]: v }] });
+    // y-first under Qwen's key (Gemma's habit) and x-first under Google's both land on the block.
+    for (const [key, v, order] of [['bbox_2d', [190, 90, 360, 410], 'yx'], ['box_2d', [90, 190, 410, 360], 'xy']]) {
+        const found = fitAnalysis(answer(key, v), img);
+        assert.equal(found.order, order, key);
+        assert.deepEqual([found.boxes[0].x, found.boxes[0].y, found.boxes[0].w, found.boxes[0].h], [0.1, 0.2, 0.3, 0.15], key);
+    }
+    // A blank picture cannot tell: the key's own order stands.
+    const blank = { data: new Uint8Array(W * H).fill(235), width: W, height: H, channels: 1 };
+    assert.equal(fitAnalysis(answer('box_2d', [190, 90, 360, 410]), blank).order, 'key');
+    assert.equal(fitAnalysis('no json', img), null);
 });
 
 test('snap: a box fits its whole ink block; ink running off into a photo leaves it as drawn', async () => {

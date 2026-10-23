@@ -104,19 +104,15 @@ export function analyseQuestion(family) {
         + 'If there is no legible text, use no text items.';
 }
 
-/** An item's box as `[left, top, right, bottom]` on 0-1000. An array is read in its key's own
- *  family order (`box_2d` Google's, `bbox_2d`/`bbox` Qwen's) for a model that ignores the ask.
- *  A bare `box` array has no family of its own, so it is read in the order the describer was
- *  asked: Gemma 4 asked for `box_2d` answers `"box": [y1, x1, y2, x2]` some runs (Bazaar cover,
- *  2026-10-23: every item dropped, "found nothing"). */
-function _edges(it, family) {
+/** An item's box as `[left, top, right, bottom]` on 0-1000. Named edges read by name; an
+ *  array (`box_2d`, `bbox_2d`, `bbox`, `box`) in `order` - `yx` or `xy` - else by its key
+ *  (`box_2d` y-first, the rest x-first). A model's key does not say its order: Gemma 4 writes
+ *  y-first under `bbox_2d` and bare `box` too, so `fitAnalysis` lets the picture decide. */
+function _edges(it, order) {
     const o = it?.box;
     if (o && typeof o === 'object' && !Array.isArray(o)) return [o.left, o.top, o.right, o.bottom];
     const arr = [it?.box_2d, it?.bbox_2d, it?.bbox, o].find(Array.isArray);
-    // The answering model's own order beats the key: Gemma writes y-first under `bbox_2d` too
-    // (Rework 4: the sky strip down the left side; Bazaar 2026-10-23, every box mirrored).
-    const yFirst = family === 'gemma' || (family !== 'qwen' && arr === it?.box_2d);
-    if (!arr || !yFirst) return arr;
+    if (!arr || !(order ? order === 'yx' : arr === it?.box_2d)) return arr;
     const [t, l, b, r] = arr;
     return [l, t, r, b];
 }
@@ -155,12 +151,12 @@ function _firstJson(s) {
  * lettering item becomes `kind: 'text'` with its words quoted at the head of the desc, so the
  * one editable field carries them to FLUX.3 and MOSS alike (`mossLayoutPrompt`).
  */
-export function boxesFromAnalysis(text, family, max = MAX_BOXES) {
+export function boxesFromAnalysis(text, order, max = MAX_BOXES) {
     const data = _firstJson(String(text || ''));
     if (!data || typeof data !== 'object') return null;
     const boxes = [];
     for (const it of Array.isArray(data.items) ? data.items : []) {
-        const bb = _edges(it, family);
+        const bb = _edges(it, order);
         if (!Array.isArray(bb) || bb.length !== 4 || !bb.every((v) => Number.isFinite(Number(v)))) continue;
         const [x1, y1, x2, y2] = bb.map((v) => Math.max(0, Math.min(SCALE, Number(v))) / SCALE);
         if (x2 - x1 < 0.01 || y2 - y1 < 0.01) continue;
@@ -248,10 +244,30 @@ export function snapBoxes(boxes, img) {
         }
         if (ux1 < 0) return b;
         const snapped = { x: (x0 + ux0) / W, y: (y0 + uy0) / H, w: (ux1 - ux0 + 1) / W, h: (uy1 - uy0 + 1) / H };
-        const edges = (r) => [r.x, r.y, r.x + r.w, r.y + r.h];
         // A missed line grows a box ~1.3x; much more is the box swallowing its neighbours.
-        return iou(edges(b), edges(snapped)) < 0.4 || snapped.w * snapped.h > b.w * b.h * 1.6 ? b : { ...b, ...snapped };
+        return iou(_rectEdges(b), _rectEdges(snapped)) < 0.4 || snapped.w * snapped.h > b.w * b.h * 1.6 ? b : { ...b, ...snapped };
     });
+}
+
+const _rectEdges = (r) => [r.x, r.y, r.x + r.w, r.y + r.h];
+
+/**
+ * The describer's answer read against the picture, for any model: an array box may be y-first
+ * or x-first whatever its key, so both readings are snapped (`snapBoxes`) and the one whose
+ * boxes land on the picture's ink wins - a mirrored reading lands on blank page and fits
+ * nothing (Bazaar 2026-10-23: 0 of 10). A picture that cannot tell (no ink fits either way)
+ * keeps the key's order. `{ caption, boxes, order, snapped }`, the boxes snapped; null with no JSON.
+ */
+export function fitAnalysis(text, img) {
+    let best = null;
+    for (const order of [undefined, 'yx', 'xy']) {
+        const found = boxesFromAnalysis(text, order);
+        if (!found) return null;
+        const boxes = snapBoxes(found.boxes, img);
+        const fit = boxes.reduce((s, b, i) => s + (b === found.boxes[i] ? 0 : iou(_rectEdges(b), _rectEdges(found.boxes[i]))), 0);
+        if (!best || fit > best.fit) best = { ...found, boxes, order: order || 'key', snapped: boxes.filter((b, i) => b !== found.boxes[i]).length, fit };
+    }
+    return best;
 }
 
 /** BFL's upsampler input for a request with locked boxes (`bbox.upsampling_input`). */

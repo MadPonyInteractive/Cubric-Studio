@@ -24,12 +24,12 @@ const iou = ([ax, ay, aw, ah], [bx, by, bw, bh]) => {
 };
 const mean = (boxes) => Object.values(TRUTH).reduce((s, t) => s + Math.max(0, ...boxes.map((b) => iou(t, [b.x, b.y, b.w, b.h]))), 0) / 9;
 
-async function run(label, file, answer, family, truth) {
+async function run(label, file, answer, order, truth) {
     const src = sharp(MEDIA + file);
     const { width: W0, height: H0 } = await src.metadata();
     const s = Math.min(1, 1024 / Math.max(W0, H0)); // the app's working size (_analyseBoxes)
     const { data, info } = await src.clone().resize(Math.round(W0 * s), Math.round(H0 * s)).raw().toBuffer({ resolveWithObject: true });
-    const before = boxesFromAnalysis(answer, family).boxes;
+    const before = boxesFromAnalysis(answer, order).boxes;
     const t = performance.now();
     const after = snapBoxes(before, { data, width: info.width, height: info.height, channels: info.channels });
     const ms = (performance.now() - t).toFixed(0);
@@ -42,8 +42,8 @@ async function run(label, file, answer, family, truth) {
 
 // bazaar_gemma.txt: Gemma 4's 08:22 Bazaar answer, from Fabio's app.log (logged on its 0-box read).
 const HERE = new URL('.', import.meta.url);
-await run('bazaar_gemma', 'imported_005.jpg', fs.readFileSync(new URL('bazaar_gemma.txt', HERE), 'utf8'), 'gemma', false);
-await run('vogue_gemma1', 'imported_002.jpg', fs.readFileSync(QB + 'gemma_1.txt', 'utf8'), 'gemma', true);
-await run('vogue_gemma2', 'imported_002.jpg', fs.readFileSync(QB + 'gemma_2.txt', 'utf8'), 'gemma', true);
-await run('vogue_qwen4b', 'imported_002.jpg', fs.readFileSync(QB + 'D_named_injected.txt', 'utf8'), 'qwen', true);
-await run('vogue_qwen30b', 'imported_002.jpg', fs.readFileSync(QB + 'q30_1.txt', 'utf8'), 'qwen', true);
+await run('bazaar_gemma', 'imported_005.jpg', fs.readFileSync(new URL('bazaar_gemma.txt', HERE), 'utf8'), 'yx',false);
+await run('vogue_gemma1', 'imported_002.jpg', fs.readFileSync(QB + 'gemma_1.txt', 'utf8'), 'yx',true);
+await run('vogue_gemma2', 'imported_002.jpg', fs.readFileSync(QB + 'gemma_2.txt', 'utf8'), 'yx',true);
+await run('vogue_qwen4b', 'imported_002.jpg', fs.readFileSync(QB + 'D_named_injected.txt', 'utf8'), 'xy',true);
+await run('vogue_qwen30b', 'imported_002.jpg', fs.readFileSync(QB + 'q30_1.txt', 'utf8'), 'xy',true);
