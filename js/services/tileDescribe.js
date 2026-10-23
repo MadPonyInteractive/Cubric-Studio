@@ -30,6 +30,8 @@ export const SCENERY_Q = 'The red rectangle marks one part of this picture. Igno
 const PEOPLE_WORDS = new RegExp('\\b(' + [
     'man', 'men', 'woman', 'women', 'person', 'persons', 'people', 'boy', 'girl', 'child', 'children', 'kids?', 'baby',
     'guy', 'lady', 'someone', 'he', 'she', 'his', 'her', 'him', 'portrait',
+    // Live 2026-10-23 on an anime hero: "an anime character in flight", "a blue superhero costume".
+    'characters?', 'figures?', '(super)?hero(es|ine)?', 'costumes?', 'outfits?', 'clothes', 'clothing', 'capes?',
     'faces?', 'heads?', 'hair', 'beard', 'mo?ustache', 'eyes?', 'eyebrows?', 'nose', 'mouth', 'lips?', 'teeth',
     'ears?', 'cheeks?', 'chin', 'forehead', 'neck', 'shoulders?', 'arms?', 'hands?', 'fingers?', 'legs?', 'knees?',
     'foot', 'feet', 'skin', 'torso', 'chest', 'shirt', 'jacket', 'dress', 'sleeves?', 'collar',
@@ -123,6 +125,11 @@ export async function nameTiles(config, io = {}) {
             return { named: 0, total, failed: total, error: err?.message || 'The tile pictures could not be made.' };
         }
         const names = [];
+        // A name cleanTileName drops (people words, the marker) is the guard working, not a failed
+        // tile: only a describer that did not answer counts as failed (Fabio, 2026-10-23: a dropped
+        // "her hand" toasted as "1 of 4 tiles could not be named").
+        const dropped = [];
+        let failed = 0;
         let error;
         // A paid endpoint bills per tile (150 on a 4000x6000 at 2x) with no price known up
         // front: the route's `costUsd` is summed and shown after naming (MPI-1257).
@@ -134,13 +141,14 @@ export async function nameTiles(config, io = {}) {
             costUsd += Number(r?.costUsd) || 0;
             if (r?.cancelled) return { named: 0, total, failed: 0, cancelled: true, ...(costUsd > 0 && { costUsd }) };
             const name = r?.ok ? cleanTileName(r.text) : '';
-            if (!r?.ok) error ??= r?.error;
+            if (!r?.ok) { failed += 1; error ??= r?.error; } else if (!name) dropped.push(String(r.text ?? '').split('\n')[0]);
             names.push(name);
             setProgress((i + 1) / total);
         }
         const named = names.filter(Boolean).length;
-        clientLogger.info('tileDescribe', `[tiles] named ${named}/${total}${costUsd ? ` for $${costUsd.toFixed(4)}` : ''}: ${JSON.stringify(names).slice(0, 400)}`);
-        return { injectionParams: tileWildcard(names), named, total, failed: total - named,
+        clientLogger.info('tileDescribe', `[tiles] named ${named}/${total}${costUsd ? ` for $${costUsd.toFixed(4)}` : ''}: ${JSON.stringify(names).slice(0, 400)}`
+            + (dropped.length ? ` | dropped: ${JSON.stringify(dropped).slice(0, 200)}` : ''));
+        return { injectionParams: tileWildcard(names), named, total, failed,
             ...(error ? { error } : {}), ...(costUsd > 0 && { costUsd }) };
     }, { mediaType: 'image' });
 }

@@ -106,6 +106,19 @@ test('a Stopped describe stops the naming (and the upscale)', async () => {
     assert.equal(asked, 2);
 });
 
+test('a name dropped for people words is not a failed tile (MPI-1257)', async () => {
+    const { nameTiles } = await load('js/services/tileDescribe.js');
+    let i = 0;
+    const r = await nameTiles(config(), {
+        size: async () => ({ width: 1920, height: 1080 }),
+        outlines: async (_, fr) => fr.map((_, n) => `img${n}`),
+        describe: async () => ({ ok: true, text: i++ === 1 ? "a girl's hand" : 'sky' }),
+        job: runJob,
+    });
+    assert.equal(r.named, r.total - 1);
+    assert.equal(r.failed, 0, 'no "could not be named" toast for a dropped name');
+});
+
 test('a paid describer\'s bill is summed over every tile (MPI-1257)', async () => {
     const { nameTiles } = await load('js/services/tileDescribe.js');
     const io = (cost) => ({
@@ -130,6 +143,8 @@ test('names are cleaned for Impact: one line, no quotes or dot, no brackets', as
     assert.equal(cleanTileName('curly gray hair and beard'), '');
     assert.equal(cleanTileName("a man's shoulder and neck"), '');
     assert.equal(cleanTileName('Her Face.'), '');
+    assert.equal(cleanTileName('an anime character in flight'), '');
+    assert.equal(cleanTileName('a blue superhero costume'), '');
     // Scenery that merely contains a people word's letters stays named.
     assert.equal(cleanTileName('wooden armchair by a window'), 'wooden armchair by a window');
     assert.equal(cleanTileName('a headland over the sea'), 'a headland over the sea');
