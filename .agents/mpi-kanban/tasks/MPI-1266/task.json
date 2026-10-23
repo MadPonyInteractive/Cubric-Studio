@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1266",
+  "title": "LTX 2.5 Stage 2: 2.5 in the LTX Flows + 2.5-only Flows (work now; dev gate comes off in 2.1.4)",
+  "description": "Follow-up to MPI-1095 (Stage 1 closed). UMBRELLA: MPI-1179 - New Models to Test. Fabio 2026-10-24: all of Stage 2 can be worked now; only removing devOnly on ltx-25 waits for 2.1.4, never 2.1.3. Scope and starting state: brief.md.",
+  "column": "todo",
+  "maturity": "idea",
+  "status": "active",
+  "created_at": "2026-10-24T00:53:25+01:00",
+  "updated_at": "2026-10-24T00:54:41+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

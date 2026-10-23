@@ -2,6 +2,9 @@
 
 ## Current State
 
+- 2026-10-24 ("LTX 2.5 model 10"): CLOSED as Stage 1 done (all pushed, CI green on the last code commit).
+  Everything left in Remaining Work moved to MPI-1266 (Stage 2; its `brief.md` holds the list). Fabio:
+  Stage 2 can be worked now; only removing `devOnly` on `ltx-25` waits for 2.1.4, never 2.1.3.
 - 2026-10-23 ("LTX 2.5 model 9"): Stage 1 DONE. r2v Part 2 item 3: the beat never stops at the
   contact, the taker moves on with the result in the same sentence. `--ref-tiers` TWICE GREEN
   (r2vref-3 ALL PASS, r2vref-4 24/24 after harness theft regex + `getaway`). All four modes twice

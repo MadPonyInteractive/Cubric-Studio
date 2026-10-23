@@ -25,3 +25,4 @@ the LTX Flows and the new 2.5-only Flows (tile upscaler etc., MPI-578).
 - [x] Plan from the research
 - [x] `/mpi-add-model` wiring with `devOnly: true`
 - [x] In-app GPU check, every op + preview -> Finish + bar count + preview decoder (2026-10-22, `validation.md`)
+- [x] Stage 2 split out 2026-10-24 to MPI-1266 (Fabio: workable now; the dev gate comes off in 2.1.4)
