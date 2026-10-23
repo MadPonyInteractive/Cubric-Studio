@@ -42,3 +42,7 @@ Fabio asked for the GPU's VRAM, then said a separate row is fine. Sidecar gains 
 
 - `tests/entry-info.test.cjs` 8/8.
 - Live, own `app:isolated`: `machine('local')` vramTotal 17175674880; rows `GPU NVIDIA GeForce RTX 4060 Ti / VRAM 16 GB / RAM 64 GB`; no Pod = all null.
+
+## Close
+
+2026-10-23: Fabio verified it in his own app on a real Moss-Image t2i (`t2i_053`): flyout reads `GPU NVIDIA GeForce RTX 4060 Ti / VRAM 16 GB / RAM 64 GB`, so the completion-time write path is proven end to end. He approved the 1.25 s gallery delay and asked to close.
