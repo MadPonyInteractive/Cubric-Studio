@@ -265,9 +265,50 @@ export function fitAnalysis(text, img) {
         if (!found) return null;
         const boxes = snapBoxes(found.boxes, img);
         const fit = boxes.reduce((s, b, i) => s + (b === found.boxes[i] ? 0 : iou(_rectEdges(b), _rectEdges(found.boxes[i]))), 0);
-        if (!best || fit > best.fit) best = { ...found, boxes, order: order || 'key', snapped: boxes.filter((b, i) => b !== found.boxes[i]).length, fit };
+        const fixed = boxes.map((b, i) => b !== found.boxes[i]);
+        if (!best || fit > best.fit) best = { ...found, boxes, fixed, order: order || 'key', snapped: fixed.filter(Boolean).length, fit };
     }
     return best;
+}
+
+/**
+ * Create boxes' zoom pass (Fabio, 2026-10-23): a small box the ink could not fix (text on a
+ * photo, a thin sidebar) is asked about again on an ENLARGED crop around it, where it fills
+ * the model's view instead of a sliver of it. These pick the boxes, frame the crop, word the
+ * question in the describer's own box format and map its answer back onto the picture.
+ */
+const ZOOM_MAX_AREA = 0.1; // a box past a tenth of the picture is seen well enough already
+const ZOOM_MAX = 12;
+export function zoomTargets(found) {
+    return (found?.boxes || []).map((b, i) => i)
+        .filter((i) => !found.fixed?.[i] && found.boxes[i].w * found.boxes[i].h < ZOOM_MAX_AREA)
+        .slice(0, ZOOM_MAX);
+}
+
+/** The crop around `b`: half its long side and 4% of the picture on every side, so a box
+ *  that is off still has its element inside. Fractions of the picture. */
+export function zoomCrop(b) {
+    const pad = Math.max(b.w, b.h) * 0.5 + 0.04;
+    const x = Math.max(0, b.x - pad), y = Math.max(0, b.y - pad);
+    return { x, y, w: Math.min(1, b.x + b.w + pad) - x, h: Math.min(1, b.y + b.h + pad) - y };
+}
+
+export function zoomQuestion(family, b) {
+    const [shape, rule] = BOX_FORMATS[family] || BOX_FORMATS.named;
+    return `Find this element in the image: ${b.name.replace(/_/g, ' ')}${b.desc ? ` - ${b.desc}` : ''}\n`
+        + 'Output one JSON object and nothing else:\n'
+        + `{"items": [{"name": "...", ${shape}}]}\n`
+        + `- ${rule}; the box tightly encloses the whole element${b.kind === 'text' ? ', every line of the text block' : ''}.\n`
+        + '- If the element is not in the image, output {"items": []}.';
+}
+
+/** The zoom answer as `b` moved onto the picture, or null to keep `b`: nothing found, the
+ *  whole crop (the model gave up), or a box that misses `b` entirely (a neighbour). */
+export function fromZoom(text, crop, order, b) {
+    const z = boxesFromAnalysis(text, order === 'key' ? undefined : order, 1)?.boxes[0];
+    if (!z || z.w * z.h > 0.9) return null;
+    const r = { x: crop.x + z.x * crop.w, y: crop.y + z.y * crop.h, w: z.w * crop.w, h: z.h * crop.h };
+    return iou(_rectEdges(r), _rectEdges(b)) < 0.1 ? null : { ...b, ...r };
 }
 
 /** BFL's upsampler input for a request with locked boxes (`bbox.upsampling_input`). */

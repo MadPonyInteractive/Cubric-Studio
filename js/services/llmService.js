@@ -1153,6 +1153,22 @@ export async function describerFamily() {
  *          Never rejects. On failure: `error` is a human-readable message. `via` names the
  *          backend that ran, so a caller can point at the right place to fix it.
  */
+/** A crop of `imagePath` (`{x,y,w,h}` fractions) enlarged to the describer's 1 MP, as a
+ *  temp file URL either describer reads; null when it could not be made (MPI-1253). */
+export async function enlargedCrop(imagePath, crop) {
+    try {
+        const res = await fetch('/llm/zoom-crop', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imagePath, crop }),
+        });
+        const body = await res.json();
+        return body.ok ? body.path : null;
+    } catch {
+        return null;
+    }
+}
+
 export async function describeImage({ imagePath, question, crop, scope, group, queued = false, greedy = false } = {}) {
     const backend = await runnableBackend(describeBackendPreference());
 

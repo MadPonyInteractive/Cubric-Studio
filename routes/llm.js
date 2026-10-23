@@ -16,6 +16,8 @@
  *                                + profileId -> the shared connection, error { code, message }
  *   POST /llm/describe        -> { ok, text, backend, model } | { ok:false, error:{ code, message } }
  *                                body { profileId, modelId?, imagePath, question?, crop? } (MPI-737)
+ *   POST /llm/zoom-crop       -> { ok, path } | { ok:false, error:{ code, message } }
+ *                                body { imagePath, crop: {x,y,w,h} fractions } (MPI-1253)
  *   GET  /llm/ollama          -> { running, platform, install, defaultModelId,
  *                                  models: { <id>: { name, downloaded, size, pull } } }
  *                                <id> = a registry id, or a recommended Ollama id (MPI-993)
@@ -544,6 +546,54 @@ function _parseDescribePrompt() {
  *   NOT_VISION    — endpoint returned 4xx indicating the model rejects images
  *   ENDPOINT_ERROR — any other upstream failure
  */
+/**
+ * Create boxes' zoom pass (MPI-1253): a crop of the picture ENLARGED to the describer's
+ * 1 MP, as a temp file either describer can read. A plain `crop` on /llm/describe hands the
+ * model the same pixels the whole picture had (a 736x1104 cover is under 1 MP already), so
+ * a small text block gains nothing; enlarged, it fills the model's view.
+ * Files live in os.tmpdir()/cubric-describe-zoom/, swept after an hour.
+ */
+const ZOOM_DIR = path.join(require('os').tmpdir(), 'cubric-describe-zoom');
+router.post('/llm/zoom-crop', async (req, res) => {
+    const { imagePath, crop } = req.body || {};
+    const c = crop || {};
+    if (typeof imagePath !== 'string' || ![c.x, c.y, c.w, c.h].every(Number.isFinite) || c.w <= 0 || c.h <= 0
+        || c.x < 0 || c.y < 0 || c.x + c.w > 1.0001 || c.y + c.h > 1.0001) {
+        return res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST', message: 'imagePath and crop {x,y,w,h} as fractions of the picture are required.' } });
+    }
+    const pathMatch = imagePath.match(/[?&]path=([^&]+)/);
+    const srcPath = pathMatch ? decodeURIComponent(pathMatch[1]) : imagePath;
+    if (!path.isAbsolute(srcPath) || !fs.existsSync(srcPath)) {
+        return res.json({ ok: false, error: { code: 'BAD_IMAGE', message: `File not found: ${srcPath}` } });
+    }
+    try {
+        await fs.promises.mkdir(ZOOM_DIR, { recursive: true });
+        const now = Date.now();
+        for (const name of await fs.promises.readdir(ZOOM_DIR)) {
+            const p = path.join(ZOOM_DIR, name);
+            const st = await fs.promises.stat(p).catch(() => null);
+            if (st && now - st.mtimeMs > 3600e3) await fs.promises.unlink(p).catch(() => {});
+        }
+        const sharp = _getSharp();
+        const meta = (await sharp(srcPath, { limitInputPixels: false, autoOrient: true }).metadata()).autoOrient;
+        const left = Math.max(0, Math.floor(c.x * meta.width)), top = Math.max(0, Math.floor(c.y * meta.height));
+        const width = Math.max(1, Math.min(meta.width - left, Math.round(c.w * meta.width)));
+        const height = Math.max(1, Math.min(meta.height - top, Math.round(c.h * meta.height)));
+        // ponytail: up to 4x; past that the model reads blur, not letters.
+        const scale = Math.min(4, Math.sqrt(DESCRIBE_MAX_PIXELS / (width * height)));
+        const out = path.join(ZOOM_DIR, `${require('crypto').randomUUID()}.jpg`);
+        await sharp(srcPath, { limitInputPixels: false, autoOrient: true })
+            .extract({ left, top, width, height })
+            .resize(Math.max(1, Math.floor(width * scale)), Math.max(1, Math.floor(height * scale)), { kernel: 'lanczos3' })
+            .jpeg({ quality: 92 })
+            .toFile(out);
+        res.json({ ok: true, path: `/project-file?path=${encodeURIComponent(out)}` });
+    } catch (err) {
+        logger.error('system', `llm zoom-crop failed: ${err && err.message}`);
+        res.json({ ok: false, error: { code: 'BAD_IMAGE', message: `Image could not be read: ${err && err.message}` } });
+    }
+});
+
 router.post('/llm/describe', async (req, res) => {
     const { profileId, modelId, imagePath, question, crop, greedy } = req.body || {};
 

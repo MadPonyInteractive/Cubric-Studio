@@ -30,9 +30,9 @@ import { MpiEnhanceDialog } from '../../Compounds/MpiEnhanceDialog/MpiEnhanceDia
 import { attachDictation } from '../../../services/dictation.js';
 import { thumbSrc } from '../../../utils/displayImage.js';
 import { PAGE_LANDING } from '../../../router.js';
-import { layoutRows, analyseQuestion, boxesFromAnalysis, fitAnalysis } from '../../../data/layoutBoxes.js';
+import { layoutRows, analyseQuestion, boxesFromAnalysis, fitAnalysis, snapBoxes, zoomTargets, zoomCrop, zoomQuestion, fromZoom } from '../../../data/layoutBoxes.js';
 import { modelTakesBoxes } from '../../../data/generationControls.js';
-import { describeImage, describerFamily } from '../../../services/llmService.js';
+import { describeImage, describerFamily, enlargedCrop } from '../../../services/llmService.js';
 import { applyPromptReuseSettings } from '../../../services/projectService.js';
 import { ratioSettingsFromParams } from '../../../utils/promptReuse.js';
 import { resolveMediaUrl } from '../../../utils/mediaActions.js';
@@ -445,6 +445,7 @@ export const MpiPromptBox = ComponentFactory.create({
             img.src = frame.url;
             await img.decode().catch(() => {});
             let found;
+            let pixels = null;
             if (img.naturalWidth) {
                 const s = Math.min(1, 1024 / Math.max(img.naturalWidth, img.naturalHeight));
                 const cv = document.createElement('canvas');
@@ -452,11 +453,13 @@ export const MpiPromptBox = ComponentFactory.create({
                 cv.height = Math.round(img.naturalHeight * s);
                 const cx = cv.getContext('2d', { willReadFrequently: true });
                 cx.drawImage(img, 0, 0, cv.width, cv.height);
-                found = fitAnalysis(res.text, cx.getImageData(0, 0, cv.width, cv.height));
+                pixels = cx.getImageData(0, 0, cv.width, cv.height);
+                found = fitAnalysis(res.text, pixels);
             } else {
                 found = boxesFromAnalysis(res.text);
             }
             clientLogger.info('PromptBox', `Create boxes: ${found?.boxes.length || 0} boxes from ${res.text?.length || 0} chars (${res.model || res.via}, asked ${family}), order ${found?.order || 'key'}, snapped ${found?.snapped ?? 0}, op ${op} -> ${activeOperation}`);
+            if (pixels && found?.boxes.length) await _zoomBoxes(found, frame.url, family, pixels);
             if (!found?.boxes.length) {
                 // The answer itself, so a format the reader misses can be seen (MPI-1253).
                 clientLogger.warn('PromptBox', `Create boxes: unreadable answer: ${String(res.text).slice(0, 8000)}`);
@@ -484,6 +487,27 @@ export const MpiPromptBox = ComponentFactory.create({
             _dropIfBoxesMoved();
             _saveDraft();
             if (_boxesPanel?.el.isOpen()) _openBoxes();
+        }
+        /** Create boxes' zoom pass: each small box the ink could not fix is asked about again on
+         *  an enlarged crop around it (zoomTargets), all queued at once so each shows a row and
+         *  Stop; an answer that misses keeps the first box. Moves `found.boxes` in place. */
+        async function _zoomBoxes(found, url, family, pixels) {
+            const targets = zoomTargets(found);
+            if (!targets.length) return;
+            _analysing = true;
+            const t0 = Date.now();
+            const moved = await Promise.all(targets.map(async (i) => {
+                const b = found.boxes[i];
+                const crop = zoomCrop(b);
+                const path = await enlargedCrop(url, crop);
+                if (!path) return false;
+                const res = await describeImage({ imagePath: path, question: zoomQuestion(family, b), scope: 'gallery', queued: true, greedy: true });
+                const r = res.ok && fromZoom(res.text, crop, found.order, b);
+                if (!r) return false;
+                found.boxes[i] = snapBoxes([r], pixels)[0];
+                return true;
+            })).finally(() => { _analysing = false; });
+            clientLogger.info('PromptBox', `Create boxes: zoomed ${targets.length}, moved ${moved.filter(Boolean).length}, ${Math.round((Date.now() - t0) / 1000)} s`);
         }
         /** Op or model changed (_refreshOpSlot): show the button where boxes work, refill an open panel. */
         function _syncBoxes() {

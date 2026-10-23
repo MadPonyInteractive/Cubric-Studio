@@ -11,7 +11,7 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
-const { boxesFromAnalysis, analyseQuestion, mossLayoutPrompt } = require('../js/data/layoutBoxes.js');
+const { boxesFromAnalysis, analyseQuestion, mossLayoutPrompt, zoomTargets, zoomCrop, zoomQuestion, fromZoom } = require('../js/data/layoutBoxes.js');
 
 test('a fenced answer becomes fraction boxes with unique lower-case names', () => {
     const text = 'Here:\n```json\n' + JSON.stringify({
@@ -166,4 +166,42 @@ test('MOSS gets a text box as a text item printing the quoted words', () => {
     assert.equal(items[0].text, 'VOGUE');
     assert.equal(items[1].label, 'object');
     assert.equal(items[1].text, undefined);
+});
+
+test('the zoom pass picks small boxes the ink did not fix, and maps a crop answer back', () => {
+    const found = {
+        order: 'key',
+        boxes: [
+            { x: 0, y: 0, w: 1, h: 0.2, name: 'title' },          // big: seen well enough
+            { x: 0.1, y: 0.4, w: 0.2, h: 0.1, name: 'sidebar' },  // small, unsnapped
+            { x: 0.6, y: 0.4, w: 0.2, h: 0.1, name: 'snapped' },  // small, ink fixed it
+        ],
+        fixed: [false, false, true],
+    };
+    assert.deepEqual(zoomTargets(found), [1]);
+
+    const b = found.boxes[1];
+    const crop = zoomCrop(b);
+    assert.ok(crop.x <= b.x && crop.y <= b.y && crop.x + crop.w >= b.x + b.w && crop.y + crop.h >= b.y + b.h);
+    assert.ok(crop.x >= 0 && crop.y >= 0 && crop.x + crop.w <= 1 && crop.y + crop.h <= 1);
+
+    // The model answers on the crop: the block sits a little lower than the first box said.
+    const answer = JSON.stringify({ items: [{ name: 'sidebar', bbox_2d: [250, 300, 750, 800] }] });
+    const r = fromZoom(answer, crop, found.order, b);
+    assert.ok(Math.abs(r.x - (crop.x + 0.25 * crop.w)) < 1e-9);
+    assert.ok(Math.abs(r.y - (crop.y + 0.3 * crop.h)) < 1e-9);
+    assert.equal(r.name, 'sidebar');
+
+    // The whole crop, nothing, or a neighbour that misses the box: keep the first box.
+    assert.equal(fromZoom(JSON.stringify({ items: [{ name: 'x', bbox_2d: [0, 0, 1000, 1000] }] }), crop, 'key', b), null);
+    assert.equal(fromZoom('{"items": []}', crop, 'key', b), null);
+    assert.equal(fromZoom(JSON.stringify({ items: [{ name: 'x', bbox_2d: [900, 900, 1000, 1000] }] }), crop, 'key', b), null);
+});
+
+test('the zoom question asks in the describer\'s own box format', () => {
+    const b = { name: 'feature_headline', desc: '"THE DENIM EDIT": bold caps', kind: 'text' };
+    assert.match(zoomQuestion('gemma', b), /"box_2d": \[y1, x1, y2, x2\]/);
+    assert.match(zoomQuestion('qwen', b), /"bbox_2d": \[x1, y1, x2, y2\]/);
+    assert.match(zoomQuestion('gemma', b), /feature headline - "THE DENIM EDIT"/);
+    assert.match(zoomQuestion('gemma', b), /every line of the text block/);
 });
