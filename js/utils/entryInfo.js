@@ -105,9 +105,11 @@ function _loraLines(item) {
 // The machine it ran on (MPI-1261): cards made before it simply show no rows.
 function _machineRows(item) {
     const gs = item.generationSettings || {};
+    const gb = (bytes) => `${Math.round(bytes / 1024 ** 3)} GB`;
     const rows = [];
     if (gs.gpu) rows.push({ label: 'GPU', value: gs.engine === 'remote' ? `${gs.gpu} · RunPod` : gs.gpu });
-    if (gs.ramTotal > 0) rows.push({ label: 'RAM', value: `${Math.round(gs.ramTotal / 1024 ** 3)} GB` });
+    if (gs.vramTotal > 0) rows.push({ label: 'VRAM', value: gb(gs.vramTotal) });
+    if (gs.ramTotal > 0) rows.push({ label: 'RAM', value: gb(gs.ramTotal) });
     return rows;
 }
 

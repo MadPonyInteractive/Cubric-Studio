@@ -35,3 +35,10 @@ Fabio: the app shows a Pod's RAM in the status bar and landing page. Remote gens
 - `tests/entry-info.test.cjs` 8/8 (Pod `62 GB` row; no row when unknown).
 - Live, own `app:isolated` with no Pod: `/remote/pod/specs` = `{"gpuName":null,"vramGb":null,"ramGb":null}`, so a no-Pod read records no RAM. Not run with a real Pod (renting one costs money).
 - `npm test` 3561 pass, 0 fail.
+
+## Pass 5 — VRAM row
+
+Fabio asked for the GPU's VRAM, then said a separate row is fine. Sidecar gains `vramTotal` (local `/system/gpu-info`, Pod `/remote/pod/specs` `vramGb`); flyout rows GPU / VRAM / RAM.
+
+- `tests/entry-info.test.cjs` 8/8.
+- Live, own `app:isolated`: `machine('local')` vramTotal 17175674880; rows `GPU NVIDIA GeForce RTX 4060 Ti / VRAM 16 GB / RAM 64 GB`; no Pod = all null.

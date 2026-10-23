@@ -127,6 +127,7 @@ export const remoteEngineClient = {
                 this._localArch = data?.gpu?.arch || null;
                 this._localGpu = data?.gpu?.name || null;
                 this._localRamTotal = data?.ramTotal || null;
+                this._localVramTotal = data?.vramTotal || null;
             } catch (_) {
                 this._localArch = null;
             }
@@ -164,22 +165,25 @@ export const remoteEngineClient = {
     /**
      * The machine a gen ran on, for its sidecar (MPI-1261). Local reads the cache
      * `arch('local')` fills, which every local gen awaits before it runs. A Pod's RAM
-     * comes from `/remote/pod/specs`, the figure the status bar and landing page show,
-     * fetched once per connection (the `remote:connection` listener below clears it).
+     * and VRAM come from `/remote/pod/specs`, the figures the status bar and landing page
+     * show, fetched once per connection (the `remote:connection` listener below clears it).
      * @param {'local'|'remote'} engine
-     * @returns {Promise<{ gpu: string|null, ramTotal: number|null }>} ramTotal in bytes
+     * @returns {Promise<{ gpu: string|null, vramTotal: number|null, ramTotal: number|null }>} bytes
      */
     async machine(engine) {
-        if (engine !== 'remote') return { gpu: this._localGpu || null, ramTotal: this._localRamTotal || null };
-        if (this._podRamGb === undefined) {
+        if (engine !== 'remote') {
+            return { gpu: this._localGpu || null, vramTotal: this._localVramTotal || null, ramTotal: this._localRamTotal || null };
+        }
+        if (this._podSpecs === undefined) {
             try {
                 const res = await fetch('/remote/pod/specs');
-                this._podRamGb = Number((await res.json())?.ramGb) || null;
+                this._podSpecs = await res.json();
             } catch (_) {
-                this._podRamGb = null;
+                this._podSpecs = null;
             }
         }
-        return { gpu: this.podGpuType(), ramTotal: this._podRamGb ? this._podRamGb * 1024 ** 3 : null };
+        const bytes = (gb) => (Number(gb) > 0 ? Number(gb) * 1024 ** 3 : null);
+        return { gpu: this.podGpuType(), vramTotal: bytes(this._podSpecs?.vramGb), ramTotal: bytes(this._podSpecs?.ramGb) };
     },
 
     /** Populate the local-arch cache once (fire-and-forget at app boot). */
@@ -247,4 +251,4 @@ export const remoteEngineClient = {
 // the LOCAL universe: live 2026-07-02 an LTX Pod install shipped WITHOUT its
 // GGUF transformer and read INSTALLED. Sync on the same event the UI trusts.
 // eslint-disable-next-line mpi/require-destroy-on-events -- app-lifetime listener (module singleton)
-Events.on('remote:connection', () => { remoteEngineClient._podRamGb = undefined; remoteEngineClient.refresh(); });
+Events.on('remote:connection', () => { remoteEngineClient._podSpecs = undefined; remoteEngineClient.refresh(); });

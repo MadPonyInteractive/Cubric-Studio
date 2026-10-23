@@ -1637,9 +1637,10 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
         // the one that actually ran it; cloud and tool runs have no GPU of ours to name.
         const _ranOn = generationStore.byId(exec.jobId)?.engine;
         if (_ranOn === 'local' || _ranOn === 'remote') {
-            const { gpu, ramTotal } = await remoteEngineClient.machine(_ranOn);
+            const { gpu, vramTotal, ramTotal } = await remoteEngineClient.machine(_ranOn);
             generationSettings.engine = _ranOn;
             if (gpu) generationSettings.gpu = gpu;
+            if (vramTotal) generationSettings.vramTotal = vramTotal;
             if (ramTotal) generationSettings.ramTotal = ramTotal;
         }
 
