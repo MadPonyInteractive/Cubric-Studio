@@ -255,18 +255,22 @@ const _rectEdges = (r) => [r.x, r.y, r.x + r.w, r.y + r.h];
  * The describer's answer read against the picture, for any model: an array box may be y-first
  * or x-first whatever its key, so both readings are snapped (`snapBoxes`) and the one whose
  * boxes land on the picture's ink wins - a mirrored reading lands on blank page and fits
- * nothing (Bazaar 2026-10-23: 0 of 10). A picture that cannot tell (no ink fits either way)
- * keeps the key's order. `{ caption, boxes, order, snapped }`, the boxes snapped; null with no JSON.
+ * nothing (Bazaar 2026-10-23: 0 of 10). The key's order stands unless another reading CLEARLY
+ * fits better - 2+ boxes snapped and 1.0 more fit: on a photo collage almost nothing snaps either
+ * way, and one stray snap flipped Tokyo's every box on its side (2026-10-23, Gemma 4, 1 snapped).
+ * `{ caption, boxes, fixed, order, snapped }`, the boxes snapped; null with no JSON.
  */
 export function fitAnalysis(text, img) {
-    let best = null;
+    let key = null, best = null;
     for (const order of [undefined, 'yx', 'xy']) {
         const found = boxesFromAnalysis(text, order);
         if (!found) return null;
         const boxes = snapBoxes(found.boxes, img);
         const fit = boxes.reduce((s, b, i) => s + (b === found.boxes[i] ? 0 : iou(_rectEdges(b), _rectEdges(found.boxes[i]))), 0);
         const fixed = boxes.map((b, i) => b !== found.boxes[i]);
-        if (!best || fit > best.fit) best = { ...found, boxes, fixed, order: order || 'key', snapped: fixed.filter(Boolean).length, fit };
+        const read = { ...found, boxes, fixed, order: order || 'key', snapped: fixed.filter(Boolean).length, fit };
+        if (!key) key = best = read;
+        else if (read.snapped >= 2 && read.fit >= key.fit + 1 && read.fit > best.fit) best = read;
     }
     return best;
 }

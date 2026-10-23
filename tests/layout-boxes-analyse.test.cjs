@@ -82,20 +82,28 @@ test('an array of any key is read in the order given', () => {
 
 test('fitAnalysis: the picture picks the box order, any model, any key', async () => {
     const { fitAnalysis } = await import('../js/data/layoutBoxes.js');
-    // 200x200 white page, one text block at x 20-80, y 40-70 (y-first: [200, 100, 350, 400]).
+    // 200x200 white page, two text blocks: x 20-80, y 40-70 and x 120-180, y 150-170.
     const W = 200, H = 200, data = new Uint8Array(W * H).fill(235);
     for (let y = 40; y < 70; y++) for (let x = 20; x < 80; x++) data[y * W + x] = 20;
+    for (let y = 150; y < 170; y++) for (let x = 120; x < 180; x++) data[y * W + x] = 20;
     const img = { data, width: W, height: H, channels: 1 };
-    const answer = (key, v) => JSON.stringify({ caption: 'c', items: [{ name: 'title', [key]: v }] });
-    // y-first under Qwen's key (Gemma's habit) and x-first under Google's both land on the block.
-    for (const [key, v, order] of [['bbox_2d', [190, 90, 360, 410], 'yx'], ['box_2d', [90, 190, 410, 360], 'xy']]) {
-        const found = fitAnalysis(answer(key, v), img);
+    const answer = (key, a, b) => JSON.stringify({ caption: 'c', items: [{ name: 'title', [key]: a }, { name: 'tag', [key]: b }] });
+    const at = (bx) => [bx.x, bx.y, bx.w, bx.h].map((v) => Math.round(v * 1000) / 1000);
+    // y-first under Qwen's key (Gemma's habit) and x-first under Google's both land on the blocks.
+    for (const [key, a, b, order] of [
+        ['bbox_2d', [190, 90, 360, 410], [740, 590, 860, 910], 'yx'],
+        ['box_2d', [90, 190, 410, 360], [590, 740, 910, 860], 'xy'],
+    ]) {
+        const found = fitAnalysis(answer(key, a, b), img);
         assert.equal(found.order, order, key);
-        assert.deepEqual([found.boxes[0].x, found.boxes[0].y, found.boxes[0].w, found.boxes[0].h], [0.1, 0.2, 0.3, 0.15], key);
+        assert.deepEqual(at(found.boxes[0]), [0.1, 0.2, 0.3, 0.15], key);
+        assert.deepEqual(at(found.boxes[1]), [0.6, 0.75, 0.3, 0.1], key);
     }
+    // One stray snap is no evidence (Tokyo, a photo collage, 2026-10-23): the key's order stands.
+    assert.equal(fitAnalysis(answer('bbox_2d', [190, 90, 360, 410], [0, 0, 50, 50]), img).order, 'key');
     // A blank picture cannot tell: the key's own order stands.
     const blank = { data: new Uint8Array(W * H).fill(235), width: W, height: H, channels: 1 };
-    assert.equal(fitAnalysis(answer('box_2d', [190, 90, 360, 410]), blank).order, 'key');
+    assert.equal(fitAnalysis(answer('box_2d', [190, 90, 360, 410], [740, 590, 860, 910]), blank).order, 'key');
     assert.equal(fitAnalysis('no json', img), null);
 });
 

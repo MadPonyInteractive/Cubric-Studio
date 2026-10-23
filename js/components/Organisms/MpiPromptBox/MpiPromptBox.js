@@ -430,6 +430,17 @@ export const MpiPromptBox = ComponentFactory.create({
             if (!frame.guide || !_boxesCtrl() || _analysing) return;
             const op = activeOperation;
             _analysing = true;
+            const img = new Image();
+            img.src = frame.url;
+            await img.decode().catch(() => {});
+            // The ratio follows the picture BEFORE the read: set after it, the new picture sat
+            // squeezed into the last one's frame for the whole wait (Tokyo after Bazaar, Fabio).
+            const ratioSelector = img.naturalWidth && ratioSettingsFromParams({ Width: img.naturalWidth, Height: img.naturalHeight }, {}, model);
+            if (ratioSelector) {
+                applyPromptReuseSettings({ modelId: model.id, mediaType: model.mediaType, operation: op, sharedUpdates: { ratioSelector } });
+                el.refreshControls(); // remounts the controls
+                _refreshBoxFrame();
+            }
             const family = await describerFamily();
             const question = analyseQuestion(family);
             const res = await describeImage({ imagePath: frame.url, question, scope: 'gallery', queued: true, greedy: true })
@@ -441,9 +452,6 @@ export const MpiPromptBox = ComponentFactory.create({
             }
             // Read against the picture itself, for any describer: the box order and each box's
             // fit come from the picture's ink at <= 1024 px (fitAnalysis), never the model's name.
-            const img = new Image();
-            img.src = frame.url;
-            await img.decode().catch(() => {});
             let found;
             let pixels = null;
             if (img.naturalWidth) {
@@ -468,11 +476,6 @@ export const MpiPromptBox = ComponentFactory.create({
             }
             if (activeOperation !== op || !_boxesCtrl()) return; // the user moved on while it ran
             clientLogger.info('PromptBox', `Create boxes: applying, picture ${img.naturalWidth}x${img.naturalHeight}`);
-            const ratioSelector = img.naturalWidth && ratioSettingsFromParams({ Width: img.naturalWidth, Height: img.naturalHeight }, {}, model);
-            if (ratioSelector) {
-                applyPromptReuseSettings({ modelId: model.id, mediaType: model.mediaType, operation: op, sharedUpdates: { ratioSelector } });
-                el.refreshControls(); // remounts the controls; the boxes are set after
-            }
             _boxesCtrl()?.setValue(found.boxes);
             // The caption goes into an empty prompt, or over the last one Create boxes wrote
             // itself; a prompt the user typed or edited stays.

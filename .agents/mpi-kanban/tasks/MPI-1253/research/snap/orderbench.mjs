@@ -12,7 +12,7 @@ const MEDIA = 'C:/Users/Fabio/Documents/Cubric Studio/Projects/FLUX3 Flow Bench/
 const QB = 'C:/AI/Mpi/Cubric-Vision/.agents/mpi-kanban/tasks/MPI-1253/research/qwen-bench/';
 const HERE = new URL('.', import.meta.url);
 const pixels = async (file) => {
-    const src = sharp(MEDIA + file);
+    const src = sharp(file.includes(':') ? file : MEDIA + file);
     const { width, height } = await src.metadata();
     const s = Math.min(1, 1024 / Math.max(width, height));
     const { data, info } = await src.resize(Math.round(width * s), Math.round(height * s)).raw().toBuffer({ resolveWithObject: true });
@@ -34,6 +34,10 @@ const cases = [
     ['vogue qwen 4B (bbox_2d)', 'imported_002.jpg', fs.readFileSync(QB + 'D_named_injected.txt', 'utf8'), 'xy'],
     ['vogue qwen 30B (bbox_2d)', 'imported_002.jpg', fs.readFileSync(QB + 'q30_1.txt', 'utf8'), 'xy'],
     ['vogue qwen 235B (bbox_2d)', 'imported_002.jpg', fs.readFileSync(QB + 'q235_1.txt', 'utf8'), 'xy'],
+    // 2026-10-23: a photo collage, nothing snaps the right way; rebuilt from the boxes Fabio's
+    // app saved (read xy, so written back as the numbers Gemma sent).
+    ['tokyo gemma (box_2d)', 'C:/Users/Fabio/AppData/Local/Temp/claude/C--AI-Mpi-Cubric-Vision/d97e027a-503d-4722-be51-dca53a2c0014/scratchpad/BoxesTest3/Media/imported_23c5448e.jpg',
+        fs.readFileSync(new URL('tokyo_gemma.txt', HERE), 'utf8'), 'yx'],
 ];
 let right = 0;
 for (const [label, file, text, truth] of cases) {
