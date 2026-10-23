@@ -341,3 +341,13 @@ current full-res frame as an image card; GIF to Video (`POST /gif/to-video`, a
 background colour for alpha) adds a video card and leaves the GIF history alone.
 Neither emits `media:imported`: `mediaImportService` would build a second card.
 Proof: `tests/desktop/gif-transform.spec.js`.
+
+## GIF jobs wear the image accent (MPI-1106)
+
+A GIF is an image subject, so every GIF job (cut-out, edit, make, a queue flash) colours as
+image (Vision pink), even when the engine is fed a temp clip. The cut-out ops
+(`gifCutoutSam3` / `gifCutoutBirefnet`) declare `mediaType: video` in `commandRegistry` because
+their INPUT is a clip, and they also serve Video Mask, where orange is right. So the caller
+passes its subject (`enqueueMaskTrack({ mediaType })` → `tool:running.mediaType` →
+`getCommandAccent(type, mediaType)`); never change the op's registry type. The colour is the
+subject the user works on, not the shape the engine is fed.

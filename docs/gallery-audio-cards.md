@@ -37,6 +37,14 @@ directly - all three call the route-local `writeAudioWaveform()` helper, which i
 that assigns it. `grep -n "writeAudioWaveform" routes/projects.js` is the discovery command and
 must stay at **four** hits: the definition plus those three call sites.
 
+**Size keys: `{ w, h }` constants, `{ width, height }` arguments (MPI-829).** The box constants in
+`ffmpegThumb.js` (`AUDIO_WAVEFORM_PX`, `VIDEO_WAVEFORM_PX`) are `{ w, h }`, while the extract
+functions destructure `{ width, height }` with defaults. Passing a constant straight through matches
+neither key, falls back to both defaults, and bakes the wrong size with exit 0, a valid file and no
+log. Spell the keys at the call site (`{ width: BOX.w, height: BOX.h }`), keep one wrapper owning
+name and size (`extractVideoWaveform`) so the write path and the backfill cannot drift, and assert
+on the DECODED pixel count, never on the file existing.
+
 ## The paint is a component, because two surfaces need it
 
 `MpiWaveform` (`js/components/Primitives/MpiWaveform/`) — two full-bleed layers split by one

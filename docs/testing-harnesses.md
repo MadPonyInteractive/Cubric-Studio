@@ -272,6 +272,19 @@ Launch mechanics for a hand-rolled instance (why `unset ELECTRON_RUN_AS_NODE` is
 two failure signatures — lock = silent exit 0, port = loud `[FATAL] [main] server-exit` + exit 1) are
 in [testing.md](testing.md) § The desktop suite and [DEVELOPMENT.md](DEVELOPMENT.md).
 
+### Running a masked op (`inpaint`, `detail`) with no painted mask (MPI-936)
+
+Over `/connector/generate` these ops refuse with `MASK_UNSUPPORTED` unless a mask is painted:
+dispatch reads it from `activeMask()` (`js/shell/activeMask.js`), which only `MpiGroupHistoryBlock`
+publishes, and only when the target project is OPEN. `app:isolated` has no CDP port, so use a
+Playwright `_electron.launch` harness (args `['.']`, the env `scripts/launch-instance.mjs` builds,
+`ELECTRON_RUN_AS_NODE` and `CUBRIC_E2E*` deleted, never sharing a profile with a running
+`app:isolated`). Poll `/connector/capabilities` for `generationSubmit`, `/connector/open-project`
+the scratch project, then per run `page.evaluate` a
+`setMaskReader(() => ({ dataUrl, url: resolveMediaUrl(filePath), groupId }))` (the shape History
+publishes; `resolveMediaUrl` from `/js/utils/mediaActions.js`) with a white-on-black PNG at the
+source's size, and POST generate from Node. Results land as new versions of the masked card.
+
 
 ## 5. A shipped graph the connector CANNOT dispatch — stage, then POST it to the engine
 

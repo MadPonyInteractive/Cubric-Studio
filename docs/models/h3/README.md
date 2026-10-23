@@ -446,6 +446,25 @@ evaluation and ships nothing yet: [vdn.md](vdn.md). Read it before touching `lor
 a pruned base, before quoting a VDN timing (they were named by base pass, not deliverable),
 or before believing VDN needs the unpruned base — it does not.
 
+## Masks — the 32px floor of `mask_mode: as sampled`
+
+`as sampled` rebuilds the mask the model was actually given, on the latent grid: 16px cells
+pooled 2x2, so an effective **32px** granularity in OUTPUT pixels (measured 2026-09-03/08).
+
+- **`GrowMask.expand` below ~32 is a no-op** (or snaps a whole cell): testing 6, 16 and 32 is
+  about two data points. GrowMask is in pixels, so a value tuned at one resolution means
+  something else at another (grow 32 at 1536x640 = grow 40 at 1920); rescale before comparing runs.
+- **The floor scales with the generation size.** At 1920 wide 32px is ~1.7% of the frame; at
+  368x368 it is ~9%, so a hair-only mask rounds outward over forehead and temples and the face
+  is regenerated. A deformed face under a mask that never touched it is this, not a bug.
+- **The seam** is a staircase of up to 32px that shifts every ~4 frames (the VAE's temporal
+  packing): it crawls in motion, vanishes in a still, and `feather 11` cannot hide it.
+- **Spatial blocks dominate, not the temporal union.** On 22 SAM3 hair-arch masks the sampled
+  area was 2.11x the drawn one at a 544 canvas: +78% from 32px blocks alone, +115% with the
+  4-frame union (+45% / +75% at 1024). Raising the canvas is the lever; a head-tracked crop
+  recovers only 13 of 115 points, not worth building. Below ~4 blocks across (a 67px arch is 2.1
+  blocks at 544) every edited token straddles hair and skin, so the model can only blend: the halo.
+
 ## Sources
 
 - <https://huggingface.co/Comfy-Org/MiniMax-H3> — both transformers, both VAEs, stock encoders

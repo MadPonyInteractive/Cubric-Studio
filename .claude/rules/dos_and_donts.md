@@ -177,6 +177,36 @@ Then it shipped with NO progress at all, and Fabio had to ask for the sweep in a
    no toast (rule above), but the row / bar / button visibly leaves its running state.
 4. **Self-check before calling it done:** name what the user SEES at start, during, and end.
    If any answer is "nothing", it is not done.
+5. **A job over ~1 minute keeps its end.** Design four things up front: a determinate bar
+   (per-step colour when steps pass or fail), the final state KEPT until the user's next action
+   on that control (the user left to do other work, and the end state is what they come back
+   for), and a done toast fired from a service that lives for the window, never from a panel
+   that may be shut (MPI-941 "Benchmark this model": `agentService`).
+
+---
+
+## 🗣️ User-facing copy and conflicts
+
+- **No internal identifiers in user copy (MPI-674).** A diagnostic string is a CONDITION for
+  showing UI, never its CONTENT: `if (warning)` shows the row, `warning` does not go in it. Out:
+  node-pack names, model ids, route and class names, raw errors, and our words for them
+  ("custom nodes", "Python packages", "pip", "deps"). In: what broke in the user's terms, whether
+  their work is safe ("your models are untouched"), and which button fixes it. The identifiers
+  are in `app.log`. Guard it with a test that checks a jargon list against the rendered
+  section's whole `textContent`, and fix every site in one pass. "This is an artist app, not a
+  geek app" (Fabio).
+- **Park, don't refuse (MPI-1253).** When a new action conflicts with standing state (a loaded
+  picture, a mode, a selection), the action wins and the old state is PARKED where it belongs
+  (per op, per mode) and restored when the user goes back. Keep an explicit remove for "gone for
+  good". A refusal toast that names a button to go find is the fallback, never the first design.
+
+## 🐧 New OS-touching code carries darwin and linux branches (MPI-947)
+
+Before writing any path, installer, CLI lookup or file-type assumption, write the `darwin` and
+`linux` branches beside `win32` (precedent: `routes/gitProvision.js`, `where`/`which` plus common
+absolute paths, because a Dock-launched Mac app gets launchd's bare PATH). Unit-test with
+`process.platform` stubbed, say plainly the branch is unrun on real hardware, and check README and
+install copy for Windows-only steps in the same pass. We have Mac and Linux users.
 
 ---
 
