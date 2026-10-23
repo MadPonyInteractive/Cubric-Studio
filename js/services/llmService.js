@@ -1100,10 +1100,16 @@ const GREEDY_DESCRIBE = {
 };
 
 /** The box format the describer was trained on (`analyseQuestion`): the ComfyUI describer is
- *  Qwen3-VL; an endpoint model by its id, `named` when the id says nothing. */
+ *  Qwen3-VL; an endpoint model by its id, `named` when the id says nothing. No pick = the
+ *  connection's recommended describer, the one `/llm/describe` runs: read as `named`, Gemma's
+ *  `[y1, x1, y2, x2]` came back transposed (Bazaar cover, 2026-10-23). */
 export async function describerFamily() {
     if (await runnableBackend(describeBackendPreference()) !== 'endpoint') return 'qwen';
-    const id = String(describeModelPreference() || '').toLowerCase();
+    let picked = describeModelPreference();
+    if (!picked) {
+        try { picked = (await (await fetch('/llm/models')).json()).describers?.[Storage.getLlmConnection().profileId]; } catch { /* named */ }
+    }
+    const id = String(picked || '').toLowerCase();
     return id.includes('qwen') ? 'qwen' : /gemma|gemini/.test(id) ? 'gemma' : 'named';
 }
 

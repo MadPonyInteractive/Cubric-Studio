@@ -35,6 +35,7 @@ import { fixedDurationFor } from '../../../data/modelConstants/deepinfraPricing.
 // ONE module, so an agent submit can never silently resolve a different tier
 // than this control shows (see generationControls.js's own module comment).
 import { resolveEffectiveQualityTier, resolveThreeLayerDefault, modelTakesBoxes, denoiseDefaultFor, modelShowsTiles, TILE_SIZES } from '../../../data/generationControls.js';
+import { MODELS } from '../../../data/modelConstants/models.js';
 
 // ── Scope helpers ─────────────────────────────────────────────────────────────
 //
@@ -1510,7 +1511,11 @@ export const PROMPT_BOX_CONTROLS = {
      * prompt box, so a panel kept here followed the user from gallery to history. The box
      * reads `enabled` (shown only on `layoutBoxes.ops`) and writes through `setValue`.
      *
-     * perOp: a t2i layout and an edit layout are drawn over different frames.
+     * perOp: a t2i layout and an edit layout are drawn over different frames. One layout
+     * across models: the prompt that cites the boxes is shared, so a save goes to EVERY model
+     * that takes boxes on the op. Saved on one model only, switching FLUX.3 -> MOSS-Image
+     * brought up MOSS's own older boxes (Fabio, 2026-10-23). Reuse and agents still read the
+     * picked model's copy.
      */
     boxes: {
         nodeTitle: null,
@@ -1526,7 +1531,11 @@ export const PROMPT_BOX_CONTROLS = {
             this.value = boxes;
             clearTimeout(this._saveTimer);
             const opts = this._opts;
-            this._saveTimer = setTimeout(() => _emitUpdate(this, opts, 'boxes', boxes.map((b) => ({ ...b }))), 300);
+            this._saveTimer = setTimeout(() => {
+                for (const model of MODELS.filter((m) => modelTakesBoxes(m, opts?.opName))) {
+                    _emitUpdate(this, { ...opts, model }, 'boxes', boxes.map((b) => ({ ...b })));
+                }
+            }, 300);
         },
         getValue() {
             return this.value || [];

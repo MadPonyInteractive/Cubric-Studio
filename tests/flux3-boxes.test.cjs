@@ -80,6 +80,22 @@ test('the button shows on every FLUX.3 op, on no other model; the run always rec
     assert.deepEqual(probe(undefined), { Layout_Boxes: [] });
 });
 
+test('a box save goes to every model that takes boxes on the op (FLUX.3 -> MOSS keeps them)', async () => {
+    const { PROMPT_BOX_CONTROLS } = await import('../js/components/Organisms/MpiPromptBox/PromptBoxControls.js');
+    const { Events } = require('../js/events.js');
+    const ctrl = PROMPT_BOX_CONTROLS.boxes;
+    const saved = async (opName) => {
+        const seen = [];
+        const off = Events.on('settings:model:update', (e) => { if (e.key === 'boxes') seen.push(`${e.modelId}/${e.opName}`); });
+        ctrl.setValue.call({ ...ctrl, _opts: { model: FLUX3, opName } }, [FOX]);
+        await new Promise((r) => setTimeout(r, 350));
+        off();
+        return seen.sort();
+    };
+    assert.deepEqual(await saved('t2i'), ['flux3-klein/t2i', 'moss-image/t2i']);
+    assert.deepEqual(await saved('edit'), ['flux3-klein/edit']);
+});
+
 test('an enhanced box prompt keeps its own table; nothing is appended twice', () => {
     const enhanced = 'A fox <obj_1> in a meadow <meadow_1>. [{"id":"obj_1","bbox":[550,50,950,350],"desc":"fox"},{"id":"meadow_1","bbox":[0,0,1000,1000],"desc":"meadow"}]';
     assert.equal(withLayoutBoxes(FLUX3, enhanced, [FOX]), enhanced);

@@ -81,10 +81,13 @@ function engines() {
  */
 router.get('/llm/models', async (_req, res) => {
     try {
-        const { MODEL_REGISTRY, DEFAULT_MODEL_ID, modelName, RECOMMENDED_REMOTE_MODELS, ollamaTagged } = await engines();
+        const { MODEL_REGISTRY, DEFAULT_MODEL_ID, modelName, RECOMMENDED_REMOTE_MODELS, ollamaTagged, recommendedModel } = await engines();
         const localRec = RECOMMENDED_REMOTE_MODELS.ollama.filter((r) => r.jobs.includes('enhance')).map((r) => r.id);
         res.json({
             defaultModelId: DEFAULT_MODEL_ID,
+            // The describer each connection runs with no pick (`/llm/describe`), so Create boxes
+            // asks it in its own box format (`describerFamily`, MPI-1253).
+            describers: Object.fromEntries(Object.keys(RECOMMENDED_REMOTE_MODELS).map((p) => [p, recommendedModel(p, 'describe')])),
             models: MODEL_REGISTRY.map((m) => ({
                 id: m.id,
                 name: m.name,
