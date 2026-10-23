@@ -102,6 +102,15 @@ function _loraLines(item) {
         .join('\n');
 }
 
+// The machine it ran on (MPI-1261): cards made before it simply show no rows.
+function _machineRows(item) {
+    const gs = item.generationSettings || {};
+    const rows = [];
+    if (gs.gpu) rows.push({ label: 'GPU', value: gs.engine === 'remote' ? `${gs.gpu} · RunPod` : gs.gpu });
+    if (gs.ramTotal > 0) rows.push({ label: 'RAM', value: `${Math.round(gs.ramTotal / 1024 ** 3)} GB` });
+    return rows;
+}
+
 function _dateLabel(iso) {
     const d = iso ? new Date(iso) : null;
     if (!d || Number.isNaN(d.getTime())) return '';
@@ -121,6 +130,7 @@ export function entryInfo(item) {
         { label: 'Operation', value: _operationLabel(item) },
         ..._settingRows(item),
         { label: 'Took', value: formatGenTime(item.generationMs) },
+        ..._machineRows(item),
         // No size/length/fps: the History row under the pointer already prints them.
         { label: 'Created', value: _dateLabel(item.createdAt) },
     ].filter(r => r.value);

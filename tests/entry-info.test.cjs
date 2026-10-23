@@ -100,6 +100,17 @@ test('MPI-1261: a long prompt is cut to a glance', () => {
     assert.strictEqual(info.negativePrompt, 'short');
 });
 
+test('MPI-1261: the GPU and RAM it ran on follow Took; a Pod is named as RunPod', () => {
+    const local = E.entryInfo({ type: 'image', generationMs: 5000,
+        generationSettings: { engine: 'local', gpu: 'NVIDIA GeForce RTX 3060', ramTotal: 17_094_000_000 } });
+    assert.deepStrictEqual(labels(local), ['Took', 'GPU', 'RAM']);
+    assert.strictEqual(value(local, 'GPU'), 'NVIDIA GeForce RTX 3060');
+    assert.strictEqual(value(local, 'RAM'), '16 GB');
+    const pod = E.entryInfo({ type: 'image', generationSettings: { engine: 'remote', gpu: 'NVIDIA GeForce RTX 4090' } });
+    assert.strictEqual(value(pod, 'GPU'), 'NVIDIA GeForce RTX 4090 · RunPod');
+    assert.strictEqual(value(pod, 'RAM'), undefined);
+});
+
 test('generation time matches the gallery card format', () => {
     assert.strictEqual(E.formatGenTime(0), '');
     assert.strictEqual(E.formatGenTime(undefined), '');

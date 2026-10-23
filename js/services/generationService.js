@@ -1633,6 +1633,16 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
             ?? _snapshotControlState(model, operation, injectionParams, { historyMode: config.historyMode === true });
         if (_controlState) generationSettings.controlState = _controlState;
 
+        // MPI-1261 — the machine it ran on, for the card-info flyout. The store job's engine is
+        // the one that actually ran it; cloud and tool runs have no GPU of ours to name.
+        const _ranOn = generationStore.byId(exec.jobId)?.engine;
+        if (_ranOn === 'local' || _ranOn === 'remote') {
+            const { gpu, ramTotal } = remoteEngineClient.machine(_ranOn);
+            generationSettings.engine = _ranOn;
+            if (gpu) generationSettings.gpu = gpu;
+            if (ramTotal) generationSettings.ramTotal = ramTotal;
+        }
+
         // MPI-851 — what the provider ACTUALLY billed (`inference_status.cost`), not the
         // app's estimate. `generationSettings` passes through `save-generation` verbatim
         // and comes back off the sidecar on reload, so the record survives with no server

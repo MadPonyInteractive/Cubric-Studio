@@ -18,3 +18,12 @@ Fabio: 2 s too long, try 1.5 s and keep tuning; show turbo, denoise, style, rati
 - Open: the delay is Fabio's eye call (`openMs` in MpiGalleryGrid.js).
 
 Cleanup: instance stopped via the listener's parent; the scratch project root it added to `Documents/Cubric Studio/project-paths.json` removed (file restored byte-for-byte).
+
+## Pass 3 — GPU + RAM in the sidecar
+
+2026-10-23. Each new local/remote gen records `generationSettings.engine`, `gpu` (local GPU name, or the Pod gpuType) and `ramTotal` (local only, bytes); cloud and tool runs record none. Flyout shows `GPU` (`· RunPod` on a Pod) and `RAM` (`64 GB`) after Took; old cards show no row.
+
+- `tests/entry-info.test.cjs` 8/8 (new: GPU/RAM rows, RunPod suffix, no RAM on a Pod).
+- Live, own `app:isolated` (port 51294, scratch profile + APP_DOCUMENTS): `remoteEngineClient.machine('local')` = `NVIDIA GeForce RTX 4060 Ti`, 68484911104 bytes; flyout rows `GPU NVIDIA GeForce RTX 4060 Ti / RAM 64 GB`. No project opened, so project-paths.json untouched; instance stopped via the listener's parent.
+- `npm run lint` clean; `npm test` 3560 pass, 0 fail.
+- Not run: a real generation end to end (it would dispatch onto Fabio's GPU via shared :48188). The write path reads the store job's engine, which `settle()` keeps.

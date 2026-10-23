@@ -3,6 +3,10 @@
   "files": [
     "js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.js",
     "js/components/Primitives/MpiEntryInfo/MpiEntryInfo.js",
-    "js/components/types.js"
+    "js/components/types.js",
+    "js/services/generationService.js",
+    "js/services/remoteEngineClient.js",
+    "js/utils/entryInfo.js",
+    "tests/entry-info.test.cjs"
   ]
 }

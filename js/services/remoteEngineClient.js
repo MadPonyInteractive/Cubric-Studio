@@ -125,6 +125,8 @@ export const remoteEngineClient = {
                 const res = await fetch('/system/gpu-info');
                 const data = await res.json();
                 this._localArch = data?.gpu?.arch || null;
+                this._localGpu = data?.gpu?.name || null;
+                this._localRamTotal = data?.ramTotal || null;
             } catch (_) {
                 this._localArch = null;
             }
@@ -157,6 +159,18 @@ export const remoteEngineClient = {
      */
     podGpuType() {
         return (this._active && this._gpuType) || state.runpodConfig?.gpuType || null;
+    },
+
+    /**
+     * The machine a gen ran on, for its sidecar (MPI-1261). Sync: reads the cache
+     * `arch('local')` fills, which every local gen awaits before it runs. A Pod's RAM
+     * is not known here, so remote records the GPU only.
+     * @param {'local'|'remote'} engine
+     * @returns {{ gpu: string|null, ramTotal: number|null }} ramTotal in bytes
+     */
+    machine(engine) {
+        if (engine === 'remote') return { gpu: this.podGpuType(), ramTotal: null };
+        return { gpu: this._localGpu || null, ramTotal: this._localRamTotal || null };
     },
 
     /** Populate the local-arch cache once (fire-and-forget at app boot). */
