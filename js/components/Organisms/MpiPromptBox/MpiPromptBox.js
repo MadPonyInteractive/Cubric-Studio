@@ -428,13 +428,24 @@ export const MpiPromptBox = ComponentFactory.create({
             const question = analyseQuestion(await describerFamily());
             const res = await describeImage({ imagePath: frame.url, question, scope: 'gallery', queued: true, greedy: true })
                 .finally(() => { _analysing = false; });
-            if (!res.ok) { if (!res.cancelled) _showMediaToast(res.error); return; }
+            if (!res.ok) {
+                clientLogger.info('PromptBox', `Create boxes: describe ${res.cancelled ? 'cancelled' : `failed: ${res.error}`}`);
+                if (!res.cancelled) _showMediaToast(res.error);
+                return;
+            }
             const found = boxesFromAnalysis(res.text);
-            if (!found?.boxes.length) { _showMediaToast('Create boxes found nothing in this picture. Try it again.'); return; }
+            clientLogger.info('PromptBox', `Create boxes: ${found?.boxes.length || 0} boxes from ${res.text?.length || 0} chars, op ${op} -> ${activeOperation}`);
+            if (!found?.boxes.length) {
+                // The answer itself, so a format the reader misses can be seen (MPI-1253).
+                clientLogger.warn('PromptBox', `Create boxes: unreadable answer: ${String(res.text).slice(0, 8000)}`);
+                _showMediaToast('Create boxes found nothing in this picture. Try it again.');
+                return;
+            }
             if (activeOperation !== op || !_boxesCtrl()) return; // the user moved on while it ran
             const img = new Image();
             img.src = frame.url;
             await img.decode().catch(() => {});
+            clientLogger.info('PromptBox', `Create boxes: applying, picture ${img.naturalWidth}x${img.naturalHeight}`);
             const ratioSelector = img.naturalWidth && ratioSettingsFromParams({ Width: img.naturalWidth, Height: img.naturalHeight }, {}, model);
             if (ratioSelector) {
                 applyPromptReuseSettings({ modelId: model.id, mediaType: model.mediaType, operation: op, sharedUpdates: { ratioSelector } });
@@ -2186,7 +2197,11 @@ export const MpiPromptBox = ComponentFactory.create({
             if (h) el.style.setProperty('--boxes-h', `${h}px`);
         });
         _boxesRo.observe(qs('#boxes-slot', el));
-        _unsubs.push(() => _boxesRo.disconnect());
+        // The panel's height runs from this box's top edge up: a prompt that grows the box
+        // moves that edge, so the panel fits again (else it rides up over the header).
+        const _barRo = new ResizeObserver(() => _boxesPanel?.el.fit());
+        _barRo.observe(el);
+        _unsubs.push(() => { _boxesRo.disconnect(); _barRo.disconnect(); });
 
         // The picker overlay is opened by whoever owns it, not by this box — the
         // radial (step 7) fires the same event.

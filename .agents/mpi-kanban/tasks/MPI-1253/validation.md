@@ -151,3 +151,43 @@ NOT run: a FLUX.3/MOSS render of the cover from these boxes (Fabio's eye).
 
 Prism reads "cancelled" after every successful describe, the stock gallery Describe included
 (control run, same session). Pre-existing.
+
+## Rework 7 (2026-10-23): Fabio's eye + the bigger panel
+
+Fabio, own app, Gemma 4 26B describer, after a reload only (no restart, so `routes/llm.js`
+greedy/temperature 0 from 25763cc78 was NOT live): 17 boxes on the Vogue cover, lettering as
+quoted text, "not bad, almost there", but ~2 min. Not the queue (describe is on the `cloud`
+lane, the engine's back-to-back FLUX.3 batch did not hold it) and not local Ollama (none
+loaded): the time is in the one DeepInfra call. Added an `llm describe <model>: N ms, N tokens
+out` line to `/llm/describe` so his next run after a full restart says which.
+
+Panel (Fabio: stop 200 px below the window top, rows scroll, a drag separator, picture scales):
+- `MpiBoxesPanel` sets its own height = bar top - 200 (min 260), list `overflow-y: auto`,
+  frame = min(stage width, stage height x aspect); an `MpiResizeHandle` sash sets
+  `--boxes-side-w` (280 px to stage 200 px).
+- Live, own `app:isolated` (:52788), FLUX.3 t2i, 10 drawn boxes: 1600x1000 panel top 200,
+  1:1 frame 706 px band; 1600x720 panel 200..626, list 246/454 px (scrolls, bar visible),
+  frame 397 square; sash dragged right -> list wider, frame shrank to fit. eslint clean,
+  boxes tests 30/30, llm tests 33/33.
+- Not live-checked: a tall guide picture (Create boxes would run the describer on Fabio's engine).
+
+## Rework 8 (2026-10-23): second Create boxes "kept the previous boxes"
+
+Fabio, own app after a full restart: Tokyo then Vogue. Log: both describes ~23 s greedy
+(1326 / 1169 tokens), so the 2 min was the reload-only server. The Vogue run's boxes and caption
+did not land; no toast, no error, no uncaught line in app.log.
+- One paid Gemma 4 run on the Vogue cover, exact app question, temperature 0 ($0.00063, 34.7 s,
+  1722 tokens): `boxesFromAnalysis` -> 17 boxes + caption. Not a parse failure.
+- Own `app:isolated`, real right-clicks, `/llm/describe` answered in the page: small canned
+  answers (0.8 s and 23 s) and the two REAL Gemma answers, Tokyo then Vogue: the second run
+  replaced boxes and caption every time. NOT reproduced.
+- Added: `Create boxes: N boxes from M chars, op X -> Y` and a `describe cancelled/failed` line
+  in `_analyseBoxes`, so the next drop names its exit (seen live in the isolated log).
+- Found and fixed meanwhile (breaker): a long caption grows the prompt box and the panel kept
+  its height, riding up over the header and gallery. The box now observes its own size and
+  calls the panel's `fit()`. Live: bar 216 px tall, panel 200..752.
+- eslint clean; boxes + prompt box tests 34/34.
+
+Rework 8b: Fabio's app log names the drop: 01:14 Tokyo and 01:15 Vogue, Gemma answered (3925 / 5096 chars) and `boxesFromAnalysis` read 0 boxes -> the "found nothing" toast (his "kept the old boxes"). A bare `"` inside a text value nulls a whole saved answer (tested); a raw line break does not. The answer is now logged on a 0-box read. Next run (01:19) parsed: 18 boxes, but 115.7 s for 1905 tokens on DeepInfra (other runs 15-23 s): the provider's speed, not the app.
+
+Rework 8c: describer bench, Vogue cover, app question per family, temperature 0, best-IoU vs Fabio's 9 boxes (`research/qwen-bench/vlbench.mjs`, answers q30_*/q235_1.txt). Gemma 4 26B (saved): 0.53/0.55/0.55, 4-5/9 hits. Qwen3-VL-4B local: 0.57. Qwen3-VL-30B (DeepInfra): 0.60/0.61, 6-7/9, 53/83 s, $0.0009 a run; names some boxes text_block_N. Qwen3-VL-235B: 0.54, 4/9, 264 s, $0.0019; run 2 hit Node fetch's 300 s headers timeout (may still bill). Spent $0.0038 seen + up to ~$0.002 unseen. The app's /llm/describe is the same Node fetch: a describe over 300 s fails as 'fetch failed'.

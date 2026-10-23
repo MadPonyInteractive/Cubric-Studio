@@ -2,6 +2,7 @@ import { ComponentFactory } from '../../factory.js';
 import { MpiButton, mountButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiInput } from '../../Primitives/MpiInput/MpiInput.js';
 import { MpiProgressBar } from '../../Primitives/MpiProgressBar/MpiProgressBar.js';
+import { MpiResizeHandle } from '../../Primitives/MpiResizeHandle/MpiResizeHandle.js';
 import { qs, qsa, on } from '../../../utils/dom.js';
 import { boxName, uniqueBoxName } from '../../../data/layoutBoxes.js';
 
@@ -38,6 +39,10 @@ const COLOURS = ['--accent-frost', '--prompt-accent', '--accent-ok', '--video-ac
 const MAX_BOXES = 10;
 const MIN_SIZE = 0.03;
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const TOP_GAP = 200;      // px the open panel leaves below the window top (header + op strip room)
+const MIN_PANEL_H = 260;  // a short window still shows a usable frame
+const MIN_SIDE_W = 280;   // name + a few words of the desc
+const MIN_STAGE_W = 200;
 
 export const MpiBoxesPanel = ComponentFactory.create({
     name: 'MpiBoxesPanel',
@@ -61,6 +66,7 @@ export const MpiBoxesPanel = ComponentFactory.create({
                 </div>
                 <p class="mpi-boxes__hint">Drag on the picture to draw a box, a tag to move it, a corner to resize it. Double-click a tag to rename. Click a name to cite it in the prompt.<span id="boxes-drop-hint"> To lay a picture out like another one, right-click that card and pick Create boxes.</span></p>
             </div>
+            <div class="mpi-boxes__sash" id="boxes-sash"></div>
             <div class="mpi-boxes__stage" id="boxes-stage">
                 <div class="mpi-boxes__frame" id="boxes-frame"></div>
             </div>
@@ -111,17 +117,31 @@ export const MpiBoxesPanel = ComponentFactory.create({
 
         const _emit = () => cb.onChange?.(boxes.map((b) => ({ ...b })));
 
-        // ── the frame: the picked aspect, as tall as the panel allows, top-aligned ──
+        // ── the panel: from the bar up to TOP_GAP below the window top (Fabio, 2026-10-23),
+        //    the rows scroll; the frame: the picked aspect, as big as the stage allows ──
         const _fit = () => {
+            const bottom = el.parentElement?.getBoundingClientRect().bottom || 0;
+            el.style.height = `${Math.max(MIN_PANEL_H, bottom - TOP_GAP)}px`;
             const r = stageEl.getBoundingClientRect();
             if (!r.width) return; // hidden is not resized (components.md, MPI-597)
-            const maxH = Math.min(window.innerHeight * 0.42, 460);
-            const w = Math.min(r.width, maxH * aspect);
+            const w = Math.min(r.width, r.height * aspect);
             frameEl.style.width = `${w}px`;
             frameEl.style.height = `${w / aspect}px`;
         };
         const ro = new ResizeObserver(_fit);
         ro.observe(stageEl);
+        _unsubs.push(on(window, 'resize', _fit));
+
+        // The sash between the list and the picture: drag it for longer rows or a bigger
+        // picture; the stage's ResizeObserver refits the frame as it moves.
+        // ponytail: width lives for the panel's life, persist it in Storage if asked.
+        const sash = MpiResizeHandle.mount(qs('#boxes-sash', el), { axis: 'x' });
+        sash.on('resize', ({ x }) => {
+            const r = el.getBoundingClientRect();
+            const left = qs('.mpi-boxes__side', el).getBoundingClientRect().left;
+            const w = clamp(x - left, MIN_SIDE_W, r.width - (left - r.left) * 2 - MIN_STAGE_W);
+            el.style.setProperty('--boxes-side-w', `${w}px`);
+        });
 
         const _place = (node, b) => {
             node.style.left = `${b.x * 100}%`;
@@ -308,6 +328,8 @@ export const MpiBoxesPanel = ComponentFactory.create({
             requestAnimationFrame(_fit);
         };
 
+        /** The owner's edge moved (the bar grew with a long prompt): fit the band again. */
+        el.fit = _fit;
         el.hide = () => el.classList.remove('mpi-boxes--open');
         el.isOpen = () => el.classList.contains('mpi-boxes--open');
 
@@ -319,6 +341,7 @@ export const MpiBoxesPanel = ComponentFactory.create({
             closeBtn.destroy?.();
             unguideBtn.destroy?.();
             dimBar.destroy?.();
+            sash.destroy?.();
             el.remove();
         };
     },

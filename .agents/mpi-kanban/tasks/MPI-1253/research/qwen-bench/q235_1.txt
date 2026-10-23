@@ -1,0 +1,168 @@
+{
+  "caption": "Black-and-white magazine cover with bold typography and a fashion model in sunglasses and blazer. High-contrast lighting, minimalist composition, and clean layout with text blocks surrounding the central figure.",
+  "items": [
+    {
+      "name": "Magazine Title",
+      "label": "text",
+      "bbox_2d": [47, 45, 892, 182],
+      "caption": "Large, bold, black serif typography spelling 'VOGUE' centered at top.",
+      "text": "VOGUE"
+    },
+    {
+      "name": "Model",
+      "label": "character",
+      "bbox_2d": [267, 177, 822, 913],
+      "caption": "Woman with dark hair, wearing black sunglasses and blazer, looking upward, monochrome portrait."
+    },
+    {
+      "name": "Style Headline",
+      "label": "text",
+      "bbox_2d": [47, 235, 295, 390],
+      "caption": "Bold black serif text reading 'Style Speaks Louder' on left side.",
+      "text": "Style\nSpeaks\nLouder"
+    },
+    {
+      "name": "Fashion Tag",
+      "label": "text",
+      "bbox_2d": [47, 217, 127, 228],
+      "caption": "Small black sans-serif text reading 'FASHION' above headline.",
+      "text": "FASHION"
+    },
+    {
+      "name": "Subhead Quote",
+      "label": "text",
+      "bbox_2d": [47, 415, 200, 480],
+      "caption": "Small black serif text beneath headline: 'It's not just what you wear, it's how you express yourself.'",
+      "text": "It's not just what\nyou wear, it's how\nyou express\nyourself."
+    },
+    {
+      "name": "Beauty Section",
+      "label": "text",
+      "bbox_2d": [57, 518, 240, 630],
+      "caption": "Black serif text on beige background: 'Natural Glow, Real You'.",
+      "text": "Natural\nGlow,\nReal You"
+    },
+    {
+      "name": "Beauty Subtext",
+      "label": "text",
+      "bbox_2d": [57, 645, 240, 680],
+      "caption": "Small black serif text: 'Skincare tips for a healthier, happier you.'",
+      "text": "Skincare tips\nfor a healthier,\nhappier you."
+    },
+    {
+      "name": "Beauty Label",
+      "label": "text",
+      "bbox_2d": [57, 518, 135, 529],
+      "caption": "Small black sans-serif text: 'BEAUTY'.",
+      "text": "BEAUTY"
+    },
+    {
+      "name": "Face Closeup",
+      "label": "object",
+      "bbox_2d": [172, 673, 312, 852],
+      "caption": "Black-and-white close-up of woman's eye and lips, framed in white border."
+    },
+    {
+      "name": "Self Love Script",
+      "label": "text",
+      "bbox_2d": [370, 750, 607, 875],
+      "caption": "Cursive black script text reading 'More Self Love' over blazer.",
+      "text": "More\nSelf Love"
+    },
+    {
+      "name": "Modern Woman",
+      "label": "text",
+      "bbox_2d": [800, 182, 950, 213],
+      "caption": "Small black sans-serif text: 'THE MODERN WOMAN'.",
+      "text": "THE MODERN\nWOMAN"
+    },
+    {
+      "name": "Good Things",
+      "label": "text",
+      "bbox_2d": [832, 250, 950, 295],
+      "caption": "Black sans-serif text: 'GOOD THINGS TAKE TIME'.",
+      "text": "GOOD\nTHINGS\nTAKE TIME"
+    },
+    {
+      "name": "Better Choices",
+      "label": "text",
+      "bbox_2d": [865, 338, 950, 390],
+      "caption": "Black serif text: 'Better Choices Brighter Days'.",
+      "text": "Better\nChoices\nBrighter\nDays"
+    },
+    {
+      "name": "City Photo",
+      "label": "object",
+      "bbox_2d": [827, 420, 950, 542],
+      "caption": "Black-and-white photo of city skyline with skyscraper."
+    },
+    {
+      "name": "Travel Section",
+      "label": "text",
+      "bbox_2d": [845, 553, 922, 575],
+      "caption": "Black sans-serif text: 'TRAVEL MORE'.",
+      "text": "TRAVEL\nMORE"
+    },
+    {
+      "name": "Travel Subtext",
+      "label": "text",
+      "bbox_2d": [845, 588, 922, 630],
+      "caption": "Small black serif text: 'New places, new stories, same you — but happier.'",
+      "text": "New places,\nnew stories,\nsame you —\nbut happier."
+    },
+    {
+      "name": "Lifestyle Section",
+      "label": "text",
+      "bbox_2d": [775, 695, 875, 707],
+      "caption": "Small black sans-serif text: 'LIFESTYLE'.",
+      "text": "LIFESTYLE"
+    },
+    {
+      "name": "Habits Headline",
+      "label": "text",
+      "bbox_2d": [775, 713, 965, 800],
+      "caption": "Bold black serif text: 'Small Habits Big Changes'.",
+      "text": "Small\nHabits\nBig Changes"
+    },
+    {
+      "name": "Habits Subtext",
+      "label": "text",
+      "bbox_2d": [775, 813, 965, 855],
+      "caption": "Small black serif text: 'Better habits. A stronger mind. A more successful you.'",
+      "text": "Better habits.\nA stronger mind.\nA more successful you."
+    },
+    {
+      "name": "Leaf Photo",
+      "label": "object",
+      "bbox_2d": [775, 875, 957, 962],
+      "caption": "Black-and-white close-up of large plant leaves."
+    },
+    {
+      "name": "Barcode",
+      "label": "object",
+      "bbox_2d": [52, 910, 192, 960],
+      "caption": "Black barcode with numbers '9 771234 567003' beneath it."
+    },
+    {
+      "name": "Beauty Slogan",
+      "label": "text",
+      "bbox_2d": [237, 935, 525, 945],
+      "caption": "Small black sans-serif text: 'BEAUTY IS A STATE OF MIND'.",
+      "text": "BEAUTY IS A STATE OF MIND"
+    },
+    {
+      "name": "Issue Info",
+      "label": "text",
+      "bbox_2d": [865, 18, 950, 38],
+      "caption": "Small black sans-serif text: 'VOL. 12 ISSUE 04 APR 2025'.",
+      "text": "VOL. 12 ISSUE 04\nAPR 2025"
+    },
+    {
+      "name": "Top Menu",
+      "label": "text",
+      "bbox_2d": [47, 20, 537, 32],
+      "caption": "Small black sans-serif text: 'LIFESTYLE / FASHION / BEAUTY / TRAVEL'.",
+      "text": "LIFESTYLE / FASHION / BEAUTY / TRAVEL"
+    }
+  ]
+}

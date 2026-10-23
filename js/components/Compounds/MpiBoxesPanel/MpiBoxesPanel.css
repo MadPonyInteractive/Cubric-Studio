@@ -1,13 +1,14 @@
 /* ── MpiBoxesPanel ───────────────────────────────────────────────────────────
    Boxes (MPI-1181). A band that slides up from behind the PromptBox: it lives in the
    box's `__boxes-slot` (bottom: 100%, overflow hidden), so translating it down by its
-   own height tucks it behind the bar's top edge. Box list left, the output frame right,
-   both top-aligned; the band grows with the list. Each box and its row carry
+   own height tucks it behind the bar's top edge. Box list left, the output frame right.
+   The band's height is set by the component (up to 200px below the window top); the
+   list scrolls inside it and the frame fills the stage. Each box and its row carry
    --box-colour (a token, set inline from the component's list). */
 
 .mpi-boxes {
     display: flex;
-    align-items: flex-start;
+    align-items: stretch;
     gap: 1.25rem;
     padding: var(--s-3) var(--s-6);
     background: var(--surface-bar);
@@ -33,11 +34,12 @@
 }
 
 .mpi-boxes__side {
-    flex: 0 0 430px;
+    flex: 0 0 var(--boxes-side-w, 430px);
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
     min-width: 0;
+    min-height: 0;
 }
 
 .mpi-boxes__header {
@@ -62,6 +64,10 @@
 }
 
 .mpi-boxes__list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 0.4rem; /* the scrollbar clears the row buttons */
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
@@ -118,11 +124,33 @@
     color: var(--ink-3);
 }
 
+/* The drag edge between the list and the picture (MpiResizeHandle inside, absolute). */
+.mpi-boxes__sash {
+    position: relative;
+    flex: 0 0 6px;
+    margin: 0 -0.3rem;
+}
+
+.mpi-boxes__sash::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 2px;
+    width: 1px;
+    background: var(--line-soft);
+}
+
+.mpi-boxes__sash .mpi-resize-handle {
+    left: 0;
+}
+
 .mpi-boxes__stage {
     flex: 1 1 auto;
     display: flex;
     align-items: flex-start;
     min-width: 0;
+    min-height: 0;
 }
 
 .mpi-boxes__frame {

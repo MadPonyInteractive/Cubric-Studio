@@ -665,7 +665,9 @@ router.post('/llm/describe', async (req, res) => {
         // vision model thought through its budget and answered EMPTY.
         const { engine } = chatEngineFor(profileId, key, profile.baseURL, profile);
         // `greedy` (Create boxes, MPI-1253): coordinates want no sampling.
+        const t0 = Date.now();
         const data = await engine.chat({ model, messages, ...(greedy && { options: { temperature: 0 } }) });
+        logger.info('system', `llm describe ${data.model || model}: ${Date.now() - t0} ms, ${data.usage?.completion_tokens ?? '?'} tokens out${greedy ? ', greedy' : ''}`);
         // MPI-941 Phase 8: the provider's own price for this call (DeepInfra sends it), so the
         // agent's figure counts its looks. Absent on a provider that sends none.
         const costUsd = Number(data.usage?.estimated_cost) || 0;
