@@ -5,9 +5,9 @@
   "description": "Umbrella for photographer-grade input: EXIF-rotated photos cut and composited in the wrong place (MPI-959) and 16K images making the History workspace unusable (big-photo performance card). Phases and parallel batch in plan.md.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-09-28T10:18:49+01:00",
-  "updated_at": "2026-09-30T20:21:19+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

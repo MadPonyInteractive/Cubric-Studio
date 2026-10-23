@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1224", "at": "2026-10-21T02:50:53+01:00", "actor": "claude", "column": "todo", "title": "Agent i2v from an open image card lands the video in that card's history, where it cannot be seen"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1224", "at": "2026-10-21T02:51:38+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "fixing agent landing type rule"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1224", "at": "2026-10-21T03:10:17+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "shipped 33f834582, CI run 39530066634 green"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1224", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

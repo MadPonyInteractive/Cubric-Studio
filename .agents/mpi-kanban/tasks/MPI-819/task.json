@@ -5,9 +5,9 @@
   "description": "Fabio, 2026-09-19, after MPI-818: make the close-out CI check mechanical. MPI-811 and MPI-781 both left the board as shipped while their own commits were red in CI. The gate must blame correctly: it blocks only the card whose code commit brought NEW failing specs (or has no verdict yet), never a close that merely happens during someone else's red - otherwise every agent is blocked again.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-09-19T08:51:04+01:00",
-  "updated_at": "2026-09-19T08:53:58+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

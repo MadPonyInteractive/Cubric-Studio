@@ -5,9 +5,9 @@
   "description": "Fabio moved the local model store to M: (2026-10-21, hash-verified). Live docs and the computeDepHashes default still name G: as the master.",
   "column": "done",
   "maturity": "complete",
-  "status": "accepted",
+  "status": "archived",
   "created_at": "2026-10-21T12:35:00+01:00",
-  "updated_at": "2026-10-21T13:06:16+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "checklist": "checklist.md",

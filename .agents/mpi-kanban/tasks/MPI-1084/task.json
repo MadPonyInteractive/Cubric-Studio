@@ -5,9 +5,9 @@
   "description": "Follow-up to MPI-1060 (Fabio, 2026-10-11: 'doesn't that sound like a fail?'). The r2v enhancer draft mislabels pictures ('rocking chair in <Picture 2>' became '<Picture 2> a rocking chair' instead of the room), writes thin descriptions ('<Picture 1> a man'), sometimes gives <Audio 1> a picture line, and is not green on Stage 1 (with pictures 9/12). Fix the wording, get --ref-tiers green twice, then Fabio renders real clips (Stage 2). The no-pictures case is MPI-1081's. See plan.md.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-11T10:51:57+01:00",
-  "updated_at": "2026-10-13T01:05:23+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

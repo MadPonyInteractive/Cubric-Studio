@@ -5,9 +5,9 @@
   "description": "Follow-up to MPI-1213: the app sends node_lock submodules in the custom_nodes install body; the Pod wrapper downloads, sha256-checks and extracts them before stamping .mpi_node_commit.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-20T23:22:24+01:00",
-  "updated_at": "2026-10-21T00:08:54+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "checklist": "checklist.md",

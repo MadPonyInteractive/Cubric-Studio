@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "id": "MPI-739", "type": "validation.updated", "at": "2026-10-18T19:19:16Z", "actor": "claude", "summary": "validation.md written from the closing commits 865b8a7ac and b079624f2."}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-739", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

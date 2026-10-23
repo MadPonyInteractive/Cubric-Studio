@@ -5,9 +5,9 @@
   "description": "Fabio 2026-10-21: on Ornith (local Ollama, 64k) the long-chat card showed on the first turn. Under 1M it shows at 75% of the compaction point; on local its title drops 'cost a little more'.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-21T15:48:36+01:00",
-  "updated_at": "2026-10-21T16:08:36+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "checklist": "checklist.md",

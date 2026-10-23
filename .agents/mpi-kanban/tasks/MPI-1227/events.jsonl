@@ -5,3 +5,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1227", "at": "2026-10-21T12:58:38+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "comfy_engine.md line 26 repointed, pre-push green"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1227", "at": "2026-10-21T13:05:54+01:00", "actor": "claude", "from": "done", "to": "doing", "reason": "peer request: bench models moved to G:/models, repoint C:/AI/loras docs"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1227", "at": "2026-10-21T13:06:16+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "bench model paths repointed to G:/models, pushed"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1227", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

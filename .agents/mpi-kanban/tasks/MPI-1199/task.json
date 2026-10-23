@@ -5,9 +5,9 @@
   "description": "2026-10-19 Fabio: Create network volume showed 'Volume not created / RunPod refused the request (500)' while the 50 GB EU-RO-1 volume did exist on the account. The route surfaced the raw status, logged nothing, and the renderer never reloaded the list, so the user saw no volume and a second Create would bill a duplicate. Fix: on a 5xx the route re-lists and adopts the new volume (name + DC, absent before the POST); every create logs status + body.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-19T13:32:49+01:00",
-  "updated_at": "2026-10-19T13:36:04+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

@@ -3,3 +3,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1141", "at": "2026-10-14T14:08:01+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Fabio: snapped edges come loose on a ratio change"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1141", "at": "2026-10-14T14:10:26+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Snapped edges stay snapped, 3fa00508f"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1141", "at": "2026-10-14T14:29:00+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio confirmed live: Perfect"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1141", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

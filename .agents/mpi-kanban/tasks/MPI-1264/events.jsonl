@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1264", "at": "2026-10-23T23:22:15+01:00", "actor": "claude", "column": "todo", "title": "Trim the project CLAUDE.md: it loads on every request"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1264", "at": "2026-10-23T23:22:35+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "trim started"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1264", "at": "2026-10-23T23:24:06+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CLAUDE.md 10.2 KB -> 9.0 KB; cut detail verified in target docs"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1264", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

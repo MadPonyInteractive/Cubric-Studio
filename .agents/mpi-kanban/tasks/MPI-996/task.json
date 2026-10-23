@@ -5,9 +5,9 @@
   "description": "The agent told a user it can search and browse the web. It has no web tool; the honest-limits list never said so. Add the line, no web tool built.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-09-30T09:30:46+01:00",
-  "updated_at": "2026-09-30T09:59:09+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

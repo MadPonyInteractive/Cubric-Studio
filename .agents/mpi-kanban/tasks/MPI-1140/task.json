@@ -5,9 +5,9 @@
   "description": "New MCP tool import_media: a picture, clip or sound on the user's disk lands as a gallery card through the gallery's own upload path, in the named or open project.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-14T11:15:35+01:00",
-  "updated_at": "2026-10-14T13:04:22+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

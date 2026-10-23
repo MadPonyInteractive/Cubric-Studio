@@ -5,9 +5,9 @@
   "description": "CI 38122461080 (3421921ca, MPI-1075) failed tests/desktop/flow-slide-scroll-reaches-top.spec.js 3/3 retries with noSlide, then passed on rerun. The spec sleeps 300/400 ms after each Next click, but data-active is set in a rAF, and the shell window can still be hidden (reveal waits on the landing's mascot clips) when shellWindow returns. Wait for the real condition instead.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-11T10:07:45+01:00",
-  "updated_at": "2026-10-11T10:34:57+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

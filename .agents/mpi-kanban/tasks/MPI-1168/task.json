@@ -5,9 +5,9 @@
   "description": "MCP view_card only (umbrella MPI-1170): scene-change frame pick with uniform fallback, near-dup drop, from/to window, separate full-size frames with absolute times. Cosmo's 6-frame sheet unchanged.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-17T15:14:22+01:00",
-  "updated_at": "2026-10-17T19:55:24+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

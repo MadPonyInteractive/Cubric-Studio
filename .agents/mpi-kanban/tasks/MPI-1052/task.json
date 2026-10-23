@@ -5,9 +5,9 @@
   "description": "The RunPod connect toast said 'staging 18 models' with 3 installed: the count included every cloud (DeepInfra) model, which has no files on the Pod. Count only models that resolve files to stage. Found during the MPI-1051 live test.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-09T12:27:05+01:00",
-  "updated_at": "2026-10-09T12:42:35+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

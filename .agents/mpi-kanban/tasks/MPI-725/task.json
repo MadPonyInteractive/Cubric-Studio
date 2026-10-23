@@ -5,9 +5,9 @@
   "description": "Fabio re-authored krea2_t2i_template.json in ComfyUI. Convert against the app engine, validate, bake the two runtime files, and write the two user-visible changes into UNRELEASED.md.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-09-11T12:50:09+01:00",
-  "updated_at": "2026-09-11T12:58:23+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

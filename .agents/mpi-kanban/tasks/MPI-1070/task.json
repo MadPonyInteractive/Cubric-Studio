@@ -5,9 +5,9 @@
   "description": "Fabio, 2026-10-10, live: connected the No GPU (download-only) Pod to upload a LoRA, then could not open any project: warning toast 'This is a download-only Pod (no GPU). Install models, then pick a GPU in Settings -> RunPod and Connect to generate.' He expected to keep working in a project with DeepInfra or his local GPU meanwhile. Cause: two layers disagree. MPI-88 (57f3d8e47) added _blockedByDownloadMode() in js/shell/projectUI.js (called at :266 and :563) when a CPU Pod could not generate at all. MPI-539 (629ab6cbe, 2026-08-11) later made a download-mode Pod a download TARGET only: comfyController getEngine (:2304) and commandExecutor (:766, :838, :1756) resolve the LOCAL engine whenever remoteEngineClient.isDownloadOnly(). The navigation gate was never removed, so it now blocks work the engine already supports. Likely fix: drop the gate (both call sites) and check what a project needs while the CPU Pod is connected: local generation, DeepInfra models, Flows, the model pickers (the home strip read 'Models 0 / 24' on the CPU Pod: probably the Pod's install set, which says nothing about the local engine that will actually run), and stage-on-connect (MPI-496 covers staging onto the CPU Pod). Found while proving MPI-1057 U4 (Upload models on the CPU Pod).",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-10T23:56:12+01:00",
-  "updated_at": "2026-10-11T00:32:53+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

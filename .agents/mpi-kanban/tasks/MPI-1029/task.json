@@ -5,9 +5,9 @@
   "description": "Windows ERROR_NO_SYSTEM_RESOURCES on aimdo's unbuffered reads of the 25 GB H3 text encoder; upstream open, workaround --disable-dynamic-vram, which the MPI-1024 fallback only triggers on allocation faults.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-06T08:06:53+01:00",
-  "updated_at": "2026-10-06T13:28:55+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

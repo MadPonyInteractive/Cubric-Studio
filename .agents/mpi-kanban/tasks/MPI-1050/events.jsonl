@@ -3,3 +3,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1050", "at": "2026-10-09T09:56:04Z", "actor": "agent", "fields": ["description", "maturity", "status", "title"]}
 {"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-1050", "at": "2026-10-09T09:56:04Z", "actor": "agent", "summary": "tests + eslint pass; live check on the next Pod connect remains"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1050", "at": "2026-10-09T12:25:07+01:00", "actor": "agent", "from": "doing", "to": "done", "reason": "fix live-proven on Pod hupqy4ocz0lus6 (install + reconnect re-run), CI 37922285517 green"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1050", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

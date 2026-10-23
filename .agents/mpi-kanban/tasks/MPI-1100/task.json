@@ -5,9 +5,9 @@
   "description": "Fabio 2026-10-12: agents keep shipping actions that run silently (MPI-623 Convert to 360 pano ran ~1.5 min on the GPU via a direct runSceneOp, queue empty, status bar IDLE). Write a project rule in .claude/rules/dos_and_donts.md (+ Sub-Agent Briefing line, CLAUDE.md Snapshot line, rules README route) naming the real channels: generation queue, Transfers, toasts, status bar. Rule text only, no app code.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-12T07:48:05+01:00",
-  "updated_at": "2026-10-12T07:52:51+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

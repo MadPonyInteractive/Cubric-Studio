@@ -5,9 +5,9 @@
   "description": "A tester gave Cosmo a picture to show the camera angle he wanted for a video idea; Cosmo edited the picture. Its Model rule only knows an attachment as the thing to change (edit/i2i) or a re-run, and the ref2v note says references steer who and what appears, never how the shot is framed or moves. Teach the router and the three reference guides (H3 Reference, Seedance 2.0, Wan 3.0) that a picture can give the camera angle and framing and a clip the camera move, as a reference for a NEW clip.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-17T13:51:57+01:00",
-  "updated_at": "2026-10-17T19:44:42+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

@@ -2,3 +2,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1081", "at": "2026-10-11T10:32:28+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "plan written; implementing r2v-no-ref -> t2v fix"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1081", "at": "2026-10-11T10:34:15+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "auto verify passed: llm-service 31/31, mutation-checked; awaiting close-out commit"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1081", "at": "2026-10-11T11:08:45+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on 6706eed74; llm-service 31/31, mutation-checked; auditor 14/14"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1081", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

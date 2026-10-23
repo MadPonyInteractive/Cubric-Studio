@@ -5,9 +5,9 @@
   "description": "Fabio changed his mind on MPI-1162: the History hover flyout also shows on gallery cards, but only after the pointer rests ~2 s so it does not pollute browsing. History keeps 400 ms. Stacks get none.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-23T19:45:10+01:00",
-  "updated_at": "2026-10-23T21:18:44+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

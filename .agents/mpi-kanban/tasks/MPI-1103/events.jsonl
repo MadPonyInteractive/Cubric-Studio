@@ -3,3 +3,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1103", "at": "2026-10-12T08:03:29+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "rule amended; docs only"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1103", "at": "2026-10-12T08:14:24+01:00", "actor": "claude", "from": "done", "to": "doing", "reason": "Fabio: CPU jobs reuse the Transfers row, no new row or flash"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1103", "at": "2026-10-12T08:15:13+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "rule: CPU jobs reuse the Transfers row"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1103", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

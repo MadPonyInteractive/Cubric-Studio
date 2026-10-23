@@ -5,9 +5,9 @@
   "description": "Fabio's idea (MPI-892 look, 2026-09-30), umbrella MPI-1000. A spoken line asked for with no voice sample ('an old man saying ...'): Cosmo offers [Pick from the voice library | You pick one]. The first opens the voice Flow with the library in its picker (today's open-the-Flow offer). The second has Cosmo choose a voice from js/data/voiceLibrary.js by register, kind and accent to match the words ('an old man', 'a documentary voice', 'a girl'), pass it as the sample and run. Applies to BOTH voice Flows: Text to Speech (Chatterbox) and DramaBox each take an optional sample. First step: check what each does with no sample, and how the agent can pass a library voice as the media.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-09-30T20:35:59+01:00",
-  "updated_at": "2026-10-01T11:49:50+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

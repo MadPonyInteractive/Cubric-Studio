@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": [".agents/mpi-kanban/tasks/MPI-1265/", ".agents/mpi-kanban/board.json", ".agents/mpi-kanban/events.jsonl", ".agents/mpi-kanban/tasks/*/task.json", ".agents/mpi-kanban/tasks/*/events.jsonl"] }

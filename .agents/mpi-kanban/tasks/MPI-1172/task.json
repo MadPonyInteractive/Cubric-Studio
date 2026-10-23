@@ -5,9 +5,9 @@
   "description": "Fabio 2026-10-17: a Scribble or Draw It In card's history opens with the user's drawing, then the result. Graph saves the drawing (Output_Image_0), outputVersions lands it as a version.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-17T20:08:46+01:00",
-  "updated_at": "2026-10-18T08:31:45+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

@@ -5,9 +5,9 @@
   "description": "UMBRELLA: MPI-1102 - No silent work: every job shows in the queue (umbrella) (consolidation sweep 2026-10-12). Members and phase order: tasks/MPI-1102/plan.md. Amend the MPI-1100 rule section in .claude/rules/dos_and_donts.md (Fabio's permission, 2026-10-12): a job with no real progress number shows the indeterminate sweep (status bar: tool:indeterminate / StatusBar.progress.setIndeterminate, MPI-147; elsewhere: MpiProgressBar mpi-progress--loading). GPU work = generation queue + status bar; non-GPU work (downloads, uploads, CPU) = a queue panel row with a progress bar. Trigger: the 360 pano queue fix shipped with no progress at all and Fabio had to ask for the sweep separately.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-12T08:01:56+01:00",
-  "updated_at": "2026-10-12T08:15:13+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

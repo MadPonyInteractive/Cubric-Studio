@@ -3,3 +3,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1142", "at": "2026-10-16T09:35:09+01:00", "actor": "claude", "from": "done", "to": "doing", "reason": "Reopened: put the speed/stall diagnostics behind one flag (Fabio)"}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1142", "at": "2026-10-16T09:35:25+01:00", "actor": "claude", "fields": {"status": "active"}}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1142", "at": "2026-10-16T09:52:54+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Diagnostics flag shipped; CI green on 9a84245eb; evidence in validation.md"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1142", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

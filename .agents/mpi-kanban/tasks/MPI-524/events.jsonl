@@ -3,3 +3,4 @@
 {"schema":"mpi-kanban/event/v1","id":"MPI-524","type":"task.updated","at":"2026-08-14T00:50:00Z","actor":"claude","summary":"Healed stale line-number pointers found by the close-out claim auditor; file and symbol names were correct."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-524", "at": "2026-09-17T11:37:09+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Work already landed in 2ce60ea5; passing through doing to close."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-524", "at": "2026-09-17T11:37:09+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Closed on commit 2ce60ea5 (Fabio 2026-09-17); evidence in validation.md."}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-524", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

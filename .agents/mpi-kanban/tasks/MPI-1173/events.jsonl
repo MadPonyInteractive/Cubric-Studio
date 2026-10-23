@@ -3,3 +3,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1173", "at": "2026-10-18T08:32:59+01:00", "actor": "ef1ca650-c8ed-46f4-8d7c-fc770b9c3283", "from": "doing", "to": "done", "reason": "Fabio's uploaded doodle went through; log shows the doodle path"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1173", "at": "2026-10-18T08:41:30+01:00", "actor": "ef1ca650-c8ed-46f4-8d7c-fc770b9c3283", "from": "done", "to": "doing", "reason": "record the Gemma 4 26B bench (Fabio's describer)"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1173", "at": "2026-10-18T08:42:12+01:00", "actor": "ef1ca650-c8ed-46f4-8d7c-fc770b9c3283", "from": "doing", "to": "done", "reason": "Gemma 4 26B bench recorded"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1173", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

@@ -5,9 +5,9 @@
   "description": "Core's MiniMaxH3ImageToVideo cannot take a connected-but-empty first_frame/last_frame, so the fl2va workflow carries a four-way boolean lattice (four node copies, four packers, has_img1/has_img2/is_i2v). Wrap it the way MpiH3References (h3.py:233) wraps ref2v: flat always-present optional inputs, _is_blank_image() drops None and the 1x1 loader sentinel, conditioning delegated to core's execute. Also unblocks rebuilding i2v conditioning at upscaled dimensions for the latent-upscaler refine pass, which today would mean duplicating the lattice.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-09-04T10:54:28Z",
-  "updated_at": "2026-09-07T12:11:42+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

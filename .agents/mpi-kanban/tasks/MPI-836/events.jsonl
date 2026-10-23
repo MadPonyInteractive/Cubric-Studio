@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-836", "at": "2026-09-20T07:59:41+01:00", "actor": "claude", "column": "todo", "title": "GIF workspace: every operation respects the trim bar; Speed and Loop fold into GIF output, Timing group leaves the rail"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-836", "at": "2026-09-20T08:00:14+01:00", "actor": "claude", "from": "todo", "to": "doing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-836", "at": "2026-09-20T08:59:24+01:00", "actor": "claude", "from": "doing", "to": "done"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-836", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1197", "at": "2026-10-19T04:00:06+01:00", "actor": "claude", "column": "doing", "title": "Video Edit: a Video Edit result fed back in as the clip comes out ~0.6 s late"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1197", "at": "2026-10-19T04:48:13+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Lead-in fix pushed ca982394f; bench V1/V2 in step; awaiting Fabio's eye test + CI"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1197", "at": "2026-10-19T09:16:34+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Lead-in fix ca982394f, CI 39196400277 green; Fabio's in-app re-run of _009 in sync"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1197", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

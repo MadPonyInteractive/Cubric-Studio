@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1192", "at": "2026-10-19T01:27:12+01:00", "actor": "claude", "column": "todo", "title": "A Stop that crashes the engine opens the Generation failed dialog instead of ending as cancelled"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1192", "at": "2026-10-19T01:28:08+01:00", "actor": "claude", "from": "todo", "to": "doing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1192", "at": "2026-10-19T01:56:50+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fix 91f2d55d5, CI run 39182020468 green"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1192", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

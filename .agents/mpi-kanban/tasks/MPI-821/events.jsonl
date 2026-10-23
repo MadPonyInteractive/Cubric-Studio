@@ -2,3 +2,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-821", "at": "2026-09-19T12:20:01+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started: parts 1, 2, 4. Part 3 blocked on a scope question."}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-821", "at": "2026-09-19T12:45:41+01:00", "actor": "claude", "summary": "All four parts shipped and pushed. One user-ux check left for Fabio."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-821", "at": "2026-09-19T13:10:41+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "All four parts shipped, CI green on 0693c520, claim audit clean after one doc heal."}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-821", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

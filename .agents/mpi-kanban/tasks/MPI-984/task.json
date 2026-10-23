@@ -5,9 +5,9 @@
   "description": "Follow-up to MPI-980 (Fabio, 2026-09-29). With a video card open, the agent's App state line named the clip but not the playhead, so 'edit this frame' while paused on frame 103 would send the clip and the app would use frame 0. The history workspace now publishes the frame its counter shows (activeMask pattern), the turn's workspace carries it, and the App state line says which frame is on screen: frame 0 goes as the video, any other frame is the user's right-click Create snapshot (Fabio's MPI-980 rule).",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-09-29T13:17:32+01:00",
-  "updated_at": "2026-09-29T13:36:18+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

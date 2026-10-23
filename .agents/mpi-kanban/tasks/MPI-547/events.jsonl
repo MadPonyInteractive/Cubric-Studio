@@ -9,3 +9,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-547", "at": "2026-09-14T16:33:42Z", "actor": "session:144809aa", "summary": "maturity validating; attention required for phase 5 live smoke"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-547", "at": "2026-09-15T07:37:29+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Phase 5 PASS on the user's app; batch pin and seed fix committed in bd8c87b3"}
 {"schema": "mpi-kanban/event/v1", "id": "MPI-547", "type": "attention.cleared", "at": "2026-10-18T19:18:51Z", "actor": "claude", "summary": "Phase 5 live smoke passed (run 2, seed 67890 in sidecar + Comfy history); validation.md records it."}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-547", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

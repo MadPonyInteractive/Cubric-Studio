@@ -5,9 +5,9 @@
   "description": "Fabio 2026-10-04, 2.0 gate: the video history workspace gets the PromptBox media strip with its + card (pop-up library) like gallery and image history, offers reference-video models (MiniMax H3 Reference was hidden: the screen listed i2v-only models), and retires the Start/End frame panel (MpiToolOptionsPrompt) and Continue video Extend/New shot (Combine already joins clips). Consistency before 2.0, no deadline.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-04T08:43:52+01:00",
-  "updated_at": "2026-10-04T11:01:27+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

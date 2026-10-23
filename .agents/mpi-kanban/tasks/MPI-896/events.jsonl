@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-896", "at": "2026-09-22T11:13:06+01:00", "actor": "mpi-project-refresh (MPI-893)", "column": "todo", "title": "Feedback surface (umbrella): the app tells the user what it is doing, and when it failed"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-896", "at": "2026-10-18T15:58:51+01:00", "actor": "claude", "from": "todo", "to": "done", "reason": "Merged into MPI-1102 (No silent work), Fabio 2026-10-18 (board tidy)."}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-896", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

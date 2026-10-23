@@ -2,3 +2,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1118", "at": "2026-10-12T21:13:50+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "starting the fix"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1118", "at": "2026-10-12T21:18:30+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "shipped 96432ac69; waiting on CI"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1118", "at": "2026-10-12T21:49:42+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on 96432ac69, dc779d5c2, 355226052; covers 68/76 live; empty-card Cosmo eye-tested by Fabio"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1118", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

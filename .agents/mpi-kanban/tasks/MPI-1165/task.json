@@ -5,9 +5,9 @@
   "description": "A tester pressed Stop on a generation Cosmo started; Cosmo read it as a failure and queued it again, and when told it was cancelled it cancelled its own re-run. A user Stop reaches the agent as CANCELLED with 'cancelled or produced no output', which the loop reported as 'Generation failed' and kept in the unfinished ledger whose text says to send it again.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-17T14:12:37+01:00",
-  "updated_at": "2026-10-17T19:44:48+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

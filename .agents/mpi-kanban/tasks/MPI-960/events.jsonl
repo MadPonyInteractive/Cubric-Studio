@@ -2,3 +2,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-960", "at": "2026-09-28T10:14:18+01:00", "actor": "claude", "from": "todo", "to": "doing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-960", "at": "2026-09-28T10:17:58+01:00", "actor": "claude", "from": "doing", "to": "doing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-960", "at": "2026-09-28T10:18:52+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio confirmed; shipped b10d94ef3"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-960", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

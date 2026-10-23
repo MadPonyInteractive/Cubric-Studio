@@ -3,3 +3,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1073", "at": "2026-10-11T17:37:13+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on 505985510 (run 1624); Fabio eye-tested carry-over, Pick, ProRes in DaVinci"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1073", "at": "2026-10-11T17:43:11+01:00", "actor": "claude", "from": "done", "to": "doing", "reason": "Fabio asked: refresh .claude/rules component maps for MPI-1073"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1073", "at": "2026-10-11T17:44:17+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "component maps refreshed for MPI-1073 (Fabio's yes)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1073", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

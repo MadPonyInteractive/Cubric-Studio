@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-701", "at": "2026-09-06T13:40:00Z", "actor": "validate_board --fix", "column": "doing", "title": "MpiWindowedSampler: slice the audio to the window, or lip-sync breaks at every seam"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-701", "at": "2026-09-06T14:27:36+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Audio slice confirmed by Fabio on both the plain refine and the VDN path: window 2 lip-syncs, seam clean."}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-701", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

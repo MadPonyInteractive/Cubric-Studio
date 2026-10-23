@@ -5,9 +5,9 @@
   "description": "Fabio, 2026-10-14: in the Image workspace Crop tool, picking a different ratio throws the box away and re-centres a fresh max box, so a carefully placed/scaled box must be redone on every ratio click. Worse, after a ratio change the image fills the stage and the crop box is no longer visible, even across tool switches, until leaving to the gallery and back. Fix in CropManager (shared with the Flow crop step) and the video twin cropTool.js.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-14T13:52:48+01:00",
-  "updated_at": "2026-10-14T14:29:00+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

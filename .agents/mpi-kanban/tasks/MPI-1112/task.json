@@ -5,9 +5,9 @@
   "description": "comfyController._onWsDropped (MPI-563/B4, written for Pod OOM) fires for the local-pinned engine too: Fabio's local Transcribe crashed ComfyUI (Qwen3-ASR access violation, 2026-10-12) and got two 'Remote engine disconnected / Pod' toasts and remote phase none->disconnected. Fix: local engine gets its own message and never emits remote:engine-dropped.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-12T09:00:59+01:00",
-  "updated_at": "2026-10-12T09:03:09+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

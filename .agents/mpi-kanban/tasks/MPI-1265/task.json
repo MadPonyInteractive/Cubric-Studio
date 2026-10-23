@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1265",
+  "title": "Archive the done cards in place (plugin 1.7.1)",
+  "description": "565 done cards crowd the board. Archive them in place with task_ops archive --all-done: ids leave the done column, folders stay under tasks/<id>/ so the 95 tracked files linking into them keep working.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-23T23:41:08+01:00",
+  "updated_at": "2026-10-23T23:42:01+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

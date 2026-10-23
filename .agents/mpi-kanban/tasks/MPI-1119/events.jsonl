@@ -7,3 +7,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1119", "at": "2026-10-13T06:27:56+01:00", "actor": "claude", "from": "done", "to": "doing", "reason": "reopen: Cosmo's 360-video explanation invented point direction and called Render path stitching (Fabio)"}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1119", "at": "2026-10-13T06:27:58+01:00", "actor": "claude", "patch": {"status": "active"}, "reason": "reopen left status done (task_ops move trap)"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1119", "at": "2026-10-13T06:50:19+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "360 guide + routing fix shipped, CI green, Fabio's live check passed"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1119", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

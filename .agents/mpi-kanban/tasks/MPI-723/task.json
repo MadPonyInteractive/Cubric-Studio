@@ -5,9 +5,9 @@
   "description": "media:imported has exactly ONE listener and it lives inside MpiGalleryBlock, but one block is mounted at a time - so an import from the history workspace (PromptBox drop, the MPI-721 + picker's upload card, Record) writes the file and its sidecar to disk and never builds the ItemGroup. Split that listener: the item/group/addGroup half moves to an app-lifetime service, the grid repaint stays in the block. The importer must NOT navigate - a drop in an image history group adds the gallery card and leaves the user on the group they are editing. Plan: plan.md",
   "column": "done",
   "maturity": "complete",
-  "status": "completed",
+  "status": "archived",
   "created_at": "2026-09-11T02:34:41+01:00",
-  "updated_at": "2026-09-11T04:20:00+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

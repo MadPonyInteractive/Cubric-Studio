@@ -2,3 +2,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-729", "at": "2026-09-12T09:48:44+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio approved the stacked back-chip design"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-729", "at": "2026-09-12T09:53:27+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "shipped and probed; Fabio's eye on the spacing is the one check left"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-729", "at": "2026-09-12T10:38:59+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio verified live: tested it, serves its purpose"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-729", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

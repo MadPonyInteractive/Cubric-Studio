@@ -5,9 +5,9 @@
   "description": "Clicking a Ready Flow skips the detail slide-over and opens the frame, whose phase 1 already carries the same title, hero and description. The model picker follows to the run slide and pairs with the LoRA cogwheel, which drops its slot label - the dropdown names the model, so 'Render model' / 'Edit model' stop being invented per flow. Read brief.md.",
   "column": "done",
   "maturity": "complete",
-  "status": "completed",
+  "status": "archived",
   "created_at": "2026-08-28T07:25:57Z",
-  "updated_at": "2026-08-28T08:48:30Z",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "labels": [
     "ux",
     "flow",

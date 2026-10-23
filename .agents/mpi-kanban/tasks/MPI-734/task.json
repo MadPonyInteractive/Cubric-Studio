@@ -5,9 +5,9 @@
   "description": "UMBRELLA: MPI-732. Reverses MPI-515. PiD keeps its ModelDef and Library card; installing it activates all four plugins (shared requiredDeps, the Krea2 + image-describer shape). Carries an unsolved design problem: uninstalling one plugin makes PiD read uninstalled. See plan.md.",
   "column": "done",
   "maturity": "rejected",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-09-12T12:27:24+01:00",
-  "updated_at": "2026-09-13T08:30:57+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

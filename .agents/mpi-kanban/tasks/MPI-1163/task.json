@@ -5,9 +5,9 @@
   "description": "A stalled or timed-out stream from models.cubric.studio spends its same-url retries and then tries the mirror before failing, keeping the partial.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-17T07:00:27+01:00",
-  "updated_at": "2026-10-17T07:25:17+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

@@ -2,3 +2,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1172", "at": "2026-10-17T20:09:40+01:00", "actor": "claude", "from": "todo", "to": "doing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1172", "at": "2026-10-17T20:11:49+01:00", "actor": "claude", "from": "doing", "to": "doing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1172", "at": "2026-10-18T08:31:45+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio eye-tested Scribble: drawing first, then result"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1172", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

@@ -5,9 +5,9 @@
   "description": "The pattern matches command TEXT, so grep/sed/git naming the runner are blocked; and its exemption lookahead scans the whole line, so a --self-check in a later segment exempts a genuine unleased invocation.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-09-05T10:04:14+01:00",
-  "updated_at": "2026-09-05T10:07:04+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

@@ -3,3 +3,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-779", "at": "2026-09-16T12:54:03+01:00", "actor": "claude", "from": "doing", "to": "done"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-779", "at": "2026-09-16T12:57:08+01:00", "actor": "claude", "from": "done", "to": "doing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-779", "at": "2026-09-16T12:57:25+01:00", "actor": "claude", "from": "doing", "to": "done"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-779", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

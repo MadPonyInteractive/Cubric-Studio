@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1126", "at": "2026-10-13T07:35:14+01:00", "actor": "claude", "column": "todo", "title": "MCP: install the ComfyUI engine, models and Flows from an outside agent"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1126", "at": "2026-10-13T07:49:42+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio: start it"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1126", "at": "2026-10-13T08:52:13+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Shipped 00cb6b286 + 0a2f9d08e, CI green; live model, Flow and first engine install verified"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1126", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1174", "at": "2026-10-17T20:53:14+01:00", "actor": "claude", "column": "doing", "title": "Character Sheet Editor sheetCuts: the margin left of the front figure is not a gap"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1174", "at": "2026-10-17T21:03:57+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "pushed 09fcb3f53 + red-master spec fix e81ebe3da; awaiting CI"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1174", "at": "2026-10-17T21:17:26+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI 39065114561 green on e81ebe3da (holds 09fcb3f53); in-app measure 490,908"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1174", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

@@ -3,3 +3,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-497", "at": "2026-10-01T15:53:13+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fixed under MPI-513 Phase 2 (9c593af5f); moving through doing to close"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-497", "at": "2026-10-01T15:53:14+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fixed by MPI-513 9c593af5f: no-op install completes silently, finished jobs expire; CI 36878091671 green"}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-497", "at": "2026-10-01T15:53:48+01:00", "actor": "claude", "summary": "status open -> done; checklist linked. Fixed by MPI-513 9c593af5f, CI green."}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-497", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

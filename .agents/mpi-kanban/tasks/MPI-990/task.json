@@ -5,9 +5,9 @@
   "description": "cropExtended pads through a toBuffer() intermediate in the INPUT format, so an overhang crop of a JPEG passes through an extra q80 encode (up to 96/channel off). Extract the intersection, then extend by the overhang, in one sharp pipeline: no intermediate, no 16K memory spike.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-09-29T14:35:58+01:00",
-  "updated_at": "2026-09-29T14:58:29+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

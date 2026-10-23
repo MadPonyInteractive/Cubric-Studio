@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1214", "at": "2026-10-20T23:22:24+01:00", "actor": "claude", "column": "todo", "title": "Ultimate SD Upscale on the Pod: the wrapper installs the pinned submodule, not the node at import"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1214", "at": "2026-10-20T23:22:24+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "starting work"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1214", "at": "2026-10-21T00:08:54+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "wrapper 0.2.48 promoted; live Pod: USDU installed fresh, no Coyote fetch, upscale x2 ran"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1214", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

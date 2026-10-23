@@ -5,9 +5,9 @@
   "description": "Every session starts at ~99k tokens and re-sends it on ~112 requests. Cut the parts we own: global CLAUDE.md memory list (25 KB), project MEMORY.md (16 KB), unused repo skills + duplicate audit command, the dead board.json events key (312 KB), stale worktrees. Move durable codebase facts out of memory into docs/rules.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-23T22:02:17+01:00",
-  "updated_at": "2026-10-23T22:18:00+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

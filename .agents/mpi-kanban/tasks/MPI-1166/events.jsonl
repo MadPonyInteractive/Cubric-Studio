@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1166", "at": "2026-10-17T14:12:39+01:00", "actor": "claude", "column": "doing", "title": "Cosmo answers 'did you understand? don't start yet' without generating"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1166", "at": "2026-10-17T19:44:50+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Eye-tested and passed by Fabio 2026-10-17; evidence in validation.md"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1166", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

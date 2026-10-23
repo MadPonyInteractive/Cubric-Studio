@@ -5,9 +5,9 @@
   "description": "Cloud tiles in the model selector overlay carry the same price chip + unit the Model Library tile shows; quote logic shared from deepinfraPricing.js.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-09-25T07:42:25+01:00",
-  "updated_at": "2026-09-25T08:51:24+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

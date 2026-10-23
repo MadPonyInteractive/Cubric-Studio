@@ -2,3 +2,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1150", "at": "2026-10-15T23:27:45+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Relabelled; 107 registry tests pass"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1150", "at": "2026-10-15T23:29:07+01:00", "actor": "claude", "from": "done", "to": "doing", "reason": "Reopened until CI judges 4971c9b8 (pre-push done-gate)"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1150", "at": "2026-10-15T23:43:49+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on c6235b5a (code 4971c9b8)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1150", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

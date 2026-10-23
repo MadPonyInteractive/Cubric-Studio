@@ -5,9 +5,9 @@
   "description": "Research only: ranked shortlist + bench plan for keeping faces on-sheet in MiniMax H3 Reference to Video (ref2v_ms). Sibling of MPI-1096 (LTX). Nothing ships until Fabio picks.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-13T15:46:43+01:00",
-  "updated_at": "2026-10-14T08:24:13+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

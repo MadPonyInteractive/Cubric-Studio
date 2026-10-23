@@ -5,9 +5,9 @@
   "description": "On a Windows PC with no git on PATH, the in-place engine upgrade calls ensureGit (Linux/macOS only), throws, and falls back to the full ~1 GB wipe and re-download. Move it in place with the portable's own pygit2.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-19T02:39:20+01:00",
-  "updated_at": "2026-10-19T03:16:10+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

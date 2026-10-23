@@ -3,3 +3,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1201", "at": "2026-10-19T14:44:36+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Model-rule sentence + bench case + finding; agent prompt tests 203 pass / 71 pass. Bench case not run live (bills DeepInfra)."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1201", "at": "2026-10-19T14:56:29+01:00", "actor": "claude", "from": "done", "to": "doing", "reason": "reopen until CI judges the code commit (done-gate)"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1201", "at": "2026-10-19T15:11:08+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on 8dbc37ca1 (run 39264533597), covers e2c7fb9d0"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1201", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

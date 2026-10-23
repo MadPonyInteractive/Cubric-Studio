@@ -10,3 +10,4 @@
 {"schema": "mpi-kanban/event/v1", "id": "MPI-1147", "at": "2026-10-15T15:28:47Z", "actor": "claude", "type": "validation.updated", "summary": "Fabio verified in the app; CI green on 279ff0d94."}
 {"schema": "mpi-kanban/event/v1", "id": "MPI-1147", "at": "2026-10-15T15:28:47Z", "actor": "claude", "type": "attention.cleared", "reason": "Fabio's look done, CI green."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1147", "at": "2026-10-15T16:28:47+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio verified in the app; CI green on 279ff0d94."}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1147", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

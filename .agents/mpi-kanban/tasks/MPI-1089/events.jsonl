@@ -2,3 +2,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1089", "at": "2026-10-11T16:27:09+01:00", "actor": "c6245873-da01-469b-b560-ed11870ac4c6", "from": "todo", "to": "doing", "reason": "Fabio approved the fix shape 2026-10-11"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1089", "at": "2026-10-11T16:31:40+01:00", "actor": "c6245873-da01-469b-b560-ed11870ac4c6", "from": "doing", "to": "doing", "reason": "automated checks passed; Fabio's eye test left"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1089", "at": "2026-10-11T17:10:28+01:00", "actor": "c6245873-da01-469b-b560-ed11870ac4c6", "from": "doing", "to": "done", "reason": "Fabio passed the eye test; CI green on 406dbec1e"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1089", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

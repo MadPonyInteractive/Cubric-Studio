@@ -5,9 +5,9 @@
   "description": "UMBRELLA: MPI-1102 - No silent work: every job shows in the queue (umbrella) (consolidation sweep 2026-10-12). Members and phase order: tasks/MPI-1102/plan.md. Fabio 2026-10-12: nothing new - reuse what exists. Transfers in MpiQueuePanel (MPI-1057, _transfers / _renderTransfers) lists state.downloadJobs / state.uploadJobs, each row already an MpiProgressBar. Add one more row kind for a CPU job (ffmpeg, sharp, a file copy, a cleanup) to that same list. No real % = toggle the existing mpi-progress--loading class on that bar (the same moving sweep MpiInstalledDisplay uses, MPI-95, and the status bar's sb-indeterminate, MPI-147). No new component, no new animation. Row leaves on done / failed / cancelled like a download. Every other member that moves a non-GPU action into the queue depends on this. Never the status bar: that is GPU only.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-12T08:01:58+01:00",
-  "updated_at": "2026-10-14T14:19:14+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

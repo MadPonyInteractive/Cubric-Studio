@@ -5,9 +5,9 @@
   "description": "Lose one common dep and the model keeps exclusive evidence, so _localSharedDepsMap protects its whole universe and the orphan sweep skips it - while anyInstalled goes false and the card shows Install, never Uninstall. Bytes are held and unreachable. Reproducible today with one root.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-08-29T10:24:00+01:00",
-  "updated_at": "2026-08-29T11:45:13+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

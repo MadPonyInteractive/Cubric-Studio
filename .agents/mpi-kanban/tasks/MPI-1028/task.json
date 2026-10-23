@@ -5,9 +5,9 @@
   "description": "Generating placeholders fail the marks/kinds filter (no mark, input-frame item reads as image), and the chip reads the input-preview frame instead of the group type.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-06T08:04:14+01:00",
-  "updated_at": "2026-10-06T08:24:27+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

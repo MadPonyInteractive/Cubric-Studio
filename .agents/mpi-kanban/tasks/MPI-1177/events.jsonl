@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1177", "at": "2026-10-18T09:28:17+01:00", "actor": "claude", "column": "todo", "title": "Cosmo turns a drawing the user already has into a picture on any edit model"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1177", "at": "2026-10-18T09:28:59+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio: Cosmo needs the prompting, not the Flow"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1177", "at": "2026-10-18T09:47:23+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio's live test: Cosmo wrote the pose into the prompt on Klein and Nano Banana; CI green"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1177", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1259", "at": "2026-10-23T16:51:46+01:00", "actor": "claude", "column": "todo", "title": "Cosmo picks the tile size from the result size"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1259", "at": "2026-10-23T16:52:00+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Tile upscaler improvements 7 writes the tile-size rule"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1259", "at": "2026-10-23T16:53:21+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "tile-size-by-result-size rule in Cosmo's upscaling guide"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1259", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-937", "at": "2026-09-26T10:08:37+01:00", "actor": "38851c30", "column": "doing", "title": "A Stopped cloud run that the provider then FAILS pops the error dialog"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-937", "at": "2026-09-26T10:13:41+01:00", "actor": "38851c30", "from": "doing", "to": "done", "reason": "Stopped-then-failed cloud run ends as a Stop; unit + desktop spec + mutation checks"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-937", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

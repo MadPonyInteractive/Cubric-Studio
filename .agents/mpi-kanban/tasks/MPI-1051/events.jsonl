@@ -2,3 +2,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1051", "at": "2026-10-09T12:10:22+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1051", "at": "2026-10-09T12:13:27+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Code + tests landed; waiting on CI."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1051", "at": "2026-10-09T12:42:33+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Live test passed (SDXL Realistic install staged at once); CI green on dcdbce40c and 8603eb686."}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1051", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

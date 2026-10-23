@@ -5,9 +5,9 @@
   "description": "CI run 35150684500: the opened model dropdown was destroyed by a second init pass. MpiLlmSettings runs _init in setup AND onOpen; fix the double init.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-09-16T22:59:22+01:00",
-  "updated_at": "2026-09-16T23:20:13+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

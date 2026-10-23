@@ -2,3 +2,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-964", "at": "2026-09-28T10:52:57+01:00", "actor": "claude", "from": "todo", "to": "doing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-964", "at": "2026-09-28T10:58:14+01:00", "actor": "claude", "from": "doing", "to": "doing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-964", "at": "2026-09-28T11:11:55+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio confirmed; CI green on fbb1888a0"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-964", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

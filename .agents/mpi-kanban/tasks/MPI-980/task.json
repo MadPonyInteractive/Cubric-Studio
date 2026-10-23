@@ -5,9 +5,9 @@
   "description": "Follow-up to MPI-979 (Fabio, 2026-09-29). Asked to edit the first frame of a video, the agent should use the clip's start frame: the startFrame image its sidecar records (i2v input, full resolution, already in the gallery), and only when there is none, extract frame 0 into a new picture card. A frame from the middle of a clip stays the user's job (right-click Create snapshot): the agent cannot know which frame is meant. Rejected as overkill: searching the gallery for a matching picture when the sidecar has none.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-09-29T12:35:28+01:00",
-  "updated_at": "2026-09-29T13:02:09+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

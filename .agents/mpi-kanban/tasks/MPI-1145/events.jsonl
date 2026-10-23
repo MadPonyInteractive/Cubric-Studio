@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1145", "at": "2026-10-14T20:49:07+01:00", "actor": "claude", "column": "todo", "title": "npm start flag to run a source build with dev mode off"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1145", "at": "2026-10-14T20:51:00+01:00", "actor": "claude", "from": "todo", "to": "doing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1145", "at": "2026-10-14T20:57:03+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "npm start nodev ships; desktop spec green (bb2794029)."}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1145", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

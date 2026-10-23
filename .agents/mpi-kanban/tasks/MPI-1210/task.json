@@ -5,9 +5,9 @@
   "description": "Release card for 2.1.2 (this week). Includes merging the MPI-616 signing workflow so 2.1.2 is the first Authenticode-signed Windows release, and dropping the unsigned warning from its notes.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-20T14:45:28+01:00",
-  "updated_at": "2026-10-21T20:54:49+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

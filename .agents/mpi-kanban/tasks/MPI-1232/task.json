@@ -5,9 +5,9 @@
   "description": "Target 2.1.3 or later, not 2.1.2. REPLACES Use Tiles (MPI-1038) and REMOVES Use Grid (Fabio 2026-10-21). Use Tiles on shows Tile size (-> ImpactMakeTileSEGS bbox_size) and a Describe each tile toggle (per-tile captions via the DetailerForEach wildcard). Cloud masks already hide seams; faces excluded from the grid, redrawn whole. Bench before wiring. Brief: brief.md.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-21T14:36:40+01:00",
-  "updated_at": "2026-10-23T03:48:16+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

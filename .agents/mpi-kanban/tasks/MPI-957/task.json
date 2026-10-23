@@ -5,9 +5,9 @@
   "description": "MpiCanvas shows an 8K+ image CSS-downscaled ~10x at fit; Chromium composites with bilinear and no mipmaps, so fine detail aliases (dashed circles, 64 lines collapse to 3). Base and compare canvases both.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-09-27T13:54:20+01:00",
-  "updated_at": "2026-09-29T13:39:27+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

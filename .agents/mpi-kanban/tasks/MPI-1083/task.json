@@ -5,9 +5,9 @@
   "description": "Found live 2026-10-11 (MPI-1036 Phase 4): cancel_generation on a running Video Edit answered NOT_IN_FLIGHT and the run went on billing a Pod; Fabio had to stop it by hand. Root cause: submitFlowGeneration (js/services/flowService.js) returns { queueJobId: null } whenever the job enters the queue LATER - after the describe step (MPI-1036, every Flow with describe:), after a cloud edit (MPI-918), and for a chain leg 2 / next pass (the ponytail notes at agentDispatch.js ~1110 and flowService.js ~535). agentDispatch._submitFlow stores that null in _queueJobs, so _cancelGeneration finds nothing. Hits outside agents (MCP/connector) AND Cosmo, which share the relay. Fix: return a live handle from submitFlowGeneration that is updated each time a leg/pass enqueues, plus a cancelled flag a pending describe/cloud call checks before it enqueues (then onCancel); agentDispatch keeps the handle, not the id. Every call site in one pass (root-cause.md). Test: tests/agent-generation-relay.test.cjs cancel during describe -> CANCELLED, never enqueued.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-11T10:10:06+01:00",
-  "updated_at": "2026-10-11T10:47:42+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

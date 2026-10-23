@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1120", "at": "2026-10-12T22:42:25+01:00", "actor": "b7609d28-0e93-4f67-a80f-8af6d8f443d0", "column": "doing", "title": "Landing takes ~30 s after leaving a project: low-priority loads queue in Chromium"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1120", "at": "2026-10-13T07:24:13+01:00", "actor": "b7609d28-0e93-4f67-a80f-8af6d8f443d0", "from": "doing", "to": "done", "reason": "Fabio confirmed fast after restart; CI green"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1120", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

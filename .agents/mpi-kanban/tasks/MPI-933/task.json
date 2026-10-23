@@ -5,9 +5,9 @@
   "description": "SVG is accepted as an image (js/utils/file.js) but nothing raster reads it: extractImageThumb returns null (measured 2026-09-25). Rasterise on import with sharp: declared size, long edge at least 2048, capped at 4096.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-09-25T18:12:13+01:00",
-  "updated_at": "2026-09-25T18:30:38+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

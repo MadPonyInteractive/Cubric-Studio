@@ -5,9 +5,9 @@
   "description": "Stage-2 refine OOMs at 2K above T=27 latent frames, but H3 TRAINED_MIN is 124 frames (T=37). A windowed drop-in for SamplerCustomAdvanced samples overlapping temporal windows and crossfades them, so the refine runs at a window size already proven to fit. Serves ltx_video_upscale.json on the same code path. Node lives in the sibling repo ComfyUi-MpiNodes.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-09-05T16:04:19+01:00",
-  "updated_at": "2026-09-06T23:45:00+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

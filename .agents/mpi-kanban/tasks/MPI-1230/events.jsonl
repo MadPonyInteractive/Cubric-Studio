@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1230", "at": "2026-10-21T14:18:36+01:00", "actor": "d7f6d6ce-c5d5-44e1-bdcf-913c3b0a7d4b", "column": "todo", "title": "Desktop specs get a fully booted, revealed window (CI red on llm-settings-remote)"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1230", "at": "2026-10-21T14:19:15+01:00", "actor": "d7f6d6ce-c5d5-44e1-bdcf-913c3b0a7d4b", "from": "todo", "to": "doing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1230", "at": "2026-10-21T15:07:51+01:00", "actor": "d7f6d6ce-c5d5-44e1-bdcf-913c3b0a7d4b", "from": "doing", "to": "done", "reason": "CI 39611627775 green on d875d6eed"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1230", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

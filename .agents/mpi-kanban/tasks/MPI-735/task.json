@@ -5,9 +5,9 @@
   "description": "UMBRELLA: MPI-732. Comment-only correction in js/data/commandRegistry.js (:356, :441). imageSizedOps already suppresses ratio for krea2Edit/kleinEdit/qwenEdit; :485 already says so. No behaviour change.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-09-12T12:27:25+01:00",
-  "updated_at": "2026-09-12T13:23:14+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

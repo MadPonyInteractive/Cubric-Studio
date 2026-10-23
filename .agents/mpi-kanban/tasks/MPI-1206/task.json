@@ -5,9 +5,9 @@
   "description": "Found at the 2.1.1 update test (install d, 2026-10-19): after the app moved its own engine 0.34.0 -> 0.42.1 at launch, /comfy/start ran twice 1.2 s apart. The route marks the engine running only after its multi-minute curated pip pass, so both passed the already-running check and ran pip on one site-packages; one died on WinError 32, wrote .cubric_python_deps_failed, and the one that succeeded never cleared it. The engine came up reading 'degraded' and the first generation was refused (python_deps_broken) until a restart. Fix: /comfy/start runs one start at a time; a second caller waits and then finds the engine running.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-19T19:49:50+01:00",
-  "updated_at": "2026-10-19T21:26:39+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

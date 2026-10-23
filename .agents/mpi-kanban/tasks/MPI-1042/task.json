@@ -5,9 +5,9 @@
   "description": "A new free Flow on Klein 9B: a face picture (required), a body picture (optional) and a free prompt (body type, haircut, clothes) become a Character Sheet of THAT character. Two baked prompts, switched on whether the body picture is there. Brief: brief.md.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-08T10:45:13+01:00",
-  "updated_at": "2026-10-09T18:55:00+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

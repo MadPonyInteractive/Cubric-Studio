@@ -5,9 +5,9 @@
   "description": "Delete MpiProjectCard (dead component, only the gallery mounts it). Drop the MpiPromptBox, MpiProjectName and MpiVoicePicker cards from the gallery. Rehome the two slider cards: they are labelled MpiSlider, a component that has not existed since it was absorbed into MpiProgressBar, and they sit in Compounds while MpiProgressBar is a Primitive. Add the switch variant of MpiCheckbox (the Settings toggle) to the gallery.",
   "column": "done",
   "maturity": "complete",
-  "status": "closed",
+  "status": "archived",
   "created_at": "2026-09-12T00:00:00+01:00",
-  "updated_at": "2026-10-18T19:19:16Z",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "files": "files.json",
     "events": "events.jsonl",

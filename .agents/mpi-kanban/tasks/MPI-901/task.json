@@ -5,9 +5,9 @@
   "description": "",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-09-24T08:11:32+01:00",
-  "updated_at": "2026-09-24T08:26:55+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

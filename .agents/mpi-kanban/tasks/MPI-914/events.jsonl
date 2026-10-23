@@ -4,3 +4,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-914", "at": "2026-09-25T08:31:04+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio verified live; CI #1281 green on both commits"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-914", "at": "2026-09-25T08:50:12+01:00", "actor": "claude", "from": "done", "to": "doing", "reason": "Follow-up: MpiModelManager _paidQuote -> modelQuote (MPI-908 session closed)"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-914", "at": "2026-09-25T08:51:24+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Library now uses shared modelQuote; quotes identical for all 15 cloud models"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-914", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

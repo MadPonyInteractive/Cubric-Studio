@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1121", "at": "2026-10-13T01:11:55+01:00", "actor": "claude", "column": "doing", "title": "A model reads installed early: the toast fires while its weight is still being verified, and the app never re-checks"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1121", "at": "2026-10-13T01:42:02+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fix efa9aef96 pushed; test red without fix, green with; CI green on rerun (unrelated MPI-993 spec flake first run)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1121", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

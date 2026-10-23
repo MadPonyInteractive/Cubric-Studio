@@ -2,3 +2,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1092", "at": "2026-10-11T17:44:10+01:00", "actor": "82476838-8c00-4ebb-8408-fde39eef109b", "from": "todo", "to": "doing", "reason": "Fabio asked: step counter on chained Flow runs"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1092", "at": "2026-10-11T20:36:53+01:00", "actor": "82476838-8c00-4ebb-8408-fde39eef109b", "from": "doing", "to": "doing", "reason": "Shipped in f3ec8cb40; waiting on Fabio's eye test"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1092", "at": "2026-10-12T08:50:58+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio's eye test passed 2026-10-12 (validation.md); CI green on 8e316a43c"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1092", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-980", "at": "2026-09-29T12:35:28+01:00", "actor": "claude", "column": "doing", "title": "Agent takes a video's start frame: the sidecar's startFrame when it has one, else frame 0 as a new picture card"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-980", "at": "2026-09-29T13:02:09+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Shipped 5e6b33d40, CI green (d61edd2ad), live i2v_003 started from the sidecar start frame."}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-980", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

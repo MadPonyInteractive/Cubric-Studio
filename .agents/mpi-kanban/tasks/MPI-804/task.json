@@ -5,9 +5,9 @@
   "description": "Fabio 2026-09-17: with 'Auto-start ComfyUI on launch' on, clicking a project did nothing until the engine finished booting. Cause: reconcileAndHydrate makes TWO serial HTTP round-trips per history item (/load-meta then /file-exists) - 300 for a 150-item project - and they queue behind the landing's preview-video loads (which hold connections until navigation) and the 1/s /comfy/status poll, under Chromium's 6-connection cap. Fix: one batch hydration request, plus cancel the grid's in-flight loads at click time.",
   "column": "done",
   "maturity": "complete",
-  "status": "completed",
+  "status": "archived",
   "created_at": "2026-09-17T19:47:35Z",
-  "updated_at": "2026-09-17T20:00:43Z",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "checklist": "checklist.md",
     "files": "files.json",

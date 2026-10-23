@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1023", "at": "2026-10-05T08:30:03+01:00", "actor": "b58a4076-b7ac-4cdd-b04c-1daf10d47c10", "column": "doing", "title": "git.md: an M with an empty diff is a line-ending phantom - clear it, do not pass it on"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1023", "at": "2026-10-05T08:30:32+01:00", "actor": "b58a4076-b7ac-4cdd-b04c-1daf10d47c10", "from": "doing", "to": "done", "reason": "Rule line in .claude/rules/git.md; evidence in validation.md."}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1023", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

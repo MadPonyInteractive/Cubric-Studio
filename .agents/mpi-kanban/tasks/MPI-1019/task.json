@@ -5,9 +5,9 @@
   "description": "Repo: C:/AI/Mpi/cubric-studio-agents (PUBLIC, plugin folder plugins/cubric-studio). Anthropic's directory no longer lists .mcpb desktop extensions (claude.com/docs/connectors/building/submission); a local server lists only inside a plugin, submitted by Fabio at claude.ai/directory/manage as Plugin bundle. Two BLOCKING checks fail today: no README in the plugin folder, and .mcp.json url http://127.0.0.1:3000/mcp (any non-https url blocks; a user_config reference is allowed). Plan: userConfig app address with that default, README with a Privacy Policy section, directory listing fields in plugin.json, version bump; prove Claude Code AND Codex still connect (they share .mcp.json), Antigravity untouched; draft the portal answers. Found on the 2.0 release day (MPI-595).",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-04T22:40:11+01:00",
-  "updated_at": "2026-10-04T23:20:13+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

@@ -5,9 +5,9 @@
   "description": "Fabio, 2026-10-11: a Pod that will boot shows \"Downloading your container... N/7 layers\" in the RunPod console within ~5 s; a Pod that never starts never shows that bar (System logs stay empty). Today the app waits for the 8-min stall cap (MPI-1057) before deleting it, so the user pays ~8 min of GPU time (about GBP 1 on an GBP 8/h GPU) for a Pod that was dead from second 5. EU-RO-1 did this ~9 times in a row on 2026-10-10/11; Docker Hub tag_last_pulled for the image never moved for those Pods. Research: where the console gets the layer progress (RunPod GraphQL pod field, the pod log/telemetry stream, or a websocket) and whether our API key can read it; also whether a cached image (no pull needed) shows a different early signal, so a cached-host boot is not mistaken for a dead one. Goal: delete the Pod (and say the data center looks troubled, MPI-1057 copy) as soon as that signal says it will never start, e.g. under 60 s. Lives in routes/remotePodLifecycle.js beside the stall cap (_setStarting / STALL_CAP_MS). Evidence: logs app-20261010-*.log + app.log (maduch90z92qjf, xbiazswls7f5x7), MPI-1057 plan Current State.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-11T08:33:59+01:00",
-  "updated_at": "2026-10-11T09:08:12+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

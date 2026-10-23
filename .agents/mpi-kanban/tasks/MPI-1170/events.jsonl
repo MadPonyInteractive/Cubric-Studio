@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1170", "at": "2026-10-17T15:19:08+01:00", "actor": "claude", "column": "todo", "title": "Cosmo understands video"}
 {"schema": "mpi-kanban/event/v1", "id": "MPI-1170", "type": "task.updated", "at": "2026-10-17T15:27:02+01:00", "actor": "claude", "summary": "Umbrella plan attached (plan.md); long-video items moved to MPI-1134."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1170", "at": "2026-10-17T19:55:28+01:00", "actor": "Video frame limit solutions 2", "from": "todo", "to": "done", "reason": "Both members done: MPI-1168, MPI-1169."}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1170", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

@@ -2,3 +2,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1242", "at": "2026-10-22T03:26:40+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Button verified in an isolated instance; lint clean, tests green"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1242", "at": "2026-10-22T03:52:21+01:00", "actor": "claude", "from": "done", "to": "doing", "reason": "Release note line, UNRELEASED.md now free"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1242", "at": "2026-10-22T03:52:47+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Release note line added to UNRELEASED.md"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1242", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

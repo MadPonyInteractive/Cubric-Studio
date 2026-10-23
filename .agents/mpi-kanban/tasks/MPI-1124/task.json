@@ -5,9 +5,9 @@
   "description": "ComfyUI-alternative + other query-led articles on cubric.studio, each with a download CTA; drafts on website branch guides-mpi-1124, awaiting Fabio review.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-13T06:36:35+01:00",
-  "updated_at": "2026-10-13T07:37:28+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

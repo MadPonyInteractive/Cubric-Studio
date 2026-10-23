@@ -5,9 +5,9 @@
   "description": "62 of 76 projects show no cover on the landing page. findRecentProjectThumbnail (routes/projects.js) trusts each sidecar's absolute filePath; projects moved by the MPI-708 Cubric Vision -> Cubric Studio rename (or copied between projects) fail pathExists on every candidate. The landing scan must resolve a stale path the way the project-open relocation heal does, read-only. Also check audio-last projects (waveform thumb).",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-12T21:13:11+01:00",
-  "updated_at": "2026-10-12T21:49:42+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

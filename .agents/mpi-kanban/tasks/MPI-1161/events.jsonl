@@ -2,3 +2,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1161", "at": "2026-10-16T20:26:11+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "starting fix"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1161", "at": "2026-10-16T20:30:35+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "pushed 795446582; awaiting CI"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1161", "at": "2026-10-16T20:44:53+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on 795446582; Fabio tested in app"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1161", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

@@ -5,9 +5,9 @@
   "description": "Breaks users (paid DramaBox Flow). Seen live 2026-10-01 on Fabio's RTX 4060 Ti 16 GB: DramaBoxTextEncode RuntimeError, mat1 on cuda:0 vs weights on cpu. The 4-bit Gemma loads to the GPU outside ComfyUI's view; ComfyUI then finds 0 MB free and leaves the embeddings processor on the CPU, whose plain nn.Linear cannot run split. Fix in MadPonyInteractive/ComfyUI-MelodramaBox, then repin node_lock.json. Diagnosis in brief.md.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-01T09:10:11+01:00",
-  "updated_at": "2026-10-01T10:05:47+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

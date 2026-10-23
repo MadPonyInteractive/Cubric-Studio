@@ -5,9 +5,9 @@
   "description": "Fabio's DevTools 2026-10-22: [mascot] 'studio frozen 8 s, waiting on connecting-sparks.webm' after a pod connect aborted, and 784 '[uncaught] ResizeObserver loop completed with undelivered notifications' in app.log, ~75/s in 2-4 s bursts, one per video Resize run. Gate the MPI-1142 mascot freeze lines behind speed_diagnostics like [slow-load]/[health]; fix the band false alarm (crew overtaking a connecting scene before its first frame left the pending check armed and the hidden clip decoding); find and fix the ResizeObserver feedback loop.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-22T23:31:28+01:00",
-  "updated_at": "2026-10-22T23:44:22+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

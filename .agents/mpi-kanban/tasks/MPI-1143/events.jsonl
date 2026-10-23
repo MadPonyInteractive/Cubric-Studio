@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1143", "at": "2026-10-14T19:56:26+01:00", "actor": "claude", "column": "todo", "title": "Flow result Compare goes blank after leaving the step while it loads"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1143", "at": "2026-10-14T20:38:39+01:00", "actor": "claude", "from": "todo", "to": "doing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1143", "at": "2026-10-14T20:41:21+01:00", "actor": "claude", "from": "doing", "to": "done"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1143", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

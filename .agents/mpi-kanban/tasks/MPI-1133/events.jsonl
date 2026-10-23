@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1133", "at": "2026-10-13T15:46:43+01:00", "actor": "claude", "column": "todo", "title": "H3 ref2va face identity: research options so a character's face matches its reference sheet"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1133", "at": "2026-10-13T15:47:31+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "research started"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1133", "at": "2026-10-14T08:24:13+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio: higher resolution fixes it; RefMod folded into MPI-815"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1133", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

@@ -2,3 +2,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-889", "at": "2026-09-29T13:40:06+01:00", "actor": "umbrella-sweep 2a15cea4", "fields": ["plan"], "note": "plan.md: MPI-950 added as phase 4 (umbrella sweep, Fabio's yes 2026-09-29)."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-889", "at": "2026-09-30T21:24:16+01:00", "actor": "claude:d9254aaa", "from": "todo", "to": "done", "reason": "Umbrella closes with its last member: MPI-890, 891, 892, 950 all done."}
 {"schema": "mpi-kanban/event/v1", "id": "MPI-889", "type": "task.updated", "at": "2026-09-30T21:24:43+01:00", "actor": "claude:d9254aaa", "summary": "status ready -> done: the umbrella closed with its last member."}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-889", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

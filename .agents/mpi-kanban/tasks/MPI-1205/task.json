@@ -5,9 +5,9 @@
   "description": "A tester lost a clean project when deleting a messy one: the clean one was created inside the messy one's folder. Delete now trashes, create/delete refuse nesting.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-19T18:59:10+01:00",
-  "updated_at": "2026-10-19T19:22:56+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

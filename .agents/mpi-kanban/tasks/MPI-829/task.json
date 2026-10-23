@@ -5,10 +5,10 @@
   "description": "Bake a video audio waveform derivative and paint it inside MpiTrimBar, so trim in/out can be cut against the sound. Every video trim bar; the GIF bar is out of scope.",
   "column": "done",
   "maturity": "complete",
-  "status": "complete",
+  "status": "archived",
   "activeSessionTitle": "Video trim-bar waveform",
   "created_at": "2026-09-19T19:25:24Z",
-  "updated_at": "2026-09-19T20:15:40Z",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "checklist": "checklist.md",
     "files": "files.json",

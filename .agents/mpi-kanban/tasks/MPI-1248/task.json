@@ -5,9 +5,9 @@
   "description": "Two new cubric.studio guides for 'AI app with a built-in agent' and 'local AI generation over MCP', plus agent/MCP sections in existing guides. Drafts on a website branch, NOT pushed.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-22T15:35:03+01:00",
-  "updated_at": "2026-10-22T16:07:35+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "checklist": "checklist.md",

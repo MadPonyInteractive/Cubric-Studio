@@ -5,9 +5,9 @@
   "description": "Cosmo wrote ~150-word prose for a masked detail op on a hand (Flux 3 tests project, 2026-10-21); it failed on Klein and Qwen 2.1. Fabio's 'hand over arm' on the same mask fixed it. Cause: the flux-3, qwen-image-2.1, krea-2 and flux-2 agent guides list detail with the long generation-prose ops; masking.md gives no length. Fix: detail = a few words naming what is in the crop, in masking.md and each guide.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-21T01:37:50+01:00",
-  "updated_at": "2026-10-21T02:15:44+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

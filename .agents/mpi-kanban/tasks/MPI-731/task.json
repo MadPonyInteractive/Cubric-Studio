@@ -5,9 +5,9 @@
   "description": "Replace the bare Electron <audio> playback with a real player - play/pause, an MPI volume slider with mute, elapsed/total time, and the MPI-730 waveform as its scrub track. Mostly reuse: MpiVideoControlBar already owns this exact transport (MpiButton play/pause, volumeHigh/volumeOff mute, MpiProgressBar volume, time display) against MpiVideoSurface. The audio one swaps the embedded MpiTrimBar for MpiWaveform and the surface for an <audio> element.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-09-12T11:06:59+01:00",
-  "updated_at": "2026-09-13T11:02:07+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

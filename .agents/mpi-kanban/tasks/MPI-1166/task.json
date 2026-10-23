@@ -5,9 +5,9 @@
   "description": "A tester described a video concept and ended with 'Did you understand? Don't start anything yet, just tell me if you understood.' Cosmo started the generation at once. Auto mode and the Project rule push to make everything in the same turn, and no rule honours an explicit hold.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-17T14:12:39+01:00",
-  "updated_at": "2026-10-17T19:44:50+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

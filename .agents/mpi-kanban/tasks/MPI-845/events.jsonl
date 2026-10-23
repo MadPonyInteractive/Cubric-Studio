@@ -8,3 +8,4 @@
 {"schema": "mpi-kanban/event/v1", "id": "MPI-845", "type": "task.updated", "at": "2026-09-20T11:04:38Z", "actor": "implementer:6eea5755", "note": "maturity -> validating; implementation complete, awaiting a live eye check"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-845", "at": "2026-09-29T09:36:39+01:00", "actor": "897d2196-6d01-4615-ac33-6a20f14bc257", "from": "doing", "to": "done", "reason": "Fabio 2026-09-29: 845 looks good"}
 {"schema": "mpi-kanban/event/v1", "type": "attention.cleared", "id": "MPI-845", "at": "2026-09-29T09:36:39+01:00", "actor": "897d2196-6d01-4615-ac33-6a20f14bc257", "summary": "Closed 2026-09-29: Fabio checked the three chrome fixes and said they look good."}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-845", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

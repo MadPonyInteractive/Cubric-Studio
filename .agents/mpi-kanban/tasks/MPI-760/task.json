@@ -5,9 +5,9 @@
   "description": "UMBRELLA: MPI-757 - GIF workspace (created 2026-09-14). Members and phase order: tasks/MPI-757/plan.md. The video workspace's Export GIF becomes GIF Maker: Apply pulls full-resolution frames at the chosen fps (trim honoured) into a new GIF card.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-09-14T16:58:21+01:00",
-  "updated_at": "2026-09-19T20:59:36+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

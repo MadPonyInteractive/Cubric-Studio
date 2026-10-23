@@ -2,3 +2,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-974", "at": "2026-09-29T11:05:33+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fix started: re-anchor #953 at the join."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-974", "at": "2026-09-29T11:09:54+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Fix synced and replay-proven offline (0/240 fail, was 192/240); awaiting Fabio's 8 s H3 rerun."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-974", "at": "2026-09-29T12:03:57+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio's live 6 s H3 extend ran clean and the join sounds clean; CI green on the fix."}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-974", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

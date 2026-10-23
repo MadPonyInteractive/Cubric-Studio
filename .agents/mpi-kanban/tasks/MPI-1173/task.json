@@ -5,9 +5,9 @@
   "description": "Fabio 2026-10-17, after MPI-1171: a doodle given as an input picture (not drawn on Scribble's blank canvas) is still refused, since a stick figure 'could be under 18'. When the age question says YES, the describer is asked SKETCH_QUESTION (only a rough doodle on a plain background, no face/hands/body detail, no photo under strokes); a bare YES saves the age verdict as NO, so the typed words decide. Benched 16 pictures x3 on the ComfyUI Qwen3-VL 4B describer: 5 doodles YES 15/15, children (photo, painted, line art traced from a photo, a photo with strokes over it) and adults NO 33/33.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-17T20:23:15+01:00",
-  "updated_at": "2026-10-18T08:42:12+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

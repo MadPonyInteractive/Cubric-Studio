@@ -5,9 +5,9 @@
   "description": "Fabio 2026-10-11 test (flowCSE_011, flowCSE_012): black dress came out grey on the front; reference shows the front only, so the back became shorts; 'G string on the back view' turned the front figure into a second back view and the dress into a bikini.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-11T16:20:02+01:00",
-  "updated_at": "2026-10-12T07:25:30+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

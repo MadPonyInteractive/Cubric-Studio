@@ -3,3 +3,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "checklist.updated", "id": "MPI-768", "at": "2026-09-15T20:53:31+01:00", "actor": "claude:ea60c208", "note": "Batch 1 verified: gif-frames 9/9, full node suite green. Evidence in validation.md."}
 {"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-768", "at": "2026-09-15T20:53:31+01:00", "actor": "claude:ea60c208", "note": "Batch 1 verified: gif-frames 9/9, full node suite green. Evidence in validation.md."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-768", "at": "2026-09-15T20:53:32+01:00", "actor": "claude:ea60c208", "from": "doing", "to": "done", "reason": "Batch 1 verified: gif-frames 9/9 + full node suite green; evidence in validation.md."}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-768", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

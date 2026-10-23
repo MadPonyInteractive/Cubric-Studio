@@ -5,9 +5,9 @@
   "description": "When the user writes after seeing a result, Cosmo looked again (3 lines, ~25 s) and reported on it before doing the ask. Tell the turn the user already saw it.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-21T11:03:34+01:00",
-  "updated_at": "2026-10-21T13:33:51+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

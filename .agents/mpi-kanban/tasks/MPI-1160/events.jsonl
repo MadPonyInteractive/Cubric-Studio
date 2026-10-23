@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1160", "at": "2026-10-16T19:44:33+01:00", "actor": "claude", "column": "todo", "title": "Choose media picker shows whole pictures in a gallery-style grid"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1160", "at": "2026-10-16T20:05:01+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "picker justified grid"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1160", "at": "2026-10-16T20:33:43+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "eye-tested by Fabio; CI 38953973165 green on 44b14732c (holds 1cc74cca4)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1160", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

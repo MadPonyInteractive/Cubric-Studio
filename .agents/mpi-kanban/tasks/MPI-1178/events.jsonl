@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1178", "at": "2026-10-18T09:32:15+01:00", "actor": "claude", "column": "todo", "title": "Nano Banana cloud edit keeps the picture's shape"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1178", "at": "2026-10-18T09:32:29+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio's 1:1 drawing came back 1.85:1 from Nano Banana 2"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1178", "at": "2026-10-18T09:47:26+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "1:1 drawing came back 1:1 on Nano Banana 2 in Fabio's test; CI green"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1178", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

@@ -5,9 +5,9 @@
   "description": "Design approved by Fabio 2026-10-12 (record: research/brainstorm.md). A Make seamless FLOW (not a workspace tool): 01 Inputs (optional picture; none = Klein makes one from the prompt first, direction select) - 02 Edges (four % handles, 10% default, Tiles preview slider, Even out lighting slider) - 03 Generate (Tiles slider 1-4: strip / column / per-side grid). The app rolls the picture by half, repaints the band round each seam in ~1024 windows (one model, Klein 9B unless the bench says Krea 2), stitches and rolls back; outside the band byte-identical at full size; no new ComfyUI nodes. Baked instruction + optional prompt field. Bench in research/bench waits for Fabio's GPU go.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-12T07:55:28+01:00",
-  "updated_at": "2026-10-14T21:09:30+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

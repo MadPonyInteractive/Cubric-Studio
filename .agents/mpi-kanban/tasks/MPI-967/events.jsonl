@@ -8,3 +8,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-967", "at": "2026-09-28T13:47:06+01:00", "actor": "c7debaa7-f95e-45a2-834f-0d5b3804752a", "from": "doing", "to": "done", "reason": "Event map updated (docs/rules only)."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-967", "at": "2026-09-28T19:55:11+01:00", "actor": "c7debaa7-f95e-45a2-834f-0d5b3804752a", "from": "done", "to": "doing", "reason": "Fabio: add a one-line release note"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-967", "at": "2026-09-28T19:55:22+01:00", "actor": "c7debaa7-f95e-45a2-834f-0d5b3804752a", "from": "doing", "to": "done", "reason": "Release note added (docs only)."}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-967", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

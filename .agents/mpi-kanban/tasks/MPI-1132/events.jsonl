@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1132", "at": "2026-10-13T08:21:30Z", "actor": "claude", "column": "todo", "title": "Agent harness: fake every tool the loop can call (list_cards, visible_cards, GIF tools, mark, quote, cancel, global memory)"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1132", "at": "2026-10-13T09:26:13+01:00", "actor": "1d94a7fd-ea36-4a2b-aee1-e3e427a92609", "from": "todo", "to": "doing", "reason": "bench fakes every loop tool"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1132", "at": "2026-10-13T09:30:30+01:00", "actor": "1d94a7fd-ea36-4a2b-aee1-e3e427a92609", "from": "doing", "to": "done", "reason": "fakes + guard test pass, see validation.md"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1132", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

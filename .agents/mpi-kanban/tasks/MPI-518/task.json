@@ -5,7 +5,7 @@
   "description": "UMBRELLA: MPI-1179 - New Models to Test. Menu: tasks/MPI-1179/plan.md. Moved from MPI-343 when it merged into MPI-1179 (Fabio 2026-10-18).\n\nBLOCKER HALVED 2026-08-21 - the text below blocks this on 'the 1.4 release AND GPU availability'. 1.4 shipped on 2026-08-10 and 1.4.2 followed on 2026-08-15, so only the GPU-availability half survives. Card stays blocked on that alone.\n\nSame question as PiD 1.5 (MPI-1185) and NSFW LTX 2.3 (MPI-1186): \"is the newer build actually a win?\". The shared method is in MPI-343's plan.md (merged into MPI-1179, 2026-10-18).\n\nKijai published w4a8_mixed builds of both H3 DiTs (fl2va 12.54GB, ref2va 11.77GB, vs 20.97GB int8_convrot each). Fabio ran one generation with the fl2va build and did NOT see much speed difference, so the win is unproven - investigate before deciding anything. Likely home if it ships is the Model Library quality tier. BLOCKED on the 1.4 release and on GPU availability (a Cubric-Prompt agent has it).",
   "column": "done",
   "maturity": "rejected",
-  "status": "done",
+  "status": "archived",
   "labels": [
     "1.5",
     "h3",
@@ -13,7 +13,7 @@
     "research"
   ],
   "created_at": "2026-08-10T13:45:00Z",
-  "updated_at": "2026-10-18T11:51:39+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "checklist": "checklist.md",

@@ -3,3 +3,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-972", "at": "2026-09-29T01:14:57+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Six strings fixed; CI green on 5b8fa0999"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-972", "at": "2026-09-29T01:38:51+01:00", "actor": "claude", "from": "done", "to": "doing", "reason": "Reopened: Fabio answered the owed D1 question (no legacy-name publish at 2.0); release docs still promise it"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-972", "at": "2026-09-29T01:40:05+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Update path recorded: from 1.5.0, no legacy-name publish"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-972", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1129", "at": "2026-10-13T07:30:39Z", "actor": "claude", "column": "todo", "title": "Agent harness: look on a result card throws in the bench (no storedLook fake), cases end on STEP_LIMIT"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1129", "at": "2026-10-13T07:30:39Z", "actor": "claude", "from": "todo", "to": "doing", "reason": "root cause found, fixing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1129", "at": "2026-10-13T07:58:00Z", "actor": "claude", "from": "doing", "to": "done", "reason": "both bench causes fixed (59e8bd735, 99dad628e); live 3x3 9/9"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1129", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

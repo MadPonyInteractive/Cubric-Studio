@@ -2,3 +2,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1163", "at": "2026-10-17T07:01:33+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "starting work"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1163", "at": "2026-10-17T07:09:40+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "shipped; npm test green; remaining check = CI on master"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1163", "at": "2026-10-17T07:25:17+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on 0560b87cf (run 39008914309)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1163", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

@@ -5,9 +5,9 @@
   "description": "A negated child word ('without childlike', 'not childlike') counted as a minor, so an adult explicit prompt was refused as sexual. Fix the negation, tests both ways.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-22T01:41:56+01:00",
-  "updated_at": "2026-10-22T01:44:11+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

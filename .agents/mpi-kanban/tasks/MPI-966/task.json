@@ -5,9 +5,9 @@
   "description": "Main window shows on page load, before list-projects returns and before shell:booted releases the mascot crew; hold the splash until the landing has content.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-09-28T11:30:34+01:00",
-  "updated_at": "2026-09-28T12:01:00+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

@@ -5,9 +5,9 @@
   "description": "MPI-1054 measured five cards with a one-off script in a session scratchpad. Fabio wants it kept and documented: move it to scripts/bench-gpu-klein.mjs (keys from env, nothing machine-specific in the public repo), write docs/playbooks/gpu-benchmark/README.md (method, calibration rule, traps that cost money, how a result lands in GPU_GEN_SECS), route it from docs/README.md. Next cards to check: A100 PCIe, L40, RTX PRO 4500 SE.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-09T23:14:40+01:00",
-  "updated_at": "2026-10-09T23:47:09+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

@@ -5,9 +5,9 @@
   "description": "Fabio, 2026-10-11, after the MPI-1084 Pod test: identity is pretty bad, not the same guy. Evidence: X2.3 references project, ref2v_002.mp4 (ltx-23-balanced ref2v_ms, high 1216x704, close-up, Picture 1 = 3-view cowboy character sheet imported_002.png, Picture 2 = forest path): costume, hat, red neckerchief, age and hair all carry over from the sheet; the face does not. ref2v_001 (medium, wide) same. The Ingredients IC-LoRA is a look-alike adapter (docs/models/ltx/reference-ingredients.md), not a face-identity one. Job: research face-identity options for LTX 2.3 (and 2.5) covering BOTH ref2v_ms and i2v_ms: identity LoRAs / IC-LoRAs, ID adapters, face-swap post passes; licence, VRAM, ComfyUI node availability, whether it composes with the Ingredients branch and the talkvid voice ID-LoRA. Output: a ranked shortlist with evidence, then a bench plan. Research only until Fabio picks.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-11T19:53:28+01:00",
-  "updated_at": "2026-10-14T07:59:00+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

@@ -5,9 +5,9 @@
   "description": "The app already imports a project card into a different project; neither the in-app agent nor the MCP server knows how. Needed for series work (one project per episode, cards and Story cards reused across episodes). See docs/story/cosmo-and-flow.md.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-13T15:52:53+01:00",
-  "updated_at": "2026-10-17T07:14:22+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

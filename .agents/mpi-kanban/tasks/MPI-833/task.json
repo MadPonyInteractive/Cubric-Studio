@@ -5,9 +5,9 @@
   "description": "tests.yml runs npm test + npm run test:desktop, no lint. MPI-832 turned on no-undef but nothing on the runner reads it. Add a lint step, widen lint from js/ to the whole repo (measured: 0 errors), and ignore the vendored gitignored engine/ tree.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-09-19T22:12:32+01:00",
-  "updated_at": "2026-09-19T22:32:50+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

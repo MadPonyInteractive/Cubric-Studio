@@ -5,9 +5,9 @@
   "description": "Fabio 2026-10-11: Transcribe Install pressed twice, nothing visible. flowInstallKeys counts the flow:<id> key only for requiredDeps, but _installMissing starts it for requiredPlugins deps too, so the drawer never sees the job. 360 Pano: Krea2 already downloading turns the footer into bar+Cancel with no Install for the remaining deps.",
   "column": "done",
   "maturity": "complete",
-  "status": "completed",
+  "status": "archived",
   "created_at": "2026-10-11T19:51:53Z",
-  "updated_at": "2026-10-11T20:13:24Z",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "checklist": "checklist.md",
     "files": "files.json",

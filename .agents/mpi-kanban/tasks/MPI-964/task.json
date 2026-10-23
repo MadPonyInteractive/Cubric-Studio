@@ -5,9 +5,9 @@
   "description": "MPI-960 left five hand-rolled copies of the colour picker + EyeDropper Pick button (Remove Background, Paint, Paint Adjust, GIF cut-out By colour, image Colour mask). Fold them into one Compound, MpiColorField, and mount it at all five.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-09-28T10:52:26+01:00",
-  "updated_at": "2026-09-28T11:11:55+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

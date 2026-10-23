@@ -2,3 +2,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1154", "at": "2026-10-16T20:07:37+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Started: background-change describe names every kept subject"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1154", "at": "2026-10-16T20:19:00+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Fixed + benched: Input_Kept names every Which-characters subject; eye test on logs/mpi1154/mpi1154_source_before_after.webm"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1154", "at": "2026-10-17T07:15:14+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio passed the eye test 2026-10-17; CI green on cb37d7984"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1154", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

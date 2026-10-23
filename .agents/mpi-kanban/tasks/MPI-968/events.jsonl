@@ -2,3 +2,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-968", "at": "2026-09-28T12:55:13+01:00", "actor": "7a564a51-3156-432c-8739-a0ea1d15fb35", "from": "todo", "to": "doing", "reason": "starting the fix"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-968", "at": "2026-09-28T12:59:54+01:00", "actor": "7a564a51-3156-432c-8739-a0ea1d15fb35", "from": "doing", "to": "doing", "reason": "shipped locally; awaiting Fabio OK on the best-op effect before push"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-968", "at": "2026-09-28T13:15:11+01:00", "actor": "7a564a51-3156-432c-8739-a0ea1d15fb35", "from": "doing", "to": "done", "reason": "Fabio OK, CI green on 6a4fe2e7b"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-968", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

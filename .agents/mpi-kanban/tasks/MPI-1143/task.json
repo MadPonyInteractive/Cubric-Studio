@@ -5,9 +5,9 @@
   "description": "Fabio 2026-10-14 (Character Sheet editor Flow, step 2 result): went back to step 1 while the result was still loading (loads were queuing ~16 s, see MPI-1142), came back: step 2 empty until he pressed Result; pressing Compare showed only the two labels on a blank frame. Console: '[MpiCompareView] failed to load the compare pair TypeError: Cannot read properties of null (reading el) at el.open (MpiCompareView.js:174:35)'. Mechanism read from code: el.open awaits _canvas.el.loadImage(urlA); el.destroy (line 188) nulls _canvas meanwhile; the resumed open dereferences _canvas.el at 174. open() is not safe against destroy mid-await, and the Flow result pane (MpiBaseFlow) then shows nothing on return. Fix the root cause (open must stop when destroyed / the pane must not keep a destroyed view), not a null guard at 174. Repro by making loads slow (CDP latency, see MPI-1142 research/slowload.cjs) and leaving the step mid-load.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-14T19:56:26+01:00",
-  "updated_at": "2026-10-14T20:40:23+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

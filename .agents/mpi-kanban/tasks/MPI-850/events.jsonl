@@ -5,3 +5,4 @@
 {"schema":"mpi-kanban/event/v1","id":"MPI-850","type":"checklist.updated","at":"2026-09-20T16:16:04Z","actor":"opus","summary":"All three items done: snapshot, module, tests."}
 {"schema":"mpi-kanban/event/v1","id":"MPI-850","type":"validation.updated","at":"2026-09-20T16:16:04Z","actor":"opus","summary":"node --test tests/deepinfra-pricing.test.cjs: 29 pass, 0 fail. npm test: 1580 pass, 0 fail. Three mutations proved the suite bites."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-850", "at": "2026-09-20T17:16:04+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "29 tests green offline; every measured figure asserted to the cent."}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-850", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

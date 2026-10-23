@@ -5,9 +5,9 @@
   "description": "Live 2026-09-29: agent klein-9b inpaint on a 1920x1080 snapshot returned 1344x768. modelShowsRatio ignores the op's components, so the agent injects Width/Height on ops the UI never offers a ratio (inpaint everywhere; detail/upscale on Klein; edit on Boogu and cloud editors; pid).",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-09-29T13:53:26+01:00",
-  "updated_at": "2026-09-29T13:57:03+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

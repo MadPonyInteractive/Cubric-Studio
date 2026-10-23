@@ -5,9 +5,9 @@
   "description": "Fed flowVideoEdit_006 (an H3 result) as the clip, every run plays the dance ~12-16 frames late against the music, whatever the picture, its pose or the swap LoRA (MPI-1196 validation.md: _007, _008, _009, W1, W2). The same Flow on the real footage the result came from is in sync (_005, _006). Find why and fix it in the graph.",
   "column": "done",
   "maturity": "complete",
-  "status": "done",
+  "status": "archived",
   "created_at": "2026-10-19T04:00:06+01:00",
-  "updated_at": "2026-10-19T09:16:34+01:00",
+  "updated_at": "2026-10-23T23:41:22+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

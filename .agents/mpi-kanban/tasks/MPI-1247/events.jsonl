@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1247", "at": "2026-10-22T12:57:07+01:00", "actor": "2d966179-2feb-42fa-ba3e-250662b2f036", "column": "doing", "title": "Install toast: Restart engine button when the install needs a ComfyUI restart"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1247", "at": "2026-10-22T13:02:56+01:00", "actor": "2d966179-2feb-42fa-ba3e-250662b2f036", "from": "doing", "to": "done", "reason": "shipped d9de65c9: tests 3515/0, lint clean"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1247", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

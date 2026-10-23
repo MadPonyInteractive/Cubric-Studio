@@ -3,3 +3,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-883", "at": "2026-09-22T08:11:04+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Picked up from the handoff; ownership written to files.json."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-883", "at": "2026-09-22T08:11:42+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Resolver plus one label shipped; new test proved RED twice and green, npm test 1762/0 fail, lint clean."}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-883", "at": "2026-09-22T07:12:21Z", "actor": "claude", "reason": "status ready -> done; the move into done left it at the todo-column value."}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-883", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}

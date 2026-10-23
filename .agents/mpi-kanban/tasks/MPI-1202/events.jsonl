@@ -3,3 +3,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1202", "at": "2026-10-19T14:55:27+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "shipped 5aa73bf6f, tests green"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1202", "at": "2026-10-19T14:56:31+01:00", "actor": "claude", "from": "done", "to": "doing", "reason": "reopen until CI judges the code commit (done-gate)"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1202", "at": "2026-10-19T15:25:46+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on 9f653b455 (run 39266615936)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.archived", "id": "MPI-1202", "at": "2026-10-23T23:41:22+01:00", "actor": "claude", "column": "done", "folder": "kept", "reason": "MPI-1265: board tidy, folders kept"}
