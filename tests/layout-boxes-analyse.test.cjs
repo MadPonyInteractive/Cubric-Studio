@@ -11,7 +11,7 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
-const { boxesFromAnalysis, analyseQuestion, mossLayoutPrompt, zoomTargets, zoomCrop, zoomQuestion, fromZoom } = require('../js/data/layoutBoxes.js');
+const { boxesFromAnalysis, analyseQuestion, mossLayoutPrompt, layoutRows, zoomTargets, zoomCrop, zoomQuestion, fromZoom } = require('../js/data/layoutBoxes.js');
 
 test('a fenced answer becomes fraction boxes with unique lower-case names', () => {
     const text = 'Here:\n```json\n' + JSON.stringify({
@@ -186,8 +186,24 @@ test('MOSS gets a text box as a text item printing the quoted words', () => {
     const { items } = JSON.parse(mossLayoutPrompt('A cover.', boxes, 1000, 1000));
     assert.equal(items[0].label, 'text');
     assert.equal(items[0].text, 'VOGUE');
+    assert.equal(items[0].caption, 'bold black serif'); // quoted words in the caption came out printed WITH the quotes
     assert.equal(items[1].label, 'object');
     assert.equal(items[1].text, undefined);
+    assert.equal(items[1].caption, 'a woman "smiling"');
+});
+
+test('FLUX.3 rows put nothing after a lettering box\'s closing quote', () => {
+    // `"MOODBOARD": ...` came out printed as "MOODBOARD:" (FLUX.3 + MOSS, 2026-10-23).
+    const rows = layoutRows([
+        { x: 0, y: 0, w: 1, h: 0.2, desc: '"VOGUE": Bold black serif', name: 'title', kind: 'text' },
+        { x: 0, y: 0.8, w: 1, h: 0.2, desc: '"oceanic": ', name: 'word', kind: 'text' },
+        { x: 0, y: 0.2, w: 1, h: 0.6, desc: '"Hi": typed by the user, not lettering', name: 'note' },
+    ]);
+    assert.deepEqual(rows.map((r) => r.desc), [
+        'Bold black serif. The lettering reads "VOGUE"',
+        'The lettering reads "oceanic"',
+        '"Hi": typed by the user, not lettering',
+    ]);
 });
 
 test('the zoom pass picks small boxes the ink did not fix, and maps a crop answer back', () => {

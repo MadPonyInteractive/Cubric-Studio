@@ -28,10 +28,15 @@ export function uniqueBoxName(base, others = []) {
     return `${base}_${n}`;
 }
 
+/** A Create boxes lettering box's desc `"WORDS": looks` -> `[WORDS, looks]`, else null. */
+const _lettering = (b) => (b.kind === 'text' && String(b.desc || '').trim().match(/^"([^"]+)":\s*(.*)$/s)?.slice(1)) || null;
+
 /**
  * The app's boxes -> table rows, clamped to the grid. The id is the box's name (the
  * `<name>` the prompt cites); a box saved before names existed is `obj_N`. An empty desc
  * falls back to the name, so `tree` with "make <tree> purple" in the prompt still reads.
+ * A lettering box's `"WORDS": looks` is written with nothing after the closing quote: both
+ * models printed the colon as part of the words ("MOODBOARD:", "STORY BOARD:", 2026-10-23).
  */
 export function layoutRows(boxes = []) {
     const grid = (v) => Math.round(Math.max(0, Math.min(1, Number(v) || 0)) * SCALE);
@@ -40,10 +45,12 @@ export function layoutRows(boxes = []) {
         let id = ID.test(String(b.name || '')) ? b.name : `obj_${i + 1}`;
         if (seen.has(id)) id = `${id}_${i + 1}`;
         seen.add(id);
+        const lt = _lettering(b);
         return {
             id,
             bbox: [grid(b.y), grid(b.x), grid(b.y + b.h), grid(b.x + b.w)],
-            desc: String(b.desc || '').trim() || id.replace(/_/g, ' '),
+            desc: lt ? `${lt[1] && lt[1].replace(/\.?$/, '. ')}The lettering reads "${lt[0]}"`
+                : String(b.desc || '').trim() || id.replace(/_/g, ' '),
         };
     });
 }
@@ -59,11 +66,12 @@ export function mossLayoutPrompt(prompt, boxes, width, height) {
     // core rounds to 9 places before floor/ceil, so a float error never moves an edge a pixel
     const px = (v, side, edge) => edge(Number((v * side / SCALE).toFixed(9))) - Math.floor(side / 2);
     const items = layoutRows(boxes).map(({ bbox: [y0, x0, y1, x1], desc }, i) => {
-        // A lettering box (Create boxes) is a MOSS `text` item: the quoted words are what it prints.
-        const words = boxes[i].kind === 'text' && desc.match(/"([^"]+)"/)?.[1];
+        // A lettering box (Create boxes) is a MOSS `text` item printing its words; the caption
+        // carries only the looks, since quoted words there came out printed with their quotes.
+        const [words, looks] = _lettering(boxes[i]) || [];
         return {
             label: words ? 'text' : 'object',
-            caption: desc,
+            caption: words ? looks || words : desc,
             ...(words && { text: words }),
             bbox: [px(y0, height, Math.floor), px(x0, width, Math.floor), px(y1, height, Math.ceil), px(x1, width, Math.ceil)],
         };
