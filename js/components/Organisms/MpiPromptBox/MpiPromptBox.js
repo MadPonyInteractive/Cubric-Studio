@@ -425,7 +425,8 @@ export const MpiPromptBox = ComponentFactory.create({
             if (!frame.guide || !_boxesCtrl() || _analysing) return;
             const op = activeOperation;
             _analysing = true;
-            const question = analyseQuestion(await describerFamily());
+            const family = await describerFamily();
+            const question = analyseQuestion(family);
             const res = await describeImage({ imagePath: frame.url, question, scope: 'gallery', queued: true, greedy: true })
                 .finally(() => { _analysing = false; });
             if (!res.ok) {
@@ -433,7 +434,7 @@ export const MpiPromptBox = ComponentFactory.create({
                 if (!res.cancelled) _showMediaToast(res.error);
                 return;
             }
-            const found = boxesFromAnalysis(res.text);
+            const found = boxesFromAnalysis(res.text, family);
             clientLogger.info('PromptBox', `Create boxes: ${found?.boxes.length || 0} boxes from ${res.text?.length || 0} chars, op ${op} -> ${activeOperation}`);
             if (!found?.boxes.length) {
                 // The answer itself, so a format the reader misses can be seen (MPI-1253).

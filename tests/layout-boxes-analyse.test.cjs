@@ -54,6 +54,24 @@ test('named edges are read by name; an array is read in its own key\'s order', (
     for (const b of boxes) assert.deepEqual([b.x, b.y, b.w, b.h], [0, 0, 1, 0.253], b.name);
 });
 
+test('a bare "box" array is read in the order the describer was asked', () => {
+    // Gemma 4 asked for box_2d, Bazaar cover 2026-10-23 (app.log): every item under "box", so
+    // all of them were dropped and Create boxes said "found nothing".
+    const text = '```json\n' + JSON.stringify({
+        caption: 'A magazine cover.',
+        items: [
+            { name: 'magazine masthead', label: 'text', box: [21, 36, 188, 973], caption: 'Large serif title.', text: 'BAZAAR' },
+            { name: 'model', label: 'character', box: [115, 286, 1000, 765], caption: 'A woman in profile.', text: '' },
+        ],
+    }, null, 2) + '\n```';
+    const { boxes } = boxesFromAnalysis(text, 'gemma');
+    assert.deepEqual(boxes.map((b) => b.name), ['magazine_masthead', 'model']);
+    assert.deepEqual([boxes[0].x, boxes[0].y], [0.036, 0.021]);
+    assert.ok(Math.abs(boxes[0].w - 0.937) < 1e-9 && Math.abs(boxes[0].h - 0.167) < 1e-9);
+    assert.equal(boxes[0].desc, '"BAZAAR": Large serif title.');
+    assert.deepEqual(boxesFromAnalysis(text, 'qwen').boxes[0].x, 0.021);
+});
+
 test('no JSON in the answer is null, not an empty layout', () => {
     assert.equal(boxesFromAnalysis('I cannot see the picture.'), null);
 });

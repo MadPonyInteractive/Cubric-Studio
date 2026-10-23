@@ -105,12 +105,16 @@ export function analyseQuestion(family) {
 }
 
 /** An item's box as `[left, top, right, bottom]` on 0-1000. An array is read in its key's own
- *  family order (`box_2d` Google's, `bbox_2d`/`bbox` Qwen's) for a model that ignores the ask. */
-function _edges(it) {
+ *  family order (`box_2d` Google's, `bbox_2d`/`bbox` Qwen's) for a model that ignores the ask.
+ *  A bare `box` array has no family of its own, so it is read in the order the describer was
+ *  asked: Gemma 4 asked for `box_2d` answers `"box": [y1, x1, y2, x2]` some runs (Bazaar cover,
+ *  2026-10-23: every item dropped, "found nothing"). */
+function _edges(it, family) {
     const o = it?.box;
     if (o && typeof o === 'object' && !Array.isArray(o)) return [o.left, o.top, o.right, o.bottom];
-    if (Array.isArray(it?.box_2d)) { const [t, l, b, r] = it.box_2d; return [l, t, r, b]; }
-    return it?.bbox_2d || it?.bbox;
+    const google = Array.isArray(it?.box_2d) ? it.box_2d : family === 'gemma' && Array.isArray(o) ? o : null;
+    if (google) { const [t, l, b, r] = google; return [l, t, r, b]; }
+    return it?.bbox_2d || it?.bbox || o;
 }
 
 /** `text` with every string, list and object still open at its end closed (AcademiaSD's `_cerrar`). */
@@ -147,12 +151,12 @@ function _firstJson(s) {
  * lettering item becomes `kind: 'text'` with its words quoted at the head of the desc, so the
  * one editable field carries them to FLUX.3 and MOSS alike (`mossLayoutPrompt`).
  */
-export function boxesFromAnalysis(text, max = MAX_BOXES) {
+export function boxesFromAnalysis(text, family, max = MAX_BOXES) {
     const data = _firstJson(String(text || ''));
     if (!data || typeof data !== 'object') return null;
     const boxes = [];
     for (const it of Array.isArray(data.items) ? data.items : []) {
-        const bb = _edges(it);
+        const bb = _edges(it, family);
         if (!Array.isArray(bb) || bb.length !== 4 || !bb.every((v) => Number.isFinite(Number(v)))) continue;
         const [x1, y1, x2, y2] = bb.map((v) => Math.max(0, Math.min(SCALE, Number(v))) / SCALE);
         if (x2 - x1 < 0.01 || y2 - y1 < 0.01) continue;
