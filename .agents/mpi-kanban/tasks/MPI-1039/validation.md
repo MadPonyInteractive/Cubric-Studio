@@ -231,3 +231,22 @@ user's ratio later; a crop changes the zoom, so the gizmo may need per-ratio-fam
   low/high stops. Edits with the refs (`mannequin <port> edits`) NOT run yet.
 - Fabio: if t2i cannot make the mannequin views, he will install the Blender CLI and the refs get rendered from a
   real 3D mannequin (exact angle, height, zoom; also the gizmo's own previews).
+- Round 2 refs (`angles.py <port> mannequin2`, `out/mannequin2.json`, sheet `mannequin2.jpg`; guide order with the
+  camera FIRST, flat shadowless softbox light, "sexless, flat chest"; 4 views x seeds 111/222/333): light is flat now.
+  front lo / back lo = moderate upward perspective on s333, mild on 111/222 (never extreme). front hi = good steep
+  high on s111; s222/s333 grew a chest again (the sexless words do not hold every seed). "top" (camera words) came
+  out as front hi; "top2" (plan view described by what is IN FRAME: crown centred, face hidden) = a TRUE top-down on
+  s222 + s333. Picks (MQ_PICK, copies `research/mannequin/front_lo.png` etc.): front lo 333, back lo 333,
+  front hi 111, top2 333.
+- Two-image edits on the street man (sheet `mannequin2_edits.jpg`, ~31 s each). A = MQ_EDIT ("match the camera of
+  image 2"), B = MQ_EDIT_B ("replace the mannequin in image 2 with the subject, same place, size, camera"):
+  - ZOOM transfers on every edit: all went from the waist-up source to full body.
+  - HIGH works on both wordings: front hi + top2 = camera clearly above, looking down at him and the cobbles. Not a
+    true bird's-eye (top2 edit = steep high, face still up) but a solid "high" stop.
+  - FRONT LOW fails on both: eye level.
+  - BACK LOW: A pasted the MANNEQUIN into the street (subject lost). B = a REAL low back view of the man in his
+    street - first time back + low has worked in this card - but he took the mannequin's stiff wide pose, and his
+    trousers turned to light jeans and his hair dark.
+  - Read: the ref carries zoom + high reliably, back-low only with B, and B leaks the mannequin's POSE (and some
+    clothing drift). Open: Fabio's eye test; front low needs a stronger ref (t2i never gives an extreme low) - the
+    Blender route would give exact refs and a pose matched to the user's subject is not possible from a fixed set.

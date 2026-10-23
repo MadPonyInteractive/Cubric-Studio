@@ -1146,6 +1146,101 @@ MQ_EDIT = ('Shift the camera viewpoint of the first image to match the second im
            'style of the first image unchanged.')
 
 
+# Round 2 (Fabio): full-body LOW + HIGH first, FLAT shadowless light (shadows could relight the user's picture), a
+# SEXLESS mannequin (the close-up grew a chest). Guide order: medium, camera, light, subject, layout, background -
+# round 1 put the camera words last and the model kept eye level. 3 seeds each; MQ_PICK names the seed per view.
+MQ2_HEAD = 'Studio photograph. '
+MQ2_LIGHT = ('Flat, even, shadowless lighting from every side, like a softbox tent: no cast shadows on the floor, no '
+             'dark shading on the body, low contrast. ')
+MQ2_SUBJ = ('The subject is a full-size plain grey wooden artist\'s mannequin with jointed limbs, a sexless, '
+            'featureless body with a flat chest and a simple blocky torso, and a smooth oval head with only a softly '
+            'sculpted nose and brow ridge, standing upright with its arms relaxed at its sides. ')
+MQ2_BACK = 'It stands on a plain charcoal-grey seamless studio floor that curves up into a matching backdrop, no props.'
+MQ2_VIEWS = {  # key: (camera sentence, layout sentence, the view named in the edit prompt)
+    'front lo': ('Extreme low-angle worm\'s-eye shot: the camera sits on the floor a step in front of its feet and '
+                 'points steeply up at it, with strong upward perspective. ',
+                 'It faces the camera. Its feet are large in the lower foreground, its legs climb up the frame and '
+                 'narrow, and its head is small near the top edge, its chin and the underside of its jaw showing. ',
+                 'a front view from a camera on the ground in front of their feet, pointing steeply up at them'),
+    'back lo': ('Extreme low-angle worm\'s-eye shot from behind: the camera sits on the floor a step behind its heels '
+                'and points steeply up at it, with strong upward perspective. ',
+                'It faces away from the camera. Its heels and calves are large in the lower foreground, its back '
+                'climbs up the frame and narrows, and the back of its head is small near the top edge. ',
+                'a back view from a camera on the ground behind their heels, pointing steeply up at them'),
+    'front hi': ('High-angle shot: the camera is high above it and in front, looking steeply down at it, with strong '
+                 'downward perspective. ',
+                 'It faces the camera. The top of its head and its shoulders are large near the top of the frame, its '
+                 'body narrows downward, and its feet are small on the floor near the bottom edge. ',
+                 'a front view from a high camera above and in front of them, looking steeply down'),
+    'top': ('Bird\'s-eye shot: the camera is directly above its head and points straight down at the floor. ',
+            'The crown of its head and its two shoulders are in the middle of the frame, its body hidden beneath them '
+            'except the tips of its feet, and the grey floor fills the frame on every side around it. ',
+            'a bird\'s-eye view from a camera directly above them, pointing straight down'),
+    # 'top' read as front hi (face looks up at the camera): describe the plan view by what is in frame instead
+    'top2': ('Top-down overhead plan view, shot straight down from the ceiling. ',
+             'Seen from directly above, it appears as the round, smooth crown of its head in the centre of the frame, '
+             'with its two shoulders and the tops of its arms on either side, and only the tips of its feet peeking '
+             'out beyond its shoulders; its face is hidden below the crown. ',
+             'a bird\'s-eye view from a camera directly above them, pointing straight down'),
+}
+MQ_SEEDS = (111, 222, 333)
+MQ_PICK = {'front lo': 333, 'back lo': 333, 'front hi': 111, 'top2': 333}  # view -> seed, Claude's eye check
+# MQ_EDIT round 2: zoom carried, front hi mildly high, front lo stayed eye level, back lo PASTED the mannequin into
+# the street. Variant B reads picture 2 as the stand-in to replace: subject where the mannequin is, same camera.
+MQ_EDIT_B = ('Replace the grey mannequin in the second image with the subject from the first image, standing exactly '
+             'where the mannequin stands, at the same size, turned the same way and seen from the same camera '
+             'angle, height and distance: {v}. Remove the mannequin completely. Replace the grey studio backdrop and '
+             'floor with the place from the first image, seen from that same camera. Keep the subject\'s identity, '
+             'clothes, the place, the light and the image style of the first image unchanged.')
+
+
+def mannequin2(port, edits=False):
+    import shutil
+    done = os.path.join(OUT, 'mannequin2.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    src = json.load(open(os.path.join(OUT, 'pitch.json')))['scene input']
+    keep = os.path.join(HERE, 'mannequin')
+
+    def step(key, body):
+        if key not in res:
+            if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+                sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+            res[key] = gen(port, {**FAST, 'seed': PITCH_SEED, **body, 'cardName': f'angles mq2 {key}'})
+            json.dump(res, open(done, 'w'), indent=1)
+        return res[key]
+
+    for v, (cam, lay, _) in MQ2_VIEWS.items():
+        for s in MQ_SEEDS:
+            step(f'ref {v} {s}', {'operation': 't2i', 'ratio': '1:1', 'seed': s,
+                                  'positive': MQ2_HEAD + cam + MQ2_LIGHT + MQ2_SUBJ + lay + MQ2_BACK})
+    for v, s in MQ_PICK.items():
+        shutil.copyfile(disk(res[f'ref {v} {s}']), os.path.join(keep, f'{v.replace(" ", "_")}.png'))
+        if edits:
+            step(f'edit {v}', {'positive': MQ_EDIT.format(v=MQ2_VIEWS[v][2]),
+                               'media': [{'role': 'inputImage', 'url': src},
+                                         {'role': 'inputImage2', 'url': res[f'ref {v} {s}']}]})
+            step(f'editB {v}', {'positive': MQ_EDIT_B.format(v=MQ2_VIEWS[v][2]),
+                                'media': [{'role': 'inputImage', 'url': src},
+                                          {'role': 'inputImage2', 'url': res[f'ref {v} {s}']}]})
+    cell = 300
+    rows = [[(f'ref {v} {s}', f'{v} s{s}') for s in MQ_SEEDS] for v in MQ2_VIEWS]
+    if edits and MQ_PICK:
+        rows.append([(f'ref {v} {s}', f'ref {v} s{s}') for v, s in MQ_PICK.items()])
+        rows.append([(f'edit {v}', f'edit {v}') for v in MQ_PICK])
+        rows.append([(f'editB {v}', f'editB {v}') for v in MQ_PICK])
+    h = cell + 24
+    img = Image.new('RGB', (cell * max(len(r) for r in rows), h * len(rows)), 'white')
+    d = ImageDraw.Draw(img)
+    for r, row in enumerate(rows):
+        for c, (k, label) in enumerate(row):
+            if k in res:
+                im = Image.open(disk(res[k])).convert('RGB')
+                im.thumbnail((cell, h - 24))
+                img.paste(im, (c * cell, r * h + 24))
+                d.text((c * cell + 4, r * h + 4), label, fill='black')
+    img.save(os.path.join(HERE, 'sheets', 'mannequin2.jpg'), quality=90)
+
+
 def mannequin(port, edits=False):
     import shutil
     done = os.path.join(OUT, 'mannequin.json')
@@ -1234,6 +1329,8 @@ if __name__ == '__main__':
         sweep2(int(sys.argv[1]))
     elif sys.argv[2:3] == ['lora']:
         lora(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['mannequin2']:
+        mannequin2(int(sys.argv[1]), sys.argv[3:4] == ['edits'])
     elif sys.argv[2:3] == ['mannequin']:
         mannequin(int(sys.argv[1]), sys.argv[3:4] == ['edits'])
     elif sys.argv[2:3] == ['short_pass']:

@@ -77,6 +77,25 @@ NEXT (Fabio): start with the HARD bit - full-body mannequin refs at LOW and HIGH
 high above, bird's-eye). Reword the t2i or retry seeds; if t2i cannot do it, Fabio installs the Blender CLI and the
 refs are rendered from a 3D mannequin. As soon as one low + one high ref is right, run the two-image edit
 (`mannequin <port> edits`, edit MQ_VIEWS to the views that exist) on the street man and judge it.
+ROUND 2 DONE 2026-10-23 (`mannequin2` mode, sheets `mannequin2.jpg` + `mannequin2_edits.jpg`, detail in
+validation.md): refs now flat-lit; top-down works when described by what is in frame ("top2"). Edits: zoom + HIGH
+transfer; front LOW fails (eye level); back LOW works only with wording B (MQ_EDIT_B, "replace the mannequin") but
+copies the mannequin's stiff pose. NEXT: Fabio's eye test on `mannequin2_edits.jpg`, then his call - Blender refs
+(exact, extreme low) or more t2i/wording rounds; pose leak from B needs a fix either way.
+FABIO CHOSE BLENDER 2026-10-23. Source file: `D:\Blender\Projects\OpenPoseBonse_V99\mpi_openPose.blend` (saved by
+4.3; mpi_openPose2/3 are newer siblings - ask which if it matters). CLI = Blender's own headless binary, already
+installed (4.0/4.2/4.5/5.2 via winget); use 4.5 LTS (`C:\Program Files\Blender Foundation\Blender 4.5\blender.exe
+-b <file> --python <script>`; shim `C:\Users\Fabio\bin\blender.cmd`). Opens fine headless. Rig = Auto-Rig-Pro style
+`OpenPoseBone_v3_rig` (565 bones, 281 `c_` controls, e.g. c_head.x, c_pos, c_traj); view layer `3D_Doll`; camera
+`Camera.001`, 50 mm, 896x1152; engine EEVEE Next. TRAPS: (1) the compositor has File Output nodes into
+`MultiControlnet/<pass>/` - a plain `-f 1` render WROTE 18 files there (removed); always
+`scene.render.use_compositing = False`; never save the .blend (work in memory or on a copy). (2) output format is
+FFMPEG: set `image_settings.file_format = 'PNG'`. (3) Workbench FLAT test (`research/blender/flat_test.py`) rendered
+EMPTY: the doll seen in the viewport is not render-visible in that layer (visible meshes: Seg.002, FLOOR, WALL/BED.001)
+- find which mesh is the doll and unhide it for render. Scripts: `research/blender/inventory.py`, `flat_test.py`.
+NEXT: design the Blender ref renderer WITH Fabio (which mesh, neutral standing pose via c_ controls, flat grey
+Workbench vs EEVEE, camera rig per stop: yaw x pitch x zoom, square masters), render front low first, then rerun the
+two-image edits (`mannequin2 edits`, feed Blender refs).
 Prompt rule (Fabio + playbook 01 § READ THE MODEL'S GUIDE): generic ("the subject"/"they"), no "photograph" in edit
 prompts, FLUX.3 edit voice. The MQ_BODY t2i ref prompt may say "Studio photograph" - it is our asset, not a user edit.
 Isolated app this session: port 57477 (profile cubric-agent-profile-mpi1212).
