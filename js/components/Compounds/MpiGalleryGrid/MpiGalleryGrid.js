@@ -2,6 +2,7 @@ import { ComponentFactory } from '../../factory.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiInput } from '../../Primitives/MpiInput/MpiInput.js';
 import { MpiWaveform } from '../../Primitives/MpiWaveform/MpiWaveform.js';
+import { MpiEntryInfo } from '../../Primitives/MpiEntryInfo/MpiEntryInfo.js';
 import { ce, qs, qsa, on } from '../../../utils/dom.js';
 import { renderIcon } from '../../../utils/icons.js';
 import { kindOfItem, PANEL_KINDS, canConvertToPano, canConvertToPanoVideo } from '../../../utils/assetKinds.js';
@@ -14,7 +15,7 @@ import { getModelById, tierLetterFor } from '../../../data/modelRegistry.js';
 import { getCommand, getCommandAccent, commandAllowsBranchingContinue } from '../../../data/commandRegistry.js';
 import { isStack, expandStacks, stackCreateBlockReason, STACK_BLOCK_INFO } from '../../../data/stackModel.js';
 import { handOverClip } from '../../../shell/heroCrew.js';
-import { flowModelLabel, formatGenTime } from '../../../utils/entryInfo.js';
+import { flowModelLabel, formatGenTime, entryInfo } from '../../../utils/entryInfo.js';
 import { state } from '../../../state.js';
 import { Events } from '../../../events.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
@@ -2669,9 +2670,19 @@ export const MpiGalleryGrid = ComponentFactory.create({
             }
         };
 
+        // Rest on a card to see how it was made, same flyout as History (MPI-1162). 2 s,
+        // not History's 400 ms, so browsing the grid never trips it (MPI-1261). A stack
+        // has no single "how", and a card still generating has no entry: no flyout.
+        const _info = MpiEntryInfo.mount(ce('div'));
+        _unsubs.push(_info.el.watch(grid, '.mpi-gallery-grid__row-wrap', (wrap) => {
+            const group = _groups.find(g => g.id === wrap.dataset.groupId);
+            return group && !isStack(group) ? entryInfo(group.history?.[group.selectedIndex]) : null;
+        }, { openMs: 2000 }));
+
         // ── Cleanup ──────────────────────────────────────────────────────────
         el.destroy = () => {
             _unsubs.forEach(fn => fn());
+            _info.destroy();
             if (_escUnsub) { _escUnsub(); _escUnsub = null; }
             _cardMap.forEach(({ card }) => card.el.destroy?.());
             _cardMap.clear();

@@ -991,9 +991,10 @@
  * No props. Hover flyout saying how a card was made (MPI-1162); one instance per host.
  *
  * Instance methods (on instance.el):
- *   watch(container, selector, getInfo) — open after 400 ms resting on a `selector` row,
- *       close 150 ms after the pointer leaves row and flyout. `getInfo(rowEl)` returns an
- *       `entryInfo()` result (js/utils/entryInfo.js) or null. Returns the unwatch fn.
+ *   watch(container, selector, getInfo, { openMs }) — open after 400 ms (or `openMs`)
+ *       resting on a `selector` row, close 150 ms after the pointer leaves row and flyout.
+ *       `getInfo(rowEl)` returns an `entryInfo()` result (js/utils/entryInfo.js) or null.
+ *       Returns the unwatch fn. Hosts: History (400 ms), gallery grid (2 s, MPI-1261).
  *   hide() — close now.
  */
 

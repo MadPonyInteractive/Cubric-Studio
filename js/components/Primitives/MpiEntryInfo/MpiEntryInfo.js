@@ -21,8 +21,9 @@ import { ce, on, inheritAccent } from '../../../utils/dom.js';
  * Props: none.
  *
  * Instance API (on el):
- *   el.watch(container, selector, getInfo) — wire hover on every `selector` inside
- *       `container`; `getInfo(rowEl)` returns an `entryInfo()` result or null (no flyout).
+ *   el.watch(container, selector, getInfo, { openMs }) — wire hover on every `selector`
+ *       inside `container`; `getInfo(rowEl)` returns an `entryInfo()` result or null (no
+ *       flyout). `openMs` overrides the rest delay (the gallery waits longer, MPI-1261).
  *       Returns the unwatch function.
  *   el.hide()
  */
@@ -104,7 +105,7 @@ export const MpiEntryInfo = ComponentFactory.create({
             el.classList.add('is-active');
         };
 
-        el.watch = (container, selector, getInfo) => {
+        el.watch = (container, selector, getInfo, { openMs = OPEN_MS } = {}) => {
             const rowOf = (node) => {
                 const row = node?.closest?.(selector);
                 return row && container.contains(row) ? row : null;
@@ -116,7 +117,7 @@ export const MpiEntryInfo = ComponentFactory.create({
                     if (row === _anchor) { clearTimeout(_closeTimer); _closeTimer = null; return; }
                     el.hide();
                     _anchor = row;
-                    _openTimer = setTimeout(() => _open(row, getInfo), OPEN_MS);
+                    _openTimer = setTimeout(() => _open(row, getInfo), openMs);
                 }),
                 on(container, 'pointerout', (e) => {
                     const row = rowOf(e.target);
