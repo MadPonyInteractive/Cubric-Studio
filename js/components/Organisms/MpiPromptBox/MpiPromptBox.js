@@ -220,6 +220,11 @@ export const MpiPromptBox = ComponentFactory.create({
         // like it (a magazine cover). t2i only, panel only: a t2i run takes no picture, and an
         // edit's boxes are the user's own. In the draft, so leaving the project keeps it.
         let _boxesGuide = _draft.boxesGuide || null;
+        // The last caption Create boxes wrote into the prompt. In the draft beside the prompt
+        // it compares against: kept only in this closure, leaving the gallery and coming back
+        // remounted the box with the caption but not this, so the old caption read as typed and stuck
+        // over every later Create boxes (Fabio, 2026-10-23).
+        let _autoCaption = _draft.autoCaption || null;
 
         // Field access by mode, so every read/write site stays a one-liner and a
         // fourth mode would not mean hunting ternaries.
@@ -258,6 +263,7 @@ export const MpiPromptBox = ComponentFactory.create({
                     // checkable rather than trusted.
                     enhanced: _enhanced,
                     boxesGuide: _boxesGuide,
+                    autoCaption: _autoCaption,
                 },
             };
         }
@@ -408,7 +414,6 @@ export const MpiPromptBox = ComponentFactory.create({
             _boxesBtn.el.setActive(true);
         }
         let _analysing = false;
-        let _autoCaption = null; // the last caption Create boxes wrote into the prompt
         // While the layout picture is loaded the box stays on t2i: the other ops grey out and a
         // picture added to the box is refused, until the panel's Remove picture (Fabio, 2026-10-22).
         const _layoutLocked = () => !!_boxesGuide && activeOperation === 't2i';
@@ -1920,6 +1925,8 @@ export const MpiPromptBox = ComponentFactory.create({
         function _renamePromptTag(from, to) {
             const next = positiveValue.split(`<${from}>`).join(`<${to}>`);
             if (next === positiveValue) return;
+            // A rename is not the user's edit: Create boxes' caption stays replaceable.
+            if (positiveValue.trim() === _autoCaption) _autoCaption = next.trim();
             _writeMode(next, 'positive');
             if (promptMode === 'positive') { textareaEl.value = next; updateHeight(); }
             _saveDraft();
