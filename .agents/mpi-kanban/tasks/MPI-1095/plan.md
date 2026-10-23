@@ -7,8 +7,8 @@
   (r2vref-3 ALL PASS, r2vref-4 24/24 after harness theft regex + `getaway`). All four modes twice
   green; `docs/recipes/research/ltx-2.5/validation.md` written (final prompts, iterations, 3 known
   limits). Spend ~22.5 of 25 cents. Recipe stays `draft`. NEXT: Fabio's Stage 2 renders from
-  validation.md; his call on the Thufpik-in-picture-line limit (fix = infer rule above PART 1, ~3
-  cents for two sweeps, past the cap); then Stage 2 of the card (2.5 in the LTX Flows).
+  validation.md; then Stage 2 of the card (2.5 in the LTX Flows). Thufpik-in-picture-line: two
+  rewordings tried on Fabio's yes (r2vref-5/6, ~3 cents), neither held, both reverted; a known limit.
 - 2026-10-23 ("LTX 2.5 model 8"): Stage 1 sweeps on DeepInfra Gemma 4 26B (judge local gemma3:12b, under
   the GPU lease; runner `scratchpad/sweep.sh`, outputs `scratchpad/<mode>-<n>.txt` of session 143ec54f).
   Fixes, all in `ltx-2.5.recipe.js` (uncommitted): CAMERA_RULE bans invented dolly/push/pan/track +

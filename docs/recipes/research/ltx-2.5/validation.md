@@ -7,7 +7,7 @@
 - **Judge model:** local `gemma3:12b` (Ollama app)
 - **Runs per tier:** 3 (a tier passes only if all 3 pass); every mode swept twice green
 - **Harness:** `npm run recipe:test -- ltx-2.5 --backend deepinfra --engine gemma-4-e4b --judge gemma-3-12b --runs 3 [--mode i2v|r2v] [--ref-tiers]`, under `gpu_lease.py run`
-- **Spend:** ~15 sweeps, ~22.5 cents of Fabio's 25-cent cap
+- **Spend:** ~17 sweeps, ~25.5 cents (25-cent cap, plus Fabio's yes for ~3 cents more on round 7)
 - **Date:** 2026-10-23 (MPI-1095)
 
 ### Final tally
@@ -102,6 +102,7 @@ All changes in `js/data/recipes/ltx-2.5.recipe.js` unless the row says harness.
 | 4 | harness: seen-beach theft written as "grabs ... retreats" / "disappears with the fruit" scored as no theft | harness `scripts/recipe-test.mjs` theft regex + `retreats`, `disappears` | r2vref-1 rescored 24/24 |
 | 5 | `r2v --ref-tiers` seen-beach: "scurries into the frame as it grabs a bright orange." and stops (r2vref-2, 1 real miss) | Part 2 item 3: the beat never stops at the contact; the one acting moves on with the result in the same sentence ("grabs an orange and scurries off with it") | r2vref-3 ALL PASS, getaway in 3/3 |
 | 6 | harness: r2vref-4 seen-beach "grabs an orange, and makes a quick getaway" scored as no theft | harness theft regex + `getaway` | r2vref-4 rescored 24/24 |
+| 7 | `r2v --ref-tiers` directed keeps "Thufpik" in the `<Picture 1>` line | (a) infer rule stated above PART 1 (r2vref-5: ALL PASS, Thufpik 1/3 picture lines, scene clean); (b) plus 2.3's "Lift those words from the user" patched for 2.5 to infer an unknown word (r2vref-6: Thufpik still 1/3, and seen-picnic 2/3, one run wrote the picture lines and no scene) | both REVERTED to the round-6 text (twice green); ~3 cents, Fabio's yes |
 | — | `i2v` frame-none invents a dog breed (i2v-4 tried a stronger "give it no appearance") | reverted; recorded below | not fixed |
 
 ### Ladder movements
@@ -134,8 +135,10 @@ Where the recipe is measurably better (or not): {Fabio}
   and sometimes the scene: 2/3 runs in r2vref-3, 1/3 in r2vref-1 and r2vref-2 had it too. Part 2's
   "infer unrecognised words" rule does not reach Part 1 (2.3's validated picture block, sliced in
   verbatim), and the scene follows the picture line. The harness does not check it. Without
-  references (`r2v` none) it is gone 6/6. Fix is to state the infer rule above PART 1 in the 2.5
-  prompt, which costs two fresh `--ref-tiers` sweeps (~3 cents, past the 25-cent cap): Fabio's call.
+  references (`r2v` none) it is gone 6/6. Round 7 tried two rewordings (above PART 1, and inside the
+  2.3 block's "Lift those words" rule): it dropped out of the scene but stayed in 1 of 3 picture lines
+  either way, so both were reverted. The 26B copies a word the user wrote into a line built from the
+  user's words; the render cost is one nonsense noun in the sheet's caption.
 
 ## Verdict (proposal only)
 
