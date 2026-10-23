@@ -32,9 +32,10 @@ export function overlapFor(tile) {
 }
 
 /**
- * The bounding boxes Impact's MakeTileSEGS will cut on the SCALED picture,
- * sorted the way [ASC] wildcards order them: ascending by x1, then y1
- * (left column → right, top → bottom within each column).
+ * The bounding boxes Impact's MakeTileSEGS will cut on the SCALED picture, in the order it
+ * cuts them (row by row, left to right): the order `ImpactSEGSLabelAssign` labels them in, so
+ * rect i is the tile labelled `t<i>` in the graph (tileDescribe.js). Not [ASC]-sorted: people
+ * boxes drop tiles in the graph, which would shift an ordered name list (MPI-1232 Phase 3).
  *
  * Port of `tilebench.py:tile_rects` (which ports `MakeTileSEGS.doit`, "Reuse fast" path).
  *
@@ -86,7 +87,7 @@ export function tileRects(width, height, factor, { bbox = 1024, overlap, irregul
         }
         y += bbox - ho;
     }
-    return rects.sort((a, b) => a.x1 - b.x1 || a.y1 - b.y1);
+    return rects;
 }
 
 /**

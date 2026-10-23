@@ -62,12 +62,13 @@
 
 - New model: MOSS-Image, a text-to-image model that writes exact lettering on signs and posters, with a fast Turbo mode and Boxes for placing things. It also does image-to-image, inpaint, detail and upscale on your pictures (MPI-1243).
 - Boxes can now read a picture for you, to make a new one laid out the same way (a magazine cover, a poster). Right-click a card and pick Create boxes: each thing in the picture gets its own named box, with what it is and any lettering written out, the shape follows the picture, and an empty prompt gets a caption for the whole scene. While that picture is in Boxes the prompt box stays on text to image; Remove picture in the Boxes panel frees the other modes. Works on MOSS-Image and FLUX.3 Klein (MPI-1253).
+- Use Tiles is redone: pick a Tile size (smaller tiles, more detail), and Describe each tile (on by default) names what fills each tile in a few words before the upscale, so grass is redrawn as grass. People and faces get their own gentle passes and are never described, so they keep their look. Use Grid is gone: Use Tiles replaces it, and an old Use Grid setting opens as Use Tiles (MPI-1232).
 - When an update is ready, the Dev updates panel (the bell) shows an "Update to v…" button at the top, naming the version the posts below talk about (MPI-1242).
 
 ## Fixes
 
 - The Model picker now lists featured models first, the same order as the Model Library, and MOSS-Image is featured (MPI-1245).
 - The child-safety check reads more wording: plural body words and clothing "pulled aside" now get the picture looked at (MPI-1241).
-- Cosmo now tells you exactly how many tiles a Use Tiles upscale runs, the same number the status bar counts (MPI-1237).
+- Cosmo now tells you how many tiles a Use Tiles upscale runs, up to the number the status bar counts (MPI-1237).
 - Flow steps with a drawing area (Crop, Cut-out, Place, Paint, Edges) open at full width at once, instead of widening a pixel at a time for a few seconds (MPI-1255).
 - Less noise in the log: the mascot freeze warnings now appear only with speed diagnostics on, and a RunPod connect that stops early no longer logs a false freeze (MPI-1255).

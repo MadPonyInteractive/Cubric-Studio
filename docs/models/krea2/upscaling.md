@@ -24,23 +24,39 @@ through `MpiBooleanInvert` → `MpiIfElse` into the `upscale` reroute. MpiIfElse
 only the chosen path runs.
 
 ```
-Grid  (off): Input_Image → ResizeImageMaskNode (÷16) → UltimateSDUpscale ──┐
-Tiles (on):  Get_img1 → ImageScaleBy lanczos × Input_Upscale_Factor        ├→ upscale
-             → ImpactMakeTileSEGS 1024 / 1.5 / 200 / 30 / 0.7 "Reuse fast" │
-             → DetailerForEachPipe (guide 1024 bbox, max 1536) ────────────┘
+One pass (off): Input_Image → ResizeImageMaskNode (÷16) → UltimateSDUpscale ─────┐
+Tiles (on):  Get_img1 → ImageScaleBy lanczos × Input_Upscale_Factor              ├→ upscale
+             → ImpactMakeTileSEGS Input_Tile_Size / 1.5 / Input_Tile_Overlap      │
+               / 30 / 0.7 "Reuse fast"   (no filter: every tile is cut)           │
+             → ImpactSEGSLabelAssign (Input_Tile_Labels "t0,t1,..")               │
+             → ImpactSegsAndMask (InvertMask(ImpactDilateMask 30                  │
+                 (SegsToCombinedMask(person boxes))))  = tiles minus people       │
+             → tile DetailerForEachPipe (guide Input_Tile_Guide, max Input_Tile_Max,
+                 wildcard Input_Tile_Prompts)                                     │
+             → People detailer (person boxes, denoise 0.25 baked, no wildcard)    │
+             → Face detailer (face_yolov8n boxes, tile denoise, no wildcard) ─────┘
 ```
+
+**Tile names (MPI-1232).** `Input_Tile_Prompts` is `[CONCAT][LAB][t0]name[t1]name..`, written
+by the app (`js/services/tileDescribe.js`) from the user's describer, one short name per tile.
+LABEL-keyed, never `[ASC]`: the person mask empties whole tiles AFTER they are labelled, and
+Impact's ordered list hands names out by a counter, so one emptied tile would shift every
+name after it. `[CONCAT]` appends the name to the base positive (keeps the model's own
+conditioning). Empty = today's prompt-less tiles. The rects the app names come from
+`tileRects` (`js/utils/tileCount.js`) in MakeTileSEGS cut order = label order.
 
 **Tiles** is a copy of this graph's own Detailer group (same Get nodes → ToBasicPipe, turbo
 model switch, `3 if turbo else 16` steps, `1.0 if turbo else 1.5` cfg, euler/beta,
-`Input_denoise`), with MaskDetailer swapped for the tile nodes. Fixed 1024 tiles, so the
-count grows with the picture (`js/utils/tileCount.js` ports the node's maths for the
-prompt box label: 1920×1080 ×2 = 15 tiles, 4000×6000 ×2 = 150). Cloud masks blend the
+`Input_denoise`), with MaskDetailer swapped for the tile nodes. Tile size is the prompt box's
+**Tile size** (default 1024, overlap 20% floor 64), so the count grows with the picture
+(`js/utils/tileCount.js` ports the node's maths for the prompt box label, "up to N tiles":
+1920×1080 ×2 at 1024 = 15 tiles, 4000×6000 ×2 = 150). Cloud masks blend the
 tiles, so no seam shows. Factor 1.0 = detail only (offered only with tiles on). **No
 resize-to-multiple** on this path: the detailer resizes each crop itself, and a
 whole-picture resize would only stretch it and break output = input × factor.
 
-**Grid** splits at most 9 ways (`MpiGridDimensions`, each ≤768 source px) with seam fix
-off, so it seams, and a big photo gets 9 huge tiles. Kept beside Tiles by Fabio's call.
+**Use Grid is gone** (MPI-1232, Fabio 2026-10-21). Its nodes stay in the graph with
+`Input_Auto_Grid` baked false (= the one-pass UltimateSDUpscale); the app no longer injects it.
 
 ## The refiner (REMOVED 2026-10-09)
 
@@ -78,19 +94,16 @@ full-quality refine. Do not "fix" this by routing the refiner through `1711`.
 
 ## Traps
 
-- **Prompt applies PER TILE.** With `Use Grid` or `Use Tiles` on, every tile is sampled with the
-  full positive prompt at the current denoise, so a scene prompt ("two women on a
-  ship") renders the whole scene *in each tile*. Grid upscaling wants an empty or
-  generic prompt. Live-confirmed on a 4×2 grid.
-- **Tile count is a runtime value.** `1639 MpiGridDimensions` derives tile size from
-  the image × `Grid_H`/`Grid_V` × `Input_Upscale_Factor`, so the count scales with
-  input size, factor and the Use Grid toggle. Never record a static stage total for
-  this graph — see [../../generation-lifecycle.md](../../generation-lifecycle.md)
-  for `postTile` and the T+1 tile-tick trap.
-  The Tiles path is the same: its count follows the OUTPUT size, so a big photo is
-  150+ detailer steps (the `DETAILING · 0%` status sat still deep into a Flow run - unchecked).
-- **`Grid_H` / `Grid_V` (1604/1605) are NOT injectable** — no `Input_` prefix, fixed
-  at 1. Only `Input_Auto_Grid` varies the split.
+- **Prompt applies PER TILE.** With `Use Tiles` on, every tile is sampled with the full
+  positive prompt (plus its name) at the current denoise, so a scene prompt ("two women on a
+  ship") renders the whole scene *in each tile*. Tiles want an empty or look-only prompt.
+- **Tile count is a runtime value**, and only an upper bound: it follows the OUTPUT size and
+  the tile size, and tiles a person fills are emptied and skipped ("segment skip [empty
+  mask]"), so the label says "up to N". Never record a static stage total for this graph —
+  see [../../generation-lifecycle.md](../../generation-lifecycle.md) for `postTile` and the
+  T+1 tile-tick trap.
+- **Never move the people filter back onto MakeTileSEGS** (`filter_out_segs_opt`): it DROPS
+  covered tiles before labelling and the names shift (bench 2026-10-23: 24 cut, 12 sampled).
 - **Injection surface is 16** (`Input_*` / `Output_*`) and did not change when the
   refiner landed. The node ids that moved (`1701` → `1706`) are referenced nowhere
   in `js/` — injection is title-keyed.

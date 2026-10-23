@@ -10,15 +10,15 @@ attached image and a `list_cards` row each give it as `WxH`.
 | Route | How you run it | Bigger? | New detail? |
 |---|---|---|---|
 | Plain upscale | `imageUpscale`, a tool (no modelId): `fields.factor` 1.5 to 4 | yes | **no**: an upscale model sharpens what is there |
-| Tiled upscale | a model's `upscale` op, `tiles: true`, `upscaleFactor` the factor | yes | yes: redrawn in 1024 px tiles, at any size |
+| Tiled upscale | a model's `upscale` op, `tiles: true`, `upscaleFactor` the factor | yes | yes: redrawn tile by tile (1024 px unless `tileSize` says), at any size |
 | Tiled detail | the same with `upscaleFactor: 1` | no, same size | yes |
 | One-pass upscale | a model's `upscale` op with tiles off | yes | yes, but the whole picture in ONE pass at the new size: a big result can break into patterns |
 | Image to image | a model's `i2i` op at a low denoise | no: it comes back at the op's ratio size, about 1 MP | yes, the whole picture redrawn |
 | Detail | a model's `detail` op on a mask the user paints | no, the source's size | only inside the mask |
 | Edit | an edit op | no: it redraws at about 1 MP | **never**: it changes what is IN the picture |
 
-Grid upscale (at most nine large tiles) and an enlargement with no model at all are in the
-app's own panels. Name them when asked; the user picks them there.
+An enlargement with no model at all is in the app's own panels. Name it when asked; the user
+picks it there.
 
 ## Which one to take
 
@@ -42,10 +42,14 @@ app's own panels. Name them when asked; the user picks them there.
 ## Running tiles
 
 - Every image model's `upscale` op has tiles: `describe_model` lists `params.tiles` and
-  `params.upscaleFactors`.
-- Every tile gets the WHOLE prompt. Describe the look ("sharp photo, fine skin texture, film
-  grain") or send none. Never describe the scene: each tile would paint it again.
+  `params.upscaleFactors`, and `params.tileSizes` for `tileSize` (smaller = more tiles, more
+  detail, slower). Leave it unset unless the user asks: the project's Tile size applies.
+- Every tile gets the WHOLE prompt, plus a short name of what fills it: the app names each tile
+  itself before the run ("Naming N tiles" in the queue). People and faces get their own passes
+  with no names. Describe the look ("sharp photo, fine skin texture, film grain") or send none.
+  Never describe the scene: each tile would paint it again.
 - A big picture is many tiles: say in one line that it takes a while.
-- How many tiles: the generate result says, the same number the status bar counts. Never work
-  it out from the size yourself (overlap makes it far more than size / 1024).
+- How many tiles: the generate result says UP TO a number (tiles a person fills are left to the
+  people pass); the status bar counts them. Never work it out from the size yourself (overlap
+  makes it far more than size / tile size).
 - Leave denoise at the op's default unless the user wants more change.

@@ -39,6 +39,7 @@ import { ce } from '../utils/dom.js';
 import { collapseQueueBatches } from './generationBatch.js';
 import { checkChildSafety, childSafetyGate, gateWords, configContext, CHILD_SAFETY_CODE, needsPictureCheck, picturesOf, controlMapOf, AGE_QUESTION, EXPOSED_QUESTION, CLOTHES_QUESTION, SKETCH_QUESTION, PICTURE_AGE_KEY, CLIP_AGE_KEY, parseAgeAnswer, parseSketchAnswer, YEARS_QUESTION, ADULT_YEARS, parseYears, refusal, lookWanted, NUDITY_SYSTEM } from '../data/childSafety.js';
 import { cachedVerdicts } from './mediaVerdicts.js';
+import { wantsTileNames, nameTiles } from './tileDescribe.js';
 
 // ── Cue queue (in-app, THREE-LANE dispatch) ─────────────────────────────────
 // We own the pending array. MPI-74 P6 split dispatch into a 'remote' lane (cloud
@@ -607,6 +608,44 @@ export function enqueueGeneration(config, callbacks = {}, opts = {}) {
     // freezes to the project open at re-fire. Carry it from `loopSeed` if that bites.
     config._originProject ??= state.currentProject;
 
+    // MPI-1232: Use Tiles' "Describe each tile" names each tile before the run queues, for
+    // every caller (prompt box, agent, routines, MCP). The names are written into the run's
+    // own params, so the child-safety gate below reads them like any other words.
+    if (wantsTileNames(config)) {
+        const queueJobId = opts.queueJobId || crypto.randomUUID();
+        _nameTilesThenQueue(config, callbacks, { ...opts, queueJobId });
+        return { queueJobId };
+    }
+    return _gateThenQueue(config, callbacks, opts);
+}
+
+/**
+ * MPI-1232: the "Naming N tiles" row runs (tileDescribe.js), then the upscale queues with the
+ * names in `Input_Tile_Prompts` / `Input_Tile_Labels`. A tile the describer could not name is
+ * redrawn with none; the run never fails for it, and a toast says how many went unnamed.
+ * A describe Stopped in the queue stops the upscale too.
+ * ponytail: like `_judgeThenQueue`, the upscale itself sits in no queue while its tiles are
+ * named, so its own Stop appears only once naming is done; each describe job has its own.
+ */
+async function _nameTilesThenQueue(config, callbacks, opts) {
+    const r = await nameTiles(config);
+    if (r.cancelled) {
+        try { callbacks.onCancel?.(); } catch {}
+        _emitPromptBoxGenerationEndIfIdle();
+        return;
+    }
+    if (r.injectionParams) Object.assign(config.injectionParams, r.injectionParams);
+    if (r.failed) {
+        Events.emit('ui:warning', {
+            message: r.named
+                ? `${r.failed} of ${r.total} tiles could not be named and are redrawn without a name.`
+                : `The tiles could not be named${r.error ? ` (${r.error})` : ''}. The upscale runs without tile names.`,
+        });
+    }
+    _gateThenQueue(config, callbacks, opts);
+}
+
+function _gateThenQueue(config, callbacks, opts) {
     // MPI-1056: the child-safety gate, on every generation: the prompt box, Flows, routines,
     // the in-app agent and MCP all reach the queue here. A word-and-age script, no tokens;
     // a borderline flag waits for the language-model judge, which may only clear it. A text

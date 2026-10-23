@@ -9,11 +9,14 @@
 - [x] Stage 3: people pass benched (boxes; describer-free people). Overlap rule moved to Phase 1 verify.
 - [x] Verdicts written into brief.md, shown to Fabio; he chose names + people pass + face pass (2026-10-22)
 - [x] Wiring plan written (plan.md top, footprint in research/footprint.md)
-- [ ] Fabio's open calls (plan.md "Open"): Tiles denoise default, people pass denoise
-- [ ] Phase 1 graphs (14 runtime from 7 raw) - verify on G: bench
-- [ ] Phase 2 tile maths + controls + Grid removal - npm test, lint, desktop spec
-- [ ] Phase 3 Describe each tile (outlines route, captions, one visible row)
-- [ ] Phase 4 agent/MCP/docs + test pins
+- [x] Fabio's open calls (plan.md "Open"): Tiles denoise default, people pass denoise
+- [x] Phase 1 graphs (14 runtime from 7 raw) - verify on G: bench
+- [x] Phase 2 tile maths + controls + Grid removal - npm test, lint, desktop spec
+- [x] Phase 3 Describe each tile (outlines route, captions, one visible row) - label-keyed names, Klein 9B bench
+- [x] Phase 3 live app:isolated Use Tiles run (8/8 named, clean)
+- [ ] Endpoint describer price before a big run (Fabio's call)
+- [ ] `.claude/rules/` Tiles/Grid rows (ask Fabio, CLAUDE.md rule 5)
+- [x] Phase 4 agent/MCP/docs + test pins (tileSize named param, up to N tiles)
 
 ## Cosmo + tiles (Fabio, 2026-10-22)
 

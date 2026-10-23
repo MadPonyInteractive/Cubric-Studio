@@ -183,8 +183,10 @@ drives. Note `Input_Tier` still exists in **Qwen's** graph; it is a different co
 
 New injection surface on this graph: `Input_Mask` (optional — empty self-gates to a
 whole-image edit), `Input_Image_2` (the depth line's subject reference),
-`Input_Auto_Grid`, `Input_Upscale_Factor`, `Input_Upscale_Model`, `Input_is_Turbo`, and
-`Input_depth_strength`.
+`Input_Auto_Grid` (no longer injected since MPI-1232, baked false), `Input_Upscale_Factor`,
+`Input_Upscale_Model`, `Input_is_Turbo`, `Input_depth_strength`, and the Use Tiles set
+(`Input_Tile_Upscale`, `Input_Tile_Size`, `Input_Tile_Overlap`, `Input_Tile_Guide`, `Input_Tile_Max`,
+`Input_Tile_Prompts`, `Input_Tile_Labels`: [upscaling.md](upscaling.md)).
 
 `Input_depth_strength` was authored-only through the migration and became a control
 afterwards: the **Depth Strength** slider (`depthStrength` in `PromptBoxControls.js`,

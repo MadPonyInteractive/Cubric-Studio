@@ -211,3 +211,7 @@ Input: `upscale_002` crop (0,1450)-(1344,2450) = the hazy valley left of the peo
 MPI-1038 (Use Tiles today), MPI-1175 (tile count in the label), MPI-1181 (FLUX.3 tile bench +
 identity drift), MPI-1101 (Make seamless machinery), MPI-1053 (Cosmo's upscale routes - update
 the Use Tiles line), MPI-895 (upscale/refine umbrella).
+
+## Noticed
+
+- 2026-10-23: at tile 1024 the describer named people parts ("curly gray hair and beard") on a tile a person only PARTLY covers; the mask keeps the person out of that tile, but the words reach its background area. Option: blank a name with people words, or a stricter question. Fabio's call.

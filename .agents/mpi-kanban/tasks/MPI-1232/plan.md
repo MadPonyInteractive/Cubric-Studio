@@ -155,7 +155,51 @@ checked before the first run; anything missing = stop and ask).
 - FLUX.3 blocked: Fabio reinstalling models into `M:\CubricModels` (FLUX.3 Klein + flux2-vae in his queue).
   A copy of `flux3-image-klein-base-int8-convrot` sits in `G:/models/diffusion_models` - delete it once M: has FLUX.3.
 
-### Current (2026-10-22 night, session "Tile upscaler improvements 5"): Phase 1 + 2 RUNNING in parallel
+### Current (2026-10-23 later, same session): Phase 3 LIVE-VERIFIED, Phase 4 DONE - close-out next
+
+- Live app:isolated (own profile/docs, port 61572, leased, Klein 9B, connector upscale tiles x2 at 1024): "Naming 8
+  tiles" ran (8/8 named, describer = local Qwen on the shared engine), sidecar carries Tile_Describe + Input_Tile_Labels
+  + the [CONCAT][LAB] prompts, result 2560x1600 in 226 s, clean (no red box, identity holds). A browser-pane page of the
+  instance CANNOT reach :48188 (every comfy call "Failed to fetch"): run live tests in the Electron window, not the pane.
+- Found live: the describer named the MARKER on an edge tile ("a red rectangle outline"): `cleanTileName` now drops a
+  name with rectangle/outline (test pinned). Also "curly gray hair and beard" on a tile that is NOT fully a person at
+  tile 1024: people words can reach a sampled tile's background area at big tile sizes (Your call, brief.md Noticed).
+- Phase 4: `tileSize` named param (TILE_SIZES in generationControls, describe_model `params.tileSizes`, INVALID_TILE_SIZE,
+  connector NAMED_PARAM_KEYS, routineModel, agentDispatch, agentLoop schema + _SENT_KEYS, MCP schema); tiles text = the
+  app names each tile, people and faces unnamed; Cosmo says "up to N tiles". Tool-schema budget raised 16,294 ->
+  16,394 with its reason (agent-prompt-budget.test.cjs). Docs: agent/upscaling.md, cubric-vision-generate SKILL.md,
+  krea2/upscaling.md (chain + traps, Grid gone), krea2/README + injection.md, agent/models flux-3 + moss-image,
+  releases/UNRELEASED.md. NOT edited: `.claude/rules/` (comfy_injection.md, component-comfy.md still name Auto_Grid /
+  the old tile group) - CLAUDE.md rule 5, ask Fabio.
+- Verified: npm test 3546 / 3544 pass / 0 fail; lint 0; desktop prompt-box-use-tiles spec 1 passed.
+- Left: endpoint describer price (Your call), Cosmo-upscale workspace to-do (checklist), rules update (ask).
+
+### Earlier (2026-10-23, session "Tile upscaler improvements 6"): Phase 3 BUILT, Klein 9B bench running
+
+- **Drift found + fixed (Fabio's go):** the `[ASC]` name list could not work - `MakeTileSEGS.filter_out_segs_opt` DROPS
+  every tile a person fully covers, and Impact's WildcardChooser hands names out by a counter, so every name after the
+  first dropped tile shifts. Now keyed by LABEL: MakeTileSEGS (no filter) -> `ImpactSEGSLabelAssign` (labels from new
+  MpiText `Input_Tile_Labels`, "t0,t1,..") -> `ImpactSegsAndMask` (mask = InvertMask(ImpactDilateMask 30
+  (SegsToCombinedMask(person SEGS)))) -> tile detailer; wildcard `[CONCAT][LAB][t0]name[t1]name..`. An emptied tile is
+  skipped by the detailer ("segment skip [empty mask]"), its label simply unused. Scratch `patch_labels.py` +
+  `verify_labels.py` (session scratchpad), re-converted with `convert_nostage.mjs`; all 14 runtime graphs verified.
+- `tileRects` now returns MakeTileSEGS CUT order (rows, then columns) = label order; no [ASC] sort.
+- Server: `POST /tiles/outlines` (routes/tiles.js + services/tileOutlines.js, sharp, ~1 MP jpg per tile, red stroke 0.3%
+  of the long side drawn INSIDE the tile, os.tmpdir()/cubric-tile-outlines, 24 h sweep).
+- Client: `js/services/tileDescribe.js` (`nameTiles`, `tileWildcard`, `cleanTileName`, SCENERY_Q verbatim). Hooked in
+  `enqueueGeneration` like the child-safety wait: `Tile_Describe` (app-only flag, no node; from the tileDescribe control
+  AND generationControls) + tiles on -> one Transfers row "Naming N tiles" (cpuJobs, bar i/N) -> describe one tile at a
+  time on the user's describer -> names into the run's params -> child-safety gate -> queue. Failed caption = no entry
+  (base prompt only) + a ui:warning count; a Stopped describe cancels the upscale.
+- Verified: `tests/tile-describe.test.cjs` 6 pass (Impact's split_to_dict ported in the test), npm test 3543 pass / 0
+  fail, lint 0, desktop spec 1 passed.
+- Bench DONE (validation.md): `research/phase3verify.py` (+ `outlines.mjs`) on klein_9b_t2i, tile 512 x2. Names run
+  clean at 0.3. The car proof showed nothing (Klein at 0.55 barely redraws a blurry court); mapping proven by Impact's own
+  code instead (0 mismatches). Next: Phase 4, or a live app:isolated Use Tiles run first.
+- **Not done:** endpoint price before a big run (plan said show it; no per-call price is known up front - Your call),
+  Phase 4 (agent/MCP/docs), Cosmo-upscale workspace to-do.
+
+### Earlier (2026-10-22 night, session "Tile upscaler improvements 5"): Phase 1 + 2 RUNNING in parallel
 
 - Fabio answered the Open calls (see "Decided"). Claim `state/files/ca54f9c1-mpi1232.json` covers both batches.
 - **Phase 1 landed (uncommitted, NOT staged):** 7 raw + 6 gen templates + 14 runtime. Scripted patch (not a frontend
@@ -223,6 +267,10 @@ from Fabio in checklist.md: Cosmo's upscale should open the image workspace (lat
 - G: FLUX.3 copy is byte-identical to M: (sha256 8949ecfc...) but still there: auto mode blocked the delete; Fabio's to remove.
 
 ## Plan Drift
+
+- 2026-10-23: Phase 3's `[ASC]...[SEP]` join replaced by `[CONCAT][LAB][t<i>]` + a label-assign/mask chain in all
+  14 graphs (people filter moved off MakeTileSEGS): the filter drops tiles and an ordered list shifts. New input
+  `Input_Tile_Labels`. tileRects returns cut order.
 
 - Stage 1 keeps today's fixed overlap 200 (20% of 1024 = 205, same thing); overlap only matters in stage 3 (small tiles).
 - Face pass runs with no wildcard in every variant, so it is constant and the tile variants stay comparable.

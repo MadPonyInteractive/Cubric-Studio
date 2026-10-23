@@ -777,7 +777,7 @@
         0
       ],
       "false": [
-        "845",
+        "851",
         0
       ],
       "boolean": [
@@ -882,7 +882,7 @@
         1
       ],
       "false": [
-        "825",
+        "831",
         0
       ],
       "boolean": [
@@ -1099,10 +1099,6 @@
         "683",
         0
       ],
-      "filter_out_segs_opt": [
-        "807",
-        0
-      ],
       "bbox_size": [
         "801",
         0
@@ -1137,7 +1133,7 @@
         0
       ],
       "segs": [
-        "684",
+        "817",
         0
       ],
       "basic_pipe": [
@@ -1275,39 +1271,39 @@
         0
       ],
       "ref_image_1": [
-        "827",
-        0
-      ],
-      "ref_image_2": [
-        "829",
-        0
-      ],
-      "ref_image_3": [
-        "831",
-        0
-      ],
-      "ref_image_4": [
         "833",
         0
       ],
-      "ref_image_5": [
+      "ref_image_2": [
         "835",
         0
       ],
-      "ref_image_6": [
+      "ref_image_3": [
         "837",
         0
       ],
-      "ref_image_7": [
+      "ref_image_4": [
         "839",
         0
       ],
-      "ref_image_8": [
+      "ref_image_5": [
         "841",
         0
       ],
-      "ref_image_9": [
+      "ref_image_6": [
         "843",
+        0
+      ],
+      "ref_image_7": [
+        "845",
+        0
+      ],
+      "ref_image_8": [
+        "847",
+        0
+      ],
+      "ref_image_9": [
+        "849",
         0
       ],
       "prompt": [
@@ -1408,7 +1404,7 @@
         0
       ],
       "false": [
-        "816",
+        "822",
         0
       ],
       "boolean": [
@@ -2112,6 +2108,84 @@
   },
   "812": {
     "inputs": {
+      "string": ""
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Input_Tile_Labels"
+    }
+  },
+  "813": {
+    "inputs": {
+      "segs": [
+        "684",
+        0
+      ],
+      "labels": [
+        "812",
+        0
+      ]
+    },
+    "class_type": "ImpactSEGSLabelAssign",
+    "_meta": {
+      "title": "SEGS Assign (label)"
+    }
+  },
+  "814": {
+    "inputs": {
+      "segs": [
+        "807",
+        0
+      ]
+    },
+    "class_type": "SegsToCombinedMask",
+    "_meta": {
+      "title": "SEGS to MASK (combined)"
+    }
+  },
+  "815": {
+    "inputs": {
+      "dilation": 30,
+      "mask": [
+        "814",
+        0
+      ]
+    },
+    "class_type": "ImpactDilateMask",
+    "_meta": {
+      "title": "Dilate Mask"
+    }
+  },
+  "816": {
+    "inputs": {
+      "mask": [
+        "815",
+        0
+      ]
+    },
+    "class_type": "InvertMask",
+    "_meta": {
+      "title": "Invert Mask"
+    }
+  },
+  "817": {
+    "inputs": {
+      "segs": [
+        "813",
+        0
+      ],
+      "mask": [
+        "816",
+        0
+      ]
+    },
+    "class_type": "ImpactSegsAndMask",
+    "_meta": {
+      "title": "Pixelwise(SEGS & MASK)"
+    }
+  },
+  "818": {
+    "inputs": {
       "a": [
         "474",
         2
@@ -2127,14 +2201,14 @@
       "title": "Edit size: scale to 4K cap"
     }
   },
-  "813": {
+  "819": {
     "inputs": {
       "a": [
         "474",
         2
       ],
       "b": [
-        "812",
+        "818",
         0
       ],
       "math_expression": "floor(a*b/16 + 0.5)*16"
@@ -2144,14 +2218,14 @@
       "title": "Edit size: width /16"
     }
   },
-  "814": {
+  "820": {
     "inputs": {
       "a": [
         "474",
         3
       ],
       "b": [
-        "812",
+        "818",
         0
       ],
       "math_expression": "floor(a*b/16 + 0.5)*16"
@@ -2161,14 +2235,14 @@
       "title": "Edit size: height /16"
     }
   },
-  "815": {
+  "821": {
     "inputs": {
       "width": [
-        "813",
+        "819",
         0
       ],
       "height": [
-        "814",
+        "820",
         0
       ],
       "batch_size": 1
@@ -2178,14 +2252,14 @@
       "title": "Edit size: latent at picture 1's size"
     }
   },
-  "816": {
+  "822": {
     "inputs": {
       "true": [
         "694",
         2
       ],
       "false": [
-        "815",
+        "821",
         0
       ],
       "boolean": [
@@ -2198,14 +2272,14 @@
       "title": "Edit size: mask keeps refs latent"
     }
   },
-  "817": {
+  "823": {
     "inputs": {
       "true": [
         "324",
         0
       ],
       "false": [
-        "813",
+        "819",
         0
       ],
       "boolean": [
@@ -2218,14 +2292,14 @@
       "title": "Edit frame: width"
     }
   },
-  "818": {
+  "824": {
     "inputs": {
       "true": [
         "325",
         0
       ],
       "false": [
-        "814",
+        "820",
         0
       ],
       "boolean": [
@@ -2238,7 +2312,7 @@
       "title": "Edit frame: height"
     }
   },
-  "819": {
+  "825": {
     "inputs": {
       "upscale_method": "lanczos",
       "keep_proportion": "crop",
@@ -2251,11 +2325,11 @@
         0
       ],
       "width": [
-        "817",
+        "823",
         0
       ],
       "height": [
-        "818",
+        "824",
         0
       ]
     },
@@ -2264,7 +2338,7 @@
       "title": "Edit frame: picture 1 at frame size"
     }
   },
-  "820": {
+  "826": {
     "inputs": {
       "a": [
         "474",
@@ -2281,10 +2355,10 @@
       "title": "Edit frame: picture 1 ratio"
     }
   },
-  "821": {
+  "827": {
     "inputs": {
       "a": [
-        "820",
+        "826",
         0
       ],
       "b": [
@@ -2302,7 +2376,7 @@
       "title": "Edit frame: custom keeps the ratio"
     }
   },
-  "822": {
+  "828": {
     "inputs": {
       "mode": "a_true_b_false",
       "a": [
@@ -2310,7 +2384,7 @@
         0
       ],
       "b": [
-        "821",
+        "827",
         0
       ]
     },
@@ -2319,7 +2393,7 @@
       "title": "Edit frame: reframe"
     }
   },
-  "823": {
+  "829": {
     "inputs": {
       "a": [
         "474",
@@ -2336,7 +2410,7 @@
       "title": "Edit frame: 1 MP scale"
     }
   },
-  "824": {
+  "830": {
     "inputs": {
       "image": [
         "474",
@@ -2344,7 +2418,7 @@
       ],
       "upscale_method": "lanczos",
       "scale_by": [
-        "823",
+        "829",
         0
       ]
     },
@@ -2353,18 +2427,18 @@
       "title": "Edit frame: picture 1 at 1 MP"
     }
   },
-  "825": {
+  "831": {
     "inputs": {
       "true": [
-        "824",
+        "830",
         0
       ],
       "false": [
-        "819",
+        "825",
         0
       ],
       "boolean": [
-        "822",
+        "828",
         0
       ]
     },
@@ -2373,7 +2447,7 @@
       "title": "Edit frame: reframe keeps 1 MP"
     }
   },
-  "826": {
+  "832": {
     "inputs": {
       "a": [
         "235",
@@ -2390,7 +2464,7 @@
       "title": "Reference 2: 1 MP scale"
     }
   },
-  "827": {
+  "833": {
     "inputs": {
       "image": [
         "235",
@@ -2398,7 +2472,7 @@
       ],
       "upscale_method": "lanczos",
       "scale_by": [
-        "826",
+        "832",
         0
       ]
     },
@@ -2407,7 +2481,7 @@
       "title": "Reference 2: at 1 MP"
     }
   },
-  "828": {
+  "834": {
     "inputs": {
       "a": [
         "234",
@@ -2424,7 +2498,7 @@
       "title": "Reference 3: 1 MP scale"
     }
   },
-  "829": {
+  "835": {
     "inputs": {
       "image": [
         "234",
@@ -2432,7 +2506,7 @@
       ],
       "upscale_method": "lanczos",
       "scale_by": [
-        "828",
+        "834",
         0
       ]
     },
@@ -2441,7 +2515,7 @@
       "title": "Reference 3: at 1 MP"
     }
   },
-  "830": {
+  "836": {
     "inputs": {
       "a": [
         "711",
@@ -2458,7 +2532,7 @@
       "title": "Reference 4: 1 MP scale"
     }
   },
-  "831": {
+  "837": {
     "inputs": {
       "image": [
         "711",
@@ -2466,7 +2540,7 @@
       ],
       "upscale_method": "lanczos",
       "scale_by": [
-        "830",
+        "836",
         0
       ]
     },
@@ -2475,7 +2549,7 @@
       "title": "Reference 4: at 1 MP"
     }
   },
-  "832": {
+  "838": {
     "inputs": {
       "a": [
         "712",
@@ -2492,7 +2566,7 @@
       "title": "Reference 5: 1 MP scale"
     }
   },
-  "833": {
+  "839": {
     "inputs": {
       "image": [
         "712",
@@ -2500,7 +2574,7 @@
       ],
       "upscale_method": "lanczos",
       "scale_by": [
-        "832",
+        "838",
         0
       ]
     },
@@ -2509,7 +2583,7 @@
       "title": "Reference 5: at 1 MP"
     }
   },
-  "834": {
+  "840": {
     "inputs": {
       "a": [
         "713",
@@ -2526,7 +2600,7 @@
       "title": "Reference 6: 1 MP scale"
     }
   },
-  "835": {
+  "841": {
     "inputs": {
       "image": [
         "713",
@@ -2534,7 +2608,7 @@
       ],
       "upscale_method": "lanczos",
       "scale_by": [
-        "834",
+        "840",
         0
       ]
     },
@@ -2543,7 +2617,7 @@
       "title": "Reference 6: at 1 MP"
     }
   },
-  "836": {
+  "842": {
     "inputs": {
       "a": [
         "714",
@@ -2560,7 +2634,7 @@
       "title": "Reference 7: 1 MP scale"
     }
   },
-  "837": {
+  "843": {
     "inputs": {
       "image": [
         "714",
@@ -2568,7 +2642,7 @@
       ],
       "upscale_method": "lanczos",
       "scale_by": [
-        "836",
+        "842",
         0
       ]
     },
@@ -2577,7 +2651,7 @@
       "title": "Reference 7: at 1 MP"
     }
   },
-  "838": {
+  "844": {
     "inputs": {
       "a": [
         "715",
@@ -2594,7 +2668,7 @@
       "title": "Reference 8: 1 MP scale"
     }
   },
-  "839": {
+  "845": {
     "inputs": {
       "image": [
         "715",
@@ -2602,7 +2676,7 @@
       ],
       "upscale_method": "lanczos",
       "scale_by": [
-        "838",
+        "844",
         0
       ]
     },
@@ -2611,7 +2685,7 @@
       "title": "Reference 8: at 1 MP"
     }
   },
-  "840": {
+  "846": {
     "inputs": {
       "a": [
         "716",
@@ -2628,7 +2702,7 @@
       "title": "Reference 9: 1 MP scale"
     }
   },
-  "841": {
+  "847": {
     "inputs": {
       "image": [
         "716",
@@ -2636,7 +2710,7 @@
       ],
       "upscale_method": "lanczos",
       "scale_by": [
-        "840",
+        "846",
         0
       ]
     },
@@ -2645,7 +2719,7 @@
       "title": "Reference 9: at 1 MP"
     }
   },
-  "842": {
+  "848": {
     "inputs": {
       "a": [
         "717",
@@ -2662,7 +2736,7 @@
       "title": "Reference 10: 1 MP scale"
     }
   },
-  "843": {
+  "849": {
     "inputs": {
       "image": [
         "717",
@@ -2670,7 +2744,7 @@
       ],
       "upscale_method": "lanczos",
       "scale_by": [
-        "842",
+        "848",
         0
       ]
     },
@@ -2679,7 +2753,7 @@
       "title": "Reference 10: at 1 MP"
     }
   },
-  "844": {
+  "850": {
     "inputs": {
       "a": [
         "235",
@@ -2690,7 +2764,7 @@
         3
       ],
       "c": [
-        "822",
+        "828",
         0
       ],
       "math_expression": "False if c else a*b <= 1"
@@ -2700,7 +2774,7 @@
       "title": "Edit grade: one picture, same frame"
     }
   },
-  "845": {
+  "851": {
     "inputs": {
       "original": [
         "474",
@@ -2711,7 +2785,7 @@
         0
       ],
       "enabled": [
-        "844",
+        "850",
         0
       ],
       "max_shift": 4.0

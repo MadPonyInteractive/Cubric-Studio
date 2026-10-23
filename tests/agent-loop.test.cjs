@@ -900,13 +900,13 @@ test('a Use Tiles run tells Cosmo its tile count, now and on the next turn', asy
         toolOpts: { quote: { billed: false, tiles: 40 } } });
     tools.generate = () => new Promise(() => {});
     await loop.runTurn('upscale it with tiles', [], project, 'auto', 'deepinfra', 't1');
-    assert.match(toolResult(loop).message, /runs as 40 tiles, one after another; the status bar counts the same 40/);
+    assert.match(toolResult(loop).message, /runs as up to 40 tiles, one after another \(tiles a person fills are left to the people pass/);
     // MPI-1232 (Fabio, 2026-10-22): told the count only "asked how many", Cosmo said "many tiles"
     // and pointed at the chat's 0-of-1 line. The start reply must name both.
-    assert.match(toolResult(loop).message, /Telling the user it started, name the 40 tiles and say the status bar at the bottom counts them/);
+    assert.match(toolResult(loop).message, /Telling the user it started, say up to 40 tiles and that the status bar at the bottom counts them/);
     assert.match(toolResult(loop).message, /never point the user there for tile progress/);
     await loop.runTurn('how many tiles?', [], project, 'auto', 'deepinfra', 't2');
-    assert.match(lastUser(loop), /\[Running now: Big upscale, 40 tiles \(toolCallId/);
+    assert.match(lastUser(loop), /\[Running now: Big upscale, up to 40 tiles \(toolCallId/);
 
     const unknown = await makeLoop({ engineResponses: [gen('g2'), { text: 'Upscaling.' }],
         toolOpts: { quote: { billed: false, tiles: null } } });

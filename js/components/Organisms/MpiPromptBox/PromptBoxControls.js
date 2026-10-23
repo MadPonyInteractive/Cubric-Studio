@@ -34,7 +34,7 @@ import { fixedDurationFor } from '../../../data/modelConstants/deepinfraPricing.
 // are shared with `js/shell/agentDispatch.js`'s named-param resolver via this
 // ONE module, so an agent submit can never silently resolve a different tier
 // than this control shows (see generationControls.js's own module comment).
-import { resolveEffectiveQualityTier, resolveThreeLayerDefault, modelTakesBoxes, denoiseDefaultFor, modelShowsTiles } from '../../../data/generationControls.js';
+import { resolveEffectiveQualityTier, resolveThreeLayerDefault, modelTakesBoxes, denoiseDefaultFor, modelShowsTiles, TILE_SIZES } from '../../../data/generationControls.js';
 
 // ── Scope helpers ─────────────────────────────────────────────────────────────
 //
@@ -842,7 +842,7 @@ export const PROMPT_BOX_CONTROLS = {
                 nameEl.textContent = n ? `Tile size · up to ${n} tile${n === 1 ? '' : 's'}` : 'Tile size';
             };
 
-            const TILE_OPTIONS = [256, 512, 768, 1024, 1536];
+            const TILE_OPTIONS = TILE_SIZES;
             this._instance = MpiRadioGroup.mount(radioHost, {
                 options: TILE_OPTIONS.map(v => ({ label: String(v), value: String(v) })),
                 value: String(this.value),
@@ -883,8 +883,8 @@ export const PROMPT_BOX_CONTROLS = {
 
     /**
      * tileDescribe — "Describe each tile" checkbox shown while Use Tiles is on (MPI-1232).
-     * Default on. Phase 3 builds the describer; for now the value is saved only.
-     * Does NOT inject Input_Tile_Prompts (Phase 3 will).
+     * Default on. Injects the app-only `Tile_Describe` flag; the names themselves are
+     * written by generationService (tileDescribe.js) once the run is queued.
      */
     tileDescribe: {
         nodeTitle: null,
@@ -921,8 +921,9 @@ export const PROMPT_BOX_CONTROLS = {
             return this.value !== false;
         },
         getInjectionParams() {
-            // Phase 3 fills Input_Tile_Prompts from tileDescribe; do not inject here.
-            return {};
+            // Not a graph node: generationService names the tiles before queueing
+            // (tileDescribe.js) and fills Input_Tile_Prompts / Input_Tile_Labels.
+            return { Tile_Describe: this.value !== false };
         },
     },
 

@@ -41,8 +41,9 @@ when a user mentions selling or client work.
   re-lays the whole frame around the scene.
 - `inpaint` and `detail` need a mask painted in History; you cannot paint one, so ask the user
   to, naming the area, and dispatch once they say it is drawn (`app:masking`).
-- `upscale` takes no prompt on its tile path; single pass reads the prompt as a description of
-  the picture as it already is.
+- `upscale` with `tiles: true` gives every tile the prompt plus a short name the app writes per
+  tile, so send only the look ("sharp photo, fine film grain") or none, never the scene; single
+  pass reads the prompt as a description of the picture as it already is.
 - Media roles: `t2i` takes no image; `i2i`, `inpaint`, `detail`, `upscale` take `inputImage`;
   `edit` takes `inputImage` through `inputImage10`, the first the one being changed.
 

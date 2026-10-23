@@ -27,6 +27,20 @@ test('describe_model lists tiles and the factors on upscale, and nothing on t2i'
     const noTiles = { ...KREA2, capabilities: {} };
     assert.equal(namedParamsFor(noTiles, 'upscale').tiles, undefined, 'a graph without the Tile Upscale group');
     assert.deepEqual(namedParamsFor(noTiles, 'upscale').upscaleFactors, [1.5, 2, 3, 4]);
+    assert.deepEqual(namedParamsFor(KREA2, 'upscale').tileSizes, [256, 512, 768, 1024, 1536], 'MPI-1232');
+    assert.equal(namedParamsFor(noTiles, 'upscale').tileSizes, undefined);
+});
+
+// MPI-1232: Tile size by name; a tile run also asks the app to name its tiles (Tile_Describe).
+test('tileSize reaches the graph with its overlap; a bad one or one off tiles is refused', () => {
+    const r = resolveNamedParams(null, KLEIN, 'upscale', { tiles: true, tileSize: 512 });
+    assert.equal(r.ok, true);
+    assert.equal(r.injectionParams.Input_Tile_Size, 512);
+    assert.equal(r.injectionParams.Input_Tile_Overlap, 102);
+    assert.equal(r.injectionParams.Tile_Describe, true, 'Describe each tile is on by default');
+    assert.equal(resolveNamedParams(null, KLEIN, 'upscale', { tiles: true }).injectionParams.Input_Tile_Size, 1024);
+    assert.equal(resolveNamedParams(null, KLEIN, 'upscale', { tiles: true, tileSize: 600 }).code, 'INVALID_TILE_SIZE');
+    assert.equal(resolveNamedParams(null, KREA2, 't2i', { tileSize: 512 }).code, 'INVALID_TILE_SIZE');
 });
 
 test('asked tiles + 1x reach the graph', () => {
@@ -78,12 +92,14 @@ test('the route, the routine steps, the MCP tool and the in-app agent all carry 
     const path = require('node:path');
     const read = (...p) => fs.readFileSync(path.join(__dirname, '..', ...p), 'utf8');
     for (const [file, list] of [[['routes', 'connector.js'], 'NAMED_PARAM_KEYS'], [['js', 'data', 'routineModel.js'], '_MODEL_NAMED_KEYS'], [['services', 'agentLoop.mjs'], '_SENT_KEYS']]) {
-        assert.match(read(...file), new RegExp(`const ${list} = \\[[^\\]]*'tiles', 'upscaleFactor'`), list);
+        assert.match(read(...file), new RegExp(`const ${list} = \\[[^\\]]*'tiles', 'tileSize', 'upscaleFactor'`), list);
     }
     for (const file of [['services', 'agentLoop.mjs'], ['routes', 'mcp.js']]) {
-        assert.match(read(...file), /tiles: \{ type: 'boolean', description: '[^']*WHOLE prompt/, file.join('/'));
+        assert.match(read(...file), /tiles: \{ type: 'boolean', description: '(?=[^']*people and faces)(?=[^']*WHOLE prompt)/, file.join('/'));
         assert.match(read(...file), /upscaleFactor: \{ type: 'number'/, file.join('/'));
     }
+    // Cosmo runs the panel's Tile size (schema budget); outside agents can name one.
+    assert.match(read('routes', 'mcp.js'), /tileSize: \{ type: 'number', description: '[^']*params\.tileSizes/);
 });
 
 // MPI-1053: the detail routes live ONCE, in app:upscaling, read behind a gate (agent-loop.test.cjs).

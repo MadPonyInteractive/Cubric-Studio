@@ -1176,10 +1176,6 @@
         "683",
         0
       ],
-      "filter_out_segs_opt": [
-        "807",
-        0
-      ],
       "bbox_size": [
         "801",
         0
@@ -1214,7 +1210,7 @@
         0
       ],
       "segs": [
-        "684",
+        "817",
         0
       ],
       "basic_pipe": [
@@ -2213,6 +2209,84 @@
     "class_type": "DetailerForEachPipe",
     "_meta": {
       "title": "Face detailer"
+    }
+  },
+  "812": {
+    "inputs": {
+      "string": ""
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Input_Tile_Labels"
+    }
+  },
+  "813": {
+    "inputs": {
+      "segs": [
+        "684",
+        0
+      ],
+      "labels": [
+        "812",
+        0
+      ]
+    },
+    "class_type": "ImpactSEGSLabelAssign",
+    "_meta": {
+      "title": "SEGS Assign (label)"
+    }
+  },
+  "814": {
+    "inputs": {
+      "segs": [
+        "807",
+        0
+      ]
+    },
+    "class_type": "SegsToCombinedMask",
+    "_meta": {
+      "title": "SEGS to MASK (combined)"
+    }
+  },
+  "815": {
+    "inputs": {
+      "dilation": 30,
+      "mask": [
+        "814",
+        0
+      ]
+    },
+    "class_type": "ImpactDilateMask",
+    "_meta": {
+      "title": "Dilate Mask"
+    }
+  },
+  "816": {
+    "inputs": {
+      "mask": [
+        "815",
+        0
+      ]
+    },
+    "class_type": "InvertMask",
+    "_meta": {
+      "title": "Invert Mask"
+    }
+  },
+  "817": {
+    "inputs": {
+      "segs": [
+        "813",
+        0
+      ],
+      "mask": [
+        "816",
+        0
+      ]
+    },
+    "class_type": "ImpactSegsAndMask",
+    "_meta": {
+      "title": "Pixelwise(SEGS & MASK)"
     }
   }
 }

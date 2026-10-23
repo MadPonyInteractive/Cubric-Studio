@@ -32,8 +32,8 @@ Not for an instruction edit or putting a reference into a picture: pick an edit 
   (`inputImage`); `inpaint` and `detail` run only on a painted mask, and their prompt describes
   only the masked area.
 - `i2i` restyles the whole picture: `denoise` says how far it may move. `upscale` is a single
-  pass by default; `tiles: true` redraws it in tiles, and then the prompt is only the look
-  ("sharp photograph, fine film grain"), never the scene.
+  pass by default; `tiles: true` redraws it in tiles, each named by the app, and then the prompt is only
+  the look ("sharp photograph, fine film grain"), never the scene.
 - Style rack: `None` plus four LoRAs (Anime, Gouache, Psychedelic Pop, Pixel Art), offered on
   every op. Each appends its own trigger phrase after the prompt automatically: never write
   one into the prompt. Prefer Turbo with a style: SFT adds more detail but leaves it messy.

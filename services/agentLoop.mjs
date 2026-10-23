@@ -119,7 +119,8 @@ export const TOOL_DEFS = [
                     category: { type: 'string', description: 'One of the op\'s params.categories.' },
                     language: { type: 'string', description: 'The line\'s language, one of the op\'s params.languages.' },
                     denoise: { type: 'number', description: 'Only on an op whose params list it (i2i, upscale, detail): 0 to 1. The higher it is, the more the image changes: low keeps the picture and its pose, high repaints it. Unset = params.denoise.default.' },
-                    tiles: { type: 'boolean', description: 'Upscale, where params.tiles: redraw in 1024 px tiles. Each tile gets the WHOLE prompt: describe the look or send none, never the scene.' },
+                    tiles: { type: 'boolean', description: 'Upscale, where params.tiles: app-named tiles, people and faces unnamed. Each gets the WHOLE prompt: look or none, never the scene.' },
+                    tileSize: { type: 'number', description: 'With tiles: one of params.tileSizes; smaller = more detail.' },
                     upscaleFactor: { type: 'number', description: 'One of params.upscaleFactors; 1 keeps the size and needs tiles.' },
                     transparent: { type: 'boolean', description: 'Where params.transparent: no background. Describe the subject alone.' },
                     boxes: { type: 'array', items: { type: 'object' }, description: 'Where params.boxes: [{ name, x, y, w, h, desc }], x, y the top-left, all 0-1 of the picture; cite a box as <name>.' },
@@ -1112,7 +1113,7 @@ export class AgentLoop {
         const batch = Number(pinned.batch) > 1 ? ` Each generate makes ${pinned.batch}, the panel's batch.` : '';
         const clip = pinned.duration ? ` The clip is ${pinned.duration} s long: time any shots inside it.` : '';
         const ratio = pinned.ratio ? ` The ratio is ${pinned.ratio}.` : '';
-        return `[Settings panel: the user has it OPEN, so the model, the operation and every setting (duration, quality, ratio, batch, turbo, style, tiles, upscale factor, no background) are THEIRS for this turn. You supply only the prompt and the media (reference images, videos, audio), and name the card. The model is "${pinned.modelId}" (${pinned.name}, ${pinned.mediaType})${op}; the operations it can run are: ${ops}. Use ${use} on every generate and send no duration, quality, ratio, batch, count, turbo, style, tiles or upscaleFactor — yours are ignored.${batch}${clip}${ratio} Write the prompt for THIS model and operation. If they cannot do what the user asked, say so plainly, say what they do instead, and ask them to change the model or operation, or close the settings panel so you pick — never switch it yourself, and never pretend a different one ran.]`;
+        return `[Settings panel: the user has it OPEN, so the model, the operation and every setting (duration, quality, ratio, batch, turbo, style, tiles, tile size, upscale factor, no background) are THEIRS for this turn. You supply only the prompt and the media (reference images, videos, audio), and name the card. The model is "${pinned.modelId}" (${pinned.name}, ${pinned.mediaType})${op}; the operations it can run are: ${ops}. Use ${use} on every generate and send no duration, quality, ratio, batch, count, turbo, style, tiles, tileSize or upscaleFactor — yours are ignored.${batch}${clip}${ratio} Write the prompt for THIS model and operation. If they cannot do what the user asked, say so plainly, say what they do instead, and ask them to change the model or operation, or close the settings panel so you pick — never switch it yourself, and never pretend a different one ran.]`;
     }
 
     /**
@@ -2497,7 +2498,7 @@ ${knowledgeIndex}`.trim();
                     await this._trackUnfinished(askedIn, args, 'running');
                 }
                 this._inflight.set(toolCallId, (args.cardName || String(args.prompt || args.flowId || '').slice(0, 60) || _opLabel(args))
-                    + (quoted?.tiles ? `, ${quoted.tiles} tiles` : quoted?.tiles === null ? ', in tiles the status bar counts' : ''));
+                    + (quoted?.tiles ? `, up to ${quoted.tiles} tiles` : quoted?.tiles === null ? ', in tiles the status bar counts' : ''));
                 // MPI-913: a billed model runs in the cloud and a Pod on RunPod; anything else is
                 // a ComfyUI job on this PC's card, which a local agent model must not sit on.
                 if (!(opts.batch ? opts.batch.billed : spend !== null) && this._tools.engineIsLocal?.() === true) {
@@ -3552,7 +3553,7 @@ function _projectFileUrl(absPath) {
  * (defaulted)` for all five runs: the number was in its reply and never in the call. The result
  * only said "started", so nothing it read could contradict the claim.
  */
-const _SENT_KEYS = ['ratio', 'qualityTier', 'turbo', 'duration', 'denoise', 'styleSelect', 'stylization', 'seed', 'category', 'language', 'tiles', 'upscaleFactor', 'transparent', 'boxes'];
+const _SENT_KEYS = ['ratio', 'qualityTier', 'turbo', 'duration', 'denoise', 'styleSelect', 'stylization', 'seed', 'category', 'language', 'tiles', 'tileSize', 'upscaleFactor', 'transparent', 'boxes'];
 
 /**
  * A generate call's own fields in the connector's words: `prompt` goes as `positive`, and a
@@ -3625,7 +3626,7 @@ function _tilesNote(quoted) {
     if (quoted?.tiles === undefined) return '';
     const where = ' The chat\'s line counts the whole run as one job, never the tiles: never point the user there for tile progress.';
     return quoted.tiles
-        ? ` It runs as ${quoted.tiles} tiles, one after another; the status bar counts the same ${quoted.tiles}. Asked how many tiles, that is the number. Telling the user it started, name the ${quoted.tiles} tiles and say the status bar at the bottom counts them.${where}`
+        ? ` It runs as up to ${quoted.tiles} tiles, one after another (tiles a person fills are left to the people pass, so fewer may run); the status bar counts them. Asked how many tiles, say up to ${quoted.tiles}. Telling the user it started, say up to ${quoted.tiles} tiles and that the status bar at the bottom counts them.${where}`
         : ` It runs in tiles; the status bar counts them. Asked how many, point the user there: never guess a number. Telling the user it started, say the status bar at the bottom counts the tiles.${where}`;
 }
 

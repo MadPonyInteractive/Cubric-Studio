@@ -270,7 +270,7 @@ export function namedParamsFor(model, operation) {
         // The upscale op's factor and tile path (MPI-1038). 1 is detail only: tiles only.
         ...(getCommandComponents(operation).includes('upscaleFactor')
             ? { upscaleFactors: modelShowsTiles(model, operation) ? [1, ...UPSCALE_FACTORS] : [...UPSCALE_FACTORS] } : {}),
-        ...(modelShowsTiles(model, operation) ? { tiles: true } : {}),
+        ...(modelShowsTiles(model, operation) ? { tiles: true, tileSizes: [...TILE_SIZES] } : {}),
         // No Background (MPI-1049): a transparent result, where the model can make one.
         ...(modelShowsTransparent(model, operation) ? { transparent: true } : {}),
         // An edit whose size sits behind the Custom size button (`customSizeOps`, MPI-1181/1207): ratio and
@@ -380,6 +380,9 @@ export function withLayoutBoxes(model, prompt, boxes, operation, size) {
 /** The upscale op's factors without tiles; Use Tiles adds 1 (detail only). Mirrors the
  *  PromptBox `upscaleFactor` control's options. */
 export const UPSCALE_FACTORS = Object.freeze([1.5, 2, 3, 4]);
+
+/** Use Tiles' tile sizes in px (MakeTileSEGS bbox_size, MPI-1232). Mirrors the PromptBox `tileSize` control. */
+export const TILE_SIZES = Object.freeze([256, 512, 768, 1024, 1536]);
 
 /** Does `operation` on `model` carry Use Tiles? The op's control AND the graph's "Tile Upscale" group. */
 export function modelShowsTiles(model, operation) {
@@ -548,7 +551,7 @@ export function isValidSeed(value) {
  *            provenance:Object<string,{from:'asked'|'defaulted', value:*}>}|{ok:false, code:string, message:string}}
  */
 export function resolveNamedParams(project, model, operation, named = {}) {
-    const { ratio, qualityTier, turbo, styleSelect, stylization, duration: durationWanted, denoise: denoiseWanted, batch, category, language, tiles, upscaleFactor, transparent, boxes: askedBoxes } = named;
+    const { ratio, qualityTier, turbo, styleSelect, stylization, duration: durationWanted, denoise: denoiseWanted, batch, category, language, tiles, tileSize, upscaleFactor, transparent, boxes: askedBoxes } = named;
     const injectionParams = {};
     const modelName = model?.name || model?.id || 'this model';
     const provenance = {};
@@ -726,18 +729,24 @@ export function resolveNamedParams(project, model, operation, named = {}) {
     if (tiles !== undefined && (typeof tiles !== 'boolean' || !showsTiles)) {
         return _err('INVALID_TILES', showsTiles ? 'tiles must be a boolean.' : `${modelName} has no tile upscale on "${operation}".`);
     }
+    if (tileSize !== undefined && (!showsTiles || !TILE_SIZES.includes(tileSize))) {
+        return _err('INVALID_TILE_SIZE', showsTiles ? `tileSize must be one of: ${TILE_SIZES.join(', ')}.` : `${modelName} has no tile upscale on "${operation}".`);
+    }
     if (showsTiles) {
         injectionParams.Input_Tile_Upscale = tilesOn;
         _from('tiles', tiles !== undefined, tilesOn);
         if (tilesOn) {
             const shared = getSharedSettings(project || {}, _mediaTypeOf(model));
-            const tileSz = Number(shared.tileSize) || 1024;
+            const tileSz = tileSize ?? (TILE_SIZES.includes(Number(shared.tileSize)) ? Number(shared.tileSize) : PROMPT_CONTROL_DEFAULTS.tileSize);
+            _from('tileSize', tileSize !== undefined, tileSz);
             const tileOvlp = overlapFor(tileSz);
             const tileGuide = Math.max(1024, tileSz);
             injectionParams.Input_Tile_Size    = tileSz;
             injectionParams.Input_Tile_Overlap = tileOvlp;
             injectionParams.Input_Tile_Guide   = tileGuide;
             injectionParams.Input_Tile_Max     = Math.round(1.5 * tileGuide);
+            // App-only flag: generationService names the tiles first (tileDescribe.js, MPI-1232).
+            injectionParams.Tile_Describe      = shared.tileDescribe !== false;
         }
     }
     const opSaved = getOpSettings(project || {}, model?.id, operation);

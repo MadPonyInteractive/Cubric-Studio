@@ -1,8 +1,8 @@
 {
   "id": "d3bfda78-e5d1-4a19-b0ea-53f950dcddd8",
   "revision": 0,
-  "last_node_id": 2794,
-  "last_link_id": 5697,
+  "last_node_id": 2800,
+  "last_link_id": 5705,
   "nodes": [
     {
       "id": 2250,
@@ -7200,7 +7200,7 @@
           "name": "filter_out_segs_opt",
           "shape": 7,
           "type": "SEGS",
-          "link": 5684
+          "link": null
         },
         {
           "localized_name": "bbox_size",
@@ -7263,7 +7263,7 @@
           "name": "SEGS",
           "type": "SEGS",
           "links": [
-            5667
+            5698
           ]
         }
       ],
@@ -7316,7 +7316,7 @@
           "localized_name": "segs",
           "name": "segs",
           "type": "SEGS",
-          "link": 5667
+          "link": 5705
         },
         {
           "localized_name": "basic_pipe",
@@ -8040,8 +8040,8 @@
           "name": "SEGS",
           "type": "SEGS",
           "links": [
-            5684,
-            5686
+            5686,
+            5701
           ],
           "slot_index": 0
         }
@@ -8766,6 +8766,247 @@
         "tiled_encode": false,
         "tiled_decode": false
       }
+    },
+    {
+      "id": 2795,
+      "type": "MpiText",
+      "pos": [
+        3152.7752870201048,
+        2714.5133285190445
+      ],
+      "size": [
+        400,
+        120
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "string",
+          "name": "string",
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "Text",
+          "name": "Text",
+          "type": "STRING",
+          "links": [
+            5699
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        ""
+      ],
+      "title": "Input_Tile_Labels"
+    },
+    {
+      "id": 2796,
+      "type": "ImpactSEGSLabelAssign",
+      "pos": [
+        3152.7752870201048,
+        2874.5133285190445
+      ],
+      "size": [
+        300,
+        100
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "segs",
+          "name": "segs",
+          "type": "SEGS",
+          "link": 5698
+        },
+        {
+          "localized_name": "labels",
+          "name": "labels",
+          "type": "STRING",
+          "widget": {
+            "name": "labels"
+          },
+          "link": 5699
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "SEGS",
+          "name": "SEGS",
+          "type": "SEGS",
+          "links": [
+            5700
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        ""
+      ]
+    },
+    {
+      "id": 2797,
+      "type": "SegsToCombinedMask",
+      "pos": [
+        3152.7752870201048,
+        3034.5133285190445
+      ],
+      "size": [
+        250,
+        30
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "segs",
+          "name": "segs",
+          "type": "SEGS",
+          "link": 5701
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "MASK",
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            5702
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {},
+      "widgets_values": []
+    },
+    {
+      "id": 2798,
+      "type": "ImpactDilateMask",
+      "pos": [
+        3152.7752870201048,
+        3104.5133285190445
+      ],
+      "size": [
+        250,
+        60
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "mask",
+          "name": "mask",
+          "type": "MASK",
+          "link": 5702
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "MASK",
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            5703
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        30
+      ]
+    },
+    {
+      "id": 2799,
+      "type": "InvertMask",
+      "pos": [
+        3152.7752870201048,
+        3204.5133285190445
+      ],
+      "size": [
+        200,
+        30
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "mask",
+          "name": "mask",
+          "type": "MASK",
+          "link": 5703
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "MASK",
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            5704
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {},
+      "widgets_values": []
+    },
+    {
+      "id": 2800,
+      "type": "ImpactSegsAndMask",
+      "pos": [
+        3472.7752870201048,
+        2974.5133285190445
+      ],
+      "size": [
+        250,
+        50
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "segs",
+          "name": "segs",
+          "type": "SEGS",
+          "link": 5700
+        },
+        {
+          "localized_name": "mask",
+          "name": "mask",
+          "type": "MASK",
+          "link": 5704
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "SEGS",
+          "name": "SEGS",
+          "type": "SEGS",
+          "links": [
+            5705
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {},
+      "widgets_values": []
     }
   ],
   "links": [
@@ -10106,14 +10347,6 @@
       "IMAGE"
     ],
     [
-      5667,
-      2779,
-      0,
-      2780,
-      1,
-      "SEGS"
-    ],
-    [
       5668,
       2766,
       0,
@@ -10242,14 +10475,6 @@
       "IMAGE"
     ],
     [
-      5684,
-      2790,
-      0,
-      2779,
-      2,
-      "SEGS"
-    ],
-    [
       5685,
       2780,
       0,
@@ -10352,6 +10577,70 @@
       2794,
       14,
       "FLOAT"
+    ],
+    [
+      5698,
+      2779,
+      0,
+      2796,
+      0,
+      "SEGS"
+    ],
+    [
+      5699,
+      2795,
+      0,
+      2796,
+      1,
+      "STRING"
+    ],
+    [
+      5700,
+      2796,
+      0,
+      2800,
+      0,
+      "SEGS"
+    ],
+    [
+      5701,
+      2790,
+      0,
+      2797,
+      0,
+      "SEGS"
+    ],
+    [
+      5702,
+      2797,
+      0,
+      2798,
+      0,
+      "MASK"
+    ],
+    [
+      5703,
+      2798,
+      0,
+      2799,
+      0,
+      "MASK"
+    ],
+    [
+      5704,
+      2799,
+      0,
+      2800,
+      1,
+      "MASK"
+    ],
+    [
+      5705,
+      2800,
+      0,
+      2780,
+      1,
+      "SEGS"
     ]
   ],
   "groups": [

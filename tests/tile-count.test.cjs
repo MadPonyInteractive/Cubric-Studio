@@ -58,19 +58,21 @@ test('overlapFor returns 20% of tile size, clamped to 64', async () => {
     assert.equal(overlapFor(1536), 307, '20% of 1536 = 307.2 → rounds to 307');
 });
 
-// MPI-1232 — tileRects: port of ImpactMakeTileSEGS, ASC-sorted by (x1, y1).
-test('tileRects returns the correct number of rects and sorts ASC by x1, y1', async () => {
+// MPI-1232 — tileRects: port of ImpactMakeTileSEGS, in its cut order (rows, then columns),
+// the order ImpactSEGSLabelAssign labels t0..tN in.
+test('tileRects returns the correct number of rects in MakeTileSEGS cut order', async () => {
     const { tileRects } = await load('js/utils/tileCount.js');
     // 1920x1080 at 2x = 3840x2160, default bbox 1024, overlap overlapFor(1024)=205.
     const rects = tileRects(1920, 1080, 2);
     assert.equal(rects.length, 15, '3840x2160 yields 15 tiles');
     // Every rect is {x1,y1,x2,y2}.
     assert.ok(rects.every(r => typeof r.x1 === 'number' && typeof r.y1 === 'number'));
-    // ASC sort: x1 non-decreasing; within same x1, y1 non-decreasing.
+    // Cut order: y1 non-decreasing; within one row, x1 increasing.
     for (let i = 1; i < rects.length; i++) {
         const prev = rects[i - 1], cur = rects[i];
-        assert.ok(cur.x1 > prev.x1 || (cur.x1 === prev.x1 && cur.y1 >= prev.y1), `rect ${i} is out of ASC order`);
+        assert.ok(cur.y1 > prev.y1 || (cur.y1 === prev.y1 && cur.x1 > prev.x1), `rect ${i} is out of cut order`);
     }
+    assert.deepEqual([rects[0].x1, rects[0].y1, rects[1].y1], [0, 0, 0], 'the first row comes first');
     // With bbox 512 the count is different (smaller tiles → more tiles).
     const small = tileRects(1920, 1080, 2, { bbox: 512, overlap: 102 });
     assert.ok(small.length > 15, 'smaller bbox yields more tiles');
