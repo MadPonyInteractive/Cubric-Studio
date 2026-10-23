@@ -67,6 +67,16 @@ export const HOTKEY_REGISTRY = [
             activeElement instanceof HTMLTextAreaElement &&
             !!activeElement.closest?.('.mpi-prompt-box'),
     },
+    // Bound by MpiBoxesPanel only while it is open (MPI-1253, Fabio 2026-10-23).
+    {
+        id:               'boxes.close',
+        key:              'escape',
+        type:             KEY_TYPE.DOWN,
+        category:         'promptBox',
+        scopeLabel:       'PromptBox',
+        description:      'Close the Boxes panel',
+        allowWhileTyping: true,
+    },
 
     // ── Dictation (MPI-946) ───────────────────────────────────────────────────
     // Hold Ctrl+Space, speak, release. Ctrl because a bare letter types into the box the

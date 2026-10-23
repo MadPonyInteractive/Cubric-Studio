@@ -6,6 +6,7 @@ import { MpiResizeHandle } from '../../Primitives/MpiResizeHandle/MpiResizeHandl
 import { qs, qsa, on } from '../../../utils/dom.js';
 import { boxName, uniqueBoxName } from '../../../data/layoutBoxes.js';
 import { Storage } from '../../../core/storage.js';
+import { Hotkeys } from '../../../managers/hotkeyManager.js';
 
 /**
  * MpiBoxesPanel — draw where things go in the picture (Compound, MPI-1181)
@@ -58,7 +59,6 @@ export const MpiBoxesPanel = ComponentFactory.create({
                     <div class="mpi-boxes__actions">
                         <div id="boxes-unguide"></div>
                         <div id="boxes-clear"></div>
-                        <div id="boxes-close"></div>
                     </div>
                 </div>
                 <div class="mpi-boxes__list" id="boxes-list"></div>
@@ -72,6 +72,7 @@ export const MpiBoxesPanel = ComponentFactory.create({
             <div class="mpi-boxes__stage" id="boxes-stage">
                 <div class="mpi-boxes__frame" id="boxes-frame"></div>
             </div>
+            <div class="mpi-boxes__close" id="boxes-close"></div>
         </div>
     `,
 
@@ -105,7 +106,18 @@ export const MpiBoxesPanel = ComponentFactory.create({
         });
         clearBtn.on('click', () => { boxes = []; _changed(true); });
         const closeBtn = MpiButton.mount(qs('#boxes-close', el), { icon: 'close', variant: 'ghost', size: 'sm', info: 'Close Boxes (they stay on the run)' });
-        closeBtn.on('click', () => { el.hide(); cb.onClose?.(); });
+        // The panel's top-right corner and Escape both close it: a first-timer does not know
+        // the PromptBox button toggles it (Fabio, 2026-10-23).
+        const _close = () => { el.hide(); cb.onClose?.(); };
+        closeBtn.on('click', _close);
+        let _escOff = null;
+        const _onEscape = (e) => {
+            const ctx = e?.mpiEscapeContext || {};
+            // A menu, popup or overlay this press closed or is closing goes first; a field
+            // being typed in only loses focus.
+            if (e?.mpiEscapeOverlayClosed || ctx.activeDismissableUi || ctx.textEntryFocused || ctx.promptBoxFocused) return;
+            _close();
+        };
         // The layout picture keeps the PromptBox on t2i; removing it unlocks the other ops.
         const unguideBtn = MpiButton.mount(qs('#boxes-unguide', el), {
             icon: 'eraser', label: 'Remove picture', labelPosition: 'right', size: 'sm', variant: 'ghost',
@@ -346,15 +358,21 @@ export const MpiBoxesPanel = ComponentFactory.create({
             el.setFrame(frame);
             _changed(false);
             el.classList.add('mpi-boxes--open');
+            _escOff ??= Hotkeys.bind('boxes.close', _onEscape);
             requestAnimationFrame(_fit);
         };
 
         /** The owner's edge moved (the bar grew with a long prompt): fit the band again. */
         el.fit = _fit;
-        el.hide = () => el.classList.remove('mpi-boxes--open');
+        el.hide = () => {
+            el.classList.remove('mpi-boxes--open');
+            _escOff?.();
+            _escOff = null;
+        };
         el.isOpen = () => el.classList.contains('mpi-boxes--open');
 
         el.destroy = () => {
+            _escOff?.();
             _unsubs.forEach((fn) => fn());
             ro.disconnect();
             _rowInputs.forEach((inp) => inp.destroy?.());

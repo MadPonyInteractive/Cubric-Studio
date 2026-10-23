@@ -1937,6 +1937,10 @@ export const MpiPromptBox = ComponentFactory.create({
             const before = positiveValue.slice(0, at);
             const pad = before && !/\s$/.test(before) ? ' ' : '';
             const next = `${before}${pad}${text} ${positiveValue.slice(at).replace(/^\s+/, '')}`;
+            // Only the Boxes panel cites here: clicking a box name to find its box is not
+            // writing a prompt, so Create boxes' caption stays replaceable (Tokyo -> Vogue kept
+            // Tokyo's caption, Fabio 2026-10-23).
+            if (positiveValue.trim() === _autoCaption) _autoCaption = next.trim();
             _writeMode(next, 'positive');
             if (onPositive) {
                 const caret = at + pad.length + text.length + 1;

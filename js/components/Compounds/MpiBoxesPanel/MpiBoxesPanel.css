@@ -7,6 +7,7 @@
    --box-colour (a token, set inline from the component's list). */
 
 .mpi-boxes {
+    position: relative;
     display: flex;
     align-items: stretch;
     gap: 1.25rem;
@@ -18,6 +19,14 @@
     visibility: hidden;
     pointer-events: auto;
     transition: transform var(--t-base) var(--ease), visibility 0s linear var(--t-base);
+}
+
+/* Close sits in the band's top-right corner, over the stage's empty side (Fabio, 2026-10-23). */
+.mpi-boxes__close {
+    position: absolute;
+    top: var(--s-2);
+    right: var(--s-3);
+    z-index: 3;
 }
 
 .mpi-boxes--open {
