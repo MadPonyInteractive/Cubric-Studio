@@ -31,6 +31,10 @@ Open: pitch x yaw combinations, the extreme stops, objects (no left/right of the
 Fabio 2026-10-23 on the agent notes: (1) step sliders, yes. (2) one slider moved = one edit; BOTH moved = two
 edits (yaw step, then pitch step) - so the bench must also prove a pitch edit on a yaw result. (3) objects: a
 short prompt hint for the user, or a quick pass that checks what the subject is before picking the templates.
+Fabio 2026-10-23 (UI, after rotate-in-scene passed): keep the two step sliders (turn + height). Add a two-button
+radio on top, "Person" / "Object", which swaps the stand-in: a little 3D mannequin or a 3D product (e.g. a shampoo
+bottle). The stand-in views are PRE-RENDERED images, one per slider stop, so the user sees which view a stop means.
+Maybe a zoom slider, ONLY if a zoom bench passes and it stays easy to use; untested so far.
 - Driver: `research/angles.py <port>` through an isolated app (`/connector/generate`) under
   `gpu_lease.py run --poll 2`; results `research/out/stage1.json`, sheet `research/sheets/stage1.jpg`.
 - Cards land in project "FLUX3 Flow Bench", named `angles <model> <shot>`.
@@ -52,8 +56,30 @@ DECISION (Fabio 2026-10-23, after the LoRA test): NO LoRA - akhaliq's FLUX.3 ang
 dropped ("our prompting was better"; Qwen slow + poor). Direction: rotate CHARACTERS that sit in scenes with the
 prompt recipe; if the scene fights it, fallback = background-removal pass -> rotate the cut-out character -> an
 edit places it back into the scene. Subject rotation on a simple background = its own Flow.
-NEXT: bench "rotate a character in a scene" (the scene p1 source: yaw lands on him, background stays), then the
-cut-out fallback if needed.
+Rotate-in-scene p1 DONE (`angles.py <port> rotate`, sheet `rotate_scene.jpg`, seed 111): street holds in all 7
+views; profiles, lost profiles and back land (5/7); the two 45-degree views under-turn (tq L head looks the wrong
+way). Cut-out fallback not needed so far. 45-degree rework (`HALF`, keys `tq L v2` / `tq R v2`): tq R passes, tq L
+turns the right way but only ~30 degrees. The 45s use HALF from now on.
+Seeds 222/333 DONE (`rotate_seeds`, sheet `rotate_seeds.jpg`): 17/21 clean + 4 partial (all on the 3/4 front
+views), 0 wrong-way, street held in all 21. Rotate-in-scene is proven by prompt; no cut-out fallback.
+Turn + height in one prompt DONE (`rotate_pitch`, sheet `rotate_pitch.jpg`): turn holds at every height; high +
+extreme high strong; low + extreme low weak and alike; strap-side fix failed (drop it, known limit).
+Low rework DONE (`rotate_low`, sheet `rotate_low.jpg`): dropping the anchor gives a small gain on extreme low only
+(sky shows on 2/3); low stays mild. Lows use `TURN_LO`, highs `TURN_H`.
+Generic two-pass DONE, both wordings (`two_pass`, `short_pass`; sheets `two_pass.jpg`, `short_pass.jpg`): short
+generic TURNS work; the height pass on the turned picture is a copy (short) or a fake background swap (long).
+NEW DIRECTION (Fabio 2026-10-23): MANNEQUIN REFERENCE. Picture 1 = the user's image, picture 2 = a grey mannequin on
+a dark backdrop at the exact target view (angle, height, zoom); the edit (`MQ_EDIT`) asks for picture 1 seen like
+picture 2 and names the view in words. The renders double as the gizmo's previews. First t2i refs
+(`angles.py <port> mannequin`, sheet `mannequin.jpg`, files `research/mannequin/`): low + high stops weak (back xlo
+came out eye level, xhi not a true bird's-eye).
+NEXT (Fabio): start with the HARD bit - full-body mannequin refs at LOW and HIGH angles (floor camera pointing up;
+high above, bird's-eye). Reword the t2i or retry seeds; if t2i cannot do it, Fabio installs the Blender CLI and the
+refs are rendered from a 3D mannequin. As soon as one low + one high ref is right, run the two-image edit
+(`mannequin <port> edits`, edit MQ_VIEWS to the views that exist) on the street man and judge it.
+Prompt rule (Fabio + playbook 01 § READ THE MODEL'S GUIDE): generic ("the subject"/"they"), no "photograph" in edit
+prompts, FLUX.3 edit voice. The MQ_BODY t2i ref prompt may say "Studio photograph" - it is our asset, not a user edit.
+Isolated app this session: port 57477 (profile cubric-agent-profile-mpi1212).
 Fabio 2026-10-23 (earlier): training our own angle LoRA is on the table (~$50 a LoRA is fine; later a Discord money
 pool per LoRA, budget + small margin). Cost = steps x GPU time, not dataset size.
 Fabio: subject rotation on a simple background = a Flow of its own. Angle-LoRA survey in validation.md

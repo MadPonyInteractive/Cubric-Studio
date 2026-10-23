@@ -303,6 +303,22 @@ picture.
 > declaration. It survives review precisely because it looks like the thing that was asked for.
 > When you add a key to a FlowDef, grep for its consumer before you trust it.
 
+## READ THE MODEL'S GUIDE BEFORE YOU WRITE ANY PROMPT TEXT (Fabio, 2026-10-23)
+
+Applies to every piece of prompt text a Flow carries: the fixed prompt the workflow or
+descriptor sends, a template the Flow fills in, and a bench or research prompt used to design
+one. For **each model that prompt targets**, read `docs/agent/models/<model>.md` first (the
+Enhancer recipe is `js/data/recipes/<model>.recipe.js`). Nothing forces this for a Flow: the
+`GUIDE_NOT_READ` gate fires only for a model op ([07](07-agent-knowledge.md)).
+
+- **Why.** A camera-angle bench on FLUX.3 opened every prompt "Create a photograph of ..." and
+  described the man, his outfit and the street. The FLUX.3 guide says a whole-picture edit opens
+  "Shift the camera viewpoint to ...", describes only the change and ends with one keep-clause.
+  "Create a photograph" is for drawing references into a NEW frame, and "photograph" forces
+  realism, so an anime input would have come back photoreal.
+- **A Flow prompt is GENERIC.** It runs on every user's picture: say "the subject" / "they",
+  never the bench picture's person, clothes or scenery, and keep the input's own image style.
+
 ## A field declared on a GIZMO step AND the run slide drops edits on run 2 (MPI-567)
 
 Declaring one id on two surfaces looks supported, and `_collectInputs` even documents it —

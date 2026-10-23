@@ -152,3 +152,82 @@ strength_clip and comfyController writes the dict into lora_name (MPI-219 trap).
   (copy on all four), top-down (broken: tiled / upside-down / sweater texture) except the street.
 - vs our prompt recipe (Turbo): ours wins on height (low, high, extreme stops on every subject); the LoRA wins on
   object yaw. Neither gets a true back view of a scene (background never swings round).
+
+Rotate a character in a scene (Fabio's go 2026-10-23; `angles.py <port> rotate`, results `out/rotate.json`, sheet
+`rotate_scene.jpg`; seed 111, Turbo 1K, ~19 s a run; the scene p1 front source; prompt `TURN` = "his whole body
+turned <N> degrees ... Only he has turned: the camera, the framing and the street behind him are exactly as in the
+first image" + frame-term consequences per view in `TURNS`). Agent read, awaiting Fabio's eye test:
+- THE STREET HOLDS in all 7: red door frame-left, bicycle frame-right, lights, cobbles, framing unchanged (only the
+  area he uncovers repaints). Identity held (beard, jacket, bag). Subject rotation in a scene WORKS as a prompt.
+- Big turns land: pr L (clean profile facing frame-left, strap nearest), tqb L (good lost profile, but the bag
+  strap jumped to his right shoulder), back (true back, strap on frame-left as asked), tqb R (clean), pr R (clean).
+- 45-degree turns are weak: tq L = body barely turns and his HEAD looks toward frame-RIGHT (wrong way); tq R =
+  near-frontal, a small turn. Same as the body bench: 3/4 front is where the model under-turns.
+- So 5/7 pose on one seed, 0 background drift; cut-out fallback NOT needed so far.
+- 45-degree rework (Fabio's go; `HALF` = the body bench's FRONT3Q geometry "halfway between facing the camera and
+  side-on" + "his head turns with his body ... not toward frame-<other>"; keys `tq L v2` / `tq R v2`, same sheet):
+  tq R v2 = clear 3/4 (right shoulder forward, strap away, face + body toward frame-right) PASS. tq L v2 = right
+  direction now (head + chest toward frame-left, strap shoulder forward) but a smaller turn, ~30 degrees: PARTIAL.
+  Both keep the strap on the correct shoulder; street unchanged. With v2: 6/7 pass + 1 partial on seed 111.
+- Seeds 222/333 (Fabio's go; `angles.py <port> rotate_seeds`, keys `scene <view> s<seed>`, sheet
+  `rotate_seeds.jpg` = 3 seeds x the 7-view strip with the v2 45s, ~21 s a run). Over 3 seeds, 21 cells:
+  | view | pass | note |
+  | 3/4 front L (v2) | 1/3 | s222 clean; s111 + s333 PARTIAL (right way, ~30 degrees, face near-frontal) |
+  | profile L | 3/3 | |
+  | 3/4 back L | 3/3 | pose right; bag strap jumps to his RIGHT shoulder on s111 + s333 |
+  | back | 3/3 | strap on frame-left as asked |
+  | 3/4 back R | 3/3 | |
+  | profile R | 3/3 | |
+  | 3/4 front R (v2) | 2/3 | s222 PARTIAL (small turn) |
+  17/21 clean + 4 partials, 0 wrong-way, STREET HELD IN ALL 21, identity held. Verdict (agent): rotating a
+  character in a scene works with the prompt alone; the cut-out fallback is not needed. The 3/4 FRONT views are the
+  weak stop (under-turn), which a seed retry covers; tqb L needs the strap-side wording fixed or dropped.
+
+Turn + height in ONE prompt (Fabio's go 2026-10-23; `angles.py <port> rotate_pitch`, `TURN_H` = the turn + the
+scene PITCHES camera/shows + "same street seen from the new camera height, door frame-left, bicycle frame-right";
+3 views x 4 heights, seed 111; sheet `rotate_pitch.jpg`, rows tq L v2 / tqb L v2 / back + a strap-fix row).
+Agent read, awaiting Fabio's eye test:
+- The TURN HOLDS at every height (tq L stays its ~30-degree partial, tqb L stays a lost profile, back stays back),
+  identity held, the street stays the same street. One prompt from the front works; no two-step needed.
+- HIGH stops land strongly on all 3 views: hi = cobbles behind, door + bicycle from above; xhi = bird's-eye with
+  his feet in frame. Clearly distinct from each other.
+- LOW stops are WEAK: xlo ~= lo, both only mildly low (taller buildings, balconies, little or no sky). Weaker than
+  the pitch-only scene run (`pitch_scene.jpg`), where lo/xlo brought sky + towering fronts. Suspect the new
+  "same street, door frame-left ..." anchor line pins the background and damps the low camera.
+- STRAP FIX FAILED: `tqb L v2` ("strap stays on his LEFT shoulder, nearer the camera, frame-left") still puts it on
+  his right shoulder on s111 + s333 (it lands right on `tqb L v2 hi`). Agent view: drop it - a Flow prompt cannot
+  name the user's accessories anyway, so "a one-sided bag / earring may swap sides on 3/4 back views" is a known
+  limit, not a wording job.
+- Low rework (Fabio's go; `angles.py <port> rotate_low`, `TURN_LO` = TURN_H minus the street-anchor line, keys
+  `scene <view> lo|xlo v2`, sheet `rotate_low.jpg` with the pitch-only front lo/xlo as reference; seed 111, 6 runs):
+  SMALL GAIN on extreme low only - tqb L xlo v2 and back xlo v2 now show sky top-right and building fronts leaning
+  away (old: none); tq L xlo v2 barely changes and tips his head up. lo v2 ~= lo old: a mild "slightly low" either
+  way. Still well short of the pitch-only front xlo reference (strong keystoning, sky, towering fronts): a low
+  camera lands harder on a FRONT subject than on a turned one. Anchor line confirmed as a damper -> TURN_LO for lows.
+
+Fabio 2026-10-23: prompts must be GENERIC (no man/outfit/street; "the subject"/"they"), must not say
+"photograph" (anime would turn photoreal), and should follow the FLUX.3 guide (whole-picture edit = "Shift the
+camera viewpoint to ...", only the change, one keep-clause). He asked for TWO passes: turn first, then height on
+that result. Rule added to the add-flow playbook + mpi-add-flow skill (read the model guide before any Flow prompt).
+- Long generic two-pass (`angles.py <port> two_pass`, G_TURN / G_HEIGHT, `out/twopass.json`, sheet `two_pass.jpg`,
+  seed 111): pass 1 turns land as before. Pass 2 FAILS: low + floor = copies (diff 5-6) except tq L floor, which
+  pulled back to a full-body ground-level shot (diff 49); high + bird's-eye = the person kept exactly as is and
+  the BACKGROUND swapped for cobbles (fake, no foreshortening). Worse than the one-prompt version.
+- Short generic two-pass (`short_pass`, S_TURN / S_HEIGHT, ~40-word guide-voice prompts, `out/shortpass.json`,
+  sheet `short_pass.jpg`): pass 1 SHORT TURNS WORK as well as the long ones (3/4 front again ~30 degrees, lost
+  profile + back clean). Pass 2: ALL 12 are copies (diff 5-7) - the camera never moves.
+- Read: on Turbo a second edit of an already-edited picture will not move the camera, whatever the wording (third
+  time: p1 two-step, long, short). Untested: the SHORT height prompts straight from the original picture, which
+  would tell "short wording too weak" apart from "second pass refuses".
+
+MANNEQUIN REFERENCE idea (Fabio 2026-10-23): picture 2 = a grey mannequin on a dark backdrop at the exact view
+(angle, height, ZOOM); the edit asks for picture 1 seen the same way, naming the view in words too (front vs back is
+hard to read on a mannequin). The same renders become the gizmo's stop previews. Square 1:1 masters (crop to the
+user's ratio later; a crop changes the zoom, so the gizmo may need per-ratio-family renders).
+- Refs via FLUX.3 Turbo t2i (`angles.py <port> mannequin`, MQ_BODY + MQ_VIEWS, seed 111, ~13 s each, copies in
+  `research/mannequin/*.png`, sheet `mannequin.jpg`): tqb L = a back view barely angled (weak 3/4 rear); back xlo =
+  back view at EYE LEVEL (low FAILED); tq L hi = 3/4 front, only mildly high; xhi = high-angle front but not a true
+  bird's-eye (looks up); close = good close-up but the mannequin grew a female chest. t2i struggles with the same
+  low/high stops. Edits with the refs (`mannequin <port> edits`) NOT run yet.
+- Fabio: if t2i cannot make the mannequin views, he will install the Blender CLI and the refs get rendered from a
+  real 3D mannequin (exact angle, height, zoom; also the gizmo's own previews).

@@ -6,7 +6,7 @@ One FLUX.3 head-and-shoulders source, then per model: front -> 3/4, front -> pro
 model's OWN 3/4 -> low angle. Results + sheet land in research/out/ and research/sheets/.
 """
 import json, os, sys, urllib.parse, urllib.request
-from PIL import Image, ImageDraw
+from PIL import Image, ImageChops, ImageDraw, ImageStat
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, 'out')
@@ -808,6 +808,385 @@ def lora(port):
         img.save(os.path.join(HERE, 'sheets', f'lora_{tag}.jpg'), quality=90)
 
 
+# Rotate a character IN a scene (Fabio 2026-10-23): the man turns on the spot, the camera and street stay put.
+# Scene p1 showed yaw already lands as a subject turn; this names it as one. Frame terms + visible consequences.
+TURN = ('Create a photograph of the man from the first image standing on the same spot, with his whole body (head, '
+        'shoulders, chest and hips) turned {t} Only he has turned: the camera, the framing and the street behind him are '
+        'exactly as in the first image - the red door stays on frame-left, the blue bicycle on frame-right and the '
+        'string lights overhead. ' + SCENE_KEEP)
+TURNS = {
+    'tq L': ('45 degrees, so he faces partly toward frame-left: his left shoulder and the bag strap are nearer the '
+             'camera, his right shoulder is turned away, both eyes still show and his nose points toward frame-left.'),
+    'pr L': ('90 degrees, so he stands side-on in full profile facing frame-left: only his left side shows - his left '
+             'ear, left cheek, the profile of his nose and beard, and the bag strap on the shoulder nearest the camera.'),
+    'tqb L': ('135 degrees, a lost-profile view: he faces away from the camera, angled toward frame-left and into the '
+              'picture; the back of his head, his left ear and only the edge of his left cheek and beard show, his '
+              'eyes and nose hidden, and the back of his jacket is seen at an angle.'),
+    'back': ('180 degrees, so his back is to the camera and he faces straight into the picture toward the shop front: '
+             'the back of his head and the back of his navy jacket fill the middle, his face is completely hidden, and '
+             'the bag strap crosses his left shoulder on frame-left.'),
+    'tqb R': ('135 degrees the other way, a lost-profile view: he faces away from the camera, angled toward frame-right '
+              'and into the picture; the back of his head, his right ear and only the edge of his right cheek and beard '
+              'show, his eyes and nose hidden, and the back of his jacket is seen at an angle.'),
+    'pr R': ('90 degrees the other way, so he stands side-on in full profile facing frame-right: only his right side '
+             'shows - his right ear, right cheek, the profile of his nose and beard; the bag strap is on his far '
+             'shoulder.'),
+    'tq R': ('45 degrees the other way, so he faces partly toward frame-right: his right shoulder is nearer the camera, '
+             'his left shoulder and the bag strap are turned away, both eyes still show and his nose points toward '
+             'frame-right.'),
+}
+# p1: the 45s under-turn (tq L head looked the wrong way). v2 = the body bench's passing FRONT3Q geometry
+# (halfway between facing the camera and side-on) + the head named as turning WITH the body.
+HALF = ('45 degrees, halfway between facing the camera and standing side-on facing frame-{s}: his chest and hips are '
+        'angled toward frame-{s}, his {s} shoulder and {s} arm are nearer the camera, his {o} shoulder and {o} arm are '
+        'partly hidden behind his body, {strap}. His head turns with his body: his face shows its {s} cheek, both '
+        'eyes and his nose pointing toward frame-{s}, looking toward frame-{s} past the camera, not toward frame-{o}.')
+TURNS['tq L v2'] = HALF.format(s='left', o='right', strap='the bag strap on his near shoulder')
+TURNS['tq R v2'] = HALF.format(s='right', o='left', strap='the bag strap on his far shoulder, half hidden')
+
+
+def rotate(port):
+    done = os.path.join(OUT, 'rotate.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    src = json.load(open(os.path.join(OUT, 'pitch.json')))['scene input']
+    for t, words in TURNS.items():
+        key = f'scene {t}'
+        if key not in res:
+            if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+                sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+            res[key] = gen(port, {**FAST, 'positive': TURN.format(t=words), 'seed': PITCH_SEED,
+                                  'media': [{'role': 'inputImage', 'url': src}], 'cardName': f'angles rotate {key}'})
+            json.dump(res, open(done, 'w'), indent=1)
+    cell, h = 300, 300 * 5 // 4 + 24
+    base = Image.open(disk(src)).convert('RGB')
+    cells = [(src, 'input (front)'), *[(res[f'scene {t}'], t) for t in TURNS]]
+    img = Image.new('RGB', (cell * 4, h * -(-len(cells) // 4)), 'white')
+    d = ImageDraw.Draw(img)
+    for i, (url, label) in enumerate(cells):
+        im = Image.open(disk(url)).convert('RGB')
+        diff = sum(ImageStat.Stat(ImageChops.difference(im.resize(base.size), base)).mean) / 3
+        im.thumbnail((cell, h - 24))
+        img.paste(im, ((i % 4) * cell, (i // 4) * h + 24))
+        d.text(((i % 4) * cell + 4, (i // 4) * h + 4), f'{label}  diff {diff:.0f}', fill='black')
+    img.save(os.path.join(HERE, 'sheets', 'rotate_scene.jpg'), quality=90)
+
+
+STRIP = ['tq L v2', 'pr L', 'tqb L', 'back', 'tqb R', 'pr R', 'tq R v2']
+
+
+def rotate_seeds(port):  # the 7-view strip (v2 45s) on seeds 222/333; seed 111 is rotate()'s run
+    done = os.path.join(OUT, 'rotate.json')
+    res = json.load(open(done))
+    src = json.load(open(os.path.join(OUT, 'pitch.json')))['scene input']
+    for seed in (222, 333):
+        for t in STRIP:
+            key = f'scene {t} s{seed}'
+            if key not in res:
+                if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+                    sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+                res[key] = gen(port, {**FAST, 'positive': TURN.format(t=TURNS[t]), 'seed': seed,
+                                      'media': [{'role': 'inputImage', 'url': src}],
+                                      'cardName': f'angles rotate {key}'})
+                json.dump(res, open(done, 'w'), indent=1)
+    cell, h = 220, 220 * 5 // 4 + 24
+    img = Image.new('RGB', (cell * 8, h * 3), 'white')
+    d = ImageDraw.Draw(img)
+    for r, seed in enumerate((111, 222, 333)):
+        for c, t in enumerate([None, *STRIP]):
+            url = src if t is None else res[f'scene {t}' + ('' if seed == 111 else f' s{seed}')]
+            im = Image.open(disk(url)).convert('RGB')
+            im.thumbnail((cell, h - 24))
+            img.paste(im, (c * cell, r * h + 24))
+            d.text((c * cell + 4, r * h + 4), f's{seed} {t or "input"}', fill='black')
+    img.save(os.path.join(HERE, 'sheets', 'rotate_seeds.jpg'), quality=90)
+
+
+# tqb L moved the bag strap to his right shoulder on 2/3 seeds: name the shoulder by side AND frame position.
+TURNS['tqb L v2'] = TURNS['tqb L'][:-1] + (', and the bag strap stays on his LEFT shoulder - the shoulder nearer the '
+                                           'camera, on frame-left - never on his right shoulder.')
+# Turn + height in ONE prompt from the front (two-step returned copies). Fabio 2026-10-23: 3 views x 4 heights first.
+TURN_H = ('Create a photograph of the man from the first image standing on the same spot, with his whole body (head, '
+          'shoulders, chest and hips) turned {t} The photograph is taken from {cam}. {shows}It is the same street '
+          'around him, seen from the new camera height: the red door on frame-left, the blue bicycle on frame-right '
+          'and the string lights overhead. ' + SCENE_KEEP)
+TH_VIEWS = ['tq L v2', 'tqb L v2', 'back']
+HEIGHTS = ['xlo', 'lo', 'hi', 'xhi']
+
+
+def rotate_pitch(port):
+    done = os.path.join(OUT, 'rotate.json')
+    res = json.load(open(done))
+    src = json.load(open(os.path.join(OUT, 'pitch.json')))['scene input']
+    jobs = [('scene tqb L v2' + ('' if s == 111 else f' s{s}'), TURN.format(t=TURNS['tqb L v2']), s) for s in (111, 333)]
+    jobs += [(f'scene {t} {p}', TURN_H.format(t=TURNS[t], cam=PITCHES['scene'][p][0], shows=PITCHES['scene'][p][1]),
+              PITCH_SEED) for t in TH_VIEWS for p in HEIGHTS]
+    for key, prompt, seed in jobs:
+        if key not in res:
+            if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+                sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+            res[key] = gen(port, {**FAST, 'positive': prompt, 'seed': seed,
+                                  'media': [{'role': 'inputImage', 'url': src}], 'cardName': f'angles rotate {key}'})
+            json.dump(res, open(done, 'w'), indent=1)
+    rows = [[(f'scene {t}', f'{t} level')] + [(f'scene {t} {p}', f'{t} {p}') for p in HEIGHTS] for t in TH_VIEWS]
+    rows.append([(f'scene tqb L s{s}' if s != 111 else 'scene tqb L', f'tqb L old s{s}') for s in (111, 333)] +
+                [('scene tqb L v2' + ('' if s == 111 else f' s{s}'), f'tqb L v2 s{s}') for s in (111, 333)])
+    cell, h = 300, 300 * 5 // 4 + 24
+    img = Image.new('RGB', (cell * 5, h * len(rows)), 'white')
+    d = ImageDraw.Draw(img)
+    for r, row in enumerate(rows):
+        for c, (k, label) in enumerate(row):
+            im = Image.open(disk(res[k])).convert('RGB')
+            im.thumbnail((cell, h - 24))
+            img.paste(im, (c * cell, r * h + 24))
+            d.text((c * cell + 4, r * h + 4), label, fill='black')
+    img.save(os.path.join(HERE, 'sheets', 'rotate_pitch.jpg'), quality=90)
+
+
+# Low stops came out weak with TURN_H; suspect its street-anchor line. v2 drops it (SCENE_KEEP still names the
+# street, without positions), like the pitch-only run where low brought sky + towering fronts.
+TURN_LO = ('Create a photograph of the man from the first image standing on the same spot, with his whole body (head, '
+           'shoulders, chest and hips) turned {t} The photograph is taken from {cam}. {shows}' + SCENE_KEEP)
+
+
+def rotate_low(port):
+    done = os.path.join(OUT, 'rotate.json')
+    res = json.load(open(done))
+    src = json.load(open(os.path.join(OUT, 'pitch.json')))['scene input']
+    for t in TH_VIEWS:
+        for p in ('lo', 'xlo'):
+            key = f'scene {t} {p} v2'
+            if key not in res:
+                if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+                    sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+                prompt = TURN_LO.format(t=TURNS[t], cam=PITCHES['scene'][p][0], shows=PITCHES['scene'][p][1])
+                res[key] = gen(port, {**FAST, 'positive': prompt, 'seed': PITCH_SEED,
+                                      'media': [{'role': 'inputImage', 'url': src}], 'cardName': f'angles rotate {key}'})
+                json.dump(res, open(done, 'w'), indent=1)
+    pres = json.load(open(os.path.join(OUT, 'pitch.json')))
+    rows = [[(res[f'scene {t} {p}{v}'], f'{t} {p}{v or " old"}') for p in ('lo', 'xlo') for v in ('', ' v2')]
+            for t in TH_VIEWS]
+    rows.append([(pres[f'scene front {p}'], f'ref: pitch-only front {p}') for p in ('lo', 'xlo')])
+    cell, h = 300, 300 * 5 // 4 + 24
+    img = Image.new('RGB', (cell * 4, h * len(rows)), 'white')
+    d = ImageDraw.Draw(img)
+    for r, row in enumerate(rows):
+        for c, (url, label) in enumerate(row):
+            im = Image.open(disk(url)).convert('RGB')
+            im.thumbnail((cell, h - 24))
+            img.paste(im, (c * cell, r * h + 24))
+            d.text((c * cell + 4, r * h + 4), label, fill='black')
+    img.save(os.path.join(HERE, 'sheets', 'rotate_low.jpg'), quality=90)
+
+
+# Fabio 2026-10-23: GENERIC wording (no man/he/outfit - a Flow prompt must fit anyone) and TWO passes: pass 1 turns
+# the person, pass 2 moves the camera height on pass 1's picture. The old two-step (p1) repeated the yaw text in
+# pass 2 and returned copies; this pass 2 names only the height and says the pose stays.
+G_KEEP = 'Keep the same person, face, hair, clothes and everything they wear or carry.'
+G_TURN = ('Create a photograph of the person from the first image standing on the same spot, with their whole body '
+          '(head, shoulders, chest and hips) turned {t} Only the person has turned: the camera, the framing and the '
+          'background stay exactly as in the first image. ' + G_KEEP)
+G_TURNS = {
+    'tq L': ('45 degrees, halfway between facing the camera and standing side-on facing frame-left: their chest and '
+             'hips are angled toward frame-left, their left shoulder and arm are nearer the camera, their right '
+             'shoulder and arm are partly hidden behind their body. Their head turns with their body: the face shows '
+             'its left cheek, both eyes and the nose pointing toward frame-left, looking toward frame-left past the '
+             'camera, not toward frame-right.'),
+    'tqb L': ('135 degrees, a lost-profile view: they face away from the camera, angled toward frame-left and into the '
+              'picture; the back of their head, their left ear and only the edge of their left cheek show, their eyes '
+              'and nose hidden, and their back is seen at an angle.'),
+    'back': ('180 degrees, so their back is to the camera and they face straight into the picture: the back of their '
+             'head and their back fill the middle, and their face is completely hidden.'),
+}
+G_HEIGHT = ('Create a photograph of the same moment as the first image, taken from {cam}. {shows} The person keeps '
+            'exactly the same pose and faces the same way; only the camera has moved. ' + G_KEEP +
+            ' Same place, same light.')
+G_HEIGHTS = {  # view-neutral: nothing here assumes which way the person faces
+    'xlo': ('the ground: the camera lies on the floor at their feet, pointing steeply up at them',
+            'Seen from the floor, their feet and legs are nearest the camera and large at the bottom of the picture, '
+            'their body towers upward and narrows toward their head at the top, and the surroundings lean in against '
+            'open sky or ceiling above them.'),
+    'lo': ('a low camera at the height of their knees, pointing upward at them',
+           'Seen from below, their legs are nearer the camera than their head, they look tall, and more of what is '
+           'above them shows.'),
+    'hi': ('a high camera above their head, pointing down at them',
+           'Seen from above, the top of their head and their shoulders are nearest the camera, their body is '
+           'foreshortened below them, and the ground around them fills the background.'),
+    'xhi': ('a bird\'s-eye view: the camera is high directly above them, pointing almost straight down',
+            'Seen from far above, the top of their head and their shoulders are in the middle of the picture, their '
+            'body is strongly foreshortened beneath them, and the ground surrounds them on every side.'),
+}
+
+
+def two_pass(port):
+    done = os.path.join(OUT, 'twopass.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    src = json.load(open(os.path.join(OUT, 'pitch.json')))['scene input']
+
+    def step(key, prompt, url):
+        if key not in res:
+            if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+                sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+            res[key] = gen(port, {**FAST, 'positive': prompt, 'seed': PITCH_SEED,
+                                  'media': [{'role': 'inputImage', 'url': url}], 'cardName': f'angles 2pass {key}'})
+            json.dump(res, open(done, 'w'), indent=1)
+        return res[key]
+
+    for t, words in G_TURNS.items():
+        turned = step(t, G_TURN.format(t=words), src)
+        for p, (cam, shows) in G_HEIGHTS.items():
+            step(f'{t} {p}', G_HEIGHT.format(cam=cam, shows=shows), turned)
+    cell, h = 300, 300 * 5 // 4 + 24
+    img = Image.new('RGB', (cell * 5, h * len(G_TURNS)), 'white')
+    d = ImageDraw.Draw(img)
+    for r, t in enumerate(G_TURNS):
+        base = Image.open(disk(res[t])).convert('RGB')
+        for c, k in enumerate([t, *[f'{t} {p}' for p in G_HEIGHTS]]):
+            im = Image.open(disk(res[k])).convert('RGB')
+            diff = sum(ImageStat.Stat(ImageChops.difference(im.resize(base.size), base)).mean) / 3
+            im.thumbnail((cell, h - 24))
+            img.paste(im, (c * cell, r * h + 24))
+            d.text((c * cell + 4, r * h + 4), (f'pass1 {k}' if k == t else f'pass2 {k}  diff {diff:.0f}'),
+                   fill='black')
+    img.save(os.path.join(HERE, 'sheets', 'two_pass.jpg'), quality=90)
+
+
+# Fabio 2026-10-23: SHORT + generic, the FLUX.3 guide's edit voice (whole-picture change opens "Shift the camera
+# viewpoint to ..."; describe the change only; one keep clause). No "photograph" (anime must stay anime), no
+# subject or scene details. Same two passes.
+S_KEEP = ' Keep the subject, their pose and the direction they face, the place, the light and the image style unchanged.'
+S_TURN = {
+    'tq L': ('Turn the subject 45 degrees so they face partly toward frame-left, halfway between facing the camera and '
+             'side-on, their head turned with their body. The camera and the background do not move. Keep the subject, '
+             'the place, the light and the image style unchanged.'),
+    'tqb L': ('Turn the subject 135 degrees so they face away from the camera toward frame-left: the back of their head '
+              'and only the edge of their cheek show. The camera and the background do not move. Keep the subject, the '
+              'place, the light and the image style unchanged.'),
+    'back': ('Turn the subject around so their back faces the camera and their face is hidden. The camera and the '
+             'background do not move. Keep the subject, the place, the light and the image style unchanged.'),
+}
+S_HEIGHT = {
+    'xlo': 'Shift the camera viewpoint to a worm\'s-eye view: the camera is on the ground at the subject\'s feet, '
+           'pointing steeply up at them from below.' + S_KEEP,
+    'lo': 'Shift the camera viewpoint to a low angle: the camera is below the subject at knee height, pointing up at '
+          'them.' + S_KEEP,
+    'hi': 'Shift the camera viewpoint to a high angle: the camera is above the subject\'s head, pointing down at '
+          'them.' + S_KEEP,
+    'xhi': 'Shift the camera viewpoint to a bird\'s-eye view: the camera is high directly above the subject, pointing '
+           'straight down at them.' + S_KEEP,
+}
+
+
+def short_pass(port):
+    done = os.path.join(OUT, 'shortpass.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    src = json.load(open(os.path.join(OUT, 'pitch.json')))['scene input']
+
+    def step(key, prompt, url):
+        if key not in res:
+            if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+                sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+            res[key] = gen(port, {**FAST, 'positive': prompt, 'seed': PITCH_SEED,
+                                  'media': [{'role': 'inputImage', 'url': url}], 'cardName': f'angles short {key}'})
+            json.dump(res, open(done, 'w'), indent=1)
+        return res[key]
+
+    for t, prompt in S_TURN.items():
+        turned = step(t, prompt, src)
+        for p, hp in S_HEIGHT.items():
+            step(f'{t} {p}', hp, turned)
+    cell, h = 300, 300 * 5 // 4 + 24
+    img = Image.new('RGB', (cell * 5, h * len(S_TURN)), 'white')
+    d = ImageDraw.Draw(img)
+    for r, t in enumerate(S_TURN):
+        base = Image.open(disk(res[t])).convert('RGB')
+        for c, k in enumerate([t, *[f'{t} {p}' for p in S_HEIGHT]]):
+            im = Image.open(disk(res[k])).convert('RGB')
+            diff = sum(ImageStat.Stat(ImageChops.difference(im.resize(base.size), base)).mean) / 3
+            im.thumbnail((cell, h - 24))
+            img.paste(im, (c * cell, r * h + 24))
+            d.text((c * cell + 4, r * h + 4), (f'pass1 {k}' if k == t else f'pass2 {k}  diff {diff:.0f}'),
+                   fill='black')
+    img.save(os.path.join(HERE, 'sheets', 'short_pass.jpg'), quality=90)
+
+
+# Fabio 2026-10-23: a MANNEQUIN REFERENCE carries the camera. Picture 2 = a grey mannequin on a dark backdrop at the
+# exact view (angle, height, zoom); the prompt asks for picture 1 seen the same way, naming the view in words too
+# (front vs back is hard to read on a mannequin). Refs are square masters (crop to any ratio later) and are kept in
+# research/mannequin/ for the gizmo. t2i follows camera words far better than an edit does.
+MQ_BODY = ('Studio photograph of a full-size grey wooden artist\'s mannequin with jointed limbs and a smooth oval head '
+           'with a softly sculpted nose and brow ridge, so its face side is clear, standing upright with its arms '
+           'relaxed at its sides, against a plain dark charcoal-grey seamless studio backdrop and floor, soft even '
+           'light, no props. ')
+MQ_VIEWS = {  # key: (t2i camera words, the view named in the edit prompt)
+    'tqb L': ('Three-quarter rear view from behind its left shoulder, camera at chest height: it faces away from the '
+              'camera, angled toward frame-left; the back of its head and only the edge of its nose and brow show, '
+              'its back seen at an angle. Its whole body is in frame.',
+              'a three-quarter rear view from behind their left shoulder at chest height, facing away toward frame-left'),
+    'back xlo': ('Back view from a worm\'s-eye camera on the floor just behind its heels, pointing steeply up: its heels '
+                 'and calves are large at the bottom, its back towers upward and narrows to the back of its head, '
+                 'small near the top, with dark backdrop above.',
+                 'a back view from a camera on the ground behind their heels, pointing steeply up at them'),
+    'tq L hi': ('Three-quarter front view from a high camera above its head, 45 degrees to its left, pointing down: it '
+                'faces partly toward frame-left; the top of its head and its shoulders are large and near the camera, '
+                'its legs look short and its feet small on the floor below.',
+                'a three-quarter front view from a high camera above their head, facing partly toward frame-left'),
+    'xhi': ('Bird\'s-eye view from a camera high directly above it, pointing straight down: the top of its head and '
+            'its shoulders are in the middle of the picture, its body strongly foreshortened beneath, its feet barely '
+            'peeking out, and the grey floor surrounds it on every side.',
+            'a bird\'s-eye view from a camera high directly above them, pointing straight down'),
+    'close': ('Head-and-shoulders close-up from the front at eye level: its face, with the sculpted nose and brow, '
+              'looks straight at the camera and fills the upper half of the frame, its shoulders cut by the bottom edge.',
+              'a head-and-shoulders close-up from the front at eye level'),
+}
+MQ_EDIT = ('Shift the camera viewpoint of the first image to match the second image: put the camera at the same angle, '
+           'height and distance from the subject as the camera that took the mannequin in the second image, so the '
+           'subject from the first image is framed and turned exactly like the mannequin, in {v}. The place around them '
+           'is seen from that new camera position. Take only the camera from the second image, never the mannequin, '
+           'its pose or its grey backdrop. Keep the subject\'s identity, clothes, the place, the light and the image '
+           'style of the first image unchanged.')
+
+
+def mannequin(port, edits=False):
+    import shutil
+    done = os.path.join(OUT, 'mannequin.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    src = json.load(open(os.path.join(OUT, 'pitch.json')))['scene input']
+    keep = os.path.join(HERE, 'mannequin')
+    os.makedirs(keep, exist_ok=True)
+
+    def step(key, body):
+        if key not in res:
+            if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+                sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+            res[key] = gen(port, {**FAST, 'seed': PITCH_SEED, **body, 'cardName': f'angles mq {key}'})
+            json.dump(res, open(done, 'w'), indent=1)
+        return res[key]
+
+    for v, (cam, _) in MQ_VIEWS.items():
+        ref = step(f'ref {v}', {'operation': 't2i', 'ratio': '1:1', 'positive': MQ_BODY + cam})
+        shutil.copyfile(disk(ref), os.path.join(keep, f'{v.replace(" ", "_")}.png'))
+    if edits:
+        for v, (_, words) in MQ_VIEWS.items():
+            step(f'edit {v}', {'positive': MQ_EDIT.format(v=words),
+                               'media': [{'role': 'inputImage', 'url': src},
+                                         {'role': 'inputImage2', 'url': res[f'ref {v}']}]})
+    cell = 300
+    rows = [[(f'ref {v}', f'ref {v}') for v in MQ_VIEWS]]
+    if edits:
+        rows.append([(f'edit {v}', f'edit {v}') for v in MQ_VIEWS])
+    h = cell * 5 // 4 + 24
+    img = Image.new('RGB', (cell * len(MQ_VIEWS), h * len(rows)), 'white')
+    d = ImageDraw.Draw(img)
+    for r, row in enumerate(rows):
+        for c, (k, label) in enumerate(row):
+            if k in res:
+                im = Image.open(disk(res[k])).convert('RGB')
+                im.thumbnail((cell, h - 24))
+                img.paste(im, (c * cell, r * h + 24))
+                d.text((c * cell + 4, r * h + 4), label, fill='black')
+    img.save(os.path.join(HERE, 'sheets', 'mannequin.jpg'), quality=90)
+
+
 WINNERS = [('v1', 'tq'), ('v1', 'pr'), ('v2', 'lo straight'), ('v2', 'lo perspective'), ('v4', 'lo 3q'),
            ('v3', 'hi straight'), ('v4', 'hi 3q')]
 
@@ -855,6 +1234,20 @@ if __name__ == '__main__':
         sweep2(int(sys.argv[1]))
     elif sys.argv[2:3] == ['lora']:
         lora(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['mannequin']:
+        mannequin(int(sys.argv[1]), sys.argv[3:4] == ['edits'])
+    elif sys.argv[2:3] == ['short_pass']:
+        short_pass(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['two_pass']:
+        two_pass(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['rotate_low']:
+        rotate_low(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['rotate_pitch']:
+        rotate_pitch(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['rotate_seeds']:
+        rotate_seeds(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['rotate']:
+        rotate(int(sys.argv[1]))
     elif sys.argv[2:3] == ['pitch']:
         pitch(int(sys.argv[1]))
     elif sys.argv[1:2] == ['b6sheet']:

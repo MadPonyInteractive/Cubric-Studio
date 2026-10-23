@@ -31,6 +31,10 @@ checklist, and a routing table. Then state, in one line each:
 
 If you cannot answer all four from the hub + the workflow JSON, stop and ask.
 
+**Before you write ANY prompt text** (a fixed prompt, a template, or a bench prompt), read
+`docs/agent/models/<model>.md` for each model it targets, and keep the prompt generic (`01`
+§ READ THE MODEL'S GUIDE). No gate makes a Flow read it.
+
 **Then read section files ON DEMAND — do NOT slurp all of them up front.** Open a section when
 you reach its step (descriptor/ops → `01`; media slots/injection → `02`; storage/reuse →
 `03`; overlay/shell → `04`; verify → `05`; **making the Flow known to Cosmo → `07`**). A
@@ -73,6 +77,7 @@ file the moment you reach a step that needs it, and only that section.
 | Reuse needs `flowId`+`flowInputs` on BOTH the sidecar AND the live in-memory item | 03 |
 | Injection **silently skips** a param whose `Input_*` title matches no node — run `tests/inject-params-titles.test.cjs` | 05 |
 | An flow-vs-browser divergence is ALWAYS a flow-side injection/routing bug, never the workflow | 02 |
+| **Prompt text written without the model's guide** (no `GUIDE_NOT_READ` gate for a Flow): read `docs/agent/models/<model>.md` first; the prompt names "the subject", never the bench picture | 01 |
 | uiComponent is OPTIONAL — omit for a media-only flow (BaseFlow renders slots) | 01/04 |
 | **A Flow that works by hand is invisible to Cosmo.** It picks by `does` (the first sentence of `description`) and fills from id/label/type/default/options/min/max only: a `hidden` field, a `voices` roster or a note-carried meaning arrives as a bare name and is filled blind. No gate makes it read `flows.md`, and the system prompt has almost no byte budget left for a per-Flow rule | 07 |
 
