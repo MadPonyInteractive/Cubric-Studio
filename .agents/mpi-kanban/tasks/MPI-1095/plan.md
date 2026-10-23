@@ -2,6 +2,11 @@
 
 ## Current State
 
+- 2026-10-23 ("LTX 2.5 model 6"): DiffVAE A/B won (steadier scales); Fabio's Turbo switch wired (OFF =
+  DiffVAE default, ON = conv), DiffVAE on R2, in-app Turbo on/off check passed, own tooltip, docs page
+  `docs/models/ltx/ltx-2.5.md`. All pushed (`4a84bb974`, `5c26fcc75`, `036f09079`). Card is devOnly (verified:
+  `MODELS` filter on `APP_CONFIG.dev_mode`). Fabio is testing Turbo on/off in the app himself. NEXT: his
+  verdict, then the LTX 2.5 enhancer-recipe question (Remaining Work, NEW), then close-out.
 - 2026-10-22 ("LTX 2.5 model 5"): stage-1 code committed, in-app GPU check passed, all six 2.5 deps on R2,
   LTX ladder moved down one rung (`422b0aca3`). NEXT: the DiffVAE A/B (Remaining Work, Fabio's yes for that
   one run), then Fabio's raw review, the `docs/models/ltx/` 2.5 page, close-out. Fabio is also shooting 4K
@@ -104,6 +109,13 @@
 - Turbo tooltip DONE 2026-10-23 (`036f09079`): the `h3Turbo` button reads ModelDef `turboInfo`, H3 text
   stays the default; `ltx-25` has its own line. The commit also carries one tooltip line of the "Tile
   upscaler improvements 7" session (Fabio's OK). Left: Fabio's look at the 2.5 card, then close-out.
+- **NEW 2026-10-23 (Fabio): a real LTX 2.5 enhancer recipe.** Today `ltx-25` borrows `ltx-2.3.recipe.js`
+  ("Enhanced ... for LTX 2.5" in the dialog), and `docs/agent/models/ltx-2.3.md` claims "LTX 2.5 prompts
+  exactly like 2.3" with NO 2.5 prompting research behind it. Lightricks DOES ship a 2.5 rewriter:
+  `Lightricks/LTX-2` `.../gemma/encoders/prompts/gemma4_*_system_prompt.txt` (the 2.3 recipe header already
+  notes it borrowed the gemma4 word budget by mistake, MPI-27). 2.5 also has native multi-shot prompts and
+  a duration head. Do it through `/create-enhancer-recipe` (research -> draft -> test loop); then fix the
+  agent guide's claim. Product call for Fabio first: its own `ltx-2.5.recipe.js`, or 2.3's recipe split.
 - Stage 2 (2.5 in the LTX Flows, Keyframes to Video MPI-1191, 2.5-only Flows) waits for the release.
 
 ## Plan Drift
