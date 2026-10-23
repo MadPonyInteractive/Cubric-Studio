@@ -619,9 +619,11 @@ export function catalogueEntry(list, id) {
  * The confirm cards that answer with a CHOICE, never a boolean (MPI-870: a string handed to a
  * yes/no card reads as yes): kind -> its choices. Each also takes 'replied', a message typed
  * instead or a reset, which runs nothing. Review: Song's lyrics (MPI-1005). Voice: a library
- * voice Cosmo picked for a line with no sample (MPI-1004).
+ * voice Cosmo picked for a line with no sample (MPI-1004). Tiles: the tile size of a Use Tiles
+ * run, each with its tile count (MPI-1260); the choices mirror `TILE_SIZES`
+ * (js/data/generationControls.js).
  */
-export const CHOICE_CARDS = Object.freeze({ review: ['review', 'run'], voice: ['library', 'use'] });
+export const CHOICE_CARDS = Object.freeze({ review: ['review', 'run'], voice: ['library', 'use'], tiles: ['256', '512', '768', '1024', '1536'] });
 
 // ---------------------------------------------------------------------------
 // AgentLoop class — injectable for tests
@@ -1653,6 +1655,20 @@ export class AgentLoop {
             ? { price } : { declined: true, price };
     }
 
+    /**
+     * MPI-1260 — every tile size with the tile count the app quotes for it, or null when the app
+     * counts none (no card then: a size with no count is no help to choose by).
+     */
+    async _tileSizes(body) {
+        const quotes = await Promise.all(CHOICE_CARDS.tiles.map((s) => this._quote({ ...body, tileSize: Number(s) })));
+        const sizes = quotes.map((q, i) => ({ size: Number(CHOICE_CARDS.tiles[i]), tiles: q?.tiles }))
+            .filter((s) => Number.isFinite(s.tiles) && s.tiles > 0)
+            // A tile bigger than the picture is the picture: on a 1K square 1024 and 1536 are both
+            // ONE tile, the same run twice. The smaller size stands for them.
+            .filter((s, i, all) => i === 0 || s.tiles !== all[i - 1].tiles);
+        return sizes.length ? sizes : null;
+    }
+
     /** The app's quote of a run (price, and a Use Tiles run's tile count), or null. */
     async _quote(body) {
         try {
@@ -2449,6 +2465,25 @@ ${knowledgeIndex}`.trim();
                 // only learns whether it was REFUSED, so a gate after it has already cost
                 // the user money. A fan-out asked once for the whole batch in `_fanOut`; a
                 // local model is quoted `billed: false` and is never asked about at all.
+                // MPI-1260 (Fabio, 2026-10-23) — a Use Tiles run with no tile size named asks
+                // first: the app quotes every size and the user clicks one, seeing what each costs
+                // in tiles (a 1K square at 1024 is ONE tile; a 16K result at 256 is ~4,000). The
+                // click runs it and the turn ends there, like a review. With the settings panel
+                // open the panel's Tile size is theirs already, so no card.
+                if (!opts.batch && body.tiles === true && body.tileSize === undefined && !this._pinned) {
+                    const sizes = await this._tileSizes(body);
+                    if (sizes) {
+                        const pick = sizes.reduce((a, b) => (Math.abs(b.tiles - 20) < Math.abs(a.tiles - 20) ? b : a)).size;
+                        const choice = await this._askChoice(turnId, { kind: 'tiles', sizes, pick }, args);
+                        if (!CHOICE_CARDS.tiles.includes(choice)) {
+                            this._reviewEnd = 'The user wrote back instead of choosing a tile size. Nothing ran.';
+                            return JSON.stringify({ ok: true, replied: true, message: 'Nothing ran: the user answered the tile size card in words instead. Their message comes next.' });
+                        }
+                        body.tileSize = Number(choice);
+                        const n = sizes.find((s) => s.size === body.tileSize)?.tiles;
+                        this._reviewEnd = `Started the tiled run at ${choice} px tiles${n ? ` (up to ${n} tiles)` : ''}, as the user chose.`;
+                    }
+                }
                 let spend = null;
                 let quoted = null;
                 if (!opts.batch) {

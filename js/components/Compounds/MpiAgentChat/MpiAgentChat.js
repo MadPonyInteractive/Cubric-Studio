@@ -847,6 +847,14 @@ export const MpiAgentChat = ComponentFactory.create({
                 buttons: ({ voice }) => [['library', 'Pick from the voice library'], ['use', `Use ${voice || 'this voice'}`]],
                 picked: { library: 'Opened for you to pick a voice.', use: 'Started.' },
             },
+            // MPI-1260: a Use Tiles run's tile size, each with its tile count, before it runs.
+            // `pick` (the size nearest 20 tiles) is the primary button.
+            tiles: {
+                title: () => 'How big should the tiles be?',
+                sub: () => 'Smaller tiles add more detail and take longer.',
+                buttons: ({ sizes = [] }) => sizes.map(({ size, tiles }) => [String(size), `${size} px · ${tiles} tile${tiles === 1 ? '' : 's'}`]),
+                picked: (c) => `Started with ${c} px tiles.`,
+            },
         };
 
         /**
@@ -894,15 +902,18 @@ export const MpiAgentChat = ComponentFactory.create({
             const pickedEl = document.createElement('div');
             pickedEl.className = 'mpi-agent-chat__confirm-size';
             const _picked = (c) => {
-                pickedEl.textContent = c === 'replied' ? 'You wrote back instead.' : (spec.picked[c] || '');
+                pickedEl.textContent = c === 'replied' ? 'You wrote back instead.'
+                    : (typeof spec.picked === 'function' ? (c ? spec.picked(c) : '') : (spec.picked[c] || ''));
             };
 
             if (live) {
                 const actionsEl = document.createElement('div');
                 actionsEl.className = 'mpi-agent-chat__confirm-actions';
                 const choices = spec.buttons(data);
-                const btns = choices.map(([, label], i) => MpiButton.mount(document.createElement('div'), {
-                    text: label, variant: i === choices.length - 1 ? 'primary' : 'secondary', size: 'sm',
+                // The primary is the one that runs: the card's `pick` when it names one, else the last.
+                const primary = data.pick !== undefined ? String(data.pick) : choices.at(-1)?.[0];
+                const btns = choices.map(([c, label]) => MpiButton.mount(document.createElement('div'), {
+                    text: label, variant: c === primary ? 'primary' : 'secondary', size: 'sm',
                 }));
                 _buttons.push(...btns);
                 _optionBtns.push(...btns);

@@ -699,6 +699,13 @@ it, and the user presses Generate. Per Flow, not one box on every run (Fabio sor
   Every card that answers with a choice is in `CHOICE_CARDS` (`agentLoop.mjs`): the loop's
   `confirm()`, `reset()` and `AgentSessions.queue` read it, the chat keeps a twin (titles, labels),
   and `routes/agent.js` `_CHOICES` mirrors its choices (CJS, so it cannot import the ESM).
+- **The tiles card (MPI-1260, Fabio 2026-10-23).** A `generate` with `tiles: true` and no `tileSize`
+  (not a batch item, settings panel shut) quotes every `TILE_SIZES` entry (`_tileSizes`, one
+  `/connector/quote` each) and raises `agent:confirm { kind: 'tiles', sizes: [{ size, tiles }], pick }`.
+  Each button reads "512 px · 20 tiles"; `pick`, the size nearest 20 tiles, is the primary. A click
+  sets `tileSize` and runs it, ending the turn like a review; `replied` runs nothing. No count from
+  any quote = no card. Why: Cosmo started runs and only then said the count, and a 1K square at
+  1024 is one tile while a 16K result at 256 is ~4,000.
 - **Library voices (MPI-1004, Fabio 2026-10-01): `{ role, voice: '<id>' }`.** A slot that declares
   `inputSchema.media[].voiceLibrary` takes a shipped voice by id beside a file. The catalogue lists
   them on the slot (`media[].voices`: one row per section, a performer, with its variation ids;

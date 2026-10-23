@@ -43,10 +43,9 @@ picks it there.
 
 - Every image model's `upscale` op has tiles: `describe_model` lists `params.tiles` and
   `params.upscaleFactors`, and `params.tileSizes` for `tileSize` (smaller = more tiles, more
-  detail, slower). A size the user names wins. Otherwise send `tileSize` from the RESULT's
-  long side (the card's `size` times the factor): up to 2,000 px = 512, up to 3,000 = 768,
-  up to 4,000 = 1024, above = 1536. Small tiles on a big picture run thousands of tiles (a
-  16K result at 256 is about 4,000); this keeps every run near 20, at most about 130 at 16K.
+  detail, slower). Send `tileSize` only when the user names one. Otherwise send none: before
+  the run the app shows them a card with every tile size and its tile count, and runs the one
+  they click. Never ask about tile size yourself, and never say a count before they pick.
 - Every tile gets the WHOLE prompt, plus a short name of what fills it: the app names each tile
   itself before the run ("Naming N tiles" in the queue). People and faces get their own passes
   with no names. Describe the look ("sharp photo, fine skin texture, film grain") or send none.

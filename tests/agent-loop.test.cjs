@@ -896,10 +896,14 @@ test('a Use Tiles run tells Cosmo its tile count, now and on the next turn', asy
     const toolResult = (loop) => JSON.parse(loop._messages.filter((m) => m.role === 'tool').at(-1).content);
     const lastUser = (loop) => loop._messages.filter((m) => m.role === 'user').at(-1).content;
 
-    const { loop, tools } = await makeLoop({ engineResponses: [gen('g1'), { text: 'Upscaling.' }, { text: '40 tiles.' }],
+    const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [gen('g1'), { text: 'Upscaling.' }, { text: '40 tiles.' }],
         toolOpts: { quote: { billed: false, tiles: 40 } } });
     tools.generate = () => new Promise(() => {});
-    await loop.runTurn('upscale it with tiles', [], project, 'auto', 'deepinfra', 't1');
+    const t1 = loop.runTurn('upscale it with tiles', [], project, 'auto', 'deepinfra', 't1');
+    // MPI-1260: no tile size named, so the tiles card comes first.
+    const card = await waitForEvent(fakeRes, (e) => e.event === 'agent:confirm');
+    await loop.confirm(card.data.confirmId, '1024');
+    await t1;
     assert.match(toolResult(loop).message, /runs as up to 40 tiles, one after another \(tiles a person fills are left to the people pass/);
     // MPI-1232 (Fabio, 2026-10-22): told the count only "asked how many", Cosmo said "many tiles"
     // and pointed at the chat's 0-of-1 line. The start reply must name both.
@@ -919,6 +923,59 @@ test('a Use Tiles run tells Cosmo its tile count, now and on the next turn', asy
     plain.tools.generate = () => new Promise(() => {});
     await plain.loop.runTurn('upscale it', [], project, 'auto', 'deepinfra', 't1');
     assert.doesNotMatch(toolResult(plain.loop).message, /runs (as \d+ tiles|in tiles)/, 'no count in the quote, no tile line');
+});
+
+// MPI-1260 (Fabio, 2026-10-23): Cosmo started tiled runs and only then said the count; a 1K square
+// at 1024 is one tile and a 16K result at 256 is ~4,000. The app asks first, each size with its count.
+test('a Use Tiles run with no tile size asks the size first, each with its tile count', async () => {
+    const project = { folderPath: '/project', name: 'Test' };
+    const COUNTS = { 256: 70, 512: 20, 768: 12, 1024: 6, 1536: 2 };
+    const gen = (id, extra = {}) => ({ text: '', toolCalls: [{ id, type: 'function', function: { name: 'generate', arguments: JSON.stringify({ modelId: 'krea2', operation: 'upscale', tiles: true, upscaleFactor: 2, ...extra }) } }] });
+    const quote = (body) => ({ billed: false, tiles: COUNTS[body.tileSize ?? 1024] });
+
+    // A click runs it at that size, and the turn ends there: no model call narrates the click.
+    const a = await makeLoop({ engineResponses: [gen('g1'), { text: 'should not be asked' }], toolOpts: { quote } });
+    const sent = [];
+    a.tools.generate = (body) => { sent.push(body); return new Promise(() => {}); };
+    const turn = a.loop.runTurn('upscale it with tiles', [], project, 'auto', 'deepinfra', 't1');
+    const card = await waitForEvent(a.fakeRes, (e) => e.event === 'agent:confirm');
+    assert.equal(card.data.kind, 'tiles');
+    assert.deepEqual(card.data.sizes, [256, 512, 768, 1024, 1536].map((size) => ({ size, tiles: COUNTS[size] })));
+    assert.equal(card.data.pick, 512, 'the size nearest 20 tiles is the primary');
+    assert.equal(sent.length, 0, 'nothing runs before the click');
+    assert.equal((await a.loop.confirm(card.data.confirmId, 'true')).error.code, 'BAD_CHOICE');
+    await a.loop.confirm(card.data.confirmId, '256');
+    await turn;
+    assert.equal(sent[0].tileSize, 256);
+    assert.equal(a.engine.calls.length, 1, 'the click ended the turn');
+
+    // Written back instead of clicking: nothing runs.
+    const b = await makeLoop({ engineResponses: [gen('g2')], toolOpts: { quote } });
+    let ran = 0;
+    b.tools.generate = () => { ran += 1; return new Promise(() => {}); };
+    const turnB = b.loop.runTurn('upscale it with tiles', [], project, 'auto', 'deepinfra', 't1');
+    const cardB = await waitForEvent(b.fakeRes, (e) => e.event === 'agent:confirm');
+    await b.loop.confirm(cardB.data.confirmId, 'replied');
+    await turnB;
+    assert.equal(ran, 0);
+
+    // A size the user named runs at once, no card.
+    const c = await makeLoop({ engineResponses: [gen('g3', { tileSize: 768 }), { text: 'Upscaling.' }], toolOpts: { quote } });
+    const sentC = [];
+    c.tools.generate = (body) => { sentC.push(body); return new Promise(() => {}); };
+    await c.loop.runTurn('upscale it with 768 tiles', [], project, 'auto', 'deepinfra', 't1');
+    assert.ok(!c.fakeRes.events.some((e) => e.event === 'agent:confirm'), 'no card for a named size');
+    assert.equal(sentC[0].tileSize, 768);
+
+    // A 1K square: 1024 and 1536 are both one tile, so the card offers it once.
+    const SQUARE = { 256: 25, 512: 9, 768: 4, 1024: 1, 1536: 1 };
+    const d = await makeLoop({ engineResponses: [gen('g4')], toolOpts: { quote: (body) => ({ billed: false, tiles: SQUARE[body.tileSize] }) } });
+    d.tools.generate = () => new Promise(() => {});
+    const turnD = d.loop.runTurn('upscale it with tiles', [], project, 'auto', 'deepinfra', 't1');
+    const cardD = await waitForEvent(d.fakeRes, (e) => e.event === 'agent:confirm');
+    assert.deepEqual(cardD.data.sizes.map((s) => s.size), [256, 512, 768, 1024]);
+    await d.loop.confirm(cardD.data.confirmId, 'replied');
+    await turnD;
 });
 
 // A wake turn never carries the line either: `_inflight` is empty by construction when one
