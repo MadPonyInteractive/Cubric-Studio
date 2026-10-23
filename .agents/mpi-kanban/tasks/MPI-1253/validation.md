@@ -139,8 +139,13 @@ and MOSS gets it as a `text` item printing the quoted words.
   answered in the page with D's real answer: a real right-click Create boxes sent the bbox_2d
   question with `greedy: true`; 16 rows in the panel, caption in the prompt; project.json holds
   16 boxes, `kind: text` on the lettering; `mossLayoutPrompt` over them: 11 text items of 16.
-NOT run: Gemma 4 26B on the new question (paid, Fabio's describer); a FLUX.3/MOSS render of the
-cover from these boxes (Fabio's eye).
+- Gemma 4 26B (DeepInfra, Fabio's describer) on the shipped `analyseQuestion('gemma')`
+  (`box_2d`), temperature 0, same cover, `research/qwen-bench/gemma.mjs`, 2 paid runs,
+  $0.00109 total (quoted ~$0.0006: 20-item answers are longer): 24.8 s / 16.6 s, 17 / 15 boxes,
+  13 / 11 text, mean best-IoU 0.53 / 0.55 (Qwen-4B D: 0.57), woman 0.83-0.86, VOGUE 0.68-0.81,
+  "Style Speaks Louder" 0.94-0.96, "More Self Love" 0.80-0.85. Gemma splits headline and
+  subtext like Qwen; no swapped boxes.
+NOT run: a FLUX.3/MOSS render of the cover from these boxes (Fabio's eye).
 
 ## Not this card
 

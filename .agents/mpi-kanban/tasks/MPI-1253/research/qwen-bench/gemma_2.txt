@@ -1,0 +1,93 @@
+```json
+{
+  "caption": "A high-fashion magazine cover for Vogue, featuring a black and white portrait of a woman wearing sunglasses and a blazer. The composition is a sophisticated editorial layout with various text elements, headlines, and smaller inset images, all set against a clean, light background with a minimalist and modern aesthetic.",
+  "items": [
+    {
+      "name": "Vogue Logo",
+      "label": "text",
+      "box_2d": [35, 45, 165, 954], "caption": "Large, bold, black serif typography of the word 'VOGUE' at the top.",
+      "text": "VOGUE"
+    },
+    {
+      "name": "Main Model",
+      "label": "character",
+      "box_2d": [195, 301, 854, 833], "caption": "A woman with dark hair, wearing black sunglasses and a dark blazer, looking towards the camera."
+    },
+    {
+      "name": "Main Headline",
+      "label": "text",
+      "box_2d": [211, 47, 398, 301], "caption": "Large, black serif text reading 'Style Speaks Louder'.",
+      "text": "Style\nSpeaks\nLouder"
+    },
+    {
+      "name": "Beauty Headline",
+      "label": "text",
+      "box_2d": [551, 56, 693, 233], "caption": "Elegant serif text reading 'Natural Glow, Real You'.",
+      "text": "Natural\nGlow,\nReal You"
+    },
+    {
+      "name": "Lifestyle Headline",
+      "label": "text",
+      "box_2d": [613, 743, 733, 895], "caption": "Bold serif text reading 'Small Habits Big Changes'.",
+      "text": "Small\nHabits\nBig Changes"
+    },
+    {
+      "name": "Self Love Text",
+      "label": "text",
+      "box_2d": [711, 354, 854, 523], "caption": "White, handwritten-style script text reading 'More Self Love'.",
+      "text": "More\nSelf Love"
+    },
+    {
+      "name": "Magazine Info",
+      "label": "text",
+      "box_2d": [11, 56, 31, 553], "caption": "Small, black sans-serif text listing categories: LIFESTYLE / FASHION / BEAUTY / TRAVEL.",
+      "text": "LIFESTYLE / FASHION / BEAUTY / TRAVEL"
+    },
+    {
+      "name": "Issue Details",
+      "label": "text",
+      "box_2d": [11, 833, 31, 944], "caption": "Small, black sans-serif text indicating volume, issue, and date.",
+      "text": "VOL. 12 ISSUE 04\nAPR 2025"
+    },
+    {
+      "name": "Subtext Style",
+      "label": "text",
+      "box_2d": [245, 844, 303, 944], "caption": "Small, black serif text reading 'GOOD THINGS TAKE TIME'.",
+      "text": "GOOD\nTHINGS\nTAKE\nTIME"
+    },
+    {
+      "name": "Subtext Choices",
+      "label": "text",
+      "box_2d": [331, 854, 391, 944], "caption": "Small, black italicized serif text reading 'Better Choices Brighter Days'.",
+      "text": "Better\nChoices\nBrighter\nDays"
+    },
+    {
+      "name": "Travel Section",
+      "label": "text",
+      "box_2d": [551, 805, 685, 944], "caption": "Text block about travel next to a city skyline image.",
+      "text": "TRAVEL\nMORE\nNew places,\nnew stories,\nsame you -\nbut happier."
+    },
+    {
+      "name": "Inset Image 1",
+      "label": "object",
+      "box_2d": [473, 743, 576, 844], "caption": "A black and white photograph of a city skyline with a prominent skyscraper."
+    },
+    {
+      "name": "Inset Image 2",
+      "label": "object",
+      "box_2d": [693, 173, 854, 324], "caption": "A black and white close-up photograph of a woman's face."
+    },
+    {
+      "name": "Barcode",
+      "label": "object",
+      "box_2d": [875, 45, 954, 224], "caption": "A standard black and white barcode with numbers below it."
+    },
+    {
+      "name": "Footer Text",
+      "label": "text",
+      "box_2d": [921, 233, 933, 501], "caption": "Small, black sans-serif text reading 'BEAUTY IS A STATE OF MIND'.",
+      "text": "BEAUTY IS A STATE OF MIND"
+    }
+  ]
+}
+```
