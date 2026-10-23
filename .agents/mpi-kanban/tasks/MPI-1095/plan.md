@@ -101,7 +101,9 @@
   still to delete (Fabio). Open: no second route for the 2.5 deps (HF re-host ~41 GB, Fabio, before devOnly comes off).
 - R2 upload (~41 GB, ~$0.62/mo): Fabio's yes. Commit A + B at handoff/close. `docs/models/ltx/` 2.5 page
   DONE 2026-10-23: `docs/models/ltx/ltx-2.5.md` (+ models README row, model-set.md marks 2.3 High retired).
-- Turbo tooltip: `PromptBoxControls.js` held 2026-10-23 by the session "Tile upscaler improvements 7".
+- Turbo tooltip DONE 2026-10-23 (`036f09079`): the `h3Turbo` button reads ModelDef `turboInfo`, H3 text
+  stays the default; `ltx-25` has its own line. The commit also carries one tooltip line of the "Tile
+  upscaler improvements 7" session (Fabio's OK). Left: Fabio's look at the 2.5 card, then close-out.
 - Stage 2 (2.5 in the LTX Flows, Keyframes to Video MPI-1191, 2.5-only Flows) waits for the release.
 
 ## Plan Drift
