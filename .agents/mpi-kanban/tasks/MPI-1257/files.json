@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/task-files/v1", "files": [".agents/mpi-kanban/tasks/MPI-1257/", "js/services/tileDescribe.js", "tests/tile-describe.test.cjs", "js/components/Organisms/MpiPromptBox/PromptBoxControls.js", "js/data/commandRegistry.js", "js/services/generationService.js"]}

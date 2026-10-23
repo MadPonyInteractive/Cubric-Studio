@@ -4,10 +4,10 @@
   "title": "Cosmo's upscale opens the image workspace so the latents show",
   "description": "From MPI-1232 (Fabio 2026-10-22). Cosmo's tiled upscale starts from the gallery and no latent previews show. 2026-10-22 read: the result lands in the card's history (workspaceGenerationOpts) and _followWork -> followTarget should navigate there on a typed turn; whether the view actually moves is unproven from the log. Next: reproduce in app:isolated (typed 'upscale this' from the gallery, Electron window, not the browser pane) and watch the page; suspects: _follow false on that turn, or the history opening but drawing no remote (RunPod) latents. Details: tasks/MPI-1232/checklist.md 'Cosmo + tiles'.",
   "column": "todo",
-  "maturity": "planned",
+  "maturity": "deferred",
   "status": "active",
   "created_at": "2026-10-23T10:58:39+01:00",
-  "updated_at": "2026-10-23T10:58:39+01:00",
+  "updated_at": "2026-10-23T13:38:09+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",
