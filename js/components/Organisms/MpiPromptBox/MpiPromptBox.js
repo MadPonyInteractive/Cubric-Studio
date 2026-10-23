@@ -1750,6 +1750,10 @@ export const MpiPromptBox = ComponentFactory.create({
 
         el.injectPrompts = ({ positive, negative, negativeAudio, enhanced }) => {
             positiveValue = positive ?? positiveValue;
+            // MPI-1253: words the app put here (Reuse, Describe) are not the user's, so Create boxes
+            // may still replace them. A reused moodboard prompt was kept over a Tokyo read and the
+            // run mixed the two (Fabio, 2026-10-23).
+            if (positive != null) _autoCaption = positiveValue.trim();
             negativeValue = negative ?? negativeValue;
             // MPI-677 step 1c — Reuse restores BOTH texts and the enhanced state. The
             // reuse payload carries the enhancement only for a card that was generated
