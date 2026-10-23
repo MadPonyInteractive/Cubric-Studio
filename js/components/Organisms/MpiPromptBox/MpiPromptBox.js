@@ -62,6 +62,7 @@ import { resolveMediaUrl } from '../../../utils/mediaActions.js';
  *                                     that emits 'pinned-swap'
  *   el.remainingCapacity(mediaType) → number of free media slots for type
  *                                     under the current operation
+ *   el.setBoxesGuide(url)            — MPI-1253: the Boxes panel's layout picture, or null
  *   el.injectPrompts({ positive, negative, negativeAudio, enhanced })  — negativeAudio
  *                                     is the video-model audio negative (LTX); omitted
  *                                     fields keep their current value. `enhanced` is
@@ -1780,6 +1781,8 @@ export const MpiPromptBox = ComponentFactory.create({
             _syncEnhancedState();
             _saveDraft();
         };
+        /** MPI-1253: Reuse restores the layout picture a card's boxes were laid out on, or none. */
+        el.setBoxesGuide = (url) => _setBoxesGuide(url || null);
         const _onInjectPrompts = ({ positive, negative, negativeAudio, enhanced }) =>
             el.injectPrompts({ positive, negative, negativeAudio, enhanced });
 
@@ -2987,6 +2990,9 @@ export const MpiPromptBox = ComponentFactory.create({
             // Boxes also change off the panel (an op switch swaps the perOp value): re-check here.
             _dropIfBoxesMoved();
             const injectionParams = getInjectionParamsFromControls(_activeControls);
+            // MPI-1253: the layout picture rides the run like its boxes, so Reuse brings it back
+            // (Fabio, 2026-10-23: reused after a restart, the boxes came back over a blank frame).
+            if (_layoutLocked()) injectionParams.Layout_Guide = _boxesGuide;
             const previewCtrl = _activeControls.get('previewStage');
             const historyMode = _context.historyMode === true;
             const previewOnly = !historyMode && previewCtrl?.getValue?.() === true;

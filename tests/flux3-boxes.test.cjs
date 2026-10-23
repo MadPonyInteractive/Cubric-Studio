@@ -170,6 +170,19 @@ test('a box moved after Enhance drops the enhancement; a Reuse keeps its own (Fa
     assert.doesNotMatch(sync, /_boxesNow|_boxKey/);
 });
 
+// MPI-1253 (Fabio, 2026-10-23): reused after a restart, the boxes came back over a blank frame.
+test('the layout picture rides the run as Layout_Guide, Reuse lays it back, the graph never gets it', async () => {
+    const { buildPromptReusePayload } = await import('../js/utils/promptReuse.js');
+    const guide = '/project-file?path=C%3A%2FP%2FMedia%2Fbazaar.png';
+    const payload = buildPromptReusePayload({ prompt: 'A cover', generationSettings: { injectionParams: { Layout_Boxes: [FOX], Layout_Guide: guide } } });
+    assert.equal(payload.injectionParams.Layout_Guide, guide);
+
+    const read = (p) => require('node:fs').readFileSync(require('node:path').join(__dirname, '..', p), 'utf8');
+    assert.match(read('js/components/Organisms/MpiPromptBox/MpiPromptBox.js'), /if \(_layoutLocked\(\)\) injectionParams\.Layout_Guide = _boxesGuide;/, 'Cue records the picture on a t2i layout run');
+    assert.match(read('js/components/Blocks/MpiGalleryBlock/MpiGalleryBlock.js'), /setBoxesGuide\?\.\(payload\.injectionParams\?\.Layout_Guide\)/, 'Reuse settings lays it back, or clears it');
+    assert.match(read('js/services/commandExecutor.js'), /delete params\.Layout_Guide;/, 'never a graph param');
+});
+
 test('agents send boxes by name: describe_model lists them, the run gets the panel`s list, a bad one is refused', () => {
     const { namedParamsFor, resolveNamedParams } = require('../js/data/generationControls.js');
     assert.equal(namedParamsFor(FLUX3, 't2i').boxes, true);

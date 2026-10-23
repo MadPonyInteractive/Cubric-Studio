@@ -295,6 +295,14 @@
     color: oklch(0.12 0.02 0);
 }
 
+/* On a heat fill the label takes the fill's dark ink: the hover rule's --ink-1 vanished on
+   --accent-heat-hi (the Boxes count, Fabio 2026-10-23). */
+.mpi-btn.mpi-ibtn:not(.mpi-btn--ghost).is-active .mpi-ibtn__label,
+.mpi-btn.mpi-ibtn:not(.mpi-btn--ghost).is-pressed .mpi-ibtn__label,
+.mpi-btn.mpi-ibtn:not(.mpi-btn--ghost):active:not(:disabled) .mpi-ibtn__label {
+    color: inherit;
+}
+
 /* ── Ghost icon button — never fills background.
    Hover/press = ink-1 color shift. Active (toggled) = heat color + 2px heat left-bar.
    Used for: tool rails, favourite hearts, toolbar trash, mask brush, etc. ── */

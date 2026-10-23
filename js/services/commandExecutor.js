@@ -968,6 +968,7 @@ function _buildParams(payload) {
         }
         delete params.Layout_Boxes;
     }
+    delete params.Layout_Guide; // MPI-1253: the panel's layout picture, for Reuse only - never the graph's
 
     if (commandIsMultiStage(payload.operation)) {
         // The two halves of the stage split. History workspace forces single-stage

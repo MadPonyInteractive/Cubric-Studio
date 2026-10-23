@@ -1559,6 +1559,8 @@ export const MpiGalleryBlock = ComponentFactory.create({
                 // above) — re-mount so controls re-read the recalled ratio/quality/
                 // duration. Without this the live PromptBox lags until next nav.
                 _pb.el.refreshControls?.();
+                // MPI-1253: the picture its boxes were laid out on comes back with them, or none.
+                if (targetModel.layoutBoxes?.ops?.includes(targetOperation)) _pb.el.setBoxesGuide?.(payload.injectionParams?.Layout_Guide);
             }
             // MPI-247: re-assert the reused op LAST. clearMedia/injectMedia above
             // fire _emitMediaChange, which auto-switches the op when media state
