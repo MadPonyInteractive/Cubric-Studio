@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1264",
+  "title": "Trim the project CLAUDE.md: it loads on every request",
+  "description": "CLAUDE.md is 10 KB and is re-sent on every request in this repo (~112 per session). Cut lines that repeat a doc or rule it already routes to; keep the Critical Rules Snapshot (sub-agents get it pasted) and every router row.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-23T23:22:15+01:00",
+  "updated_at": "2026-10-23T23:24:06+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

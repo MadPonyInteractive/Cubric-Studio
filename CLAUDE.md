@@ -13,7 +13,7 @@
 ## Critical Rules Snapshot (ALL agents, always — no file read required)
 
 - **Never invent what exists:** colors = CSS vars (`styles/01_base.css`) · icons = `js/utils/icons.js` · DOM+listeners = `js/utils/dom.js` (`qs`/`on`/`off`) · hotkeys = `Hotkeys.bind` + `hotkeyRegistry.js` · logs = `clientLogger.js` / `routes/logger.js`. No hex, no raw SVG, no `document.querySelector`, no raw `addEventListener`/`keydown`, no `console.log`.
-- **NEVER sample a brand colour off the mascot art or the website — the values are written down.** The five family accents (Studio cream, Vision rose, Prompt yellow, Audio green, Video orange), how a workspace rebinds the one action token, and the `color-mix` ban between two of them: `DESIGN.md` § "The accent family". It mirrors `c:\AI\Mpi\Cubric Studio (Website)\styles\landing.css:30-34`, which wins on any disagreement.
+- **NEVER sample a brand colour off the mascot art or the website — the values are written down:** the five family accents, the one rebound action token and the `color-mix` ban are in `DESIGN.md` § "The accent family".
 - **EVERY UI ELEMENT IS A COMPONENT** — never a bare `<input>`/`<select>`/`<textarea>`/`<button>`; always `ComponentFactory.create()`; `factory.js` is locked. **BEM is mandatory:** `.mpi-block__element--modifier`. Flows are no exception: a Flow's `fields` NAME these components, they do not replace them.
 - UI detail — token families, registering a new component's `.css`/props: `.claude/rules/dos_and_donts.md` + `components.md`.
 - **Every action shows itself — no silent work.** Over ~1 s shows progress; GPU/engine work goes through `enqueueGeneration` (queue row + status bar + Stop), never a direct engine call; non-GPU work is a queue-panel row; no real % = the moving sweep, never a still bar; every end (done, failed, cancelled) is visible. Name what the user SEES at start, during, end — any "nothing" = not done: `.claude/rules/dos_and_donts.md` § "Every action shows itself".
@@ -27,15 +27,15 @@
 
 ## Context Router
 
-**Every subsystem, component, event, state and workflow-authoring topic is routed by `docs/README.md` and `.claude/rules/README.md` — go there first.** This table carries only what those maps cannot.
+Anything not below: `docs/README.md` and `.claude/rules/README.md` first.
 
 | Task | Read first |
 |---|---|
 | **Driving the RUNNING app over HTTP** — projects, media, dispatch, engine/pod control, recovering a prompt from a sidecar | `.claude/skills/cubric-vision/SKILL.md`, then `docs/generation-lifecycle.md` § "the THIRD producer". A submit names its project with `folderPath`, open or closed (MPI-873); without one it runs in whatever project the app has OPEN. `/connector/open-project` only moves the user's view |
 | **Removing** a model/tier, or deprecating ONE op | `docs/playbooks/add-model/README.md` § "Removing or re-tiering". **Do NOT delete the dep entry** — the orphan sweep reads `DEPS`, so deleting it strands the weight on users' disks forever |
 | Product Pod runtime (`wrapper/wrapper.py`, `start.sh`) | `docs/runpod-remote-engine.md` § 5. **NOT an image rebuild** — edit → `./publish-runtime.sh dev` → restart Pod → test → `promote`. **NEVER `publish-runtime.sh stable`**: it lands untested on released users |
-| Debugging a live app bug | `docs/DEVELOPMENT.md` § Reading `logs/app.log` — filter by `[category]`, never read it whole. **A source/dev Electron run logs to `%APPDATA%\Cubric Studio\logs\app.log`** (`Cubric Vision` before MPI-708, 2026-09-17); **every PORTABLE build — each release since v1.5.0 and each hand-delivered 1.6.x — logs to `<install>\user-data\logs\app.log`** (`main.js` portable `userData`), so ask a tester for that path, never `%APPDATA%`; the repo's `logs/` holds only test harnesses |
-| **Master is red, a push is blocked, or Fabio is angry about CI again** | `docs/red-master.md` — five commands, four known causes. **Never the Kanban plugin.** Download the run's `test-failed-1.png` before theorising; green-locally-red-in-CI is the runner's bare disk, not a mystery |
+| Debugging a live app bug | `docs/DEVELOPMENT.md` § Reading `logs/app.log` — filter by `[category]`, never read it whole. **A PORTABLE build logs under its install folder, not `%APPDATA%`** (both paths there) |
+| **Master is red, a push is blocked, or Fabio is angry about CI again** | `docs/red-master.md` — five commands, four known causes. **Never the Kanban plugin** |
 | Browser automation | `playwright-cli` via **Bash**, never the Skill tool (`disable-model-invocation`). `eval` wraps its arg as `() => (EXPR)`, so multi-statement JS must be an IIFE **on ONE line**. Point it at your own instance, never `:3000` |
 | VPN / CivitAI region block / a suspicious timestamp | `docs/vpn-and-clock.md` — **check the clock before blaming the VPN**; the reflex is wrong more often than right |
 | Working in a sibling repo under `c:\AI\Mpi\` | `.claude/rules/sibling-repos.md` — incl. the hard no-push block on Cubric Studio (Docs) |
@@ -44,7 +44,7 @@
 
 | Task | Skill | Playbook |
 |---|---|---|
-| Bump the SHIPPED engine, or "test all the models" | `/mpi-bump-engine` | `docs/playbooks/bump-engine/`. **NOT `/mpi-bump-local-comfy`** (the `G:\ComfyUi` bench — never reaches a user). Runner `scripts/smoke-workflows.mjs`, `--plan` first: it spends nothing. `release:check` refuses a bumped engine with no `smoke-evidence.json` |
+| Bump the SHIPPED engine, or "test all the models" | `/mpi-bump-engine` | `docs/playbooks/bump-engine/`. **NOT `/mpi-bump-local-comfy`** (the `G:\ComfyUi` bench — never reaches a user). `--plan` first: it spends nothing |
 | Change a node in `ComfyUi-MpiNodes`, or the pin drifted | `/mpi-nodes-sync` | The SIBLING repo owns the procedures (`c:\AI\Mpi\ComfyUi-MpiNodes\.claude\commands\`) and they do NOT load here — READ them, follow inline. A node ships only **committed → pushed → pinned** in `dev_configs/node_lock.json` |
 
 `/mpi-add-model` (`docs/playbooks/add-model/` — every known trap; models are NOT version-bumped), `/mpi-add-flow`, `/mpi-flow-graphics` each enforce their own playbook. The rest of the MPI workflow ships as the **Mpi-Kanban plugin** and describes itself in the skill list — `/mpi-handoff` switches sessions mid-job (card stays in `doing`); `/mpi-end-session` is close-out for FINISHED work only.
@@ -59,4 +59,4 @@ Sub-agents start cold with zero CLAUDE.md context. Dispatching without briefing 
 
 ## Git and Commits
 
-Agents MAY commit and push without asking (`push_policy: auto` in `.agents/mpi-kanban/project-profile.md` is the source of truth). Shared tree — commit by explicit pathspec (`git commit --only <paths>`), never `git add -A`/`.`. Full recipe + the destructive-git ban: **`.claude/rules/git.md`**. `.husky/pre-push` refuses master while its last CI run is RED; it fails OPEN, so a block means a real `failure`. **It also runs `npm run lint` + `npm test` on the pushed commit (~1 min, in a throwaway worktree, so a peer's uncommitted file never counts) and refuses a code push that fails them** — reproduce with the same two commands, never `--no-verify` past it (MPI-1217). **A red master is the job of whoever meets it** — `--no-verify` pushes the FIX, never around the red, and a card does not close on a red run of its own commit (`.agents/mpi-kanban/close-out.md`). A push touching ONLY `docs/`, `.agents/` or `.md` skips that gate outright — a board or docs commit is never held behind someone else's red.
+Agents MAY commit and push without asking (`push_policy: auto` in `.agents/mpi-kanban/project-profile.md`). Shared tree — commit by explicit pathspec (`git commit --only <paths>`), never `git add -A`/`.`. Full recipe + the destructive-git ban: **`.claude/rules/git.md`**. **`.husky/pre-push` runs `npm run lint` + `npm test` on the pushed commit and blocks on a red master or an unjudged card close** (docs / `.agents/` / `.md`-only pushes skip it): `docs/red-master.md` § The two gates. Reproduce a refusal with the same two commands, never `--no-verify` past it. **A red master is the job of whoever meets it** — `--no-verify` pushes the FIX, never around the red.

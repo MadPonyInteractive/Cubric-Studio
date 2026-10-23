@@ -101,6 +101,12 @@ What that means for a desktop spec (never `app.firstWindow()`) is in [testing.md
 
 ## Reading `logs/app.log` — filter, never read whole (MPI-315)
 
+**Where the file is.** A source/dev Electron run logs to `%APPDATA%\Cubric Studio\logs\app.log`
+(`Cubric Vision` before MPI-708, 2026-09-17). **Every PORTABLE build** (each release since v1.5.0,
+each hand-delivered 1.6.x) logs to `<install>\user-data\logs\app.log` (`main.js` portable
+`userData`), so ask a tester for that path, never `%APPDATA%`. The repo's `logs/` holds only test
+harnesses.
+
 Every line is `[ts] [LEVEL] [category] …`, so the file is queryable. Use that instead of reading it:
 
 - **Pick the category your bug lives in** and grep for it. `\[download\]` returns ~72 lines out of 3478. `[comfy]` is ComfyUI engine stdout and is usually NOT your bug — skip it unless the engine is the suspect.
