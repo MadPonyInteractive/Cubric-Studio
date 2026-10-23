@@ -1,4 +1,0 @@
-# Eval results may contain secrets from real config files.
-*
-!.gitignore
-!.gitkeep
