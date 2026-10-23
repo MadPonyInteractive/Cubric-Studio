@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1261",
+  "title": "Gallery cards show the card-info flyout after a 2 s rest",
+  "description": "Fabio changed his mind on MPI-1162: the History hover flyout also shows on gallery cards, but only after the pointer rests ~2 s so it does not pollute browsing. History keeps 400 ms. Stacks get none.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-23T19:45:10+01:00",
+  "updated_at": "2026-10-23T19:50:39+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

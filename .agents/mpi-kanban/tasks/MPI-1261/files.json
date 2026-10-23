@@ -1,0 +1,8 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.js",
+    "js/components/Primitives/MpiEntryInfo/MpiEntryInfo.js",
+    "js/components/types.js"
+  ]
+}
