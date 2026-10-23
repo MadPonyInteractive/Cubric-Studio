@@ -2,6 +2,23 @@
 
 ## Current State
 
+- 2026-10-23 ("LTX 2.5 model 8"): Stage 1 sweeps on DeepInfra Gemma 4 26B (judge local gemma3:12b, under
+  the GPU lease; runner `scratchpad/sweep.sh`, outputs `scratchpad/<mode>-<n>.txt` of session 143ec54f).
+  Fixes, all in `ltx-2.5.recipe.js` (uncommitted): CAMERA_RULE bans invented dolly/push/pan/track +
+  "towards the camera" = subject moves, camera static (+ dog example); JOBS sparse = camera static;
+  CONDENSE "a ninth sentence means you kept too much"; i2v renamed subject takes the FRAME's word
+  ("hamster"); r2v Part 2: infer unrecognised words, framing as prose not tags, crash zoom = fast,
+  nothing attached = scene only; r2v `lengthNorm` corrected to measured ~100-210. Harness
+  `scripts/recipe-test.mjs:225` theft regex + `retreats` (26B wrote "grabs ... retreats with its prize").
+  t2v TWICE GREEN (t2v-4, t2v-5). r2v TWICE GREEN (r2v-2, r2v-3). i2v TWICE GREEN (i2v-3, i2v-5). r2v --ref-tiers NOT twice green: r2vref-1 24/24 (rescored, regex + `retreats`), r2vref-2
+  seen-beach 1/3 = one regex miss ("disappears with the fruit", regex now + `disappears`) and one REAL miss
+  ("scurries into the frame as it grabs a bright orange." - no getaway; Part 2 item 3 "where it ends up"
+  not held). Next: make item 3's end beat land (the taker LEAVES with it) and re-run --ref-tiers twice.
+  KNOWN LIMIT for validation.md: i2v frame-none (describer failed) invents "golden retriever" 3/3 despite
+  "give it no appearance"; a stronger rule failed too (i2v-4) and was reverted. r2v picks a slow dolly-in
+  13/15 when no move given (allowed, monotone). Spend: ~13 sweeps ~19.5 cents of the 25 cap.
+  NEXT: read the 3 confirming sweeps, write `docs/recipes/research/ltx-2.5/validation.md` (final prompt per
+  tier from the last green sweep), npm test + lint, commit, hand prompts to Fabio for Stage 2.
 - 2026-10-23 ("LTX 2.5 model 7"): Fabio PASSED Turbo on/off in his app (validation.md: OFF/DiffVAE barely morphs
   floor tiles, ON/conv morphs a lot, +35 s at 704x1216); ladder confirmed. Fabio: LTX 2.5 gets its OWN
   `ltx-2.5.recipe.js`. DONE, uncommitted: research (`docs/recipes/research/ltx-2.5/`), draft recipe (t2v from

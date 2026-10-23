@@ -47,12 +47,12 @@ If the user wrote in another language, write the caption in English and keep any
 Output: ONE paragraph of plain prose, starting on the action or a visual detail and ending at its last full stop. No heading, no bullet points, no labels such as "Audio:" or "Visual:", no timestamps, nothing before it and nothing after it.`;
 
 const JOBS = `First decide which job the input needs:
-- Sparse (a few words): EXPAND it into a complete caption: the place, the light, the people or creatures, a clear physical action in time order, the camera, the sound. Supplying those is the job, not invention; a new character, object or event the user never implied is invention.
+- Sparse (a few words): EXPAND it into a complete caption: the place, the light, the people or creatures, a clear physical action in time order, the camera (static: a few words describe no camera move), the sound. Supplying those is the job, not invention; a new character, object or event the user never implied is invention.
 - Detailed but disordered: REARRANGE it into the caption order below. Every choice the user made (action, lens, shot size, camera move, time of day, mood, sound, dialogue) survives, and every technical term they wrote still appears. Dropping one is a failure.
-- Too long for one caption: CONDENSE it. Note the subject, the setting, the camera and the two or three beats that change the shot, then set the input aside and write fresh from those notes. Drop quality spam ("8k", "masterpiece", "trending on artstation") and every repetition. Keep what most changes the shot, even when that means losing detail you like.
+- Too long for one caption: CONDENSE it. Note the subject, the setting, the camera and the two or three beats that change the shot, then set the input aside and write fresh from those notes. Drop quality spam ("8k", "masterpiece", "trending on artstation") and every repetition. Keep what most changes the shot, even when that means losing detail you like: the caption is still six to eight sentences, and a ninth means you kept too much.
 - Vague, garbled, or reaching for a word the user cannot find: INFER what they meant and write the real thing. A word you do not recognise is not a brand or a name to preserve: work out from the words around it what it was reaching for, so only terms you understand reach the caption.`;
 
-const CAMERA_RULE = `The camera, always stated. The MOVE is the user's: if they described no camera behaviour, the camera remains static, and saying so plainly is a full answer. If they described one in everyday words, translate it into the optical term ("zooms really fast onto his face" is a crash zoom; "rises over the trees" is a crane lift; "moves in slowly" is a slow dolly-in; "follows alongside her" is a side tracking shot) and give the move its end point ("...until her face fills the frame"). Never add a move the user did not ask for because a move reads better.`;
+const CAMERA_RULE = `The camera, always stated. The MOVE is the user's: if they described no camera behaviour, the camera remains static, and saying so plainly is a full answer. If they described one in everyday words, translate it into the optical term ("zooms really fast onto his face" is a crash zoom; "rises over the trees" is a crane lift; "moves in slowly" is a slow dolly-in; "follows alongside her" is a side tracking shot) and give the move its end point ("...until her face fills the frame"). Never add a move the user did not ask for because a move reads better: a camera that dollies, pushes in, pans or tracks when the user asked for no move is a failure, however cinematic it reads. The cinematic look comes from light and detail, never from a move. Words like "towards the camera" or "past the camera" say where the SUBJECT goes, not that the camera moves: the camera holds still and the subject grows or crosses the frame ("a dog runs towards the camera": the camera remains static as the dog runs up until its face fills the frame; never a dolly-out or tracking move to keep pace).`;
 
 const SOUND_RULE = `The complete soundscape, woven in rather than appended: environmental sound and foley tied to things in the frame, any dialogue quoted exactly in the language the user wrote it in, with its tone of voice, and music only when the user asked for it or the scene plainly carries it (a party, a concert); otherwise say there is no music.`;
 
@@ -219,7 +219,7 @@ ${CAPTION_RULES}`,
 
 You cannot see the frame. The message carries, after the request, "The start frame (the exact first frame of the video): ..." written by someone who looked at it, and sometimes "The end frame (the exact last frame the video must arrive at): ...". Those descriptions are the truth about the pictures.
 
-THE START FRAME COMES FIRST. Open your caption by matching it exactly: the same subject, identity, appearance, clothing, setting, light and composition. Take the shot type (${SHOT_TYPES}) and the viewpoint (${VIEWPOINTS}) from how that frame is framed, written as prose, never as tags. Then narrate, in strict time order, the user's requested action unfolding from it. Never contradict the frame, replace anything in it, or invent things that do not fit it. When the user calls something by another name ("guinea pig" for the hamster the frame shows), it is the same thing: describe what the frame shows. With no start-frame description, open on the subject the user names and give it no appearance the user did not.
+THE START FRAME COMES FIRST. Open your caption by matching it exactly: the same subject, identity, appearance, clothing, setting, light and composition. Take the shot type (${SHOT_TYPES}) and the viewpoint (${VIEWPOINTS}) from how that frame is framed, written as prose, never as tags. Then narrate, in strict time order, the user's requested action unfolding from it. Never contradict the frame, replace anything in it, or invent things that do not fit it. When the user calls something by another name ("guinea pig" for the hamster the frame shows), it is the same thing: describe what the frame shows and call it by the frame description's word for it ("the hamster"), never the user's. With no start-frame description, open on the subject the user names and give it no appearance the user did not.
 
 ONE CONTINUOUS TAKE. No cuts, no second shot, whatever the request says.
 
@@ -242,7 +242,9 @@ ${CAPTION_RULES}`,
       // 2.5 caption rules and keeps its seven-sentence unit and r2v camera rule.
       seesPictures: true,
       outputFormat: 'structured-tags',
-      lengthNorm: 'one line per reference picture (15-50 words), then the scene as seven substantial sentences (~150-220 words). Total 160-400 words depending on picture count.',
+      // Measured on DeepInfra Gemma 4 26B (MPI-1095 Stage 1): the scene runs ~100-210 words, leaner than
+      // the t2v caption because the sheet carries the look. The prompt asks for seven sentences, no count.
+      lengthNorm: 'one line per reference picture (15-50 words), then the scene as seven sentences (~100-210 words). Total 100-400 words depending on picture count.',
       wordBudget: { min: 80, max: 420 },
       structureOrder: [
         'Picture lines (only when pictures are attached): one <Picture n> [role:] description line per attached picture, in order',
@@ -279,18 +281,18 @@ ${CAPTION_RULES}`,
 ${R2V_PICTURES}PART 2 -- THE SCENE
 Leave a blank line after the last picture line, then write the scene as a single flowing prose paragraph of LTX 2.5 caption prose. All the rules below apply to the scene.
 
-The scene describes what HAPPENS. The reference pictures handle what things look like. Do not re-describe the character's hair, the location's ground texture or the prop's colour in the scene -- the sheet already shows those. Say what moves, what the camera does, what the soundscape carries.
+The scene describes what HAPPENS. The reference pictures handle what things look like. Do not re-describe the character's hair, the location's ground texture or the prop's colour in the scene -- the sheet already shows those. Say what moves, what the camera does, what the soundscape carries. A word in the user's text you do not recognise is not a name to keep: work out from the words around it what it was reaching for, and write that.
 
 LOOK throughout: describe how the scene looks at its most visually striking -- cinematic, film-grade colour and contrast, beautiful natural light, crisp fine detail -- woven into the observable sentences, never a new object or a sentence praising the shot. Name light as a physical source with a direction, only light that belongs in this scene's place and time of day.
 
 ONLY WHAT IS IN THE FRAME: a thing outside the frame that you name gets pulled into it. Write where someone looks, not the person they look at off-screen.
 
 Write SEVEN sentences, one for each of the following elements:
-1. Shot Establishment: open on the action, naming exactly one shot type (${SHOT_TYPES}) and the viewpoint (${VIEWPOINTS}). When the user says which way someone faces, the viewpoint keeps it: "facing the camera" is front-facing, never a side view or from behind.
+1. Shot Establishment: open on the action, naming exactly one shot type (${SHOT_TYPES}) and the viewpoint (${VIEWPOINTS}) in a full prose sentence ("A medium shot from a side view follows the man as..."), never as tags ("Medium shot, side view."). When the user says which way someone faces, the viewpoint keeps it: "facing the camera" is front-facing, never a side view or from behind.
 2. Scene Setting: one coherent light source and one or two textures of things that are actually in this scene's place. Do not name the textures the reference sheet already shows.
 3. Action Progression: what physically happens, chronological, present tense, concrete verbs, linked with "initially", "a moment later", "as", "then". Every event the user's text names happens on screen here, completed, never only approached. Spell the main event as two or three physical beats in order: where the one acting starts, the contact itself (grabs, pulls, pushes), and where it ends up.
 4. Character Definition: who is in frame and what they do -- visible clothing, posture, physical acting beats (jaw clenches, hand tightens). Never a feeling word, and never ethnicity, nationality, religion or culture. The appearance is on the sheet; describe the motion. A character the event happens to reacts to it with the body; never give them a calm smile at the camera while it happens.
-5. Camera Movement: always write this sentence. Translate any camera motion the user described into the optical term (fast zoom onto the face -> crash zoom; rises over the trees -> crane lift; follows alongside -> side tracking shot) and give it an end point. If the user described no camera behaviour, choose the one move or the stillness that serves the action, and never one that contradicts anything the user said about the shot.
+5. Camera Movement: always write this sentence. Translate any camera motion the user described into the optical term (fast zoom onto the face -> crash zoom; rises over the trees -> crane lift; follows alongside -> side tracking shot) and give it an end point. If the user described no camera behaviour, choose the one move or the stillness that serves the action, and never one that contradicts anything the user said about the shot. The term matches the speed: a crash zoom is fast, so a slow move closing in is a slow dolly-in or push-in.
 6. Sound: the full soundscape -- environmental sound, foley, music only if asked for or plainly implied (otherwise "no music"), and any dialogue quoted exactly in its own language with its delivery.
 7. Look: two concrete details of something already named -- its material or texture and the light on it -- in the cinematic register above. Never introduce a new object and never praise the shot.
 
@@ -298,7 +300,7 @@ All seven sentences, whatever the length of the input. An eighth sentence means 
 
 DO NOT emit ### Reference Sheet Description or ### Target Description headings -- the app writes those. Do not put <Picture n> tags inside the scene paragraph. No timestamps.
 
-Output: the <Picture n> lines (never an <Audio n> line; with a "What each attached picture shows" block, each line names what its picture shows, and a person or an animal never gets "prop:"), a blank line, then the scene paragraph (only the scene paragraph when nothing is attached). Nothing before it and nothing after the last sentence.`,
+Output: the <Picture n> lines (never an <Audio n> line; with a "What each attached picture shows" block, each line names what its picture shows, and a person or an animal never gets "prop:"), a blank line, then the scene paragraph. When nothing is attached, the output is the scene paragraph alone and its first line is the scene's first sentence. Nothing before it and nothing after the last sentence.`,
     },
   },
 };
