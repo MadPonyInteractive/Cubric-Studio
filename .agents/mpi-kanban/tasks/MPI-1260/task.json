@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1260",
+  "title": "Tiled upscale asks the tile size first: a card with each size's tile count",
+  "description": "Fabio 2026-10-23: Cosmo must not start a tiled run and only then say how many tiles. Before a tiled generate with no tileSize named, the app quotes every tile size and shows a choice card (CHOICE_CARDS kind 'tiles'): '512 px - 20 tiles' etc., the click runs it with no agent turn. A 1K square at 1024 is one tile, so small pictures need small sizes offered. Supersedes MPI-1259's auto pick (that rule becomes the card's highlighted pick).",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-23T19:35:46+01:00",
+  "updated_at": "2026-10-23T19:58:21+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

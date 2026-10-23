@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/task-files/v1", "files": [".agents/mpi-kanban/tasks/MPI-1260/", "docs/agent/upscaling.md", "docs/agent-chat.md", "js/components/Compounds/MpiAgentChat/MpiAgentChat.js", "services/agentLoop.mjs", "routes/agent.js", "tests/agent-loop.test.cjs"]}
