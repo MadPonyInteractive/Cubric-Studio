@@ -27,3 +27,11 @@ Cleanup: instance stopped via the listener's parent; the scratch project root it
 - Live, own `app:isolated` (port 51294, scratch profile + APP_DOCUMENTS): `remoteEngineClient.machine('local')` = `NVIDIA GeForce RTX 4060 Ti`, 68484911104 bytes; flyout rows `GPU NVIDIA GeForce RTX 4060 Ti / RAM 64 GB`. No project opened, so project-paths.json untouched; instance stopped via the listener's parent.
 - `npm run lint` clean; `npm test` 3560 pass, 0 fail.
 - Not run: a real generation end to end (it would dispatch onto Fabio's GPU via shared :48188). The write path reads the store job's engine, which `settle()` keeps.
+
+## Pass 4 — Pod RAM too
+
+Fabio: the app shows a Pod's RAM in the status bar and landing page. Remote gens now record it from the same `/remote/pod/specs` (`ramGb`, v2 `gpu.memory`), fetched once per Pod connection and cleared on `remote:connection`.
+
+- `tests/entry-info.test.cjs` 8/8 (Pod `62 GB` row; no row when unknown).
+- Live, own `app:isolated` with no Pod: `/remote/pod/specs` = `{"gpuName":null,"vramGb":null,"ramGb":null}`, so a no-Pod read records no RAM. Not run with a real Pod (renting one costs money).
+- `npm test` 3561 pass, 0 fail.
