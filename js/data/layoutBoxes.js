@@ -81,7 +81,8 @@ export function mossLayoutPrompt(prompt, boxes, width, height) {
  * greedy, 16 tight boxes, every text block found (MPI-1253 research/qwen-bench).
  * `named` is for a describer of no known family; it held on Gemma 4 and Qwen3-VL-30B.
  */
-const MAX_BOXES = 20;
+// A storyboard of 10 panels + their captions is 21+ items: at 20, panel 7B never arrived (2026-10-23).
+const MAX_BOXES = 30;
 const BOX_FORMATS = {
     qwen: ['"bbox_2d": [x1, y1, x2, y2]', 'bbox_2d: x from the left edge (0) to the right edge (1000), y from the top edge (0) to the bottom edge (1000)'],
     gemma: ['"box_2d": [y1, x1, y2, x2]', 'box_2d: y from the top edge (0) to the bottom edge (1000), x from the left edge (0) to the right edge (1000)'],
@@ -201,51 +202,79 @@ export function snapBoxes(boxes, img) {
         const border = [];
         for (let x = x0; x < x1; x++) border.push(luma[y0 * W + x], luma[(y1 - 1) * W + x]);
         for (let y = y0; y < y1; y++) border.push(luma[y * W + x0], luma[y * W + x1 - 1]);
-        border.sort((p, q) => p - q);
-        const bg = border[border.length >> 1];
-        // Ink, then joined: a pixel is in a block when any ink lies within rx/ry (integral image).
-        const sum = new Int32Array((w + 1) * (h + 1));
-        for (let y = 0; y < h; y++) {
-            let row = 0;
-            for (let x = 0; x < w; x++) {
-                row += Math.abs(luma[(y0 + y) * W + x0 + x] - bg) > 32 ? 1 : 0;
-                sum[(y + 1) * (w + 1) + x + 1] = sum[y * (w + 1) + x + 1] + row;
+        /** Ink = off `bg` by 32+; `near(jx, jy)` = ink within jx/jy, so blocks join (integral image). */
+        const inkOn = (bg) => {
+            const sum = new Int32Array((w + 1) * (h + 1));
+            for (let y = 0; y < h; y++) {
+                let row = 0;
+                for (let x = 0; x < w; x++) {
+                    row += Math.abs(luma[(y0 + y) * W + x0 + x] - bg) > 32 ? 1 : 0;
+                    sum[(y + 1) * (w + 1) + x + 1] = sum[y * (w + 1) + x + 1] + row;
+                }
             }
-        }
-        const inkAt = (x, y) => sum[(y + 1) * (w + 1) + x + 1] - sum[y * (w + 1) + x + 1] - sum[(y + 1) * (w + 1) + x] + sum[y * (w + 1) + x] > 0;
-        const near = (x, y) => {
-            const ax = Math.max(0, x - rx), ay = Math.max(0, y - ry), bx = Math.min(w, x + rx + 1), by = Math.min(h, y + ry + 1);
-            return sum[by * (w + 1) + bx] - sum[ay * (w + 1) + bx] - sum[by * (w + 1) + ax] + sum[ay * (w + 1) + ax] > 0;
+            return (jx, jy) => (x, y) => {
+                const ax = Math.max(0, x - jx), ay = Math.max(0, y - jy), bx = Math.min(w, x + jx + 1), by = Math.min(h, y + jy + 1);
+                return sum[by * (w + 1) + bx] - sum[ay * (w + 1) + bx] - sum[by * (w + 1) + ax] + sum[ay * (w + 1) + ax] > 0;
+            };
         };
         const seen = new Uint8Array(w * h);
         const stack = new Int32Array(w * h);
-        let ux0 = Infinity, uy0 = Infinity, ux1 = -1, uy1 = -1;
-        for (let s = 0; s < w * h; s++) {
-            if (seen[s] || !near(s % w, (s / w) | 0)) continue;
-            // One block: its ink's edges, whether it reaches a cut window edge, its ink inside the box.
-            let n = 0, top = 0, ix0 = Infinity, iy0 = Infinity, ix1 = -1, iy1 = -1, cut = false, inside = 0, ink = 0;
-            stack[top++] = s; seen[s] = 1;
-            while (top) {
-                const p = stack[--top], x = p % w, y = (p / w) | 0;
-                n++;
-                if ((x === 0 && x0 > 0) || (y === 0 && y0 > 0) || (x === w - 1 && x1 < W) || (y === h - 1 && y1 < H)) cut = true;
-                if (inkAt(x, y)) {
-                    ink++;
-                    if (x < ix0) ix0 = x; if (x > ix1) ix1 = x; if (y < iy0) iy0 = y; if (y > iy1) iy1 = y;
-                    if (x0 + x >= bx0 && x0 + x < bx1 && y0 + y >= by0 && y0 + y < by1) inside++;
+        /** The tight edge of the blocks the box covers, ink joined by `near`; null = left as drawn.
+         *  `frame`: the edge of the biggest block alone (a drawn frame; a panel number beside it drops). */
+        const fit = (inkAt, near, frame) => {
+            seen.fill(0);
+            let ux0 = Infinity, uy0 = Infinity, ux1 = -1, uy1 = -1, big = null;
+            for (let s = 0; s < w * h; s++) {
+                if (seen[s] || !near(s % w, (s / w) | 0)) continue;
+                // One block: its ink's edges, whether it reaches a cut window edge, its ink inside the box.
+                let top = 0, ix0 = Infinity, iy0 = Infinity, ix1 = -1, iy1 = -1, cut = false, inside = 0, ink = 0;
+                stack[top++] = s; seen[s] = 1;
+                while (top) {
+                    const p = stack[--top], x = p % w, y = (p / w) | 0;
+                    if ((x === 0 && x0 > 0) || (y === 0 && y0 > 0) || (x === w - 1 && x1 < W) || (y === h - 1 && y1 < H)) cut = true;
+                    if (inkAt(x, y)) {
+                        ink++;
+                        if (x < ix0) ix0 = x; if (x > ix1) ix1 = x; if (y < iy0) iy0 = y; if (y > iy1) iy1 = y;
+                        if (x0 + x >= bx0 && x0 + x < bx1 && y0 + y >= by0 && y0 + y < by1) inside++;
+                    }
+                    for (const q of [x > 0 && p - 1, x < w - 1 && p + 1, y > 0 && p - w, y < h - 1 && p + w]) {
+                        if (q !== false && !seen[q] && near(q % w, (q / w) | 0)) { seen[q] = 1; stack[top++] = q; }
+                    }
                 }
-                for (const q of [x > 0 && p - 1, x < w - 1 && p + 1, y > 0 && p - w, y < h - 1 && p + w]) {
-                    if (q !== false && !seen[q] && near(q % w, (q / w) | 0)) { seen[q] = 1; stack[top++] = q; }
-                }
+                if (!ink || inside < ink * 0.25) continue; // a neighbour the box only grazes
+                if (cut) return null;
+                ux0 = Math.min(ux0, ix0); uy0 = Math.min(uy0, iy0); ux1 = Math.max(ux1, ix1); uy1 = Math.max(uy1, iy1);
+                if (frame && (!big || ink > big[4])) big = [ix0, iy0, ix1, iy1, ink];
             }
-            if (!ink || inside < ink * 0.25) continue; // a neighbour the box only grazes
-            if (cut) return b;
-            ux0 = Math.min(ux0, ix0); uy0 = Math.min(uy0, iy0); ux1 = Math.max(ux1, ix1); uy1 = Math.max(uy1, iy1);
+            if (ux1 < 0) return null;
+            if (frame) {
+                [ux0, uy0, ux1, uy1] = big;
+                // A drawn frame inks its whole outline; a fragment of a photo does not.
+                let on = 0;
+                for (let x = ux0; x <= ux1; x++) on += (inkAt(x, uy0) || inkAt(x, uy0 + 1)) + (inkAt(x, uy1) || inkAt(x, uy1 - 1));
+                for (let y = uy0; y <= uy1; y++) on += (inkAt(ux0, y) || inkAt(ux0 + 1, y)) + (inkAt(ux1, y) || inkAt(ux1 - 1, y));
+                if (on < 2 * (ux1 - ux0 + uy1 - uy0 + 2) * 0.8) return null;
+            }
+            const snapped = { x: (x0 + ux0) / W, y: (y0 + uy0) / H, w: (ux1 - ux0 + 1) / W, h: (uy1 - uy0 + 1) / H };
+            // A missed line grows a box ~1.3x; much more is the box swallowing its neighbours.
+            return iou(_rectEdges(b), _rectEdges(snapped)) < 0.4 || snapped.w * snapped.h > b.w * b.h * 1.6 ? null : snapped;
+        };
+        const sorted = [...border].sort((p, q) => p - q);
+        const ink = inkOn(sorted[sorted.length >> 1]);
+        let snapped = fit(ink(0, 0), ink(rx, ry));
+        if (!snapped) {
+            // Storyboard panels (2026-10-23): joined, each frame chains to its neighbours through
+            // the captions between them; and a window crossing grey panels as much as white paper
+            // has a grey middle tone, so the paper reads as ink. Against the border's COMMONEST
+            // tone, unjoined, a drawn frame is one piece of ink of its own.
+            const bins = new Array(32).fill(0);
+            for (const v of border) bins[v >> 3]++;
+            const peak = bins.indexOf(Math.max(...bins));
+            const common = sorted.filter((v) => v >> 3 === peak);
+            const solo = inkOn(common[common.length >> 1])(0, 0);
+            snapped = fit(solo, solo, true);
         }
-        if (ux1 < 0) return b;
-        const snapped = { x: (x0 + ux0) / W, y: (y0 + uy0) / H, w: (ux1 - ux0 + 1) / W, h: (uy1 - uy0 + 1) / H };
-        // A missed line grows a box ~1.3x; much more is the box swallowing its neighbours.
-        return iou(_rectEdges(b), _rectEdges(snapped)) < 0.4 || snapped.w * snapped.h > b.w * b.h * 1.6 ? b : { ...b, ...snapped };
+        return snapped ? { ...b, ...snapped } : b;
     });
 }
 

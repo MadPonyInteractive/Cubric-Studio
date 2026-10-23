@@ -414,6 +414,7 @@ export const MpiPromptBox = ComponentFactory.create({
             _boxesBtn.el.setActive(true);
         }
         let _analysing = false;
+        let _analysis = null; // the running Create boxes: a Cue pressed meanwhile waits for its boxes
         // While the layout picture is loaded the box stays on t2i: the other ops grey out and a
         // picture added to the box is refused, until the panel's Remove picture (Fabio, 2026-10-22).
         const _layoutLocked = () => !!_boxesGuide && activeOperation === 't2i';
@@ -535,7 +536,7 @@ export const MpiPromptBox = ComponentFactory.create({
                 if (activeOperation !== 't2i') Events.emit('workspace:set-operation', { operation: 't2i' });
                 _setBoxesGuide(resolveMediaUrl(filePath));
                 _openBoxes();
-                _analyseBoxes();
+                _analysis ||= _analyseBoxes().finally(() => { _analysis = null; });
             }),
             () => { _setBoxesReady(false); _boxesPanel?.el.destroy(); _boxesBtn.destroy?.(); },
         );
@@ -3025,7 +3026,13 @@ export const MpiPromptBox = ComponentFactory.create({
             return true;
         }
 
-        const _emitRun    = () => emit('run', el.getRunPayload());
+        // A Cue pressed while Create boxes reads would run the LAST picture's boxes and caption
+        // (a cloud read never holds the local queue, Fabio 2026-10-23), so it waits for the read.
+        const _emitRun    = () => {
+            if (!_analysis) return emit('run', el.getRunPayload());
+            _showMediaToast('Cue runs once Create boxes has read the picture.');
+            _analysis.then(() => emit('run', el.getRunPayload()));
+        };
         const _emitCancel = () => emit('cancel', {});
 
         // Seed: if loop just armed but nothing is running/pending, kick off

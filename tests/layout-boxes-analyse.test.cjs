@@ -34,10 +34,10 @@ test('boxes off the grid are clamped, empty ones dropped, the count capped', () 
         { name: 'big', bbox_2d: [-20, 0, 1200, 1000] },
         { name: 'flat', bbox_2d: [100, 100, 100, 400] },
         { name: 'bad', bbox_2d: [1, 2, 3] },
-        ...Array.from({ length: 22 }, (_, i) => ({ name: `n${i}`, bbox_2d: [0, 0, 500, 500] })),
+        ...Array.from({ length: 32 }, (_, i) => ({ name: `n${i}`, bbox_2d: [0, 0, 500, 500] })),
     ];
     const { boxes } = boxesFromAnalysis(JSON.stringify({ caption: '', items }));
-    assert.equal(boxes.length, 20);
+    assert.equal(boxes.length, 30);
     assert.deepEqual([boxes[0].x, boxes[0].w], [0, 1]);
     assert.ok(!boxes.some((b) => b.name === 'flat' || b.name === 'bad'));
 });
@@ -126,6 +126,20 @@ test('snap: a box fits its whole ink block; ink running off into a photo leaves 
     // A box over blank page has no ink to fit.
     const blank = { x: 0.05, y: 0.8, w: 0.2, h: 0.1 };
     assert.equal(snapBoxes([blank], img)[0], blank);
+});
+
+test('snap: a storyboard panel fits its own frame, though captions chain it to the next', async () => {
+    const { snapBoxes } = await import('../js/data/layoutBoxes.js');
+    // 200x300 white page: framed grey panel A (x 20-180, y 30-120), a caption 3 px under it,
+    // panel B 3 px under that - joined, the three are one block running out of the window
+    // (Fabio's storyboard, 2026-10-23) - and a panel number "1" left of A.
+    const W = 200, H = 300, data = new Uint8Array(W * H).fill(235);
+    const fill = (x0, y0, x1, y1, v) => { for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) data[y * W + x] = v; };
+    const panel = (y0, y1) => { fill(20, y0, 180, y1, 20); fill(23, y0 + 3, 177, y1 - 3, 150); };
+    panel(30, 120); fill(60, 123, 140, 129, 20); panel(132, 230); fill(5, 40, 12, 55, 20);
+    const img = { data, width: W, height: H, channels: 1 };
+    const [a] = snapBoxes([{ x: 0.04, y: 0.08, w: 0.88, h: 0.32, name: 'panel_1' }], img);
+    assert.deepEqual([a.x, a.y, a.w, a.h].map((v) => Math.round(v * 1000) / 1000), [0.1, 0.1, 0.8, 0.3]);
 });
 
 test('no JSON in the answer is null, not an empty layout', () => {
