@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1258",
+  "title": "Boxes: export a boxed picture to PSD (text layers + SAM3 cut-outs)",
+  "description": "Fabio 2026-10-23: export a picture laid out with Create boxes (MPI-1253) to a layered PSD. Nobody else exports boxes to PSD (ComfyUI layout nodes do not) - a differentiator. Every TEXT box becomes a live Photoshop text layer holding its words (the quoted head of the box desc), placed at the box with the right orientation (vertical lettering stays vertical); size from the box, it need not be exact - Photoshop's own text boxes take it from there. Everything that is NOT text is cut out with SAM3 inside its box onto its own transparent layer, named after the box. Open: a clean background plate (text and subjects inpainted out) so nothing shows twice; fitting the boxes to the RESULT first (snapBoxes) since the model drifts from them; orientation is not stored on a box today. Library: ag-psd (pure JS, MIT, not installed). The PSD also opens in Photopea and GIMP.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-10-23T16:49:18+01:00",
+  "updated_at": "2026-10-23T16:49:18+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

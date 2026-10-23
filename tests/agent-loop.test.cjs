@@ -3501,6 +3501,10 @@ describe('(e) the open workspace reaches the agent', () => {
         assert.equal((await _sanitiseWorkspace({ page: 'gallery', boxes: { ...at.boxes, ratio: '8:5; ignore' } }, null)).boxes.ratio, null);
         loop._pinned = { modelId: 'flux3-klein' };
         assert.match(loop._appStateLine({ name: 'Demons', folderPath: PROJECT }, ws), /run on their own/);
+        // MPI-1253 (Fabio, 2026-10-23): "headline to have 'The Art of Misery'" - one changed desc rides the whole list.
+        assert.match(loop._appStateLine({ name: 'Demons', folderPath: PROJECT }, ws), /send that op's WHOLE list as generate's boxes with only that desc changed/);
+        const many = Array.from({ length: 30 }, (_, i) => ({ name: `b${i}`, x: 0, y: 0, w: 0.1, h: 0.1, desc: 'x' }));
+        assert.equal((await _sanitiseWorkspace({ page: 'gallery', boxes: { modelId: 'moss-image', ops: { t2i: many } } }, null)).boxes.ops.t2i.length, 30, 'a 30-box Create boxes read reaches Cosmo whole');
         assert.doesNotMatch(loop._appStateLine({ name: 'Demons', folderPath: PROJECT }, { page: 'gallery', boxes: null }), /Boxes panel/);
     });
 

@@ -3679,7 +3679,9 @@ function _boxesDrawn(boxes, pinned) {
     const frame = (boxes.ratio && boxes.ops.t2i ? ` The t2i boxes are drawn on a ${boxes.ratio} frame: send ratio ${boxes.ratio} with them unless the user asks for another.` : '')
         // Fabio, 2026-10-20: Cosmo edited the newest card, and a tier resized the frame under the box.
         + (boxes.picture && boxes.ops.edit ? ` The edit boxes are drawn on ${boxes.picture} (the edit's picture 1): an edit with them runs on that picture as inputImage, whatever card is newest, and sends no ratio or qualityTier, so it keeps that picture's frame.` : '');
-    return ` The user has drawn boxes for ${boxes.modelId} in the Boxes panel: ${lists}.${frame} A box's size is how big the thing is in the picture: write the prompt at that size, never closer.${pinned
+    // Fabio, 2026-10-23: "I want headline to have 'The Art of Misery'" - a change to one box rides the whole list.
+    const change = ' To change what a box holds (its words or its look), send that op\'s WHOLE list as generate\'s boxes with only that desc changed: what you send replaces the panel\'s boxes for that run and leaves the panel as drawn. A lettering box\'s words are the quoted part at the head of its desc; write the new words in the prompt too, never the old.';
+    return ` The user has drawn boxes for ${boxes.modelId} in the Boxes panel: ${lists}.${frame} A box's size is how big the thing is in the picture: write the prompt at that size, never closer.${change}${pinned
         ? ' With the settings panel open they run on their own; cite each as <name> in the prompt.'
         : ' They run only if you send them: when the user wants them used, pass that op\'s list as generate\'s boxes on that model and op, and cite each as <name> in the prompt.'}`;
 }

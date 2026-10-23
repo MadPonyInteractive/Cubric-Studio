@@ -91,7 +91,8 @@ function _cleanBoxes(raw) {
     const ops = {};
     for (const [op, list] of Object.entries(raw.ops)) {
         if (!/^\w+$/.test(op) || !Array.isArray(list)) continue;
-        const boxes = list.slice(0, 20).filter((b) => b && typeof b === 'object').map((b) => ({
+        // 30 = MAX_BOXES (js/data/layoutBoxes.js): a Create boxes read holds up to 30, and a cut list sent back loses the rest.
+        const boxes = list.slice(0, 30).filter((b) => b && typeof b === 'object').map((b) => ({
             name: String(b.name || '').slice(0, 40), x: num(b.x), y: num(b.y), w: num(b.w), h: num(b.h), desc: String(b.desc || '').slice(0, 300),
         }));
         if (boxes.length) ops[op] = boxes;
