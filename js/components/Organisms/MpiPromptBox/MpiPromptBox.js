@@ -225,11 +225,6 @@ export const MpiPromptBox = ComponentFactory.create({
         let _boxesGuide = _draft.boxesGuide
             ?? (_wsKey === 'gallery' && state.currentProject ? getSharedSettings(state.currentProject, 'image').boxesGuide : null)
             ?? null;
-        // The last caption Create boxes wrote into the prompt. In the draft beside the prompt
-        // it compares against: kept only in this closure, leaving the gallery and coming back
-        // remounted the box with the caption but not this, so the old caption read as typed and stuck
-        // over every later Create boxes (Fabio, 2026-10-23).
-        let _autoCaption = _draft.autoCaption || null;
 
         // Field access by mode, so every read/write site stays a one-liner and a
         // fourth mode would not mean hunting ternaries.
@@ -268,7 +263,6 @@ export const MpiPromptBox = ComponentFactory.create({
                     // checkable rather than trusted.
                     enhanced: _enhanced,
                     boxesGuide: _boxesGuide,
-                    autoCaption: _autoCaption,
                 },
             };
         }
@@ -484,11 +478,9 @@ export const MpiPromptBox = ComponentFactory.create({
             if (activeOperation !== op || !_boxesCtrl()) return; // the user moved on while it ran
             clientLogger.info('PromptBox', `Create boxes: applying, picture ${img.naturalWidth}x${img.naturalHeight}`);
             _boxesCtrl()?.setValue(found.boxes);
-            // The caption goes into an empty prompt, or over the last one Create boxes wrote
-            // itself; a prompt the user typed or edited stays.
-            const prompt = positiveValue.trim();
-            if ((!prompt || prompt === _autoCaption) && found.caption) {
-                _autoCaption = found.caption.trim();
+            // The caption replaces the prompt, typed or not, as Reuse does: a prompt kept from
+            // another picture ran over these boxes and the result mixed the two (Fabio, 2026-10-23).
+            if (found.caption) {
                 _writeMode(found.caption, 'positive');
                 if (promptMode === 'positive') { textareaEl.value = found.caption; updateHeight(); }
                 emit('input', { positive: positiveValue, negative: negativeValue, negativeAudio: negativeAudioValue, activeMode: promptMode });
@@ -1750,10 +1742,6 @@ export const MpiPromptBox = ComponentFactory.create({
 
         el.injectPrompts = ({ positive, negative, negativeAudio, enhanced }) => {
             positiveValue = positive ?? positiveValue;
-            // MPI-1253: words the app put here (Reuse, Describe) are not the user's, so Create boxes
-            // may still replace them. A reused moodboard prompt was kept over a Tokyo read and the
-            // run mixed the two (Fabio, 2026-10-23).
-            if (positive != null) _autoCaption = positiveValue.trim();
             negativeValue = negative ?? negativeValue;
             // MPI-677 step 1c — Reuse restores BOTH texts and the enhanced state. The
             // reuse payload carries the enhancement only for a card that was generated
@@ -1950,10 +1938,6 @@ export const MpiPromptBox = ComponentFactory.create({
             const before = positiveValue.slice(0, at);
             const pad = before && !/\s$/.test(before) ? ' ' : '';
             const next = `${before}${pad}${text} ${positiveValue.slice(at).replace(/^\s+/, '')}`;
-            // Only the Boxes panel cites here: clicking a box name to find its box is not
-            // writing a prompt, so Create boxes' caption stays replaceable (Tokyo -> Vogue kept
-            // Tokyo's caption, Fabio 2026-10-23).
-            if (positiveValue.trim() === _autoCaption) _autoCaption = next.trim();
             _writeMode(next, 'positive');
             if (onPositive) {
                 const caret = at + pad.length + text.length + 1;
@@ -1969,8 +1953,6 @@ export const MpiPromptBox = ComponentFactory.create({
         function _renamePromptTag(from, to) {
             const next = positiveValue.split(`<${from}>`).join(`<${to}>`);
             if (next === positiveValue) return;
-            // A rename is not the user's edit: Create boxes' caption stays replaceable.
-            if (positiveValue.trim() === _autoCaption) _autoCaption = next.trim();
             _writeMode(next, 'positive');
             if (promptMode === 'positive') { textareaEl.value = next; updateHeight(); }
             _saveDraft();

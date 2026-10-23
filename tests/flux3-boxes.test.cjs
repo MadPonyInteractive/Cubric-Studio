@@ -188,11 +188,10 @@ test('the layout picture rides the run as Layout_Guide, Reuse lays it back, the 
 });
 
 // MPI-1253 (Fabio, 2026-10-23): a reused moodboard prompt survived Create boxes on Tokyo.
-test('Create boxes replaces a prompt the app wrote (its own caption, a Reuse, a Describe), never a typed one', () => {
+test('Create boxes replaces the prompt whatever wrote it, as Reuse does', () => {
     const src = require('node:fs').readFileSync(require('node:path').join(__dirname, '../js/components/Organisms/MpiPromptBox/MpiPromptBox.js'), 'utf8');
-    assert.match(src, /if \(\(!prompt \|\| prompt === _autoCaption\) && found\.caption\)/, 'the replace rule');
-    const inject = src.slice(src.indexOf('el.injectPrompts = ('), src.indexOf('const _onInjectPrompts'));
-    assert.match(inject, /if \(positive != null\) _autoCaption = positiveValue\.trim\(\);/, 'an injected prompt is replaceable');
+    assert.match(src, /_boxesCtrl\(\)\?\.setValue\(found\.boxes\);[\s\S]{0,400}if \(found\.caption\) \{\s*_writeMode\(found\.caption, 'positive'\);/, 'no typed-prompt exception');
+    assert.doesNotMatch(src, /_autoCaption/);
 });
 
 test('agents send boxes by name: describe_model lists them, the run gets the panel`s list, a bad one is refused', () => {
