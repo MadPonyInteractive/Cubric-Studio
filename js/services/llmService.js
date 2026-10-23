@@ -38,7 +38,7 @@
  * Nothing here ever sees it.
  */
 
-import { resolveRecipe, FALLBACK_RECIPE_ID, getRecipe, withReferences, withImageLooks, withPictureLines, TRANSPARENT_BACKGROUND_RULE, styleRule } from '../data/recipes/registry.js';
+import { resolveRecipe, FALLBACK_RECIPE_ID, getRecipe, withReferences, withImageLooks, withFrameLooks, withPictureLines, TRANSPARENT_BACKGROUND_RULE, styleRule } from '../data/recipes/registry.js';
 import { layoutRows, upsamplingInput, editPlacementInput, reconcileBoxes, splitBoxTable } from '../data/layoutBoxes.js';
 import { composeSystemPrompt } from '../data/recipes/styles.js';
 import { clientLogger } from './clientLogger.js';
@@ -896,6 +896,7 @@ export async function enhance({ prompt, model, recipeKey, mode, operation, refer
         : resolvedMode.endsWith('_bbox') ? upsamplingInput(idea, boxRows) : editPlacementInput(idea, boxes);
     const userText = resolvedMode === 'r2v' ? withReferences(idea, references ?? [], seen.captions)
         : resolvedMode === 'i2i' ? withImageLooks(request, seen.captions)
+        : resolvedMode === 'i2v' ? withFrameLooks(request, seen.captions)
         : request;
 
     const { profileId } = Storage.getLlmConnection();

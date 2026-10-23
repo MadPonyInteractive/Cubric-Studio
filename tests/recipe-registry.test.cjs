@@ -33,6 +33,7 @@ const {
     selectSystemPrompt,
     validateRecipe,
     withPictureLines,
+    withFrameLooks,
 } = require('../js/data/recipes/registry.js');
 const { renderRecipeBrief, renderAllBriefs } = require('../js/data/recipes/brief.js');
 const { composeSystemPrompt, DEFAULT_STYLE } = require('../js/data/recipes/styles.js');
@@ -82,7 +83,7 @@ function testValidatorActuallyBites() {
 }
 
 function testRegistryIntegrity() {
-    assert.strictEqual(RECIPE_REGISTRY.length, 16, 'the v1.0 recipe set is 16 models (moss-image added MPI-1243)');
+    assert.strictEqual(RECIPE_REGISTRY.length, 17, 'the v1.0 recipe set is 17 models (ltx-2.5 added MPI-1095)');
     assert.strictEqual(listRecipes(), RECIPE_REGISTRY);
 
     const ids = RECIPE_REGISTRY.map((r) => r.modelId);
@@ -254,8 +255,24 @@ function testAppWritesThePictureLines() {
     assert.strictEqual(withPictureLines(reply, [{ tag: '<Picture 1>', text: 'x' }]), reply, 'nothing known = their reply untouched');
 }
 
+// MPI-1095: LTX 2.5 has its own recipe; its i2v mode is told what the start/end frame shows.
+function testLtx25OwnRecipeAndFrames() {
+    const card = MODELS.find((m) => m.id === 'ltx-25');
+    assert.strictEqual(resolveRecipe(card.enhanceRecipe ?? card.type).modelId, 'ltx-2.5');
+    assert.strictEqual(resolveRecipe('ltx').modelId, 'ltx-2.3', 'the family key still means 2.3');
+    const r2v = getRecipe('ltx-2.5').modes.r2v.systemPrompt;
+    assert.ok(r2v.includes('PART 1 -- PICTURE LINES') && r2v.includes('PART 2 -- THE SCENE'), '2.3 picture block sliced in whole');
+    assert.ok(!/LTX 2\.3/.test(r2v), 'no 2.3 name leaks into the 2.5 r2v prompt');
+
+    assert.strictEqual(withFrameLooks('she laughs', []), 'she laughs');
+    const two = withFrameLooks('she laughs', [{ text: 'A woman  by a pool.' }, { text: 'She is in the water.' }]);
+    assert.strictEqual(two, 'she laughs\n\nThe start frame (the exact first frame of the video): A woman by a pool.'
+        + '\n\nThe end frame (the exact last frame the video must arrive at): She is in the water.');
+}
+
 const tests = {
     testAppWritesThePictureLines,
+    testLtx25OwnRecipeAndFrames,
     testEveryRecipeValidates,
     testValidatorActuallyBites,
     testRegistryIntegrity,

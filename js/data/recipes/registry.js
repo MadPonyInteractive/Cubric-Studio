@@ -28,6 +28,7 @@ import { composeSystemPrompt, DEFAULT_STYLE } from './styles.js';
 import { chroma } from './chroma.recipe.js';
 import { krea2 } from './krea-2.recipe.js';
 import { ltx23 } from './ltx-2.3.recipe.js';
+import { ltx25 } from './ltx-2.5.recipe.js';
 import { wan22 } from './wan-2.2.recipe.js';
 import { sdxl } from './sdxl.recipe.js';
 import { seedance15 } from './seedance-1.5.recipe.js';
@@ -71,6 +72,7 @@ export const RECIPE_REGISTRY = [
     flux2,
     krea2,
     ltx23,
+    ltx25,
     wan22,
     sdxl,
     seedance15,
@@ -201,6 +203,26 @@ export function withImageLooks(idea, captions = []) {
     const look = (text) => String(text).replace(/\s+/g, ' ').trim().split(' ').slice(0, 160).join(' ');
     const lines = captions.map((c, i) => `The ${ORDINALS[i] ?? `#${i + 1}`} image: ${look(c.text)}`);
     return `${idea}\n\nThe attached images, in order:\n${lines.join('\n')}`;
+}
+
+/**
+ * The enhancer's user message on an `i2v` run of a `seesPictures` mode (MPI-1095, LTX 2.5): the
+ * request, then what the start frame (and an end frame, when staged) shows. LTX 2.5's own i2v
+ * rewriter opens the caption on the first frame exactly, and the enhancer cannot see it.
+ * ponytail: frames go by load order (start, then end); a lone chip the role pill set to END
+ * reads as the start frame here. Pass roles from the prompt box if that case matters.
+ * @param {string} idea
+ * @param {Array<{tag:string,text:string}>} captions in load order
+ */
+export function withFrameLooks(idea, captions = []) {
+    if (!captions.length) return idea;
+    const look = (text) => String(text).replace(/\s+/g, ' ').trim().split(' ').slice(0, 160).join(' ');
+    const [start, end] = captions;
+    return [
+        idea,
+        `The start frame (the exact first frame of the video): ${look(start.text)}`,
+        end && `The end frame (the exact last frame the video must arrive at): ${look(end.text)}`,
+    ].filter(Boolean).join('\n\n');
 }
 
 /** What a picture IS -> the role word its `<Picture n>` line opens with (person/animal bare = the character). */

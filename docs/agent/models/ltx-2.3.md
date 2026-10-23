@@ -1,8 +1,8 @@
 # LTX 2.3: how to prompt it
 
-LTX 2.3 is Lightricks' native joint audio-video model: one pass generates picture and sound together, and it can also take a reference audio clip in. Two Vision cards use this guide: `ltx-23-balanced` (LTX 2.3, int8 transformer) and `ltx-25` (LTX 2.5, int8, dev builds only for now). The bf16 High card `ltx-23` is retired (MPI-1095). LTX 2.5 prompts exactly like 2.3 and takes the same two audio modes; it acts more naturally and runs faster, so prefer it when both are installed.
+LTX 2.3 is Lightricks' native joint audio-video model: one pass generates picture and sound together, and it can also take a reference audio clip in. Its Vision card is `ltx-23-balanced` (int8 transformer); the bf16 High card `ltx-23` is retired (MPI-1095). LTX 2.5 (`ltx-25`) has its own guide, `ltx-2.5.md`, and prompts differently (richer look, opens i2v on the start frame): prefer it when both are installed.
 
-Both offer `t2v_ms` (text to video), `i2v_ms` (image to video) and `ref2v_ms` (Reference to Video, below), and all resolve to the same `ltx-2.3` enhancer recipe: `ref2v_ms` gets its own `r2v` mode (the `t2v` one while no picture is staged), an i2v request gets the `t2v` instruction. In practice, real production work reaches for this model image-to-video almost exclusively. A plate is mandatory overhead on every shot, but it also fixes the framing for you, so lean on it instead of re-describing what the picture already shows.
+It offers `t2v_ms` (text to video), `i2v_ms` (image to video) and `ref2v_ms` (Reference to Video, below), and all resolve to the `ltx-2.3` enhancer recipe: `ref2v_ms` gets its own `r2v` mode (the `t2v` one while no picture is staged), an i2v request gets the `t2v` instruction. In practice, real production work reaches for this model image-to-video almost exclusively. A plate is mandatory overhead on every shot, but it also fixes the framing for you, so lean on it instead of re-describing what the picture already shows.
 
 ## Pick it when
 

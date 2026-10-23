@@ -2,6 +2,14 @@
 
 ## Current State
 
+- 2026-10-23 ("LTX 2.5 model 7"): Fabio PASSED Turbo on/off in his app (validation.md: OFF/DiffVAE barely morphs
+  floor tiles, ON/conv morphs a lot, +35 s at 704x1216); ladder confirmed. Fabio: LTX 2.5 gets its OWN
+  `ltx-2.5.recipe.js`. DONE, uncommitted: research (`docs/recipes/research/ltx-2.5/`), draft recipe (t2v from
+  gemma4_t2v, i2v from gemma4_i2v with `seesPictures`, r2v = 2.3's validated picture block sliced in + 2.5
+  scene rules), registry + `ltx-25.enhanceRecipe`, `withFrameLooks` (registry) used by `enhance()` for i2v,
+  harness `frameInputs()` i2v tiers, Cosmo guide `docs/agent/models/ltx-2.5.md` (2.3 guide no longer claims
+  2.5). `npm test` 3558/0, lint clean. NEXT: Stage 1 sweeps (Fabio YES 2026-10-23: DeepInfra, up to 25 cents total),
+  t2v + i2v + r2v (`--ref-tiers`) each twice green on DeepInfra Gemma 4 26B; then validation.md + close-out.
 - 2026-10-23 ("LTX 2.5 model 6"): DiffVAE A/B won (steadier scales); Fabio's Turbo switch wired (OFF =
   DiffVAE default, ON = conv), DiffVAE on R2, in-app Turbo on/off check passed, own tooltip, docs page
   `docs/models/ltx/ltx-2.5.md`. All pushed (`4a84bb974`, `5c26fcc75`, `036f09079`). Card is devOnly (verified:

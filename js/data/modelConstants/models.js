@@ -1470,6 +1470,7 @@ const ALL_MODELS = [
         turboInfo: 'Turbo — faster video decoder, about a minute less on long 2K clips; fine textures like scales can shimmer more',
         video: 'ltx25_preview.mp4',
         type: 'ltx',
+        enhanceRecipe: 'ltx-2.5',   // its own recipe (MPI-1095); `type: 'ltx'` alone resolves to ltx-2.3
         loraStrengths: ['model', 'clip'],
         supportedOps: ['t2v_ms', 'i2v_ms', 'ref2v_ms'],
         gen_speed: 'fast',

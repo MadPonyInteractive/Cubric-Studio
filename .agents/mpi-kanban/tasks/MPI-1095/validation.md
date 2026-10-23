@@ -73,3 +73,10 @@ very_low 16:9 (768x448), 2 s, seed 4242. `/connector/models` lists `turbo` on al
   by 78; the DiffVAE clip keeps a crisper, more consistent polygon pattern across the same frames. Morphing is
   temporal: Fabio's eye-test on `research/dfr/scales_ab_old-left_dfr-right.webm` (old left, DiffVAE right)
   and `full_ab_old-left_dfr-right.webm` decides. Output: engine `output/mpi1095_dfr/dino2k_dfr_img_00001.mp4`.
+
+## Turbo on/off - Fabio's in-app eye-test (2026-10-23, "LTX 2.5 model 7")
+
+- PASSED, Fabio's own test in his app, project "FLUX3 Flow Bench", i2v 4 s, medium (704x1216), same start frame.
+  Turbo ON (conv VAE, `i2v_003`) 1 m 17 s: a lot of floor-tile morphing. Turbo OFF (DiffVAE default, `i2v_002`)
+  1 m 52 s: barely any. Fabio: "turbo works fine". Also confirmed: the medium resolution and the LTX ladder move.
+- Cost of quality at this size: DiffVAE ~ +35 s (+45%) over conv; at 2K it was ~ +60-70 s (estimate, above).

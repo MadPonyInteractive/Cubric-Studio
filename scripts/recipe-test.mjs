@@ -39,7 +39,7 @@
  */
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { getRecipe, resolveRecipe, withReferences, withImageLooks, withPictureLines } from '../js/data/recipes/registry.js';
+import { getRecipe, resolveRecipe, withReferences, withImageLooks, withFrameLooks, withPictureLines } from '../js/data/recipes/registry.js';
 import { MODELS } from '../js/data/modelConstants/models.js';
 import { commands, filterMediaInputsForModel, refTagHandle } from '../js/data/commandRegistry.js';
 import {
@@ -225,6 +225,24 @@ function seenInputs(tag) {
                 { name: 'the theft happens', re: /\b(steal|stole|snatch)\w*|\b(grabs?|pulls?|takes?|seizes?)\b[^.]*\b(runs?|scurries|scampers|darts|dashes|carries|away|off)\b/i },
                 // ref2v_007 (Fabio's render): "She smiles at the camera, her gaze steady" read as her handing it over.
                 { name: 'no calm smile at the camera through the theft', re: /\bsmil\w*\s+(\w+\s+){0,3}(at|to(wards?)?)\s+the camera\b/i, absent: true }]),
+    ];
+}
+
+/** `--mode i2v` on a `seesPictures` mode (MPI-1095, LTX 2.5): the request as `enhance()` sends it,
+ *  with what the start frame shows (`withFrameLooks`). The caption must open on that frame.
+ *  `frame-none` is the describer failing: the request alone. No end-frame tier yet. */
+function frameInputs() {
+    const job = 'Open the caption on the start frame exactly as described (subject, clothing, setting, light, framing), then play out the requested action from it as one continuous take, keeping every choice the user made.';
+    const opens = (re) => ({ name: 'opens on the start frame', re: new RegExp(`^[^.]*(${re.source})`, 'i') });
+    const tier = (name, idea, looks, scene) => ({ name, job, scene, input: withFrameLooks(idea, looks.map((l) => ({ tag: 'Image', text: SEEN[l] }))) });
+    return [
+        tier('frame-bare', 'she laughs', ['woman'], [opens(/pink|magenta|teal|swimsuit|pool|tan skin/)]),
+        tier('frame-renamed', 'the guinea pig salutes', ['hamster'], [opens(/hamster|helmet|firefighter|sunglasses/)]),
+        tier('frame-directed', 'slow push-in to a close-up on his face as he turns to look back over his shoulder, anamorphic lens', ['valley'],
+            [opens(/valley|mist|hill|red jacket|backpack|sunset/), { name: 'push-in kept', re: /push(es|ing)?[- ]in|dolly[- ]in/i }]),
+        tier('frame-static', 'the waves roll in and wash back out', ['beach'],
+            [opens(/ocean|beach|shore|sand|turquoise|wave/), { name: 'static camera', re: /\bstatic\b|locked[- ]off/i }]),
+        tier('frame-none', 'a dog runs towards the camera', [], []),
     ];
 }
 
@@ -577,7 +595,9 @@ async function main() {
         ? filterMediaInputsForModel(commands[refOp(refModel)].mediaInputs, refModel).map((s) => s.tag).filter(Boolean)
         : [];
     const REF_INPUTS = refInputs((name) => refTagHandle(name, refModel), refTags);
-    const eligible = modeKey === 'i2i' ? editInputs() : process.argv.includes('--ref-tiers')
+    const eligible = modeKey === 'i2i' ? editInputs()
+        : modeKey === 'i2v' && mode.seesPictures ? frameInputs()
+        : process.argv.includes('--ref-tiers')
         ? [...TIERS.filter((t) => REF_INPUTS[t.name]).map((t) => ({ ...t, input: REF_INPUTS[t.name],
             // "a rocking chair in <Picture 2>": the role word alone passed "setting: the rocking chair".
             // LTX only: the other r2v modes write no picture lines.
