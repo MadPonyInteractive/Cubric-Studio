@@ -629,6 +629,8 @@ export function enqueueGeneration(config, callbacks = {}, opts = {}) {
  */
 async function _nameTilesThenQueue(config, callbacks, opts) {
     const r = await nameTiles(config);
+    // MPI-1257: a paid describer's bill shows once it passes a cent (Fabio's line); below, the log has it.
+    if (r.costUsd > 0.01) Events.emit('ui:info', { message: `Naming the tiles cost $${r.costUsd.toFixed(2)}.` });
     if (r.cancelled) {
         try { callbacks.onCancel?.(); } catch {}
         _emitPromptBoxGenerationEndIfIdle();

@@ -458,7 +458,7 @@ export const commands = {
                 'The prompt is the other brake. The more accurately it describes what is ALREADY in the picture, the less the model invents — so empty is fine at 0.20, but a full description is what holds the composition together once you push higher.',
                 'You do not have to write that description: right-click the image in the gallery (or in the history strip) and pick "Describe image". The caption lands straight in the prompt box, ready to edit.',
                 // MPI-1038/1232: tile path — per-tile names, people and faces untouched.
-                'Use Tiles cuts the picture into tiles and redraws each one, so it handles very large pictures, and 1x adds detail without enlarging. The Tile size label counts the tiles. With Describe each tile on, each tile is named in a few words; people and faces are never described. A scene description in the prompt still applies to every tile — leave it empty or describe the look (sharp photo, film grain).',
+                'Use Tiles cuts the picture into tiles and redraws each one, so it handles very large pictures, and 1x adds detail without enlarging. The Tile size label counts the tiles. With Describe each tile on, each tile is named in a few words, leaving people out: a name that mentions a person is dropped. A scene description in the prompt still applies to every tile — leave it empty or describe the look (sharp photo, film grain).',
             ],
             examples: [
                 { prompt: '', note: 'Denoise 0.20 or under. Resolution goes up, the picture stays put.' },

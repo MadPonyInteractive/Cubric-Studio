@@ -106,12 +106,34 @@ test('a Stopped describe stops the naming (and the upscale)', async () => {
     assert.equal(asked, 2);
 });
 
+test('a paid describer\'s bill is summed over every tile (MPI-1257)', async () => {
+    const { nameTiles } = await load('js/services/tileDescribe.js');
+    const io = (cost) => ({
+        size: async () => ({ width: 1920, height: 1080 }),
+        outlines: async (_, fr) => fr.map((_, i) => `img${i}`),
+        describe: async () => ({ ok: true, text: 'sky', ...(cost && { costUsd: cost }) }),
+        job: runJob,
+    });
+    const paid = await nameTiles(config(), io(0.001));
+    assert.equal(paid.total, 15);
+    assert.ok(Math.abs(paid.costUsd - 0.015) < 1e-9, String(paid.costUsd));
+    assert.equal('costUsd' in await nameTiles(config(), io(0)), false, 'a free describer reports no cost');
+});
+
 test('names are cleaned for Impact: one line, no quotes or dot, no brackets', async () => {
     const { cleanTileName, wantsTileNames } = await load('js/services/tileDescribe.js');
     assert.equal(cleanTileName('"A field with green grass."\nThe rest'), 'A field with green grass');
     assert.equal(cleanTileName('  [cloudy] sky  '), 'cloudy sky');
     assert.equal(cleanTileName(undefined), '');
     assert.equal(cleanTileName('a red rectangle outline'), '', 'the marker is never a name');
+    // MPI-1257: live names on tiles a person only partly covers never reach the graph.
+    assert.equal(cleanTileName('curly gray hair and beard'), '');
+    assert.equal(cleanTileName("a man's shoulder and neck"), '');
+    assert.equal(cleanTileName('Her Face.'), '');
+    // Scenery that merely contains a people word's letters stays named.
+    assert.equal(cleanTileName('wooden armchair by a window'), 'wooden armchair by a window');
+    assert.equal(cleanTileName('a headland over the sea'), 'a headland over the sea');
+    assert.equal(cleanTileName('there are shells here'), 'there are shells here');
     assert.equal(wantsTileNames(config()), true);
     assert.equal(wantsTileNames(config({ Tile_Describe: false })), false);
     assert.equal(wantsTileNames(config({ Input_Tile_Upscale: false })), false);

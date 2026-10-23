@@ -4,7 +4,8 @@
  * Before a tile upscale queues, the user's describer names what fills each tile in a few
  * words, from a copy of the WHOLE picture with that tile outlined in red (bench method 8:
  * the scene around the tile is the clue; a bare crop of grass reads as "ocean"). People are
- * never described: the question ignores them, and the graph's people + face passes redraw
+ * never described: the question ignores them, a name with people words is dropped
+ * (cleanTileName), and the graph's people + face passes redraw
  * them with no tile name at all.
  *
  * The names reach the graph keyed by LABEL, not by order: MakeTileSEGS cuts tiles row by
@@ -26,6 +27,14 @@ import { clientLogger } from './clientLogger.js';
 export const SCENERY_Q = 'The red rectangle marks one part of this picture. Ignoring any people, name what fills that area in five '
     + 'words or fewer, like "a field with green grass" or "cloudy sky". Reply with the name only.';
 
+const PEOPLE_WORDS = new RegExp('\\b(' + [
+    'man', 'men', 'woman', 'women', 'person', 'persons', 'people', 'boy', 'girl', 'child', 'children', 'kids?', 'baby',
+    'guy', 'lady', 'someone', 'he', 'she', 'his', 'her', 'him', 'portrait',
+    'faces?', 'heads?', 'hair', 'beard', 'mo?ustache', 'eyes?', 'eyebrows?', 'nose', 'mouth', 'lips?', 'teeth',
+    'ears?', 'cheeks?', 'chin', 'forehead', 'neck', 'shoulders?', 'arms?', 'hands?', 'fingers?', 'legs?', 'knees?',
+    'foot', 'feet', 'skin', 'torso', 'chest', 'shirt', 'jacket', 'dress', 'sleeves?', 'collar',
+].join('|') + ')\\b', 'i');
+
 /**
  * A describer's answer as a tile name: one line, no quotes, no trailing dot, and never a
  * `[` or `]` (Impact's [LAB] parser reads a bracket as the next label).
@@ -37,6 +46,11 @@ export function cleanTileName(text) {
     // The describer sometimes names the MARKER ("a red rectangle outline", live 2026-10-23 on an
     // edge tile): sent on, it would paint a red box into that tile. Such a tile goes unnamed.
     if (/\b(rectangle|outline)\b/i.test(line)) return '';
+    // The question ignores people, yet on a tile a person only partly covers the describer still
+    // names them ("curly gray hair and beard", "a man's shoulder and neck", live 2026-10-23).
+    // The mask keeps the person out of that tile's redraw, but the words would reach its background.
+    // ponytail: a word list; a false hit ("cliff face") only leaves that tile unnamed, as before naming.
+    if (PEOPLE_WORDS.test(line)) return '';
     return line
         .replace(/[[\]]/g, ' ')
         .replace(/\s+/g, ' ')
@@ -76,7 +90,8 @@ export function wantsTileNames(config) {
  * @param {object} config  the enqueueGeneration config (its Input_Image media + tile params)
  * @param {object} [io]    test seams: `describe` (llmService.describeImage), `outlines`, `size`, `job`
  * @returns {Promise<{ injectionParams?: object, named: number, total: number, failed: number,
- *   cancelled?: boolean, error?: string }>}  `injectionParams` = the two graph strings
+ *   cancelled?: boolean, error?: string, costUsd?: number }>}  `injectionParams` = the two graph
+ *   strings; `costUsd` = what a paid describer billed, summed
  */
 export async function nameTiles(config, io = {}) {
     const p = config.injectionParams || {};
@@ -109,19 +124,24 @@ export async function nameTiles(config, io = {}) {
         }
         const names = [];
         let error;
+        // A paid endpoint bills per tile (150 on a 4000x6000 at 2x) with no price known up
+        // front: the route's `costUsd` is summed and shown after naming (MPI-1257).
+        let costUsd = 0;
         // ponytail: one tile at a time (a 150-tile run on an endpoint takes minutes);
         // a few in flight if endpoint users report it slow. ComfyUI runs them one by one anyway.
         for (const [i, imageUrl] of images.entries()) {
             const r = await describe({ imagePath: imageUrl, question: SCENERY_Q });
-            if (r?.cancelled) return { named: 0, total, failed: 0, cancelled: true };
+            costUsd += Number(r?.costUsd) || 0;
+            if (r?.cancelled) return { named: 0, total, failed: 0, cancelled: true, ...(costUsd > 0 && { costUsd }) };
             const name = r?.ok ? cleanTileName(r.text) : '';
             if (!r?.ok) error ??= r?.error;
             names.push(name);
             setProgress((i + 1) / total);
         }
         const named = names.filter(Boolean).length;
-        clientLogger.info('tileDescribe', `[tiles] named ${named}/${total}: ${JSON.stringify(names).slice(0, 400)}`);
-        return { injectionParams: tileWildcard(names), named, total, failed: total - named, ...(error ? { error } : {}) };
+        clientLogger.info('tileDescribe', `[tiles] named ${named}/${total}${costUsd ? ` for $${costUsd.toFixed(4)}` : ''}: ${JSON.stringify(names).slice(0, 400)}`);
+        return { injectionParams: tileWildcard(names), named, total, failed: total - named,
+            ...(error ? { error } : {}), ...(costUsd > 0 && { costUsd }) };
     }, { mediaType: 'image' });
 }
 

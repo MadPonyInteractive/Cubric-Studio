@@ -547,6 +547,10 @@ export function followTarget(input, historyOpts, now) {
 
 function _followWork(input, historyOpts) {
     const to = followTarget(input, historyOpts);
+    // MPI-1256: every outcome logged. A Pod run Fabio watched from the gallery showed no latents
+    // and the log could not say whether the view had moved, stayed, or was never asked to.
+    clientLogger.info('connector', to ? `agent job: view follows to ${to.page}`
+        : `agent job: view stays on ${state.currentPage}${input?.follow ? '' : ' (no follow: wake, carry or CLI)'}`);
     if (to) navigate(to.page, to.params);
 }
 
