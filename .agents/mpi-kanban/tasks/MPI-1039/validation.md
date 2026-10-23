@@ -250,3 +250,13 @@ user's ratio later; a crop changes the zoom, so the gizmo may need per-ratio-fam
   - Read: the ref carries zoom + high reliably, back-low only with B, and B leaks the mannequin's POSE (and some
     clothing drift). Open: Fabio's eye test; front low needs a stronger ref (t2i never gives an extreme low) - the
     Blender route would give exact refs and a pose matched to the user's subject is not possible from a fixed set.
+- 2026-10-23 ROUND 3, BLENDER REFS (`angles.py <port> blender`, sheet `research/sheets/mq_blender.jpg`, results
+  `research/out/mq_blender.json`, refs `research/blender/out/*.png` = Fabio's UE4 mannequin, A-pose, exact cameras).
+  Seed 111, FLUX.3 Turbo 1K, street man, three wordings: MQ_EDIT, MQ_EDIT_B, MQ_EDIT_C (B + keep-your-own-pose clause).
+  - front lo: FAIL on all three - eye level; B/C only zoom out to full body. An exact low ref does not move the edit.
+  - back lo: the TURN lands on all three (back view), camera stays ~eye level; the A-pose arms leak into ALL three,
+    C's pose clause did not stop it; MQ_EDIT also greyed his head/hands (mannequin paste).
+  - front hi: PASS on all three (looks down on him, framing held).
+  - top2: strong high angle, NOT top-down (reads as front hi).
+  - Read: Blender refs carry turn + high exactly like t2i refs did; LOW is a model limit of the FLUX.3 edit, not a ref
+    problem. A-pose ref = pose leak on back views; a relaxed arms-down ref pose should cut it (rig has CS_ controls).

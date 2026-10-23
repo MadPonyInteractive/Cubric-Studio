@@ -114,6 +114,25 @@ reads); (c) append the doll mesh from his `mpi_openPose_mannequin.blend` copy.
 OLD NEXT: design the Blender ref renderer WITH Fabio (which mesh, neutral standing pose via c_ controls, flat grey
 Workbench vs EEVEE, camera rig per stop: yaw x pitch x zoom, square masters), render front low first, then rerun the
 two-image edits (`mannequin2 edits`, feed Blender refs).
+BLENDER REF RENDERER WORKS 2026-10-23 (session "Flux 3 on flows 10"). Mannequin = Fabio's OWN rigged UE4 file
+`D:\Blender\Other\UE4_Mannequinn.blend` (rig `HeroTPP_Character`, 147 bones, `CS_` controls, mesh `SK_MannequinMesh`,
+in cm, default pose already an A-pose, faces -Y). Do NOT use the Human Base Meshes bundle - it was downloaded by
+mistake to `D:\Blender\Assets\human-base-meshes\` (Fabio asked whether to delete it; unused). Pipeline:
+`clib.py ref_cmds.txt` (CLI: floor, wall, camera, Workbench 1024) -> `blender -b --python ref_post.py --
+out/_render_script.py` under gpu_lease (execs the CLI script minus its render, appends the rig, scale 0.01, STUDIO
+light no shadows, floor 0.06 / wall 0.16 / body 0.6, renders). FLAT light was a silhouette (front = back), dropped.
+Four stops now (`front_lo`, `back_lo`, `front_hi`, `top2`; ref_post renders every camera). Fabio OK'd front_lo.
+ROUND 3 DONE (`angles.py <port> blender`, sheet `mq_blender.jpg`, detail in validation.md): turn (back) + high carry,
+LOW still fails with an exact ref (model limit), top-down reads as high, A-pose leaks into the back view even with
+wording C. Isolated app this session: port 58665, profile cubric-agent-profile-mpi1039 (mpi1212's is held by
+someone else).
+FABIO 2026-10-23 (after round 3) NEXT: re-pose the UE4 mannequin to a NATURAL human pose - arms down at its sides,
+legs closer together - via the rig's CS_ controls in ref_post.py (append, never write the source .blend), re-render
+the four stops, rerun the edits. Watch the PROMPT: the edit copied the mannequin's pose exactly; the mannequin is a
+CAMERA reference only. Fabio suspects wording in the prompt confuses the model (B/C say "replace the mannequin ...
+standing exactly where it stands ... turned the same way" - that invites a pose copy); reword so picture 2 gives only
+camera position/angle/distance, never pose. Unused Human Base Meshes download in D:\Blender\Assets\human-base-meshes\
+still awaits Fabio's delete call.
 Prompt rule (Fabio + playbook 01 § READ THE MODEL'S GUIDE): generic ("the subject"/"they"), no "photograph" in edit
 prompts, FLUX.3 edit voice. The MQ_BODY t2i ref prompt may say "Studio photograph" - it is our asset, not a user edit.
 Isolated app this session: port 57477 (profile cubric-agent-profile-mpi1212).

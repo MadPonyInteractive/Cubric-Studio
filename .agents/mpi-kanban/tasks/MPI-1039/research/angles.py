@@ -1194,6 +1194,53 @@ MQ_EDIT_B = ('Replace the grey mannequin in the second image with the subject fr
              'clothes, the place, the light and the image style of the first image unchanged.')
 
 
+# Round 3 (Fabio chose Blender): refs = Fabio's UE4 mannequin rendered by research/blender (ref_cmds.txt + ref_post.py),
+# exact camera per stop, A-pose. Wording C = B plus the pose clause: B copied the mannequin's stiff pose in round 2.
+BLENDER_REFS = os.path.join(HERE, 'blender', 'out')
+MQ_BL_VIEWS = {'front lo': 'front_lo', 'back lo': 'back_lo', 'front hi': 'front_hi', 'top2': 'top2'}
+MQ_EDIT_C = MQ_EDIT_B.replace('Keep the subject\'s', 'The subject keeps their own pose from the first image, their arms, '
+                              'legs and stance unchanged; take only the camera and the way they face from the second '
+                              'image, never the mannequin\'s pose. Keep the subject\'s')
+
+
+def blender(port):
+    done = os.path.join(OUT, 'mq_blender.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    src = json.load(open(os.path.join(OUT, 'pitch.json')))['scene input']
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+    for v, f in MQ_BL_VIEWS.items():
+        if f'ref {v}' not in res:
+            req = urllib.request.Request(f'http://127.0.0.1:{port}/connector/import-media', headers={'Content-Type': 'application/json'},
+                                         data=json.dumps({'sourcePath': os.path.join(BLENDER_REFS, f + '.png'), 'folderPath': PROJECT,
+                                                          'cardName': f'angles mq3 ref {v}'}).encode())
+            r = json.load(urllib.request.urlopen(req, timeout=120))
+            if not r.get('ok'):
+                sys.exit(f'import {v}: {r}')
+            res[f'ref {v}'] = r['output']['filePath']  # already a /project-file?path= url
+            json.dump(res, open(done, 'w'), indent=1)
+        for w, tpl in (('edit', MQ_EDIT), ('editB', MQ_EDIT_B), ('editC', MQ_EDIT_C)):
+            key = f'{w} {v}'
+            if key not in res:
+                res[key] = gen(port, {**FAST, 'seed': PITCH_SEED, 'positive': tpl.format(v=MQ2_VIEWS[v][2]),
+                                      'cardName': f'angles mq3 {key}',
+                                      'media': [{'role': 'inputImage', 'url': src}, {'role': 'inputImage2', 'url': res[f'ref {v}']}]})
+                json.dump(res, open(done, 'w'), indent=1)
+    cell, h = 300, 324
+    rows = [[('src', 'source')] + [(f'{w} {v}', f'{w} {v}') for v in MQ_BL_VIEWS] for w in ('ref', 'edit', 'editB', 'editC')]
+    img = Image.new('RGB', (cell * 5, h * len(rows)), 'white')
+    d = ImageDraw.Draw(img)
+    for r, row in enumerate(rows):
+        for c, (k, label) in enumerate(row):
+            url = src if k == 'src' else res.get(k)
+            if url and (r == 0 or c):
+                im = Image.open(disk(url)).convert('RGB')
+                im.thumbnail((cell, h - 24))
+                img.paste(im, (c * cell, r * h + 24))
+                d.text((c * cell + 4, r * h + 4), label, fill='black')
+    img.save(os.path.join(HERE, 'sheets', 'mq_blender.jpg'), quality=90)
+
+
 def mannequin2(port, edits=False):
     import shutil
     done = os.path.join(OUT, 'mannequin2.json')
@@ -1329,6 +1376,8 @@ if __name__ == '__main__':
         sweep2(int(sys.argv[1]))
     elif sys.argv[2:3] == ['lora']:
         lora(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['blender']:
+        blender(int(sys.argv[1]))
     elif sys.argv[2:3] == ['mannequin2']:
         mannequin2(int(sys.argv[1]), sys.argv[3:4] == ['edits'])
     elif sys.argv[2:3] == ['mannequin']:

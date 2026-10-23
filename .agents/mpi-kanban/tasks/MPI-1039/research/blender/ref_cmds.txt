@@ -1,0 +1,16 @@
+# Mannequin ref scene, one camera per stop. Run: python -X utf8 clib.py ref_cmds.txt, then ref_post.py renders
+# every camera to out/<camera>.png. Mannequin (appended by ref_post.py) stands at the origin facing -Y.
+scene new -o C:/AI/Mpi/Cubric-Vision/.agents/mpi-kanban/tasks/MPI-1039/research/blender/out/ref.blend-cli.json
+object add plane -n floor -s 8,8,1
+object add plane -n wall -l 0,3,6 -r 90,0,0 -s 8,6,1
+object add plane -n wall_front -l 0,-3,6 -r 90,0,0 -s 8,6,1
+# 15 cm off the floor, 1.8 m out, tilted 25 deg up (aims at the hips)
+camera add -n front_lo -l 0,-1.8,0.15 -r 115,0,0 -f 24 --active
+camera add -n back_lo -l 0,1.8,0.15 -r 115,0,180 -f 24
+# 1.6 m out, 2.6 m up, 47 deg down (aims at the hips)
+camera add -n front_hi -l 0,-1.6,2.6 -r 43,0,0 -f 24
+# straight down from 3.2 m, his front toward the bottom of the frame
+camera add -n top2 -l 0,0,3.2 -r 0,0,0 -f 35
+render settings --engine WORKBENCH -rx 1024 -ry 1024 --format PNG
+scene save
+render execute C:/AI/Mpi/Cubric-Vision/.agents/mpi-kanban/tasks/MPI-1039/research/blender/out/front_lo.png --overwrite
