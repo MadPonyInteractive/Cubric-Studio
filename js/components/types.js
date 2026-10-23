@@ -994,7 +994,7 @@
  *   watch(container, selector, getInfo, { openMs }) — open after 400 ms (or `openMs`)
  *       resting on a `selector` row, close 150 ms after the pointer leaves row and flyout.
  *       `getInfo(rowEl)` returns an `entryInfo()` result (js/utils/entryInfo.js) or null.
- *       Returns the unwatch fn. Hosts: History (400 ms), gallery grid (2 s, MPI-1261).
+ *       Returns the unwatch fn. Hosts: History (400 ms), gallery grid (1.5 s, MPI-1261).
  *   hide() — close now.
  */
 

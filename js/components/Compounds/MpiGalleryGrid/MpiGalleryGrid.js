@@ -2670,14 +2670,14 @@ export const MpiGalleryGrid = ComponentFactory.create({
             }
         };
 
-        // Rest on a card to see how it was made, same flyout as History (MPI-1162). 2 s,
+        // Rest on a card to see how it was made, same flyout as History (MPI-1162). 1.5 s,
         // not History's 400 ms, so browsing the grid never trips it (MPI-1261). A stack
         // has no single "how", and a card still generating has no entry: no flyout.
         const _info = MpiEntryInfo.mount(ce('div'));
         _unsubs.push(_info.el.watch(grid, '.mpi-gallery-grid__row-wrap', (wrap) => {
             const group = _groups.find(g => g.id === wrap.dataset.groupId);
             return group && !isStack(group) ? entryInfo(group.history?.[group.selectedIndex]) : null;
-        }, { openMs: 2000 }));
+        }, { openMs: 1500 }));
 
         // ── Cleanup ──────────────────────────────────────────────────────────
         el.destroy = () => {

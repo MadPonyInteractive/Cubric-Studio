@@ -1,8 +1,8 @@
 /**
  * entryInfo — what the card-info flyout shows for one history entry (MPI-1162).
  *
- * Pure data: the History row hands an item in and mounts the result in `MpiEntryInfo`.
- * History only, by decision (Fabio, 2026-10-16) — the gallery gets no flyout. Every value is read off the in-memory HistoryItem, which is
+ * Pure data: a History row or gallery card (MPI-1261) hands an item in and mounts the
+ * result in `MpiEntryInfo`. Every value is read off the in-memory HistoryItem, which is
  * already hydrated from its sidecar, so no fetch happens on hover.
  *
  * No seed, by decision: nothing in the app takes one back in, so it is noise here.
@@ -62,6 +62,46 @@ function _operationLabel(item) {
     return getCommand(item.operation)?.label || item.operation || '';
 }
 
+// The flyout is a glance, not a reader (Fabio, 2026-10-23): long prompts are cut.
+const PROMPT_MAX = 200;
+const _clip = (s) => {
+    const t = (s || '').trim();
+    return t.length > PROMPT_MAX ? `${t.slice(0, PROMPT_MAX).trimEnd()}…` : t;
+};
+
+// 0.8 → "0.8", 1 → "1", 0.333 → "0.33".
+const _num = (v) => String(Number(v.toFixed(2)));
+
+// What the run injected wins over the control snapshot: an agent dispatch can differ from
+// the project's controls, and the injection is what actually rendered (MPI-556).
+function _settingRows(item) {
+    const gs = item.generationSettings || {};
+    const inj = gs.injectionParams || {};
+    const rows = [];
+    const ratio = inj.Ratio_Label ?? gs.controlState?.shared?.ratioSelector?.selectedRatio;
+    if (ratio) rows.push({ label: 'Ratio', value: String(ratio) });
+    if (typeof inj.Input_is_Turbo === 'boolean') rows.push({ label: 'Turbo', value: inj.Input_is_Turbo ? 'On' : 'Off' });
+    const styleIdx = inj['Input_Style_Selector.selector'];
+    const styleName = getModelById(item.modelId || gs.modelId)?.styleLoraLabels?.[styleIdx];
+    if (styleName) {
+        const strength = inj['Input_Style_Selector.strength_model'];
+        rows.push({ label: 'Style', value: styleIdx > 0 && typeof strength === 'number' ? `${styleName} · ${_num(strength)}` : styleName });
+    }
+    const denoise = inj.Denoise ?? inj.Input_Denoise;
+    if (typeof denoise === 'number') rows.push({ label: 'Denoise', value: _num(denoise) });
+    return rows;
+}
+
+// Only the LoRAs that touched the run: a slot with a file, not bypassed, not at 0.
+function _loraLines(item) {
+    const loras = item.generationSettings?.controlState?.model?.loras;
+    if (!Array.isArray(loras)) return '';
+    return loras
+        .filter(l => l?.name && !l.bypass && Number(l.strengthModel) !== 0)
+        .map(l => `${l.name.split(/[\\/]/).pop().replace(/\.safetensors$/i, '')} · ${_num(Number(l.strengthModel ?? 1))}`)
+        .join('\n');
+}
+
 function _dateLabel(iso) {
     const d = iso ? new Date(iso) : null;
     if (!d || Number.isNaN(d.getTime())) return '';
@@ -70,22 +110,25 @@ function _dateLabel(iso) {
 
 /**
  * @param {Object} item - a HistoryItem
- * @returns {{ rows: Array<{label: string, value: string}>, prompt: string,
- *            negativePrompt: string, notes: string } | null} null for no item
+ * @returns {{ rows: Array<{label: string, value: string}>, loras: string, prompt: string,
+ *            negativePrompt: string, notes: string } | null} null for no item; `loras` is
+ *            one `name · strength` per line
  */
 export function entryInfo(item) {
     if (!item) return null;
     const rows = [
         { label: 'Model', value: _modelLabel(item) },
         { label: 'Operation', value: _operationLabel(item) },
+        ..._settingRows(item),
         { label: 'Took', value: formatGenTime(item.generationMs) },
         // No size/length/fps: the History row under the pointer already prints them.
         { label: 'Created', value: _dateLabel(item.createdAt) },
     ].filter(r => r.value);
     return {
         rows,
-        prompt: (item.prompt || '').trim(),
-        negativePrompt: (item.negativePrompt || '').trim(),
+        loras: _loraLines(item),
+        prompt: _clip(item.prompt),
+        negativePrompt: _clip(item.negativePrompt),
         notes: (item.notes || '').trim(),
     };
 }

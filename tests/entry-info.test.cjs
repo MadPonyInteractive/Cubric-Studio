@@ -65,6 +65,41 @@ test('empty values drop their row; no item means no flyout', () => {
     assert.strictEqual(E.entryInfo(undefined), null);
 });
 
+test('MPI-1261: ratio, turbo, style and denoise come off the run; only used LoRAs list', () => {
+    const model = M.getModelById('moss-image');
+    const info = E.entryInfo({
+        type: 'image', modelId: 'moss-image', operation: 't2i',
+        generationSettings: {
+            injectionParams: {
+                Ratio_Label: '4:5', Input_is_Turbo: true, Denoise: 0.3,
+                'Input_Style_Selector.selector': 3, 'Input_Style_Selector.strength_model': 0.8,
+            },
+            controlState: { model: { loras: [
+                { name: 'chars/hero.safetensors', strengthModel: 0.75, bypass: false },
+                { name: 'off.safetensors', strengthModel: 1, bypass: true },
+                { name: 'zero.safetensors', strengthModel: 0, bypass: false },
+                { name: null, strengthModel: 1, bypass: false },
+            ] } },
+        },
+    });
+    assert.strictEqual(value(info, 'Ratio'), '4:5');
+    assert.strictEqual(value(info, 'Turbo'), 'On');
+    assert.strictEqual(value(info, 'Style'), `${model.styleLoraLabels[3]} · 0.8`);
+    assert.strictEqual(value(info, 'Denoise'), '0.3');
+    assert.strictEqual(info.loras, 'hero · 0.75');
+    const plain = E.entryInfo({ type: 'image', modelId: 'moss-image',
+        generationSettings: { injectionParams: { Input_is_Turbo: false, 'Input_Style_Selector.selector': 0 } } });
+    assert.strictEqual(value(plain, 'Turbo'), 'Off');
+    assert.strictEqual(value(plain, 'Style'), model.styleLoraLabels[0]);
+    assert.strictEqual(plain.loras, '');
+});
+
+test('MPI-1261: a long prompt is cut to a glance', () => {
+    const info = E.entryInfo({ type: 'image', prompt: 'a'.repeat(500), negativePrompt: 'short' });
+    assert.strictEqual(info.prompt, `${'a'.repeat(200)}…`);
+    assert.strictEqual(info.negativePrompt, 'short');
+});
+
 test('generation time matches the gallery card format', () => {
     assert.strictEqual(E.formatGenTime(0), '');
     assert.strictEqual(E.formatGenTime(undefined), '');

@@ -76,6 +76,7 @@ export const MpiEntryInfo = ComponentFactory.create({
                     ce('dd', { className: 'mpi-entry-info__value' }, r.value),
                 ])),
             ];
+            if (info.loras) children.push(section('loras', 'LoRAs', info.loras));
             if (info.prompt) children.push(section('prompt', 'Prompt', info.prompt));
             if (info.negativePrompt) children.push(section('negative', 'Negative', info.negativePrompt));
             if (info.notes) children.push(section('notes', 'Notes', info.notes));
