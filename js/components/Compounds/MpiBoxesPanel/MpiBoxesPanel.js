@@ -88,6 +88,15 @@ export const MpiBoxesPanel = ComponentFactory.create({
         let mode = 't2i';
         let dim = 0;
         let cb = {};
+        let _sel = -1; // the box picked on the frame or in the list: its tag and its row light up
+
+        /** Link a box to its row (Fabio, 2026-10-23): pressing a tag lights the row's field,
+         *  pressing a row lights the tag. Re-applied after every render. */
+        const _select = (i) => {
+            _sel = i;
+            [...frameEl.children].forEach((n, j) => n.classList.toggle('mpi-boxes__box--selected', j === i));
+            [...listEl.children].forEach((n, j) => n.classList.toggle('mpi-boxes__row--selected', j === i));
+        };
 
         const clearBtn = MpiButton.mount(qs('#boxes-clear', el), {
             icon: 'trash', label: 'Clear all', labelPosition: 'right', size: 'sm', variant: 'ghost', info: 'Remove every box',
@@ -228,6 +237,8 @@ export const MpiBoxesPanel = ComponentFactory.create({
                 _place(node, b);
                 on(node, 'pointerdown', (e) => {
                     if (e.button !== 0) return;
+                    _select(i);
+                    listEl.children[i]?.scrollIntoView({ block: 'nearest' });
                     _drag(e, i, e.target.classList.contains('mpi-boxes__handle') ? 'resize' : 'move');
                 });
                 on(tag, 'dblclick', () => _rename(i));
@@ -245,6 +256,8 @@ export const MpiBoxesPanel = ComponentFactory.create({
                 const row = document.createElement('div');
                 row.className = 'mpi-boxes__row';
                 row.style.setProperty('--box-colour', `var(${COLOURS[i % COLOURS.length]})`);
+                on(row, 'pointerdown', () => _select(i));
+                on(row, 'focusin', () => _select(i));
 
                 const swatch = document.createElement('span');
                 swatch.className = 'mpi-boxes__swatch';
@@ -287,6 +300,7 @@ export const MpiBoxesPanel = ComponentFactory.create({
         const _changed = (emitNow) => {
             _renderFrame();
             _renderList();
+            _select(_sel < boxes.length ? _sel : -1);
             if (emitNow) _emit();
         };
 
@@ -321,6 +335,7 @@ export const MpiBoxesPanel = ComponentFactory.create({
             mode = m;
             qs('#boxes-drop-hint', el).classList.toggle('hide', mode === 'edit');
             boxes = initial.map((b, i) => ({ ...b, name: b.name || `obj_${i + 1}` }));
+            _sel = -1;
             frameKey = '';
             el.setFrame(frame);
             _changed(false);

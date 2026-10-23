@@ -200,6 +200,24 @@
     cursor: move;
 }
 
+/* The picked box (its tag or its row was pressed): the tag turns the workspace accent with
+   a light ring, the border thickens and it paints over its neighbours. */
+.mpi-boxes__box--selected {
+    z-index: 2;
+    border-width: 3px;
+}
+
+.mpi-boxes__box--selected .mpi-boxes__tag {
+    background: var(--accent-heat);
+    outline: 2px solid var(--ink-1);
+}
+
+/* ...and its row's field takes the box's own colour, so the two read as one. */
+.mpi-boxes__row--selected .mpi-input__field {
+    background: color-mix(in oklch, var(--box-colour) 28%, var(--surface-3));
+    border-color: var(--box-colour);
+}
+
 .mpi-boxes__handle {
     position: absolute;
     right: -6px;
