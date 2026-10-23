@@ -611,8 +611,8 @@ attachment.
   `picture` through `ownedMedia` like the entry; the loop registers it and `_boxesDrawn` tells the
   agent to edit THAT picture with no ratio or tier. Untold, Cosmo edited the newest card instead.
 - **The card's entries and the last mask (MPI-1262, Fabio 2026-10-23).** On a card with two or more
-  entries, `_entriesLine` reads `list_cards <groupId>` and lists every entry (model, op, style, made
-  from, ON SCREEN), registered, and says "again" repeats the last change on the entry it was made
+  entries, `_entriesLine` reads `list_cards <groupId>` and lists the newest 8 entries (`MAX_ENTRIES`: model,
+  op, style, made from, ON SCREEN), registered, and says "again" repeats the last change on the entry it was made
   FROM. `lastMask: { filePath }` is the entry the card's last masked edit ran on
   (`activeMask.rememberedMask()`, one in-memory slot set by `agentDispatch._submitGeneration` after a
   masked build; lost on reload); the route runs it through `ownedMedia` like the entry. A masked op

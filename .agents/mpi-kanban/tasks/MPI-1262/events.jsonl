@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1262", "at": "2026-10-23T21:26:43+01:00", "actor": "claude", "column": "todo", "title": "Cosmo knows a card's entries: redo on the entry it worked on, ask which model redraws, keep the style"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1262", "at": "2026-10-23T21:27:08+01:00", "actor": "claude", "from": "todo", "to": "doing"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1262", "at": "2026-10-23T23:59:45+01:00", "actor": "Cosmo knows a card's entries (MPI-1262)", "from": "doing", "to": "done", "reason": "All three pieces shipped (ff2e430c1, 9852ab424, e73d513d8); agent tests 544 pass, CI green on e73d513d8; Fabio chose to close before the live look."}
