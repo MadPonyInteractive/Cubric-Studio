@@ -5,6 +5,7 @@ import { MpiProgressBar } from '../../Primitives/MpiProgressBar/MpiProgressBar.j
 import { MpiResizeHandle } from '../../Primitives/MpiResizeHandle/MpiResizeHandle.js';
 import { qs, qsa, on } from '../../../utils/dom.js';
 import { boxName, uniqueBoxName } from '../../../data/layoutBoxes.js';
+import { Storage } from '../../../core/storage.js';
 
 /**
  * MpiBoxesPanel — draw where things go in the picture (Compound, MPI-1181)
@@ -38,6 +39,7 @@ import { boxName, uniqueBoxName } from '../../../data/layoutBoxes.js';
 const COLOURS = ['--accent-frost', '--prompt-accent', '--accent-ok', '--video-accent', '--vision-accent', '--accent-err'];
 const MAX_BOXES = 10;
 const MIN_SIZE = 0.03;
+const TAG_IN_Y = 0.04;    // a box this close to the frame top keeps its tag inside (the panel's padding takes any spill)
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const TOP_GAP = 200;      // px the open panel leaves below the window top (header + op strip room)
 const MIN_PANEL_H = 260;  // a short window still shows a usable frame
@@ -86,7 +88,7 @@ export const MpiBoxesPanel = ComponentFactory.create({
         let aspect = 1;
         let frameKey = '';
         let mode = 't2i';
-        let dim = 0;
+        let dim = Storage.getBoxesDim();
         let cb = {};
         let _sel = -1; // the box picked on the frame or in the list: its tag and its row light up
 
@@ -118,11 +120,12 @@ export const MpiBoxesPanel = ComponentFactory.create({
             if (img) img.style.filter = dim ? `brightness(${1 - dim / 100})` : '';
         };
         const dimBar = MpiProgressBar.mount(qs('#boxes-dim-bar', el), {
-            min: 0, max: 100, step: 1, value: 0, interactive: true, wheel: true, handle: true, variant: 'primary',
+            min: 0, max: 100, step: 1, value: dim, interactive: true, wheel: true, handle: true, variant: 'primary',
             info: 'Darken the picture so the boxes stand out (the run is untouched)',
         });
         dimBar.on('input', ({ value }) => _setDim(value));
-        dimBar.on('change', ({ value }) => _setDim(value));
+        dimBar.on('change', ({ value }) => { _setDim(value); Storage.setBoxesDim(dim); });
+        _setDim(dim);
 
         const _emit = () => cb.onChange?.(boxes.map((b) => ({ ...b })));
 
@@ -157,6 +160,9 @@ export const MpiBoxesPanel = ComponentFactory.create({
             node.style.top = `${b.y * 100}%`;
             node.style.width = `${b.w * 100}%`;
             node.style.height = `${b.h * 100}%`;
+            // The tag rides above the box so it never hides the box's first line; a box at
+            // the frame top has no room above, so its tag drops back inside (Fabio, 2026-10-23).
+            node.classList.toggle('mpi-boxes__box--tag-in', b.y < TAG_IN_Y);
         };
 
         // ── drag: move, resize from the corner, or draw on empty frame ────────

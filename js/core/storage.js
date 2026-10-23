@@ -272,6 +272,9 @@ export const Storage = {
   getSceneShot:        () => get(STORAGE_KEYS.SCENE_SHOT, null) || {},
   setSceneShot:        (v) => set(STORAGE_KEYS.SCENE_SHOT, v),
 
+  getBoxesDim:         () => Math.min(100, Math.max(0, Number(get(STORAGE_KEYS.BOXES_DIM, 0)) || 0)),
+  setBoxesDim:         (v) => set(STORAGE_KEYS.BOXES_DIM, Math.min(100, Math.max(0, Number(v) || 0))),
+
   getToastSound:       () => get(STORAGE_KEYS.TOAST_SOUND, true),
   setToastSound:       (v) => set(STORAGE_KEYS.TOAST_SOUND, v),
 

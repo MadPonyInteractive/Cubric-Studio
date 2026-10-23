@@ -181,18 +181,22 @@
 .mpi-boxes__box {
     position: absolute;
     z-index: 1;
+    --box-border: 2px;
     box-sizing: border-box;
-    border: 2px solid var(--box-colour);
+    border: var(--box-border) solid var(--box-colour);
     /* Only the tag and the corner take the pointer: a drag anywhere else draws a new box,
        even inside a full-frame background box. */
     pointer-events: none;
 }
 
+/* The tag sits ON the box's top edge, outside it, like a folder tab: inside it hid the
+   first line of a text block, which read as a wrong box (Fabio, 2026-10-23). */
 .mpi-boxes__tag {
     position: absolute;
-    left: 0;
-    top: 0;
+    left: calc(-1 * var(--box-border));
+    bottom: 100%;
     padding: 1px 5px;
+    white-space: nowrap;
     font-size: var(--t-xs);
     color: var(--ink-on-accent);
     background: var(--box-colour);
@@ -202,9 +206,16 @@
 
 /* The picked box (its tag or its row was pressed): the tag turns the workspace accent with
    a light ring, the border thickens and it paints over its neighbours. */
+/* No room above at the frame top: the tag drops back inside the corner. */
+.mpi-boxes__box--tag-in .mpi-boxes__tag {
+    left: 0;
+    top: 0;
+    bottom: auto;
+}
+
 .mpi-boxes__box--selected {
     z-index: 2;
-    border-width: 3px;
+    --box-border: 3px;
 }
 
 .mpi-boxes__box--selected .mpi-boxes__tag {
