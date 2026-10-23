@@ -222,7 +222,7 @@ function seenInputs(tag) {
                 { name: 'no light or texture borrowed from the recipe', re: /\b(pines?|wool)\b/i, absent: true },
                 // T5 run 2: "scurries close to her", no theft, and the judge gave it 2/2/2.
                 // The theft, named or played out: Gemma 26B writes "grabs an orange and runs toward the water".
-                { name: 'the theft happens', re: /\b(steal|stole|snatch)\w*|\b(grabs?|pulls?|takes?|seizes?)\b[^.]*\b(runs?|scurries|scampers|darts|dashes|retreats|disappears|carries|away|off)\b/i },
+                { name: 'the theft happens', re: /\b(steal|stole|snatch)\w*|\b(grabs?|pulls?|takes?|seizes?)\b[^.]*\b(runs?|scurries|scampers|darts|dashes|retreats|disappears|getaway|carries|away|off)\b/i },
                 // ref2v_007 (Fabio's render): "She smiles at the camera, her gaze steady" read as her handing it over.
                 { name: 'no calm smile at the camera through the theft', re: /\bsmil\w*\s+(\w+\s+){0,3}(at|to(wards?)?)\s+the camera\b/i, absent: true }]),
     ];

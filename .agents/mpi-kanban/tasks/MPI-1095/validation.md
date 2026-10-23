@@ -80,3 +80,11 @@ very_low 16:9 (768x448), 2 s, seed 4242. `/connector/models` lists `turbo` on al
   Turbo ON (conv VAE, `i2v_003`) 1 m 17 s: a lot of floor-tile morphing. Turbo OFF (DiffVAE default, `i2v_002`)
   1 m 52 s: barely any. Fabio: "turbo works fine". Also confirmed: the medium resolution and the LTX ladder move.
 - Cost of quality at this size: DiffVAE ~ +35 s (+45%) over conv; at 2K it was ~ +60-70 s (estimate, above).
+
+## Enhancer recipe Stage 1 (2026-10-23, "LTX 2.5 model 8" + "model 9")
+
+- PASSED (agent, text-only): `ltx-2.5` recipe twice green on DeepInfra Gemma 4 26B, judge local gemma3:12b, 3 runs per tier:
+  t2v (t2v-4, t2v-5), i2v (i2v-3, i2v-5), r2v none (r2v-2, r2v-3), r2v --ref-tiers (r2vref-3 ALL PASS, r2vref-4 24/24 on
+  rescore after the harness theft regex gained `getaway`). Outputs read by hand, not just the judge. ~22.5 of 25 cents.
+- Full record, final prompts and known limits: `docs/recipes/research/ltx-2.5/validation.md`. Recipe stays `draft`;
+  Stage 2 renders and the `validated` flip are Fabio's.
