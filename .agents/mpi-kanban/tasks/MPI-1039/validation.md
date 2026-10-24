@@ -502,3 +502,36 @@ user's ratio later; a crop changes the zoom, so the gizmo may need per-ratio-fam
   - CORRECTION to rounds 7/19 "4/4" on 3/4 FRONT views: by the bar Fabio applies, they are MILD (well short of 45).
     Rear 3/4 and back views do land. Open problem: front 3/4 turn strength on full-body people. Ideas (untested):
     an overshoot ref (camera 60-70 degrees round) to land ~45; or turn via the side (90) view.
+- 2026-10-24 ROUND 23, FLAT 2D ANIME SOURCE IN A PLACE (`angles.py <port> blender23 street 222`, sheets
+  `research/sheets/mq_blender23_{sources,street,anime}.jpg`, results `research/out/mq_blender23.json`). Source: the
+  round-7 woman -> Krea2 krea2Edit Turbo + Retro Anime style (styleSelect 6) = 'anime 111' -> Krea2 again put her on a
+  sunny Japanese shopping street (Fabio: a place is the harder test) = 'street 222', 768x1360. The LoRA's purple pulls
+  hard (red hair, purple jeans). People recipe, MQ23_KEEP ("same drawn anime woman ... stays a drawing, not a photo"),
+  refs padded to 768x1360, 9:16. 4 Krea2 + 20 FLUX.3 Turbo edits.
+  FIRST READ (agent, full-size crops - Fabio's eye test pending):
+  - DRAWING STYLE HELD 20/20 - no cell drifted toward a photo. The 2D keep clause works.
+  - front hi 4/4 (steep down, the purple street fills behind her); front lo reveal 4/4 STRONG (huge sneakers, legs
+    rising, sky + power lines, shop fronts leaning in; 111 crops her head at the top).
+  - back eye: she faces away 4/4, but 333 + 444 PASTE THE MANNEQUIN (bald orange head, jointed arms and legs) - 2/4
+    clean. Never seen on the photo people (rounds 6-22). The flat drawing seems to let the grey mannequin's shape through.
+  - tqb r: rear 3/4 right 4/4 on her.
+  - THE PLACE DOES NOT MOVE on the turns: back eye, tqb r and tq fl far keep the street pixel-for-pixel (vending machine
+    still left, same signs) - she turns on the spot, the camera never goes round. 0/12. On the photo street man (round
+    19) the back view showed the street reversed. Height views (hi, lo) do redraw the place.
+  - tq fl far: ~1/4 - she is a little smaller and turns ~15 degrees; no wider street (444 the best).
+  - Read: a flat 2D source keeps its style and gets the HEIGHT views; turns move the character but freeze the place, and
+    the back view can paste the mannequin. Ideas: name what the place now shows from behind (round 15's reveal rule for
+    turns: "the street now runs the other way, the vending machine on her right"), and the line/outline ref instead of
+    the shaded grey mannequin for 2D sources.
+- 2026-10-24 ROUND 24, FABIO'S UNISEX DOLL REPLACES THE UE MANNEQUIN (`angles.py <port> blender24`, sheet
+  `research/sheets/mq_blender24_doll.jpg`, results `research/out/mq_blender24.json`). Fabio: the UE mannequin ruins the
+  back shots. His ControlNet doll (Body_Full_01, `D:\Blender\Projects\OpenPoseBonse_V99\mpi_openPose.blend`, natural
+  pose, his OBJ export -> `blender/out/doll.obj`) dropped into the same ref scene by `blender/doll_build.py` (fitted to
+  the mannequin's height x1.07 + footprint, skin tone 0.80/0.56/0.43 at Fabio's ask) -> `out/doll_refs.blend`,
+  `ref_render.py` -> `out/doll/<cam>.png`. Same words and seeds as rounds 7/19/23; 20 FLUX.3 Turbo edits.
+  - anime back eye: 4/4 CLEAN - real red hair, the bag at her side; round 23's mannequin paste (333, 444) is gone.
+  - anime tqb r 4/4, anime front lo reveal 4/4 (as strong as the grey mannequin).
+  - photo woman back eye 4/4, tqb r 4/4 - clean, the bag strap now crosses her back. No skin or nude body pasted anywhere.
+  - Unchanged: the 2D street still does not move on the turns (round 23's open problem - a wording issue, not the ref).
+  - Read: THE DOLL IS THE PEOPLE REF from now on (no seams/joints/bald dome to copy); re-render other stops from
+    doll_refs.blend when they are next used. Pose change = Fabio re-poses in his file and re-exports the OBJ.

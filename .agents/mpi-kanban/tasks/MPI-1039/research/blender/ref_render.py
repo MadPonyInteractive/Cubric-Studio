@@ -13,6 +13,8 @@ s.render.image_settings.file_format = 'PNG'
 out = os.path.dirname(os.path.abspath(__file__)) + '/out'
 if 'StandIn' in bpy.data.objects:  # <shape>_refs.blend (obj_build.py): the stand-in renders to out/<refdir>/
     out += '/' + bpy.data.objects['StandIn'].get('refdir', 'object')
+elif 'refdir' in s:  # doll_refs.blend (doll_build.py) -> out/doll/
+    out += '/' + s['refdir']
 if 'outline' in sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else False:
     out += '/outline'
     sh = s.display.shading
@@ -22,7 +24,9 @@ if 'outline' in sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else Fal
     sh.show_cavity = True
     sh.cavity_type = 'WORLD'
     sh.cavity_ridge_factor, sh.cavity_valley_factor = 2.0, 2.0
-    bpy.data.objects['SK_MannequinMesh'].color = (0.16, 0.16, 0.16, 1)
+    for name in ('SK_MannequinMesh', 'Doll'):
+        if name in bpy.data.objects:
+            bpy.data.objects[name].color = (0.16, 0.16, 0.16, 1)
     for o in [o for o in s.objects if o.name.startswith('StandIn')]:  # its front panel + disc stay as outlines
         o.color = (0.16, 0.16, 0.16, 1)
     if 'nodisc' in sys.argv and 'StandIn_disc' in s.objects:  # round 11 painted the disc onto the object's side

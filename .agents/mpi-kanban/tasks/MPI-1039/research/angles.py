@@ -2572,7 +2572,7 @@ def _pad_ref(render, size):  # square ref -> source width, edge pixels repeated 
     top = (h - w) // 2
     a = np.pad(np.asarray(im), ((top, h - w - top), (0, 0), (0, 0)), mode='edge')
     rel = f'pad_{w}x{h}/{render}'
-    os.makedirs(os.path.join(BLENDER_REFS, f'pad_{w}x{h}'), exist_ok=True)
+    os.makedirs(os.path.dirname(os.path.join(BLENDER_REFS, rel)), exist_ok=True)  # render may be 'doll/<cam>'
     Image.fromarray(a).save(os.path.join(BLENDER_REFS, rel + '.png'))
     return rel
 
@@ -2729,9 +2729,154 @@ def blender22(port):
     _sheet(rows, 'mq_blender22_turns')
 
 
+# Round 23 (Fabio 2026-10-24, after rounds 19-22): every source so far is a PHOTO, and the recipe's words (real person,
+# studio, softbox) may pull a 2D source toward a photo. One FLAT ANIME source: the round-7 woman redrawn by Krea2's edit
+# with its Retro Anime style LoRA (rack index 6; the graph appends the trigger), two seeds, `sources` stops there to
+# pick one. Then the people recipe on it - back eye, tqb r, front hi, front lo with round 19's reveal, tq fl far with
+# round 21's zoom words - with a keep clause that holds the DRAWING style instead of "the real person". Refs padded to
+# the source size (round 20). The sheet sets the photo cells (rounds 7/19/21, same seeds) above the drawn ones.
+MQ23_SOURCE = ('Redraw this photo as a flat 2D anime drawing with clean outlines and flat colours. Keep the same woman, '
+               'her dark wavy hair, rust-orange turtleneck, dark blue jeans, white sneakers and brown shoulder bag, her '
+               'pose and the plain grey studio backdrop.')
+MQ23_PLACE = ('Replace the plain backdrop with a sunny Japanese shopping street: shop fronts with signs and awnings on '
+              'both sides, a red vending machine, overhead power lines, the street running away behind her. Keep the '
+              'same woman, her hair, clothes, bag, pose and full-body framing, and the flat anime drawing style.')
+MQ23_VIEWS = {
+    **{v: MQ7_BODY[v] for v in ('back eye', 'tqb r', 'front hi')},
+    # round 19's reveal and round 21's far words, rewritten for the street Krea2 put her on (street 222)
+    'front lo reveal': ('front_lo', 'Shift the viewpoint of the first image down to match the mannequin reference in '
+                        'the second image: a worm\'s-eye view from just above the street surface in front of the '
+                        'woman, looking steeply up at her. Her white sneakers and jeans are now large at the bottom of '
+                        'the frame, her body rises and narrows toward the top, the underside of her chin shows, her '
+                        'head is small near the top edge, and above her the open blue sky with the power lines and the '
+                        'shop signs now fills the background, the shop fronts leaning inward at both sides.'),
+    'tq fl far': ('tq_fl', MQ7_BODY['tq fl'][1].replace(' at the same height and distance', ' at the same height') +
+                  ' The view is pulled far back from the first image: her whole body from head to sneakers now shows '
+                  'small in the middle of the frame, with the full height of the shop fronts and their signs at both '
+                  'sides, much more of the street in front of her and the street running on behind her.'),
+}
+MQ23_KEEP = (' Take only the viewing angle from the mannequin reference. The subject is still the same drawn anime '
+             'woman from the first image, with her own head and hair, hands, clothes and shoes; keep her identity, pose, '
+             'the place and the flat 2D anime drawing style of the first image - clean outlines, flat colours - '
+             'unchanged. It stays a drawing, not a photo.')
+MQ23_ZOOM_KEEP = (' Take only the viewing angle from the mannequin reference. The subject is still the same drawn anime '
+                  'woman from the first image, with her own head and hair, hands, clothes and shoes; keep her identity '
+                  'and pose, and the same place and flat 2D anime drawing style as the first image - clean outlines, '
+                  'flat colours. It stays a drawing, not a photo.')
+
+
+def blender23(port, pick):
+    done = os.path.join(OUT, 'mq_blender23.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    photo = json.load(open(os.path.join(OUT, 'pitch.json')))['body input']
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+    for seed in (111, 222):
+        key = f'anime {seed}'
+        if key not in res:
+            res[key] = gen(port, {'modelId': 'krea2', 'operation': 'krea2Edit', 'turbo': True, 'styleSelect': 6,
+                                  'seed': seed, 'positive': MQ23_SOURCE, 'cardName': f'angles mq23 {key}',
+                                  'media': [{'role': 'inputImage', 'url': photo}]})
+            json.dump(res, open(done, 'w'), indent=1)
+    if pick == 'sources':
+        _sheet([[(photo, 'photo source'), (res['anime 111'], 'anime 111'), (res['anime 222'], 'anime 222')]],
+               'mq_blender23_sources')
+        return
+    for seed in (111, 222):  # Fabio: a place behind her is the harder test - put anime 111 on a street
+        key = f'street {seed}'
+        if key not in res:
+            res[key] = gen(port, {'modelId': 'krea2', 'operation': 'krea2Edit', 'turbo': True, 'styleSelect': 6,
+                                  'seed': seed, 'positive': MQ23_PLACE, 'cardName': f'angles mq23 {key}',
+                                  'media': [{'role': 'inputImage', 'url': res['anime 111']}]})
+            json.dump(res, open(done, 'w'), indent=1)
+    if pick == 'street':
+        _sheet([[(res['anime 111'], 'anime 111'), (res['street 111'], 'street 111'),
+                 (res['street 222'], 'street 222')]], 'mq_blender23_street')
+        return
+    src = res[pick]
+    size = Image.open(disk(src)).size
+    r20 = json.load(open(os.path.join(OUT, 'mq_blender20.json')))
+    for v, (render, text) in MQ23_VIEWS.items():
+        ref = f'ref {size[0]}x{size[1]} {render}'
+        if ref not in res:
+            res[ref] = r20.get(ref) or import_ref(port, _pad_ref(render, size), f'angles mq23 {ref}')
+            json.dump(res, open(done, 'w'), indent=1)
+        keep = MQ23_ZOOM_KEEP if v.endswith('far') else MQ23_KEEP
+        for seed in MQ10_SEEDS:
+            key = f'{pick} {seed} {v}'
+            if key not in res:
+                res[key] = gen(port, {**FAST, 'ratio': '9:16', 'seed': seed, 'positive': text + keep,
+                                      'cardName': f'angles mq23 {key}',
+                                      'media': [{'role': 'inputImage', 'url': src},
+                                                {'role': 'inputImage2', 'url': res[ref]}]})
+                json.dump(res, open(done, 'w'), indent=1)
+    # photo cells on the same seeds: rounds 7 (111/222) + 19 (333/444) for the plain views, 19 for the reveal low,
+    # 21 for the zoom words
+    r7, r19, r21 = (json.load(open(os.path.join(OUT, f'mq_blender{n}.json'))) for n in (7, 19, 21))
+    photo_cell = {'front lo reveal': lambda s: r19.get(f'woman lo {s} front lo reveal'),
+                  'tq fl far': lambda s: r21.get(f'woman zoom {s} tq fl far')}
+    old = lambda s, v: photo_cell[v](s) if v in photo_cell else (r7 if s in (111, 222) else r19).get(f'woman {s} {v}')
+    rows = [[(photo, 'photo source'), (src, f'{pick} source (anime)')],
+            [(None, 'ref (padded)')] + [(res[f'ref {size[0]}x{size[1]} {r}'], v) for v, (r, _) in MQ23_VIEWS.items()]]
+    for s in MQ10_SEEDS:
+        rows.append([(None, f'{s} photo (studio)')] + [(old(s, v), v) for v in MQ23_VIEWS])
+        rows.append([(None, f'{s} anime')] + [(res.get(f'{pick} {s} {v}'), v) for v in MQ23_VIEWS])
+    _sheet(rows, 'mq_blender23_anime')
+
+
+# Round 24 (Fabio 2026-10-24, after round 23): the UE mannequin's bald head and jointed limbs got pasted on the 2D back
+# views. His unisex ControlNet doll instead (blender/doll_build.py: his OBJ export of Body_Full_01 in a natural pose,
+# skin tone so it stands off the walls, fitted to the mannequin's height in the same scene -> out/doll/<cam>.png).
+# The round-23 back views on the anime street + the low view (the ref with the most body in it), and the photo woman's
+# back views, same words and seeds; the grey-mannequin cells sit above for comparison.
+MQ24_RUNS = {  # cell -> (source, views, keep, ratio)
+    'anime': ('street 222', {v: MQ23_VIEWS[v] for v in ('back eye', 'tqb r', 'front lo reveal')}, MQ23_KEEP, '9:16'),
+    'photo': ('body input', {v: MQ7_BODY[v] for v in ('back eye', 'tqb r')}, MQ6_KEEP, '9:16'),
+}
+
+
+def blender24(port):
+    done = os.path.join(OUT, 'mq_blender24.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    r23 = json.load(open(os.path.join(OUT, 'mq_blender23.json')))
+    srcs = {**json.load(open(os.path.join(OUT, 'pitch.json'))), 'street 222': r23['street 222']}
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+    cells = []
+    for name, (srckey, views, keep, ratio) in MQ24_RUNS.items():
+        size = Image.open(disk(srcs[srckey])).size
+        for v, (render, text) in views.items():
+            ref = f'ref {size[0]}x{size[1]} doll/{render}'
+            if ref not in res:
+                res[ref] = import_ref(port, _pad_ref(f'doll/{render}', size), f'angles mq24 {ref}')
+                json.dump(res, open(done, 'w'), indent=1)
+            cells.append((name, v, ref))
+            for seed in MQ10_SEEDS:
+                key = f'{name} {seed} {v}'
+                if key not in res:
+                    res[key] = gen(port, {**FAST, 'ratio': ratio, 'seed': seed, 'positive': text + keep,
+                                          'cardName': f'angles mq24 {key}',
+                                          'media': [{'role': 'inputImage', 'url': srcs[srckey]},
+                                                    {'role': 'inputImage2', 'url': res[ref]}]})
+                    json.dump(res, open(done, 'w'), indent=1)
+    # grey mannequin cells: round 23 for the anime street, rounds 7 (111/222) + 19 (333/444) for the photo woman
+    r7, r19 = (json.load(open(os.path.join(OUT, f'mq_blender{n}.json'))) for n in (7, 19))
+    old = {'anime': lambda s, v: r23.get(f'street 222 {s} {v}'),
+           'photo': lambda s, v: (r7 if s in (111, 222) else r19).get(f'woman {s} {v}')}
+    rows = [[(None, 'doll ref (padded)')] + [(res[ref], f'{n}: {v}') for n, v, ref in cells]]
+    for s in MQ10_SEEDS:
+        rows.append([(None, f'{s} UE mannequin')] + [(old[n](s, v), v) for n, v, _ in cells])
+        rows.append([(None, f'{s} doll')] + [(res.get(f'{n} {s} {v}'), v) for n, v, _ in cells])
+    _sheet(rows, 'mq_blender24_doll')
+
+
 if __name__ == '__main__':
     if sys.argv[1:2] == ['best']:
         best()
+    elif sys.argv[2:3] == ['blender24']:
+        blender24(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['blender23']:
+        blender23(int(sys.argv[1]), ' '.join(sys.argv[3:]) or 'street 222')
     elif sys.argv[2:3] == ['blender22']:
         blender22(int(sys.argv[1]))
     elif sys.argv[2:3] == ['blender21']:
