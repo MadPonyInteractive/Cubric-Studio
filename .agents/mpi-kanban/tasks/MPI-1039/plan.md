@@ -161,6 +161,39 @@ mannequin's pose/body (and the pasted mannequin on objects). Base = 50 steps cfg
 `pitch_object.jpg`, prompt only, no ref) = PITCH passed at every stop, YAW failed (the back never showed). Round 7
 with the mannequin ref did WORSE on object low (pasted mannequin). So: object heights by prompt only, object turns
 still unsolved.
+ROUND 8 STARTED 2026-10-24 (session "Flux 3 on flows 12", `angles.py <port> blender8`, sheets `mq_blender8_*.jpg`):
+base FLUX.3 + `negative` (connector param name; live on base only) on the weak cells; object refs = a YELLOW stand-in
+box (Fabio: yellow for contrast) with a white front panel + black disc + dark tab on its frame-right end, built by
+`blender/obj_build.py` into a NEW file `out/object_refs.blend` (mannequin hidden, face cams dropped; posed file never
+written); `ref_render.py` sees `StandIn` and writes to `out/object/`.
+FABIO 2026-10-24 (going to bed, overnight brief): if round 8 is not nice, KEEP TRYING DIFFERENT APPROACHES, use the
+GPU as much as needed, aim to have a working solution by morning. May go into Blender again with a different object
+if the box is hard for the model - even the mannequin instead of an object. The speaker is too close to the box (both
+wide blocks); a PERFUME BOTTLE (or similar) is a better rotation test.
+ROUND 8 DONE (read in validation.md): base + negative LOSES to Turbo (people worse, top-down back to a copy) and does
+not stop a paste; the yellow box gets pasted into the speaker, but carried one true back view. Turbo stays.
+ROUND 9 (`blender9`, sheets `mq_blender9_{bottle,speaker}.jpg`): perfume bottle source (`BOTTLE_SOURCE`, t2i) + bottle
+stand-in (`obj_build.py -- bottle` -> `out/bottle_refs.blend` -> `out/bottle/`), and the speaker again; Turbo; arms
+ref / line (`ref_render.py -- outline` on the stand-in -> `out/<dir>/outline/`) / prompt (no ref).
+ROUND 10 (`blender10`, sheet `mq_blender10_face.jpg`): face heights with steeper refs (`face_build.py` ->
+`out/face_refs.blend`: face_xlo / face_xhi) + "keeps looking straight ahead, past the view"; arms xref / ref / prompt.
+OVERNIGHT 2026-10-24 RESULTS (rounds 9-14, all read in validation.md):
+- OBJECT RECIPE FOUND (round 13 breakthrough, round 14 confirms 66/72 = 92% over nine views on the speaker + a
+  perfume bottle): ONE Turbo edit; picture 2 = the PANEL-ONLY OUTLINE stand-in render (`obj_build.py [-- bottle]` ->
+  `ref_render.py -- outline nodisc` -> `out/<dir>/outline_nodisc/`); the prompt = BFL voice + an end state that NAMES
+  THE OBJECT'S OWN PARTS per view (`MQ14_VIEWS`: "its dark underside with the four rubber feet", "the cap as a gold
+  octagon", which end is nearest at which frame side) + `MQ9_KEEP_REF['line']` + `MQ9_KEEP`. Generic wording ("its top
+  face", "its back") never reached top-down or the rear 3/4 - naming the parts did. In the Flow the agent (Cosmo) can
+  see the object and write these. Solid stand-ins get PASTED; the outline mannequin is worse than the stand-in.
+- Base + negative (round 8) is NOT a lever; Turbo stays.
+- FACE CLOSE-UP HEIGHTS SOLVED (round 15 studio 4/4 lo + 4/4 hi, round 16 a man outdoors 4/4 + 4/4): steep head refs
+  (`face_build.py` -> face_xlo / face_xhi) + an end state that names WHAT THE NEW VIEW REVEALS behind the subject
+  (lo: "the studio ceiling with a softbox" / "upper floors leaning in and the open sky"; hi: "the studio floor" /
+  "the cobbles fill the background"). Without that a close-up height becomes a head tilt (rounds 10, 12 failed).
+- ONE RULE NOW for people, faces and objects: one Turbo edit, an exact ref (mannequin for people, panel-only outline
+  stand-in for objects), BFL voice, an end state naming the SPECIFIC things now in view, the matching keep clause.
+NEXT: Fabio's eye test on `mq_blender14_{speaker,bottle}.jpg`, `mq_blender15_face.jpg`, `mq_blender16_manface.jpg`;
+then the Flow design: gizmo -> nearest ref render -> the agent (it sees the picture) writes the end state -> one edit.
 REF PIPELINE NOW (2026-10-24, SUPERSEDES ref_post.py): the pose lives in Fabio's hand-posed copy
 `research/blender/out/UE4_Mannequinn_refs.blend` (Blender 5.2; out/ is gitignored - it exists only on this disk). It
 was made ONCE by `cp D:\Blender\Other\UE4_Mannequinn.blend` + `blender-5.2 -b <copy> --python ref_build.py --

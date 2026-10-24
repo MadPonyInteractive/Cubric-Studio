@@ -313,3 +313,105 @@ user's ratio later; a crop changes the zoom, so the gizmo may need per-ratio-fam
     mild. A human ref does not transfer to objects: needs an object stand-in ref (a box) and its own keep.
   - Read: the recipe holds for full-body PEOPLE in a scene or studio at every tested view. Face close-ups: turns yes,
     heights no. Objects: a different ref.
+- 2026-10-24 ROUND 8, BASE FLUX.3 + NEGATIVE + YELLOW BOX STAND-IN (`angles.py <port> blender8`, sheets
+  `research/sheets/mq_blender8_{man,woman,face,object,box}.jpg`, results `research/out/mq_blender8.json`). Turbo off (50
+  steps, cfg 3.5, ~150 s an edit vs ~40 s) so `negative` is live: against the grey mannequin body/pose (people) and the
+  mannequin + stand-in (objects). Box stand-in = `blender/obj_build.py` (yellow, white front panel + black disc, dark
+  tab on its frame-right end). Same seeds as round 7 (111, 222), so each sheet carries round 7's Turbo rows.
+  - man: front lo / back lo 2/2 a VERY low worm's-eye that crops his head out (over-shoots); top2 FAIL 2/2 (a copy) -
+    round 6 Turbo was 8/8 true top-down. Base loses.
+  - woman: front lo 111 odd (bent forward, a second person's arms behind her), 222 a copy; back lo 2/2 mild. Worse
+    than round 7 Turbo.
+  - face: front lo 111 slight, 222 none; front hi none. No better than Turbo.
+  - object + mannequin ref: front lo still PASTES the mannequin 2/2 despite the negative; the rest are near copies.
+  - object + box ref: the stand-in is PASTED (front lo, front hi, tq fl on 111; front hi 222 stacks a second box);
+    back eye 222 is a TRUE BACK (plain black back, strap mirrored to frame-left) - the box does carry the turn; 111
+    back eye paints the yellow back onto the speaker. The negative does not stop a paste.
+  - Read: base + negative is not a lever - Turbo stays. A stand-in of a different look than the object gets pasted;
+    the box ref carries the yaw at least once. Round 9: a bottle (Fabio: a fairer rotation test), Turbo, three arms -
+    stand-in / outline stand-in / no ref.
+- 2026-10-24 ROUND 9, PERFUME BOTTLE + THREE OBJECT ARMS, TURBO (`angles.py <port> blender9`, sheets
+  `research/sheets/mq_blender9_{bottle,speaker}.jpg`, results `research/out/mq_blender9.json`). Bottle source =
+  `BOTTLE_SOURCE` t2i (frosted pink flask, label front, plain back + a small sticker); bottle stand-in =
+  `obj_build.py -- bottle`. Arms: 'ref' (yellow stand-in), 'line' (its outline render), 'prompt' (no ref). Seeds
+  111 + 222, six views.
+  - ref (solid yellow): PASTED into front lo / front hi / 3/4 on most cells (both sources); back eye a true back on
+    1/2 each. Not usable.
+  - line (outline stand-in): speaker back eye 2/2 TRUE BACK (plain dark back, strap mirrored to frame-left); bottle
+    back eye 1/2 (label gone). front lo 2/2 both (the object tilts to show its underside); front hi 1/2 good, 1/2 a
+    faint ghost box under it; 3/4 front mild-to-good, a faint outline circle sometimes painted on the bottle's side.
+  - prompt (no ref): bottle back eye 0/2 (label stays); speaker back eye 2/2 but repaints the back green; front lo
+    tilts 2/2; 3/4 front plausible.
+  - All arms FAIL top2 (a slightly high copy) and the 3/4 REAR (the front still shows).
+  - Read: for objects the OUTLINE stand-in is the ref - it carries the back view without pasting; heights tilt the
+    object (reads as the view). Open: top-down and rear 3/4. Round 11 = pass rate on 4 seeds vs an outline
+    mannequin, flat-lay wording for top2, back-then-45 two-step for the rear 3/4.
+- 2026-10-24 ROUND 10, FACE CLOSE-UP HEIGHTS AGAIN (`angles.py <port> blender10`, sheet
+  `research/sheets/mq_blender10_face.jpg`, results `research/out/mq_blender10.json`). Steeper refs (`face_build.py`:
+  face_xlo ~40 deg below, face_xhi ~45 deg above), wording adds "keeps looking straight ahead, past the view"; arms
+  xref / ref (round 7) / prompt; Turbo, seeds 111-444.
+  - lo: xref 2/4 mild, ref 1/4 mild; prompt 2/4 STRONG but as a HEAD TILT (chin raised, looking up) - not a camera
+    move. hi: 0/4 on every arm (prompt 2/4 tucks the chin and looks up into the lens).
+  - Read: on a close-up the model turns a height change into a head tilt; the gaze clause is ignored; steeper refs
+    do not help. Close-up heights stay unsolved by one edit. Round 12: zoom out -> body height recipe -> zoom in.
+- 2026-10-24 ROUND 11, OBJECT PASS RATE ON 4 SEEDS (`angles.py <port> blender11`, sheets
+  `research/sheets/mq_blender11_{bottle,speaker}.jpg`, results `research/out/mq_blender11.json`). Turbo, seeds
+  111-444. Arms: 'line' (outline stand-in), 'mline' (outline MANNEQUIN, Fabio's idea); top2 in flat-lay wording;
+  '2step' = line back view, then 45 degrees on round with the tq_bl outline ref.
+  - speaker, line: back eye 3/4 TRUE BACK (444 an end-on view); 3/4 front 3/4 (strap end nearer, right way; 222 pastes
+    the disc); front lo 4/4 (tilts); 3/4 rear 0/4 (the grille still faces the view); top2 0/4.
+  - bottle, line: back eye 2/4 (label gone); front lo 4/4; front hi 3/4; 3/4 front 4/4 turn but the outline's DISC is
+    painted on the bottle's side as a faint circle; 3/4 rear 1/4; top2 0/4.
+  - mline (mannequin outline) on objects: worse on every view (back 0/4 bottle) - the stand-in wins.
+  - 2step rear 3/4: lands a back view 3/4 speaker, 2/4 bottle, but the 45-degree angle on only ~1/4 each.
+  - Read: objects with the outline stand-in in one edit: low, high, back, front 3/4 work at 50-100%. Rear 3/4 and
+    top-down do not, with generic wording. Round 13: object-SPECIFIC end states (an agent can write them in the Flow).
+- 2026-10-24 ROUND 12, FACE HEIGHTS BY ZOOM OUT -> BODY RECIPE -> ZOOM IN (`angles.py <port> blender12`, sheet
+  `research/sheets/mq_blender12_face.jpg`, results `research/out/mq_blender12.json`). Turbo, seeds 111-444.
+  - zoom out (no ref): 4/4 a clean waist-up view, same person and light.
+  - height on the waist-up (body wording + MQ6_KEEP + full-body ref): lo 0/4 (copies); hi 1/4 a true high view (333,
+    whole body from above), 444 bows her head, 2/4 copies.
+  - zoom back in: 0/8 - returns its input unchanged.
+  - Read: dead end. A plain-backdrop portrait gives the model nothing to lean; the zoom-in edit does not move. Face
+    close-up heights are a model limit at this point - the Flow should offer TURNS ONLY on a close-up (Fabio's call).
+- 2026-10-24 ROUND 13, OBJECT-SPECIFIC END STATES - BREAKTHROUGH FOR OBJECTS (`angles.py <port> blender13`, sheets
+  `research/sheets/mq_blender13_{speaker,bottle}.jpg`, results `research/out/mq_blender13.json`). The end state names
+  the object's own parts (as the Flow's agent would write after seeing it): top2, back eye, 3/4 rear. Arms 'line'
+  (outline stand-in) and 'prompt'. Turbo, seeds 111-444.
+  - speaker, line: top2 4/4 TRUE TOP-DOWN (top face + three buttons, strap at frame-right); back eye 4/4 (plain dark
+    back, strap at frame-left); 3/4 rear 4/4 (strap end nearest at frame-left, back running away). Colours true.
+  - speaker, prompt: top2 4/4, back 4/4, rear 3/4 4/4 in angle, but REPAINTS the body green on 3/4 back + 2/4 rear.
+  - bottle, line: top2 4/4 (cap octagon centred; 444 shows a sliver of label); back 4/4 (label gone, 333 a faint
+    shadow through the frosted glass); 3/4 rear 4/4 (side + back, label hidden). bottle, prompt: same 4/4s.
+  - Read: the generic wording, not the model, was the limit. OBJECT RECIPE = one edit, end state naming the object's
+    own parts, + the OUTLINE stand-in ref (keeps colours). Round 14 = every view on both objects with this wording and
+    the panel-only outline (`ref_render.py -- outline nodisc`: round 11 painted the disc on the bottle's side).
+- 2026-10-24 ROUND 14, OBJECT RECIPE ON EVERY VIEW (`angles.py <port> blender14`, sheets
+  `research/sheets/mq_blender14_{speaker,bottle}.jpg`, results `research/out/mq_blender14.json`). Object-specific end
+  states (`MQ14_VIEWS`) + the PANEL-ONLY outline stand-in (`ref_render.py -- outline nodisc`), one edit, Turbo, seeds
+  111-444, nine views.
+  - speaker 34/36: front lo 4/4 (underside + feet), front hi 4/4 (top + buttons), top2 4/4, back eye 4/4 (plain back,
+    strap at frame-left), back lo 3/4 (222 muddled), 3/4 front L 4/4, 3/4 front R 4/4, 3/4 rear L 4/4, 3/4 rear R 4/4.
+  - bottle 32/36: front lo 3/4 (222 near copy), front hi 4/4, top2 4/4 (cap octagon), back eye 4/4, back lo 2/4 (222
+    stacks a second bottle, 444 label shows), 3/4 front L/R 4/4 each, 3/4 rear L 4/4, 3/4 rear R 3/4 (444 label shows).
+  - no disc painted on any side now (round 11's artefact gone).
+  - Read: OBJECT RECIPE CONFIRMED, 66/72 (92%) over nine views and two unlike objects. Weakest view = back lo.
+- 2026-10-24 ROUND 15, FACE HEIGHTS BY NAMING WHAT NEWLY SHOWS - BREAKTHROUGH FOR CLOSE-UPS (`angles.py <port>
+  blender15`, sheet `research/sheets/mq_blender15_face.jpg`, results `research/out/mq_blender15.json`). Round 13's
+  lesson on the face: the end state brings in the studio the new view reveals (lo: "the studio ceiling with a softbox
+  light now shows instead of the grey backdrop"; hi: "the grey studio floor now fills the background"). Arms xref
+  (steep face refs) / prompt. Turbo, seeds 111-444.
+  - xref lo 4/4 TRUE LOW VIEWS (ceiling + softbox behind her, under-chin perspective, head near upright); prompt lo
+    4/4 but leans more on a head tilt.
+  - xref hi 4/4 moderate-to-good high views (hair parting large, face foreshortened, she looks up into the view);
+    prompt hi 4/4 similar.
+  - Read: close-up heights WORK when the end state names what the new view reveals behind the subject. One rule now
+    covers people, faces and objects: one edit, an exact ref, an end state that names the specific things now in
+    view. Round 16 checks it off the studio (a man's close-up outdoors).
+- 2026-10-24 ROUND 16, THE FACE RULE OFF THE STUDIO (`angles.py <port> blender16`, sheet
+  `research/sheets/mq_blender16_manface.jpg`, results `research/out/mq_blender16.json`). New source: a man's
+  head-and-shoulders in an old-town street (`STREET_FACE_SOURCE`, t2i). Steep refs; the end state names what the view
+  reveals (lo: upper floors leaning in + open sky; hi: the cobbles fill the background). Turbo, seeds 111-444.
+  - lo 4/4 true low views (house fronts lean inward, sky above, underside of beard and jaw); hi 4/4 strong high views
+    (cobbled street fills the background, looking down on him); 3/4 front L 4/4.
+  - Read: the rule generalises off the studio. Close-up heights are SOLVED in one edit.

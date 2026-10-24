@@ -1478,6 +1478,598 @@ def blender7(port):
         img.save(os.path.join(HERE, 'sheets', f'mq_blender7_{name}.jpg'), quality=90)
 
 
+# Round 8 (Fabio 2026-10-24, after round 7): BASE FLUX.3 (Turbo off: 50 steps, cfg 3.5) so a NEGATIVE prompt is live,
+# aimed at what leaked in round 7 - the mannequin's grey body and pose. Reruns only the weak cells. Objects get a
+# second ref set: the stand-in box (blender/obj_build.py -> out/object/: yellow, white front panel + black disc, plain
+# yellow back, dark tab on its frame-right end), whose keep names which face is the front. The sheet's last object row is
+# the prompt-only pitch run of 2026-10-23 (Turbo, no ref) for the heights.
+BASE = {**FAST, 'turbo': False}
+MQ8_NEG = ('grey mannequin, grey plastic figure, faceless smooth head, jointed doll body, A-pose, arms held away from '
+           'the body, a second figure')
+MQ8_OBJ_NEG = ('grey mannequin, human figure, person, body parts, grey box, plain grey block, white panel with a '
+               'black disc, yellow box, plain yellow block, a second object')
+MQ8_BOX_KEEP = (' Take only the viewing angle from the yellow stand-in box in the second image: its white panel with '
+                'the black disc is the front of the object, its plain yellow face is the back. The object stays exactly '
+                'the object from the first image, with its own shape, colours, materials and details; keep the '
+                'background, the light and the image style of the first image unchanged.')
+MQ8_OBJ = {**{v: (r, t.replace('the mannequin reference in the second image', 'the reference in the second image'))
+              for v, (r, t) in MQ7_OBJ.items()},
+           'tq fl': ('tq_fl', 'Shift the viewpoint of the first image around the object to match the reference in the '
+                     'second image: a three-quarter view from in front of it and 45 degrees around toward its '
+                     'frame-right end, at the same height and distance. Its front face now shows at an angle with its '
+                     'frame-right end nearer the view and larger, and its far end hidden.')}
+MQ8_RUNS = {  # cell -> (pitch.json source key, views, ref folder, keep, negative, views to run)
+    'man': ('scene input', MQ7_BODY, '', MQ6_KEEP, MQ8_NEG, ('front lo', 'back lo', 'top2')),
+    'woman': ('body input', MQ7_BODY, '', MQ6_KEEP, MQ8_NEG, ('front lo', 'back lo')),
+    'face': ('face input', MQ7_FACE, '', MQ7_FACE_KEEP, MQ8_NEG, ('front lo', 'front hi')),
+    'object': ('object input', MQ7_OBJ, '', MQ7_OBJ_KEEP, MQ8_OBJ_NEG, tuple(MQ7_OBJ)),
+    'box': ('object input', MQ8_OBJ, 'object/', MQ8_BOX_KEEP, MQ8_OBJ_NEG, tuple(MQ8_OBJ)),
+}
+MQ8_PROMPT_ONLY = ('object front xlo', 'object front lo', 'object front hi', 'object front xhi')
+
+
+def blender8(port):
+    done = os.path.join(OUT, 'mq_blender8.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    pres = json.load(open(os.path.join(OUT, 'pitch.json')))
+    r7 = json.load(open(os.path.join(OUT, 'mq_blender7.json')))
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+    for name, (srckey, views, folder, keep, neg, run) in MQ8_RUNS.items():
+        for v in run:
+            render = folder + views[v][0]
+            if f'ref {render}' not in res:
+                res[f'ref {render}'] = import_ref(port, render, f'angles mq8 ref {render}')
+                json.dump(res, open(done, 'w'), indent=1)
+        for seed in MQ7_SEEDS:
+            for v in run:
+                key = f'{name} {seed} {v}'
+                if key not in res:
+                    res[key] = gen(port, {**BASE, 'seed': seed, 'positive': views[v][1] + keep, 'negative': neg,
+                                          'cardName': f'angles mq8 {key}',
+                                          'media': [{'role': 'inputImage', 'url': pres[srckey]},
+                                                    {'role': 'inputImage2', 'url': res[f'ref {folder}{views[v][0]}']}]})
+                    json.dump(res, open(done, 'w'), indent=1)
+    for name, (srckey, views, folder, _, _, run) in MQ8_RUNS.items():
+        r7name = 'object' if name == 'box' else name
+        rows = [[(pres[srckey], 'source')] + [(res[f'ref {folder}{views[v][0]}'], f'ref {v}') for v in run]]
+        rows += [[(None, f'seed {s} base+neg')] + [(res[f'{name} {s} {v}'], v) for v in run] for s in MQ7_SEEDS]
+        rows += [[(None, f'seed {s} r7 turbo')] + [(r7.get(f'{r7name} {s} {v}'), v) for v in run] for s in MQ7_SEEDS]
+        if name == 'box':
+            rows.append([(None, 'prompt only 10-23')] + [(pres[k], k[13:]) for k in MQ8_PROMPT_ONLY])
+        cols = max(len(row) for row in rows)
+        cell, h = 300, 324
+        img = Image.new('RGB', (cell * cols, h * len(rows)), 'white')
+        d = ImageDraw.Draw(img)
+        for r, row in enumerate(rows):
+            for c, (url, label) in enumerate(row):
+                if url:
+                    im = Image.open(disk(url)).convert('RGB')
+                    im.thumbnail((cell, h - 24))
+                    img.paste(im, (c * cell, r * h + 24))
+                d.text((c * cell + 4, r * h + 4), label, fill='black')
+        img.save(os.path.join(HERE, 'sheets', f'mq_blender8_{name}.jpg'), quality=90)
+
+
+def _sheet(rows, name, cell=300, h=324):  # rows of (url | None, label)
+    img = Image.new('RGB', (cell * max(len(r) for r in rows), h * len(rows)), 'white')
+    d = ImageDraw.Draw(img)
+    for r, row in enumerate(rows):
+        for c, (url, label) in enumerate(row):
+            if url:
+                im = Image.open(disk(url)).convert('RGB')
+                im.thumbnail((cell, h - 24))
+                img.paste(im, (c * cell, r * h + 24))
+            d.text((c * cell + 4, r * h + 4), label, fill='black')
+    img.save(os.path.join(HERE, 'sheets', f'{name}.jpg'), quality=90)
+
+
+# Round 9 (Fabio 2026-10-24, overnight): the speaker is too close to the box stand-in to be a fair test - a PERFUME
+# BOTTLE (an upright, nearly symmetric object whose only front cue is its label) with a matching bottle stand-in
+# (obj_build.py -- bottle -> out/bottle/), and the speaker again with the box. TURBO (round 8: base + negative lost to
+# Turbo on people and still pasted the stand-in on objects). Three arms per view: 'ref' = the yellow stand-in, 'line' =
+# its outline render (`ref_render.py -- outline`: less surface to paste; panel + disc still mark the front),
+# 'prompt' = no ref at all - does a ref earn its place on objects?
+BOTTLE_SOURCE = (
+    'Full-color plain product photograph of a perfume bottle floating upright in mid-air in the center of the frame, '
+    'seen straight from the front at its own height, against a plain light-grey seamless backdrop with soft even '
+    'studio light. The bottle is a flat rectangular flask of opaque frosted pale-pink glass with rounded edges, a '
+    'short neck and a faceted gold cap. Its front carries a cream paper label with a black monogram and a thin gold '
+    'border; its back is plain frosted glass with only a small white sticker near the bottom; its two narrow sides '
+    'are plain. No props, no text, no reflections.')
+MQ9_VIEWS = {  # key: (stand-in render, end state); '{ref}' becomes ' to match the reference in the second image' or ''
+    'front lo': ('front_lo', 'Shift the viewpoint of the first image down{ref}: a low view from below the object, '
+                 'looking steeply up at it. Its underside now shows, its front face leans away above it, its top is '
+                 'small near the top of the frame, and the backdrop is seen from below.'),
+    'front hi': ('front_hi', 'Shift the viewpoint of the first image up{ref}: a high view from above and in front of '
+                 'the object, looking steeply down at it. Its top now shows large near the top of the frame, its front '
+                 'face is foreshortened below it, and the backdrop fills the space behind it.'),
+    'top2': ('top2', 'Shift the viewpoint of the first image up{ref}: a view from directly above the object, looking '
+             'straight down. Its top fills the middle of the frame, its front and sides are hidden below it, and the '
+             'backdrop surrounds it on every side.'),
+    'back eye': ('back_eye', 'Shift the viewpoint of the first image around the object{ref}: a view from directly '
+                 'behind it at the same height and distance. Its back now faces the view, its front face and '
+                 'everything on it are hidden, and the backdrop is seen from the opposite side.'),
+    'tq fl': ('tq_fl', 'Shift the viewpoint of the first image around the object{ref}: a three-quarter view from in '
+              'front of it and 45 degrees around toward its frame-right side, at the same height and distance. Its '
+              'front face now turns at an angle toward frame-left, and the side that was at frame-right in the first '
+              'image now shows, nearer the view.'),
+    'tqb l': ('tq_bl', 'Shift the viewpoint of the first image around the object{ref}: a three-quarter rear view from '
+              'behind it and 45 degrees toward the side that was at frame-right in the first image. Its back and that '
+              'side show at an angle, and its front face and everything on it are hidden.'),
+}
+MQ9_KEEP_REF = {
+    'ref': (' Take only the viewing angle from the yellow stand-in in the second image: its white panel with the black '
+            'disc is the front of the object, its plain yellow face is the back.'),
+    'line': (' Take only the viewing angle from the outline drawing of a stand-in in the second image: the side with '
+             'the panel and the circle is the front of the object.'),
+    'prompt': ''}
+MQ9_KEEP = (' The object stays exactly the object from the first image, with its own shape, colours, materials and '
+            'details; keep the background, the light and the image style of the first image unchanged.')
+MQ9_SOURCES = {'bottle': ('bottle input', 'bottle/'), 'speaker': ('object input', 'object/')}  # source key, stand-in dir
+MQ9_MODES = {'ref': '', 'line': 'outline/', 'prompt': None}  # arm -> ref subfolder (None = no ref)
+
+
+def blender9(port):
+    done = os.path.join(OUT, 'mq_blender9.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    pres = json.load(open(os.path.join(OUT, 'pitch.json')))
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+
+    def save(key, body):
+        if key not in res:
+            res[key] = gen(port, body)
+            json.dump(res, open(done, 'w'), indent=1)
+        return res[key]
+
+    save('bottle input', {**FAST, 'operation': 't2i', 'seed': 111, 'positive': BOTTLE_SOURCE,
+                          'cardName': 'angles mq9 bottle input'})
+    for name, (srckey, folder) in MQ9_SOURCES.items():
+        src = res.get(srckey) or pres[srckey]
+        for sub in [m for m in MQ9_MODES.values() if m is not None]:
+            for v, (render, _) in MQ9_VIEWS.items():
+                path = folder + sub + render
+                if f'ref {path}' not in res:
+                    res[f'ref {path}'] = import_ref(port, path, f'angles mq9 ref {path}')
+                    json.dump(res, open(done, 'w'), indent=1)
+        for seed in MQ7_SEEDS:
+            for mode, sub in MQ9_MODES.items():
+                for v, (render, text) in MQ9_VIEWS.items():
+                    media = [{'role': 'inputImage', 'url': src}]
+                    if sub is not None:
+                        media.append({'role': 'inputImage2', 'url': res[f'ref {folder}{sub}{render}']})
+                    save(f'{name} {mode} {seed} {v}', {
+                        **FAST, 'seed': seed, 'media': media, 'cardName': f'angles mq9 {name} {mode} {seed} {v}',
+                        'positive': text.format(ref='' if sub is None else ' to match the reference in the second image')
+                        + MQ9_KEEP_REF[mode] + MQ9_KEEP})
+        rows = [[(src, 'source')] + [(res[f'ref {folder}{MQ9_VIEWS[v][0]}'], f'ref {v}') for v in MQ9_VIEWS]]
+        rows += [[(None, f'{mode} seed {s}')] + [(res.get(f'{name} {mode} {s} {v}'), v) for v in MQ9_VIEWS]
+                 for mode in MQ9_MODES for s in MQ7_SEEDS]
+        _sheet(rows, f'mq_blender9_{name}')
+
+
+# Round 10 (overnight): face close-up HEIGHTS, the one people cell that never passed. Two guesses: the edit keeps the
+# eyes on the lens, which pulls every view back to eye level - so the subject now keeps looking straight ahead, past
+# the view; and round 7's ~30-degree refs were too gentle - steeper ones from blender/face_build.py (face_xlo ~40 deg
+# below, face_xhi ~45 deg above). Arms: 'xref' (steep refs), 'ref' (round 7 refs), 'prompt' (no ref). Turbo, 4 seeds.
+MQ10_FACE = {
+    'lo': ('Shift the viewpoint of the first image down{ref}: a low view from below the subject\'s chin, looking up at '
+           'their face. They keep their head upright and keep looking straight ahead, past the view, not down into '
+           'it. The underside of their chin and jaw and their nostrils now show, their neck is large at the bottom of '
+           'the frame, their face rises and narrows toward the top of their head, and the backdrop behind them is '
+           'seen from below.'),
+    'hi': ('Shift the viewpoint of the first image up{ref}: a high view from above and in front of the subject, '
+           'looking down at their face. They keep their head upright and keep looking straight ahead, below the view, '
+           'not up into it. The top of their head, their parting and their forehead are now large near the top of the '
+           'frame, their eyes look ahead under their brows, their face narrows toward a small chin, and their '
+           'shoulders fall away below.'),
+}
+MQ10_REFS = {'xref': {'lo': 'face_xlo', 'hi': 'face_xhi'}, 'ref': {'lo': 'face_front_lo', 'hi': 'face_front_hi'},
+             'prompt': None}
+MQ10_SEEDS = (111, 222, 333, 444)
+
+
+def blender10(port):
+    done = os.path.join(OUT, 'mq_blender10.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    src = json.load(open(os.path.join(OUT, 'pitch.json')))['face input']
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+    for refs in [r for r in MQ10_REFS.values() if r]:
+        for render in refs.values():
+            if f'ref {render}' not in res:
+                res[f'ref {render}'] = import_ref(port, render, f'angles mq10 ref {render}')
+                json.dump(res, open(done, 'w'), indent=1)
+    for seed in MQ10_SEEDS:
+        for arm, refs in MQ10_REFS.items():
+            for v, text in MQ10_FACE.items():
+                key = f'{arm} {seed} {v}'
+                if key in res:
+                    continue
+                media = [{'role': 'inputImage', 'url': src}]
+                if refs:
+                    media.append({'role': 'inputImage2', 'url': res[f'ref {refs[v]}']})
+                res[key] = gen(port, {**FAST, 'seed': seed, 'media': media, 'cardName': f'angles mq10 face {key}',
+                                      'positive': text.format(ref=' to match the mannequin reference in the second image'
+                                                              if refs else '') + (MQ7_FACE_KEEP if refs else
+                                                                                  ' ' + MQ7_FACE_KEEP.split('. ', 1)[1])})
+                json.dump(res, open(done, 'w'), indent=1)
+    cols = [(arm, v) for arm in MQ10_REFS for v in MQ10_FACE]
+    rows = [[(src, 'source')] + [(res[f'ref {MQ10_REFS[a][v]}'] if MQ10_REFS[a] else None, f'ref {a} {v}')
+                                 for a, v in cols]]
+    rows += [[(None, f'seed {s}')] + [(res.get(f'{a} {s} {v}'), f'{a} {v}') for a, v in cols] for s in MQ10_SEEDS]
+    _sheet(rows, 'mq_blender10_face')
+
+
+# Round 11 (overnight): round 9's winner on objects was the OUTLINE stand-in (backs 2/2 speaker, 1/2 bottle; the solid
+# yellow one gets pasted). Pass rate on 4 seeds, against the OUTLINE MANNEQUIN (Fabio: maybe the mannequin instead of
+# an object). Top-down failed on every arm -> 'top2' says flat-lay. Rear 3/4 failed on every arm -> also as TWO edits:
+# the back view first, then 45 degrees on round (from behind, the first image's frame-right side is at frame-left).
+MQ11_VIEWS = {**{v: MQ9_VIEWS[v] for v in ('front lo', 'front hi', 'back eye', 'tq fl', 'tqb l')},
+              'top2': ('top2', 'Shift the viewpoint of the first image up{ref}: a straight-down bird\'s-eye view, like a '
+                       'flat-lay photograph taken from directly overhead. Only the object\'s top surface shows, seen '
+                       'flat in the middle of the frame; its front face and its sides are not visible at all, and the '
+                       'backdrop surrounds it on every side.')}
+MQ11_BACK_TO_TQB = ('Shift the viewpoint of the first image around the object to match the reference in the second '
+                    'image: 45 degrees further round toward its frame-left end, at the same height and distance. Its '
+                    'back face now shows at an angle and its frame-left end shows nearer the view; its front stays '
+                    'hidden on the far side.')
+MQ11_ARMS = {  # arm -> (ref folder per source or None for the shared mannequin folder, keep before MQ9_KEEP)
+    'line': (None, MQ9_KEEP_REF['line']),
+    'mline': ('outline/', ' Take only the viewing angle from the outline drawing of a mannequin in the second image: '
+                          'the mannequin\'s face side is the front of the object. Nothing of the mannequin appears.'),
+}
+MQ11_SEEDS = (111, 222, 333, 444)
+
+
+def blender11(port):
+    done = os.path.join(OUT, 'mq_blender11.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    r9 = json.load(open(os.path.join(OUT, 'mq_blender9.json')))
+    pres = json.load(open(os.path.join(OUT, 'pitch.json')))
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+
+    def ref(path):
+        if f'ref {path}' not in res:
+            res[f'ref {path}'] = import_ref(port, path, f'angles mq11 ref {path}')
+            json.dump(res, open(done, 'w'), indent=1)
+        return res[f'ref {path}']
+
+    def save(key, first, refurl, text):
+        if key not in res:
+            res[key] = gen(port, {**FAST, 'seed': int(key.split()[2]), 'cardName': f'angles mq11 {key}',
+                                  'media': [{'role': 'inputImage', 'url': first}, {'role': 'inputImage2', 'url': refurl}],
+                                  'positive': text})
+            json.dump(res, open(done, 'w'), indent=1)
+        return res[key]
+
+    for name, (srckey, folder) in MQ9_SOURCES.items():
+        src = r9.get(srckey) or pres[srckey]
+        for seed in MQ11_SEEDS:
+            for arm, (afolder, keep) in MQ11_ARMS.items():
+                d = afolder or folder + 'outline/'
+                for v, (render, text) in MQ11_VIEWS.items():
+                    save(f'{name} {arm} {seed} {v}', src, ref(d + render),
+                         text.format(ref=' to match the reference in the second image') + keep + MQ9_KEEP)
+            back = res[f'{name} line {seed} back eye']  # two edits: the outline stand-in's back view, then on round
+            save(f'{name} 2step {seed} tqb l', back, ref(folder + 'outline/tq_bl'),
+                 MQ11_BACK_TO_TQB + MQ9_KEEP_REF['line'] + MQ9_KEEP)
+        cols = [(a, v) for a in MQ11_ARMS for v in MQ11_VIEWS] + [('2step', 'tqb l')]
+        refpath = {(a, v): (MQ11_ARMS[a][0] or folder + 'outline/') + MQ11_VIEWS[v][0] for a in MQ11_ARMS
+                   for v in MQ11_VIEWS}
+        refpath[('2step', 'tqb l')] = folder + 'outline/tq_bl'
+        rows = [[(src, 'source')] + [(res[f'ref {refpath[c]}'], f'ref {c[0]} {c[1]}') for c in cols]]
+        rows += [[(None, f'seed {s}')] + [(res.get(f'{name} {a} {s} {v}'), f'{a} {v}') for a, v in cols]
+                 for s in MQ11_SEEDS]
+        _sheet(rows, f'mq_blender11_{name}', cell=240, h=268)
+
+
+# Round 12 (overnight): close-up heights become a head tilt in one edit (round 10). Route around it with what works:
+# (a) zoom the close-up OUT to a waist-up view (no ref), (b) the body height recipe on that (MQ5-style end state +
+# MQ6_KEEP + the full-body front_lo / front_hi ref), (c) zoom back IN to head and shoulders, keeping the view.
+MQ12_ZOOM_OUT = ('Zoom out from the first image to a waist-up view of the same person at the same eye-level height: '
+                 'their head, shoulders, arms and body down to the waist now show, smaller in the frame, with more of '
+                 'the same plain backdrop around them. Keep their identity, hair, clothes, expression, the light and '
+                 'the image style of the first image unchanged.')
+MQ12_HEIGHT = {
+    'lo': ('front_lo', 'Shift the viewpoint of the first image down to match the mannequin reference in the second '
+           'image: a low view from below the subject\'s waist, looking steeply up at them. Their waist and chest are '
+           'now large at the bottom of the frame, their body rises and narrows toward the top, the underside of their '
+           'chin and jaw shows, their head is smaller near the top, and the backdrop behind them is seen from below.'),
+    'hi': ('front_hi', 'Shift the viewpoint of the first image up to match the mannequin reference in the second image: '
+           'a high view from above and in front of the subject, looking steeply down at them. The top of their head '
+           'and their shoulders are now large near the top of the frame, their face is foreshortened below their '
+           'brow, their body narrows downward toward the bottom edge, and the backdrop fills the space behind them.'),
+}
+MQ12_ZOOM_IN = ('Zoom in on the first image to a head-and-shoulders close-up of the person, keeping exactly the same '
+                'viewing angle and perspective: the view still looks {dir} at them as in the first image. Keep their '
+                'identity, hair, clothes, expression, the light and the image style unchanged.')
+MQ12_SEEDS = (111, 222, 333, 444)
+
+
+def blender12(port):
+    done = os.path.join(OUT, 'mq_blender12.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    src = json.load(open(os.path.join(OUT, 'pitch.json')))['face input']
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+
+    def save(key, media, text):
+        if key not in res:
+            res[key] = gen(port, {**FAST, 'seed': int(key.split()[1]), 'cardName': f'angles mq12 {key}',
+                                  'media': [{'role': r, 'url': u} for r, u in zip(('inputImage', 'inputImage2'), media)],
+                                  'positive': text})
+            json.dump(res, open(done, 'w'), indent=1)
+        return res[key]
+
+    for v, (render, _) in MQ12_HEIGHT.items():
+        if f'ref {render}' not in res:
+            res[f'ref {render}'] = import_ref(port, render, f'angles mq12 ref {render}')
+            json.dump(res, open(done, 'w'), indent=1)
+    for seed in MQ12_SEEDS:
+        wide = save(f'out {seed}', [src], MQ12_ZOOM_OUT)
+        for v, (render, text) in MQ12_HEIGHT.items():
+            moved = save(f'height {seed} {v}', [wide, res[f'ref {render}']], text + MQ6_KEEP)
+            save(f'in {seed} {v}', [moved], MQ12_ZOOM_IN.format(dir='up' if v == 'lo' else 'down'))
+    cols = [('out', None)] + [(s, v) for v in MQ12_HEIGHT for s in ('height', 'in')]
+    rows = [[(src, 'source')] + [(res[f'ref {MQ12_HEIGHT[v][0]}'] if v else None, f'ref {s} {v or ""}')
+                                 for s, v in cols]]
+    rows += [[(None, f'seed {sd}')] + [(res.get(f'{s} {sd} {v}' if v else f'{s} {sd}'), f'{s} {v or ""}')
+                                       for s, v in cols] for sd in MQ12_SEEDS]
+    _sheet(rows, 'mq_blender12_face')
+
+
+# Round 13 (overnight): generic object wording never reached top-down or the rear 3/4 (round 11). In the Flow an agent
+# writes the prompt and can SEE the object, so the end state can name its own parts. From behind-left (tq_bl) the
+# first image's frame-right end is at frame-left, nearest the view. Arms: 'line' (outline stand-in) and 'prompt'.
+MQ13_VIEWS = {  # source -> view -> (stand-in render, end state); '{ref}' as in MQ9_VIEWS
+    'speaker': {
+        'top2': ('top2', 'Shift the viewpoint of the first image up{ref}: a view from directly above the speaker, '
+                 'looking straight down. Only its dark grey top face with the three round rubber buttons shows, as a '
+                 'long flat rectangle in the middle of the frame, with the strap loop sticking out at its frame-right '
+                 'end; the green grille and the brass badge are not visible.'),
+        'back eye': ('back_eye', 'Shift the viewpoint of the first image around the speaker{ref}: a view from directly '
+                     'behind it at the same height and distance. Its plain dark back panel now faces the view, the '
+                     'strap end is at frame-left, and the green grille and the brass badge are hidden on the far side.'),
+        'tqb l': ('tq_bl', 'Shift the viewpoint of the first image around the speaker{ref}: a three-quarter rear view '
+                  'from behind it, toward its strap end. The strap end now faces partly toward the view at frame-left '
+                  'with the tan leather strap nearest, and the plain dark back panel runs away at an angle toward '
+                  'frame-right; the green grille and the brass badge are on the far side, not visible.'),
+    },
+    'bottle': {
+        'top2': ('top2', 'Shift the viewpoint of the first image up{ref}: a view from directly above the bottle, '
+                 'looking straight down. The faceted gold cap is seen from above as a gold octagon in the middle of '
+                 'the frame, with the narrow top of the pink glass flask showing around it as a thin rounded '
+                 'rectangle; the label and the front are not visible.'),
+        'back eye': ('back_eye', 'Shift the viewpoint of the first image around the bottle{ref}: a view from directly '
+                     'behind it at the same height and distance. Its plain frosted back with only the small white '
+                     'sticker near the bottom now faces the view, and the cream label is hidden on the far side.'),
+        'tqb l': ('tq_bl', 'Shift the viewpoint of the first image around the bottle{ref}: a three-quarter rear view '
+                  'from behind it and to one side. One narrow plain side now faces partly toward the view at '
+                  'frame-left, and the plain frosted back with the small white sticker runs away at an angle toward '
+                  'frame-right; the cream label is on the far side, not visible.'),
+    },
+}
+MQ13_ARMS = ('line', 'prompt')
+
+
+def blender13(port):
+    done = os.path.join(OUT, 'mq_blender13.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    r9 = json.load(open(os.path.join(OUT, 'mq_blender9.json')))
+    r11 = json.load(open(os.path.join(OUT, 'mq_blender11.json')))
+    pres = json.load(open(os.path.join(OUT, 'pitch.json')))
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+    for name, (srckey, folder) in MQ9_SOURCES.items():
+        src = r9.get(srckey) or pres[srckey]
+        views = MQ13_VIEWS[name]
+        for seed in MQ11_SEEDS:
+            for arm in MQ13_ARMS:
+                for v, (render, text) in views.items():
+                    key = f'{name} {arm} {seed} {v}'
+                    if key in res:
+                        continue
+                    media = [{'role': 'inputImage', 'url': src}]
+                    if arm == 'line':
+                        media.append({'role': 'inputImage2', 'url': r11[f'ref {folder}outline/{render}']})
+                    res[key] = gen(port, {**FAST, 'seed': seed, 'media': media, 'cardName': f'angles mq13 {key}',
+                                          'positive': text.format(ref='' if arm == 'prompt' else
+                                                                  ' to match the reference in the second image')
+                                          + MQ9_KEEP_REF[arm] + MQ9_KEEP})
+                    json.dump(res, open(done, 'w'), indent=1)
+        cols = [(a, v) for a in MQ13_ARMS for v in views]
+        rows = [[(src, 'source')] + [(r11[f'ref {folder}outline/{views[v][0]}'] if a == 'line' else None, f'ref {a} {v}')
+                                     for a, v in cols]]
+        rows += [[(None, f'seed {s}')] + [(res.get(f'{name} {a} {s} {v}'), f'{a} {v}') for a, v in cols]
+                 for s in MQ11_SEEDS]
+        _sheet(rows, f'mq_blender13_{name}')
+
+
+# Round 14 (overnight): round 13's object recipe on EVERY view (the five new ones written the same way - the object's
+# own parts), with the panel-only outline stand-in (`ref_render.py -- outline nodisc`). Frame sides read off the
+# stand-in renders: front-left (tq_fl) puts the first image's frame-right end nearest at frame-right; front-right
+# (tq_fr) its frame-left end nearest at frame-left; rear-right (tq_br) its frame-left end nearest at frame-right.
+MQ14_VIEWS = {
+    'speaker': {
+        'front lo': ('front_lo', 'Shift the viewpoint of the first image down{ref}: a low view from below the speaker, '
+                     'looking steeply up at it. Its dark underside with the four small rubber feet now shows large, '
+                     'the green grille and the brass badge lean away above it, and the strap hangs at frame-right.'),
+        'front hi': ('front_hi', 'Shift the viewpoint of the first image up{ref}: a high view from above and in front '
+                     'of the speaker, looking steeply down at it. Its dark grey top face with the three round rubber '
+                     'buttons now shows large, the green grille is foreshortened below it, and the strap loop sticks '
+                     'out at frame-right.'),
+        **{v: MQ13_VIEWS['speaker'][v] for v in ('top2', 'back eye')},
+        'back lo': ('back_lo', 'Shift the viewpoint of the first image around and down{ref}: a low view from behind '
+                    'and below the speaker, looking steeply up at it. Its dark underside with the four rubber feet '
+                    'shows large, its plain dark back panel leans away above it, the strap end is at frame-left, and '
+                    'the green grille is hidden on the far side.'),
+        'tq fl': ('tq_fl', 'Shift the viewpoint of the first image around the speaker{ref}: a three-quarter view from in '
+                  'front of it, toward its strap end. The green grille now turns at an angle toward frame-left, and '
+                  'the strap end faces partly toward the view at frame-right with the tan leather strap nearest.'),
+        'tq fr': ('tq_fr', 'Shift the viewpoint of the first image around the speaker{ref}: a three-quarter view from in '
+                  'front of it, toward its plain end. The green grille now turns at an angle toward frame-right, the '
+                  'plain dark end without the strap faces partly toward the view at frame-left, and the strap is at '
+                  'the far end.'),
+        'tqb l': MQ13_VIEWS['speaker']['tqb l'],
+        'tqb r': ('tq_br', 'Shift the viewpoint of the first image around the speaker{ref}: a three-quarter rear view '
+                  'from behind it, toward its plain end. The plain dark end without the strap faces partly toward the '
+                  'view at frame-right, the plain dark back panel runs away at an angle toward frame-left with the '
+                  'strap at its far end, and the green grille is on the far side, not visible.'),
+    },
+    'bottle': {
+        'front lo': ('front_lo', 'Shift the viewpoint of the first image down{ref}: a low view from below the bottle, '
+                     'looking steeply up at it. Its flat frosted base now shows, the cream label leans away above it, '
+                     'and the gold cap is small at the top.'),
+        'front hi': ('front_hi', 'Shift the viewpoint of the first image up{ref}: a high view from above and in front '
+                     'of the bottle, looking steeply down at it. The faceted gold cap and the glass shoulders now show '
+                     'large near the top of the frame, and the cream label is foreshortened below them.'),
+        **{v: MQ13_VIEWS['bottle'][v] for v in ('top2', 'back eye')},
+        'back lo': ('back_lo', 'Shift the viewpoint of the first image around and down{ref}: a low view from behind and '
+                    'below the bottle, looking steeply up at it. Its flat frosted base shows, its plain frosted back '
+                    'with the small white sticker leans away above it, and the cream label is hidden on the far side.'),
+        'tq fl': ('tq_fl', 'Shift the viewpoint of the first image around the bottle{ref}: a three-quarter view from in '
+                  'front of it and to one side. The cream label now turns at an angle toward frame-left, and one '
+                  'narrow plain side faces partly toward the view at frame-right.'),
+        'tq fr': ('tq_fr', 'Shift the viewpoint of the first image around the bottle{ref}: a three-quarter view from in '
+                  'front of it and to the other side. The cream label now turns at an angle toward frame-right, and '
+                  'one narrow plain side faces partly toward the view at frame-left.'),
+        'tqb l': MQ13_VIEWS['bottle']['tqb l'],
+        'tqb r': ('tq_br', 'Shift the viewpoint of the first image around the bottle{ref}: a three-quarter rear view from '
+                  'behind it and to the other side. One narrow plain side now faces partly toward the view at '
+                  'frame-right, the plain frosted back with the small white sticker runs away at an angle toward '
+                  'frame-left, and the cream label is on the far side, not visible.'),
+    },
+}
+
+
+def blender14(port):
+    done = os.path.join(OUT, 'mq_blender14.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    r9 = json.load(open(os.path.join(OUT, 'mq_blender9.json')))
+    pres = json.load(open(os.path.join(OUT, 'pitch.json')))
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+    for name, (srckey, folder) in MQ9_SOURCES.items():
+        src = r9.get(srckey) or pres[srckey]
+        views = MQ14_VIEWS[name]
+        for render in {r for r, _ in views.values()}:
+            path = folder + 'outline_nodisc/' + render
+            if f'ref {path}' not in res:
+                res[f'ref {path}'] = import_ref(port, path, f'angles mq14 ref {path}')
+                json.dump(res, open(done, 'w'), indent=1)
+        for seed in MQ11_SEEDS:
+            for v, (render, text) in views.items():
+                key = f'{name} {seed} {v}'
+                if key not in res:
+                    res[key] = gen(port, {**FAST, 'seed': seed, 'cardName': f'angles mq14 {key}',
+                                          'media': [{'role': 'inputImage', 'url': src},
+                                                    {'role': 'inputImage2',
+                                                     'url': res[f'ref {folder}outline_nodisc/{render}']}],
+                                          'positive': text.format(ref=' to match the reference in the second image')
+                                          + MQ9_KEEP_REF['line'].replace('the panel and the circle', 'the panel')
+                                          + MQ9_KEEP})
+                    json.dump(res, open(done, 'w'), indent=1)
+        rows = [[(src, 'source')] + [(res[f'ref {folder}outline_nodisc/{views[v][0]}'], f'ref {v}') for v in views]]
+        rows += [[(None, f'seed {s}')] + [(res.get(f'{name} {s} {v}'), v) for v in views] for s in MQ11_SEEDS]
+        _sheet(rows, f'mq_blender14_{name}')
+
+
+# Round 15 (overnight): round 13's lesson on the face close-up - name what NEWLY shows. A plain backdrop gives the
+# model no perspective, so the end state brings in the studio: the ceiling + a light above her (low), the floor
+# behind her (high). Arms 'xref' (steep face refs) and 'prompt'. Turbo, 4 seeds.
+MQ15_FACE = {
+    'lo': ('face_xlo', 'Shift the viewpoint of the first image down{ref}: a low view from below the woman\'s chin, '
+           'looking up at her. The underside of her chin and jaw and her nostrils now show, her turtleneck collar is '
+           'large at the bottom of the frame, her face rises above it, and behind her head the studio ceiling with a '
+           'softbox light now shows instead of the grey backdrop. Her head stays upright.'),
+    'hi': ('face_xhi', 'Shift the viewpoint of the first image up{ref}: a high view from above and in front of the '
+           'woman, looking down at her. The top of her head and her hair parting are now large near the top of the '
+           'frame, her face is foreshortened below them, her shoulders fall away, and behind her the grey studio '
+           'floor now fills the background instead of the backdrop. Her head stays upright.'),
+}
+
+
+def blender15(port):
+    done = os.path.join(OUT, 'mq_blender15.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    r10 = json.load(open(os.path.join(OUT, 'mq_blender10.json')))
+    src = json.load(open(os.path.join(OUT, 'pitch.json')))['face input']
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+    for seed in MQ10_SEEDS:
+        for arm in ('xref', 'prompt'):
+            for v, (render, text) in MQ15_FACE.items():
+                key = f'{arm} {seed} {v}'
+                if key in res:
+                    continue
+                media = [{'role': 'inputImage', 'url': src}]
+                if arm == 'xref':
+                    media.append({'role': 'inputImage2', 'url': r10[f'ref {render}']})
+                keep = MQ7_FACE_KEEP if arm == 'xref' else ' ' + MQ7_FACE_KEEP.split('. ', 1)[1]
+                res[key] = gen(port, {**FAST, 'seed': seed, 'media': media, 'cardName': f'angles mq15 face {key}',
+                                      'positive': text.format(ref=' to match the mannequin reference in the second '
+                                                              'image' if arm == 'xref' else '')
+                                      + keep.replace('the background, ', '')})
+                json.dump(res, open(done, 'w'), indent=1)
+    cols = [(a, v) for a in ('xref', 'prompt') for v in MQ15_FACE]
+    rows = [[(src, 'source')] + [(r10[f'ref {MQ15_FACE[v][0]}'] if a == 'xref' else None, f'ref {a} {v}')
+                                 for a, v in cols]]
+    rows += [[(None, f'seed {s}')] + [(res.get(f'{a} {s} {v}'), f'{a} {v}') for a, v in cols] for s in MQ10_SEEDS]
+    _sheet(rows, 'mq_blender15_face')
+
+
+# Round 16 (overnight): round 15's face rule off the studio - a man's close-up in a street (t2i). The end state names
+# what the new view reveals there: sky + leaning upper floors (lo), the cobbles (hi). Plus a 3/4 turn (round 7 wording)
+# to see turns hold on the new source. Steep refs, Turbo, 4 seeds.
+STREET_FACE_SOURCE = (
+    'Full-color photograph, head-and-shoulders portrait of a man in his forties with short dark hair and a short '
+    'grey-flecked beard, facing the camera straight on at eye level, standing in a narrow old-town street with stone '
+    'house fronts and a red door softly out of focus behind him, warm late-afternoon light. He wears a navy work '
+    'jacket over a white t-shirt. Framed from the top of his head to mid-chest.')
+MQ16_VIEWS = {
+    'lo': ('face_xlo', 'Shift the viewpoint of the first image down to match the mannequin reference in the second '
+           'image: a low view from below the man\'s chin, looking up at him. The underside of his beard and jaw and '
+           'his nostrils now show, his jacket collar is large at the bottom of the frame, his face rises above it, and '
+           'behind his head the upper floors of the house fronts lean inward and the open sky now shows instead of '
+           'the street. His head stays upright.'),
+    'hi': ('face_xhi', 'Shift the viewpoint of the first image up to match the mannequin reference in the second image: '
+           'a high view from above and in front of the man, looking down at him. The top of his head is now large '
+           'near the top of the frame, his face is foreshortened below it, his shoulders fall away, and behind him the '
+           'cobblestones of the street now fill the background instead of the house fronts. His head stays upright.'),
+    'tq fl': ('face_tq_fl', MQ7_FACE['tq fl'][1]),
+}
+
+
+def blender16(port):
+    done = os.path.join(OUT, 'mq_blender16.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    r10 = json.load(open(os.path.join(OUT, 'mq_blender10.json')))
+    r7 = json.load(open(os.path.join(OUT, 'mq_blender7.json')))
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+    refs = {**{k: v for k, v in r10.items() if k.startswith('ref ')}, **{k: v for k, v in r7.items() if k.startswith('ref ')}}
+    if 'man input' not in res:
+        res['man input'] = gen(port, {**FAST, 'operation': 't2i', 'seed': 111, 'positive': STREET_FACE_SOURCE,
+                                      'cardName': 'angles mq16 man face input'})
+        json.dump(res, open(done, 'w'), indent=1)
+    keep = MQ7_FACE_KEEP.replace('the background, ', '')
+    for seed in MQ10_SEEDS:
+        for v, (render, text) in MQ16_VIEWS.items():
+            key = f'{seed} {v}'
+            if key not in res:
+                res[key] = gen(port, {**FAST, 'seed': seed, 'cardName': f'angles mq16 man face {key}',
+                                      'media': [{'role': 'inputImage', 'url': res['man input']},
+                                                {'role': 'inputImage2', 'url': refs[f'ref {render}']}],
+                                      'positive': text + (keep if v != 'tq fl' else MQ7_FACE_KEEP)})
+                json.dump(res, open(done, 'w'), indent=1)
+    rows = [[(res['man input'], 'source')] + [(refs[f'ref {r}'], f'ref {v}') for v, (r, _) in MQ16_VIEWS.items()]]
+    rows += [[(None, f'seed {s}')] + [(res.get(f'{s} {v}'), v) for v in MQ16_VIEWS] for s in MQ10_SEEDS]
+    _sheet(rows, 'mq_blender16_manface')
+
+
 def blender(port, rnd='3'):
     name, prefix, wordings = MQ_ROUNDS[rnd]
     done = os.path.join(OUT, f'{name}.json')
@@ -1646,6 +2238,24 @@ if __name__ == '__main__':
         sweep2(int(sys.argv[1]))
     elif sys.argv[2:3] == ['lora']:
         lora(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['blender16']:
+        blender16(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['blender15']:
+        blender15(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['blender14']:
+        blender14(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['blender13']:
+        blender13(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['blender12']:
+        blender12(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['blender11']:
+        blender11(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['blender10']:
+        blender10(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['blender9']:
+        blender9(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['blender8']:
+        blender8(int(sys.argv[1]))
     elif sys.argv[2:3] == ['blender7']:
         blender7(int(sys.argv[1]))
     elif sys.argv[2:3] == ['blender6']:
