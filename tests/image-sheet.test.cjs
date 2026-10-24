@@ -13,7 +13,7 @@ const fs = require('fs-extra');
 const sharp = require('sharp');
 
 const {
-    packSheet, placeSheet, frameRect, isValidTree, sheetPixelSize, sheetGutter,
+    packSheet, placeSheet, frameRect, isValidTree, sheetPixelSize, sheetGutter, sheetBadge,
 } = require('../js/utils/sheetLayout.js');
 const { renderSheet } = require('../routes/imageSheet.js');
 
@@ -56,6 +56,24 @@ test('A 30-picture mood board packs fast and keeps every picture', () => {
     const { tree } = packSheet(aspects, { shape: 16 / 9 });
     assert.ok(Date.now() - t0 < 500);
     assert.ok(isValidTree(tree, 30));
+});
+
+test('MPI-1268: an ordered sheet reads in the given order, left to right, top to bottom', () => {
+    const sets = [[1.78, 1.78, 1.78, 1.78, 1.78, 1.78], [0.75, 1.5, 1, 0.6, 1.33], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [0.7, 0.7]];
+    for (const aspects of sets) {
+        for (const shape of [null, 1, 16 / 9]) {
+            const { tree, r } = packSheet(aspects, { ordered: true, shape });
+            assert.ok(isValidTree(tree, aspects.length));
+            const { width, height } = sheetPixelSize(r, 2048);
+            const cells = placeSheet(tree, aspects, width, height, sheetGutter(width, height));
+            for (let i = 1; i < cells.length; i++) {
+                const [p, c] = [cells[i - 1], cells[i]];
+                const sameRow = Math.abs(c.y - p.y) <= 1 && c.x > p.x;
+                const nextRow = c.y >= p.y + p.h;
+                assert.ok(sameRow || nextRow, `${aspects} shape ${shape}: picture ${i + 1} is out of reading order`);
+            }
+        }
+    }
 });
 
 test('Cells never overlap and stay inside the sheet', () => {
@@ -119,6 +137,19 @@ test('renderSheet: the framed part of each picture lands in its cell', async () 
         assert.ok(auto.width === 2048 && auto.height <= 2048, `never portrait: ${auto.width}x${auto.height}`);
         const { data: ad, info: ai } = await auto.sharp.raw().toBuffer({ resolveWithObject: true });
         assert.ok(ad.length === ai.width * ai.height * ai.channels);
+
+        // MPI-1268: a numbered sheet stamps 1, 2 top-left of each cell, black with a white number.
+        const num = await renderSheet([b, b], { tree, shape: '1:1', longEdge: 2048, numbered: true });
+        const { data: nd, info: ni } = await num.sharp.raw().toBuffer({ resolveWithObject: true });
+        const npx = (x, y) => [...nd.subarray((y * ni.width + x) * ni.channels, (y * ni.width + x) * ni.channels + 3)];
+        for (const [i, c] of placeSheet(tree, [1, 1], 2048, 2048, gut).entries()) {
+            const bd = sheetBadge(c, i + 1);
+            assert.deepStrictEqual(npx(bd.x + 2, bd.y + (bd.h >> 1)), [0, 0, 0], `badge ${i + 1} is black`);
+            let white = 0;
+            for (let y = bd.y; y < bd.y + bd.h; y++) for (let x = bd.x; x < bd.x + bd.w; x++) if (npx(x, y).every(v => v > 230)) white++;
+            assert.ok(white > 20, `badge ${i + 1} has a white number (${white} px)`);
+            assert.deepStrictEqual(npx(c.x + c.w - 3, c.y + c.h - 3), [0, 255, 0], 'the rest of the cell is the picture');
+        }
     } finally {
         await fs.remove(dir);
     }

@@ -455,12 +455,14 @@ export const MpiGalleryBlock = ComponentFactory.create({
 
         // ── Combine stills into a sheet (MPI-1094) ──────────────────────────────
         // The dialog previews and frames; /combine-images renders its tree at full size.
-        // Picture order is click order, as for every selection action.
-        function _openImageSheet(g) {
+        // Picture order is click order, as for every selection action. `numbered` = a
+        // stack's Create Sheet (MPI-1268): `g` is its members in stack order.
+        function _openImageSheet(g, { numbered = false } = {}) {
             const project = state.currentProject;
             const picked = g.map(grp => getSelectedItem(grp)).filter(Boolean);
             if (!project?.folderPath || picked.length < 2) return;
             const sheet = MpiImageSheet.mount(document.createElement('div'), {
+                numbered,
                 items: picked.map(it => ({
                     src: resolveMediaUrl(pickImageRendition(it, Infinity)),
                     aspect: it.pixelDimensions?.w / it.pixelDimensions?.h,
@@ -1346,6 +1348,7 @@ export const MpiGalleryBlock = ComponentFactory.create({
             if (!stack) StatusBar.notify('Those cards cannot be stacked.', 'warning');
         });
         grid.on('unstack', ({ groups: g }) => _unstack(g));
+        grid.on('create-sheet', ({ group }) => _openImageSheet(_withMembers([group]), { numbered: true }));
 
         // ── PromptBox setup ─────────────────────────────────────────────────────
         // Gallery is a mediaType-agnostic entry point — show ALL installed models

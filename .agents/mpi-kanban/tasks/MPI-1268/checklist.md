@@ -3,18 +3,19 @@
 Not dev-gated (Fabio 2026-10-24, confirmed again in "LTX 2.5 model 11").
 
 ## Phase 1: Reorder
-- [ ] `applyReorderMembers` in `js/data/stackModel.js` + unit test
-- [ ] `projectService.reorderStack`
-- [ ] Stack History strip: hold-and-drag reorder, picks follow
-- [ ] lint + test; isolated app: drag, reopen, order kept, gallery face follows
+- [x] `applyReorderMembers` in `js/data/stackModel.js` + unit test
+- [x] `projectService.reorderStack`
+- [x] Stack History strip: hold-and-drag reorder, picks follow
+- [x] lint + test; isolated app: drag, project.json order kept, gallery face follows
 - [ ] Fabio's look
 
 ## Phase 2: Create Sheet
-- [ ] order-keeping layout mode in `js/utils/sheetLayout.js` + test
-- [ ] `numbered` flag in `routes/imageSheet.js` + preview badge in `MpiImageSheet`
-- [ ] stack card menu "Create Sheet" (`MpiGalleryGrid.js` + the Gallery Block)
-- [ ] lint + test; isolated app: numbered sheet in stack order, reorder follows
+- [x] order-keeping layout mode in `js/utils/sheetLayout.js` + test
+- [x] `numbered` flag in `routes/imageSheet.js` + preview badge in `MpiImageSheet`
+- [x] stack card menu "Create Sheet" (`MpiGalleryGrid.js` + the Gallery Block)
+- [x] lint + test; isolated app: numbered sheet in stack order after a reorder (2, 3, 1, 4)
 - [ ] Fabio's look
 
 ## Close
-- [ ] `docs/stacks.md`; UNRELEASED entry (file held by a peer today, coordinate)
+- [x] `docs/stacks.md` (202 lines, 2 over the cap)
+- [ ] UNRELEASED entry (file held by a peer today, coordinate)

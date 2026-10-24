@@ -15,7 +15,9 @@
  *   tree?,                          // sheetLayout `{id}` / `{kind,a,b}`, every index once
  *   shape?,                         // a SHEET_SHAPES value ('auto', the default = the tree's own shape)
  *   longEdge?,                      // one of SHEET_SIZES, default the smallest
- *   frames[]                        // per picture { zoom, cx, cy } (sheetLayout.frameRect)
+ *   frames[],                       // per picture { zoom, cx, cy } (sheetLayout.frameRect)
+ *   numbered?                       // MPI-1268, a stack's Create Sheet: each cell numbered
+ *                                   // top-left, 1 = itemIds[0]; with no tree, packed in rows
  * }
  * Response: { success, item } — the raw-descriptor shape `/gif/make` and `/combine-videos`
  * return; the client builds the ItemGroup and `addGroup()` owns the project.json write.
@@ -35,7 +37,7 @@ const logger = require('./logger');
 const { nextSequence, writeImageRenditions } = require('./projects');
 const { resolveAbsPath, isEligibleStillImage } = require('./gifMake');
 const {
-    SHEET_SHAPES, SHEET_SIZES, isValidTree, packSheet, sheetPixelSize, sheetGutter, placeSheet, frameRect, autoRatio,
+    SHEET_SHAPES, SHEET_SIZES, isValidTree, packSheet, sheetPixelSize, sheetGutter, placeSheet, frameRect, autoRatio, sheetBadge,
 } = require('../js/utils/sheetLayout.js');
 
 const GREY = { r: 128, g: 128, b: 128 };   // under a transparent picture's see-through parts
@@ -49,14 +51,25 @@ function _treeRatio(t, aspects) {
     return t.kind === 'H' ? a + b : 1 / (1 / a + 1 / b);
 }
 
+/** A numbered sheet's badge (MPI-1268): white number on black, the gutter's colour. */
+function _badge(cell, n) {
+    const b = sheetBadge(cell, n);
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${b.w}" height="${b.h}">`
+        + `<rect width="${b.w}" height="${b.h}" rx="${Math.round(b.h * 0.22)}" fill="black"/>`
+        + `<text x="${b.w / 2}" y="${Math.round(b.h / 2 + b.font * 0.36)}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="${b.font}" fill="white">${n}</text>`
+        + '</svg>';
+    return { input: Buffer.from(svg), left: b.x, top: b.y };
+}
+
 /**
  * Render the sheet. Pictures are decoded one at a time: nine 16K photos at once would not
  * fit a 16 GB machine (the same rule as routes/ingredientsSheet.js).
  * @param {string[]} sources - absolute paths, in tree-id order
- * @param {{tree?: object, shape: string, longEdge: number, frames?: object[]}} opts - no tree = pack here
+ * @param {{tree?: object, shape: string, longEdge: number, frames?: object[], numbered?: boolean}} opts
+ *   - no tree = pack here
  * @returns {Promise<{sharp: object, width: number, height: number}>}
  */
-async function renderSheet(sources, { tree: given, shape, longEdge, frames = [] }) {
+async function renderSheet(sources, { tree: given, shape, longEdge, frames = [], numbered = false }) {
     const dims = [];
     for (const abs of sources) {
         const { width, height } = (await sharp(abs, { limitInputPixels: false, autoOrient: true }).metadata()).autoOrient;
@@ -64,7 +77,7 @@ async function renderSheet(sources, { tree: given, shape, longEdge, frames = [] 
     }
     const aspects = dims.map(d => d.width / d.height);
     const fixed = SHEET_SHAPES.find(s => s.value === shape)?.r;
-    const tree = given || packSheet(aspects, { shape: fixed || null }).tree;
+    const tree = given || packSheet(aspects, { shape: fixed || null, ordered: numbered }).tree;
     const r =fixed || autoRatio(_treeRatio(tree, aspects));
     const { width, height } = sheetPixelSize(r, longEdge);
     const cells = placeSheet(tree, aspects, width, height, sheetGutter(width, height));
@@ -95,6 +108,7 @@ async function renderSheet(sources, { tree: given, shape, longEdge, frames = [] 
             top: c.y,
         });
     }
+    if (numbered) cells.forEach((c, i) => parts.push(_badge(c, i + 1)));
     const img = sharp({ create: { width, height, channels: 3, background: { r: 0, g: 0, b: 0 } }, limitInputPixels: false })
         .composite(parts);
     return { sharp: img, width, height };
@@ -103,7 +117,7 @@ async function renderSheet(sources, { tree: given, shape, longEdge, frames = [] 
 router.post('/combine-images', async (req, res) => {
     let outputPath = '';
     try {
-        const { folderPath, itemIds, tree, shape = 'auto', longEdge = SHEET_SIZES[0], frames } = req.body || {};
+        const { folderPath, itemIds, tree, shape = 'auto', longEdge = SHEET_SIZES[0], frames, numbered } = req.body || {};
         if (!folderPath) return res.status(400).json({ success: false, error: 'folderPath required' });
         if (!Array.isArray(itemIds) || itemIds.length < 2) {
             return res.status(400).json({ success: false, error: 'itemIds[] with >=2 entries required' });
@@ -137,7 +151,9 @@ router.post('/combine-images', async (req, res) => {
             sources.push(abs);
         }
 
-        const { sharp: sheet, width, height } = await renderSheet(sources, { tree, shape, longEdge, frames: Array.isArray(frames) ? frames : [] });
+        const { sharp: sheet, width, height } = await renderSheet(sources, {
+            tree, shape, longEdge, frames: Array.isArray(frames) ? frames : [], numbered: numbered === true,
+        });
         const ext = longEdge > PNG_MAX_EDGE ? 'jpg' : 'png';
         const finalName = await nextSequence(folderPath, mediaDir, 'sheet', ext);
         outputPath = path.join(mediaDir, finalName);

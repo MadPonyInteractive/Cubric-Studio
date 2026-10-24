@@ -135,6 +135,8 @@ function _addDownloadUrl(e, item) {
  *   'stack'       { groups }             — stack the selected cards into one, in click order
  *   'routine'     { name, groups }       — run the saved routine `name` on the selected cards
  *   'unstack'     { groups }             — dissolve these stacks; their cards come back
+ *   'create-sheet' { group }             — one numbered picture of this stack's members, in
+ *                                          stack order (MPI-1268)
  *   'cancel-shown' { groupId }           — an `isCancelled` placeholder's mascot finished its
  *                                          `cancelled` clip; the block removes the card (MPI-908)
  */
@@ -423,6 +425,15 @@ export const MpiGalleryGrid = ComponentFactory.create({
         };
         const _shownType = (g) => _faceOf(g)?.type;
         const _cardsOf = (g) => expandStacks([g], _groups);
+
+        /** The stack menu's Create Sheet (MPI-1268); `stack` null = more than one card picked. */
+        const _createSheetItem = (stack) => {
+            const why = !stack ? 'Create Sheet works on one stack at a time'
+                : stack.kind !== 'image' ? 'A sheet is made of pictures, not videos'
+                    : (stack.members?.length || 0) < 2 ? 'A sheet needs at least two pictures' : null;
+            return { key: 'create-sheet', icon: 'grid', label: 'Create Sheet', disabled: !!why,
+                info: why || 'One picture of the whole stack, in stack order, each numbered' };
+        };
 
         // MPI-363 — Alt+drag = REAL OS file drag (Discord, Photoshop, upload
         // zones). The plain drag stays HTML5 (`application/mpi-media` +
@@ -1720,6 +1731,8 @@ export const MpiGalleryGrid = ComponentFactory.create({
                         // MPI-949: only offered when a stack is in the pick.
                         ...(_stackCount ? [{ key: 'unstack', icon: 'layers', label: 'Unstack',
                             info: 'Put the cards back in the gallery, each at its own date' }] : []),
+                        // MPI-1268: one stack at a time, so the numbers follow ITS order.
+                        ...(_stackCount ? [_createSheetItem(targetIds.length === 1 ? _targets[0] : null)] : []),
 
                         { key: 'add-to-project', icon: 'folder', label: 'Add to project',
                             info: 'Copy the selected cards into another project' },
@@ -1757,6 +1770,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                         if (key === 'download')   emit('download', { groups: selected });
                         if (key === 'delete')     emit('delete',   { groups: selected });
                         if (key === 'unstack')    emit('unstack',  { groups: selected.filter(isStack) });
+                        if (key === 'create-sheet') emit('create-sheet', { group: selected[0] });
                         if (useSelection) _exitSelectionMode();
                     },
                 });

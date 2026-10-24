@@ -1674,6 +1674,10 @@
  *                                             The previewed `js/utils/sheetLayout.js` tree, the
  *                                             SHEET_SHAPES value, the long edge and each picture's
  *                                             { zoom, cx, cy }. On rejection the modal stays open.
+ * @property {boolean} [numbered=false]      - A stack's Create Sheet (MPI-1268): pictures keep
+ *                                             the given order in rows, numbered top-left
+ *                                             (`sheetLayout.sheetBadge`), no Bigger; the request
+ *                                             adds `numbered: true`.
  *
  * Gallery Combine on 2+ stills. A live preview packed by `sheetLayout.packSheet`; Shape and
  * Size dropdowns; a Bigger toggle per cell (weight 2); drag a cell to frame its picture,

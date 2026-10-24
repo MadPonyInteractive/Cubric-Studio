@@ -74,6 +74,21 @@
     opacity: 1;
 }
 
+/* A numbered sheet's badge (MPI-1268): placed and sized in JS from `sheetBadge`, the
+   numbers the server draws with, so the preview matches the saved card. */
+.mpi-image-sheet__number {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface-viewer);
+    color: var(--ink-1);
+    font-weight: 700;
+    line-height: 1;
+    border-radius: 22% / 22%;
+    pointer-events: none;
+}
+
 .mpi-image-sheet__controls {
     display: flex;
     align-items: center;

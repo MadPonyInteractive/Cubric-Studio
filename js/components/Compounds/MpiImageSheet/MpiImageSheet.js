@@ -4,7 +4,7 @@ import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
 import { qs, ce, on } from '../../../utils/dom.js';
 import {
-    SHEET_SHAPES, SHEET_SIZES, SHEET_MAX_ZOOM, packSheet, placeSheet, frameRect, sheetPixelSize, sheetGutter,
+    SHEET_SHAPES, SHEET_SIZES, SHEET_MAX_ZOOM, packSheet, placeSheet, frameRect, sheetPixelSize, sheetGutter, sheetBadge,
 } from '../../../utils/sheetLayout.js';
 
 /**
@@ -27,6 +27,9 @@ import {
  * @param {Array<{src:string, aspect?:number}>} items - preview url + upright width/height
  *   (read off the loaded picture when missing)
  * @param {Function} [onCombine] - async (request) => void. Errors keep the modal open.
+ * @param {boolean} [numbered=false] - a stack's Create Sheet (MPI-1268): the pictures stay
+ *   in the given order, in rows, each numbered top-left; no Bigger. The request carries
+ *   `numbered: true` so the server draws the same numbers.
  */
 export const MpiImageSheet = ComponentFactory.create({
     name: 'MpiImageSheet',
@@ -52,6 +55,8 @@ export const MpiImageSheet = ComponentFactory.create({
         const _unsubs = [];
         let _cellUnsubs = [];
         const items = props.items || [];
+        const numbered = props.numbered === true;
+        if (numbered) qs('.mpi-image-sheet__title', el).textContent = 'Create a numbered sheet';
         const frames = items.map(() => ({ zoom: 1, cx: 0.5, cy: 0.5 }));
         const weights = items.map(() => 1);
         let shape = 'auto';
@@ -98,6 +103,7 @@ export const MpiImageSheet = ComponentFactory.create({
             const rect = stage.getBoundingClientRect();
             if (!rect.width || !rect.height) return;
             const w = Math.min(rect.width, rect.height * layout.r);
+            preview.style.setProperty('--sheet-w', `${w}px`);
             preview.style.width = `${w}px`;
             preview.style.height = `${w / layout.r}px`;
         };
@@ -134,11 +140,22 @@ export const MpiImageSheet = ComponentFactory.create({
                     extraClasses: 'mpi-image-sheet__bigger',
                 });
                 bigger.on('toggle', ({ active }) => { weights[i] = active ? 2 : 1; _relayout(); });
-                const cell = ce('div', { className: 'mpi-image-sheet__cell' }, [img, bigger.el]);
+                const cell = ce('div', { className: 'mpi-image-sheet__cell' }, [img, ...(numbered ? [] : [bigger.el])]);
                 Object.assign(cell.style, {
                     left: `${100 * c.x / width}%`, top: `${100 * c.y / height}%`,
                     width: `${100 * c.w / width}%`, height: `${100 * c.h / height}%`,
                 });
+                if (numbered) {
+                    // The server's badge, as % of this cell, so the preview matches the card.
+                    const b = sheetBadge(c, i + 1);
+                    const badge = ce('div', { className: 'mpi-image-sheet__number', textContent: String(i + 1) });
+                    Object.assign(badge.style, {
+                        left: `${100 * (b.x - c.x) / c.w}%`, top: `${100 * (b.y - c.y) / c.h}%`,
+                        width: `${100 * b.w / c.w}%`, height: `${100 * b.h / c.h}%`,
+                        fontSize: `calc(${b.font / width} * var(--sheet-w))`,
+                    });
+                    cell.append(badge);
+                }
                 _placeImg(img, i, cellAspect);
 
                 // Drag = move the picture under the cell; the frame moves the other way.
@@ -174,7 +191,7 @@ export const MpiImageSheet = ComponentFactory.create({
 
         const _relayout = () => {
             const fixed = SHEET_SHAPES.find(s => s.value === shape)?.r || null;
-            layout = packSheet(items.map(it => it.aspect), { weights, shape: fixed });
+            layout = packSheet(items.map(it => it.aspect), { weights, shape: fixed, ordered: numbered });
             _render();
         };
 
@@ -202,6 +219,7 @@ export const MpiImageSheet = ComponentFactory.create({
                     shape,
                     longEdge,
                     frames: frames.map(f => ({ ...f })),
+                    ...(numbered ? { numbered: true } : {}),
                 });
             } catch (err) {
                 combineBtn.el.setDisabled(false);

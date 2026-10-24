@@ -106,13 +106,16 @@ function _split(ids, size, k) {
     return groups;
 }
 
-/** Rows (H inside, stacked V) and columns (V inside, side by side H), click order kept. */
-function _grids(ids, asp, w) {
+/**
+ * Rows (H inside, stacked V) and columns (V inside, side by side H), click order kept.
+ * `rowsOnly`: rows alone, so the order also READS left to right, top to bottom.
+ */
+function _grids(ids, asp, w, rowsOnly = false) {
     const out = [];
     const chain = (group, kind) => group.map(i => _leaf(i, asp, w)).reduce((x, y) => _join(kind, x, y));
     for (let k = 1; k <= ids.length; k++) {
         out.push(_split(ids, i => asp[i], k).map(g => chain(g, 'H')).reduce((x, y) => _join('V', x, y)));
-        out.push(_split(ids, i => 1 / asp[i], k).map(g => chain(g, 'V')).reduce((x, y) => _join('H', x, y)));
+        if (!rowsOnly) out.push(_split(ids, i => 1 / asp[i], k).map(g => chain(g, 'V')).reduce((x, y) => _join('H', x, y)));
     }
     return out;
 }
@@ -130,14 +133,16 @@ function _strip(t) {
 /**
  * The arrangement and the sheet's shape.
  * @param {number[]} aspects - each picture's upright width / height
- * @param {{weights?: number[], shape?: number|null}} [opts] - weight 2 = Bigger; shape null = Auto
+ * @param {{weights?: number[], shape?: number|null, ordered?: boolean}} [opts] - weight 2 =
+ *   Bigger; shape null = Auto; `ordered` = rows only, so the pictures read in the order given
+ *   (a stack's numbered sheet, MPI-1268)
  * @returns {{tree: object, r: number}} `r` = the sheet's width / height
  */
-export function packSheet(aspects, { weights = [], shape = null } = {}) {
+export function packSheet(aspects, { weights = [], shape = null, ordered = false } = {}) {
     const ids = aspects.map((_, i) => i);
     const w = ids.map(i => weights[i] || 1);
-    const candidates = _grids(ids, aspects, w);
-    if (ids.length <= TREE_MAX) candidates.push(..._trees(ids, aspects, w, new Map()));
+    const candidates = _grids(ids, aspects, w, ordered);
+    if (!ordered && ids.length <= TREE_MAX) candidates.push(..._trees(ids, aspects, w, new Map()));
     let best = null;
     let bestScore = -1;
     for (const t of candidates) {
@@ -208,6 +213,20 @@ export function placeSheet(tree, aspects, width, height, gut) {
     };
     place(tree, gut, gut, width - 2 * gut, height - 2 * gut);
     return cells;
+}
+
+/**
+ * A numbered sheet's badge in a cell's top-left corner (MPI-1268), in sheet px: the server
+ * draws it, the dialog previews it from the same numbers.
+ * @param {{x:number,y:number,w:number,h:number}} cell
+ * @param {number} n - the number shown, from 1
+ * @returns {{x:number, y:number, w:number, h:number, font:number}}
+ */
+export function sheetBadge(cell, n) {
+    const h = Math.max(14, Math.round(Math.min(cell.w, cell.h) * 0.11));
+    const m = Math.round(h * 0.3);
+    const w = String(n).length > 1 ? Math.round(h * 1.45) : h;
+    return { x: cell.x + m, y: cell.y + m, w, h, font: Math.round(h * 0.62) };
 }
 
 /**

@@ -59,9 +59,10 @@ sidecars untouched and carries `stackId`.
 - **Selection bar Stack** took Cue all's slot; disabled with the `stackCreateBlockReason` text. A new
   stack is named after its first card. Card menu **Unstack** appears only with a stack picked;
   Describe and Card notes are disabled on one.
-- **Delete with a stack in the pick** opens `_stackDeleteDialog`: Cancel / **Unstack** / Delete all.
-  The label is "Unstack", not "Unstack and keep": `MpiOkCancel`'s action row neither wraps nor
-  shrinks, and a longer set pushed Cancel off the 440px dialog.
+- **Create Sheet (MPI-1268)**, one image stack of 2+: `MpiImageSheet` `numbered`, members in stack order,
+  `packSheet({ ordered })` = rows only; `/combine-images` `numbered` draws each `sheetBadge`.
+- **Delete with a stack in the pick** opens `_stackDeleteDialog`: Cancel / **Unstack** / Delete all
+  ("Unstack", not "Unstack and keep": a longer set pushed Cancel off the 440px `MpiOkCancel`).
 - Download, Reveal, Add to project and Delete all act on members via `expandStacks(picked, groups)`.
 - **Drag:** both dragstarts share `_dragPayload`. A stack sends `type: 'stack', stackId, kind, count`
   for the PromptBox plus its members as `cards`, so the agent composer gets its existing "N cards" chip
@@ -125,6 +126,8 @@ Opening a stack = `navigate(PAGE_GROUP_HISTORY, { groupId: stackId })`. It is a 
   `#controls-mount`; the viewer switches on scrub END, so a 350-member scrub loads one member. Menu:
   Remove from stack / Delete card. `decorateThumb` paints the moved-crop dot. Picks = Apply targets
   (`stackTargets`: picks, or all).
+- **Reorder (MPI-1268):** hold-and-drag a thumb; `_reorderMembers` keeps history-less members' slots and
+  moves `_stripIds` + picks, then `reorderStack` (same set or nothing). New first member = the face.
 - **◀ Version ▶** = `stepStackVersions` (pure `applyStepVersions`): every member's `selectedIndex`
   by one, clamped, one persist.
 - **Rail:** `MpiHistoryTools` modes `imageStack` (Prompt, Crop + Resize, Upscale + Remove BG) and
