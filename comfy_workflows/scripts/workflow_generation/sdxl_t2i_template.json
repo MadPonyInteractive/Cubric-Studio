@@ -355,7 +355,7 @@
   "1565": {
     "inputs": {
       "pixels": [
-        "1609",
+        "1775",
         0
       ],
       "vae": [
@@ -658,7 +658,7 @@
       "preprocessor": "DepthAnythingV2Preprocessor",
       "resolution": 512,
       "image": [
-        "1640",
+        "1770",
         0
       ]
     },
@@ -687,7 +687,7 @@
       "preprocessor": "CannyEdgePreprocessor",
       "resolution": 512,
       "image": [
-        "1640",
+        "1770",
         0
       ]
     },
@@ -701,7 +701,7 @@
       "preprocessor": "ScribblePreprocessor",
       "resolution": 512,
       "image": [
-        "1640",
+        "1770",
         0
       ]
     },
@@ -715,7 +715,7 @@
       "preprocessor": "OpenposePreprocessor",
       "resolution": 512,
       "image": [
-        "1640",
+        "1770",
         0
       ]
     },
@@ -1888,6 +1888,81 @@
     "class_type": "ImpactSegsAndMask",
     "_meta": {
       "title": "Pixelwise(SEGS & MASK)"
+    }
+  },
+  "1770": {
+    "inputs": {
+      "true": [
+        "1771",
+        0
+      ],
+      "false": [
+        "1640",
+        0
+      ],
+      "boolean": [
+        "1774",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Custom Size (control)"
+    }
+  },
+  "1771": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "keep_proportion": "pad",
+      "pad_color": "0, 0, 0",
+      "crop_position": "center",
+      "divisible_by": 16,
+      "device": "cpu",
+      "image": [
+        "1640",
+        0
+      ],
+      "width": [
+        "1633",
+        0
+      ],
+      "height": [
+        "1634",
+        0
+      ]
+    },
+    "class_type": "ImageResizeKJv2",
+    "_meta": {
+      "title": "Resize Image v2"
+    }
+  },
+  "1774": {
+    "inputs": {
+      "boolean": false
+    },
+    "class_type": "MpiSimpleBoolean",
+    "_meta": {
+      "title": "Input_custom_size"
+    }
+  },
+  "1775": {
+    "inputs": {
+      "true": [
+        "1771",
+        0
+      ],
+      "false": [
+        "1609",
+        0
+      ],
+      "boolean": [
+        "1774",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Custom Size (latent)"
     }
   }
 }

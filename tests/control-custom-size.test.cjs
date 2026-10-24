@@ -60,3 +60,15 @@ test('agent control on a model that has not opted in: no flag, no size', () => {
         assert.equal(r.injectionParams.Width, undefined, m.id);
     }
 });
+
+test('every local control graph pads behind ONE Input_custom_size, so every control model opts in', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    for (const m of controlModels.filter((x) => x.workflows?.control)) {
+        const graph = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'comfy_workflows', m.workflows.control), 'utf8'));
+        const nodes = Object.values(graph);
+        assert.equal(nodes.filter((n) => n._meta?.title === 'Input_custom_size').length, 1, m.id);
+        assert.ok(nodes.some((n) => n.class_type === 'ImageResizeKJv2' && n.inputs.keep_proportion === 'pad'), m.id);
+        assert.ok(optedIn(m), `${m.id}: the graph pads, so customSizeOps must name control`);
+    }
+});

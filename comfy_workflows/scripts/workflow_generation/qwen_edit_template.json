@@ -1,6 +1,7 @@
 {
   "3": {
     "inputs": {
+      "sampling": "flow",
       "model": [
         "111",
         0
@@ -190,6 +191,22 @@
     "class_type": "VAEDecode",
     "_meta": {
       "title": "VAE Decode"
+    }
+  },
+  "38": {
+    "inputs": {
+      "image_a": [
+        "65",
+        0
+      ],
+      "image_b": [
+        "315",
+        0
+      ]
+    },
+    "class_type": "Image Comparer (rgthree)",
+    "_meta": {
+      "title": "A - B"
     }
   },
   "65": {
@@ -736,7 +753,7 @@
         1
       ],
       "false": [
-        "301",
+        "315",
         0
       ],
       "boolean": [
@@ -818,7 +835,7 @@
   "272": {
     "inputs": {
       "input": [
-        "301",
+        "315",
         0
       ],
       "boolean": [
@@ -996,6 +1013,52 @@
       ],
       "boolean": [
         "310",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Mpi If Else"
+    }
+  },
+  "314": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "keep_proportion": "pad",
+      "pad_color": "0, 0, 0",
+      "crop_position": "center",
+      "divisible_by": 16,
+      "device": "cpu",
+      "image": [
+        "301",
+        0
+      ],
+      "width": [
+        "204",
+        0
+      ],
+      "height": [
+        "205",
+        0
+      ]
+    },
+    "class_type": "ImageResizeKJv2",
+    "_meta": {
+      "title": "Resize Image v2"
+    }
+  },
+  "315": {
+    "inputs": {
+      "true": [
+        "314",
+        0
+      ],
+      "false": [
+        "301",
+        0
+      ],
+      "boolean": [
+        "306",
         0
       ]
     },

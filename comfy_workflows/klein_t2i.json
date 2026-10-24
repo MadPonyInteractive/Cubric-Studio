@@ -66,6 +66,7 @@
       "sampling_mode.presence_penalty": 0,
       "thinking": false,
       "use_default_template": true,
+      "mtp": "auto",
       "clip": [
         "14",
         0
@@ -720,7 +721,7 @@
       "megapixels": 1,
       "resolution_steps": 16,
       "image": [
-        "123",
+        "717",
         0
       ]
     },
@@ -2703,6 +2704,52 @@
     "class_type": "ImpactSegsAndMask",
     "_meta": {
       "title": "Pixelwise(SEGS & MASK)"
+    }
+  },
+  "717": {
+    "inputs": {
+      "true": [
+        "719",
+        0
+      ],
+      "false": [
+        "123",
+        0
+      ],
+      "boolean": [
+        "689",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Custom Size (control)"
+    }
+  },
+  "719": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "keep_proportion": "pad",
+      "pad_color": "0, 0, 0",
+      "crop_position": "center",
+      "divisible_by": 16,
+      "device": "cpu",
+      "image": [
+        "123",
+        0
+      ],
+      "width": [
+        "324",
+        0
+      ],
+      "height": [
+        "325",
+        0
+      ]
+    },
+    "class_type": "ImageResizeKJv2",
+    "_meta": {
+      "title": "Resize Image v2"
     }
   }
 }

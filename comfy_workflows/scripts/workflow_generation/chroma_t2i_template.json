@@ -183,6 +183,7 @@
   "2250": {
     "inputs": {
       "shift": 1,
+      "sampling": "flow",
       "model": [
         "823",
         0
@@ -641,7 +642,7 @@
         0
       ],
       "image": [
-        "2694",
+        "2801",
         0
       ],
       "vae": [
@@ -1159,7 +1160,7 @@
   "2758": {
     "inputs": {
       "true": [
-        "2762",
+        "2807",
         0
       ],
       "false": [
@@ -1693,6 +1694,81 @@
     "class_type": "ImpactSegsAndMask",
     "_meta": {
       "title": "Pixelwise(SEGS & MASK)"
+    }
+  },
+  "2801": {
+    "inputs": {
+      "true": [
+        "2803",
+        0
+      ],
+      "false": [
+        "2694",
+        0
+      ],
+      "boolean": [
+        "2802",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Custom Size (control)"
+    }
+  },
+  "2802": {
+    "inputs": {
+      "boolean": false
+    },
+    "class_type": "MpiSimpleBoolean",
+    "_meta": {
+      "title": "Input_custom_size"
+    }
+  },
+  "2803": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "keep_proportion": "pad",
+      "pad_color": "0, 0, 0",
+      "crop_position": "center",
+      "divisible_by": 16,
+      "device": "cpu",
+      "image": [
+        "2694",
+        0
+      ],
+      "width": [
+        "2643",
+        0
+      ],
+      "height": [
+        "2644",
+        0
+      ]
+    },
+    "class_type": "ImageResizeKJv2",
+    "_meta": {
+      "title": "Resize Image v2"
+    }
+  },
+  "2807": {
+    "inputs": {
+      "true": [
+        "1739",
+        0
+      ],
+      "false": [
+        "2762",
+        0
+      ],
+      "boolean": [
+        "2802",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Custom Size (latent)"
     }
   }
 }

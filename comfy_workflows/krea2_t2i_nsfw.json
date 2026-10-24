@@ -403,7 +403,7 @@
       "invert": false,
       "batch_mode": "independent_images",
       "control_image": [
-        "200",
+        "770",
         0
       ],
       "vae": [
@@ -1273,7 +1273,7 @@
         0
       ],
       "any_3": [
-        "572",
+        "776",
         0
       ],
       "any_4": [
@@ -2949,6 +2949,72 @@
     "class_type": "ImpactSegsAndMask",
     "_meta": {
       "title": "Pixelwise(SEGS & MASK)"
+    }
+  },
+  "770": {
+    "inputs": {
+      "true": [
+        "772",
+        0
+      ],
+      "false": [
+        "200",
+        0
+      ],
+      "boolean": [
+        "747",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Custom Size (control)"
+    }
+  },
+  "772": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "keep_proportion": "pad",
+      "pad_color": "0, 0, 0",
+      "crop_position": "center",
+      "divisible_by": 16,
+      "device": "cpu",
+      "image": [
+        "200",
+        0
+      ],
+      "width": [
+        "75",
+        0
+      ],
+      "height": [
+        "74",
+        0
+      ]
+    },
+    "class_type": "ImageResizeKJv2",
+    "_meta": {
+      "title": "Resize Image v2"
+    }
+  },
+  "776": {
+    "inputs": {
+      "true": [
+        "560",
+        0
+      ],
+      "false": [
+        "572",
+        0
+      ],
+      "boolean": [
+        "747",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Custom Size (latent)"
     }
   }
 }

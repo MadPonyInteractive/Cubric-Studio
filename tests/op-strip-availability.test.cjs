@@ -258,7 +258,8 @@ test('Klein declares exactly the ops that derive their own size', async () => {
     // kleinEdit moved to customSizeOps (MPI-1207): it follows the source unless the
     // Custom size button is on, and modelShowsRatio gates it through `sizeOptIn`.
     assert.deepStrictEqual(klein.imageSizedOps, ['control']);
-    assert.deepStrictEqual(klein.customSizeOps, ['kleinEdit']);
+    // control joined it (MPI-1271): image-sized while the button is off, padded when on.
+    assert.deepStrictEqual(klein.customSizeOps, ['kleinEdit', 'control']);
     // Every declared op must be one this model actually runs, or the entry is dead.
     for (const op of klein.imageSizedOps) {
         assert.ok(klein.supportedOps.includes(op), `${op} must be in supportedOps`);
@@ -270,8 +271,11 @@ test('Klein declares exactly the ops that derive their own size', async () => {
 // error — a wrong ratio padded the gallery card, and a dead batch quietly returned
 // one image — which is exactly why they need pinning rather than eyeballing.
 
-test('control inherits the input shape everywhere, so it must not offer a ratio', async () => {
-    const { modelShowsRatio } = await import('../js/data/commandRegistry.js');
+// MPI-1271: control still inherits the input shape by default, but every local control
+// model now names it in customSizeOps, so the picker shows behind the Custom size button
+// (control-custom-size.test.cjs). These pin the default: control stays image-sized.
+test('control inherits the input shape everywhere unless Custom size is on', async () => {
+    const { modelShowsRatio, modelShowsCustomSize } = await import('../js/data/commandRegistry.js');
     const { getModelById } = await import('../js/data/modelRegistry.js');
 
     for (const id of ['chroma-flash', 'chroma-hyper']) {
@@ -280,7 +284,9 @@ test('control inherits the input shape everywhere, so it must not offer a ratio'
         // ImageScaleToTotalPixels(megapixels: 1) <- Input_Image. MpiCrop (2682), which
         // DOES read Input_Width/Height, feeds the i2i latent (VAEEncode 2616) instead —
         // that mix-up is what left depth out of imageSizedOps in the first place.
-        assert.strictEqual(modelShowsRatio(m, 'control'), false, `${id} control must hide the ratio picker`);
+        // Custom size on swaps 2762 for EmptyLatentImage(W, H) ('Custom Size (latent)').
+        assert.ok(m.imageSizedOps.includes('control'), `${id} control follows its source by default`);
+        assert.strictEqual(modelShowsCustomSize(m, 'control'), true, `${id} control's picker sits behind the button`);
         assert.strictEqual(modelShowsRatio(m, 'detail'), false, `${id} detail is image-sized`);
         assert.strictEqual(modelShowsRatio(m, 'upscale'), false, `${id} upscale is image-sized`);
         // The control: only t2i samples EmptyLatentImage(Input_Width, Input_Height).
@@ -293,8 +299,9 @@ test('control inherits the input shape everywhere, so it must not offer a ratio'
     // ImageScaleToTotalPixels(Input_Image), so SDXL joined the image-sized side and the
     // negative control had to move to an op, not a model.
     const sdxl = getModelById('sdxl-realistic');
-    assert.strictEqual(modelShowsRatio(sdxl, 'control'), false,
+    assert.ok(sdxl.imageSizedOps.includes('control'),
         'SDXL control derives its size from the input image since the master template');
+    assert.strictEqual(modelShowsCustomSize(sdxl, 'control'), true, 'SDXL control pads behind the button (MPI-1271)');
     assert.strictEqual(modelShowsRatio(sdxl, 't2i'), true, 'SDXL t2i still takes a ratio');
     assert.strictEqual(modelShowsRatio(sdxl, 'i2i'), true,
         'SDXL i2i resizes to Input_Width/Height (ImageResizeKJv2) — it keeps the picker');
