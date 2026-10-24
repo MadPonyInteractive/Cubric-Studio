@@ -1,0 +1,3 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1277", "at": "2026-10-24T19:12:56+01:00", "actor": "claude", "column": "doing", "title": "Cosmo: when the agent model stalls, offer the other tested model in the chat"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1277", "at": "2026-10-24T19:18:30+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Shipped; Fabio to judge the card wording when a host next stalls."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1277", "at": "2026-10-24T19:25:32+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Shipped in 1112c631; Fabio approved the card wording."}
