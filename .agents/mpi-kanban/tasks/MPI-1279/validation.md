@@ -14,6 +14,7 @@ rank, and the notes did the steering:
 | Boogu one-image note | fallback list "Qwen-Image 2.1, else kleinEdit, ..." (no FLUX.3) | "Qwen-Image 2.1, else the FLUX.3 Klein edit, else kleinEdit, ..." |
 
 Evidence: `tests/edit-rank-decides.test.cjs` (4 tests) and `tests/model-priority.test.cjs`
-pass; `npm run lint` clean; `npm test` 3,599 tests, 0 fail.
+pass; `npm run lint` clean; `npm test` 3,599 tests, 0 fail; pre-push green; CI Tests run
+40126193744 green on the tip that contains `18379ccc0` (a peer's push superseded its own run).
 
 Not run: a live Cosmo edit, and the agent bench (paid or local-GPU LLM calls).
