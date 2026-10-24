@@ -133,6 +133,42 @@ CAMERA reference only. Fabio suspects wording in the prompt confuses the model (
 standing exactly where it stands ... turned the same way" - that invites a pose copy); reword so picture 2 gives only
 camera position/angle/distance, never pose. Unused Human Base Meshes download in D:\Blender\Assets\human-base-meshes\
 still awaits Fabio's delete call.
+ROUND 4 DONE 2026-10-24 (session "Flux 3 on flows 11"; sheet `mq_blender4.jpg`, read in validation.md): camera-only
+wordings D/E (`MQ_EDIT_D`/`_E`, `angles.py <port> blender 4`). Front views keep his own pose now; high passes; E's
+top-down is the best yet; low still fails; back views pull the mannequin's BODY in (D pastes it); "camera" draws a
+camera prop at his feet. NEXT: Fabio's eye test on `mq_blender4.jpg`, then a wording F = E with "viewpoint" instead of
+"camera" (and a fix for the back-view body leak).
+ROUND 5 DONE 2026-10-24 (`angles.py <port> blender5`, sheet `mq_blender5.jpg`, read in validation.md): BFL edit
+voice + end state (`MQ5`) unlocked LOW (front lo, 1-2 seeds) and a TRUE top-down (1/2); high + turn pass; the
+turn-then-height two-step returns a copy at the height step; low views leak the mannequin's grey body. NEXT ideas
+(Fabio: keep trying approaches): height FIRST then turn; more seeds for a pass rate; stop the body leak (a less
+human ref - silhouette/outline - or a clause that the result has no grey figure).
+ROUND 6 DONE 2026-10-24 - BREAKTHROUGH (`angles.py <port> blender6`, sheet `mq_blender6.jpg`): MQ5 view wording +
+`MQ6_KEEP` (subject "is still the real person ... own head and hair, hands, clothes and shoes") = 8/8 front low,
+8/8 back low in ONE edit, 8/8 true top-down, zero grey leak; line refs = grey refs. Two-step loses both orders
+(height>turn 1/4). RECIPE: one edit, exact Blender ref, MQ5 wording + MQ6_KEEP. NEXT: recheck front hi + back eye +
+3/4 views with MQ6_KEEP, then other sources (woman, face close-up, object) before the Flow design.
+ROUND 7 DONE 2026-10-24 (`angles.py <port> blender7`, 4 sheets `mq_blender7_*.jpg`): full-body people pass every
+view on both seeds (man 11/12, woman 18/18, lows milder on a studio backdrop); face close-up: turns pass, low/high
+fail; object: high passes, low pastes the mannequin, back + 3/4 fail. NEXT options: an object stand-in ref (grey box
+on the floor) for objects; face heights need another route (or the Flow offers turns only on a close-up); then the
+Flow design (gizmo -> nearest ref render -> one edit).
+FABIO 2026-10-24 (after round 7) - QUESTIONS + SUGGESTIONS for round 8:
+(1) Turn Turbo OFF: base FLUX.3 is still fast and gives a NEGATIVE prompt - use it to stop the edit copying the
+mannequin's pose/body (and the pasted mannequin on objects). Base = 50 steps cfg 3.5 (~48 s t2i vs 12 s Turbo).
+(2) The object stand-in must make FRONT / BACK / SIDES obvious at a glance (e.g. a box with a clear face marking).
+(3) Fabio asked: didn't prompt-only already work on the object? ANSWER from this plan: object p1 (2026-10-23,
+`pitch_object.jpg`, prompt only, no ref) = PITCH passed at every stop, YAW failed (the back never showed). Round 7
+with the mannequin ref did WORSE on object low (pasted mannequin). So: object heights by prompt only, object turns
+still unsolved.
+REF PIPELINE NOW (2026-10-24, SUPERSEDES ref_post.py): the pose lives in Fabio's hand-posed copy
+`research/blender/out/UE4_Mannequinn_refs.blend` (Blender 5.2; out/ is gitignored - it exists only on this disk). It
+was made ONCE by `cp D:\Blender\Other\UE4_Mannequinn.blend` + `blender-5.2 -b <copy> --python ref_build.py --
+out/_render_script.py` (CLI floor/walls/cameras minus the CLI's delete-everything step, his left arm mirrored to the
+right, feet in, T-Pose action dropped - his pose is not keyed). NEVER rerun ref_build on it (it would overwrite his
+tweaks). Renders: `gpu_lease.py run -- blender-5.2 -b out/UE4_Mannequinn_refs.blend --python ref_render.py`. Rig
+facts: `research/blender/rig_inspect.py` header. Fabio: the posing needs a real rig in Blender, not bpy guesses.
+Isolated app this session: port 58665, profile cubric-agent-profile-mpi1039.
 Prompt rule (Fabio + playbook 01 § READ THE MODEL'S GUIDE): generic ("the subject"/"they"), no "photograph" in edit
 prompts, FLUX.3 edit voice. The MQ_BODY t2i ref prompt may say "Studio photograph" - it is our asset, not a user edit.
 Isolated app this session: port 57477 (profile cubric-agent-profile-mpi1212).

@@ -1201,33 +1201,303 @@ MQ_BL_VIEWS = {'front lo': 'front_lo', 'back lo': 'back_lo', 'front hi': 'front_
 MQ_EDIT_C = MQ_EDIT_B.replace('Keep the subject\'s', 'The subject keeps their own pose from the first image, their arms, '
                               'legs and stance unchanged; take only the camera and the way they face from the second '
                               'image, never the mannequin\'s pose. Keep the subject\'s')
+# Round 4 (Fabio 2026-10-23): refs re-posed natural (arms down, legs closer); B/C copied the A-pose, and "replace
+# the mannequin ... standing exactly where ... turned the same way" invites that. Picture 2 = CAMERA ONLY, and the
+# word "mannequin" is never said. D leads with the reference, E leads with the camera move.
+MQ_EDIT_D = ('Show the scene from the first image from a new camera position. The second image is only a camera '
+             'reference: it shows where the camera stands, how high it is, which way it points and how far it is from '
+             'the figure. Move the camera to that same position around the subject: {v}. Only the camera moves; the '
+             'subject keeps their own pose, arms, legs and stance from the first image. Keep the subject\'s identity, '
+             'clothes, the place, the light and the image style of the first image unchanged.')
+MQ_EDIT_E = ('Move the camera to {v}, and show the first image from there. Match the camera position, height, angle '
+             'and distance of the second image, which is a camera reference only; take nothing else from it. The '
+             'subject keeps their own pose and stance from the first image. Keep the subject\'s identity, clothes, the '
+             'place, the light and the image style of the first image unchanged.')
+MQ_ROUNDS = {  # round -> (results file, sheet, card prefix, wordings)
+    '3': ('mq_blender', 'mq3', (('edit', MQ_EDIT), ('editB', MQ_EDIT_B), ('editC', MQ_EDIT_C))),
+    '4': ('mq_blender4', 'mq4', (('editD', MQ_EDIT_D), ('editE', MQ_EDIT_E))),
+}
 
 
-def blender(port):
-    done = os.path.join(OUT, 'mq_blender.json')
+def import_ref(port, render, card):
+    req = urllib.request.Request(f'http://127.0.0.1:{port}/connector/import-media', headers={'Content-Type': 'application/json'},
+                                 data=json.dumps({'sourcePath': os.path.join(BLENDER_REFS, render + '.png'), 'folderPath': PROJECT,
+                                                  'cardName': card}).encode())
+    r = json.load(urllib.request.urlopen(req, timeout=120))
+    if not r.get('ok'):
+        sys.exit(f'import {render}: {r}')
+    return r['output']['filePath']  # already a /project-file?path= url
+
+
+# Round 5 (Fabio 2026-10-24): BFL's FLUX.3 edit voice (docs/models/flux3 + MPI-1181 bfl_pup_system_prompts.json i2i:
+# a viewpoint change opens "Shift the ... viewpoint", then WHERE THINGS NOW SIT in the frame, then one keep clause).
+# "view", never "camera" (round 4's "a camera on the ground" drew a camera prop). TURN FIRST, THEN HEIGHT: the back
+# view is also run as two edits - turn at eye level (back_eye ref), then lower the view on the turned picture.
+MQ5_KEEP = (' Take only the viewing angle from the mannequin reference, nothing else from it. Keep the subject\'s '
+            'identity, clothes, pose, the place, the light and the image style of the first image unchanged.')
+MQ5 = {  # key: (ref render, instruction); every one ends on MQ5_KEEP
+    'front lo': ('front_lo', 'Shift the viewpoint of the first image down to match the mannequin reference in the '
+                 'second image: a worm\'s-eye view from just above the ground in front of the subject, looking '
+                 'steeply up at them. Their feet and legs are now large at the bottom of the frame, their body rises '
+                 'and narrows toward the top, their chin and the underside of their jaw show, their head is small near '
+                 'the top edge, and the surroundings lean inward with the sky or ceiling above them.'),
+    'back lo': ('back_lo', 'Shift the viewpoint of the first image around and down to match the mannequin reference '
+                'in the second image: a worm\'s-eye view from just above the ground behind the subject, looking '
+                'steeply up at their back. They face away; their heels and calves are now large at the bottom of the '
+                'frame, their back rises and narrows toward the top, the back of their head is small near the top '
+                'edge, and the surroundings lean inward with the sky or ceiling above them.'),
+    'front hi': ('front_hi', 'Shift the viewpoint of the first image up to match the mannequin reference in the '
+                 'second image: a high view from above and in front of the subject, looking steeply down at them. The '
+                 'top of their head and their shoulders are now large near the top of the frame, their body narrows '
+                 'downward, their feet are small on the ground near the bottom edge, and the ground fills the '
+                 'background behind them.'),
+    'top2': ('top2', 'Shift the viewpoint of the first image up to match the mannequin reference in the second image: '
+             'a view from directly above the subject, looking straight down. The crown of their head and their two '
+             'shoulders are in the middle of the frame, their face is hidden below the crown, only the tips of their '
+             'feet show, and the ground surrounds them on every side.'),
+    'back eye': ('back_eye', 'Shift the viewpoint of the first image around the subject to match the mannequin '
+                 'reference in the second image: a view from directly behind them at the same height and distance. '
+                 'They now face away; the back of their head, their back and the backs of their legs are in the '
+                 'middle of the frame, and the place around them is seen from the opposite side.'),
+}
+MQ5_LOWER_BACK = ('Shift the viewpoint of the first image down to match the mannequin reference in the second image: a '
+                  'worm\'s-eye view from just above the ground behind the subject, looking steeply up at their back. '
+                  'Their heels and calves are now large at the bottom of the frame, their back rises and narrows toward '
+                  'the top, the back of their head is small near the top edge, and the surroundings lean inward with '
+                  'the sky or ceiling above them.')
+MQ5_SEEDS = (111, 222)
+
+
+def blender5(port):
+    done = os.path.join(OUT, 'mq_blender5.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    src = json.load(open(os.path.join(OUT, 'pitch.json')))['scene input']
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+
+    def step(key, text, first, ref, seed):
+        if key not in res:
+            res[key] = gen(port, {**FAST, 'seed': seed, 'positive': text + MQ5_KEEP, 'cardName': f'angles mq5 {key}',
+                                  'media': [{'role': 'inputImage', 'url': first}, {'role': 'inputImage2', 'url': ref}]})
+            json.dump(res, open(done, 'w'), indent=1)
+        return res[key]
+
+    for v, (render, _) in MQ5.items():
+        if f'ref {v}' not in res:
+            res[f'ref {v}'] = import_ref(port, render, f'angles mq5 ref {v}')
+            json.dump(res, open(done, 'w'), indent=1)
+    for seed in MQ5_SEEDS:
+        for v, (_, text) in MQ5.items():  # one edit straight from the front picture
+            step(f'{seed} {v}', text, src, res[f'ref {v}'], seed)
+        # two edits: the turned picture (back eye) is only lowered - no "around", it already shows their back
+        step(f'{seed} back eye>lo', MQ5_LOWER_BACK, res[f'{seed} back eye'], res['ref back lo'], seed)
+    cols = ('front lo', 'back lo', 'front hi', 'top2', 'back eye', 'back eye>lo')
+    cell, h = 300, 324
+    rows = [[('src', 'source')] + [(f'ref {c}', f'ref {c}') for c in cols[:5]] + [('ref back lo', 'ref (step 2) back lo')]]
+    rows += [[(None, f'seed {s}')] + [(f'{s} {c}', c + (' (2 steps)' if '>' in c else ' (1 step)' if c == 'back lo' else ''))
+                                      for c in cols] for s in MQ5_SEEDS]
+    img = Image.new('RGB', (cell * 7, h * len(rows)), 'white')
+    d = ImageDraw.Draw(img)
+    for r, row in enumerate(rows):
+        for c, (k, label) in enumerate(row):
+            url = src if k == 'src' else res.get(k) if k else None
+            if url:
+                im = Image.open(disk(url)).convert('RGB')
+                im.thumbnail((cell, h - 24))
+                img.paste(im, (c * cell, r * h + 24))
+            d.text((c * cell + 4, r * h + 4), label, fill='black')
+    img.save(os.path.join(HERE, 'sheets', 'mq_blender5.jpg'), quality=90)
+
+
+# Round 6 (Fabio 2026-10-24): stop the grey body leaking into low views + HEIGHT FIRST, THEN TURN on the back view
+# (round 5: turn first, then the height edit returned a copy). Keep clause says positively that the subject stays the
+# real person (no "do not show"). Ref sets: 'grey' = the round-5 renders, 'line' = `ref_render.py -- outline` (flat
+# light, the body the wall's tone, only outline + ridges). 4 seeds.
+MQ6_KEEP = (' Take only the viewing angle from the mannequin reference. The subject is still the real person from the '
+            'first image, with their own head and hair, hands, clothes and shoes; keep their identity, pose, the '
+            'place, the light and the image style of the first image unchanged.')
+MQ6_TURN_LOW = ('Shift the viewpoint of the first image around the subject to match the mannequin reference in the '
+                'second image: the same worm\'s-eye view from just above the ground, now from behind them, looking '
+                'steeply up at their back. They face away; their heels and calves are large at the bottom of the frame, '
+                'their back rises and narrows toward the top, the back of their head is small near the top edge, and '
+                'the surroundings lean inward with the sky or ceiling above them.')
+MQ6_VIEWS = ('front lo', 'back lo', 'top2')
+MQ6_SEEDS = (111, 222, 333, 444)
+
+
+def blender6(port):
+    done = os.path.join(OUT, 'mq_blender6.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    src = json.load(open(os.path.join(OUT, 'pitch.json')))['scene input']
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+
+    def step(key, text, first, ref, seed):
+        if key not in res:
+            res[key] = gen(port, {**FAST, 'seed': seed, 'positive': text + MQ6_KEEP, 'cardName': f'angles mq6 {key}',
+                                  'media': [{'role': 'inputImage', 'url': first}, {'role': 'inputImage2', 'url': ref}]})
+            json.dump(res, open(done, 'w'), indent=1)
+        return res[key]
+
+    for refs, folder in (('grey', ''), ('line', 'outline/')):
+        for v in MQ6_VIEWS:
+            if f'ref {refs} {v}' not in res:
+                res[f'ref {refs} {v}'] = import_ref(port, folder + MQ5[v][0], f'angles mq6 ref {refs} {v}')
+                json.dump(res, open(done, 'w'), indent=1)
+    for seed in MQ6_SEEDS:
+        for refs in ('grey', 'line'):
+            for v in MQ6_VIEWS:
+                step(f'{seed} {refs} {v}', MQ5[v][1], src, res[f'ref {refs} {v}'], seed)
+        # height first (the grey front-lo edit above), then turn behind at that same low height
+        step(f'{seed} lo>back', MQ6_TURN_LOW, res[f'{seed} grey front lo'], res['ref grey back lo'], seed)
+    cols = [('grey', v) for v in MQ6_VIEWS] + [('line', v) for v in MQ6_VIEWS]
+    cell, h = 300, 324
+    rows = [[('src', 'source')] + [(f'ref {r} {v}', f'ref {r} {v}') for r, v in cols] + [('ref grey back lo', 'ref (step 2) back lo')]]
+    rows += [[(None, f'seed {s}')] + [(f'{s} {r} {v}', f'{r} {v}') for r, v in cols] + [(f'{s} lo>back', 'front lo > back (2 steps)')]
+             for s in MQ6_SEEDS]
+    img = Image.new('RGB', (cell * 8, h * len(rows)), 'white')
+    d = ImageDraw.Draw(img)
+    for r, row in enumerate(rows):
+        for c, (k, label) in enumerate(row):
+            url = src if k == 'src' else res.get(k) if k else None
+            if url:
+                im = Image.open(disk(url)).convert('RGB')
+                im.thumbnail((cell, h - 24))
+                img.paste(im, (c * cell, r * h + 24))
+            d.text((c * cell + 4, r * h + 4), label, fill='black')
+    img.save(os.path.join(HERE, 'sheets', 'mq_blender6.jpg'), quality=90)
+
+
+# Round 7 (Fabio 2026-10-24): the round-6 recipe (BFL voice + end state + real-person keep, one edit, exact ref) on
+# the remaining views (front hi, back eye, four 3/4) and on new sources: the woman full body, her face close-up
+# (head-and-shoulders refs `face_*`), the floating speaker (object wording + object keep). Frame directions are read
+# off the renders: from their left the mannequin faces frame-left, from behind-left it faces away toward frame-left.
+def _tq(side, near, facing):
+    return ('Shift the viewpoint of the first image around the subject to match the mannequin reference in the second '
+            f'image: a three-quarter view from in front of them and 45 degrees to their {side}, at the same height and '
+            f'distance. Their whole body is now turned at an angle, facing {facing}, their {near} shoulder and side '
+            'nearer the view and their face seen in three-quarter; the place around them is seen from that angle.')
+
+
+def _tqb(side, facing):
+    return ('Shift the viewpoint of the first image around the subject to match the mannequin reference in the second '
+            f'image: a three-quarter rear view from behind them and 45 degrees to their {side}. They face away at an '
+            f'angle toward {facing}, their back and {side} shoulder nearer the view, the back of their head and only '
+            'the edge of their cheek showing; the place around them is seen from that angle.')
+
+
+MQ7_BODY = {**{v: MQ5[v] for v in ('front lo', 'back lo', 'top2', 'front hi', 'back eye')},
+            'tq fl': ('tq_fl', _tq('left', 'left', 'frame-left')), 'tq fr': ('tq_fr', _tq('right', 'right', 'frame-right')),
+            'tqb l': ('tq_bl', _tqb('left', 'frame-left')), 'tqb r': ('tq_br', _tqb('right', 'frame-right'))}
+MQ7_FACE = {
+    'front lo': ('face_front_lo', 'Shift the viewpoint of the first image down to match the mannequin reference in the '
+                 'second image: a low view from below the subject\'s chin, looking up at their face. The underside of '
+                 'their chin and jaw now shows, their face rises above it and narrows toward the top of their head, '
+                 'their head stays upright, and the background behind them is seen from below.'),
+    'front hi': ('face_front_hi', 'Shift the viewpoint of the first image up to match the mannequin reference in the '
+                 'second image: a high view from above and in front of the subject, looking down at their face. The top '
+                 'of their head and their forehead are now large near the top of the frame, their face narrows toward '
+                 'the chin, and their shoulders fall away below.'),
+    'back': ('face_back', 'Shift the viewpoint of the first image around the subject to match the mannequin reference in '
+             'the second image: a view from directly behind their head at the same height and distance. The back of '
+             'their head and their hair fill the middle of the frame with their shoulders below, and the background is '
+             'seen from the opposite side.'),
+    'tq fl': ('face_tq_fl', 'Shift the viewpoint of the first image around the subject to match the mannequin reference '
+              'in the second image: a three-quarter view from in front of them and 45 degrees to their left, at the same '
+              'height and distance. Their head and shoulders are turned at an angle, their face seen in three-quarter '
+              'facing frame-left, their left cheek and ear nearer the view.'),
+    'tqb r': ('face_tq_br', 'Shift the viewpoint of the first image around the subject to match the mannequin reference '
+              'in the second image: a three-quarter rear view from behind them and 45 degrees to their right. They face '
+              'away at an angle toward frame-right, the back of their head and their right shoulder nearer the view, '
+              'only the edge of their cheek showing.'),
+}
+MQ7_OBJ = {
+    'front lo': ('front_lo', 'Shift the viewpoint of the first image down to match the mannequin reference in the second '
+                 'image: a low view from below the object, looking steeply up at it. Its underside now shows, its front '
+                 'face leans away above it, and the backdrop is seen from below.'),
+    'front hi': ('front_hi', 'Shift the viewpoint of the first image up to match the mannequin reference in the second '
+                 'image: a high view from above and in front of the object, looking steeply down at it. Its top face '
+                 'now shows large, its front face foreshortened below it, and the backdrop fills the space behind it.'),
+    'top2': ('top2', 'Shift the viewpoint of the first image up to match the mannequin reference in the second image: a '
+             'view from directly above the object, looking straight down. Its top face fills the middle of the frame, '
+             'its front and sides hidden, and the backdrop surrounds it on every side.'),
+    'back eye': ('back_eye', 'Shift the viewpoint of the first image around the object to match the mannequin reference '
+                 'in the second image: a view from directly behind it at the same height and distance. Its back face '
+                 'now faces the view, its front hidden, and the backdrop is seen from the opposite side.'),
+    'tq fl': ('tq_fl', 'Shift the viewpoint of the first image around the object to match the mannequin reference in the '
+              'second image: a three-quarter view from in front of it and 45 degrees around to one side, at the same '
+              'height and distance. Its front face and one end both show at an angle, the nearer end larger.'),
+}
+MQ7_FACE_KEEP = (' Take only the viewing angle from the mannequin reference. The subject is still the real person from '
+                 'the first image, with their own face, hair and clothes; keep their identity, expression, the framing '
+                 'distance, the background, the light and the image style of the first image unchanged.')
+MQ7_OBJ_KEEP = (' Take only the viewing angle from the mannequin reference. The object stays exactly the object from the '
+                'first image, with its own shape, colours, materials and details; keep the background, the light and '
+                'the image style of the first image unchanged.')
+MQ7_RUNS = {  # source -> (pitch.json key, views, keep, views to run)
+    'man': ('scene input', MQ7_BODY, MQ6_KEEP, ('front hi', 'back eye', 'tq fl', 'tq fr', 'tqb l', 'tqb r')),
+    'woman': ('body input', MQ7_BODY, MQ6_KEEP, tuple(MQ7_BODY)),
+    'face': ('face input', MQ7_FACE, MQ7_FACE_KEEP, tuple(MQ7_FACE)),
+    'object': ('object input', MQ7_OBJ, MQ7_OBJ_KEEP, tuple(MQ7_OBJ)),
+}
+MQ7_SEEDS = (111, 222)
+
+
+def blender7(port):
+    done = os.path.join(OUT, 'mq_blender7.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    pres = json.load(open(os.path.join(OUT, 'pitch.json')))
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+    for name, (srckey, views, keep, run) in MQ7_RUNS.items():
+        for v in run:
+            render = views[v][0]
+            if f'ref {render}' not in res:
+                res[f'ref {render}'] = import_ref(port, render, f'angles mq7 ref {render}')
+                json.dump(res, open(done, 'w'), indent=1)
+        for seed in MQ7_SEEDS:
+            for v in run:
+                key = f'{name} {seed} {v}'
+                if key not in res:
+                    res[key] = gen(port, {**FAST, 'seed': seed, 'positive': views[v][1] + keep, 'cardName': f'angles mq7 {key}',
+                                          'media': [{'role': 'inputImage', 'url': pres[srckey]},
+                                                    {'role': 'inputImage2', 'url': res[f'ref {views[v][0]}']}]})
+                    json.dump(res, open(done, 'w'), indent=1)
+        cell, h = 300, 324
+        rows = [[(pres[srckey], 'source')] + [(res[f'ref {views[v][0]}'], f'ref {v}') for v in run]]
+        rows += [[(None, f'seed {s}')] + [(res[f'{name} {s} {v}'], v) for v in run] for s in MQ7_SEEDS]
+        img = Image.new('RGB', (cell * (len(run) + 1), h * len(rows)), 'white')
+        d = ImageDraw.Draw(img)
+        for r, row in enumerate(rows):
+            for c, (url, label) in enumerate(row):
+                if url:
+                    im = Image.open(disk(url)).convert('RGB')
+                    im.thumbnail((cell, h - 24))
+                    img.paste(im, (c * cell, r * h + 24))
+                d.text((c * cell + 4, r * h + 4), label, fill='black')
+        img.save(os.path.join(HERE, 'sheets', f'mq_blender7_{name}.jpg'), quality=90)
+
+
+def blender(port, rnd='3'):
+    name, prefix, wordings = MQ_ROUNDS[rnd]
+    done = os.path.join(OUT, f'{name}.json')
     res = json.load(open(done)) if os.path.exists(done) else {}
     src = json.load(open(os.path.join(OUT, 'pitch.json')))['scene input']
     if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
         sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
     for v, f in MQ_BL_VIEWS.items():
         if f'ref {v}' not in res:
-            req = urllib.request.Request(f'http://127.0.0.1:{port}/connector/import-media', headers={'Content-Type': 'application/json'},
-                                         data=json.dumps({'sourcePath': os.path.join(BLENDER_REFS, f + '.png'), 'folderPath': PROJECT,
-                                                          'cardName': f'angles mq3 ref {v}'}).encode())
-            r = json.load(urllib.request.urlopen(req, timeout=120))
-            if not r.get('ok'):
-                sys.exit(f'import {v}: {r}')
-            res[f'ref {v}'] = r['output']['filePath']  # already a /project-file?path= url
+            res[f'ref {v}'] = import_ref(port, f, f'angles {prefix} ref {v}')
             json.dump(res, open(done, 'w'), indent=1)
-        for w, tpl in (('edit', MQ_EDIT), ('editB', MQ_EDIT_B), ('editC', MQ_EDIT_C)):
+        for w, tpl in wordings:
             key = f'{w} {v}'
             if key not in res:
                 res[key] = gen(port, {**FAST, 'seed': PITCH_SEED, 'positive': tpl.format(v=MQ2_VIEWS[v][2]),
-                                      'cardName': f'angles mq3 {key}',
+                                      'cardName': f'angles {prefix} {key}',
                                       'media': [{'role': 'inputImage', 'url': src}, {'role': 'inputImage2', 'url': res[f'ref {v}']}]})
                 json.dump(res, open(done, 'w'), indent=1)
     cell, h = 300, 324
-    rows = [[('src', 'source')] + [(f'{w} {v}', f'{w} {v}') for v in MQ_BL_VIEWS] for w in ('ref', 'edit', 'editB', 'editC')]
+    rows = [[('src', 'source')] + [(f'{w} {v}', f'{w} {v}') for v in MQ_BL_VIEWS] for w in ('ref',) + tuple(w for w, _ in wordings)]
     img = Image.new('RGB', (cell * 5, h * len(rows)), 'white')
     d = ImageDraw.Draw(img)
     for r, row in enumerate(rows):
@@ -1238,7 +1508,7 @@ def blender(port):
                 im.thumbnail((cell, h - 24))
                 img.paste(im, (c * cell, r * h + 24))
                 d.text((c * cell + 4, r * h + 4), label, fill='black')
-    img.save(os.path.join(HERE, 'sheets', 'mq_blender.jpg'), quality=90)
+    img.save(os.path.join(HERE, 'sheets', f'{name}.jpg'), quality=90)
 
 
 def mannequin2(port, edits=False):
@@ -1376,8 +1646,14 @@ if __name__ == '__main__':
         sweep2(int(sys.argv[1]))
     elif sys.argv[2:3] == ['lora']:
         lora(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['blender7']:
+        blender7(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['blender6']:
+        blender6(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['blender5']:
+        blender5(int(sys.argv[1]))
     elif sys.argv[2:3] == ['blender']:
-        blender(int(sys.argv[1]))
+        blender(int(sys.argv[1]), *sys.argv[3:4])
     elif sys.argv[2:3] == ['mannequin2']:
         mannequin2(int(sys.argv[1]), sys.argv[3:4] == ['edits'])
     elif sys.argv[2:3] == ['mannequin']:

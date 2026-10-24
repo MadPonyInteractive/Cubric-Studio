@@ -260,3 +260,56 @@ user's ratio later; a crop changes the zoom, so the gizmo may need per-ratio-fam
   - top2: strong high angle, NOT top-down (reads as front hi).
   - Read: Blender refs carry turn + high exactly like t2i refs did; LOW is a model limit of the FLUX.3 edit, not a ref
     problem. A-pose ref = pose leak on back views; a relaxed arms-down ref pose should cut it (rig has CS_ controls).
+- 2026-10-24 ROUND 4, NATURAL POSE + CAMERA-ONLY WORDING (`angles.py <port> blender 4`, sheet
+  `research/sheets/mq_blender4.jpg`, results `research/out/mq_blender4.json`). Refs rendered from Fabio's hand-posed
+  copy `research/blender/out/UE4_Mannequinn_refs.blend` (arms down, feet in). Seed 111, FLUX.3 Turbo 1K, street man.
+  Wordings never say "mannequin"/"replace": D leads with "camera reference", E leads with "Move the camera to {v}".
+  - front lo: FAIL on both - full body, eye level. NEW artefact: a camera/bag prop lands on the cobbles at his feet
+    (E draws an actual camera) - the word "camera" leaks into the picture.
+  - back lo: D PASTES the grey mannequin into the street (fail). E turns him to a back view, but his body takes the
+    mannequin's slim bodysuit shape (no bag, odd hands) - identity leak instead of pose leak.
+  - front hi: PASS on both, and he keeps HIS OWN pose (hands in pockets) - pose leak gone on the front views.
+  - top2: D reads as front hi (as round 3); E is the closest top-down yet (more overhead, body foreshortened).
+  - Read: camera-only wording fixes the pose copy on front views; E beats D everywhere. Low stays a model limit.
+    Back views still pull the mannequin's BODY in. Next wording should drop the noun "camera" (say "viewpoint").
+- 2026-10-24 ROUND 5, BFL EDIT VOICE + TURN-THEN-HEIGHT (`angles.py <port> blender5`, sheet
+  `research/sheets/mq_blender5.jpg`, results `research/out/mq_blender5.json`, prompts `MQ5` / `MQ5_LOWER_BACK` /
+  `MQ5_KEEP`). "Shift the viewpoint of the first image ... to match the mannequin reference in the second image: <view>.
+  <where things now sit in the frame>." + keep clause; no "camera". Seeds 111 + 222; new ref `back_eye` (level, behind).
+  - front lo: LOW WORKS for the first time in this card - strong worm's-eye on both seeds. 222 = clean pass; 111 gave
+    him the mannequin's grey legs and feet (body leak).
+  - back lo, one edit: 111 pastes the grey mannequin; 222 = low back view but a grey mannequin head and hands.
+  - front hi: PASS both, own pose kept (hands in pockets).
+  - top2: 222 = TRUE top-down (crown, shoulders, shoe tips) - first time; 111 = steep high, not overhead.
+  - back eye (turn only, eye level): PASS both - clean back view, bag strap, street from the other side.
+  - back eye > lo (turn, THEN lower on the turned picture): the height step returns a near COPY on both seeds - same
+    as the 2026-10-23 two-pass finding. Turn-first does not unlock the height on the second edit.
+  - Read: describing the END STATE in BFL's voice is what moved low + top-down; the ref still leaks its BODY into
+    low views (the mannequin fills the frame there). Height on an already-edited back view is the open problem.
+- 2026-10-24 ROUND 6, REAL-PERSON KEEP CLAUSE + LINE REFS + HEIGHT-THEN-TURN (`angles.py <port> blender6`, sheet
+  `research/sheets/mq_blender6.jpg`, results `research/out/mq_blender6.json`). MQ5 view wordings + `MQ6_KEEP` ("The
+  subject is still the real person from the first image, with their own head and hair, hands, clothes and shoes").
+  Refs: 'grey' (round 5) and 'line' (`ref_render.py -- outline`: flat light, body the wall's tone, outline + ridges).
+  Seeds 111-444.
+  - front lo: 8/8 strong worm's-eye, real person, no grey body.
+  - back lo, ONE edit: 8/8 low back view, real person - the grey body leak is gone on every seed.
+  - top2: 8/8 true top-down (crown, shoulders, shoe tips).
+  - grey vs line refs: no visible difference - the keep clause is the fix, not the ref style.
+  - front lo > back (height first, then turn): turn lands on 1/4 (333); 111/222/444 return the front view. Two-step
+    loses in both orders; ONE edit from the source is the route.
+  - Read: recipe = MQ5 view wording (BFL voice, end state) + MQ6_KEEP + exact Blender ref, one edit. Front hi + back
+    eye passed in round 5 with the older keep; recheck them with MQ6_KEEP and widen to other sources next.
+- 2026-10-24 ROUND 7, RECIPE ON MORE VIEWS + SOURCES (`angles.py <port> blender7`, sheets
+  `research/sheets/mq_blender7_{man,woman,face,object}.jpg`, results `research/out/mq_blender7.json`). Seeds 111 + 222.
+  New refs in Fabio's copy: `tq_fl/fr/bl/br` (45-degree steps, level, 2.6 m) and head-and-shoulders `face_*` (50 mm).
+  - man (street): front hi 2/2, back eye 2/2, 3/4 front L 2/2, 3/4 front R 1/2 (111 zoomed out, under-turned), 3/4 rear
+    L 2/2, 3/4 rear R 2/2. The 3/4 views that under-turned in the 2026-10-23 prompt-only bench now land.
+  - woman (studio, full body): back eye, all four 3/4, front hi 2/2 each; top2 2/2 strong high, near overhead; front lo
+    and back lo 2/2 but milder than the man's (a plain backdrop gives no perspective to lean).
+  - face close-up: back 2/2, 3/4 rear R 2/2 (profile), 3/4 front L 2/2 but mild; front lo FAIL 2/2 (eye level), front
+    hi weak 2/2. Face heights stay the known limit.
+  - object (floating speaker, object wording + MQ7_OBJ_KEEP): front hi 2/2, top2 2/2 partial (top shows, not straight
+    down); front lo FAIL 2/2 - PASTES the mannequin holding the speaker; back eye FAIL 2/2 (front still shows); 3/4
+    mild. A human ref does not transfer to objects: needs an object stand-in ref (a box) and its own keep.
+  - Read: the recipe holds for full-body PEOPLE in a scene or studio at every tested view. Face close-ups: turns yes,
+    heights no. Objects: a different ref.
