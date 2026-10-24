@@ -54,6 +54,18 @@
     cursor: grabbing;
 }
 
+/* Whole pictures (MPI-1268): nothing to frame. */
+.mpi-image-sheet__cell--whole {
+    cursor: default;
+}
+
+/* The ratio picker: orientation toggle, then the ratios. */
+.mpi-image-sheet__shape {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+}
+
 .mpi-image-sheet__img {
     position: absolute;
     max-width: none;

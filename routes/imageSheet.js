@@ -13,11 +13,14 @@
  * Body: {
  *   folderPath, itemIds[],          // itemIds in the dialog's order: tree ids index into it
  *   tree?,                          // sheetLayout `{id}` / `{kind,a,b}`, every index once
- *   shape?,                         // a SHEET_SHAPES value ('auto', the default = the tree's own shape)
+ *   shape?,                         // a SHEET_SHAPES value ('auto', the default = the tree's own
+ *                                   // shape) or any "w:h" label (sheetShapeRatio, MPI-1268)
  *   longEdge?,                      // one of SHEET_SIZES, default the smallest
  *   frames[],                       // per picture { zoom, cx, cy } (sheetLayout.frameRect)
- *   numbered?                       // MPI-1268, a stack's Create Sheet: each cell numbered
+ *   numbered?,                      // MPI-1268, a stack's Create Sheet: each picture numbered
  *                                   // top-left, 1 = itemIds[0]; with no tree, packed in rows
+ *   whole?                          // MPI-1268: every picture uncropped in an even grid
+ *                                   // (sheetLayout.gridSheet); tree and frames are ignored
  * }
  * Response: { success, item } — the raw-descriptor shape `/gif/make` and `/combine-videos`
  * return; the client builds the ItemGroup and `addGroup()` owns the project.json write.
@@ -37,7 +40,8 @@ const logger = require('./logger');
 const { nextSequence, writeImageRenditions } = require('./projects');
 const { resolveAbsPath, isEligibleStillImage } = require('./gifMake');
 const {
-    SHEET_SHAPES, SHEET_SIZES, isValidTree, packSheet, sheetPixelSize, sheetGutter, placeSheet, frameRect, autoRatio, sheetBadge,
+    SHEET_SIZES, isValidTree, packSheet, sheetPixelSize, sheetGutter, placeSheet, frameRect, autoRatio, sheetBadge,
+    gridSheet, placeGrid, containRect, sheetShapeRatio,
 } = require('../js/utils/sheetLayout.js');
 
 const GREY = { r: 128, g: 128, b: 128 };   // under a transparent picture's see-through parts
@@ -65,28 +69,36 @@ function _badge(cell, n) {
  * Render the sheet. Pictures are decoded one at a time: nine 16K photos at once would not
  * fit a 16 GB machine (the same rule as routes/ingredientsSheet.js).
  * @param {string[]} sources - absolute paths, in tree-id order
- * @param {{tree?: object, shape: string, longEdge: number, frames?: object[], numbered?: boolean}} opts
- *   - no tree = pack here
+ * @param {{tree?: object, shape: string, longEdge: number, frames?: object[], numbered?: boolean,
+ *   whole?: boolean}} opts - no tree = pack here; `whole` = the uncropped grid (`gridSheet`), tree
+ *   and frames unused
  * @returns {Promise<{sharp: object, width: number, height: number}>}
  */
-async function renderSheet(sources, { tree: given, shape, longEdge, frames = [], numbered = false }) {
+async function renderSheet(sources, { tree: given, shape, longEdge, frames = [], numbered = false, whole = false }) {
     const dims = [];
     for (const abs of sources) {
         const { width, height } = (await sharp(abs, { limitInputPixels: false, autoOrient: true }).metadata()).autoOrient;
         dims.push({ width, height });
     }
     const aspects = dims.map(d => d.width / d.height);
-    const fixed = SHEET_SHAPES.find(s => s.value === shape)?.r;
-    const tree = given || packSheet(aspects, { shape: fixed || null, ordered: numbered }).tree;
-    const r =fixed || autoRatio(_treeRatio(tree, aspects));
-    const { width, height } = sheetPixelSize(r, longEdge);
-    const cells = placeSheet(tree, aspects, width, height, sheetGutter(width, height));
+    const fixed = sheetShapeRatio(shape);
+    let width, height, cells;
+    if (whole) {
+        const { grid, r } = gridSheet(aspects, { shape: fixed || null });
+        ({ width, height } = sheetPixelSize(r, longEdge));
+        cells = placeGrid(grid, sources.length, width, height, sheetGutter(width, height))
+            .map((c, i) => containRect(aspects[i], c));
+    } else {
+        const tree = given || packSheet(aspects, { shape: fixed || null, ordered: numbered }).tree;
+        ({ width, height } = sheetPixelSize(fixed || autoRatio(_treeRatio(tree, aspects)), longEdge));
+        cells = placeSheet(tree, aspects, width, height, sheetGutter(width, height));
+    }
 
     const parts = [];
     for (const [i, abs] of sources.entries()) {
         const c = cells[i];
         const { width: W, height: H } = dims[i];
-        const f = frameRect(aspects[i], c.w / c.h, frames[i] || {});
+        const f = whole ? { x: 0, y: 0, w: 1, h: 1 } : frameRect(aspects[i], c.w / c.h, frames[i] || {});
         const left = Math.min(W - 1, Math.round(f.x * W));
         const top = Math.min(H - 1, Math.round(f.y * H));
         const part = await sharp(abs, { limitInputPixels: false, autoOrient: true })
@@ -117,7 +129,7 @@ async function renderSheet(sources, { tree: given, shape, longEdge, frames = [],
 router.post('/combine-images', async (req, res) => {
     let outputPath = '';
     try {
-        const { folderPath, itemIds, tree, shape = 'auto', longEdge = SHEET_SIZES[0], frames, numbered } = req.body || {};
+        const { folderPath, itemIds, tree, shape = 'auto', longEdge = SHEET_SIZES[0], frames, numbered, whole } = req.body || {};
         if (!folderPath) return res.status(400).json({ success: false, error: 'folderPath required' });
         if (!Array.isArray(itemIds) || itemIds.length < 2) {
             return res.status(400).json({ success: false, error: 'itemIds[] with >=2 entries required' });
@@ -128,7 +140,7 @@ router.post('/combine-images', async (req, res) => {
         if (!SHEET_SIZES.includes(longEdge)) {
             return res.status(400).json({ success: false, error: `longEdge must be one of ${SHEET_SIZES.join(', ')}` });
         }
-        if (!SHEET_SHAPES.some(s => s.value === shape)) {
+        if (sheetShapeRatio(shape) === undefined) {
             return res.status(400).json({ success: false, error: `unknown shape: ${shape}` });
         }
 
@@ -152,7 +164,7 @@ router.post('/combine-images', async (req, res) => {
         }
 
         const { sharp: sheet, width, height } = await renderSheet(sources, {
-            tree, shape, longEdge, frames: Array.isArray(frames) ? frames : [], numbered: numbered === true,
+            tree, shape, longEdge, frames: Array.isArray(frames) ? frames : [], numbered: numbered === true, whole: whole === true,
         });
         const ext = longEdge > PNG_MAX_EDGE ? 'jpg' : 'png';
         const finalName = await nextSequence(folderPath, mediaDir, 'sheet', ext);

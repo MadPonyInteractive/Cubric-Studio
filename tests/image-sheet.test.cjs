@@ -14,6 +14,7 @@ const sharp = require('sharp');
 
 const {
     packSheet, placeSheet, frameRect, isValidTree, sheetPixelSize, sheetGutter, sheetBadge,
+    gridSheet, placeGrid, containRect, sheetShapeRatio,
 } = require('../js/utils/sheetLayout.js');
 const { renderSheet } = require('../routes/imageSheet.js');
 
@@ -74,6 +75,40 @@ test('MPI-1268: an ordered sheet reads in the given order, left to right, top to
             }
         }
     }
+});
+
+test('MPI-1268: Whole pictures = an even grid at the pictures\' shape, nothing cropped, in order', () => {
+    // Fabio's case: two 16:9 panels on a 16:9 sheet must not be cropped.
+    const two = gridSheet([16 / 9, 16 / 9], { shape: 16 / 9 });
+    assert.strictEqual(two.r, 16 / 9);
+    // Fabio's reference storyboard: twelve 4:3 panels on a 9:16 page = two columns of six.
+    const ref = gridSheet(Array(12).fill(4 / 3), { shape: 9 / 16 });
+    assert.deepStrictEqual([ref.grid.cols, ref.grid.rows], [2, 6]);
+    // Six 16:9 panels on a 9:16 page: two columns of three, not one thin column.
+    const six = gridSheet(Array(6).fill(16 / 9), { shape: 9 / 16 });
+    assert.deepStrictEqual([six.grid.cols, six.grid.rows], [2, 3]);
+    // Auto takes the grid's own shape: no padding at all.
+    const auto = gridSheet(Array(6).fill(16 / 9));
+    assert.ok(Math.abs(auto.r - auto.grid.cols * (16 / 9) / auto.grid.rows) < 1e-9);
+    for (const { grid, r } of [two, six, auto]) {
+        const n = grid === two.grid ? 2 : 6;
+        const { width, height } = sheetPixelSize(r, 2048);
+        const cells = placeGrid(grid, n, width, height, sheetGutter(width, height));
+        cells.forEach((c, i) => {
+            const pic = containRect(16 / 9, c);
+            assert.ok(Math.abs(pic.w / pic.h - 16 / 9) < 0.02, `picture ${i + 1} keeps its shape`);
+            assert.ok(c.x >= 0 && c.y >= 0 && c.x + c.w <= width && c.y + c.h <= height, `cell ${i + 1} inside`);
+            if (i) assert.ok(c.y > cells[i - 1].y || c.x > cells[i - 1].x, `cell ${i + 1} in reading order`);
+        });
+    }
+});
+
+test('MPI-1268: a sheet shape is a known value or any w:h label', () => {
+    assert.strictEqual(sheetShapeRatio('auto'), null);
+    assert.strictEqual(sheetShapeRatio('16:9'), 16 / 9);
+    assert.strictEqual(sheetShapeRatio('9:16'), 9 / 16);
+    assert.strictEqual(sheetShapeRatio('1:1.85'), 1 / 1.85);
+    for (const bad of ['tall', '0:1', '1:0', '20:1', '', undefined]) assert.strictEqual(sheetShapeRatio(bad), undefined, String(bad));
 });
 
 test('Cells never overlap and stay inside the sheet', () => {
@@ -150,6 +185,17 @@ test('renderSheet: the framed part of each picture lands in its cell', async () 
             assert.ok(white > 20, `badge ${i + 1} has a white number (${white} px)`);
             assert.deepStrictEqual(npx(c.x + c.w - 3, c.y + c.h - 3), [0, 255, 0], 'the rest of the cell is the picture');
         }
+
+        // MPI-1268 Whole pictures: the 2:1 red|blue picture keeps BOTH halves (no crop).
+        const wh = await renderSheet([a, a], { shape: '9:16', longEdge: 2048, whole: true });
+        assert.ok(wh.height > wh.width, 'a portrait sheet');
+        const { data: wd, info: wi } = await wh.sharp.raw().toBuffer({ resolveWithObject: true });
+        const wpx = (x, y) => [...wd.subarray((y * wi.width + x) * wi.channels, (y * wi.width + x) * wi.channels + 3)];
+        const { grid } = gridSheet([2, 2], { shape: 9 / 16 });
+        const pic = containRect(2, placeGrid(grid, 2, wi.width, wi.height, sheetGutter(wi.width, wi.height))[0]);
+        const mid = pic.y + (pic.h >> 1);
+        assert.deepStrictEqual(wpx(pic.x + 3, mid), [255, 0, 0], 'left edge red');
+        assert.deepStrictEqual(wpx(pic.x + pic.w - 4, mid), [0, 0, 255], 'right edge blue');
     } finally {
         await fs.remove(dir);
     }

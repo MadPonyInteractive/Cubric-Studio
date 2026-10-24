@@ -2,10 +2,27 @@ import { ComponentFactory } from '../../factory.js';
 import { MpiModal } from '../../Primitives/MpiModal/MpiModal.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
+import { MpiRadioGroup } from '../../Primitives/MpiRadioGroup/MpiRadioGroup.js';
 import { qs, ce, on } from '../../../utils/dom.js';
+import { CROP_RATIOS } from '../../../utils/ratios.js';
 import {
-    SHEET_SHAPES, SHEET_SIZES, SHEET_MAX_ZOOM, packSheet, placeSheet, frameRect, sheetPixelSize, sheetGutter, sheetBadge,
+    SHEET_SIZES, SHEET_MAX_ZOOM, packSheet, placeSheet, frameRect, sheetPixelSize, sheetGutter, sheetBadge,
+    sheetShapeRatio, gridSheet, placeGrid, containRect,
 } from '../../../utils/sheetLayout.js';
+
+/** Portrait / landscape, as the Flow crop step's ratio bar (MPI-1268). */
+const ORIENTATIONS = [
+    { label: 'Portrait',  value: 'portrait',  icon: 'ratio_9_16', info: 'Portrait sheets' },
+    { label: 'Landscape', value: 'landscape', icon: 'ratio_16_9', info: 'Landscape sheets' },
+];
+
+/** Auto, then the first six crop ratios of one orientation (1:1 to 9:16 or 16:9, 1:2 or 2:1). */
+function _shapeOptions(orientation) {
+    return [
+        { label: 'Auto', value: 'auto', icon: 'image', info: 'The shape the pictures fill without padding' },
+        ...CROP_RATIOS[orientation].slice(0, 6).map(r => ({ label: r.label, value: r.label, icon: r.icon.replace('rect_', 'ratio_') })),
+    ];
+}
 
 /**
  * MpiImageSheet — gallery Combine on 2+ stills: pack them into one sheet (Compound, MPI-1094)
@@ -28,8 +45,12 @@ import {
  *   (read off the loaded picture when missing)
  * @param {Function} [onCombine] - async (request) => void. Errors keep the modal open.
  * @param {boolean} [numbered=false] - a stack's Create Sheet (MPI-1268): the pictures stay
- *   in the given order, in rows, each numbered top-left; no Bigger. The request carries
- *   `numbered: true` so the server draws the same numbers.
+ *   in the given order, each numbered top-left; no Bigger. Opens on Whole pictures. The
+ *   request carries `numbered: true` so the server draws the same numbers.
+ *
+ * Whole pictures (MPI-1268, a toggle): nothing is cropped. An even grid at the pictures'
+ * shape (`gridSheet`), in order; no framing. The request carries `whole: true`.
+ * The shape is a ratio picker (portrait / landscape + ratios), sent as its label ("9:16").
  */
 export const MpiImageSheet = ComponentFactory.create({
     name: 'MpiImageSheet',
@@ -44,8 +65,9 @@ export const MpiImageSheet = ComponentFactory.create({
             <div class="mpi-image-sheet__stage" id="stage">
                 <div class="mpi-image-sheet__preview" id="preview"></div>
             </div>
+            <div class="mpi-image-sheet__shape" id="shape"></div>
             <div class="mpi-image-sheet__controls" id="controls">
-                <div class="mpi-image-sheet__hint">Drag a picture to frame it. Scroll to zoom.</div>
+                <div class="mpi-image-sheet__hint" id="hint"></div>
             </div>
             <div class="mpi-image-sheet__actions" id="actions"></div>
         </div>
@@ -60,8 +82,10 @@ export const MpiImageSheet = ComponentFactory.create({
         const frames = items.map(() => ({ zoom: 1, cx: 0.5, cy: 0.5 }));
         const weights = items.map(() => 1);
         let shape = 'auto';
+        let orientation = 'landscape';
+        let whole = numbered;
         let longEdge = SHEET_SIZES[0];
-        let layout = null;   // { tree, r }
+        let layout = null;   // { tree, r } or, whole, { grid, r }
 
         const modal = MpiModal.mount(document.createElement('div'), { width: 'min(960px, 94vw)' });
         modal.el.appendChild(el);
@@ -73,13 +97,32 @@ export const MpiImageSheet = ComponentFactory.create({
         const sizeReadout = qs('#size-readout', el);
 
         // ── Controls ────────────────────────────────────────────────────────
-        const shapeDd = MpiDropdown.mount(document.createElement('div'), {
-            options: SHEET_SHAPES.map(s => ({ label: s.label, value: s.value })),
-            value: shape,
-            direction: 'up',   // the controls sit at the dialog's foot
-            info: 'The sheet\'s shape. Auto picks the shape the pictures fill without cropping',
+        const shapeSlot = qs('#shape', el);
+        const orientRadio = MpiRadioGroup.mount(document.createElement('div'), {
+            options: ORIENTATIONS, value: orientation, name: 'sheet-orientation', iconOnly: true,
         });
-        shapeDd.on('change', ({ value }) => { shape = value; _relayout(); });
+        let ratioRadio = null;
+        const _mountRatios = () => {
+            ratioRadio?.destroy?.();
+            ratioRadio?.el.remove();
+            ratioRadio = MpiRadioGroup.mount(document.createElement('div'), {
+                options: _shapeOptions(orientation), value: shape, name: 'sheet-ratio', labelPosition: 'top', size: 'sm',
+            });
+            ratioRadio.on('select', ({ value }) => { shape = value; _relayout(); });
+            shapeSlot.append(ratioRadio.el);
+        };
+        orientRadio.on('select', ({ value }) => {
+            // The two lists are parallel (3:4 <-> 4:3), so a flip transposes the shape.
+            const idx = _shapeOptions(orientation).findIndex(o => o.value === shape);
+            orientation = value;
+            shape = _shapeOptions(orientation)[Math.max(0, idx)].value;
+            _mountRatios();
+            _relayout();
+        });
+        shapeSlot.append(orientRadio.el);
+        _mountRatios();
+        _unsubs.push(() => { orientRadio.destroy?.(); ratioRadio?.destroy?.(); });
+
         const sizeDd = MpiDropdown.mount(document.createElement('div'), {
             options: SHEET_SIZES.map(s => ({ label: `${s / 1024}K`, value: String(s) })),
             value: String(longEdge),
@@ -87,8 +130,15 @@ export const MpiImageSheet = ComponentFactory.create({
             info: 'The sheet\'s long edge in pixels',
         });
         sizeDd.on('change', ({ value }) => { longEdge = Number(value); _readout(); });
+        const wholeBtn = MpiButton.mount(document.createElement('div'), {
+            icon: 'fullscreen', label: 'Whole pictures', size: 'sm', toggleable: true, active: whole,
+            info: 'Show every picture whole, in an even grid. Off: fill the sheet and crop to fit',
+        });
+        wholeBtn.on('toggle', ({ active }) => { whole = active; _relayout(); });
+        const hint = qs('#hint', el);
         const controls = qs('#controls', el);
-        controls.prepend(shapeDd.el, sizeDd.el);
+        controls.prepend(sizeDd.el, wholeBtn.el);
+        _unsubs.push(() => wholeBtn.el.destroy?.());
 
         // ── Preview ─────────────────────────────────────────────────────────
         const _readout = () => {
@@ -127,7 +177,12 @@ export const MpiImageSheet = ComponentFactory.create({
             const aspects = items.map(it => it.aspect);
             // Cells in the real sheet's pixels, then as % of it: the gutter previews true.
             const { width, height } = sheetPixelSize(layout.r, SHEET_SIZES[0]);
-            const cells = placeSheet(layout.tree, aspects, width, height, sheetGutter(width, height));
+            const gut = sheetGutter(width, height);
+            // Whole: each cell IS the picture's own rect inside its grid slot, as the server draws it.
+            const cells = whole
+                ? placeGrid(layout.grid, items.length, width, height, gut).map((c, i) => containRect(aspects[i], c))
+                : placeSheet(layout.tree, aspects, width, height, gut);
+            hint.textContent = whole ? 'Every picture whole, in order.' : 'Drag a picture to frame it. Scroll to zoom.';
             cells.forEach((c, i) => {
                 const cellAspect = c.w / c.h;
                 const img = ce('img', { className: 'mpi-image-sheet__img', src: items[i].src, draggable: false, alt: '' });
@@ -140,7 +195,7 @@ export const MpiImageSheet = ComponentFactory.create({
                     extraClasses: 'mpi-image-sheet__bigger',
                 });
                 bigger.on('toggle', ({ active }) => { weights[i] = active ? 2 : 1; _relayout(); });
-                const cell = ce('div', { className: 'mpi-image-sheet__cell' }, [img, ...(numbered ? [] : [bigger.el])]);
+                const cell = ce('div', { className: 'mpi-image-sheet__cell' }, [img, ...(numbered || whole ? [] : [bigger.el])]);
                 Object.assign(cell.style, {
                     left: `${100 * c.x / width}%`, top: `${100 * c.y / height}%`,
                     width: `${100 * c.w / width}%`, height: `${100 * c.h / height}%`,
@@ -155,6 +210,13 @@ export const MpiImageSheet = ComponentFactory.create({
                         fontSize: `calc(${b.font / width} * var(--sheet-w))`,
                     });
                     cell.append(badge);
+                }
+                _cellUnsubs.push(() => bigger.el.destroy?.());
+                preview.append(cell);
+                if (whole) {
+                    Object.assign(img.style, { left: '0', top: '0', width: '100%', height: '100%' });
+                    cell.classList.add('mpi-image-sheet__cell--whole');
+                    return;
                 }
                 _placeImg(img, i, cellAspect);
 
@@ -182,16 +244,16 @@ export const MpiImageSheet = ComponentFactory.create({
                     frames[i].zoom = Math.min(SHEET_MAX_ZOOM, Math.max(1, frames[i].zoom * Math.exp(-e.deltaY * 0.0015)));
                     _placeImg(img, i, cellAspect);
                 }, { passive: false }));
-                _cellUnsubs.push(() => bigger.el.destroy?.());
-                preview.append(cell);
             });
             _fitPreview();
             _readout();
         };
 
         const _relayout = () => {
-            const fixed = SHEET_SHAPES.find(s => s.value === shape)?.r || null;
-            layout = packSheet(items.map(it => it.aspect), { weights, shape: fixed, ordered: numbered });
+            const fixed = sheetShapeRatio(shape) || null;
+            const aspects = items.map(it => it.aspect);
+            layout = whole ? gridSheet(aspects, { shape: fixed })
+                : packSheet(aspects, { weights, shape: fixed, ordered: numbered });
             _render();
         };
 
@@ -215,10 +277,9 @@ export const MpiImageSheet = ComponentFactory.create({
             cancelBtn.el.setDisabled(true);
             try {
                 await props.onCombine?.({
-                    tree: layout.tree,
+                    ...(whole ? { whole: true } : { tree: layout.tree, frames: frames.map(f => ({ ...f })) }),
                     shape,
                     longEdge,
-                    frames: frames.map(f => ({ ...f })),
                     ...(numbered ? { numbered: true } : {}),
                 });
             } catch (err) {

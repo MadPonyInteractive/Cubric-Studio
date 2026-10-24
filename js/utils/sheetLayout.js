@@ -28,6 +28,19 @@ export const SHEET_SHAPES = [
 ];
 // Wide or square only (Fabio, 2026-10-11: a wide sheet works better; 8:5 is his most used).
 
+/**
+ * A sheet shape's width / height: a SHEET_SHAPES value, or any "w:h" label such as the
+ * dialog's ratio picker sends ("9:16", "1:1.85"; MPI-1268). Null for 'auto'; undefined for
+ * anything else, which the route refuses.
+ */
+export function sheetShapeRatio(shape) {
+    const known = SHEET_SHAPES.find(s => s.value === shape);
+    if (known) return known.r;
+    const m = /^(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/.exec(String(shape));
+    const r = m ? Number(m[1]) / Number(m[2]) : NaN;
+    return r >= 0.25 && r <= 4 ? r : undefined;
+}
+
 /** Long edge, px. 16384 is past sharp's default pixel limit: every reader passes `limitInputPixels: false`. */
 export const SHEET_SIZES = [2048, 4096, 8192, 16384];
 
@@ -36,6 +49,7 @@ const AUTO_MAX = 16 / 9;
 const TREE_MAX = 8;        // exhaustive trees: ~50 ms at 8 pictures, ~350 ms at 9
 const FAIR = 0.6;          // no picture under 60% of its fair share (Bigger counts double)
 const MAX_ZOOM = 8;
+const STRIP_PENALTY = 0.85; // Whole pictures: a one-row / one-column grid must win by this much
 
 const _isLeaf = (t) => t.kind === undefined;
 
@@ -151,6 +165,58 @@ export function packSheet(aspects, { weights = [], shape = null, ordered = false
         if (s > bestScore) { best = t; bestScore = s; }
     }
     return { tree: _strip(best), r: shape || autoRatio(best.r) };
+}
+
+/**
+ * Whole pictures (MPI-1268): a grid of equal cells at the pictures' median shape, read left
+ * to right, top to bottom; nothing is cropped. The grid that shows the most picture on the
+ * sheet wins. Auto takes that grid's own shape (nothing padded); a fixed shape centres it.
+ * @param {number[]} aspects - each picture's upright width / height
+ * @param {{shape?: number|null}} [opts]
+ * @returns {{grid: {cols:number, rows:number, cellAspect:number}, r: number}}
+ */
+export function gridSheet(aspects, { shape = null } = {}) {
+    const n = aspects.length;
+    const cellAspect = [...aspects].sort((a, b) => a - b)[(n - 1) >> 1];
+    let best = null;
+    let bestScore = -1;
+    for (let cols = 1; cols <= n; cols++) {
+        const rows = Math.ceil(n / cols);
+        if (cols > 1 && (cols - 1) * rows >= n) continue;   // a whole column would stand empty
+        const r = cols * cellAspect / rows;
+        // A single strip of 4+ reads as a ribbon, not a sheet (six 16:9 panels on 9:16 = two
+        // columns, as a storyboard page has them, not one thin column with slightly more area).
+        const strip = n >= 4 && Math.min(cols, rows) === 1 ? STRIP_PENALTY : 1;
+        const score = (n / (cols * rows)) * _shapeFit(r, shape) * strip;
+        if (score > bestScore + 1e-9) { best = { cols, rows, r }; bestScore = score; }
+    }
+    return { grid: { cols: best.cols, rows: best.rows, cellAspect }, r: shape || best.r };
+}
+
+/**
+ * Each cell of a `gridSheet` grid, in px, on a `width` x `height` sheet with `gut` gutters;
+ * the grid is centred when the sheet's shape is not its own.
+ * @returns {Array<{x:number,y:number,w:number,h:number}>} indexed by picture
+ */
+export function placeGrid({ cols, rows, cellAspect }, n, width, height, gut) {
+    const w0 = (width - (cols + 1) * gut) / cols;
+    const h0 = (height - (rows + 1) * gut) / rows;
+    const cw = Math.min(w0, h0 * cellAspect);
+    const ch = cw / cellAspect;
+    const x0 = (width - cols * cw - (cols - 1) * gut) / 2;
+    const y0 = (height - rows * ch - (rows - 1) * gut) / 2;
+    return Array.from({ length: n }, (_, i) => {
+        const x = x0 + (i % cols) * (cw + gut);
+        const y = y0 + Math.floor(i / cols) * (ch + gut);
+        return { x: Math.round(x), y: Math.round(y), w: Math.max(1, Math.round(x + cw) - Math.round(x)), h: Math.max(1, Math.round(y + ch) - Math.round(y)) };
+    });
+}
+
+/** The whole picture inside its cell (contain), centred, in the cell's px. */
+export function containRect(imgAspect, cell) {
+    const w = Math.max(1, Math.min(cell.w, Math.round(cell.h * imgAspect)));
+    const h = Math.max(1, Math.min(cell.h, Math.round(cell.w / imgAspect)));
+    return { x: cell.x + Math.round((cell.w - w) / 2), y: cell.y + Math.round((cell.h - h) / 2), w, h };
 }
 
 /** Auto's sheet shape for a tree of shape `treeR`: its own, kept inside the Auto range. */
