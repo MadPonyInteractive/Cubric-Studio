@@ -1,8 +1,8 @@
 {
   "id": "08988737-a544-4ab1-99fb-22d67b7c36e3",
   "revision": 0,
-  "last_node_id": 774,
-  "last_link_id": 1589,
+  "last_node_id": 776,
+  "last_link_id": 1594,
   "nodes": [
     {
       "id": 136,
@@ -3874,7 +3874,8 @@
           "type": "LATENT",
           "links": [
             1200,
-            1548
+            1548,
+            1591
           ]
         }
       ],
@@ -8485,9 +8486,9 @@
           "name": "LATENT",
           "type": "LATENT",
           "links": [
-            1202,
             1395,
-            1549
+            1549,
+            1592
           ]
         }
       ],
@@ -10872,7 +10873,7 @@
           "name": "any_3",
           "shape": 7,
           "type": "*",
-          "link": 1202
+          "link": 1594
         },
         {
           "name": "any_4",
@@ -14501,7 +14502,7 @@
           "widget": {
             "name": "boolean"
           },
-          "link": 1584
+          "link": 1590
         }
       ],
       "outputs": [
@@ -14523,46 +14524,8 @@
       ],
       "widgets_values_named": {
         "boolean": true
-      }
-    },
-    {
-      "id": 771,
-      "type": "MpiSimpleBoolean",
-      "pos": [
-        -487.304250013333,
-        4678.571615903891
-      ],
-      "size": [
-        270,
-        58
-      ],
-      "flags": {},
-      "order": 112,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "boolean",
-          "type": "BOOLEAN",
-          "links": [
-            1584
-          ]
-        }
-      ],
-      "title": "Input_custom_size",
-      "properties": {
-        "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "aaa1d2d9fa713decae6843e64f5a81b84f9f443d",
-        "Node name for S&R": "MpiSimpleBoolean"
       },
-      "widgets_values": [
-        false
-      ],
-      "widgets_values_named": {
-        "boolean": false
-      },
-      "color": "#432",
-      "bgcolor": "#653"
+      "title": "Custom Size (control)"
     },
     {
       "id": 772,
@@ -14732,6 +14695,99 @@
       },
       "color": "#1b4669",
       "bgcolor": "#29699c"
+    },
+    {
+      "id": 775,
+      "type": "GetNode",
+      "pos": [
+        -416.3650459279218,
+        4621.58908064889
+      ],
+      "size": [
+        210,
+        58
+      ],
+      "flags": {},
+      "order": 102,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "BOOLEAN",
+          "type": "BOOLEAN",
+          "links": [
+            1590,
+            1593
+          ]
+        }
+      ],
+      "title": "Get_custom size",
+      "properties": {
+        "Node name for S&R": "GetNode",
+        "aux_id": "kijai/ComfyUI-KJNodes"
+      },
+      "widgets_values": [
+        "custom size"
+      ],
+      "widgets_values_named": {
+        "Constant": "custom size"
+      }
+    },
+    {
+      "id": 776,
+      "type": "MpiIfElse",
+      "pos": [
+        -156.3650459279218,
+        4761.58908064889
+      ],
+      "size": [
+        210,
+        78
+      ],
+      "flags": {},
+      "order": 205,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "true",
+          "type": "*",
+          "link": 1591
+        },
+        {
+          "name": "false",
+          "type": "*",
+          "link": 1592
+        },
+        {
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "boolean"
+          },
+          "link": 1593
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "*",
+          "links": [
+            1594
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "3d00c1633f92c2166dd3facbc9d641cff8a196f9",
+        "Node name for S&R": "MpiIfElse"
+      },
+      "widgets_values": [
+        true
+      ],
+      "widgets_values_named": {
+        "boolean": true
+      },
+      "title": "Custom Size (latent)"
     }
   ],
   "links": [
@@ -15653,14 +15709,6 @@
       0,
       561,
       1,
-      "LATENT"
-    ],
-    [
-      1202,
-      515,
-      0,
-      561,
-      2,
       "LATENT"
     ],
     [
@@ -17704,14 +17752,6 @@
       "IMAGE"
     ],
     [
-      1584,
-      771,
-      0,
-      770,
-      2,
-      "BOOLEAN"
-    ],
-    [
       1585,
       773,
       0,
@@ -17750,6 +17790,46 @@
       205,
       0,
       "IMAGE"
+    ],
+    [
+      1590,
+      775,
+      0,
+      770,
+      2,
+      "BOOLEAN"
+    ],
+    [
+      1591,
+      560,
+      0,
+      776,
+      0,
+      "LATENT"
+    ],
+    [
+      1592,
+      515,
+      0,
+      776,
+      1,
+      "LATENT"
+    ],
+    [
+      1593,
+      775,
+      0,
+      776,
+      2,
+      "BOOLEAN"
+    ],
+    [
+      1594,
+      776,
+      0,
+      561,
+      2,
+      "*"
     ]
   ],
   "groups": [
