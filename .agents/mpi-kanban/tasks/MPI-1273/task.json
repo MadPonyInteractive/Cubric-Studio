@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1273",
+  "title": "Child-safety: a failed picture look says why (the describer's own error)",
+  "description": "A photographer's i2v run was refused with pictureUnchecked and no reason: _pictureVerdicts drops llm.describeImage's error. Carry it into the refusal message (toast + Cosmo) and the log.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-24T12:00:22+01:00",
+  "updated_at": "2026-10-24T12:03:39+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
