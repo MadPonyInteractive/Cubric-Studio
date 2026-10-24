@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/task-files/v1", "files": ["comfy_workflows/qwen_image_2_1.json", "js/data/modelConstants/models.js", "js/data/commandRegistry.js", "docs/models/qwen-image-2/README.md", "docs/releases/UNRELEASED.md", "tests/op-strip-availability.test.cjs",".agents/mpi-kanban/tasks/MPI-1269/"]}

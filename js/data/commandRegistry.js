@@ -2049,6 +2049,18 @@ export function controlTypesParagraph(model) {
 }
 
 /**
+ * The control guide's line on the optional subject image(s), for a model that declares
+ * `capabilities.depthSubject` (the gate on the op's `inputImage2` slot); `depthSubject3`
+ * adds the third. Null for every model without the slot.
+ */
+export function controlSubjectParagraph(model) {
+    const caps = model?.capabilities;
+    if (caps?.depthSubject !== true) return null;
+    const more = caps.depthSubject3 === true ? 'images 2 and 3 are' : 'image 2 is';
+    return `More images are optional and change what the op does: image 1 gives the structure, ${more} WHO is drawn into it. With one image the subject comes from your prompt; with more it comes from the pictures, so describe the setting instead.`;
+}
+
+/**
  * May `model` show the style rack on `operation`?
  *
  * Returns false for a model with no style LoRAs at all, and for one that ships them
@@ -2631,6 +2643,10 @@ export function getOpHelp(key, model = null) {
     if (key === 'control' && !override && body.length) {
         const para = controlTypesParagraph(model);
         if (para) body = [body[0], para, ...body.slice(1)];
+        // MPI-1269: the subject slots are gated on `capabilities.depthSubject`, so the copy
+        // explaining them is too — Krea2 and Qwen Edit took a subject image with no word of it.
+        const subject = controlSubjectParagraph(model);
+        if (subject) body = [...body, subject];
     }
 
     if (model?.enhanceFirstOps?.includes(key)) body = [...body, ENHANCE_FIRST_HELP];

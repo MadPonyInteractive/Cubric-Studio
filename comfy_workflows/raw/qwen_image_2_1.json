@@ -1,8 +1,8 @@
 {
   "id": "575e77e9-f3c9-40fe-bb6d-2027e56af489",
   "revision": 0,
-  "last_node_id": 147,
-  "last_link_id": 362,
+  "last_node_id": 148,
+  "last_link_id": 367,
   "nodes": [
     {
       "id": 1,
@@ -184,7 +184,8 @@
           "links": [
             169,
             193,
-            308
+            308,
+            363
           ]
         }
       ],
@@ -244,7 +245,8 @@
             261,
             288,
             300,
-            309
+            309,
+            366
           ]
         }
       ],
@@ -1575,7 +1577,8 @@
           "name": "output",
           "type": "IMAGE",
           "links": [
-            173
+            173,
+            364
           ]
         }
       ],
@@ -1637,7 +1640,8 @@
           "name": "output",
           "type": "IMAGE",
           "links": [
-            174
+            174,
+            365
           ]
         }
       ],
@@ -2541,7 +2545,6 @@
             230,
             242,
             259,
-            297,
             310
           ]
         },
@@ -2553,7 +2556,6 @@
             231,
             243,
             260,
-            298,
             311
           ]
         },
@@ -7962,7 +7964,8 @@
           "type": "STRING",
           "links": [
             329,
-            330
+            330,
+            367
           ]
         }
       ],
@@ -9404,6 +9407,124 @@
       ],
       "properties": {},
       "widgets_values": []
+    },
+    {
+      "id": 148,
+      "type": "TextEncodeQwenImage21",
+      "pos": [
+        3100,
+        850
+      ],
+      "size": [
+        400,
+        266
+      ],
+      "flags": {},
+      "order": 215,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "clip",
+          "name": "clip",
+          "type": "CLIP",
+          "link": 363
+        },
+        {
+          "localized_name": "image_1",
+          "name": "images.image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 364
+        },
+        {
+          "localized_name": "image_2",
+          "name": "images.image_2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 365
+        },
+        {
+          "localized_name": "image_3",
+          "name": "images.image_3",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "vae",
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": 366
+        },
+        {
+          "localized_name": "prompt",
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 367
+        },
+        {
+          "localized_name": "negative_prompt",
+          "name": "negative_prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "negative_prompt"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "resolution",
+          "name": "resolution",
+          "type": "INT",
+          "widget": {
+            "name": "resolution"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "positive",
+          "name": "positive",
+          "type": "CONDITIONING",
+          "links": [
+            297
+          ]
+        },
+        {
+          "localized_name": "negative",
+          "name": "negative",
+          "type": "CONDITIONING",
+          "links": [
+            298
+          ]
+        },
+        {
+          "localized_name": "latent",
+          "name": "latent",
+          "type": "LATENT",
+          "links": null
+        }
+      ],
+      "title": "Text Encode (control subjects)",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "TextEncodeQwenImage21"
+      },
+      "widgets_values": [
+        "",
+        "",
+        1024
+      ],
+      "widgets_values_named": {
+        "prompt": "",
+        "negative_prompt": "",
+        "resolution": 1024
+      }
     }
   ],
   "links": [
@@ -10529,7 +10650,7 @@
     ],
     [
       297,
-      36,
+      148,
       0,
       112,
       1,
@@ -10537,7 +10658,7 @@
     ],
     [
       298,
-      36,
+      148,
       1,
       112,
       2,
@@ -11038,6 +11159,46 @@
       119,
       1,
       "SEGS"
+    ],
+    [
+      363,
+      3,
+      0,
+      148,
+      0,
+      "CLIP"
+    ],
+    [
+      364,
+      22,
+      0,
+      148,
+      1,
+      "IMAGE"
+    ],
+    [
+      365,
+      23,
+      0,
+      148,
+      2,
+      "IMAGE"
+    ],
+    [
+      366,
+      4,
+      0,
+      148,
+      4,
+      "VAE"
+    ],
+    [
+      367,
+      127,
+      0,
+      148,
+      5,
+      "STRING"
     ]
   ],
   "groups": [

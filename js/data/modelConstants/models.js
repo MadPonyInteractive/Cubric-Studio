@@ -1901,6 +1901,11 @@ const ALL_MODELS = [
             batch: false,
             multiReference: true, multiReference8: true,
             controlStrength: true,
+            // MPI-1269: the control LINE runs to two subjects, as on Qwen Edit: image 1 feeds
+            // the ControlNet map (any of the four types), images 2-3 reach the control
+            // sampler through 'Text Encode (control subjects)' (node 148).
+            depthSubject: true,
+            depthSubject3: true,
             // MPI-1038: the upscale branch carries the "Tile Upscale" group (Use Tiles).
             tileUpscale: true,
             styleLoras: true,   // MPI-936: the rack sits after Input_Lora_6, ahead of every sampler

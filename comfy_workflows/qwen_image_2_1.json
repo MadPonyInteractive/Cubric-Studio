@@ -1391,11 +1391,11 @@
         0
       ],
       "positive": [
-        "36",
+        "148",
         0
       ],
       "negative": [
-        "36",
+        "148",
         1
       ],
       "latent_image": [
@@ -2006,6 +2006,36 @@
     "class_type": "ImpactSegsAndMask",
     "_meta": {
       "title": "Pixelwise(SEGS & MASK)"
+    }
+  },
+  "148": {
+    "inputs": {
+      "negative_prompt": "",
+      "resolution": 1024,
+      "clip": [
+        "3",
+        0
+      ],
+      "images.image_1": [
+        "22",
+        0
+      ],
+      "images.image_2": [
+        "23",
+        0
+      ],
+      "vae": [
+        "4",
+        0
+      ],
+      "prompt": [
+        "127",
+        0
+      ]
+    },
+    "class_type": "TextEncodeQwenImage21",
+    "_meta": {
+      "title": "Text Encode (control subjects)"
     }
   }
 }

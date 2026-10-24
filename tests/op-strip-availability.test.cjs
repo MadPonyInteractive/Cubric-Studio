@@ -474,3 +474,21 @@ test('the control guide names the types the MODEL can run, not all four', async 
     assert.strictEqual(controlTypesParagraph(null), null);
     assert.doesNotMatch(getOpHelp('control').body.join(' '), /Control Type pick/);
 });
+
+test('control subject slots and their guide line follow capabilities.depthSubject', async () => {
+    const { getOpHelp, getCommandMediaInputs, filterMediaInputsForModel } = await import('../js/data/commandRegistry.js');
+    const { getModelById } = await import('../js/data/modelRegistry.js');
+
+    // MPI-1269: Qwen-Image 2.1 runs the subject line on all four types, like Qwen Edit.
+    const slots = (id) => filterMediaInputsForModel(getCommandMediaInputs('control'), getModelById(id)).map(s => s.key);
+    assert.deepStrictEqual(slots('qwen-image-2-1'), ['inputImage', 'inputImage2', 'inputImage3']);
+    assert.deepStrictEqual(slots('qwen-edit'), ['inputImage', 'inputImage2', 'inputImage3']);
+    assert.deepStrictEqual(slots('krea2'), ['inputImage', 'inputImage2'], 'Krea2 stops at one subject');
+    assert.deepStrictEqual(slots('sdxl-realistic'), ['inputImage'], 'SDXL has no way to read a subject');
+
+    // The guide explains the slots exactly where they exist.
+    const para = (id) => getOpHelp('control', getModelById(id)).body.join(' ');
+    assert.match(para('qwen-image-2-1'), /images 2 and 3 are WHO/);
+    assert.match(para('krea2'), /image 2 is WHO/);
+    assert.doesNotMatch(para('sdxl-realistic'), /WHO is drawn/);
+});
