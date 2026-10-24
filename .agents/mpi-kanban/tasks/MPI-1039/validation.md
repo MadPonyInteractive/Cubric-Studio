@@ -432,3 +432,25 @@ user's ratio later; a crop changes the zoom, so the gizmo may need per-ratio-fam
   - Read: the generic cube carries turns, back, high and zoom across unlike shapes; resting-object LOW views and
     top-down on thin/symmetric shapes are the gaps. Next ideas: low wording that names the surface edge filling the
     foreground + what rises behind; the HOUSE stand-in (roof = up, door = front) for top-down and left/right.
+- 2026-10-24 3D COSMO (gizmo preview model) - FABIO EYE TEST PASS. `blender/cosmo_build.py` -> `out/cosmo.blend`, rendered
+  front_hi / front_lo / tq_br / top2 to `out/cosmo/`. Two fixes on the way: bevels on every box (widths from his earlier
+  10:37 build, which a rerun of the script had overwritten) and the art decals excluded from Freestyle (their square plane
+  borders drew a hard wireframe over the rounded head/torso). Open: top2 has nothing marking "top".
+- 2026-10-24 ROUND 18, HOUSE STAND-IN + SURFACE-LEVEL LOW WORDING (`angles.py <port> blender18`, sheets
+  `research/sheets/mq_blender18_{sneaker,mug,headphones,handbag}.jpg`, results `research/out/mq_blender18.json`). Round
+  17's sources; house on a plinth (`obj_build.py -- house`, outline render); MQ18_LOW lowers the camera to the surface for
+  the three resting products; `cube lo` = the same low words on round 17's cube ref. 112 Turbo edits, ~33 s each.
+  FIRST READ (agent, thumbnails - Fabio's eye test pending):
+  - THE HOUSE GETS PASTED on the plain-backdrop product: headphones show a grey house/plinth in 7/24 cells (front hi x2,
+    top2, back eye x2, front lo x2). The cube was pasted ~once in round 17. On busy real settings (sneaker, mug,
+    handbag) the house was never pasted. A more distinctive stand-in = more to copy.
+  - Low: house lo and cube lo look the same in every product -> the WORDING moves it, not the ref. Sneaker 4/4 lower
+    (the source was already near floor level, so modest); handbag 4/4 at plinth level but 3/4 reshaped the ROUND plinth
+    into a square slab (both arms - "seen edge-on as a thin line" did it); mug ~2/4 per arm (rest near copies).
+  - top2: still not straight down - sneaker 4/4 good, mug ~2/4, handbag reads high (plinth circle, bag front showing),
+    headphones 0/4 again. The house's roof/chimney did not buy top-down.
+  - Turns (back eye, tq fl, tqb r) hold as in round 17: sneaker/handbag ~4/4, mug back + tqb ok, tq fl weak (barely
+    turns); headphones tq good, back eye unjudgeable (symmetric).
+  - Read: keep the CUBE (house pastes, gains nothing); keep the surface-level low words for resting products but drop
+    "edge-on thin line" for named surfaces (it reshapes them); top-down needs another idea (straight-down wording without
+    a ref, or a two-step high -> top).

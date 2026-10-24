@@ -50,10 +50,12 @@ def finish(o, name, m):
     return o
 
 
-def box(name, loc, size, rgb=BODY):
+def box(name, loc, size, bevel, rgb=BODY):  # Fabio: rounded edges - widths from his earlier bevelled build
     bpy.ops.mesh.primitive_cube_add(location=loc)
     bpy.context.object.scale = [v / 2 for v in size]
     bpy.ops.object.transform_apply(scale=True)
+    m = bpy.context.object.modifiers.new('Bevel', 'BEVEL')
+    m.width, m.segments = bevel, 4
     return finish(bpy.context.object, name, flat(rgb, rgb))
 
 
@@ -76,19 +78,19 @@ def ball(name, loc, scale, rgb=BODY):  # Fabio: the hands (and feet) are just st
     return finish(bpy.context.object, name, flat(rgb, rgb))
 
 
-box('Cosmo_head', (0, 0, 1.418), (0.97, 0.75, 0.815))
+box('Cosmo_head', (0, 0, 1.418), (0.97, 0.75, 0.815), 0.09)
 decal('Cosmo_face', (0, -0.377, 1.418), 0.97, 0.815, 'head.png')
 for side in (-1, 1):  # ear discs on the sides, a dark ring on each, the antenna rising from it
     cyl('Cosmo_ear', (side * 0.545, 0, 1.403), 0.13, 0.12, BODY, (0, 1.5708, 0))
     cyl('Cosmo_ear_ring', (side * 0.607, 0, 1.403), 0.08, 0.01, DARK, (0, 1.5708, 0))
     cyl('Cosmo_antenna', (side * 0.553, 0, 1.66), 0.016, 0.26, DARK)
-box('Cosmo_neck', (0, 0, 0.968), (0.36, 0.3, 0.085))
-box('Cosmo_torso', (0, 0, 0.592), (0.93, 0.6, 0.668))
+box('Cosmo_neck', (0, 0, 0.968), (0.36, 0.3, 0.085), 0.02)
+box('Cosmo_torso', (0, 0, 0.592), (0.93, 0.6, 0.668), 0.08)
 decal('Cosmo_chest', (0, -0.302, 0.592), 0.93, 0.668, 'torso.png')
 for side in (-1, 1):
-    box('Cosmo_arm', (side * 0.575, 0, 0.625), (0.19, 0.25, 0.57))
+    box('Cosmo_arm', (side * 0.575, 0, 0.625), (0.19, 0.25, 0.57), 0.09)
     ball('Cosmo_hand', (side * 0.56, 0, 0.29), (0.07, 0.08, 0.1))
-    box('Cosmo_leg', (side * 0.2, 0, 0.145), (0.21, 0.22, 0.23))
+    box('Cosmo_leg', (side * 0.2, 0, 0.145), (0.21, 0.22, 0.23), 0.02)
     ball('Cosmo_foot', (side * 0.2, -0.03, 0.03), (0.155, 0.17, 0.1))
 
 s = bpy.context.scene
@@ -99,5 +101,14 @@ s.render.use_freestyle = True
 s.render.line_thickness_mode = 'ABSOLUTE'
 s.render.line_thickness = 4.0
 fs = s.view_layers[0].freestyle_settings
-(fs.linesets[0] if fs.linesets else fs.linesets.new('lines')).linestyle.color = DARK
+ls = fs.linesets[0] if fs.linesets else fs.linesets.new('lines')
+ls.linestyle.color = DARK
+art = bpy.data.collections.new('Cosmo_art')  # Fabio: the decal planes' square borders drew a wireframe over the
+s.collection.children.link(art)              # rounded head and torso - the art carries its own outline, so no lines
+for name in ('Cosmo_face', 'Cosmo_chest'):
+    o = s.objects[name]
+    for c in o.users_collection:
+        c.objects.unlink(o)
+    art.objects.link(o)
+ls.select_by_collection, ls.collection, ls.collection_negation = True, art, 'EXCLUSIVE'
 bpy.ops.wm.save_as_mainfile(filepath=os.path.dirname(os.path.abspath(__file__)) + '/out/cosmo.blend')

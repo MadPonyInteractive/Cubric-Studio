@@ -7,14 +7,15 @@
 # written. `cube` (round 17, Fabio: the box and the flask were each built to their own product's shape) = ONE generic
 # stand-in for every product: a plain cube, the panel marks the face the source shows; it also adds zoom cameras
 # <cam>_near / <cam>_far (same position, longer / shorter lens) for front_hi and tq_fl.
-# Usage: blender-5.2 -b out/UE4_Mannequinn_refs.blend --python obj_build.py [-- bottle | cube]      then render
+# `house` (round 18) = the generic stand-in with every side told apart, on a plinth - see its branch below.
+# Usage: blender-5.2 -b out/UE4_Mannequinn_refs.blend --python obj_build.py [-- bottle | cube | house]   then render
 # out/<shape>_refs.blend with ref_render.py (it reads StandIn's `refdir` and writes to out/<refdir>/).
 import os
 import sys
 import bpy
 
 args = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
-shape = next((a for a in args if a in ('bottle', 'cube')), 'box')
+shape = next((a for a in args if a in ('bottle', 'cube', 'house')), 'box')
 for name in ('SK_MannequinMesh', 'HeroTPP_Character'):
     bpy.data.objects[name].hide_render = bpy.data.objects[name].hide_viewport = True
 for cam in [o for o in bpy.data.objects if o.type == 'CAMERA' and o.name.startswith('face_')]:
@@ -52,6 +53,20 @@ elif shape == 'cube':
             twin.data.lens = cam.data.lens * k
             twin.name = f'{name}_{tag}'
             bpy.context.scene.collection.objects.link(twin)
+elif shape == 'house':  # round 18 (Fabio): roof = up, door = front, chimney on the back slope at +X (frame-right)
+    # tells left from right and front from back; it stands on a PLINTH (the surface a resting product sits on), so the
+    # low cameras see the plinth's edge in front and no underside - round 17's floating cube showed one (low ~2/16)
+    box('StandIn_plinth', (0, 0, 0.3), (0.9, 0.9, 0.6), YELLOW)
+    box('StandIn', (0, 0, 0.82), (0.5, 0.44, 0.44), YELLOW)
+    box('StandIn_door', (0, -0.225, 0.72), (0.13, 0.01, 0.24), WHITE)
+    roof = bpy.data.meshes.new('roof')  # a prism, ridge along X, eaves a little proud of the walls
+    w, d, z0, z1 = 0.29, 0.26, 1.04, 1.26
+    roof.from_pydata([(-w, -d, z0), (w, -d, z0), (w, d, z0), (-w, d, z0), (-w, 0, z1), (w, 0, z1)], [],
+                     [(0, 1, 5, 4), (3, 4, 5, 2), (0, 4, 3), (1, 2, 5), (0, 3, 2, 1)])
+    o = bpy.data.objects.new('StandIn_roof', roof)
+    o.color = (*YELLOW, 1)
+    bpy.context.scene.collection.objects.link(o)
+    box('StandIn_chimney', (0.15, 0.12, 1.24), (0.08, 0.08, 0.2), DARK)
 else:  # a flask 0.5 wide, 0.26 deep, 0.62 tall, neck + cap on top; whole thing centred near 0.9
     box('StandIn', (0, 0, 0.75), (0.5, 0.26, 0.62), YELLOW)
     box('StandIn_front', (0, -0.135, 0.73), (0.38, 0.01, 0.4), WHITE)

@@ -256,6 +256,45 @@ node scripts/launch-instance.mjs` (run_in_background), use the printed port. Eve
   not yet in DESIGN.md - offer a Cosmo colours row after his eye test), screen/collar cream = --hub-accent, lines =
   --surface-viewer. Flat emission + Freestyle, EEVEE. NEXT: render front / tq_br / top2 (ASK for the GPU), Fabio's
   eye test; watch the head decal's rounded corners over the square box and the line thickness.
+- 2026-10-24 Cosmo RENDERED (Fabio's GPU yes): front_hi, front_lo, tq_br, top2 -> `out/cosmo/*.png` (gitignored; one-off
+  script renders named cameras only, so ref_render.py's out/<camera>.png mannequin refs stay untouched). Agent read: front
+  views read as Cosmo; top2 is a flat brown square with ear stubs - nothing says "top of Cosmo" (needs a top marking
+  if top-down stays a gizmo stop). Fabio's eye test pending.
+- 2026-10-24 Fabio: "doesn't look right" - his 10:37 build had BEVELS (head .09, torso .08, arms .09, legs/neck .02,
+  4 segments), but the 10:40 rerun of cosmo_build.py (no bevels) overwrote it; the 10:37 file had lit Principled mats +
+  a sun (renders near-black), so only its bevels are worth keeping. Kept as `out/cosmo_bevel.blend`. box() now takes
+  the bevel width; cosmo.blend rebuilt 12:38 with them. Re-rendered to `out/cosmo/` (Fabio's GPU yes): rounded edges
+  show on back/top views; on the front views the flat decals keep square corners over the rounded head/torso.
+  Fabio: the decals read as a hard-edged WIREFRAME on face + chest = Freestyle tracing the decal planes' square
+  borders. Fix: decals in collection `Cosmo_art`, lineset excludes it (select_by_collection EXCLUSIVE); rebuilt.
+  Re-rendered (Fabio's GPU yes): square wireframe gone, outlines follow the rounded boxes. FABIO EYE TEST: PASS
+  ("Cosmo looks right"). Renders = `out/cosmo/{front_hi,front_lo,tq_br,top2}.png`, made by a one-off named-camera
+  render (copy of ref_render.py's loop writing to `out/<blend stem>/`). Open: top2 is a plain rounded square (no "top"
+  mark) - decide only if top-down stays a gizmo stop; offer Fabio a Cosmo colours row in DESIGN.md (#a16d6a).
+  NEXT for the card: Fabio's eye test on the round-17 sheets (still no verdict), then the low-wording fix + HOUSE round.
+FABIO 2026-10-24 (afternoon): OBJECTS DEFERRED - focus on PEOPLE, run the people tests still open, in a fresh session.
+People tests still open (agent's list, from validation.md rounds 5-7, 12, 15-16):
+  1. Pass rate on 4 seeds (111-444) for FULL BODY - rounds 5-7 ran only 2 seeds: man (street) + woman (studio), every
+     view (front lo/hi, top2, back eye, back lo, tq fl/fr/bl/br) with the round-7 recipe (MQ5/MQ7 wording + MQ6 keep +
+     mannequin outline refs from Fabio's posed file).
+  2. ZOOM on people (untested; round 12's zoom-in on a face returned the input 0/8): near/far zoom cams on the
+     mannequin file (same as obj_build's `_near`/`_far` lens twins) with round 17's zoom end-state sentences.
+  3. Face close-up on 4 seeds for the turns + heights together (rounds 15-16 proved heights 4/4; turns only on 2 seeds).
+  4. Plain-backdrop full-body LOW is mild (round 7 woman) - apply round 15's rule (name what the new view reveals:
+     studio ceiling / softbox) to the full-body studio low views.
+  Then Fabio's eye test; Qwen-Image 2.1 re-run (NSFW) stays queued after.
+ROUND 18 DONE (first read in validation.md, Fabio's eye test pending): house PASTED on the plain-backdrop headphones
+(7/24) and bought no top-down; low moved by the WORDING alone (house = cube), but "edge-on thin line" squared the round
+plinth. Agent pick: back to the cube; NEXT idea = top-down without a ref / two-step high -> top. Was:
+ROUND 18 READY, NOT RUN (2026-10-24): `obj_build.py -- house` -> `out/house_refs.blend` BUILT (house on a plinth: door
+front, roof, chimney back-right; the plinth = the surface, so front_lo shows no underside - round 17's floating cube
+did). Then (GPU) `gpu_lease.py run -- blender -b out/house_refs.blend --python ref_render.py -- outline` ->
+`out/house/outline/`, then `angles.py <port> blender18` = 4 products x (6 house views + cube lo) x 4 seeds = 112 Turbo
+edits on the round-17 sources (MQ18_LOW = camera lowered to the surface, seen edge-on). Sheets mq_blender18_<name>.
+Fabio 2026-10-24 (agrees): a low shot of a RESTING object = camera close, down at the surface - it cannot go below the
+floor; only a FLOATING object (some product shots) has an underside to show. Flow consequence: the agent reads
+"resting or floating" off the source and picks the low ref + wording. Caveat for round 19: front_lo sits at z 0.15,
+BELOW the plinth top (0.6), so the house ref shows the plinth's face, not a camera skimming the surface top.
 
 ## Remaining Work
 - [ ] Stage 1 (face, 9 runs) + Fabio's eye test

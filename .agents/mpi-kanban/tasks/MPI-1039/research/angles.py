@@ -2400,6 +2400,74 @@ def blender17(port, sources_only):
         rows += [[(None, f'seed {s}')] + [(res.get(f'{name} {s} {v}'), v) for v in views] for s in MQ11_SEEDS]
         _sheet(rows, f'mq_blender17_{name}')
 
+
+# Round 18 (Fabio 2026-10-24): round 17's two gaps. LOW on resting products (~2/16): the front_lo ref showed the cube
+# FLOATING, seen from underneath - an underside a mug on a table does not have - and "shift the viewpoint down" read as
+# a near copy. So (1) the low end state lowers the camera to the SURFACE: it is seen edge-on as a thin band, the object
+# rises above it, its top is hidden; (2) the HOUSE stand-in (`obj_build.py -- house`): door = the side the source shows,
+# roof = up, chimney on the back slope at frame-right (left/right and front/back told apart for top-down and the
+# symmetric headphones), standing on a plinth = the surface. The house runs every round-17 angle on the round-17
+# sources; `cube lo` = the new low words on round 17's cube ref, to split wording from ref. Zoom passed - not re-run.
+MQ18_LOW = {
+    'sneaker': ('Lower the camera of the first image almost to the polished concrete floor{ref}, tilted slightly up at '
+                'the sneaker. The floor is now seen nearly edge-on as a thin grey band along the bottom of the frame, '
+                'the thick cream sole sits right on it, large and close, the shoe rises above it seen slightly from '
+                'below so the top of the laces is hidden, and much more of the warm-grey wall shows above the shoe.'),
+    'mug': ('Lower the camera of the first image almost to the oak table top{ref}, tilted slightly up at the mug. The '
+            'table is now seen nearly edge-on as a thin strip of oak along the bottom of the frame, the mug\'s base sits '
+            'on it, the mug rises tall above it seen slightly from below so the rim is a thin line and the inside is '
+            'hidden, and the blurred kitchen shelves fill more of the frame above it.'),
+    'handbag': ('Lower the camera of the first image almost to the top of the marble plinth{ref}, tilted slightly up at '
+                'the handbag. The plinth top is now seen edge-on as a thin white line along the bottom of the frame, '
+                'the bag\'s gold feet sit on it, the bag rises above it seen slightly from below so its top is hidden '
+                'and the handle arches against the boutique ceiling, and the tall windows fill the frame above it.'),
+    'headphones': MQ17_VIEWS['headphones']['front lo'][1],  # they float: round 17's low view from below stands
+}
+MQ18_VIEWS = {name: {**{v: MQ17_VIEWS[name][v] for v in ('front hi', 'top2', 'back eye', 'tq fl', 'tqb r')},
+                     'front lo': ('front_lo', MQ18_LOW[name])} for name in MQ17_SOURCES}
+MQ18_RENDERS = ('front_lo', 'front_hi', 'top2', 'back_eye', 'tq_fl', 'tq_br')
+MQ18_KEEP_REF = (' Take only the viewing angle from the outline drawing of a small house in the second image: its door '
+                 'is the side the first image shows, its roof is the top, its chimney is at the back on the side that '
+                 'was at frame-right in the first image, and the block it stands on is only what the object rests on.')
+
+
+def blender18(port):
+    done = os.path.join(OUT, 'mq_blender18.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    r17 = json.load(open(os.path.join(OUT, 'mq_blender17.json')))
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+
+    def save(key, body):
+        if key not in res:
+            res[key] = gen(port, {**body, 'cardName': f'angles mq18 {key}'})
+            json.dump(res, open(done, 'w'), indent=1)
+        return res[key]
+
+    for render in MQ18_RENDERS:
+        if f'ref {render}' not in res:
+            res[f'ref {render}'] = import_ref(port, 'house/outline/' + render, f'angles mq18 ref {render}')
+            json.dump(res, open(done, 'w'), indent=1)
+    cube_ref = MQ9_KEEP_REF['line'].replace('the panel and the circle is the front of the object',
+                                            'the panel is the side the first image shows')
+    arms = {'house': (lambda r: res[f'ref {r}'], MQ18_KEEP_REF), 'cube': (lambda r: r17[f'ref {r}'], cube_ref)}
+    for name, views in MQ18_VIEWS.items():
+        for seed in MQ11_SEEDS:
+            for arm, v in [('house', v) for v in views] + [('cube', 'front lo')]:
+                ref, keep_ref = arms[arm]
+                render, text = views[v]
+                save(f'{name} {seed} {arm} {v}', {**FAST, 'seed': seed,
+                                                  'media': [{'role': 'inputImage', 'url': r17[f'{name} input']},
+                                                            {'role': 'inputImage2', 'url': ref(render)}],
+                                                  'positive': text.format(ref=' to match the reference in the second '
+                                                                          'image') + keep_ref + MQ17_KEEP})
+        cols = [('house', v) for v in views] + [('cube', 'front lo')]
+        rows = [[(r17[f'{name} input'], 'source')] + [(arms[a][0](views[v][0]), f'ref {a} {v}') for a, v in cols]]
+        rows += [[(None, f'seed {s}')] + [(res.get(f'{name} {s} {a} {v}'), f'{a} {v}') for a, v in cols]
+                 for s in MQ11_SEEDS]
+        _sheet(rows, f'mq_blender18_{name}')
+
+
 if __name__ == '__main__':
     if sys.argv[1:2] == ['best']:
         best()
@@ -2409,6 +2477,8 @@ if __name__ == '__main__':
         sweep2(int(sys.argv[1]))
     elif sys.argv[2:3] == ['lora']:
         lora(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['blender18']:
+        blender18(int(sys.argv[1]))
     elif sys.argv[2:3] == ['blender17']:
         blender17(int(sys.argv[1]), sys.argv[3:4] == ['sources'])
     elif sys.argv[2:3] == ['blender16']:
