@@ -56,12 +56,16 @@ Nothing benched yet. Everything below comes from the model cards, the ComfyUI PR
   (Apache), Klein 4B/9B. Edit Turbo at 4 steps is the interesting one for the RTX 3060 / 16 GB tester.
 
 ## Bench plan (proposal)
+
+**Gate first (Fabio, 2026-10-24):** the first test is COMPLEX editing only: multi-step instructions, composition-heavy changes, 2-4 reference composites. No simple edits (one object swap, a colour change): the shipped models already do those well. Fail the gate and Fibo is out; the card closes rejected with the pictures. Why: a comparison video Fabio watched had Fibo lose to MOSS-Image on every task; editing is the only reason left to keep it, and AA already flags composition and multi-step reasoning as its weakest edits.
+
+Order: 1-2 are setup, 3 IS the gate (stop there on a fail), 4 runs only if it passes.
 1. Engine on a build containing #17240 (dev bench, not the shipped pin).
 2. Edit Turbo int8 vs bf16, abliterated-fp8 vs stock encoder: same pictures?
-3. Same edit set (removal, swap, style, restoration, 2-4 reference composite) vs Qwen-Image 2.1, FLUX.3
+3. Same COMPLEX edit set (multi-step, composition, 2-4 reference composite) vs Qwen-Image 2.1, FLUX.3
    Klein and Qwen-Edit-2511: quality, identity keep, seconds, peak VRAM.
 4. Plain-text vs enhancer-written VGL JSON on the same edits.
-5. Dev t2i only if Edit Turbo earns a place.
+5. Dev t2i: skip. It lost to MOSS-Image in the comparison video.
 
 ## Sources
 - https://huggingface.co/Comfy-Org/Fibo-2.0

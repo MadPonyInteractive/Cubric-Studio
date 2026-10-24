@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1276", "at": "2026-10-24T19:00:30+01:00", "actor": "claude", "column": "todo", "title": "Fibo 2.0 (Bria, 8B): research and bench it as an edit model against Qwen-Image 2.1, FLUX.3 Klein and Qwen-Edit-2511"}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1276", "at": "2026-10-24T19:20:00+01:00", "actor": "claude", "fields": ["maturity", "description"], "reason": "blocked on next engine bump; member of MPI-1179"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1276", "at": "2026-10-24T19:45:00+01:00", "actor": "claude", "fields": ["description"], "reason": "complex-edit gate is the first test (Fabio)"}
