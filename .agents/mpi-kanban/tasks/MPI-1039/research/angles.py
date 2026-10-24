@@ -3191,9 +3191,217 @@ def blender30(port):
     _sheet(rows, 'mq_blender30_turn_then_low')
 
 
+# Round 31 (2026-10-24, after round 30's turn-then-low 8/8): the split on the other turned stops.
+# (a) FLUX.3 turns not made yet on these sources: tq fr = round 27's side words mirrored, tqb l = round 25's (anime) /
+#     round 7's (photo) rear words mirrored; the street landmarks swap sides with the turn.
+# (b) Qwen low on tq fr / tqb l (from (a)) and on back eye (rounds 25/24), plain low-twin refs, round 30's low words
+#     plus 'her whole head still in frame' (round 30 cropped anime 222 tq fl's head).
+# (c) HIGH on a turned view: FLUX.3 high words on the round 27 tq fl / rounds 25/24 tqb r turns, high-twin doll refs
+#     (blender/plain_build.py -> tq_fl_hi / tq_br_hi). Seeds 111/222.
+_TURN31_FR = (_TURN27.replace('left', '\0').replace('right', 'left').replace('\0', 'right'))
+MQ31_TURNS = {  # view -> (doll render, {source: words})
+    'tq fr': ('tq_fr', {
+        'anime': _TURN31_FR + ' The street is now seen at a slant from her right side: behind her the shop fronts on '
+                 'her left, with the pink awning and the yellow sign board, fill the background seen at an angle, the '
+                 'street running away toward frame-left; the red vending machine and the blue awning are no longer '
+                 'in view.',
+        'photo': _TURN31_FR + ' The place around her is seen from that angle.'}),
+    'tqb l': ('tq_bl', {
+        'anime': _tqb('left', 'frame-left').replace(
+            '; the place around them is seen from that angle.',
+            '. The street is now seen at a slant from her left side: behind her the shop fronts on her right, with '
+            'the red vending machine and the blue awning, fill the background seen at an angle, the street running on '
+            'toward frame-left; the pink awning and the yellow sign board are no longer in view.'),
+        'photo': MQ7_BODY['tqb l'][1]}),
+}
+MQ31_LOWS = {  # view -> (low ref, side words, head words, turn cell per source (round, key))
+    'tq fr': ('tq_fr_lo', 'three-quarter side', 'her head, seen from below at the side,',
+              {'anime': (31, 'anime {s} tq fr'), 'photo': (31, 'photo {s} tq fr')}),
+    'tqb l': ('tq_bl_lo', 'rear three-quarter', 'the back of her head',
+              {'anime': (31, 'anime {s} tqb l'), 'photo': (31, 'photo {s} tqb l')}),
+    'back': ('back_lo', 'back', 'the back of her head',
+             {'anime': (25, 'street 222 {s} back eye'), 'photo': (24, 'photo {s} back eye')}),
+}
+MQ31_HIGHS = {  # view -> (high ref, side words, turn cell per source)
+    'tq fl': ('tq_fl_hi', 'three-quarter side', MQ30_TURNS['tq fl'][3]),
+    'tqb r': ('tq_br_hi', 'rear three-quarter', MQ30_TURNS['tqb r'][3]),
+}
+MQ31_GROUND = {'anime': 'the street surface', 'photo': 'the grey studio floor'}
+
+
+def _lo31(*a):
+    return _lo30(*a).replace(' is small near the top edge,', ' is small near the top edge with her whole head still in '
+                             'frame,')
+
+
+def _hi31(side, ground):
+    return ('Shift the viewpoint of the first image up to match the mannequin reference in the second image: keep the '
+            f'same {side} view of the woman as in the first image, but the view rises high above her, looking steeply '
+            'down at her. The top of her head and her shoulders are now large near the top of the frame, her body '
+            f'narrows downward, her sneakers are small on the ground near the bottom edge, and {ground} fills the '
+            'background behind her.')
+
+
+def blender31(port):
+    done = os.path.join(OUT, 'mq_blender31.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    old = {n: json.load(open(os.path.join(OUT, f'mq_blender{n}.json'))) for n in (23, 24, 25, 27, 29, 30)}
+    old[31] = res
+    srcs = {**json.load(open(os.path.join(OUT, 'pitch.json'))), 'street 222': old[23]['street 222']}
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+
+    def ref(render, size):
+        k = f'ref {size[0]}x{size[1]} {render}'
+        if k not in res:
+            res[k] = next((r[k] for r in old.values() if k in r), None) or \
+                import_ref(port, _pad_ref(render, size), f'angles mq31 {k}')
+            json.dump(res, open(done, 'w'), indent=1)
+        return res[k]
+
+    def edit(key, body, src, refurl, text):
+        if key not in res:
+            res[key] = gen(port, {**body, 'seed': int(key.split()[1]), 'positive': text,
+                                  'cardName': f'angles mq31 {key}',
+                                  'media': [{'role': 'inputImage', 'url': src}, {'role': 'inputImage2', 'url': refurl}]})
+            json.dump(res, open(done, 'w'), indent=1)
+
+    flux = {**FAST, 'ratio': '9:16'}
+    for name, (srckey, keep, _) in MQ29_RUNS.items():
+        size = Image.open(disk(srcs[srckey])).size
+        for v, (render, words) in MQ31_TURNS.items():  # (a)
+            for seed in (111, 222):
+                edit(f'{name} {seed} {v}', flux, srcs[srckey], ref(f'doll/{render}', size), words[name] + keep)
+        for v, (render, side, head, cells) in MQ31_LOWS.items():  # (b)
+            for seed in (111, 222):
+                n, k = cells[name]
+                src = old[n][k.format(s=seed)]
+                edit(f'{name} {seed} {v} lo', QWEN29, src, ref(f'doll_plain/{render}', Image.open(disk(src)).size),
+                     _lo31(*MQ30_PLACE[name], side, head) + keep)
+        for v, (render, side, cells) in MQ31_HIGHS.items():  # (c)
+            for seed in (111, 222):
+                n, k = cells[name]
+                src = old[n][k.format(s=seed)]
+                edit(f'{name} {seed} {v} hi', flux, src, ref(f'doll/{render}', Image.open(disk(src)).size),
+                     _hi31(side, MQ31_GROUND[name]) + keep)
+    rows = []
+    for name in MQ29_RUNS:
+        for s in (111, 222):
+            rows.append([(None, f'{name} {s} low')] + [c for v, (_, _, _, cells) in MQ31_LOWS.items() for c in (
+                (old[cells[name][0]].get(cells[name][1].format(s=s)), f'{v} FLUX.3 turn'),
+                (res.get(f'{name} {s} {v} lo'), f'{v} + Qwen low'))])
+    _sheet(rows, 'mq_blender31_turn_then_low')
+    rows = []
+    for name in MQ29_RUNS:
+        for s in (111, 222):
+            rows.append([(None, f'{name} {s} high')] + [c for v, (_, _, cells) in MQ31_HIGHS.items() for c in (
+                (old[cells[name][0]].get(cells[name][1].format(s=s)), f'{v} FLUX.3 turn'),
+                (res.get(f'{name} {s} {v} hi'), f'{v} + FLUX.3 high'))])
+    _sheet(rows, 'mq_blender31_turn_then_high')
+
+
+# Round 32: round 31's high on a turn came back unchanged 0/8. Two arms on the same 8 turned inputs, one change each:
+# (a) FLUX.3 with the front-hi words, NO 'keep the same ... view as in the first image' clause (room high-twin ref);
+# (b) Qwen-Image 2.1 with round 31's words unchanged (plain high-twin ref) - the clause did not stop Qwen's lows.
+def _hi32(ground):
+    return _hi31('', ground).replace('keep the same  view of the woman as in the first image, but the view rises high '
+                                     'above her', 'a high view from above her')
+
+
+def blender32(port):
+    done = os.path.join(OUT, 'mq_blender32.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    old = {n: json.load(open(os.path.join(OUT, f'mq_blender{n}.json'))) for n in (24, 25, 27, 30, 31)}
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+
+    def ref(render, size):
+        k = f'ref {size[0]}x{size[1]} {render}'
+        if k not in res:
+            res[k] = next((r[k] for r in old.values() if k in r), None) or \
+                import_ref(port, _pad_ref(render, size), f'angles mq32 {k}')
+            json.dump(res, open(done, 'w'), indent=1)
+        return res[k]
+
+    arms = {'flux nokeep': ({**FAST, 'ratio': '9:16'}, 'doll', lambda side, g: _hi32(g)),
+            'qwen': (QWEN29, 'doll_plain', _hi31)}
+    for name, (_, keep, _) in MQ29_RUNS.items():
+        for v, (render, side, cells) in MQ31_HIGHS.items():
+            for seed in (111, 222):
+                n, k = cells[name]
+                src = old[n][k.format(s=seed)]
+                for arm, (body, refdir, words) in arms.items():
+                    key = f'{name} {seed} {v} hi {arm}'
+                    if key not in res:
+                        res[key] = gen(port, {**body, 'seed': seed, 'positive': words(side, MQ31_GROUND[name]) + keep,
+                                              'cardName': f'angles mq32 {key}',
+                                              'media': [{'role': 'inputImage', 'url': src}, {'role': 'inputImage2',
+                                                        'url': ref(f'{refdir}/{render}', Image.open(disk(src)).size)}]})
+                        json.dump(res, open(done, 'w'), indent=1)
+    rows = []
+    for name in MQ29_RUNS:
+        for s in (111, 222):
+            rows.append([(None, f'{name} {s}')] + [c for v, (_, _, cells) in MQ31_HIGHS.items() for c in (
+                (old[cells[name][0]].get(cells[name][1].format(s=s)), f'{v} turn'),
+                (old[31].get(f'{name} {s} {v} hi'), f'{v} r31 FLUX.3'),
+                (res.get(f'{name} {s} {v} hi flux nokeep'), f'{v} FLUX.3 no-keep'),
+                (res.get(f'{name} {s} {v} hi qwen'), f'{v} Qwen'))])
+    _sheet(rows, 'mq_blender32_high_on_turn')
+
+
+# Round 33: round 32's Qwen high on a turn is real 8/8 but drops the anime street to a flat purple ground 4/4. The
+# reveal rule (rounds 15/25: name what the new view shows) for the high: the street seen from above, with the
+# landmarks behind her on that turn (round 25's words). Qwen, plain high-twin ref, the 4 anime cells only.
+MQ33_ABOVE = {  # view -> the landmarks behind her on that turn
+    'tq fl': 'the red vending machine and the blue awning',
+    'tqb r': 'the pink awning and the yellow sign board',
+}
+
+
+def _hi33(side, view):
+    return _hi31(side, '').replace(
+        ', and  fills the background behind her.',
+        ', and around her the street fills the background seen from above: the paving with its painted lines, the '
+        f'kerb, and the bases of the shop fronts with {MQ33_ABOVE[view]} seen from above at the edge of the frame.')
+
+
+def blender33(port):
+    done = os.path.join(OUT, 'mq_blender33.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    old = {n: json.load(open(os.path.join(OUT, f'mq_blender{n}.json'))) for n in (25, 27, 32)}
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+    keep = MQ29_RUNS['anime'][1]
+    for v, (render, side, cells) in MQ31_HIGHS.items():
+        for seed in (111, 222):
+            n, k = cells['anime']
+            src = old[n][k.format(s=seed)]
+            refkey = f'ref {"x".join(map(str, Image.open(disk(src)).size))} doll_plain/{render}'
+            key = f'anime {seed} {v} hi reveal'
+            if key not in res:
+                res[key] = gen(port, {**QWEN29, 'seed': seed, 'positive': _hi33(side, v) + keep,
+                                      'cardName': f'angles mq33 {key}',
+                                      'media': [{'role': 'inputImage', 'url': src},
+                                                {'role': 'inputImage2', 'url': old[32][refkey]}]})
+                json.dump(res, open(done, 'w'), indent=1)
+    rows = []
+    for s in (111, 222):
+        rows.append([(None, f'anime {s}')] + [c for v, (_, _, cells) in MQ31_HIGHS.items() for c in (
+            (old[cells['anime'][0]].get(cells['anime'][1].format(s=s)), f'{v} turn'),
+            (old[32].get(f'anime {s} {v} hi qwen'), f'{v} r32 Qwen'),
+            (res.get(f'anime {s} {v} hi reveal'), f'{v} Qwen + reveal'))])
+    _sheet(rows, 'mq_blender33_high_reveal')
+
+
 if __name__ == '__main__':
     if sys.argv[1:2] == ['best']:
         best()
+    elif sys.argv[2:3] == ['blender33']:
+        blender33(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['blender32']:
+        blender32(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['blender31']:
+        blender31(int(sys.argv[1]))
     elif sys.argv[2:3] == ['blender30']:
         blender30(int(sys.argv[1]))
     elif sys.argv[2:3] == ['blender29']:

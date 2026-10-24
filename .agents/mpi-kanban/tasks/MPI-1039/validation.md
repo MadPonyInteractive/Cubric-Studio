@@ -629,3 +629,49 @@ user's ratio later; a crop changes the zoom, so the gizmo may need per-ratio-fam
     already says (both sliders moved = two edits). Qwen's ref-background copy matters little in the split: Qwen only
     runs the low stop, where it keeps the place. Use the plain refs for Qwen. Head crop: maybe add "her whole head
     still in frame" to the low words.
+- 2026-10-24 ROUND 31, THE SPLIT ON THE OTHER TURNED STOPS + HIGH ON A TURN (`angles.py <port> blender31`, sheets
+  `research/sheets/mq_blender31_turn_then_low.jpg` + `mq_blender31_turn_then_high.jpg`, results
+  `research/out/mq_blender31.json`). New refs from `blender/plain_build.py`: low twins for all four 3/4 cams
+  (tq_fr_lo / tq_bl_lo new) and high twins tq_fl_hi / tq_br_hi (front_hi's 2.6 m / 1.6 m / 47-deg down at the turned
+  angle). 16 FLUX.3 Turbo (~34 s) + 12 Qwen-Image 2.1 (~55 s) edits, seeds 111/222, anime street 222 + photo woman.
+  FIRST READ (agent, sheets + upper-half crops):
+  - (a) MIRRORED TURNS WORK: tq fr (round 27's side words, left<->right) faces frame-right 4/4, the same big turn as
+    tq fl; tqb l (round 25 / round 7 rear words mirrored) is on the correct side 4/4 - profile toward frame-left, where
+    round 25/24's tqb r faces frame-right. The anime street follows the mirrored landmark words (vending machine gone
+    on tq fr, on the right behind her on tqb l). Style + identity held 8/8.
+  - (b) TURN THEN QWEN LOW = 12/12: a real ground-level worm's-eye on tq fr, tqb l and back, the turn side kept, the
+    place revealed (sky + power lines + signs on anime; studio ceiling + softbox on photo). With 'her whole head still
+    in frame' no head is cut off (round 30: 1/8); 2/12 (anime 222 tq fr, photo 222 tq fr) have the hair touching the top
+    edge. Together with round 30: the split's low holds on all five non-front stops, 20/20.
+  - (c) HIGH ON A TURN FAILS 0/8: FLUX.3 returns the turned input almost unchanged (same framing, same height; photo
+    222 tqb r only adds the bag). The words keep 'the same three-quarter side / rear three-quarter view as in the
+    first image' - FLUX.3 seems to read that as 'keep the image'. Ideas: the front-hi words with no keep-the-view
+    clause on the turned input, or Qwen for the high on a turn (round 29: Qwen moved up but lost the anime street).
+- 2026-10-25 ROUND 32, HIGH ON A TURN - TWO ARMS (`angles.py <port> blender32`, sheet
+  `research/sheets/mq_blender32_high_on_turn.jpg`, results `research/out/mq_blender32.json`). Same 8 turned inputs as
+  round 31 (c). (a) FLUX.3 Turbo, front-hi words with NO 'keep the same ... view' clause, room high-twin ref;
+  (b) Qwen-Image 2.1, round 31's words unchanged, plain high-twin ref. 8 + 8 edits (~33 s / ~56 s).
+  FIRST READ (agent, sheet):
+  - (a) FLUX.3 0/8 AGAIN - the input back unchanged. The clause was not the cause: FLUX.3 does not move the PITCH of
+    an already-turned picture (it does on a front source, rounds 7/23).
+  - (b) QWEN 8/8 a real high: looking steeply down, head and shoulders large, body foreshortened, the turn side kept
+    (tq fl still faces frame-left, tqb r still from behind-right), identity + anime style held. Photo keeps the grey
+    studio floor 4/4. BUT the anime STREET IS LOST 4/4 - a flat purple ground, no kerb, shop fronts or markings (same
+    as round 29's Qwen high); the subject also comes out smaller (camera pulled back).
+  - Read: the split extends - a pitch change on a turned stop goes to Qwen, low OR high (FLUX.3 yaw, then Qwen pitch).
+    Open: Qwen's high drops the place on the 2D street - next try a reveal line naming what the high view sees around
+    her (the paving, the kerb, the bases of the shop fronts, the vending machine from above).
+- 2026-10-25 ROUND 33, QWEN HIGH ON A TURN + PLACE REVEAL (`angles.py <port> blender33`, sheet
+  `research/sheets/mq_blender33_high_reveal.jpg`, results `research/out/mq_blender33.json`). Round 32's Qwen high on
+  the 4 anime cells, the end state now names the street from above: paving with painted lines, the kerb, the shop-front
+  bases with that turn's landmarks (tq fl: vending machine + blue awning; tqb r: pink awning + yellow sign board).
+  4 Qwen edits, ~60 s each.
+  FIRST READ (agent, sheet):
+  - 4/4 THE STREET IS BACK: painted lines, kerb, pavement and shop-front bases seen from above; the vending machine
+    from above on tq fl (both seeds). The high stays real (looking steeply down, head and shoulders large), the turn
+    side kept, identity + anime style held.
+  - Still: the subject comes out smaller than the turned input (camera pulled back), most on seed 222 - a framing line
+    ("she still fills most of the frame height") is the next lever if Fabio wants it tighter.
+  - Read: the reveal rule holds for Qwen too - every pitch stop names what the new view sees. With rounds 30-33 the
+    two-step (FLUX.3 yaw, then Qwen pitch with a reveal line) covers low and high on every turned stop.
+  - FABIO 2026-10-25 (eye test on the round 31-33 sheets): they look right.

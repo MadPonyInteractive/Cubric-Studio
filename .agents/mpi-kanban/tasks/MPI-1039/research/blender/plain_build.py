@@ -16,16 +16,19 @@ import bpy
 plain = 'plain' in (sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else [])
 s = bpy.context.scene
 cams = [o for o in s.objects if o.type == 'CAMERA']
-lo = bpy.data.objects['front_lo']
-for name in ('tq_fl', 'tq_br'):
-    cam = bpy.data.objects[name]
-    a = cam.rotation_euler.z  # the doll faces -Y: 0 = straight in front, 45 = front-left, -135 = back-right
-    twin = lo.copy()
-    twin.data = lo.data.copy()
-    twin.location = (1.8 * math.sin(a), -1.8 * math.cos(a), lo.location.z)
-    twin.rotation_euler = (lo.rotation_euler.x, 0, a)
-    twin.name = f'{name}_lo'
-    s.collection.objects.link(twin)
+# Round 31: low twins for all four turned cameras, and HIGH twins (front_hi's 2.6 m up, 1.6 m out, 47-deg down tilt)
+# for tq_fl / tq_br - for a FLUX.3 high edit on a FLUX.3 turn.
+for src, out, names in (('front_lo', 'lo', ('tq_fl', 'tq_br', 'tq_fr', 'tq_bl')), ('front_hi', 'hi', ('tq_fl', 'tq_br'))):
+    base = bpy.data.objects[src]
+    d = -base.location.y
+    for name in names:
+        a = bpy.data.objects[name].rotation_euler.z  # the doll faces -Y: 0 = in front, 45 = front-left, -135 = back-right
+        twin = base.copy()
+        twin.data = base.data.copy()
+        twin.location = (d * math.sin(a), -d * math.cos(a), base.location.z)
+        twin.rotation_euler = (base.rotation_euler.x, 0, a)
+        twin.name = f'{name}_{out}'
+        s.collection.objects.link(twin)
 if plain:
     for name in ('floor', 'wall', 'wall_front'):
         bpy.data.objects[name].hide_render = True
