@@ -1019,7 +1019,15 @@ function createEngine({ engine, alwaysLocal }) {
         }
         Events.emit('ui:info', { message: 'Reinstalling the engine packages…' });
         const res = await fetch('/engine/repair-python-deps', { method: 'POST' });
-        if (!res.ok) throw new Error(`repair-python-deps ${res.status}`);
+        const body = await res.json().catch(() => ({}));
+        // MPI-1274: a failed re-fetch says why (the server sends the download's own error).
+        if (!res.ok) throw new Error(body.error || `repair-python-deps ${res.status}`);
+        // The repair now re-fetches broken node packs, so it waits its turn behind an
+        // engine install, update or repair that is already running.
+        if (body.status === 'already-running') {
+            Events.emit('ui:warning', { message: 'Repair cancelled — the engine is already being installed or repaired. Try again when that finishes.' });
+            return false;
+        }
         // The route SIGKILLs the engine and returns without waiting for the exit. Start
         // too soon and /comfy/start hits its already-running early-return against the
         // still-dying process, never spawns, and leaves the engine wedged — the same

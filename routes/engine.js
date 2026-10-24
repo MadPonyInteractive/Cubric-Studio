@@ -794,22 +794,39 @@ router.get('/engine/version-check', async (req, res) => {
  * - Stopping the engine is what makes the next start a FRESH one. The pass runs inside
  *   /comfy/start with the engine down (MPI-459), so a running engine would never reach it.
  *
+ * MPI-1274: a pack can also fail on its OWN files, which no pip pass reaches. A tester's
+ * PC crashed while RES4LYF rewrote `res4lyf.config.json` (it does so on every start), the
+ * file was left empty, and every later start failed `JSONDecodeError` and blocked every
+ * generation. So each pack that failed to import is wiped and re-fetched at its pinned
+ * commit, once the killed engine has let go of its files. The caller already waits on
+ * this answer behind a "Repairing…" button.
+ *
  * The start is deliberately NOT made here: the caller owns the readiness poll and the
  * degraded-engine dialog, so it learns whether the repair worked from the same
  * `depsWarning` channel that reported the breakage.
  */
-router.post('/engine/repair-python-deps', async (req, res) => {
+// It rewrites node folders now, so it shares the one-engine-job guard (MPI-1204).
+router.post('/engine/repair-python-deps', (req, res) => _oneEngineJob('repair', res, async () => {
     try {
         const marker = curatedDepsMarkerPath();
         await fs.remove(marker);
         logger.info('engine', `curated deps marker removed (${marker}) — the next fresh start will re-run the pip pass`);
+        const broken = _failedNodeDeps();
+        const engine = processState.activeComfyProcess;
+        const exited = engine && engine.exitCode === null && engine.signalCode === null
+            ? new Promise((resolve) => engine.once('exit', resolve)) : null;
         stopComfyUI();
-        res.json({ success: true });
+        if (broken.length) {
+            await exited;
+            await _wipeNodeFolders(broken, 'unimportable');
+            await startUniversalWorkflowInstall(broken, false);
+        }
+        res.json({ success: true, reinstalled: broken });
     } catch (e) {
         logger.error('engine', `Python deps repair failed: ${e.message}`);
         res.status(500).json({ success: false, error: e.message });
     }
-});
+}));
 
 router.get('/engine/deps-status', async (req, res) => {
     try {
@@ -840,20 +857,40 @@ async function _installOutstandingUwDeps() {
     // that already exist (isCompleteOnDisk), so a drifted node (folder PRESENT, wrong
     // commit) would be marked complete and never reinstalled. Removing the folder first
     // forces a clean re-extract at the pinned commit. Missing deps have no folder to wipe.
-    if (driftedDeps.length) {
-        const { DEPS } = require('../js/data/modelConstants/dependencies.js');
-        const customRoot = await getCustomRoot();
-        for (const depId of driftedDeps) {
-            const dep = DEPS[depId];
-            if (!dep) continue;
-            const { localPath } = await resolveComfyPath(dep, customRoot, {});
-            await fs.remove(localPath);
-            logger.info('engine', `pre-wiped drifted node folder: ${depId} (${localPath})`);
-        }
-    }
+    await _wipeNodeFolders(driftedDeps, 'drifted');
 
     await startUniversalWorkflowInstall(repairSet, true);
     return repairSet.length;
+}
+
+/** Removes each node dep's folder, so the install that follows re-extracts it whole at its pinned commit. */
+async function _wipeNodeFolders(depIds, why) {
+    if (!depIds.length) return;
+    const { DEPS } = require('../js/data/modelConstants/dependencies.js');
+    const customRoot = await getCustomRoot();
+    for (const depId of depIds) {
+        const dep = DEPS[depId];
+        if (!dep) continue;
+        const { localPath } = await resolveComfyPath(dep, customRoot, {});
+        await fs.remove(localPath);
+        logger.info('engine', `pre-wiped ${why} node folder: ${depId} (${localPath})`);
+    }
+}
+
+/**
+ * MPI-1274: the node deps behind the engine's own import failures (folder names off its
+ * stdout, `processState.comfyImportFailures`). A name that is no dep of ours (a pack the
+ * user dropped in by hand) is left alone: we have no pinned copy to put back.
+ */
+function _failedNodeDeps() {
+    const { DEPS } = require('../js/data/modelConstants/dependencies.js');
+    const failed = processState.comfyImportFailures || [];
+    return failed.flatMap((name) => {
+        const dep = Object.values(DEPS).find((d) => d.type === 'custom_nodes'
+            && String(d.filename || '').toLowerCase() === name.toLowerCase());
+        if (!dep) logger.warn('engine', `failed node pack ${name} is not one of ours: left as it is`);
+        return dep ? [dep.id] : [];
+    });
 }
 
 router.post('/engine/repair-deps', (req, res) => _oneEngineJob('repair', res, async () => {
