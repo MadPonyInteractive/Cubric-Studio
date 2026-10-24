@@ -7084,3 +7084,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1282", "at": "2026-10-24T23:07:15+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1268", "at": "2026-10-24T23:13:54+01:00", "actor": "LTX 2.5 model 12", "from": "doing", "to": "done", "reason": "Fabio verified in his app; CI green on 4f33defba; release notes in c1ee9e748"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1282", "at": "2026-10-24T23:18:24+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Shipped; Fabio verified in-app."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1231", "at": "2026-10-24T23:33:04+01:00", "actor": "LTX 2.5 model 12", "from": "todo", "to": "doing", "reason": "Phase 1 plumbing (no GPU): Flow dev gate + storyboard driver"}
