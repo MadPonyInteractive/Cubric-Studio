@@ -1,0 +1,56 @@
+{
+  "schema": "mpi-kanban/handoff/v1",
+  "id": "3515b1b8-fea2-4cc8-a340-0b2b2aec6662",
+  "generated_at": "2026-10-24T21:59:07Z",
+  "status": "open",
+  "from_session": ".agents/mpi-kanban/state/sessions/9d4c0abe-76b5-44a3-9dad-082b96db158b.json",
+  "session": { "name": "LTX 2.5 model 11 - MPI-1268 stack reorder + Create Sheet built", "branch": "master" },
+  "goal": {
+    "original": "LTX 2.5 release umbrella MPI-1267: start with MPI-1268 (stack reorder + right-click Create Sheet), not dev-gated.",
+    "status": "in_progress",
+    "summary": "MPI-1268 is built, tested and pushed: hold-and-drag reorder in the Stack strip, right-click a stack -> Create Sheet (numbered, stack order), and after Fabio's first look a Whole pictures toggle (uncropped grid) plus a ratio picker with portrait shapes in the sheet dialog. Fabio said the samples look good. Left: his final look in the app, the UNRELEASED entry, closing the card."
+  },
+  "plan": {
+    "file": ".agents/mpi-kanban/tasks/MPI-1268/plan.md",
+    "completed": [
+      "4858c056f reorder: applyReorderMembers + projectService.reorderStack + MpiGroupHistoryBlock strip allowReorder",
+      "2baa26beb Create Sheet: grid menu entry, MpiGalleryBlock create-sheet -> MpiImageSheet numbered, /combine-images numbered badges (sheetBadge)",
+      "4f33defba Whole pictures toggle (gridSheet/placeGrid/containRect) + ratio picker replacing the Shape dropdown (sheetShapeRatio, any w:h)",
+      "Live-checked in isolated app copies (all closed): reorder persists, gallery face follows, numbered sheet in stack order, six 16:9 panels -> 2x3 uncropped on 9:16"
+    ],
+    "pending": [
+      "Fabio's final look in his own app (reload picks up master): reorder drag, Create Sheet, Whole pictures, portrait ratios",
+      "UNRELEASED entry for reorder + Create Sheet + Whole pictures/ratio picker (docs/releases/UNRELEASED.md was claimed by the MPI-1280 session; check claims first)",
+      "Close MPI-1268 (validation.md, move to done), then the next umbrella member: MPI-1231 Storyboard Phase 0 or MPI-1266"
+    ]
+  },
+  "task_card": {
+    "id": "MPI-1268",
+    "title": "Stacks: reorder members in the Stack workspace + right-click Create Sheet (numbered, stack order)",
+    "column": "doing",
+    "workspace": ".agents/mpi-kanban/tasks/MPI-1268/",
+    "links": { "plan": ".agents/mpi-kanban/tasks/MPI-1268/plan.md", "checklist": ".agents/mpi-kanban/tasks/MPI-1268/checklist.md", "validation": ".agents/mpi-kanban/tasks/MPI-1268/validation.md" }
+  },
+  "next_action": {
+    "description": "Ask Fabio for his final look at stack reorder + Create Sheet (Whole pictures, portrait ratios) in his app; on a yes, add the UNRELEASED entry (check the claim on docs/releases/UNRELEASED.md first), write validation.md and close MPI-1268 with /mpi-end-session, then pick the next MPI-1267 member.",
+    "command": "mpi-continue"
+  },
+  "context": {
+    "key_decisions": [
+      "MPI-1268 is NOT dev-gated (Fabio, twice): it ships in the next bug-fix release.",
+      "Whole pictures: an even grid at the pictures' median shape, nothing cropped; the grid showing the most picture wins, a 1-wide strip of 4+ only if 1/0.85 better (STRIP_PENALTY). Create Sheet opens with it on; Combine keeps cropping by default.",
+      "Agents (MCP make_sheet, Cosmo) keep the SHEET_SHAPES enum; only the dialog sends free w:h labels."
+    ],
+    "constraints": [
+      "Shared tree: commit through a private index (scratch script pattern: read-tree HEAD, update-index --cacheinfo, commit-tree, update-ref with old HEAD); the root events.jsonl holds thousands of peers' uncommitted lines, commit HEAD + your own lines only.",
+      "An app:isolated copy needs APP_DOCUMENTS + its own CUBRIC_AGENT_PROFILE (absolute) and a NEW port per code change (the pane caches modules); close each via the listener's PARENT with taskkill /T. Port 3000 is Fabio's.",
+      "docs/stacks.md is 202 lines, 2 over the 200 cap."
+    ],
+    "files_to_read_first": [
+      ".agents/mpi-kanban/tasks/MPI-1268/plan.md",
+      ".agents/mpi-kanban/tasks/MPI-1268/checklist.md",
+      ".agents/mpi-kanban/tasks/MPI-1267/plan.md"
+    ]
+  },
+  "resume_prompt": "Continue MPI-1268 (member of umbrella MPI-1267, the LTX 2.5 release) from handoff .agents/mpi-kanban/state/handoffs/3515b1b8-fea2-4cc8-a340-0b2b2aec6662.json. Stack reorder (hold-and-drag in the Stack workspace strip) and right-click a stack -> Create Sheet are built and pushed (4858c056f, 2baa26beb, 4f33defba), including a Whole pictures toggle (uncropped grid) and a portrait/landscape ratio picker in the sheet dialog; not dev-gated. Fabio said the samples look good. Next: get his final look in his app, add the UNRELEASED entry (check who holds docs/releases/UNRELEASED.md), close the card with /mpi-end-session, then start the next MPI-1267 member (MPI-1231 Storyboard Phase 0 or MPI-1266)."
+}

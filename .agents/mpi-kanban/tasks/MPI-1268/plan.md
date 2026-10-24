@@ -6,6 +6,16 @@
   `tasks/MPI-1231/research/codebase-2026-10-24.md` § Stacks. Member of umbrella MPI-1267 (LTX 2.5
   release). Nothing built. Reorder is general (any stack); Storyboard (MPI-1231) needs both pieces.
 - No dev gate (Fabio 2026-10-24): general gallery features, they ship in the next bug-fix release.
+- 2026-10-24 ("LTX 2.5 model 11"): BOTH PHASES BUILT + PUSHED. 4858c056f reorder, 2baa26beb Create
+  Sheet, 4f33defba (Fabio's look: the rows layout cropped two 16:9 pictures) Whole pictures toggle
+  (`gridSheet`, uncropped even grid, on for Create Sheet) + the Shape dropdown replaced by the Flow
+  crop step's ratio picker (portrait/landscape, any "w:h" via `sheetShapeRatio`). Fabio: "the
+  samples look good". LEFT: his final look in the app, UNRELEASED entry, close.
+
+## Plan Drift
+
+- Phase 2 grew: Whole pictures + ratio picker (Fabio, on seeing the first Create Sheet). The
+  `packSheet({ ordered })` rows mode stays for numbered + crop.
 
 ## Phase 1: Reorder - `user-ux`
 
@@ -33,10 +43,6 @@
   >= 2 stills only; otherwise the entry is disabled with the reason. Shows itself (dialog + progress,
   the result card lands). **Verify:** lint + test; isolated app: right-click a 5-member stack ->
   numbered sheet in stack order; reorder, sheet again, order follows; Fabio's look.
-
-## Plan Drift
-
-- None yet.
 
 ## Verification
 

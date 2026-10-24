@@ -1,0 +1,56 @@
+{
+  "schema": "mpi-kanban/handoff/v1",
+  "id": "e75f1987-eaf5-472a-8284-375ba49b3c78",
+  "generated_at": "2026-10-24T02:39:53Z",
+  "status": "resolved",
+  "from_session": ".agents/mpi-kanban/state/sessions/304d7085-9450-46f8-9669-72f33aa1933d.json",
+  "session": { "name": "LTX 2.5 model 10 - LTX 2.5 release umbrella planned", "branch": "master" },
+  "goal": {
+    "original": "Launch something with LTX 2.5: after a brainstorm, the LTX 2.5 release = the model's Stage 2 + the Storyboard Flow + stack reorder/Create Sheet; Keyframes to Video parked under the Story umbrella.",
+    "status": "in_progress",
+    "summary": "Umbrella MPI-1267 made with members MPI-1266 (Stage 2), MPI-1268 (stack reorder + Create Sheet, not gated) and MPI-1231 (Storyboard Flow, dev-gated); plans written for 1231 and 1268, every pick taken by Fabio. Nothing built. Paused while Fabio finishes FLUX.3 / Multi-angle for 2.1.3."
+  },
+  "plan": {
+    "file": ".agents/mpi-kanban/tasks/MPI-1267/plan.md",
+    "completed": [
+      "MPI-1095 closed (Stage 1 of LTX 2.5); Stage 2 split to MPI-1266; M:/_stage/mpi1095 deleted",
+      "Keyframes research (official/community, LTX Director, H3, Flow machinery) saved in tasks/MPI-1191/research/; design DECIDED in tasks/MPI-1191/brief.md; card back in todo under MPI-1134",
+      "Storyboard + stacks design DECIDED (briefs), plans tasks/MPI-1231/plan.md and tasks/MPI-1268/plan.md, codebase research tasks/MPI-1231/research/codebase-2026-10-24.md"
+    ],
+    "pending": [
+      "Pick a first member: MPI-1268 (small, no gate, ships in the next bug-fix release) or MPI-1231 Phase 0 (planner prompt + panel bench on the local GPU; Fabio's yes already given for ~20-30 min)",
+      "MPI-1266 (2.5 in the existing LTX Flows, HF second route needs Fabio's yes) can run beside either",
+      "At the LTX 2.5 release: every gate off in one change + UNRELEASED entries"
+    ]
+  },
+  "task_card": {
+    "id": "MPI-1267",
+    "title": "UMBRELLA: LTX 2.5 release (all dev-gated; the gate comes off together)",
+    "column": "todo",
+    "workspace": ".agents/mpi-kanban/tasks/MPI-1267/",
+    "links": { "plan": ".agents/mpi-kanban/tasks/MPI-1267/plan.md", "checklist": null, "validation": null }
+  },
+  "next_action": {
+    "description": "Read the MPI-1267 umbrella plan, then start its first member: MPI-1268 (stack reorder + Create Sheet) unless Fabio says MPI-1231 Phase 0 first. Move the chosen member todo -> doing with files.json before editing.",
+    "command": "mpi-continue"
+  },
+  "context": {
+    "key_decisions": [
+      "The release is named 'the LTX 2.5 release', NOT a version: bug-fix releases (2.1.3, 2.1.4...) ship from master meanwhile and never remove a gate.",
+      "Storyboard v1 = a gallery STACK of panel cards, intent line = each card's NOTE, numbered overview made automatically; references OPTIONAL (zero or many); panels default 6 (3-12); the plan is shown in an editable box before drawing.",
+      "Keyframes (MPI-1191) is out of this release; Storyboard Editor / sections / Infinite Video belong to MPI-1134. LTX Director (GPL) was ideas only, nothing copied."
+    ],
+    "constraints": [
+      "No Flow dev gate exists today (FLOWS returned whole by listFlows): MPI-1231 Phase 1 adds a devOnly filter like pluginsRegistry.js:174.",
+      "Stack members land in ARRIVAL order; the Storyboard driver records each panel's index and reorders after settle (needs MPI-1268's reorderStack). Add the result stack only AFTER the first job is queued.",
+      "Shared tree with live peers: commit board/card files through a private index (HEAD + your own events.jsonl lines only); heredocs are blocked by the guard hook, write scripts with the Write tool."
+    ],
+    "files_to_read_first": [
+      ".agents/mpi-kanban/tasks/MPI-1267/plan.md",
+      ".agents/mpi-kanban/tasks/MPI-1268/plan.md",
+      ".agents/mpi-kanban/tasks/MPI-1231/plan.md",
+      ".agents/mpi-kanban/tasks/MPI-1231/research/codebase-2026-10-24.md"
+    ]
+  },
+  "resume_prompt": "Continue umbrella MPI-1267 (LTX 2.5 release) from handoff .agents/mpi-kanban/state/handoffs/e75f1987-eaf5-472a-8284-375ba49b3c78.json. Members: MPI-1266 (LTX 2.5 Stage 2), MPI-1268 (stack reorder + right-click Create Sheet, not gated, ships in the next bug-fix release), MPI-1231 (Storyboard Flow, dev-gated: optional references -> planner -> FLUX.3 Klein panels -> a stack with intent lines as card notes + a numbered overview). Plans for 1268 and 1231 are written and every open call is decided. Nothing is built. Start with MPI-1268 unless Fabio picks MPI-1231 Phase 0 (local GPU bench, already approved). Keyframes MPI-1191 is NOT in this release. Everything stays dev-gated until the LTX 2.5 release, which is not tied to a version number."
+}
