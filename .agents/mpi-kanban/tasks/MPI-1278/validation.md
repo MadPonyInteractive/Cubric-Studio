@@ -13,7 +13,8 @@ the app default (`krea2Turbo: true` in `promptControlDefaults.js`), the `edit` o
 
 Evidence:
 - `tests/flux3-turbo-first.test.cjs` pins both texts (3 tests, pass).
-- `npm run lint` and `npm test`: see the commit.
+- `npm run lint` clean; `npm test` 3,595 tests, 0 fail; pre-push green; CI Tests run
+  40120640158 green on `e9f9cbc92`.
 
 Not run: the agent bench (`npm run agent:test`). Its captured models fixture has no
 `flux3-klein`, and every run is a paid DeepInfra or local-GPU LLM call.
