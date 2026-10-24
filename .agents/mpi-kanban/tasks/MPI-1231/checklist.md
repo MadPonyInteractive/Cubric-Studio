@@ -9,7 +9,7 @@ Dev-gated until the LTX 2.5 release (umbrella MPI-1267).
 ## Phase 1: Flow
 - [x] Flow dev gate: `devOnly` on a FlowDef, filtered on `APP_CONFIG.dev_mode` + unit test
 - [x] Storyboard driver (deps for the renderer wired with the FlowDef) (`js/services/storyboardRunner.js`): jobs first then the stack, notes, reorder to panel order, overview + unit tests (order after interleaved arrival, failed panel, cancel)
-- [ ] FlowDef via `/mpi-add-flow`, `devOnly: true`, renderer deps wired
+- [x] FlowDef via `/mpi-add-flow`, `devOnly: true`, renderer deps wired (driver hook; not run live)
 - [ ] isolated app: 6-panel board lands as one stack in order with notes + overview; Fabio's look
 
 ## Phase 2: Launch kit

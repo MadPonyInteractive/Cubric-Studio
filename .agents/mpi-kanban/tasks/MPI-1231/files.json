@@ -5,6 +5,23 @@
   "tests/flow-dev-gate.test.cjs",
   "js/services/storyboardRunner.js",
   "tests/storyboard-runner.test.cjs",
-  "docs/playbooks/add-flow/04-overlay-and-shell.md"
+  "docs/playbooks/add-flow/04-overlay-and-shell.md",
+  "js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js",
+  "js/shell/storyboardDispatch.js",
+  "js/shell/routineDispatch.js",
+  "js/shell/gifJobs.js",
+  "docs/agent/flows.md",
+  "tests/agent-flow-handover.test.cjs",
+  "docs/playbooks/add-flow/existing-flows/storyboard.md",
+  "js/data/commandRegistry.js",
+  "js/core/operationRegistry.js",
+  "operation_registry.json",
+  "js/data/routineModel.js",
+  "tests/flow-output-filename.test.cjs",
+  "tests/flow-field-constraints.test.cjs",
+  "tests/user-flows.test.cjs",
+  "tests/smoke-flows.test.cjs",
+  "js/shell/agentDispatch.js",
+  "scripts/smoke-workflows.mjs"
  ]
 }

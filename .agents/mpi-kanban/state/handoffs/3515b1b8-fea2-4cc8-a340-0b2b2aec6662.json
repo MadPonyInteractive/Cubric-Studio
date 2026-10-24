@@ -2,9 +2,12 @@
   "schema": "mpi-kanban/handoff/v1",
   "id": "3515b1b8-fea2-4cc8-a340-0b2b2aec6662",
   "generated_at": "2026-10-24T21:59:07Z",
-  "status": "open",
+  "status": "consumed",
   "from_session": ".agents/mpi-kanban/state/sessions/9d4c0abe-76b5-44a3-9dad-082b96db158b.json",
-  "session": { "name": "LTX 2.5 model 11 - MPI-1268 stack reorder + Create Sheet built", "branch": "master" },
+  "session": {
+    "name": "LTX 2.5 model 11 - MPI-1268 stack reorder + Create Sheet built",
+    "branch": "master"
+  },
   "goal": {
     "original": "LTX 2.5 release umbrella MPI-1267: start with MPI-1268 (stack reorder + right-click Create Sheet), not dev-gated.",
     "status": "in_progress",
@@ -29,7 +32,11 @@
     "title": "Stacks: reorder members in the Stack workspace + right-click Create Sheet (numbered, stack order)",
     "column": "doing",
     "workspace": ".agents/mpi-kanban/tasks/MPI-1268/",
-    "links": { "plan": ".agents/mpi-kanban/tasks/MPI-1268/plan.md", "checklist": ".agents/mpi-kanban/tasks/MPI-1268/checklist.md", "validation": ".agents/mpi-kanban/tasks/MPI-1268/validation.md" }
+    "links": {
+      "plan": ".agents/mpi-kanban/tasks/MPI-1268/plan.md",
+      "checklist": ".agents/mpi-kanban/tasks/MPI-1268/checklist.md",
+      "validation": ".agents/mpi-kanban/tasks/MPI-1268/validation.md"
+    }
   },
   "next_action": {
     "description": "Ask Fabio for his final look at stack reorder + Create Sheet (Whole pictures, portrait ratios) in his app; on a yes, add the UNRELEASED entry (check the claim on docs/releases/UNRELEASED.md first), write validation.md and close MPI-1268 with /mpi-end-session, then pick the next MPI-1267 member.",

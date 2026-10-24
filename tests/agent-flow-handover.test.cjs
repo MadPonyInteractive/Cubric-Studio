@@ -14,7 +14,7 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 
 const { getFlowById, listFlows } = require('../js/data/flowsRegistry.js');
-const { openFlow, flowDoes } = require('../js/shell/agentDispatch.js');
+const { openFlow, flowDoes, buildFlow } = require('../js/shell/agentDispatch.js');
 const { state } = require('../js/state.js');
 const { Events } = require('../js/events.js');
 
@@ -58,6 +58,15 @@ test.describe('which Flows open for the user (Fabio\'s sort)', () => {
         const flow = getFlowById('character-sheet-from-images');
         assert.equal(flow.agentOpens, 'box');
         assert.ok(flow.steps.some((s) => s.kind === 'box' && s.role === 'image1'));
+    });
+
+    test('Storyboard opens ready to press, and its submit path refuses it (MPI-1231)', async () => {
+        // The user reads the plan before any panel is drawn, and one press fans out into many
+        // jobs inside the frame, which the agent's one-job submit cannot do.
+        const flow = getFlowById('storyboard');
+        assert.equal(flow.agentOpens, 'run');
+        const built = await buildFlow({ flowId: 'storyboard' }, state.currentProject);
+        assert.equal(built.code, 'OPENS_FOR_USER');
     });
 
     test('every other Flow is the agent\'s to run', () => {

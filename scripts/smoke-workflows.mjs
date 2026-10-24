@@ -1778,6 +1778,9 @@ export function resolveFlowSmokeSet(reg, only) {
 
     const entries = [];
     for (const flow of base) {
+        // A driver Flow (Storyboard, MPI-1231) has no graph: its panels are FLUX.3 Klein runs,
+        // smoked as that model.
+        if (flow.driver) continue;
         const { id, operation: op } = flow;
         // dep ids for this flow (includes requiredPlugins deps via getFlowDependencies)
         const depObjs = getFlowDependencies ? getFlowDependencies(id) : [];

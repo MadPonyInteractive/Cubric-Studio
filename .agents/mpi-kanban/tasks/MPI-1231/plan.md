@@ -16,6 +16,13 @@
   `submitFlowGeneration` + `runLanding`, addStack, update-meta note, `reorderStack`, `/combine-images`
   numbered+whole) lands with the FlowDef. A stopped run gets its order but no overview. NEXT: Phase 0
   (GPU) or the FlowDef via /mpi-add-flow. Planner `[PANEL n]` parser not written (Phase 0).
+- 2026-10-24 ("LTX 2.5 model 12", no GPU): FLOW WIRED, devOnly. `driver: 'storyboard'` on the FlowDef ->
+  MpiBaseFlow `_run` calls `FLOW_DRIVERS` (`js/shell/storyboardDispatch.js`); panels are plain FLUX.3
+  Klein gens via agent `buildGeneration` (edit w/ refs, t2i without). `flowStoryboard` op = slots only.
+  `parseStoryboardPlan` + DRAFT planner `STORYBOARD_PLAN_ENHANCE_PARAMS`. buildFlow refuses
+  (`OPENS_FOR_USER`), routines refuse. Full suite green; modules load in an isolated page (age gate
+  not clicked: Fabio's consent). NOT run live (GPU). Doc: existing-flows/storyboard.md. NEXT: Fabio
+  looks at the Flow in his app (dev), then Phase 0 on the GPU (planner + panels).
 
 ## Phase 0: Panel recipe - `user-ux` (local GPU, Fabio's yes; no money)
 

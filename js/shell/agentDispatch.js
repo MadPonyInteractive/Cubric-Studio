@@ -1308,6 +1308,11 @@ export async function buildFlow(input, project) {
     if (!flow) {
         return _refuse('UNKNOWN_FLOW', retiredFlowMessage(flowId) || `No flow with id "${flowId}".`);
     }
+    // A driver Flow (MPI-1231, Storyboard) fans one press out into many jobs inside the Flow
+    // frame; this path submits ONE job, so it can only open it for the user.
+    if (flow.driver) {
+        return _refuse('OPENS_FOR_USER', `${flow.title} runs only from its own window, where the user reads the plan and presses Generate. Open it for them instead (open: true).`);
+    }
 
     // submitFlowGeneration pre-flights this itself, but it reports through a TOAST
     // and returns a bare null — an agent sees neither. Ask the same question here

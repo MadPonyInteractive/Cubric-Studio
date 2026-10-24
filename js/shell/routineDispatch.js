@@ -52,7 +52,7 @@ const _isOpen = (project) => !!project?.folderPath
     && project.folderPath.replace(/\\/g, '/').toLowerCase() === state.currentProject?.folderPath?.replace(/\\/g, '/').toLowerCase();
 
 /** Where one step's result lands: a new gallery card, or the next version of `existingGroup`. */
-function _landingOpts(landing, type, width, height) {
+export function landingOpts(landing, type, width, height) {
     if (landing.existingGroup) return { ...landing, scope: 'groupHistory', groupId: landing.existingGroup.id };
     const placeholderGroup = galleryPlaceholder(type, width, height);
     return { ...landing, scope: 'gallery', tempId: placeholderGroup.id, placeholderGroup };
@@ -132,7 +132,7 @@ export const routineDeps = {
         const queued = step.flowId
             ? submitFlowGeneration(built.flow, { ...built.inputs, runLanding: landing }, callbacks)
             : enqueueGeneration(built.config, callbacks,
-                _landingOpts(landing, built.config.model.mediaType || 'image', built.run?.width || 0, built.run?.height || 0));
+                landingOpts(landing, built.config.model.mediaType || 'image', built.run?.width || 0, built.run?.height || 0));
         if (!queued) return { ok: false, code: 'REJECTED', message: 'Vision rejected the step before it entered the queue.' };
         return { ok: true, done };
     },

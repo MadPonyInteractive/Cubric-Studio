@@ -1383,6 +1383,23 @@ export const commands = {
         promptRequired: false,
         universal: true,
     },
+    // Storyboard (MPI-1231). NO graph and no entry in universal_workflows: the Flow's `driver`
+    // runs every panel as a FLUX.3 Klein generation, so nothing ever dispatches this key. It
+    // exists for its SLOTS: every reader of a Flow's media (the frame's slot check, the agent's
+    // open path, the connector's roles) asks the op, and these are FLUX.3's ten edit references.
+    flowStoryboard: {
+        label: 'Flow: Storyboard',
+        mediaType: MEDIA_TYPE.IMAGE,
+        requiresImages: 0,
+        mediaInputs: Array.from({ length: 10 }, (_, i) => ({
+            key: i ? `inputImage${i + 1}` : 'inputImage',
+            mediaType: MEDIA_TYPE.IMAGE,
+            title: i ? `Input_Image_${i + 1}` : 'Input_Image',
+            required: false,
+        })),
+        promptRequired: false,
+        universal: true,
+    },
 
     // MPI-504. Krea2 t2i character reference sheet: three panels in one 8:5 frame — a
     // large 3/4 close-up, full body front and full body back — in the layout that reads

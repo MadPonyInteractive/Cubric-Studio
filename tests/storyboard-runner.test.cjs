@@ -13,10 +13,10 @@ const path = require('node:path');
 
 const esm = (p) => import('file:///' + path.join(__dirname, '..', p).replace(/\\/g, '/'));
 
-let runStoryboard, applyReorderMembers;
+let runStoryboard, parseStoryboardPlan, applyReorderMembers;
 
 test.before(async () => {
-    ({ runStoryboard } = await esm('js/services/storyboardRunner.js'));
+    ({ runStoryboard, parseStoryboardPlan } = await esm('js/services/storyboardRunner.js'));
     ({ applyReorderMembers } = await esm('js/data/stackModel.js'));
 });
 
@@ -138,6 +138,24 @@ test('one card is no sheet; a panel with no intent gets no note', async () => {
     assert.strictEqual(out.ok, true);
     assert.strictEqual(out.overview, false);
     assert.ok(!app.calls.some(c => c[0] === 'note' || c[0] === 'overview' || c[0] === 'reorder'));
+});
+
+test('the plan parses from the enhancer\'s one flattened line and from hand-edited lines alike', () => {
+    const flat = '[PANEL 1] Picture: A wide photograph of a diner at night. Intent: We meet the place. [PANEL 2] Picture: The waitress pours coffee. Intent: She notices the stranger.';
+    const want = [
+        { prompt: 'A wide photograph of a diner at night.', intent: 'We meet the place.' },
+        { prompt: 'The waitress pours coffee.', intent: 'She notices the stranger.' },
+    ];
+    assert.deepStrictEqual(parseStoryboardPlan(flat), want);
+    assert.deepStrictEqual(parseStoryboardPlan(flat.replace(/ \[/g, '\n\n[').replace(/ Intent/g, '\nIntent')), want);
+});
+
+test('a block with no Intent keeps its words as the prompt; text before the first marker and empty blocks are dropped', () => {
+    assert.deepStrictEqual(parseStoryboardPlan('Here is your plan: [panel 1] A fox in snow. [PANEL 2] Picture: Intent: nothing to draw'), [
+        { prompt: 'A fox in snow.', intent: '' },
+    ]);
+    assert.deepStrictEqual(parseStoryboardPlan('just an idea, never enhanced'), []);
+    assert.deepStrictEqual(parseStoryboardPlan(undefined), []);
 });
 
 test('nothing runs and no stack is made when every panel is refused, or Loop is armed, or a panel is blank', async () => {

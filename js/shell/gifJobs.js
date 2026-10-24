@@ -347,6 +347,9 @@ async function makeSheet(input) {
         itemIds: input.itemIds,
         ...(input.shape !== undefined ? { shape: input.shape } : {}),
         ...(input.longEdge !== undefined ? { longEdge: input.longEdge } : {}),
+        // The Storyboard's overview (MPI-1231): numbered badges, every picture uncropped.
+        ...(input.numbered ? { numbered: true } : {}),
+        ...(input.whole ? { whole: true } : {}),
     });
     return _done(await _landNewCard(data.item));
 }

@@ -33,6 +33,10 @@
  * @property {boolean}  [devOnly]      - Present in source runs only, like a `devOnly` ModelDef or
  *                                       PluginDef (MPI-1231): filtered at the one `FLOWS` export, so
  *                                       the Library, dispatch, the orphan sweep and every gate agree.
+ * @property {string}   [driver]       - Generate runs this client driver INSTEAD of the Flow's own op
+ *                                       (`FLOW_DRIVERS`, js/shell/storyboardDispatch.js; MPI-1231): for
+ *                                       a Flow whose one press fans out into many model jobs. Such a
+ *                                       Flow declares no `operation` or `workflow`.
  * @property {Array<string|{label: string, models: string[], optional?: boolean, for?: string[]}>} requiredModels - MODEL ids (NOT dep
  *                                       ids); drives the availability badge. Each entry is a SLOT
  *                                       — one ROLE the graph plays a model in. The object form
@@ -539,6 +543,43 @@ const SHEET_CLOTHES_CHECKS = ['upper body, the chest and belly', 'lower body, th
     when: [{ field: 'Input_Age', atLeast: 0, atMost: 17 }, { field: 'change', isNot: 'clothes' }],
     message: 'Dress the sheet first: pick Clothes and say what the character wears. Under 18 a character must wear ordinary clothes on the sheet before its age changes, and this sheet does not show them. At 16 or 17 swimwear is fine when you ask for it under Clothes. The age can stay set: the clothes go on first.',
 })));
+
+// Storyboard's planner (MPI-1231). A DRAFT until Phase 0 benches it on the enhancer: the shape
+// follows docs/agent/models/flux-3.md (long prose, the medium first, a full observable profile per
+// person). The enhancer flattens its answer to one line, so `parseStoryboardPlan` finds the panels
+// by their `[PANEL n]` markers and the `Intent:` label, never by newlines. Every character's full
+// description is REPEATED in every panel because each panel is a separate generation: a panel
+// that says "the same woman" draws a stranger. Positive instructions, few prohibitions: Music
+// Maker's recipe showed a stack of "No X" lines teaches the 4B to loop.
+const STORYBOARD_PLAN_ENHANCE_PARAMS = {
+    Input_System_Prompt: [
+        '<|im_start|>system',
+        'You are a storyboard artist planning the still panels of a short video. The user message gives the idea, how many panels to write and the shape of the video. Write exactly that many panels, in story order, as one plan.',
+        '',
+        'Write every panel in this form: [PANEL n] Picture: the picture prompt. Intent: one sentence.',
+        '',
+        'The Intent is one sentence for the person who will animate the panel: what happens in this shot and why it matters, with the camera move when there is one. It may end with a rough length in seconds.',
+        '',
+        'The Picture is a prompt for an image model: one prose block of 80 to 160 words, stating the picture itself.',
+        '- Open on the medium and style. When the user names none, open on "Full-color cinematic film still, ".',
+        '- Then the shot size and angle (wide establishing shot, medium shot, close-up, over-the-shoulder shot), the place, the light and the time of day.',
+        '- Describe every character in full each time they appear, with the same words in every panel: ethnicity, gender, age range, skin tone, hair, and the same clothes in the same colours. Each panel is drawn on its own, so write the description out again rather than referring back to an earlier panel.',
+        '- A place that returns keeps the same colours, materials and signs in every panel it appears in.',
+        '- Place things in the frame: frame-left, frame-right, foreground, background. Say what each person is doing at that instant, as a camera would see it.',
+        '',
+        'When the user says their pictures show a character or a place ("picture 1 is my hero"), write each panel that uses them as a request built from those pictures: "Create a cinematic film still of the man from the first image ...", naming each picture by its ordinal and what it shows, and keep that person\'s face, hair and clothes.',
+        '',
+        'Vary the shots so the panels read as an edited sequence: open wide on the place, move closer for action and feeling, and close on a shot that ends the moment.',
+        '',
+        'Keep every name, place, object and word the user gave. Leave the video shape and the panel numbers out of the Picture text. Write in English. Start with [PANEL 1] and stop after the last panel.',
+        '<|im_end|>',
+        '<|im_start|>user',
+    ].join('\n'),
+    'Input_Scrub_Negation.regex_pattern': '(?!)',
+    'Input_Tidy.regex_pattern': '\\s+$',
+    // 12 panels x ~160 words is ~2,600 tokens; the cap is a guard against a loop, not the budget.
+    'Input_Text_Gen.max_length': 3200,
+};
 
 const ALL_FLOWS = [
     // head-swap and drama-box LEFT THE APP (MPI-781, umbrella MPI-780 phase 2). They are
@@ -2959,6 +3000,83 @@ const ALL_FLOWS = [
                 id: 'positive', type: 'text', rows: 3, label: 'Describe the place',
                 placeholder: 'A cosy cartoon village in a forest clearing, warm afternoon light',
             },
+        ],
+    },
+    {
+        // MPI-1231: an idea in words, plus optional pictures of the cast and places, becomes a
+        // STACK of panel cards in story order, each with its intent line as the card note, and a
+        // numbered overview sheet. Dev-gated until the LTX 2.5 release (umbrella MPI-1267).
+        // No graph and no op of its own: `driver` hands Generate to `js/shell/storyboardDispatch.js`,
+        // which runs every panel as an ordinary FLUX.3 Klein generation (edit with pictures, t2i
+        // without), so each panel is a normal card the user can edit like any other.
+        id: 'storyboard',
+        devOnly: true,
+        driver: 'storyboard',
+        title: 'Storyboard',
+        // No `preview` until Phase 2's /mpi-flow-graphics: the tile shows its placeholder.
+        description: 'Turn an idea into a storyboard of numbered panels for a video. Each panel lands as its own picture in one stack, in story order, with a note saying what happens in the shot, plus one sheet showing every panel numbered. Add pictures of your characters and places to keep them the same in every panel.',
+        requiredModels: ['flux3-klein'],
+        // Never dispatched: it carries the ten reference slots (commandRegistry.js).
+        operation: 'flowStoryboard',
+        // The user reads the plan before any panel is drawn (Fabio, 2026-10-24); the agent's
+        // generate path is one job per press, so it opens the Flow ready to press instead.
+        agentOpens: 'run',
+        mediaType: 'image',
+        type: 'create',
+        inputSchema: {
+            media: [{
+                type: 'image', mode: 'upto', max: 10,
+                roles: ['inputImage', 'inputImage2', 'inputImage3', 'inputImage4', 'inputImage5',
+                    'inputImage6', 'inputImage7', 'inputImage8', 'inputImage9', 'inputImage10'],
+                labels: ['Characters and places (optional)'],
+            }],
+        },
+        steps: [
+            {
+                kind: 'fields',
+                tickerLabel: 'Plan',
+                title: 'Plan the storyboard',
+                hint: 'Enhance writes one block per panel: the picture, then its intent. Edit it freely: whatever is in the plan box is what gets drawn. Added pictures? Say who or what each one shows, by number.',
+                fields: [
+                    {
+                        id: 'positive', type: 'text', rows: 4, label: 'Your idea',
+                        placeholder: 'A waitress in a late-night diner meets a stranger who knows her name. Picture 1 is the waitress.',
+                    },
+                    {
+                        id: 'panelCount', type: 'slider', label: 'Panels', min: 3, max: 12, step: 1, default: 6,
+                    },
+                    {
+                        id: 'enhance', type: 'button', label: 'Enhance', icon: 'enhance',
+                        action: 'enhance',
+                        from: ['positive', 'panelCount', 'ratio'], to: 'plan',
+                        injectionParams: STORYBOARD_PLAN_ENHANCE_PARAMS,
+                    },
+                    {
+                        id: 'plan', type: 'text', rows: 12, label: 'The plan',
+                        placeholder: 'Press Enhance, or write it yourself: [PANEL 1] Picture: ... Intent: ...',
+                    },
+                ],
+            },
+        ],
+        fields: [
+            {
+                id: 'ratio', type: 'radio', label: 'Video shape', columns: 5, default: '16:9',
+                options: [
+                    { v: '16:9', label: '16:9' },
+                    { v: '9:16', label: '9:16' },
+                    { v: '4:3', label: '4:3' },
+                    { v: '3:4', label: '3:4' },
+                    { v: '1:1', label: '1:1' },
+                ],
+            },
+            {
+                id: 'qualityTier', type: 'radio', label: 'Size', columns: 2, default: '1k',
+                options: [
+                    { v: '1k', label: '1K', info: 'Fast drafts. Upscale the panels you keep.' },
+                    { v: '2k', label: '2K', info: 'Sharper panels, about twice as slow.' },
+                ],
+            },
+            { id: 'turbo', type: 'toggle', label: 'Turbo', icon: 'bolt', default: true },
         ],
     },
 ];

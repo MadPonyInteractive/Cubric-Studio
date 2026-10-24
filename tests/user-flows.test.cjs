@@ -153,6 +153,8 @@ test('every shipped Flow, expressed as a package, validates', () => {
     const { UNIVERSAL_WORKFLOWS } = require('../js/data/modelConstants/universal_workflows.js');
     const offenders = [];
     for (const { id, operation, workflow, ...flow } of FLOWS) {
+        // A driver Flow (Storyboard, MPI-1231) runs app code and has no graph: no package can be one.
+        if (flow.driver) continue;
         const uw = UNIVERSAL_WORKFLOWS[operation];
         if (uw.byModel || COMMANDS[operation].pastesToWorkingCopy) continue;
         const { universal, ...op } = COMMANDS[operation];

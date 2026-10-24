@@ -16,6 +16,7 @@ import { Events } from '../../../events.js';
 import { state, AUTO_PIXEL_THRESHOLD } from '../../../state.js';
 import { ViewManager } from '../../Primitives/MpiCanvas/managers/ViewManager.js';
 import { submitFlowGeneration, submitChainLeg, cloudEditPrice } from '../../../services/flowService.js';
+import { FLOW_DRIVERS } from '../../../shell/storyboardDispatch.js';
 import { updateGroup } from '../../../services/projectService.js';
 import { promoteHistoryEntry } from '../../../data/projectModel.js';
 import { clientLogger } from '../../../services/clientLogger.js';
@@ -3808,6 +3809,14 @@ export const MpiBaseFlow = ComponentFactory.create({
             // Persist the input snapshot so Reuse/reopen restores media + controls.
             // Also written live as the user works — see `_persistInputs`.
             _persistInputs(inputs);
+
+            // A Flow whose one press fans out into many model jobs (MPI-1231, Storyboard): its
+            // driver owns the run, its queue row and every end, so the frame's run token, result
+            // pane and op submit stay out of it. Its op only carries the media slots.
+            if (flow.driver) {
+                await FLOW_DRIVERS[flow.driver](flow, inputs);
+                return;
+            }
 
             // This press's own token. Added BEFORE the enhancer leg below, which can
             // take a 4B tens of seconds — the frame has to read busy for all of it.

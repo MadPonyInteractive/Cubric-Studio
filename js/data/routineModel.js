@@ -312,6 +312,10 @@ export function validateRoutine(routine, lookups) {
             if (!flow) {
                 return _bad('UNKNOWN_FLOW', `Step ${n}: no flow with id "${step.flowId}".`);
             }
+            // A driver Flow (MPI-1231) makes a whole stack from one press: no card to chain on.
+            if (flow.driver) {
+                return _bad('NOT_BATCHABLE', `Step ${n}: ${flow.title} makes a whole stack of cards and cannot be a routine step.`);
+            }
             // Validate declared fields. Unknown ids are refused; undeclared keys in
             // the step are silently ignored (a step may carry only `flowId`).
             const fv = resolveFlowFieldValues(flow, step.fields ?? {});

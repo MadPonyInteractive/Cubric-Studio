@@ -33,6 +33,23 @@
 const _fail = (code, message) => ({ ok: false, code, message });
 
 /**
+ * The plan box's text as panels. The enhancer flattens its answer to ONE line (the shared
+ * graph's `Replace Text`, carried to every backend by `postProcessLikeGraph`), so blocks
+ * are found by their `[PANEL n]` markers and labels, never by newlines; the user's own
+ * edits may add newlines back, and those read the same. A block's `Intent:` part is its
+ * card note; the rest, less a leading `Picture:`, is its prompt. A block with no picture
+ * text is dropped.
+ * @param {string} text
+ * @returns {StoryboardPanel[]}
+ */
+export function parseStoryboardPlan(text) {
+    return String(text || '').split(/\[\s*PANEL\s*\d*\s*\]/i).slice(1).map((block) => {
+        const [picture, intent = ''] = block.split(/\bIntent\s*:/i);
+        return { prompt: picture.replace(/^\s*Picture\s*:/i, '').trim(), intent: intent.trim() };
+    }).filter(p => p.prompt);
+}
+
+/**
  * @param {StoryboardPanel[]} panels - in story order
  * @param {{name: string}} opts - the stack's name, and the queue row's label
  * @param {StoryboardDeps} deps

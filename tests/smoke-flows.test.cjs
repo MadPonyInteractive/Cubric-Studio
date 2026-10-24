@@ -28,7 +28,8 @@ test('resolveFlowSmokeSet all: derived from FLOWS; ids match FLOWS ids; ltx-exte
     const entries = resolveFlowSmokeSet(reg, 'all');
     // ids of default-arm entries must equal FLOWS ids exactly
     const defaultEntryIds = entries.filter(e => e.arm === null).map(e => e.id).sort();
-    const flowsIds = reg.FLOWS.map(f => f.id).sort();
+    // A driver Flow (Storyboard) has no graph to smoke: its panels are FLUX.3 Klein runs.
+    const flowsIds = reg.FLOWS.filter(f => !f.driver).map(f => f.id).sort();
     assert.deepEqual(defaultEntryIds, flowsIds, `resolveFlowSmokeSet ids must equal FLOWS ids`);
     // ltx-extend expands to a byModel arm
     assert.ok(entries.some(e => e.id === 'ltx-extend' && e.arm === null), 'ltx-extend default arm present');
@@ -65,7 +66,7 @@ test('resolveFlowSmokeSet specific ids: scribble,outpaint → 2 entries, no arms
 test('resolveFlowSmokeSet unknown id: dies with helpful message; all FLOWS ids accepted', async () => {
     const reg = await loadRegistry();
     // All ids in reg.FLOWS must be accepted without dying.
-    for (const flow of reg.FLOWS) {
+    for (const flow of reg.FLOWS.filter(f => !f.driver)) {
         const entries = resolveFlowSmokeSet(reg, [flow.id]);
         assert.ok(entries.length >= 1, `id '${flow.id}' must resolve to at least one entry`);
     }
