@@ -2229,6 +2229,177 @@ def sheet(res, name='stage1', cell=420):
     img.save(os.path.join(HERE, 'sheets', name + '.jpg'), quality=90)
 
 
+
+# Round 17 (Fabio 2026-10-24): rounds 13-14 gave each product a stand-in built to ITS OWN shape (box = speaker, flask =
+# bottle) at ONE distance, so they do not prove the Flow. Here ONE generic stand-in (`obj_build.py -- cube`: a plain
+# cube, the panel = the face the source shows) serves four products of unlike shapes, in real settings (on a floor,
+# a table, a plinth) and at different source distances; zoom refs (`<cam>_near` / `_far`: same position, longer /
+# shorter lens) test distance. `blender17 sources` makes the sources and imports the refs; MQ17_VIEWS is written AFTER
+# looking at the sources, the way the Flow's agent would, then `blender17` runs the edits.
+MQ17_SOURCES = {
+    'sneaker': ('Full-color product photograph of a single white leather running sneaker standing on a polished grey '
+                'concrete floor, seen from its outer side at its own height, toe pointing to frame-left, against a '
+                'plain warm-grey wall with soft window light from the left. Thick cream foam sole, a navy suede heel '
+                'panel and navy laces, a small orange tab on the heel. Framed with some floor and wall around it.'),
+    'mug': ('Full-color close-up product photograph of a matte terracotta ceramic coffee mug on a light oak table, '
+            'seen straight from the front at the height of its rim, its handle on frame-right, filling most of the '
+            'frame. A small white glazed leaf is painted on its front; the inside is glossy cream glaze. Blurred '
+            'kitchen shelves behind, soft daylight.'),
+    'headphones': ('Full-color product photograph of a pair of over-ear wireless headphones floating in mid-air in '
+                   'the centre of the frame, seen straight from the front, the headband arching on top and both ear '
+                   'cups facing each other, against a plain pale-blue seamless backdrop with soft even studio light. '
+                   'Matte sage-green plastic, cream leather ear cushions, brushed silver sliders, a small power '
+                   'button and a status light on the frame-right ear cup only.'),
+    'handbag': ('Full-color wide product photograph of a structured black leather handbag standing on a round white '
+                'marble plinth in a bright minimalist boutique, seen from the front at its own height, small in the '
+                'frame with the room around it: pale walls, a potted olive tree on the frame-left, light from tall '
+                'windows. The bag has one rounded top handle, a gold clasp on its front flap and gold feet.'),
+}
+MQ17_RENDERS = ('front_lo', 'front_hi', 'top2', 'back_eye', 'tq_fl', 'tq_br',
+                'front_hi_near', 'front_hi_far', 'tq_fl_near', 'tq_fl_far')
+# Written after looking at `mq_blender17_sources.jpg`. Frame sides as in MQ14: tq_fl brings the first image's
+# frame-right end nearest at frame-right; tq_br brings its frame-left end nearest at frame-right; back_eye swaps sides.
+MQ17_VIEWS = {
+    'sneaker': {
+        'front lo': ('front_lo', 'Shift the viewpoint of the first image down{ref}: a low view from just above the '
+                     'concrete floor, looking up at the sneaker. Its thick cream sole now rises large in the '
+                     'foreground, the white upper and the navy laces lean away above it, and more of the grey wall '
+                     'shows above the shoe.'),
+        'front hi': ('front_hi', 'Shift the viewpoint of the first image up{ref}: a high view from above the sneaker\'s '
+                     'outer side, looking steeply down at it. The navy laces and the open collar now show large on '
+                     'top, the outer side is foreshortened below them, and the polished concrete floor fills the '
+                     'background.'),
+        'top2': ('top2', 'Shift the viewpoint of the first image up{ref}: a view from directly above the sneaker, '
+                 'looking straight down. The shoe is a long shape across the frame with the toe at frame-left: the '
+                 'navy laces run down its middle to the open collar and the navy heel at frame-right, the cream sole '
+                 'edge shows round it, and only the concrete floor is around it.'),
+        'back eye': ('back_eye', 'Shift the viewpoint of the first image around the sneaker{ref}: a view of its inner '
+                     'side at the same height and distance. The toe now points to frame-right and the navy heel with '
+                     'the orange tab is at frame-left.'),
+        'tq fl': ('tq_fl', 'Shift the viewpoint of the first image around the sneaker{ref}: a three-quarter view from '
+                  'behind its heel and to the outer side. The navy heel panel with the orange tab now faces partly '
+                  'toward the view at frame-right, nearest, and the white outer side runs away at an angle toward the '
+                  'toe at frame-left.'),
+        'tqb r': ('tq_br', 'Shift the viewpoint of the first image around the sneaker{ref}: a three-quarter view from in '
+                  'front of its toe and to the inner side. The rounded white toe now faces partly toward the view at '
+                  'frame-right, nearest, the inner side runs away at an angle toward frame-left, and the navy heel is '
+                  'at the far end.'),
+    },
+    'mug': {
+        'front lo': ('front_lo', 'Shift the viewpoint of the first image down{ref}: a low view from the level of the '
+                     'oak table top, looking up at the mug. Its base sits on the table edge in the foreground, the '
+                     'rim is seen from below so the inside is hidden, and the kitchen shelves rise higher behind it.'),
+        'front hi': ('front_hi', 'Shift the viewpoint of the first image up{ref}: a high view from above and in front '
+                     'of the mug, looking steeply down at it. The glossy cream inside now shows as a large oval, the '
+                     'white leaf on the front is foreshortened below it, and the oak table fills the background.'),
+        'top2': ('top2', 'Shift the viewpoint of the first image up{ref}: a view from directly above the mug, looking '
+                 'straight down into it. The glossy cream inside is a circle in the middle of the frame inside the '
+                 'terracotta rim, the handle sticks out at frame-right, and only the oak table is around it.'),
+        'back eye': ('back_eye', 'Shift the viewpoint of the first image around the mug{ref}: a view from directly '
+                     'behind it at the same height and distance. Its plain terracotta back now faces the view with no '
+                     'leaf, and the handle is at frame-left.'),
+        'tq fl': ('tq_fl', 'Shift the viewpoint of the first image around the mug{ref}: a three-quarter view from in '
+                  'front of it, toward its handle. The white leaf now turns toward frame-left, and the handle faces '
+                  'partly toward the view at frame-right, nearest, seen more edge-on.'),
+        'tqb r': ('tq_br', 'Shift the viewpoint of the first image around the mug{ref}: a three-quarter rear view from '
+                  'behind it, away from its handle. The plain terracotta side now faces partly toward the view at '
+                  'frame-right, the plain back runs away toward frame-left, the handle is at the far side at '
+                  'frame-left, and the white leaf is hidden.'),
+    },
+    'headphones': {
+        'front lo': ('front_lo', 'Shift the viewpoint of the first image down{ref}: a low view from below the '
+                     'headphones, looking steeply up at them. The bottoms of both sage-green ear cups now show large '
+                     'in the foreground and the headband arches away above them, seen from underneath.'),
+        'front hi': ('front_hi', 'Shift the viewpoint of the first image up{ref}: a high view from above and in front '
+                     'of the headphones, looking steeply down at them. The top of the cream-padded headband now shows '
+                     'large near the top of the frame, and the two ear cups are foreshortened below it.'),
+        'top2': ('top2', 'Shift the viewpoint of the first image up{ref}: a view from directly above the headphones, '
+                 'looking straight down. The cream padding on top of the headband runs across the middle of the '
+                 'frame from frame-left to frame-right, with the tops of the two ear cups at its ends.'),
+        'back eye': ('back_eye', 'Shift the viewpoint of the first image around the headphones{ref}: a view from '
+                     'directly behind them at the same height and distance. The back of the headband arches on top, '
+                     'and the ear cup that was at frame-right is now at frame-left.'),
+        'tq fl': ('tq_fl', 'Shift the viewpoint of the first image around the headphones{ref}: a three-quarter view '
+                  'toward the frame-right ear cup. That ear cup\'s round sage-green outer shell now faces partly '
+                  'toward the view at frame-right, nearest and large, and the other ear cup is half hidden behind it '
+                  'toward frame-left.'),
+        'tqb r': ('tq_br', 'Shift the viewpoint of the first image around the headphones{ref}: a three-quarter rear view '
+                  'toward the frame-left ear cup. That ear cup\'s round sage-green outer shell now faces partly '
+                  'toward the view at frame-right, nearest, the headband runs away from it, and the other ear cup is '
+                  'half hidden at the far end toward frame-left.'),
+    },
+    'handbag': {
+        'front lo': ('front_lo', 'Shift the viewpoint of the first image down{ref}: a low view from the level of the '
+                     'marble plinth, looking up at the handbag. The plinth\'s top edge is in the foreground, the bag '
+                     'and its handle rise above it, and the boutique ceiling and the tops of the tall windows now show '
+                     'above the bag.'),
+        'front hi': ('front_hi', 'Shift the viewpoint of the first image up{ref}: a high view from above and in front '
+                     'of the handbag, looking steeply down at it. The top of the bag with its rounded handle now shows, '
+                     'the gold clasp is foreshortened below it, and the round white marble top of the plinth and the '
+                     'pale floor fill the background.'),
+        'top2': ('top2', 'Shift the viewpoint of the first image up{ref}: a view from directly above the handbag, '
+                 'looking straight down. The bag\'s black top is a narrow rectangle with the rounded handle arching '
+                 'over it in the middle of the round white marble plinth, and the pale floor is around the plinth.'),
+        'back eye': ('back_eye', 'Shift the viewpoint of the first image around the handbag{ref}: a view from directly '
+                     'behind it at the same height and distance. Its plain black leather back now faces the view with '
+                     'no flap and no gold clasp, and the handle arches on top.'),
+        'tq fl': ('tq_fl', 'Shift the viewpoint of the first image around the handbag{ref}: a three-quarter view from in '
+                  'front of it and to one side. The front flap with the gold clasp now turns at an angle toward '
+                  'frame-left, and one narrow black side faces partly toward the view at frame-right.'),
+        'tqb r': ('tq_br', 'Shift the viewpoint of the first image around the handbag{ref}: a three-quarter rear view from '
+                  'behind it and to the other side. One narrow black side now faces partly toward the view at '
+                  'frame-right, the plain black back runs away at an angle toward frame-left, and the gold clasp is on '
+                  'the far side, not visible.'),
+    },
+}
+for _views in MQ17_VIEWS.values():  # zoom pair on two views: the same end state, closer / pulled back
+    for _v, _r in (('front hi', 'front_hi'), ('tq fl', 'tq_fl')):
+        _t = _views[_v][1]
+        _views[_v + ' near'] = (_r + '_near', _t + ' The view is much closer: the object fills the frame, cropped at '
+                                'its edges.')
+        _views[_v + ' far'] = (_r + '_far', _t + ' The view is pulled far back: the object is small in the middle of '
+                               'the frame with much more of its setting around it.')
+# The products sit in real settings and a far view must extend them, so MQ9_KEEP's frozen background becomes the setting.
+MQ17_KEEP = MQ9_KEEP.replace('keep the background, the light and the image style of the first image unchanged',
+                             'keep the same setting, light and image style as the first image')
+
+
+def blender17(port, sources_only):
+    done = os.path.join(OUT, 'mq_blender17.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+
+    def save(key, body):
+        if key not in res:
+            res[key] = gen(port, {**body, 'cardName': f'angles mq17 {key}'})
+            json.dump(res, open(done, 'w'), indent=1)
+        return res[key]
+
+    for name, text in MQ17_SOURCES.items():
+        save(f'{name} input', {**FAST, 'operation': 't2i', 'seed': 111, 'positive': text})
+    for render in MQ17_RENDERS:
+        if f'ref {render}' not in res:
+            res[f'ref {render}'] = import_ref(port, 'cube/outline/' + render, f'angles mq17 ref {render}')
+            json.dump(res, open(done, 'w'), indent=1)
+    if sources_only:
+        _sheet([[(res[f'{n} input'], n) for n in MQ17_SOURCES]], 'mq_blender17_sources')
+        _sheet([[(res[f'ref {r}'], r) for r in MQ17_RENDERS]], 'mq_blender17_refs')
+        return
+    keep_ref = MQ9_KEEP_REF['line'].replace('the panel and the circle is the front of the object',
+                                            'the panel is the side the first image shows')
+    for name, views in MQ17_VIEWS.items():
+        for seed in MQ11_SEEDS:
+            for v, (render, text) in views.items():
+                save(f'{name} {seed} {v}', {**FAST, 'seed': seed,
+                                            'media': [{'role': 'inputImage', 'url': res[f'{name} input']},
+                                                      {'role': 'inputImage2', 'url': res[f'ref {render}']}],
+                                            'positive': text.format(ref=' to match the reference in the second image')
+                                            + keep_ref + MQ17_KEEP})
+        rows = [[(res[f'{name} input'], 'source')] + [(res[f'ref {r}'], f'ref {v}') for v, (r, _) in views.items()]]
+        rows += [[(None, f'seed {s}')] + [(res.get(f'{name} {s} {v}'), v) for v in views] for s in MQ11_SEEDS]
+        _sheet(rows, f'mq_blender17_{name}')
+
 if __name__ == '__main__':
     if sys.argv[1:2] == ['best']:
         best()
@@ -2238,6 +2409,8 @@ if __name__ == '__main__':
         sweep2(int(sys.argv[1]))
     elif sys.argv[2:3] == ['lora']:
         lora(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['blender17']:
+        blender17(int(sys.argv[1]), sys.argv[3:4] == ['sources'])
     elif sys.argv[2:3] == ['blender16']:
         blender16(int(sys.argv[1]))
     elif sys.argv[2:3] == ['blender15']:

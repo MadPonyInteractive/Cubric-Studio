@@ -194,6 +194,17 @@ OVERNIGHT 2026-10-24 RESULTS (rounds 9-14, all read in validation.md):
   stand-in for objects), BFL voice, an end state naming the SPECIFIC things now in view, the matching keep clause.
 NEXT: Fabio's eye test on `mq_blender14_{speaker,bottle}.jpg`, `mq_blender15_face.jpg`, `mq_blender16_manface.jpg`;
 then the Flow design: gizmo -> nearest ref render -> the agent (it sees the picture) writes the end state -> one edit.
+FABIO 2026-10-24 (morning) eye test: people + face sheets look okay; the OBJECT passes do not count yet - each had a
+stand-in shaped like itself, at one distance. ROUND 17 READY, NOT RUN (Fabio: ASK before any GPU run, he is testing
+too): `obj_build.py -- cube` -> `out/cube_refs.blend` -> `ref_render.py -- outline` -> `out/cube/outline/` (one plain
+cube + panel for every product, zoom cams front_hi/tq_fl `_near`/`_far` by lens); `angles.py <port> blender17 sources`
+= 4 t2i sources (sneaker on a floor seen side-on, mug close-up on a table, floating headphones, handbag small in a
+boutique) + ref imports + sheets; then write `MQ17_VIEWS` from what the sources show (as the Flow's agent would) and
+`angles.py <port> blender17` = 4 products x 10 views (6 angles + 4 zooms) x 4 seeds = 160 Turbo edits (~70 min with
+Fabio sharing the GPU). ROUND 17 DONE (first read in validation.md, Fabio's eye test pending): the generic cube carries
+turns, back, high and ZOOM (near 31/32, far 31/32) across unlike shapes; LOW fails on resting products (~2/16) and
+top-down fails on the headphones. NEXT: Fabio's eye test on the four mq_blender17 sheets; render Cosmo (ask for the
+GPU); then a low-wording fix + the HOUSE stand-in round.
 REF PIPELINE NOW (2026-10-24, SUPERSEDES ref_post.py): the pose lives in Fabio's hand-posed copy
 `research/blender/out/UE4_Mannequinn_refs.blend` (Blender 5.2; out/ is gitignored - it exists only on this disk). It
 was made ONCE by `cp D:\Blender\Other\UE4_Mannequinn.blend` + `blender-5.2 -b <copy> --python ref_build.py --
@@ -216,6 +227,35 @@ Objects after.
 Isolated app (port 52430 this session; down when the session ends): relaunch with `CUBRIC_AGENT_PROFILE=%LOCALAPPDATA%\Temp\cubric-agent-profile-mpi1212
 node scripts/launch-instance.mjs` (run_in_background), use the printed port. Every GPU run under
 `gpu_lease.py run --poll 2 --timeout <long>`; a peer often holds the GPU.
+
+## Future directions (Fabio 2026-10-24, notes only - NOT the current route)
+- Fabio's read of rounds 13-14: the object passes are suspect - each product had a stand-in built to ITS OWN shape
+  (box for the speaker, flask for the bottle) at ONE distance. The recipe only counts once ONE generic stand-in set
+  carries differently shaped products, at different distances. That proof = round 17 (below, in Current State).
+- Community route: Qwen-Image-Edit 2511 + a multi-angle LoRA + a ComfyUI multi-angle custom node whose gizmo
+  probably emits ready-made prompts. Worth reading the node for its prompt table even if we stay on our recipe.
+- Two-model split sampling: an earlier exploration ran the first steps on Qwen (pose / ControlNet) and the last on
+  KREA2 (same architecture, same text encoder) for a KREA2-quality result. Could apply here; also check which other
+  models share Qwen's latent/architecture (Qwen-Image 2.1? FLUX.3?). Many tests - slow.
+- Cheaper variant: generate the angle on Qwen, then feed that output as a REFERENCE to Qwen-Image 2.1 / FLUX.3.
+- NSFW: a FLUX.3 Flow cannot do NSFW sources; Qwen-Image 2.1 can. Fabio leans to Qwen-Image 2.1 for the Flow's model
+  - the recipe should be re-run on Qwen-Image 2.1 before the Flow design locks in FLUX.3.
+- Video route: ask a video model for the camera move (orbit, zoom in/out) - it hallucinates what it must - grab the
+  frame at the target angle, use it as the image model's reference.
+
+## Flow UI notes (Fabio 2026-10-24)
+- The gizmo's preview of the chosen view + zoom = a 3D COSMO (Fabio makes it on an image-to-3D site). Previews stay
+  pre-rendered, one per slider stop, from the SAME Blender cameras as the model refs, so the preview shows exactly the
+  view the edit gets. Keep Cosmo OUT of the model's ref (mannequin / cube / house) unless a bench proves it does not
+  get pasted. Idea under test next: a simple HOUSE stand-in (square, roof, front door, maybe one chimney for left/right).
+- Image-to-3D site failed (front doubled onto the back, no textures, messy mesh). Cosmo is now BUILT, NOT YET RENDERED:
+  `blender/cosmo_build.py` (run on `out/UE4_Mannequinn_refs.blend`, writes `out/cosmo.blend`, keeps the ref cameras)
+  = plain boxes + the art STAMPED on (Fabio): decals `out/cosmo_tex/head.png` + `torso.png` cropped from `Cubric Studio
+  Brand Assets/Studio-Idle.png`; hands/feet stretched spheres; ears = disc + dark ring + antenna (back ref: Fabio's
+  screenshot `Pictures/Screenshots/Screenshot 2026-10-24 101751.png`). Body #a16d6a (Fabio eye-dropped it from the app;
+  not yet in DESIGN.md - offer a Cosmo colours row after his eye test), screen/collar cream = --hub-accent, lines =
+  --surface-viewer. Flat emission + Freestyle, EEVEE. NEXT: render front / tq_br / top2 (ASK for the GPU), Fabio's
+  eye test; watch the head decal's rounded corners over the square box and the line thickness.
 
 ## Remaining Work
 - [ ] Stage 1 (face, 9 runs) + Fabio's eye test

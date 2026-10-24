@@ -415,3 +415,20 @@ user's ratio later; a crop changes the zoom, so the gizmo may need per-ratio-fam
   - lo 4/4 true low views (house fronts lean inward, sky above, underside of beard and jaw); hi 4/4 strong high views
     (cobbled street fills the background, looking down on him); 3/4 front L 4/4.
   - Read: the rule generalises off the studio. Close-up heights are SOLVED in one edit.
+- 2026-10-24 ROUND 17, ONE GENERIC STAND-IN FOR UNLIKE PRODUCTS + ZOOM (`angles.py <port> blender17`, sheets
+  `research/sheets/mq_blender17_{sneaker,mug,headphones,handbag}.jpg`, sources `mq_blender17_sources.jpg`, refs
+  `mq_blender17_refs.jpg`, results `research/out/mq_blender17.json`). Fabio: rounds 13-14 gave each product a stand-in
+  of its own shape at one distance, so they did not prove the Flow. Here ONE plain cube (`obj_build.py -- cube`, outline
+  render) for four new t2i products (sneaker on a floor seen side-on, mug close-up on a table, floating headphones,
+  handbag small in a boutique); end states written after looking at the sources (as the Flow's agent would); keep
+  clause = MQ17_KEEP (the setting, not a frozen background). Zoom = same camera, lens x1.8 (near) / x0.55 (far), on front
+  hi and tq fl. Turbo, seeds 111-444. FIRST READ (agent, thumbnails - Fabio's eye test pending):
+  - front lo ~2/16 - FAILS on products that REST on something (near copies); rounds 13-14 passed it on floating
+    objects because the underside was there to show.
+  - front hi 13/16 (headphones weak); top2 10/16 (headphones 0/4, handbag reads high, not straight down); back eye
+    12/12 judgeable (headphones are symmetric - front and back cannot be told apart); tq fl 13/16 (mug barely turns);
+    tqb r 15/16.
+  - ZOOM WORKS: near 31/32, far 31/32 (one headphones near took the ref's grey backdrop, one handbag far lost the room).
+  - Read: the generic cube carries turns, back, high and zoom across unlike shapes; resting-object LOW views and
+    top-down on thin/symmetric shapes are the gaps. Next ideas: low wording that names the surface edge filling the
+    foreground + what rises behind; the HOUSE stand-in (roof = up, door = front) for top-down and left/right.

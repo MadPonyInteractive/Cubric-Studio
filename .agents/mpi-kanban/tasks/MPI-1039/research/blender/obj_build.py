@@ -4,13 +4,17 @@
 # tab on its frame-right end (the strap side); `bottle` = an upright flask with a neck and a dark cap (round 9: the
 # perfume-bottle source, Fabio: the speaker is too close to the box to be a fair rotation test).
 # Opens Fabio's posed file, hides the mannequin, drops the face cameras, and saves a NEW file - the posed file is never
-# written. Usage: blender-5.2 -b out/UE4_Mannequinn_refs.blend --python obj_build.py [-- bottle]      then render
+# written. `cube` (round 17, Fabio: the box and the flask were each built to their own product's shape) = ONE generic
+# stand-in for every product: a plain cube, the panel marks the face the source shows; it also adds zoom cameras
+# <cam>_near / <cam>_far (same position, longer / shorter lens) for front_hi and tq_fl.
+# Usage: blender-5.2 -b out/UE4_Mannequinn_refs.blend --python obj_build.py [-- bottle | cube]      then render
 # out/<shape>_refs.blend with ref_render.py (it reads StandIn's `refdir` and writes to out/<refdir>/).
 import os
 import sys
 import bpy
 
-shape = 'bottle' if '--' in sys.argv and 'bottle' in sys.argv[sys.argv.index('--') + 1:] else 'box'
+args = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
+shape = next((a for a in args if a in ('bottle', 'cube')), 'box')
 for name in ('SK_MannequinMesh', 'HeroTPP_Character'):
     bpy.data.objects[name].hide_render = bpy.data.objects[name].hide_viewport = True
 for cam in [o for o in bpy.data.objects if o.type == 'CAMERA' and o.name.startswith('face_')]:
@@ -37,11 +41,22 @@ if shape == 'box':
     box('StandIn_front', (0, -0.205, 0.9), (0.98, 0.01, 0.43), WHITE)  # the front face, just proud of the box
     cyl('StandIn_disc', (0, -0.212, 0.9), 0.15, 0.01, BLACK, (1.5708, 0, 0))
     box('StandIn_tab', (0.6, 0, 0.9), (0.1, 0.14, 0.24), DARK)  # +X = frame-right from the front
+elif shape == 'cube':
+    box('StandIn', (0, 0, 0.9), (0.5, 0.5, 0.5), YELLOW)
+    box('StandIn_front', (0, -0.255, 0.9), (0.4, 0.01, 0.4), WHITE)
+    for name in ('front_hi', 'tq_fl'):
+        cam = bpy.data.objects[name]
+        for tag, k in (('near', 1.8), ('far', 0.55)):
+            twin = cam.copy()
+            twin.data = cam.data.copy()
+            twin.data.lens = cam.data.lens * k
+            twin.name = f'{name}_{tag}'
+            bpy.context.scene.collection.objects.link(twin)
 else:  # a flask 0.5 wide, 0.26 deep, 0.62 tall, neck + cap on top; whole thing centred near 0.9
     box('StandIn', (0, 0, 0.75), (0.5, 0.26, 0.62), YELLOW)
     box('StandIn_front', (0, -0.135, 0.73), (0.38, 0.01, 0.4), WHITE)
     cyl('StandIn_disc', (0, -0.142, 0.73), 0.11, 0.01, BLACK, (1.5708, 0, 0))
     cyl('StandIn_neck', (0, 0, 1.12), 0.07, 0.12, YELLOW)
     cyl('StandIn_cap', (0, 0, 1.28), 0.11, 0.2, DARK)
-bpy.data.objects['StandIn']['refdir'] = 'object' if shape == 'box' else 'bottle'
+bpy.data.objects['StandIn']['refdir'] = {'box': 'object'}.get(shape, shape)
 bpy.ops.wm.save_as_mainfile(filepath=os.path.dirname(os.path.abspath(__file__)) + f'/out/{shape}_refs.blend')
