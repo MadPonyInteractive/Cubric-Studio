@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1269",
+  "title": "Qwen-Image 2.1 control: images 2-3 supply the subject",
+  "description": "Control op on Qwen-Image 2.1 takes optional subject images, as Qwen Image Edit does: image 1 gives the depth/pose/scribble/canny map, images 2-3 who is drawn into it. Graph: a subject-reading encoder feeds the control sampler; models.js declares depthSubject/depthSubject3.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-24T08:38:33+01:00",
+  "updated_at": "2026-10-24T09:22:52+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
