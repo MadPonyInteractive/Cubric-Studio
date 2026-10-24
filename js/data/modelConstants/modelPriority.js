@@ -147,7 +147,7 @@ const NOTES = {
     'krea2': 'realism',
     'klein-9b': 'realism, well past any SDXL model',
     // MPI-1181: base vs Turbo on the bench, 42 s vs 9 s at 1088x896 on a 16 GB card.
-    'flux3-klein': 'photographs and skin with turbo: false (the base model); Turbo is about four times faster but plasticky on skin, fine for products and lettering. Up to 4K',
+    'flux3-klein': 'natural photographs and skin. Start on Turbo, the fast default; turbo: false (the base model, about four times slower, more natural skin) only when the user asks for more quality. Up to 4K',
     'flux3-klein:edit': 'takes up to ten images in one edit, the most of any editor here',
     // MPI-1243 (MPI-1180 bench): exact text on every test prompt; Turbo ~11 s per 1 MP image.
     'moss-image': 'exact lettering (signs, posters, covers) and long detailed prompts; cannot edit from a reference image. Turbo is fast, turbo: false is the slower, softer, more natural SFT model',

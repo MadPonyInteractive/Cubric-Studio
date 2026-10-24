@@ -72,6 +72,7 @@
 - The Model picker now lists featured models first, the same order as the Model Library, and MOSS-Image is featured (MPI-1245).
 - The child-safety check reads more wording: plural body words and clothing "pulled aside" now get the picture looked at (MPI-1241).
 - Cosmo now tells you how many tiles a Use Tiles upscale runs, up to the number the status bar counts (MPI-1237).
+- Cosmo makes FLUX.3 Klein pictures on Turbo, the fast setting, and switches to the slower base model only when you ask for more quality or more natural skin (MPI-1278).
 - Flow steps with a drawing area (Crop, Cut-out, Place, Paint, Edges) open at full width at once, instead of widening a pixel at a time for a few seconds (MPI-1255).
 - Installing a model that brings new engine parts no longer restarts the engine on your computer before your next generation. It restarts when you first use a model that needs them, so models can download while you keep working (MPI-1272).
 - Less noise in the log: the mascot freeze warnings now appear only with speed diagnostics on, and a RunPod connect that stops early no longer logs a false freeze (MPI-1255).

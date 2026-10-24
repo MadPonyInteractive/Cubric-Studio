@@ -25,13 +25,15 @@ when a user mentions selling or client work.
 
 ## Settings
 
-- **Turbo** (`turbo`) picks the weight: on = the distilled model, 16 steps, fast; off = the
-  base model, 50 steps. Base is the one for photoreal people (Turbo skin reads plastic and
-  oily); Turbo holds up on products and text, and Turbo single-pass `upscale` kept a face's
-  identity best of every upscale tried.
-- "Better quality" at the same size is `turbo: false`, never a higher tier: a tier here is
-  only the picture's size. Say it runs about four times slower.
-- These are defaults. A user who asks for Turbo, fast, or a setting of their own gets exactly that.
+- **Turbo** (`turbo`) picks the weight: on (default) = the distilled model, 16 steps, fast;
+  off = the base model, 50 steps, about four times slower. In Auto, send `turbo: true`, people
+  and photographs included. Base renders skin more naturally (Turbo skin can read plastic);
+  Turbo holds up on products and text, and Turbo single-pass `upscale` kept a face's identity
+  best of every upscale tried.
+- `turbo: false` only when the user asks for it: more quality, more natural skin, a final or
+  best pass, the base model, turbo off. That is never a higher tier: a tier here is only the
+  picture's size. Say it runs about four times slower.
+- In Ask first, offer Turbo as the default. A user who names a setting of their own gets exactly that.
 - Tiers `1k`, `2k`, `4k` on `t2i`, `i2i` and a custom-size `edit` (4k: Turbo ~130 s, base ~11 min on a 16 GB card).
   The ratio is a param: never write it into the prompt.
 - `edit` keeps the FIRST image's frame unless custom size is on: a `ratio` or `qualityTier`
@@ -150,7 +152,8 @@ Change the woman's ribbed teal one-piece swimsuit to a deep cherry red with the 
 
 - Flat, plain, stock-looking: the prompt was short. Write the full form; that is what the
   model was trained on.
-- Plastic or oily skin on a person: Turbo is on. Rerun with `turbo: false`.
+- Plastic or oily skin on a person: Turbo is on. Offer a rerun with `turbo: false` (about four
+  times slower); run it once the user says yes.
 - A custom-size edit recomposed or widened a scene whose shape did not change: drop `ratio`
   and `qualityTier` so the edit keeps the first image's frame.
 - An edit changed something it should not have: end on the unchanged clause, naming each kept

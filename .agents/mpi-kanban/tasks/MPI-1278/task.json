@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1278",
+  "title": "Cosmo: FLUX.3 Klein starts on Turbo, base model only on a quality ask",
+  "description": "Fabio 2026-10-24: a photographer tester finds Cosmo slow. On FLUX.3 Klein Cosmo should generate with Turbo on by default and turn it off (the base model, about four times slower) only when the user asks for more quality, more natural skin or a final pass. Today the agent guide guide:flux-3 and the list_models note steer it to turbo off for people.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-24T19:19:38+01:00",
+  "updated_at": "2026-10-24T19:20:20+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
