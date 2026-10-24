@@ -6,7 +6,7 @@
   release (umbrella MPI-1267); Keyframes (MPI-1191) left it. Research:
   `research/codebase-2026-10-24.md`. Nothing built. Depends on MPI-1268 (reorder + Create Sheet) for the
   final ordering and the overview; panel generation can start before.
-- Shape: idea in words + up to ~9 pictures of characters/places -> a planner writes N panels (a picture
+- Shape: idea in words + OPTIONAL pictures of characters/places (zero or many) -> a planner writes N panels (a picture
   prompt + an intent line each) -> FLUX.3 Klein edit draws each panel from the references -> one STACK
   of panel cards in story order, each with its intent line as the card NOTE -> the numbered overview.
 
@@ -44,13 +44,15 @@
 - [ ] `/mpi-flow-graphics` (tile + hero), agent knowledge page (playbook 07), UNRELEASED roster line +
   entry for the LTX 2.5 release (written when the gate comes off, umbrella MPI-1267).
 
-## Open calls (Fabio)
+## Decided (Fabio 2026-10-24, took every pick)
 
-1. Panel count: default 6, slider 3-12. My pick: that.
-2. Show the plan before drawing (an editable box of panels, Enhance fills it) or draw straight away?
-   My pick: show it - one quick read saves 6 wasted panels.
-3. The numbered overview: made automatically at the end, or only via Create Sheet? My pick: automatic.
-4. Phase 0 go-ahead (local runs, ~20-30 min GPU under the lease).
+- **Reference pictures are OPTIONAL: zero or many.** With none, panels are drawn from the words alone
+  (text-to-image arm, e.g. FLUX.3 / Klein t2i, cast consistency then rests on the planner's
+  descriptions; bench it in Phase 0 too). With some, the edit arm (up to 10 references).
+- Panel count: default 6, slider 3-12.
+- Show the plan before drawing: an editable box of panels that Enhance fills.
+- The numbered overview is made automatically at the end.
+- Phase 0 go-ahead given (local runs, ~20-30 min GPU under the lease; no money).
 
 ## Not in v1
 

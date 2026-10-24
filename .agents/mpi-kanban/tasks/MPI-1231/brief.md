@@ -10,7 +10,7 @@ users make their own videos from the panels, using each panel's note as their pr
 - **Each panel's intent line = that card's NOTE** (sidecar `notes`, `docs/data.md` § Notes). The Flow
   writes it; the user edits it like any note. A loose duration may go in the note text; it is advice,
   never strict.
-- **In:** the user's idea plus their pictures of characters and places (instructions). **Out:** the
+- **In:** the user's idea plus OPTIONAL pictures of characters and places (zero or many). **Out:** the
   stack + the numbered overview sheet (sheet maker reuse, number overlay opt-in).
 - **New, also in this card (Fabio's idea):** right-click a stack -> **Create Sheet** (the numbered
   overview in stack order, works on ANY stack), and **reorder members in the Stack workspace** (does

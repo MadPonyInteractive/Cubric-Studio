@@ -5,8 +5,7 @@
 - 2026-10-24 ("LTX 2.5 model 10"): planned from the research in
   `tasks/MPI-1231/research/codebase-2026-10-24.md` § Stacks. Member of umbrella MPI-1267 (LTX 2.5
   release). Nothing built. Reorder is general (any stack); Storyboard (MPI-1231) needs both pieces.
-- Dev gate: both features are general gallery features; they ship dark until the LTX 2.5 release only
-  if Fabio wants that (Open call 1).
+- No dev gate (Fabio 2026-10-24): general gallery features, they ship in the next bug-fix release.
 
 ## Phase 1: Reorder - `user-ux`
 
@@ -46,10 +45,10 @@
 Both phases end with Fabio's look in the app. Docs: `docs/stacks.md` (reorder, Create Sheet) and
 `docs/gallery-selection.md` if the sheet dialog changes.
 
-## Open calls (Fabio)
+## Decided (Fabio 2026-10-24)
 
-1. Dev-gate these two or ship them in the next bug-fix release? My pick: ship them as soon as they
-   pass (they are not LTX features and carry no risk to 2.5).
+- NOT dev-gated: ship reorder + Create Sheet in the next bug-fix release once they pass (they are not
+  LTX features and carry no risk to 2.5). UNRELEASED entry when they land.
 
 ## Preservation Notes
 

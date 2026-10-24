@@ -5,12 +5,20 @@ dev-gated** until the release that carries LTX 2.5. That release is named by the
 number: bug-fix releases (2.1.4, 2.1.5, ...) may ship from master while this work is in progress, and
 none of them removes a gate. Decision record: memory `project_keyframes_storyboard_ship_with_ltx25`.
 
+## Current State
+
+- 2026-10-24 ("LTX 2.5 model 10"): umbrella made, members planned (MPI-1231 and MPI-1268 plans
+  written, every pick taken by Fabio, Storyboard references are optional: zero or many). PAUSED: Fabio
+  finishes FLUX.3 / Multi-angle for 2.1.3 first. NEXT: pick a first member - MPI-1268 (stack reorder,
+  no gate, small) or MPI-1231 Phase 0 (planner + panel bench, local GPU, yes already given); MPI-1266
+  can run beside either. Nothing built yet.
+
 ## Members
 
 | Card | What | Depends on |
 |---|---|---|
 | MPI-1266 | LTX 2.5 Stage 2: 2.5 in the existing LTX Flows, 2.5-only Flows, second download route (HF), `high` tier measure, Fabio's raw review + recipe validation, and finally `devOnly` off | - |
-| MPI-1268 | Stacks: reorder members in the Stack workspace + right-click Create Sheet (numbered, stack order) | - |
+| MPI-1268 | Stacks: reorder members in the Stack workspace + right-click Create Sheet (numbered, stack order). NOT gated (Fabio): ships in the next bug-fix release once it passes | - |
 | MPI-1231 | Storyboard Flow: idea + character/place pictures -> a stack of panel cards with intent lines as notes + the numbered overview. Users make their own videos from the panels | MPI-1268 (Create Sheet) |
 
 **Left the umbrella 2026-10-24 (Fabio):** MPI-1191 Keyframes to Video. Too big for this release
