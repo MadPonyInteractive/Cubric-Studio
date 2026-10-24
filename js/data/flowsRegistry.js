@@ -3025,7 +3025,7 @@ const ALL_FLOWS = [
         type: 'create',
         inputSchema: {
             media: [{
-                type: 'image', mode: 'upto', max: 10,
+                type: 'image', mode: 'upto', max: 10, grid: true,
                 roles: ['inputImage', 'inputImage2', 'inputImage3', 'inputImage4', 'inputImage5',
                     'inputImage6', 'inputImage7', 'inputImage8', 'inputImage9', 'inputImage10'],
                 labels: ['Characters and places (optional)'],
@@ -3060,12 +3060,13 @@ const ALL_FLOWS = [
         ],
         fields: [
             {
-                id: 'ratio', type: 'radio', label: 'Video shape', columns: 5, default: '16:9',
+                // The shapes the video models take (LTX_RATIOS, js/utils/ratios.js). FLUX.3 has no
+                // 21:9 of its own: the driver sends it as exact pixels (storyboardDispatch.js).
+                id: 'ratio', type: 'radio', label: 'Video shape', columns: 4, default: '16:9',
                 options: [
                     { v: '16:9', label: '16:9' },
                     { v: '9:16', label: '9:16' },
-                    { v: '4:3', label: '4:3' },
-                    { v: '3:4', label: '3:4' },
+                    { v: '21:9', label: '21:9' },
                     { v: '1:1', label: '1:1' },
                 ],
             },

@@ -781,13 +781,14 @@ export const MpiBaseFlow = ComponentFactory.create({
          * @param {Array<Function>} unsubs  collector for this slide's listeners
          * @returns {HTMLElement}
          */
-        function _buildSlot(entry, idx, onDirty, unsubs) {
+        function _buildSlot(entry, idx, onDirty, unsubs, { tile = false } = {}) {
             const { group, items } = entry;
             const item = items[idx] || null;
 
-            const unit = ce('div', { className: 'mpi-base-flow__slot-unit' });
+            const unit = ce('div', { className: `mpi-base-flow__slot-unit${tile ? ' mpi-base-flow__slot-unit--tile' : ''}` });
             const labelEl = ce('span', { className: 'mpi-base-flow__slot-label' });
-            labelEl.textContent = _slotLabel(group, idx);
+            // A grid tile is named by its number: words elsewhere say "picture 2" (MPI-1231).
+            labelEl.textContent = tile ? String(idx + 1) : _slotLabel(group, idx);
             unit.appendChild(labelEl);
 
             const slot = ce('div', {
@@ -1853,6 +1854,28 @@ export const MpiBaseFlow = ComponentFactory.create({
             return row;
         }
 
+        /**
+         * A many-slot group as small numbered tiles under ONE heading (`grid: true`, MPI-1231):
+         * ten full-size boxes made a column taller than the screen. The filled tiles show, then
+         * one empty tile to add the next; a cleared tile in the middle stays as its gap.
+         */
+        function _buildSlotGrid(entry, unsubs) {
+            const wrap = ce('div', { className: 'mpi-base-flow__slot-grid' });
+            const heading = ce('span', { className: 'mpi-base-flow__slot-label' });
+            heading.textContent = _slotLabel(entry.group, 0);
+            const tiles = ce('div', { className: 'mpi-base-flow__slot-grid-tiles' });
+            let last = -1;
+            entry.items.forEach((it, i) => { if (it) last = i; });
+            for (let i = 0; i < Math.min(entry.group.max, last + 2); i++) {
+                tiles.appendChild(_buildSlot(entry, i, () => {
+                    _persistInputs();
+                    _renderSlide();
+                }, unsubs, { tile: true }));
+            }
+            wrap.append(heading, tiles);
+            return wrap;
+        }
+
         // ── Slide builders ──────────────────────────────────────────────────────
         /** STEP 0 — media slots (left) + what this flow does (right). Divided. */
         function _buildInputsSlide(unsubs) {
@@ -1865,6 +1888,10 @@ export const MpiBaseFlow = ComponentFactory.create({
                 left.appendChild(none);
             }
             _mediaGroups.forEach((entry) => {
+                if (entry.group.grid) {
+                    left.appendChild(_buildSlotGrid(entry, unsubs));
+                    return;
+                }
                 for (let i = 0; i < entry.group.max; i++) {
                     // ONE choke point for every media mutation — a drop, a pick, a
                     // slot cleared all reach `onDirty`. Persisted immediately rather

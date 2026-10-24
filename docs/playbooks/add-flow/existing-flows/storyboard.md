@@ -11,6 +11,12 @@ sheet. `devOnly: true` until the LTX 2.5 release (umbrella MPI-1267).
   `submitFlowGeneration`. Each panel is an ordinary FLUX.3 Klein generation built by the agent's
   `buildGeneration`: `edit` with the pictures as references (renumbered from `inputImage`), `t2i`
   without; `ratio`/`qualityTier` turn Custom size on, so an edit keeps the video's shape.
+- **Shapes = the video models' (LTX_RATIOS): 16:9, 9:16, 21:9, 1:1** (Fabio, 2026-10-25: never offer
+  a shape no video model takes). FLUX.3 has no 21:9: `WIDE_21_9` sends exact pixels (1568x672 /
+  2240x960) over the named 16:9, which switches Custom size on.
+- **Ten slots as a numbered tile grid** (`grid: true` on the media group, MpiBaseFlow
+  `_buildSlotGrid`): ten full-size boxes overran the screen and pushed the info column down. Filled
+  tiles plus one empty tile show; the number is the "picture N" the plan refers to.
 - **`flowStoryboard` op = slots only.** Registered in `commandRegistry.js` (and both op registries)
   for its ten optional image slots, because every Flow-media reader asks the op. Nothing dispatches
   it, and it has no `universal_workflows.js` entry. Package validation and the smoke set skip

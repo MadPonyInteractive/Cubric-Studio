@@ -26,6 +26,17 @@ import { runGifJob } from './gifJobs.js';
 
 const MODEL_ID = 'flux3-klein';
 
+// 21:9 is a video shape (LTX_RATIOS) that FLUX.3's own size table lacks. It goes as exact
+// pixels over the named 16:9, which switches an edit's Custom size on: about the tier's pixel
+// count, both edges /32 like every FLUX.3 size.
+const WIDE_21_9 = { '1k': { Width: 1568, Height: 672 }, '2k': { Width: 2240, Height: 960 } };
+
+/** The size half of a panel's request. */
+function _size(ratio, qualityTier) {
+    if (ratio !== '21:9') return { ratio, qualityTier };
+    return { ratio: '16:9', qualityTier, injectionParams: { ...WIDE_21_9[qualityTier], Ratio_Label: '21:9' } };
+}
+
 /** The user's pictures in slot order, renamed to the edit op's roles from the first. */
 function _references(mediaItems, roles) {
     return mediaItems
@@ -47,7 +58,8 @@ function _deps(project, { idea, references, ratio, qualityTier, turbo }) {
                 operation: references.length ? 'edit' : 't2i',
                 positive: panel.prompt,
                 media: references,
-                ratio, qualityTier, turbo,
+                turbo,
+                ..._size(ratio, qualityTier),
             }, project);
             if (!built.ok) return built;
             // The user pressed Generate: their toasts show, and the child-safety gate reads

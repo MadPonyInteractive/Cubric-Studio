@@ -319,6 +319,25 @@
     border-color: var(--line);
     background: oklch(0.26 0.018 350 / 0.5);
 }
+/* `grid: true` on a media group (MPI-1231): small numbered tiles under one heading. */
+.mpi-base-flow__slot-grid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--s-3);
+}
+.mpi-base-flow__slot-grid-tiles {
+    display: grid;
+    grid-template-columns: repeat(5, auto);
+    justify-content: center;
+    align-items: end;
+    gap: var(--s-3);
+}
+.mpi-base-flow__slot-unit--tile { gap: var(--s-1); }
+.mpi-base-flow__slot-unit--tile .mpi-base-flow__slot:not(.mpi-base-flow__slot--filled) { width: 88px; height: 88px; }
+.mpi-base-flow__slot-unit--tile .mpi-base-flow__slot--filled img { max-width: 88px; max-height: 88px; }
+.mpi-base-flow__slot-unit--tile .mpi-base-flow__slot-hint { display: none; }
+.mpi-base-flow__slot-unit--tile .mpi-base-flow__slot-icon .mpi-icon { width: 24px; height: 24px; }
 .mpi-base-flow__slot-icon { color: var(--ink-4); line-height: 0; }
 .mpi-base-flow__slot-icon .mpi-icon { width: 34px; height: 34px; }
 .mpi-base-flow__slot-hint {
