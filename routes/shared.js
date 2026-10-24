@@ -618,7 +618,7 @@ async function runPipCommand(args) {
 // cv2.pyd does not exist yet, so nothing is locked). The only place the engine is provably
 // DOWN is `/comfy/start`, just before the spawn, and that is now the sole caller. Nothing
 // is later for the deps: a custom-node install already requires a restart before the nodes
-// register (`comfyNeedsRestart` → the gen gate's stop+start), so they land on exactly the
+// register (`comfyNodesPending` → the gen gate's stop+start, MPI-1272), so they land on exactly the
 // boot that first loads the nodes needing them.
 const PYTHON_DEPS_PATH = path.join(__dirname, '..', 'dev_configs', 'python_deps.txt');
 

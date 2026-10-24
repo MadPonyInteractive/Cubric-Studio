@@ -721,7 +721,7 @@ function createEngine({ engine, alwaysLocal }) {
                 throw Object.assign(new Error(gpuMsg), { code: 'pod_no_gpu' });
             }
             // A per-model custom_node was installed onto the volume this session
-            // (comfy:needs-restart → state.comfyNeedsRestart). ComfyUI only scans
+            // (comfy:needs-restart with remote:true → state.remoteComfyNeedsRestart). ComfyUI only scans
             // custom_nodes at process start, so the already-running remote ComfyUI
             // has NOT loaded it — proceeding would fail with a `missing_node_type`
             // 503 (e.g. PainterI2VAdvanced for Wan I2V). MPI-81: the wrapper now

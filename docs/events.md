@@ -47,7 +47,7 @@ Defined in `js/events.js` as `MpiEventMap`. Key events:
 | `download:uninstalled` | Model was uninstalled |
 | `download:uninstall-failed` | An uninstall could not run; nothing was removed (MPI-1157) |
 | `download:installing` | Custom node install phase started |
-| `comfy:needs-restart` | ComfyUI auto-restart needed after custom node install |
+| `comfy:needs-restart` | Custom node install done; local → `state.comfyNodesPending` (restart before a run that uses the new nodes, MPI-1272), `remote: true` → `state.remoteComfyNeedsRestart` |
 | `media:imported` | A media file finished importing `{ url, filename, itemId, mediaType, thumbPath, thumbPathLg, proxyPath, pixelDimensions, fps, duration, frameCount, hasAudio, gif }` (`gif` = the upload response's frames-store entry for a `.gif`, else null) — `mediaImportService` is the ONE listener that builds the ItemGroup, app-lifetime from `shell.js`. A second listener inside a Block is the MPI-723 bug |
 | `workspace:set-operation` | Op change from the prompt-box strip `{ operation }` — the workspace Block validates and calls back into `PromptBox.setOperation`. The radial no longer carries ops (MPI-356) |
 | `ui:open-model-picker` | Open the model overlay (MPI-356) `{}` — fired by the prompt box's model button AND the Tab radial's Models leg (MPI-848, which leaves overlay surfaces first); the workspace Block owns the `MpiModelPicker` instance and the model list it shows |

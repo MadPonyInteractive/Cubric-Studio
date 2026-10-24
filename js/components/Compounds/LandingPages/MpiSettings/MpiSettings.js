@@ -992,7 +992,8 @@ export const MpiSettings = ComponentFactory.create({
                 // process still has the OLD (empty) checkpoint list after a path
                 // change → generation fails with "ckpt_name not in []". Flag a
                 // restart so comfyController restarts ComfyUI and it re-scans the
-                // new root. Reuses the same mechanism as custom-node installs. (MPI-118)
+                // new root, before the next run whatever it is. (MPI-118; node installs
+                // use comfyNodesPending, which restarts only for a run that needs them.)
                 state.comfyNeedsRestart = true;
             } catch (err) {
                 clientLogger.error('settings', '[MpiSettings] Error syncing ComfyUI path', err);
