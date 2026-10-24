@@ -33,6 +33,7 @@ the same card or a new member card; one that fails closes with its findings.
 | Fish Audio Drama 3 | MPI-1182 int8 experts in RAM, ComfyUI-Drama3 pack | test | Engine on >= v0.40; ~48 GB system RAM |
 | InfiniSplat v2 | MPI-1183 Multi-view feed-forward splat on a 3D Scene path video | test | After 2.1 |
 | ATAS on MiniMax-H3 | MPI-1184 World memory across shots; spike before any adapter | scope | Parked; the spike needs Fabio's yes on ~$1.50 |
+| Fibo 2.0 (Bria, 8B edit) | MPI-1276 Edit Turbo bench vs Qwen-Image 2.1, FLUX.3 Klein, Qwen-Edit-2511; research.md has the desk research | test | Next engine bump past v0.42.1 (deferred until stable, Fabio 2026-10-24) |
 | PiD 1.5 | MPI-1185 Newer nvidia-pid upscaler: REPLACE, ADD or DROP | test | Nothing known |
 | YuE2 (song model) | MPI-775 Brainstorm: a Flow, DAW widgets (piano roll, track selector) | brainstorm | Nothing; widgets reuse Mix (MPI-917) |
 
