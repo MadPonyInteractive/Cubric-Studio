@@ -65,6 +65,8 @@
 - Use Tiles is redone: pick a Tile size (smaller tiles, more detail), and Describe each tile (on by default) names what fills each tile in a few words before the upscale, so grass is redrawn as grass. People and faces get their own gentle passes and are never described, so they keep their look. Use Grid is gone: Use Tiles replaces it, and an old Use Grid setting opens as Use Tiles (MPI-1232).
 - Control has a Custom size button on every model that has it (SDXL, Illustrious, Pony, Chroma, Krea 2, FLUX.2 Klein, Qwen Edit and Qwen-Image 2.1): turn it on and pick a ratio and size, and the picture comes out at exactly that size, with the first picture's shape centred in it and the sides filled in (MPI-1271).
 - Qwen-Image 2.1's Control takes up to two more pictures: the first still gives the pose, depth, scribble or edges, and the others give the person or thing drawn into it, instead of describing them in the prompt (MPI-1269).
+- Stacks can be reordered: in the Stack workspace, hold a picture in the strip and drag it to a new place. The stack's cover in the gallery follows the new first picture (MPI-1268).
+- Right-click a stack and pick Create Sheet to lay its pictures out on one sheet, numbered in stack order. Whole pictures (on by default) keeps every picture uncropped in an even grid, and the sheet's shape is picked from portrait or landscape ratios (MPI-1268).
 - When an update is ready, the Dev updates panel (the bell) shows an "Update to v…" button at the top, naming the version the posts below talk about (MPI-1242).
 
 ## Fixes
