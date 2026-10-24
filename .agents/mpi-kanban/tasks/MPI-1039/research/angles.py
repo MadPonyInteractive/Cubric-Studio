@@ -2468,9 +2468,278 @@ def blender18(port):
         _sheet(rows, f'mq_blender18_{name}')
 
 
+# Round 19 (Fabio 2026-10-24, objects deferred): the open PEOPLE tests, round-7 recipe (MQ5/_tq/_tqb end states +
+# MQ6_KEEP, grey refs from Fabio's posed file, one Turbo edit). Seeds 333 + 444 complete the 4-seed pass rate on top of
+# round 7's 111 + 222 (and round 6's 4 seeds for the man's lo/back lo/top2): man (street) + woman (studio) at every
+# view, the woman's face turns. New: the man's street close-up turned (round 16 source), the woman's studio LOW views
+# with round 15's rule (name what the view reveals: ceiling + softbox), and ZOOM on people (blender/zoom_build.py ->
+# out/<cam>_near|far.png, round 17's zoom sentences) on 4 seeds.
+MQ19_STUDIO_LO = {
+    'front lo reveal': ('front_lo', 'Shift the viewpoint of the first image down to match the mannequin reference in '
+                        'the second image: a worm\'s-eye view from just above the grey studio floor in front of the '
+                        'woman, looking steeply up at her. Her white sneakers and jeans are now large at the bottom of '
+                        'the frame, her body rises and narrows toward the top, the underside of her chin shows, her '
+                        'head is small near the top edge, and above her head the dark studio ceiling with a softbox '
+                        'light now shows instead of the grey backdrop.'),
+    'back lo reveal': ('back_lo', 'Shift the viewpoint of the first image around and down to match the mannequin '
+                       'reference in the second image: a worm\'s-eye view from just above the grey studio floor '
+                       'behind the woman, looking steeply up at her back. She faces away; her heels and the backs of '
+                       'her jeans are now large at the bottom of the frame, her back rises and narrows toward the top, '
+                       'the back of her head is small near the top edge, and above her the dark studio ceiling with a '
+                       'softbox light now shows instead of the grey backdrop.'),
+}
+MQ19_ZOOM = {}
+for _v, _r in (('front hi', 'front_hi'), ('tq fl', 'tq_fl')):
+    _t = MQ7_BODY[_v][1].replace(' at the same height and distance', ' at the same height')  # the zoom sets it
+    MQ19_ZOOM[_v + ' near'] = (_r + '_near', _t + ' The view is much closer: the person fills most of the '
+                               'frame.')
+    MQ19_ZOOM[_v + ' far'] = (_r + '_far', _t + ' The view is pulled far back: the person is small in the middle of '
+                              'the frame with much more of the place around them.')
+MQ19_FACE_KEEP = MQ7_FACE_KEEP.replace('the background, ', '')  # rounds 15-16: the background must change
+# round 17: a far view must extend the place, so "the place unchanged" becomes the same setting
+MQ19_ZOOM_KEEP = MQ6_KEEP.replace('the place, the light and the image style of the first image unchanged',
+                                  'the same place, light and image style as the first image')
+MQ19_RUNS = {  # cell -> (source, views, keep, views to run, seeds)
+    'man': ('scene input', MQ7_BODY, MQ6_KEEP, MQ7_RUNS['man'][3], (333, 444)),
+    'woman': ('body input', MQ7_BODY, MQ6_KEEP, tuple(MQ7_BODY), (333, 444)),
+    'woman lo': ('body input', MQ19_STUDIO_LO, MQ6_KEEP, tuple(MQ19_STUDIO_LO), MQ10_SEEDS),
+    'face': ('face input', MQ7_FACE, MQ7_FACE_KEEP, ('back', 'tq fl', 'tqb r'), (333, 444)),
+    'manface': ('man input', MQ7_FACE, MQ19_FACE_KEEP, ('back', 'tqb r'), MQ10_SEEDS),
+    'man zoom': ('scene input', MQ19_ZOOM, MQ19_ZOOM_KEEP, tuple(MQ19_ZOOM), MQ10_SEEDS),
+    'woman zoom': ('body input', MQ19_ZOOM, MQ19_ZOOM_KEEP, tuple(MQ19_ZOOM), MQ10_SEEDS),
+}
+
+
+def blender19(port):
+    done = os.path.join(OUT, 'mq_blender19.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    r7 = json.load(open(os.path.join(OUT, 'mq_blender7.json')))
+    srcs = {**json.load(open(os.path.join(OUT, 'pitch.json'))),
+            'man input': json.load(open(os.path.join(OUT, 'mq_blender16.json')))['man input']}
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+    refs = {k: v for k, v in r7.items() if k.startswith('ref ')}
+    for render in [r for r, _ in MQ19_ZOOM.values()]:
+        if f'ref {render}' not in res:
+            res[f'ref {render}'] = import_ref(port, render, f'angles mq19 ref {render}')
+            json.dump(res, open(done, 'w'), indent=1)
+    refs.update({k: v for k, v in res.items() if k.startswith('ref ')})
+    for name, (srckey, views, keep, run, seeds) in MQ19_RUNS.items():
+        for seed in seeds:
+            for v in run:
+                key = f'{name} {seed} {v}'
+                if key not in res:
+                    res[key] = gen(port, {**FAST, 'seed': seed, 'positive': views[v][1] + keep,
+                                          'cardName': f'angles mq19 {key}',
+                                          'media': [{'role': 'inputImage', 'url': srcs[srckey]},
+                                                    {'role': 'inputImage2', 'url': refs[f'ref {views[v][0]}']}]})
+                    json.dump(res, open(done, 'w'), indent=1)
+    # one sheet per source on all 4 seeds: rounds 6-7 cells for 111/222 (and the man's lo/back lo/top2), this round's
+    # cells for the rest; a blank cell = never run
+    r6 = json.load(open(os.path.join(OUT, 'mq_blender6.json')))
+    old = {f'{n} {s} {v}': r7.get(f'{n} {s} {v}') for n in ('man', 'woman', 'face') for s in (111, 222)
+           for v in MQ7_BODY | MQ7_FACE}
+    old.update({f'man {s} {v}': r6.get(f'{s} grey {v}') for s in MQ10_SEEDS for v in MQ6_VIEWS})
+    allres = {**{k: v for k, v in old.items() if v}, **res}
+    for sheet, cells in (('man', [('man', v) for v in MQ7_BODY]),
+                         ('woman', [('woman', v) for v in MQ7_BODY] + [('woman lo', v) for v in MQ19_STUDIO_LO]),
+                         ('face', [('face', v) for v in ('back', 'tq fl', 'tqb r')] +
+                          [('manface', v) for v in ('back', 'tqb r')]),
+                         ('zoom', [(n, v) for n in ('man zoom', 'woman zoom') for v in MQ19_ZOOM])):
+        rows = [[(None, 'seed / ref')] + [(refs[f'ref {MQ19_RUNS[n][1][v][0]}'], f'{n}: {v}') for n, v in cells]]
+        rows += [[(None, f'seed {s}')] + [(allres.get(f'{n} {s} {v}'), v) for n, v in cells] for s in MQ10_SEEDS]
+        _sheet(rows, f'mq_blender19_{sheet}')
+
+
+# Round 20 (Fabio 2026-10-24, after round 19): zoom and the man's side views were weak. The edit graph scales the
+# mannequin ref to 1 MP at its OWN shape (square) while the output takes picture 1's frame, and the woman's 9:16 source
+# was edited at FAST's 4:5 - three shapes in one edit. Here every shape matches: the output ratio = the source's, and
+# the square ref is scaled to the source's width and padded to its height with its edge pixels (what Resize Image v2
+# 'pad_edge_pixel' would do in the Flow), so the mannequin keeps its size relative to the frame width. Same prompts and
+# seeds as round 19 on the zoom + 3/4 cells, so each cell compares straight against round 19.
+MQ20_RUNS = {  # cell -> (source, views, keep, ratio)
+    'man': ('scene input', {v: MQ7_BODY[v] for v in ('tq fl', 'tq fr')}, MQ6_KEEP, '4:5'),
+    'woman': ('body input', {v: MQ7_BODY[v] for v in ('tq fl', 'tq fr')}, MQ6_KEEP, '9:16'),
+    'man zoom': ('scene input', MQ19_ZOOM, MQ19_ZOOM_KEEP, '4:5'),
+    'woman zoom': ('body input', MQ19_ZOOM, MQ19_ZOOM_KEEP, '9:16'),
+}
+
+
+def _pad_ref(render, size):  # square ref -> source width, edge pixels repeated top and bottom
+    import numpy as np
+    w, h = size
+    im = Image.open(os.path.join(BLENDER_REFS, render + '.png')).convert('RGB').resize((w, w), Image.LANCZOS)
+    top = (h - w) // 2
+    a = np.pad(np.asarray(im), ((top, h - w - top), (0, 0), (0, 0)), mode='edge')
+    rel = f'pad_{w}x{h}/{render}'
+    os.makedirs(os.path.join(BLENDER_REFS, f'pad_{w}x{h}'), exist_ok=True)
+    Image.fromarray(a).save(os.path.join(BLENDER_REFS, rel + '.png'))
+    return rel
+
+
+def blender20(port):
+    done = os.path.join(OUT, 'mq_blender20.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    srcs = json.load(open(os.path.join(OUT, 'pitch.json')))
+    r19 = json.load(open(os.path.join(OUT, 'mq_blender19.json')))
+    r7 = json.load(open(os.path.join(OUT, 'mq_blender7.json')))
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+    for name, (srckey, views, keep, ratio) in MQ20_RUNS.items():
+        size = Image.open(disk(srcs[srckey])).size
+        for v, (render, text) in views.items():
+            ref = f'ref {size[0]}x{size[1]} {render}'
+            if ref not in res:
+                res[ref] = import_ref(port, _pad_ref(render, size), f'angles mq20 {ref}')
+                json.dump(res, open(done, 'w'), indent=1)
+            for seed in MQ10_SEEDS:
+                key = f'{name} {seed} {v}'
+                if key not in res:
+                    res[key] = gen(port, {**FAST, 'ratio': ratio, 'seed': seed, 'positive': text + keep,
+                                          'cardName': f'angles mq20 {key}',
+                                          'media': [{'role': 'inputImage', 'url': srcs[srckey]},
+                                                    {'role': 'inputImage2', 'url': res[ref]}]})
+                    json.dump(res, open(done, 'w'), indent=1)
+    # round 19 row (square ref, 4:5 output; man/woman 3/4 seeds 111/222 from round 7) above each round 20 row
+    old = lambda n, s, v: r19.get(f'{n} {s} {v}') or (r7.get(f'{n} {s} {v}') if s in (111, 222) else None)
+    for sheet, names in (('turns', ('man', 'woman')), ('zoom', ('man zoom', 'woman zoom'))):
+        cells = [(n, v) for n in names for v in MQ20_RUNS[n][1]]
+        rows = [[(None, 'ref (padded)')] + [(res[f'ref {"x".join(map(str, Image.open(disk(srcs[MQ20_RUNS[n][0]])).size))} '
+                                                 f'{MQ20_RUNS[n][1][v][0]}'], f'{n}: {v}') for n, v in cells]]
+        for s in MQ10_SEEDS:
+            rows.append([(None, f'{s} round 19')] + [(old(n, s, v), v) for n, v in cells])
+            rows.append([(None, f'{s} matched')] + [(res.get(f'{n} {s} {v}'), v) for n, v in cells])
+        _sheet(rows, f'mq_blender20_{sheet}')
+
+
+# Round 21 (overnight, after round 20): matching the ref's shape changed nothing, so the zoom ref is not the lever. A
+# lens-twin ref is an ABSOLUTE framing (a full body, big or small) while a zoom is RELATIVE to the source (a waist-up
+# man zoomed in is a head-and-shoulders). Here zoom lives in the WORDS only: the plain view ref (padded to the source
+# size, round 20's rule) + the view end state + a zoom sentence naming where the new frame crops and what newly shows
+# (round 15's rule). Same seeds, cells and sizes as round 20, so the sheet compares lens-twin refs vs words.
+MQ21_ZOOM = {  # source cell -> {near, far} sentence
+    'man zoom': {'near': ' The view is much closer than the first image: his head and shoulders now fill the frame, '
+                         'cropped at the chest, and only a little of the street shows around him.',
+                 'far': ' The view is pulled far back from the first image: his whole body from head to shoes now '
+                        'shows small in the middle of the frame, with the full height of the house fronts above him, '
+                        'more of the cobbled street in front of him and the street running on at both sides.'},
+    'woman zoom': {'near': ' The view is much closer than the first image: she is cropped at the waist, her head, '
+                           'shoulders and turtleneck fill the frame.',
+                   'far': ' The view is pulled far back from the first image: she is small in the middle of the frame '
+                          'and the whole studio now shows around her - the edges of the grey backdrop paper, light '
+                          'stands and softboxes at both sides, and the bare studio floor in front of her.'},
+}
+
+
+def blender21(port):
+    done = os.path.join(OUT, 'mq_blender21.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    srcs = json.load(open(os.path.join(OUT, 'pitch.json')))
+    r20 = json.load(open(os.path.join(OUT, 'mq_blender20.json')))
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+    cells = []
+    for name, zoom in MQ21_ZOOM.items():
+        srckey, _, keep, ratio = MQ20_RUNS[name]
+        size = Image.open(disk(srcs[srckey])).size
+        for v, render in (('front hi', 'front_hi'), ('tq fl', 'tq_fl')):
+            ref = f'ref {size[0]}x{size[1]} {render}'
+            if ref not in res:
+                res[ref] = r20.get(ref) or import_ref(port, _pad_ref(render, size), f'angles mq21 {ref}')
+                json.dump(res, open(done, 'w'), indent=1)
+            text = MQ7_BODY[v][1].replace(' at the same height and distance', ' at the same height')
+            for z, sentence in zoom.items():
+                cells.append((name, f'{v} {z}', ref))
+                for seed in MQ10_SEEDS:
+                    key = f'{name} {seed} {v} {z}'
+                    if key not in res:
+                        res[key] = gen(port, {**FAST, 'ratio': ratio, 'seed': seed, 'positive': text + sentence + keep,
+                                              'cardName': f'angles mq21 {key}',
+                                              'media': [{'role': 'inputImage', 'url': srcs[srckey]},
+                                                        {'role': 'inputImage2', 'url': res[ref]}]})
+                        json.dump(res, open(done, 'w'), indent=1)
+    rows = [[(None, 'ref (padded)')] + [(res[ref], f'{n}: {v}') for n, v, ref in cells]]
+    for s in MQ10_SEEDS:
+        rows.append([(None, f'{s} lens ref')] + [(r20.get(f'{n} {s} {v}'), v) for n, v, _ in cells])
+        rows.append([(None, f'{s} words')] + [(res.get(f'{n} {s} {v}'), v) for n, v, _ in cells])
+    _sheet(rows, 'mq_blender21_zoom')
+
+
+# Round 22 (overnight): Fabio, round 19: "the side view is not that great on the male" - 3/4 turns turn the head, the
+# chest stays square. Round 13's object lesson on people: a SUBJECT-SPECIFIC end state (written after looking at the
+# source, as the Flow's agent would) naming which of their own things now sit nearest the view, which hide, and how the
+# place behind now runs. Plain view ref padded to the source size; same seeds as rounds 19-20.
+MQ22_TQ = {
+    'man': {
+        'tq fl': ('tq_fl', 'Shift the viewpoint of the first image around the man to match the mannequin reference in '
+                  'the second image: a three-quarter view from in front of him and 45 degrees to his left, at the same '
+                  'height and distance. His whole body is now turned at an angle, his chest and hips facing frame-left: '
+                  'his left shoulder with the bag strap is nearest the view, his right shoulder and right arm are half '
+                  'hidden behind his chest, and his face is seen in three-quarter. Behind him the house fronts now run '
+                  'away at a slant toward frame-left, the red door seen at an angle.'),
+        'tq fr': ('tq_fr', 'Shift the viewpoint of the first image around the man to match the mannequin reference in '
+                  'the second image: a three-quarter view from in front of him and 45 degrees to his right, at the same '
+                  'height and distance. His whole body is now turned at an angle, his chest and hips facing '
+                  'frame-right: his right shoulder and right arm are nearest the view, his left shoulder with the bag '
+                  'strap is half hidden behind his chest, and his face is seen in three-quarter. Behind him the house '
+                  'fronts now run away at a slant toward frame-right, the blue bicycle seen at an angle.'),
+    },
+    'woman': {
+        'tq fl': ('tq_fl', 'Shift the viewpoint of the first image around the woman to match the mannequin reference in '
+                  'the second image: a three-quarter view from in front of her and 45 degrees to her left, at the same '
+                  'height and distance. Her whole body is now turned at an angle, her chest, hips and feet facing '
+                  'frame-left: her left shoulder, her left arm with the silver watch and her left ear with the gold '
+                  'hoop are nearest the view, her right arm is half hidden behind her body, and her face is seen in '
+                  'three-quarter.'),
+        'tq fr': ('tq_fr', 'Shift the viewpoint of the first image around the woman to match the mannequin reference in '
+                  'the second image: a three-quarter view from in front of her and 45 degrees to her right, at the same '
+                  'height and distance. Her whole body is now turned at an angle, her chest, hips and feet facing '
+                  'frame-right: her right shoulder and the small brown bag at her right hip are nearest the view, her '
+                  'left arm is half hidden behind her body, and her face is seen in three-quarter.'),
+    },
+}
+
+
+def blender22(port):
+    done = os.path.join(OUT, 'mq_blender22.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    srcs = json.load(open(os.path.join(OUT, 'pitch.json')))
+    r20 = json.load(open(os.path.join(OUT, 'mq_blender20.json')))
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+    cells = []
+    for name, views in MQ22_TQ.items():
+        srckey, _, keep, ratio = MQ20_RUNS[name]
+        size = Image.open(disk(srcs[srckey])).size
+        for v, (render, text) in views.items():
+            ref = r20[f'ref {size[0]}x{size[1]} {render}']
+            cells.append((name, v, ref))
+            for seed in MQ10_SEEDS:
+                key = f'{name} {seed} {v}'
+                if key not in res:
+                    res[key] = gen(port, {**FAST, 'ratio': ratio, 'seed': seed, 'positive': text + keep,
+                                          'cardName': f'angles mq22 {key}',
+                                          'media': [{'role': 'inputImage', 'url': srcs[srckey]},
+                                                    {'role': 'inputImage2', 'url': ref}]})
+                    json.dump(res, open(done, 'w'), indent=1)
+    rows = [[(None, 'ref (padded)')] + [(ref, f'{n}: {v}') for n, v, ref in cells]]
+    for s in MQ10_SEEDS:
+        rows.append([(None, f'{s} generic (r20)')] + [(r20.get(f'{n} {s} {v}'), v) for n, v, _ in cells])
+        rows.append([(None, f'{s} specific')] + [(res.get(f'{n} {s} {v}'), v) for n, v, _ in cells])
+    _sheet(rows, 'mq_blender22_turns')
+
+
 if __name__ == '__main__':
     if sys.argv[1:2] == ['best']:
         best()
+    elif sys.argv[2:3] == ['blender22']:
+        blender22(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['blender21']:
+        blender21(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['blender20']:
+        blender20(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['blender19']:
+        blender19(int(sys.argv[1]))
     elif sys.argv[2:3] == ['sweep']:
         sweep(int(sys.argv[1]))
     elif sys.argv[2:3] == ['sweep2']:

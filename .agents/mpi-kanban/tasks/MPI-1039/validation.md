@@ -454,3 +454,51 @@ user's ratio later; a crop changes the zoom, so the gizmo may need per-ratio-fam
   - Read: keep the CUBE (house pastes, gains nothing); keep the surface-level low words for resting products but drop
     "edge-on thin line" for named surfaces (it reshapes them); top-down needs another idea (straight-down wording without
     a ref, or a two-step high -> top).
+- 2026-10-24 ROUND 19, PEOPLE TESTS (`angles.py <port> blender19`, sheets `research/sheets/mq_blender19_{man,woman,face,zoom}.jpg`, results `research/out/mq_blender19.json`; each sheet shows all 4 seeds, rounds 6-7 cells filling 111/222).
+  84 Turbo edits. Zoom refs = `blender/zoom_build.py` (lens twins on a copy of the posed file) -> out/{front_hi,tq_fl}_{near,far}.png.
+  FIRST READ (agent, thumbnails - Fabio's eye test pending):
+  - man (street, waist-up source): EVERY view 4/4 - front lo, back lo, top2 (true top-down), front hi, back eye, all four 3/4.
+  - woman (studio, full body): back eye, front hi, all four 3/4 4/4; top2 4/4 steep high, ~2/4 truly overhead; plain
+    front lo / back lo 4/4 but mild (as round 7).
+  - woman studio LOW with the reveal (ceiling + softbox named): 4/4 front and back - the ceiling rig and softbox show
+    above her and the low reads clearly stronger than the plain wording. Round 15's rule holds on full body.
+  - face turns: woman back 4/4, tq fl 4/4 (444 mild), tqb r 4/4 but lands nearer a PROFILE than a 3/4 rear (as round 7);
+    street man close-up back 4/4 (street seen reversed), tqb r 4/4 same profile lean.
+  - ZOOM, man (street): near 8/8 (front hi crops tighter, tq fl goes waist-up); far 6/8 (front hi far 222/444 ~ no change,
+    tq fl far 4/4 small in a longer street).
+  - ZOOM, woman (plain studio): front hi near 4/4; front hi far ~2/4; tq fl near AND far 0/8 - near and far come out the
+    same full-body frame and the 3/4 turn itself goes weak. A plain backdrop gives nothing to scale against.
+  - Read: full-body people PASS on 4 seeds at every view in a real place; on a plain studio, low needs the reveal rule
+    and zoom is unreliable (next idea: name what a far view reveals - the backdrop's edge, light stands, studio floor -
+    and what a near view crops at, e.g. "cropped at the waist"). Rear 3/4 on close-ups over-turns to profile.
+- 2026-10-24 ROUND 20, REF PADDED TO THE SOURCE SIZE + OUTPUT AT THE SOURCE SHAPE (`angles.py <port> blender20`, sheets
+  `research/sheets/mq_blender20_{turns,zoom}.jpg`, results `research/out/mq_blender20.json`). Fabio: same size helps.
+  Square ref scaled to the source width, edge pixels padded to its height (Resize Image v2 pad-edge-pixel stand-in);
+  man 4:5 (896x1088), woman 9:16 (768x1344, rounds 7-19 edited her at 4:5). Round-19 prompts and seeds; 48 Turbo edits.
+  - man: matched ~= round 19 cell for cell (same seed, near-identical pictures) - turns and zoom unchanged; 3/4 turns
+    still under-turn the body (head turns, chest stays square-ish).
+  - woman: now full frame at 9:16; front hi near no longer crops (round 19's 4:5 crop had faked "closer"), so near
+    and far look alike; tq fl near/far still barely differ and barely turn.
+  - Read: the ref's shape is NOT the zoom lever. Keep the size rule for the Flow (no harm, one less variable), but a
+    lens-twin ref is an absolute framing while a zoom is relative to the source. Round 21: zoom in words only.
+- 2026-10-24 ROUND 21, ZOOM IN WORDS, NOT IN THE REF - BREAKTHROUGH FOR ZOOM (`angles.py <port> blender21`, sheet
+  `research/sheets/mq_blender21_zoom.jpg`, results `research/out/mq_blender21.json`). Plain view ref padded to the source
+  size + view end state + a zoom sentence RELATIVE to the source naming the crop (near) or what newly shows (far:
+  house fronts full height + more street; the studio's backdrop edges, light stands, softboxes, bare floor). Rows
+  alternate round 20 (lens-twin ref) / words. 32 Turbo edits.
+  - woman far: front hi 4/4, tq fl 4/4 - small in the middle, the whole studio rig around her (lens ref: ~0/8).
+  - woman tq fl near: 4/4 clearly closer (cropped thigh-to-waist, not exactly the waist). front hi near: ~1/4 - the
+    high view is already close; little change.
+  - man tq fl near 4/4 (head-and-chest), tq fl far 4/4 (whole body small, shoes in frame); front hi far 3/4 (222 mild);
+    front hi near ~= the lens ref (already close).
+  - Read: zoom = words relative to the source + round 15's reveal rule; the zoom stop needs NO ref of its own (the Flow
+    ships one ref per view, not per zoom stop). Gap: "closer" on a view that is already close (front hi).
+- 2026-10-24 ROUND 22, SUBJECT-SPECIFIC 3/4 FRONT TURNS (`angles.py <port> blender22`, sheet
+  `research/sheets/mq_blender22_turns.jpg`, results `research/out/mq_blender22.json`). Fabio (round 19): the male side view
+  is weak. End states naming their own things (strap shoulder nearest, far arm half hidden, house fronts running away
+  at a slant; her watch/hoop or bag side nearest). Padded refs, source shape. 16 Turbo edits.
+  - No gain: specific ~= generic cell for cell. The man turns his head and maybe 15-20 degrees of chest; the street
+    never swings. The woman turns ~10-20 degrees.
+  - CORRECTION to rounds 7/19 "4/4" on 3/4 FRONT views: by the bar Fabio applies, they are MILD (well short of 45).
+    Rear 3/4 and back views do land. Open problem: front 3/4 turn strength on full-body people. Ideas (untested):
+    an overshoot ref (camera 60-70 degrees round) to land ~45; or turn via the side (90) view.
