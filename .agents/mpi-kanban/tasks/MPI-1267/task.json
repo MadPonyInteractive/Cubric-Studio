@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1267",
+  "title": "UMBRELLA: LTX 2.5 release (all dev-gated; the gate comes off together)",
+  "description": "UMBRELLA created 2026-10-24 (Fabio). Everything that launches with LTX 2.5: the model's Stage 2 (MPI-1266), Keyframes to Video (MPI-1191), Storyboard (MPI-1231), stack reorder + Create Sheet. All dev-gated; the gates come off together in whichever release carries LTX 2.5 (not tied to a version number: bug-fix releases may ship in between). Members and phase order: tasks/MPI-1267/plan.md.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-10-24T03:07:18+01:00",
+  "updated_at": "2026-10-24T03:11:39+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

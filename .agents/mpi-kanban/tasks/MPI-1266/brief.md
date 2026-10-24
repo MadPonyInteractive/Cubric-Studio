@@ -1,9 +1,9 @@
 # MPI-1266 brief: LTX 2.5 Stage 2
 
-Follow-up to MPI-1095 (Stage 1 closed 2026-10-24). Under umbrella MPI-1179 (New Models to Test).
+Follow-up to MPI-1095 (Stage 1 closed 2026-10-24). Under umbrella MPI-1267 (LTX 2.5 release) since 2026-10-24; MPI-1095 sat under MPI-1179 (New Models to Test).
 
 **Fabio 2026-10-24:** all of this can be worked NOW. Only removing the dev gate (`devOnly: true` on
-`ltx-25`) waits: it comes off for 2.1.4, never 2.1.3. Stage 2 starts in a fresh session.
+`ltx-25`) waits: it comes off at the LTX 2.5 release (umbrella MPI-1267), not tied to a version number. Stage 2 starts in a fresh session.
 
 ## Where Stage 1 left it
 
@@ -26,6 +26,6 @@ Follow-up to MPI-1095 (Stage 1 closed 2026-10-24). Under umbrella MPI-1179 (New 
 6. Fabio's review of the raw `ltx25_i2v_t2v_template` in G: ComfyUI (if he changes it: re-copy to `raw/`,
    convert, gate, `generate_ltx25.py`).
 7. Fabio's Stage 2 renders of the recipe prompts; he alone flips the recipe `draft -> validated`.
-8. For 2.1.4: remove `devOnly` on `ltx-25` + the UNRELEASED changelog entry.
+8. At the LTX 2.5 release: remove `devOnly` on `ltx-25` + the UNRELEASED changelog entry.
 
-Fabio's call, any time: delete `M:/_stage/mpi1095` (40 GB, everything in it is on R2 and verified).
+`M:/_stage/mpi1095` DELETED 2026-10-24 on Fabio's yes (all 7 files matched in `M:/CubricModels` and on R2).

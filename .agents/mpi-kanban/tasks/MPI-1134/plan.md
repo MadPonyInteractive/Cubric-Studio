@@ -202,6 +202,18 @@ Cosmo listening (MPI-1169); this phase builds on both.
 
 ## Plan Drift
 
+- 2026-10-24 (Fabio, brainstorm in "LTX 2.5 model 10"): Keyframes (MPI-1191) and Storyboard
+  (MPI-1231) ship FIRST, in the LTX 2.5 release (umbrella MPI-1267), ahead of this umbrella: Storyboard = a stack of panel
+  cards (intent line = card note) + Create Sheet on any stack; Keyframes = one step, a stack or library
+  pictures + section prompt + one length (max 15 s), LTX 2.5 or H3, enhancer writes one timed prompt.
+  Their briefs hold the detail. Consequences here: the Story card (Phase 2) and Storyboard workspace
+  (Phase 6) are ONE object that grows out of that stack (sections, a video per section, Generate for
+  missing sections, regenerate one), not a second pair. Infinite Video (Phase 4) = it directs (cuts vs
+  extends, continuity, makes its own keys from loose references) and runs MPI-1191's graph in 5-10 s
+  clips. The Phase 3 keyframe bench moves into MPI-1191 (both models). Later the same day Fabio took
+  Keyframes OUT of the LTX 2.5 release: only MPI-1231 (Storyboard) moved to umbrella MPI-1267;
+  MPI-1191 stays here, design decided, not started.
+
 - 2026-10-21: Fabio added the Storyboard Flow (MPI-1231) and widened Keyframes to Video
   (MPI-1191) to LTX 2.3. Bench the LTX arm alongside H3 in Phase 3.
 

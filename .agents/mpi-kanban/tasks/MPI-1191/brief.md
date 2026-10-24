@@ -1,5 +1,29 @@
 # MPI-1191 Keyframes to Video Flow (IDEA, not a blocker)
 
+## DECIDED 2026-10-24 (Fabio, brainstorm in "LTX 2.5 model 10") - supersedes the sections below where they differ
+
+**NOT in the LTX 2.5 release** (Fabio, later the same day: too big for it; the Storyboard Flow
+MPI-1231 ships alone). Parked under MPI-1134 (Story) with this design intact. Plan draft in `plan.md`
+predates the design and must be rewritten when the card is picked up.
+
+- **ONE step.** In: a stack (a storyboard from MPI-1231, or any stack the user made) OR pictures
+  picked from the library, in order. Plus a **section prompt** (the main direction for the whole clip),
+  **one length slider** for the clip (max 15 s), and the model: **LTX 2.5 or MiniMax H3** (both).
+- **Per-picture lines come from each card's NOTE** ("Dolly in, the character runs right"; "comes to a
+  stop, crash zoom out revealing..."), so there is no per-picture UI and no mid-Flow editing.
+- **Pictures evenly spaced**: first on the first frame, last on the last, the rest evenly between.
+- **The enhancer writes ONE timed prompt** from the section prompt + the lines (no model patch, works
+  on both models). Show it like Character Sheet's enhanced prompt.
+- **Timing advice only** (v1 never mentions Infinite Video): too many pictures for the length, or over
+  the recommended length. Floor ~1.5-2 s per picture, to be set by the bench.
+- Output: one ordinary video card. Re-render = run the Flow again.
+- New piece: a Flow media input that takes a STACK and expands it into its ordered members (the Flow
+  picker hides stacked cards today, D5 in `docs/stacks.md`).
+- **Not v1 (Story umbrella MPI-1134):** several sections, a video per section, Generate for the missing
+  sections, the Storyboard Editor workspace, Infinite Video (it directs: cuts vs extends, continuity,
+  makes its own keyframes from loose references, runs this Flow's graph in 5-10 s clips, joins them).
+- LTX Director (WhatDreamsCost, GPL-3.0) was ideas only: nothing copied (`research/ltx-director.md`).
+
 **Widened 2026-10-21 (Fabio):** both LTX 2.3 and MiniMax H3 accept keyframes, so the Flow offers
 both models (user picks, like Extend Video, MPI-591). Four or five pictures or more; the model fills
 each gap with whatever the prompt asks for. Panels from the Storyboard Flow (MPI-1231) are one input.

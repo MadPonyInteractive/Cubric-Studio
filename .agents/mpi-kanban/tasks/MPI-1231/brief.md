@@ -1,5 +1,26 @@
 # MPI-1231 Storyboard Flow (IDEA)
 
+## DECIDED 2026-10-24 (Fabio, brainstorm in "LTX 2.5 model 10") - supersedes the open questions below
+
+Ships in **the LTX 2.5 release** (umbrella MPI-1267; not tied to a version number), dev-gated until then. **Ships ALONE** (Fabio, later 2026-10-24: Keyframes MPI-1191 left the release);
+users make their own videos from the panels, using each panel's note as their prompt idea.
+
+- **Output = a gallery STACK of panel cards** (existing `type: 'stack'`, `docs/stacks.md`), each panel
+  its own card with its own history. Not a new card kind, not a workspace.
+- **Each panel's intent line = that card's NOTE** (sidecar `notes`, `docs/data.md` § Notes). The Flow
+  writes it; the user edits it like any note. A loose duration may go in the note text; it is advice,
+  never strict.
+- **In:** the user's idea plus their pictures of characters and places (instructions). **Out:** the
+  stack + the numbered overview sheet (sheet maker reuse, number overlay opt-in).
+- **New, also in this card (Fabio's idea):** right-click a stack -> **Create Sheet** (the numbered
+  overview in stack order, works on ANY stack), and **reorder members in the Stack workspace** (does
+  not exist today: `docs/stacks.md` has no reorder). Create Sheet depends on reorder.
+- Later (not this release): the panels feed Keyframes (MPI-1191) as a stack, in stack order, notes as
+  the per-picture lines. Keep the stack + notes shape so that works with no change.
+- NOT in v1: a Storyboard card with several sections, a video per section, a Generate button, the
+  Storyboard Editor workspace. Those are the Story umbrella's Story card + Storyboard workspace
+  (MPI-1134 Phases 2 + 6): ONE object, not a second pair.
+
 Fabio, 2026-10-21: "The user should be able to ask for storyboards and get a nice storyboard. Maybe
 we can make it a flow. This way, Cosmo does less work." Member of MPI-1134 (Story umbrella).
 
