@@ -15,6 +15,9 @@ mkdir -p /run/sshd && /usr/sbin/sshd && echo "BENCH sshd up"
 # --- safety: the Pod removes itself after HARD_MIN even if the agent's side dies
 (sleep $((HARD_MIN * 60)); echo "BENCH hard limit - removing pod"; runpodctl remove pod "$RUNPOD_POD_ID") &
 
+C=$B/ComfyUI
+# WEIGHTS_ONLY=1 (a CPU Pod): skip the installs, fill the weights, then remove the Pod.
+if [ -z "${WEIGHTS_ONLY:-}" ]; then
 # --- python env on the volume, torch matching the shipped engine
 if [ ! -f $B/.venv_ok ]; then
   echo "BENCH venv"
@@ -26,7 +29,7 @@ fi
 PY=$B/venv/bin/python
 
 # --- ComfyUI at the shipped pin, plus the nodes the H3 graphs and the bench arms need
-C=$B/ComfyUI
+
 if [ ! -f $B/.comfy_ok ]; then
   echo "BENCH comfy"
   rm -rf $C   # same for a half clone
@@ -44,7 +47,12 @@ addnode ComfyUi-MpiNodes MadPonyInteractive/ComfyUi-MpiNodes 291bf3decce14021e37
 addnode Comfyui_Minimax_h3_latent_Upscaler LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler d7c01b9011f2e8439493f6c02c29995a27df276f
 addnode Comfyui-MMH3-UltimateUpscale bbaudio-2025/Comfyui-MMH3-UltimateUpscale 0a8d5ee
 addnode Veda-on-ComfyUI veda-sparse/Veda-on-ComfyUI 67e4eb5
+# MpiNodes imports cv2 but has no requirements.txt; the app gets it from dev_configs/python_deps.txt
+# (pinned for py3.12, this image is py3.10), so install just the shipped opencv.
+$PY -c "import cv2" 2>/dev/null || $PY -m pip install -q opencv-contrib-python-headless==5.0.0.93
 echo "BENCH nodes done"
+
+fi
 
 # --- weights (aria2c, 16 connections each); a finished file is skipped
 M=$C/models
@@ -73,6 +81,7 @@ get veda/minimax_h3_r2va_veda_preview_fp8.safetensors $HF/Veda-Sparse/Minimax-H3
 get veda/minimax_h3_t2va_veda_8nfe_600step_preview_fp8.safetensors $HF/Veda-Sparse/Minimax-H3-T2VA-Veda-8NFE-600Step-Preview/resolve/main/minimax_h3_t2va_veda_8nfe_600step_preview_fp8.safetensors & P+=($!)
 wait "${P[@]}"; P=()
 echo "BENCH weights done"; du -sh $M
+[ -n "${WEIGHTS_ONLY:-}" ] && { echo "BENCH weights-only fill finished - removing pod"; runpodctl remove pod "$RUNPOD_POD_ID"; sleep infinity; }
 
 echo "BENCH comfy start"
 cd $C && exec $PY main.py --listen 0.0.0.0 --port 8188 --output-directory $B/output

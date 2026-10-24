@@ -109,15 +109,28 @@ Too slow on the local 4060 Ti. Fabio chose a persistent volume over a fresh Pod 
   (that, not the API, was the 404s).
 - Results are timed on the Pod (32 GB); only the winners get re-timed on the 4060 Ti.
 
-## Current State (2026-10-24, handoff)
+## Current State (2026-10-25)
 
-- Done: weights local (sha256 checked), MMH3 + Veda on the local bench, volume created.
-- A first Pod (`3w2newbmjbr3aq`) booted ~5 min and was deleted for the handoff (~$0.06). Its
-  half install may sit on the volume; `boot.sh` wipes a venv / ComfyUI with no done-marker.
-- Next: rent the Pod, watch `watch.mjs` to COMFY_READY, check the nodes load (`/object_info`
-  BODY, not status), the weights are listed, and Triton imports (Veda). Then write
-  `research/prompts.md` (lines + named sounds in every prompt), then Step 0.
-- Budget: $3-5 Pod time approved in total; ask before going past it.
+- Volume is FILLED and verified: venv (py3.10, torch 2.12.0+cu130, triton 3.7.0), ComfyUI at the
+  pin, all four node packs loading (1145 classes: MpiNodes 137, MMH3 14, LBH 5, Veda 1), all 14
+  weights at full size, no `.aria2` leftovers. A GPU Pod now boots to COMFY_READY in ~2-3 min.
+- No Pod running (terminated so it does not idle while graphs are built).
+- Next: write `research/prompts.md` (lines + named sounds in every prompt), build the Step 0
+  graphs (none / ours / Benji's MMH3 + LMS), THEN rent the Pod (`create-pod.mjs`) and run them.
+- Spent: ~$0.63 of the $3-5 Pod budget (GPU 47 min + the first Pod $0.06 + CPU fill $0.01).
+- Watching boot: `watch.mjs` (RunPod log API) printed nothing in 30 min; poll
+  `https://<id>-8188.proxy.runpod.net/system_stats` and SSH (`tail boot.log`) instead.
+  Restart a Pod with `POST https://rest.runpod.io/v1/pods/<id>/restart` (v2 has no restart).
+
+## Plan Drift
+
+- 2026-10-25: first fill split by Fabio's call: GPU Pod for venv/ComfyUI/nodes, then a CPU Pod
+  (`create-cpu-pod.mjs`, `boot.sh WEIGHTS_ONLY=1`, $0.12/h, removes itself) for the weights in
+  case HF throttled. It did not: ~118 GB landed in ~3 min (~200+ MB/s from EU-RO-1). For a fresh
+  volume, the CPU fill is still the cheap path.
+- 2026-10-25: MpiNodes IMPORT FAILED on `cv2`: it has no requirements.txt, the app installs it
+  from `dev_configs/python_deps.txt`, which is pinned for py3.12 and will not install on this
+  image's py3.10. `boot.sh` now installs only the shipped `opencv-contrib-python-headless==5.0.0.93`.
 
 ## Output
 
