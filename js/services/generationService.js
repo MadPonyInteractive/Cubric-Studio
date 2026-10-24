@@ -754,15 +754,20 @@ async function _judgeThenQueue(config, callbacks, opts, pictures = [], clips = [
  * (`mediaVerdicts.js`, MPI-1156): could anyone be under 18 (each judged on its own look), and then,
  * on a run that makes a clip, are they in swimwear or less; a Clothes reference, is it underwear
  * or swimwear. A clip is asked at its first, middle and last frame, any YES a YES.
- * No describer, or no answer = refused (`pictureUnchecked`).
+ * No describer, or no answer = refused (`pictureUnchecked`, naming the first error).
  *
  * @returns {Promise<{ ok: true, ctx: { pictureMinor: boolean, pictureExposed?: boolean, revealingRef?: boolean } } | object>}
  */
 async function _pictureVerdicts(config, llm, pictures, clips, refs, video, map = null) {
     const project = config._originProject;
+    // The first reason a look could not run, carried into the refusal (MPI-1273).
+    let failed = null;
     const describe = async (url, question, run = (u) => llm.describeImage({ imagePath: u, question })) => {
         const r = llm ? await run(url) : null;
-        if (!r?.ok) return null;
+        if (!r?.ok) {
+            failed ??= r?.error || 'the language models did not load';
+            return null;
+        }
         const yes = !parseAgeAnswer(r.text);
         // The describer's words, so a refusal needs no paid replay to explain (MPI-1152).
         if (yes) clientLogger.info('generationService', `[childSafety] YES to "${question.slice(0, 40)}..." answer=${JSON.stringify(String(r.text ?? '').slice(0, 80))}`);
@@ -771,6 +776,7 @@ async function _pictureVerdicts(config, llm, pictures, clips, refs, video, map =
     const atFrames = (askFrame) => async (url) => {
         for (const at of [0, 0.5, 1]) {
             const still = await _clipStill(url, project, at);
+            if (!still) failed ??= 'a frame of the clip could not be read';
             const yes = still ? await askFrame(still) : null;
             if (yes !== false) return yes;
         }
@@ -817,12 +823,12 @@ async function _pictureVerdicts(config, llm, pictures, clips, refs, video, map =
         cachedVerdicts(clips, { key: 'ageVerdict', question: CLIP_AGE_KEY, project, ask: atFrames(frameAge) }),
         map ? cachedVerdicts([map.url], { key: `mapVerdict${map.net}`, question: AGE_QUESTION, project, ask: mapAsk }) : [],
     ]);
-    if ([...picAge, ...clipAge, ...mapAge].includes(null)) return refusal('pictureUnchecked');
+    if ([...picAge, ...clipAge, ...mapAge].includes(null)) return refusal('pictureUnchecked', failed);
     const ctx = { pictureMinor: [...picAge, ...clipAge, ...mapAge].includes(true) };
     if (video && ctx.pictureMinor) {
         const exposed = (await ask({ pictures: pictures.filter((_, i) => picAge[i]), clips: clips.filter((_, i) => clipAge[i]) },
             'exposedVerdict', EXPOSED_QUESTION)).flat();
-        if (exposed.includes(null)) return refusal('pictureUnchecked');
+        if (exposed.includes(null)) return refusal('pictureUnchecked', failed);
         ctx.pictureExposed = exposed.includes(true);
     }
     // No answer reads as YES: it refuses only next to a minor.
@@ -883,7 +889,8 @@ async function _clipStill(url, project, at = 0) {
 /** Nothing queued: the user gets a toast, the caller (an agent's report, a Flow pane) the reason. */
 function _refuseChildSafety(r, config, callbacks) {
     // The describer's answer, so a picture refusal needs no paid replay to explain (MPI-1152).
-    const said = r.answer !== undefined ? ` answer=${JSON.stringify(r.answer)}` : '';
+    const said = r.answer !== undefined ? ` answer=${JSON.stringify(r.answer)}`
+        : r.error ? ` error=${JSON.stringify(String(r.error))}` : '';
     clientLogger.warn('generationService', `[childSafety] refused a ${config.byAgent ? 'agent' : 'user'} run of ${config.operation} (${r.reason})${said}`);
     if (!config.byAgent) Events.emit('ui:warning', { message: r.message, sound: false });
     try { callbacks.onError?.(Object.assign(new Error(r.message), { code: CHILD_SAFETY_CODE, userMessage: r.message })); } catch {}

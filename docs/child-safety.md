@@ -117,7 +117,8 @@ A person is a human, real or drawn (photo, cartoon, anime, 3D, a doll), or a hum
 (an elf, a robot, a furry); an animal with an animal body is not (MPI-1152). Perception, not age, by
 decision: a young-looking adult counts, unless its age guess is 20 or more (a clip: every frame that said YES). A YES logs the describer's answer (80 characters), so a
 refusal needs no paid replay. No describer, or no answer to an age / exposed question, refuses
-`pictureUnchecked`: with no describer reachable NO picture can be animated.
+`pictureUnchecked`: with no describer reachable NO picture can be animated. Its message, toast and
+log line name the describer's first error (a timeout, a 429, an unreadable clip frame), MPI-1273.
 
 A clip is asked at its first, middle and last frame (any YES = YES): the first is its card's poster
 (`thumbPathLg`, else `thumbPath`), the others grabbed in the renderer (`firstFrameDataUrl(url, at)`)

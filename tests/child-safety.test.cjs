@@ -536,6 +536,10 @@ test('the picture questions: questions of fact, one word back; only a bare NO is
     assert.doesNotMatch(EXPOSED_QUESTION, /suggestive/, 'a fact, never a verdict');
     assert.match(CLOTHES_QUESTION, /underwear, lingerie or swimwear of any kind/);
     assert.deepStrictEqual(Object.keys(refusal('pictureUnchecked')), ['ok', 'code', 'reason', 'message']);
+    // MPI-1273: the describer's error is named in the message, its trailing full stop not doubled.
+    const named = refusal('pictureUnchecked', 'DeepInfra did not answer within 180s. It may be overloaded or unreachable.');
+    assert.strictEqual(named.error, 'DeepInfra did not answer within 180s. It may be overloaded or unreachable.');
+    assert.match(named.message, /could not run: DeepInfra did not answer within 180s\. It may be overloaded or unreachable\. Check the image describer/);
 });
 
 // MPI-1152: "anyone" counted a cartoon monkey on a horse as "could be under 18". The question

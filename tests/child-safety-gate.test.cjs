@@ -293,7 +293,7 @@ test('a picture refusal logs what the describer answered; an unanswered look log
     for (const [answer, said] of [
         [{ ok: true, text: 'YES' }, /\[childSafety\] YES to "Does this picture show a person.* answer="YES"$/],
         [{ ok: true, text: 'No, it shows a monkey' }, /answer="No, it shows a monkey"$/],
-        [{ ok: false, error: { code: 'NOT_VISION', message: 'no' } }, null],
+        [{ ok: false, error: { code: 'NOT_VISION', message: 'no vision' } }, null],
     ]) {
         describeAnswer = answer;
         const lines = logLines.length;
@@ -302,9 +302,27 @@ test('a picture refusal logs what the describer answered; an unanswered look log
         await until(() => seen.errors.length > 0);
         off();
         const mine = logLines.slice(lines);
-        assert.match(mine.filter((l) => /\[childSafety\] refused/.test(l)).at(-1), said ? /\(picture\)$/ : /\(pictureUnchecked\)$/);
+        assert.match(mine.filter((l) => /\[childSafety\] refused/.test(l)).at(-1), said ? /\(picture\)$/ : /\(pictureUnchecked\) error="no vision"$/);
         if (said) assert.match(mine.find((l) => /\[childSafety\] YES to/.test(l)), said, JSON.stringify(answer));
         else assert.ok(!mine.some((l) => /\[childSafety\] YES to/.test(l)), 'no answer, none logged');
+    }
+});
+
+// MPI-1273: a photographer's clip was refused "could not run" with no reason; the describer's
+// own error (here a rate limit) now reaches the toast and the agent's error.
+test('a look that could not run says what broke', async () => {
+    const before = describeAnswer;
+    try {
+        describeAnswer = { ok: false, error: { code: 'ENDPOINT_ERROR', message: 'DeepInfra chat failed: 429 Too Many Requests' } };
+        const { seen, off, callbacks } = capture();
+        enqueueGeneration(edit('make her naked'), callbacks);
+        await until(() => seen.errors.length > 0);
+        off();
+        const said = /could not run: DeepInfra chat failed: 429 Too Many Requests\. Check the image describer/;
+        assert.match(seen.errors[0].userMessage, said);
+        assert.match(seen.warnings.at(-1), said);
+    } finally {
+        describeAnswer = before;
     }
 });
 

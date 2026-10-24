@@ -676,4 +676,8 @@ export const EXPOSED_QUESTION = 'Is any person in this picture wearing swimwear,
 export const CLOTHES_QUESTION = 'Is the clothing in this picture underwear, lingerie or swimwear of any kind (a swimsuit, a bikini, swim trunks)? Answer with exactly one word: YES or NO.';
 
 /** A refusal with the gate's shape, for the callers that look at pictures (`generationService`). */
-export const refusal = (reason) => ({ ok: false, code: CHILD_SAFETY_CODE, reason, message: MESSAGES[reason] });
+export const refusal = (reason, error) => (error
+    // MPI-1273: a look that could not run says what broke (a timeout, a 429), so the toast and the
+    // agent's reply name it instead of sending the user to a settings page that may be fine.
+    ? { ok: false, code: CHILD_SAFETY_CODE, reason, error, message: MESSAGES[reason].replace(' could not run.', ` could not run: ${String(error).trim().replace(/\.$/, '')}.`) }
+    : { ok: false, code: CHILD_SAFETY_CODE, reason, message: MESSAGES[reason] });
