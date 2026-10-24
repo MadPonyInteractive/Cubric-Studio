@@ -10,3 +10,7 @@
   this card's files; the same assertion failed on 137ab8fcd (a no-code handoff, 2026-10-23) at 1860 ms.
 - Not checked live: no crashed RES4LYF on a real engine. RES4LYF recreates `res4lyf.config.json` from
   `web/js/res4lyf.default.json` when it is missing (`res4lyf.py` `get_extension_config`).
+
+## CI green (2026-10-24)
+
+Master green again on 4142cf4a0 (run 40102049571): the failing agent-loop timing test was a test-design flake, fixed in MPI-1275. Nothing in this card's files was involved.

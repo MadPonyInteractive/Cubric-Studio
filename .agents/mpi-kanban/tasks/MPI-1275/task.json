@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1275",
+  "title": "Agent-loop test: 'fifty cards are ONE job' queue time flakes over 1600 ms on CI",
+  "description": "Master CI red on tests/agent-loop.test.cjs 'fifty cards are ONE job ... queued fast': 1697-1871 ms on GitHub runners (limit 1600) in runs 40099293204 and 40021715674, ~1020 ms locally and on passing CI runs. Find what stalls the batch queue path and fix it. Blocks MPI-1274's close.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-24T15:14:09+01:00",
+  "updated_at": "2026-10-24T15:35:52+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
