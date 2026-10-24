@@ -1572,6 +1572,33 @@ describe('(g) model and context window', () => {
         assert.equal(loop._fakeEngine.calls.length, 0);
     });
 
+    // MPI-1277: a stalled host names a tested model to switch to; a key or balance never does.
+    test('fallback model: the best other model on the agent model\'s tests, none on Ollama', async () => {
+        const { agentFallbackModel } = await import('../services/llmEngines.mjs');
+        assert.equal(agentFallbackModel('deepinfra', 'XiaomiMiMo/MiMo-V2.6-Flash'), 'deepseek-ai/DeepSeek-V4-Flash-0731');
+        assert.equal(agentFallbackModel('deepinfra', 'deepseek-ai/DeepSeek-V4-Flash-0731'), 'XiaomiMiMo/MiMo-V2.6-Flash');
+        assert.equal(agentFallbackModel('deepinfra', 'vendor/untested'), 'XiaomiMiMo/MiMo-V2.6-Flash');
+        assert.equal(agentFallbackModel('ollama', 'gemma4:12b'), '');
+        assert.equal(agentFallbackModel('custom', 'x'), '');
+    });
+
+    for (const [why, fail, offered] of [
+        ['a timeout', Object.assign(new Error('DeepInfra did not answer within 180s.'), { code: 'TIMEOUT' }), true],
+        ['a 503', Object.assign(new Error('DeepInfra chat failed: 503'), { status: 503 }), true],
+        ['a 429', Object.assign(new Error('DeepInfra chat failed: 429'), { status: 429 }), true],
+        ['a 402 (balance)', Object.assign(new Error('payment required'), { status: 402 }), false],
+        ['a 401 (key)', Object.assign(new Error('DeepInfra chat failed: 401'), { status: 401 }), false],
+    ]) {
+        test(`agent:error after ${why} ${offered ? 'names' : 'does not name'} a model to switch to`, async () => {
+            const { loop, fakeRes, engine } = await makeLoop();
+            engine.chat = async () => { throw fail; };
+            await loop.runTurn('Hello', [], null, 'auto', 'deepinfra', 't-fb', { model: 'XiaomiMiMo/MiMo-V2.6-Flash' });
+            const err = fakeRes.events.find((e) => e.event === 'agent:error');
+            assert.equal(err?.data.code, 'ENDPOINT_ERROR');
+            assert.equal(err.data.fallback, offered ? 'deepseek-ai/DeepSeek-V4-Flash-0731' : undefined);
+        });
+    }
+
     test('context window: our table, then the endpoint list (cached), then the fallback', async () => {
         const AgentLoop = await loadAgentLoop();
         const { FALLBACK_CONTEXT_WINDOW } = await import('../services/llmEngines.mjs');

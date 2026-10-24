@@ -52,6 +52,7 @@ import {
     agentPostConfirm,
     agentReset,
     agentShorten,
+    agentUseModel,
 } from '../../../services/agentService.js';
 
 /**
@@ -1075,6 +1076,43 @@ export const MpiAgentChat = ComponentFactory.create({
             _scrollBottom();
         }
 
+        /**
+         * MPI-1277 (Fabio): the agent's model stalled on its host (a timeout, 429, 5xx) and the
+         * server named a tested model to switch to. Switch makes it the agent's model, as the
+         * Settings dropdown would, and sends "Continue." so the turn picks up where it stopped.
+         * Live only, like the long-chat card.
+         */
+        function _appendFallback(fallback) {
+            qs('.mpi-agent-chat__confirm-card--fallback', transcript)?.closest('.mpi-agent-chat__entry')?.remove();
+            const name = fallback.split('/').pop();
+            const div = document.createElement('div');
+            div.className = 'mpi-agent-chat__entry mpi-agent-chat__entry--confirm';
+            const card = document.createElement('div');
+            card.className = 'mpi-agent-chat__confirm-card mpi-agent-chat__confirm-card--fallback';
+            const titleEl = document.createElement('div');
+            titleEl.className = 'mpi-agent-chat__confirm-title';
+            titleEl.textContent = 'My model is not answering.';
+            const subEl = document.createElement('div');
+            subEl.className = 'mpi-agent-chat__confirm-size';
+            subEl.textContent = `It is most likely busy on the service that runs it, not anything on your side. I can switch to ${name}, which also passed our tests, and carry on from where I stopped. You can change it back in Settings.`;
+            const actionsEl = document.createElement('div');
+            actionsEl.className = 'mpi-agent-chat__confirm-actions';
+            const switchBtn = MpiButton.mount(document.createElement('div'), { text: 'Switch and continue', variant: 'primary', size: 'sm' });
+            const notNowBtn = MpiButton.mount(document.createElement('div'), { text: 'Not now', variant: 'secondary', size: 'sm' });
+            switchBtn.on('click', () => {
+                div.remove();
+                agentUseModel(fallback);
+                _sendMessage('Continue.');
+            });
+            notNowBtn.on('click', () => div.remove());
+            actionsEl.append(switchBtn.el, notNowBtn.el);
+            _buttons.push(switchBtn, notNowBtn);
+            card.append(titleEl, subEl, actionsEl);
+            div.appendChild(card);
+            transcript.appendChild(div);
+            _scrollBottom();
+        }
+
         /** Error line. */
         function _appendError(code, message) {
             const div = document.createElement('div');
@@ -1121,6 +1159,7 @@ export const MpiAgentChat = ComponentFactory.create({
                     break;
                 case 'agent:error':
                     _appendError(data.code, data.message);
+                    if (data.fallback) _appendFallback(data.fallback);
                     _setWorking(false);
                     _cosmoNotice('gaveUp');
                     break;

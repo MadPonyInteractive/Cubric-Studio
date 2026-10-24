@@ -273,6 +273,11 @@ function _boxesForTurn(picture) {
     return Object.keys(ops).length ? { modelId: model.id, ops, ratio: resolvePlannedRatio(project, model).label, picture } : null;
 }
 
+/** MPI-1277: make `model` the agent's model on the current connection, as Settings' dropdown does. */
+export function agentUseModel(model) {
+    Storage.setAgentPrefs({ ...Storage.getAgentPrefs(), model });
+}
+
 /**
  * POST /agent/message
  * @param {string} text

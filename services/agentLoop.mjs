@@ -27,6 +27,7 @@ import {
     OLLAMA_AGENT_CONTEXT,
     resolveConnection,
     recommendedModel,
+    agentFallbackModel,
     listRemoteModels,
     RECOMMENDED_REMOTE_MODELS,
     FALLBACK_CONTEXT_WINDOW,
@@ -3490,7 +3491,12 @@ ${knowledgeIndex}`.trim();
                 this._emit('agent:long', { turnId, local: profileId === 'ollama' });
             }
         } catch (err) {
-            this._emit('agent:error', { turnId, code: 'ENDPOINT_ERROR', message: err.message });
+            // MPI-1277: a host too slow or too busy to answer (a timeout, 429, 5xx) is the
+            // model's host, not the user's setup: name a tested model to switch to. Never for
+            // a key, a balance or a bad request, which another model would hit the same way.
+            const stalled = err.code === 'TIMEOUT' || err.status === 429 || err.status >= 500;
+            const fallback = stalled ? agentFallbackModel(profileId, this._resolveModel(profileId, pickedModel)) : '';
+            this._emit('agent:error', { turnId, code: 'ENDPOINT_ERROR', message: err.message, ...(fallback && { fallback }) });
         } finally {
             this._working = false;
             this._emit('agent:working', { turnId, working: false });

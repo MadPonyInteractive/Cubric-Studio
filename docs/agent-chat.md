@@ -229,7 +229,7 @@ Every event but `agent:session` also carries `session`, the key of its conversat
 | `agent:confirm` | `{ turnId, confirmId, kind: 'install', modelId, modelName, downloadGb, flowId?, licence? }` | Yes / No card; `flowId` = a Flow (MPI-1127), `licence` adds the licence-screen line |
 | `agent:result` | `{ toolCallId, ok, output?: { itemId, groupId, type, filePath }, error? }` | result card, opens the card; `filePath` is the renderer item's, already a `/project-file?path=` url |
 | `agent:compacting` | `{ turnId, on: boolean }` | "compacting" line + mascot |
-| `agent:error` | `{ turnId, code, message }` | error line. Codes: `ENDPOINT_ERROR`, `NO_KEY`, `TOOLS_UNSUPPORTED`, `STEP_LIMIT` |
+| `agent:error` | `{ turnId, code, message, fallback? }` | error line. Codes: `ENDPOINT_ERROR`, `NO_KEY`, `TOOLS_UNSUPPORTED`, `STEP_LIMIT`. `fallback` (MPI-1277): the host stalled (timeout, 429, 5xx, never a key or balance) and `agentFallbackModel` (`llmEngines.mjs`) named the best other model on the agent model's tests; the chat adds a card whose Switch makes it the agent model and sends "Continue." Live only |
 | `agent:user` | `{ turnId, id, text, attachments }` | a request carried in from another conversation (D5): its bubble, once by `id` (the sender's own chat draws its bubble itself) |
 | `agent:session` | `{ from, to }` | a conversation moved into a project: chats showing either side reload |
 

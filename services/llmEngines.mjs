@@ -726,6 +726,20 @@ export function recommendedModel(presetId, job) {
 }
 
 /**
+ * MPI-1277: the model to offer when the agent's model stalls on this preset — the best
+ * other model scored on the same tests as the preset's agent model (table order breaks a
+ * tie), or ''. A preset with no agent model (Ollama, none reaches the bar) offers none.
+ */
+export function agentFallbackModel(presetId, failedModel) {
+    const rows = RECOMMENDED_REMOTE_MODELS[presetId] || [];
+    const suite = rows.find((r) => r.jobs.includes('agent'))?.agentTest?.suiteHash;
+    if (!suite) return '';
+    const score = (r) => r.agentTest.passed / r.agentTest.cases;
+    return rows.filter((r) => r.id !== failedModel && r.agentTest?.suiteHash === suite)
+        .reduce((best, r) => (!best || score(r) > score(best) ? r : best), null)?.id || '';
+}
+
+/**
  * The connection profile and its key, for any job. `ask` is the fork bridge
  * (`routes/forkBridge.js`); null when standalone. The 'deepinfra' preset falls
  * through to `DEEPINFRA_API_KEY` when no key is stored — the `routes/llm.js`
