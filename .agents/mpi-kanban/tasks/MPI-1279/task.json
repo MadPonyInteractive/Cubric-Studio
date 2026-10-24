@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1279",
+  "title": "Cosmo: the edit rank decides, not the edit notes",
+  "description": "Fabio 2026-10-24: Cosmo started an edit on Klein 9B, then Qwen Edit, past Qwen-Image 2.1 (rank 1) and FLUX.3 Klein (rank 2), though all fit his PC. The list_models notes let a note that matches the ask beat the rank: Klein 9B sells keeping the likeness, Qwen-Image 2.1 leads with its non-commercial licence, FLUX.3 reads as a many-pictures specialist, and the Boogu note names a fallback order without FLUX.3. Rewrite the edit notes so the rank decides; pin with a test.",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-10-24T20:33:46+01:00",
+  "updated_at": "2026-10-24T20:36:19+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

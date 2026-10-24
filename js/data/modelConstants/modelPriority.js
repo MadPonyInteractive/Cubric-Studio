@@ -102,7 +102,7 @@ const REF2V = [
  * angle)" went to Boogu, rank 1, with B alone, and the furniture was invented from the
  * words. "One image" alone did not say what that rules out, so the rank won.
  */
-const ONE_IMAGE = 'it takes exactly one image, so it can never bring in anything from another picture (a person, an object, the furniture of the same room from another angle): that is the Qwen-Image 2.1 edit, else kleinEdit, else qwenEdit, else krea2Edit, with the picture being changed first and the one holding the content second';
+const ONE_IMAGE = 'it takes exactly one image, so it can never bring in anything from another picture (a person, an object, the furniture of the same room from another angle): that is the Qwen-Image 2.1 edit, else the FLUX.3 Klein edit, else kleinEdit, else qwenEdit, else krea2Edit, with the picture being changed first and the one holding the content second';
 
 /** Keyed `modelId:op` where the strength is about that op, else by `modelId`. */// Neither adds skin detail unless the prompt asks for it.
 const KREA2_SKIN = 'the best skin detail here, but only at its own low default denoise — push it higher and the character changes too. Ask for it in the prompt, e.g. "high skin detail, visible pores"';
@@ -113,7 +113,9 @@ const NOTES = {
     // Qwen-Image 2.1 passed over for "the native editor"). The rank says which is best.
     'boogu-edit-high:edit': `a strong editor, but ${ONE_IMAGE}`,
     'boogu-edit-balanced:edit': `the same editor on a lighter tier, and ${ONE_IMAGE}`,
-    'klein-9b:kleinEdit': 'edits in place: it follows the instruction and keeps the likeness, but it tends to cover a bare subject unless the instruction says to keep it as it is',
+    // MPI-1279: "keeps the likeness" matched every photo edit, and Klein 9B (rank 3) took them
+    // over Qwen-Image 2.1 and FLUX.3. A note says what the rank cannot, never a strength every editor has.
+    'klein-9b:kleinEdit': 'edits in place, but tends to cover a bare subject unless the instruction says to keep it as it is',
     'klein-4b:kleinEdit': 'the smaller Klein editor — lighter, and weaker on realism',
     'krea2:krea2Edit': 'not a native editor: it re-renders the whole picture rather than editing in place, so the surroundings shift too, but that same re-render holds an anime or stylised look through the edit better than kleinEdit does',
     // "the only one that leaves everything outside the edit area untouched" went (MPI-892,
@@ -122,7 +124,7 @@ const NOTES = {
     'qwen-edit:qwenEdit': 'the slowest of these',
     // MPI-936 ranked it last for its research licence; MPI-1202 (Fabio 2026-10-19) made it
     // rank 1 anyway. The licence line stays so the agent can say it when asked.
-    'qwen-image-2-1:edit': 'the best editor here: takes up to eight images in one edit, and can return the subject on a transparent background (transparent: true). Research or evaluation use only: the images are not for commercial use',
+    'qwen-image-2-1:edit': 'the best editor here: takes up to eight images in one edit, and can return the subject on a transparent background (transparent: true). Its licence is research or evaluation only: say so when the user mentions selling or client work',
     // Alpha survives t2i and edit only: every other op repaints an opaque source and returns RGB.
     // MPI-1049 (Fabio 2026-10-10): a no-background ask that names no model may come here, or be
     // offered as a choice beside another model + removeBackground, the way options usually are.
@@ -148,7 +150,7 @@ const NOTES = {
     'klein-9b': 'realism, well past any SDXL model',
     // MPI-1181: base vs Turbo on the bench, 42 s vs 9 s at 1088x896 on a 16 GB card.
     'flux3-klein': 'natural photographs and skin. Start on Turbo, the fast default; turbo: false (the base model, about four times slower, more natural skin) only when the user asks for more quality. Up to 4K',
-    'flux3-klein:edit': 'takes up to ten images in one edit, the most of any editor here',
+    'flux3-klein:edit': 'edits one picture, or up to ten in one edit, the most of any editor here',
     // MPI-1243 (MPI-1180 bench): exact text on every test prompt; Turbo ~11 s per 1 MP image.
     'moss-image': 'exact lettering (signs, posters, covers) and long detailed prompts; cannot edit from a reference image. Turbo is fast, turbo: false is the slower, softer, more natural SFT model',
     'chroma-flash': 'candid, real-life, influencer-style photography',
