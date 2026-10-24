@@ -2,3 +2,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1268", "at": "2026-10-24T03:07:43+01:00", "actor": "LTX 2.5 model 10", "fields": ["description"], "reason": "member of the LTX 2.5 release umbrella"}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1268", "at": "2026-10-24T03:11:39+01:00", "actor": "LTX 2.5 model 10", "fields": ["links", "maturity", "status"], "reason": "plan attached"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1268", "at": "2026-10-24T22:18:21+01:00", "actor": "LTX 2.5 model 11", "from": "todo", "to": "doing", "reason": "Fabio: stack reorder first, not dev-gated"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1268", "at": "2026-10-24T23:13:54+01:00", "actor": "LTX 2.5 model 12", "from": "doing", "to": "done", "reason": "Fabio verified in his app; CI green on 4f33defba; release notes in c1ee9e748"}
