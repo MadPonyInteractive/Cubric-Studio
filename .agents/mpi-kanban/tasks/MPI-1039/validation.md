@@ -535,3 +535,47 @@ user's ratio later; a crop changes the zoom, so the gizmo may need per-ratio-fam
   - Unchanged: the 2D street still does not move on the turns (round 23's open problem - a wording issue, not the ref).
   - Read: THE DOLL IS THE PEOPLE REF from now on (no seams/joints/bald dome to copy); re-render other stops from
     doll_refs.blend when they are next used. Pose change = Fabio re-poses in his file and re-exports the OBJ.
+- 2026-10-24 ROUND 25, TURN-REVEAL WORDING ON THE 2D STREET (`angles.py <port> blender25`, sheet
+  `research/sheets/mq_blender25_turn_reveal.jpg`, results `research/out/mq_blender25.json`). Round 15's reveal rule
+  applied to turns: the end state names what the PLACE shows from the new side, read off street 222 in FRAME terms (the
+  vending machine is frame-left = HER right; "her right" alone mirrors). Doll refs, MQ23_KEEP, 12 FLUX.3 Turbo edits.
+  FIRST READ (agent, full-size crops - Fabio's eye test pending):
+  - THE STREET MOVES NOW. back eye 4/4: street seen from the other end - vending machine + blue awning frame-right, pink
+    awning + yellow sign board frame-left, bag on her right side; round 24 kept the source street 4/4. It reads as the
+    source street mirrored (same props swapped over) more than a new stretch of street.
+  - tqb r 4/4: shop fronts with the yellow sign board seen at a slant, street running off to one side, vending machine
+    gone; round 24 kept the source street 4/4. She lands near rear profile (her face turned to frame-right), as before.
+  - tq fl 4/4 on the place: vending machine + blue awning behind her at frame-left, the street running away to
+    frame-right, the pink side gone. Her BODY still turns only ~15-20 degrees (the known weak 3/4 front turn).
+  - Drawing style held 12/12; no doll pasted.
+  - Read: on a 2D source the turn's place has to be NAMED from the new side; the plain "seen from that angle" clause
+    freezes it. Flow consequence: the agent reads the place's landmarks off the source and writes them per view, in
+    frame terms. The 3/4 front body turn is still the open weak view (overshoot ref next).
+- 2026-10-24 ROUND 26, OVERSHOOT REF FOR THE 3/4 FRONT TURN (`angles.py <port> blender26`, sheet
+  `research/sheets/mq_blender26_overshoot.jpg`, results `research/out/mq_blender26.json`). The doll seen from 65 and 80
+  deg instead of 45 (`blender/overshoot_build.py` -> `out/doll_overshoot.blend` -> `ref_render.py` ->
+  `out/doll/tq_fl_{65,80}.png`), the 45-deg words unchanged: anime street (round 25 reveal words, MQ23_KEEP) and photo
+  woman (round 7 words, MQ6_KEEP), 4 seeds = 16 FLUX.3 Turbo edits; 45-deg cells (round 25, rounds 7+19) above.
+  FIRST READ (agent, full-size crops):
+  - OVERSHOOT DOES NOTHING. anime 65 and 80 = the 45-deg cells almost pixel for pixel (same ~15-20 deg turn, same
+    street). 0/8.
+  - photo 65 and 80 turn LESS than the 45-deg cells (she squares up to the camera) and frame tighter. 0/8.
+  - Read: the 3/4 front turn's size is not taken from the ref angle - the edit holds the source's frontal pose and
+    the words decide. A bigger ref swing buys nothing. Next idea, if pursued: overshoot in the WORDS (e.g. "seen from
+    her side, nearly in profile") with the 45-deg ref, or accept the mild 3/4 front as the Flow's 3/4 stop.
+- 2026-10-24 ROUND 27, THE OVERSHOOT IN THE WORDS (`angles.py <port> blender27`, sheet
+  `research/sheets/mq_blender27_turn_words.jpg`, results `research/out/mq_blender27.json`). Fabio: put the overshoot in
+  the prompt, as zoom was (round 21). 45-deg doll ref; end state = camera gone a long way round to her left, body almost
+  side-on facing frame-left, left shoulder/arm/hip/leg nearest, right shoulder hidden, feet to frame-left, face in
+  three-quarter profile (`_TURN27`); anime keeps round 25's street reveal sentence. 8 FLUX.3 Turbo edits.
+  (Round 26's 65/80 refs kept the 45-deg camera's distance and lens - the doll was the same size, not further away;
+  every doll ref is that small in frame, a separate question.)
+  FIRST READ (agent, full-size crops):
+  - THE WORDS MOVE THE TURN. Direction right everywhere (she faces frame-left, as the doll does).
+  - anime: 4/4 turn a lot - but OVERSHOOT to full profile (~90 deg) on 111/222, ~70 on 333/444. Past three-quarter.
+    Street reveal kept (vending machine behind her at frame-left). Style held.
+  - photo: 111 near profile, 444 a clear three-quarter, 222 + 333 ~30 deg (more than the old ~15-20). 4/4 better than
+    the 45-deg words, 2/4 a real three-quarter.
+  - Read: the turn's size is set by the words, not the ref angle. "Almost side-on" lands at profile on the 2D source and
+    at three-quarter-ish on the photo. Next: a middle wording (drop "almost side-on" / "long way round", keep the
+    near-side body parts + "far shoulder partly hidden") to land at 45 on both - or use this wording as a SIDE stop.

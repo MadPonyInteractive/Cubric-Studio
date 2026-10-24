@@ -2870,9 +2870,160 @@ def blender24(port):
     _sheet(rows, 'mq_blender24_doll')
 
 
+# Round 25 (after round 24): on the 2D street the turns move HER but the street stays pixel-for-pixel. Round 15's reveal
+# rule applied to turns: the end state names what the PLACE now shows from the new side. Read off street 222: red
+# vending machine + blue awning on frame-left (her right), pink awning + yellow sign board + power pole on frame-right
+# (her left), the street running away behind her. Doll refs, MQ23_KEEP, round 24's cells above.
+MQ25_VIEWS = {
+    'back eye': ('back_eye', MQ5['back eye'][1].replace(
+        ', and the place around them is seen from the opposite side.',
+        '. The street is now seen from the other end: in front of her it runs away into the distance, the part of the '
+        'street that was behind the first image\'s viewpoint, with new shop fronts and signs on both sides. The red '
+        'vending machine and the blue awning are now on the right of the frame, the pink awning, the yellow sign board '
+        'and the power pole on the left of the frame.')),
+    'tqb r': ('tq_br', _tqb('right', 'frame-right').replace(
+        '; the place around them is seen from that angle.',
+        '. The street is now seen at a slant from her right side: behind her the shop fronts on her left, with the '
+        'pink awning and the yellow sign board, fill the background seen at an angle, the street running on toward '
+        'frame-right; the red vending machine is no longer in view.')),
+    'tq fl': ('tq_fl', _tq('left', 'left', 'frame-left').replace(
+        '; the place around them is seen from that angle.',
+        '. The street is now seen at a slant from her left side: behind her the shop fronts on her right, with the '
+        'red vending machine and the blue awning, fill the background seen at an angle, the street running away '
+        'toward frame-right; the pink awning and the yellow sign board are no longer in view.')),
+}
+
+
+def blender25(port):
+    done = os.path.join(OUT, 'mq_blender25.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    r23, r24 = (json.load(open(os.path.join(OUT, f'mq_blender{n}.json'))) for n in (23, 24))
+    src = r23['street 222']
+    size = Image.open(disk(src)).size
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+    for v, (render, text) in MQ25_VIEWS.items():
+        ref = f'ref {size[0]}x{size[1]} doll/{render}'
+        if ref not in res:
+            res[ref] = r24.get(ref) or import_ref(port, _pad_ref(f'doll/{render}', size), f'angles mq25 {ref}')
+            json.dump(res, open(done, 'w'), indent=1)
+        for seed in MQ10_SEEDS:
+            key = f'street 222 {seed} {v}'
+            if key not in res:
+                res[key] = gen(port, {**FAST, 'ratio': '9:16', 'seed': seed, 'positive': text + MQ23_KEEP,
+                                      'cardName': f'angles mq25 {key}',
+                                      'media': [{'role': 'inputImage', 'url': src},
+                                                {'role': 'inputImage2', 'url': res[ref]}]})
+                json.dump(res, open(done, 'w'), indent=1)
+    # round 24 (doll, plain turn words) above; round 24 has no tq fl - round 23's tq fl far (grey mannequin) stands in
+    old = lambda s, v: r24.get(f'anime {s} {v}') if v != 'tq fl' else r23.get(f'street 222 {s} tq fl far')
+    rows = [[(src, 'street 222 source')] + [(res[f'ref {size[0]}x{size[1]} doll/{r}'], v)
+                                             for v, (r, _) in MQ25_VIEWS.items()]]
+    for s in MQ10_SEEDS:
+        rows.append([(None, f'{s} r24 plain')] + [(old(s, v), v if v != 'tq fl' else 'tq fl far (r23)')
+                                                  for v in MQ25_VIEWS])
+        rows.append([(None, f'{s} r25 reveal')] + [(res.get(f'street 222 {s} {v}'), v) for v in MQ25_VIEWS])
+    _sheet(rows, 'mq_blender25_turn_reveal')
+
+
+# Round 26 (Fabio 2026-10-24, after round 25): the 3/4 FRONT turn undershoots (asked 45 deg, lands ~15-20 since rounds
+# 7/19/22). Overshoot REF only: the doll seen from 65 and 80 deg (blender/overshoot_build.py -> out/doll/tq_fl_<deg>),
+# the words unchanged (45 deg). The anime street with round 25's reveal words, the photo woman with round 7's; the
+# 45-deg cells (round 25 / rounds 7+19) sit above.
+MQ26_RUNS = {  # cell -> (source, words, keep)
+    'anime': ('street 222', MQ25_VIEWS['tq fl'][1], MQ23_KEEP),
+    'photo': ('body input', MQ7_BODY['tq fl'][1], MQ6_KEEP),
+}
+
+
+def blender26(port):
+    done = os.path.join(OUT, 'mq_blender26.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    r7, r19, r23, r25 = (json.load(open(os.path.join(OUT, f'mq_blender{n}.json'))) for n in (7, 19, 23, 25))
+    srcs = {**json.load(open(os.path.join(OUT, 'pitch.json'))), 'street 222': r23['street 222']}
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+    for name, (srckey, text, keep) in MQ26_RUNS.items():
+        size = Image.open(disk(srcs[srckey])).size
+        for deg in (65, 80):
+            ref = f'ref {size[0]}x{size[1]} doll/tq_fl_{deg}'
+            if ref not in res:
+                res[ref] = import_ref(port, _pad_ref(f'doll/tq_fl_{deg}', size), f'angles mq26 {ref}')
+                json.dump(res, open(done, 'w'), indent=1)
+            for seed in MQ10_SEEDS:
+                key = f'{name} {seed} tq fl {deg}'
+                if key not in res:
+                    res[key] = gen(port, {**FAST, 'ratio': '9:16', 'seed': seed, 'positive': text + keep,
+                                          'cardName': f'angles mq26 {key}',
+                                          'media': [{'role': 'inputImage', 'url': srcs[srckey]},
+                                                    {'role': 'inputImage2', 'url': res[ref]}]})
+                    json.dump(res, open(done, 'w'), indent=1)
+    at45 = {'anime': lambda s: r25.get(f'street 222 {s} tq fl'),
+            'photo': lambda s: (r7 if s in (111, 222) else r19).get(f'woman {s} tq fl')}
+    sizes = {n: Image.open(disk(srcs[k])).size for n, (k, _, _) in MQ26_RUNS.items()}
+    rows = [[(srcs[k], f'{n} source') for n, (k, _, _) in MQ26_RUNS.items()],
+            [(None, 'doll ref (padded)')] + [(res[f'ref {sizes[n][0]}x{sizes[n][1]} doll/tq_fl_{d}'], f'{n} {d} deg')
+                                             for n in MQ26_RUNS for d in (65, 80)]]
+    for s in MQ10_SEEDS:
+        rows.append([(None, f'{s}')] + [(at45[n](s), f'{n} 45 (old)') for n in MQ26_RUNS] +
+                    [(res.get(f'{n} {s} tq fl {d}'), f'{n} {d}') for n in MQ26_RUNS for d in (65, 80)])
+    _sheet(rows, 'mq_blender26_overshoot')
+
+
+# Round 27 (Fabio 2026-10-24, after round 26): the overshoot goes in the WORDS, as zoom did in round 21 - the 45-deg
+# doll ref, and an end state that names a turn well past three-quarter (the body side-on, the far shoulder hidden), so
+# the edit's undershoot lands nearer 45. Same sources, keeps and seeds as round 26.
+_TURN27 = ('Shift the viewpoint of the first image around the subject to match the mannequin reference in the second '
+           'image: the camera has moved a long way round to her left, so she is now seen from her left side. Her whole '
+           'body is turned well away from the view, almost side-on, facing frame-left: her left shoulder, left arm, left '
+           'hip and left leg are nearest the view, her right shoulder is hidden behind her chest, her feet point toward '
+           'frame-left, and her face is seen in three-quarter profile with the far eye barely showing.')
+MQ27_RUNS = {  # cell -> (source, words, keep)
+    'anime': ('street 222', _TURN27 + MQ25_VIEWS['tq fl'][1].split('three-quarter.', 1)[1], MQ23_KEEP),
+    'photo': ('body input', _TURN27 + ' The place around her is seen from that angle.', MQ6_KEEP),
+}
+
+
+def blender27(port):
+    done = os.path.join(OUT, 'mq_blender27.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    r7, r19, r23, r24, r25, r26 = (json.load(open(os.path.join(OUT, f'mq_blender{n}.json')))
+                                   for n in (7, 19, 23, 24, 25, 26))
+    srcs = {**json.load(open(os.path.join(OUT, 'pitch.json'))), 'street 222': r23['street 222']}
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+    for name, (srckey, text, keep) in MQ27_RUNS.items():
+        size = Image.open(disk(srcs[srckey])).size
+        ref = f'ref {size[0]}x{size[1]} doll/tq_fl'
+        if ref not in res:
+            res[ref] = r25.get(ref) or r24.get(ref) or import_ref(port, _pad_ref('doll/tq_fl', size), f'angles mq27 {ref}')
+            json.dump(res, open(done, 'w'), indent=1)
+        for seed in MQ10_SEEDS:
+            key = f'{name} {seed} tq fl side'
+            if key not in res:
+                res[key] = gen(port, {**FAST, 'ratio': '9:16', 'seed': seed, 'positive': text + keep,
+                                      'cardName': f'angles mq27 {key}',
+                                      'media': [{'role': 'inputImage', 'url': srcs[srckey]},
+                                                {'role': 'inputImage2', 'url': res[ref]}]})
+                json.dump(res, open(done, 'w'), indent=1)
+    at45 = {'anime': lambda s: r25.get(f'street 222 {s} tq fl'),
+            'photo': lambda s: (r7 if s in (111, 222) else r19).get(f'woman {s} tq fl')}
+    rows = [[(srcs[k], f'{n} source') for n, (k, _, _) in MQ27_RUNS.items()]]
+    for s in MQ10_SEEDS:
+        rows.append([(None, f'{s}')] + [c for n in MQ27_RUNS for c in
+                                         ((at45[n](s), f'{n} 45 words'), (res.get(f'{n} {s} tq fl side'), f'{n} side words'))])
+    _sheet(rows, 'mq_blender27_turn_words')
+
+
 if __name__ == '__main__':
     if sys.argv[1:2] == ['best']:
         best()
+    elif sys.argv[2:3] == ['blender27']:
+        blender27(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['blender26']:
+        blender26(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['blender25']:
+        blender25(int(sys.argv[1]))
     elif sys.argv[2:3] == ['blender24']:
         blender24(int(sys.argv[1]))
     elif sys.argv[2:3] == ['blender23']:
