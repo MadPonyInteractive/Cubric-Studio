@@ -581,15 +581,17 @@ export const RECOMMENDED_REMOTE_MODELS = {
         // see:true) when words cannot settle it. 55 cases x3: runs 51, 53, 53 (median 53) spent a picture on every
         // plain look; after the SEE_LIMITS rewording (agentLoop.mjs) runs 53, 50, 52, median 52 (47 strict), billed
         // $0.1970 / 165 chats, and see-not-for-a-plain-description 3/3; identity 2/3. Benched with no reasoningEffort.
+        // The 55-case scores below were run on suite e4f83ddc0bfe and re-stamped 30dd5a845c08 unrun (MPI-1281, Fabio
+        // 2026-10-24): the only change, ask-first also passing on the Options buttons, can only raise a score, so these are floors.
         { id: 'XiaomiMiMo/MiMo-V2.6-Flash', jobs: ['agent'], contextWindow: 1_048_576,
-            agentTest: { passed: 52, cases: 55, runs: 3, perChat: 0.0012, suiteHash: 'e4f83ddc0bfe' } },
+            agentTest: { passed: 52, cases: 55, runs: 3, perChat: 0.0012, suiteHash: '30dd5a845c08' } },
         { id: 'deepseek-ai/DeepSeek-V4-Flash-0731', jobs: [], contextWindow: 1_048_576, reasoningEffort: 'low',
-            agentTest: { passed: 52, cases: 55, runs: 3, perChat: 0.0016, suiteHash: 'e4f83ddc0bfe' } },
+            agentTest: { passed: 52, cases: 55, runs: 3, perChat: 0.0016, suiteHash: '30dd5a845c08' } },
         // 55 cases x3 (MPI-1208): runs 48, 49, 47, median 48 (43 strict), billed $0.1834 / 165 chats. Sees pictures.
-        { id: 'deepseek-ai/DeepSeek-V4.1-Flash-1017', jobs: [], agentTest: { passed: 48, cases: 55, runs: 3, perChat: 0.0011, suiteHash: 'e4f83ddc0bfe' } },
+        { id: 'deepseek-ai/DeepSeek-V4.1-Flash-1017', jobs: [], agentTest: { passed: 48, cases: 55, runs: 3, perChat: 0.0011, suiteHash: '30dd5a845c08' } },
         // 55 cases x3 (MPI-1208): runs 46, 44, 43 (install-asks run 1 was a DeepInfra 429, rerun), median 44
         // (37 strict), billed $0.0015/chat. Sees pictures but plans worse than 0731.
-        { id: 'deepseek-ai/DeepSeek-V4.1-Flash', jobs: [], agentTest: { passed: 44, cases: 55, runs: 3, perChat: 0.0015, suiteHash: 'e4f83ddc0bfe' } },
+        { id: 'deepseek-ai/DeepSeek-V4.1-Flash', jobs: [], agentTest: { passed: 44, cases: 55, runs: 3, perChat: 0.0015, suiteHash: '30dd5a845c08' } },
         // 40/53 x1 (MPI-1208), billed $0.0030/chat. Ran before the two max-resolution cases and an edit to
         // shape-then-edit, so its hash is the older 53-case one and Settings reads "older tests".
         { id: 'inclusionAI/Ling-3.0-flash-VL', jobs: [], agentTest: { passed: 40, cases: 53, runs: 1, perChat: 0.0030, suiteHash: '171f63b8829f' } },

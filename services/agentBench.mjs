@@ -593,7 +593,9 @@ const CASES = [
         check(run) {
             const f = [];
             if (called(run.turns[0], 'generate').length) f.push('generated in the first turn without asking');
-            if (!run.turns[0].reply.includes('?')) f.push('the first reply asks no question');
+            // An ask ends on a "?" or on the Options rule's buttons; "pick your settings:" with
+            // buttons asks as plainly as a question mark does (MPI-1281).
+            if (!run.turns[0].reply.includes('?') && !run.turns[0].options) f.push('the first reply asks no question');
             if (!called(run.turns[1], 'generate').length) f.push('did not generate once the settings were answered');
             return f;
         },

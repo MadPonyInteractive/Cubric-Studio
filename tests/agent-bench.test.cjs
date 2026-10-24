@@ -477,3 +477,15 @@ test('MPI-1132: list_cards sees the card a generate landed, and a mark sticks to
     assert.equal((await tools.markCard('grp_nope', 'dot')).error.code, 'NO_SUCH_CARD');
     assert.equal((await tools.visibleCards()).cards[0].mark, 'dot');
 });
+
+test('MPI-1281: ask-first grades the ask, not a literal "?"', async () => {
+    const { CASES } = await import('../services/agentBench.mjs');
+    const { check } = CASES.find((c) => c.id === 'ask-first');
+    const go = { calls: [{ tool: 'generate', args: {} }], reply: 'Starting it now.', options: null };
+    const first = (reply, options = null, calls = []) => ({ turns: [{ calls, reply, options }, go] });
+    assert.deepEqual(check(first('Which ratio do you want?')), [], 'a question passes');
+    // MiMo-V2.6-Flash, MPI-1280 re-run #3: asked for the settings with buttons, and no "?".
+    assert.deepEqual(check(first('Before I start, pick your settings:', ['16:9 high', '9:16 medium'])), [], 'buttons ask too');
+    assert.deepEqual(check(first('Starting the clip now, 16:9.')), ['the first reply asks no question'], 'a statement with no buttons still fails');
+    assert.deepEqual(check(first('Which ratio?', ['16:9'], [{ tool: 'generate', args: {} }])), ['generated in the first turn without asking']);
+});
