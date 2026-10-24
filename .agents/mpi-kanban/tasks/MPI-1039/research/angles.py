@@ -3015,9 +3015,191 @@ def blender27(port):
     _sheet(rows, 'mq_blender27_turn_words')
 
 
+# Round 28 (Fabio 2026-10-24, after round 27): 'almost side-on' overshoots the anime source to profile. A MIDDLE end
+# state aimed at 45 deg: no 'a long way round' / 'almost side-on', the near-side body parts kept, the far shoulder only
+# PARTLY hidden, the face in three-quarter. Same sources, keeps, ref and seeds as round 27.
+_TURN28 = ('Shift the viewpoint of the first image around the subject to match the mannequin reference in the second '
+           'image: the camera has moved round to her left, so she is now seen in a three-quarter view from her left '
+           'side. Her whole body is turned about halfway toward frame-left, at a 45 degree angle to the view: her left '
+           'shoulder, left arm, left hip and left leg are nearest the view, her right shoulder is partly hidden behind '
+           'her chest, her feet point diagonally toward frame-left, and her face is seen in three-quarter view.')
+MQ28_RUNS = {  # cell -> (source, words, keep)
+    'anime': ('street 222', _TURN28 + MQ25_VIEWS['tq fl'][1].split('three-quarter.', 1)[1], MQ23_KEEP),
+    'photo': ('body input', _TURN28 + ' The place around her is seen from that angle.', MQ6_KEEP),
+}
+
+
+def blender28(port):
+    done = os.path.join(OUT, 'mq_blender28.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    r7, r19, r23, r25, r27 = (json.load(open(os.path.join(OUT, f'mq_blender{n}.json'))) for n in (7, 19, 23, 25, 27))
+    srcs = {**json.load(open(os.path.join(OUT, 'pitch.json'))), 'street 222': r23['street 222']}
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+    for name, (srckey, text, keep) in MQ28_RUNS.items():
+        size = Image.open(disk(srcs[srckey])).size
+        ref = f'ref {size[0]}x{size[1]} doll/tq_fl'
+        if ref not in res:
+            res[ref] = r27.get(ref) or import_ref(port, _pad_ref('doll/tq_fl', size), f'angles mq28 {ref}')
+            json.dump(res, open(done, 'w'), indent=1)
+        for seed in MQ10_SEEDS:
+            key = f'{name} {seed} tq fl middle'
+            if key not in res:
+                res[key] = gen(port, {**FAST, 'ratio': '9:16', 'seed': seed, 'positive': text + keep,
+                                      'cardName': f'angles mq28 {key}',
+                                      'media': [{'role': 'inputImage', 'url': srcs[srckey]},
+                                                {'role': 'inputImage2', 'url': res[ref]}]})
+                json.dump(res, open(done, 'w'), indent=1)
+    at45 = {'anime': lambda s: r25.get(f'street 222 {s} tq fl'),
+            'photo': lambda s: (r7 if s in (111, 222) else r19).get(f'woman {s} tq fl')}
+    rows = [[(srcs[k], f'{n} source') for n, (k, _, _) in MQ28_RUNS.items()]]
+    for s in MQ10_SEEDS:
+        rows.append([(None, f'{s}')] + [c for n in MQ28_RUNS for c in
+                                         ((at45[n](s), f'{n} 45 words'), (r27.get(f'{n} {s} tq fl side'), f'{n} side r27'),
+                                          (res.get(f'{n} {s} tq fl middle'), f'{n} middle r28'))])
+    _sheet(rows, 'mq_blender28_turn_middle')
+
+
+# Round 29 (the queued Qwen-Image 2.1 re-run; Fabio leans to it for NSFW sources): the people recipe as it stands after
+# round 28 - doll refs, each view's best words (the 2D street's reveal words, round 27's side words for the 3/4 front
+# turn, the reveal lows) - on qwen-image-2-1 edit, no ratio or tier (the edit keeps image 1's own frame; the API refuses
+# a tier without a ratio). 5 views x 2 sources x seeds 111/222 = 20 edits; the FLUX.3 Turbo cell on the same seed and
+# words sits beside each.
+QWEN29 = {'modelId': 'qwen-image-2-1', 'operation': 'edit'}
+MQ29_RUNS = {  # cell -> (source, keep, {view: (ref render, words, FLUX.3 cell (round, key) with {s} for the seed)})
+    'anime': ('street 222', MQ23_KEEP, {
+        'front hi': ('front_hi', MQ23_VIEWS['front hi'][1], (23, 'street 222 {s} front hi')),
+        'front lo reveal': ('front_lo', MQ23_VIEWS['front lo reveal'][1], (24, 'anime {s} front lo reveal')),
+        'back eye': ('back_eye', MQ25_VIEWS['back eye'][1], (25, 'street 222 {s} back eye')),
+        'tqb r': ('tq_br', MQ25_VIEWS['tqb r'][1], (25, 'street 222 {s} tqb r')),
+        'tq fl': ('tq_fl', MQ27_RUNS['anime'][1], (27, 'anime {s} tq fl side')),
+    }),
+    'photo': ('body input', MQ6_KEEP, {
+        'front hi': ('front_hi', MQ7_BODY['front hi'][1], (7, 'woman {s} front hi')),
+        'front lo reveal': ('front_lo', MQ19_STUDIO_LO['front lo reveal'][1], (19, 'woman lo {s} front lo reveal')),
+        'back eye': ('back_eye', MQ7_BODY['back eye'][1], (24, 'photo {s} back eye')),
+        'tqb r': ('tq_br', MQ7_BODY['tqb r'][1], (24, 'photo {s} tqb r')),
+        'tq fl': ('tq_fl', MQ27_RUNS['photo'][1], (27, 'photo {s} tq fl side')),
+    }),
+}
+
+
+def blender29(port):
+    done = os.path.join(OUT, 'mq_blender29.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    old = {n: json.load(open(os.path.join(OUT, f'mq_blender{n}.json'))) for n in (7, 19, 23, 24, 25, 27)}
+    srcs = {**json.load(open(os.path.join(OUT, 'pitch.json'))), 'street 222': old[23]['street 222']}
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+    for name, (srckey, keep, views) in MQ29_RUNS.items():
+        size = Image.open(disk(srcs[srckey])).size
+        for v, (render, text, _) in views.items():
+            ref = f'ref {size[0]}x{size[1]} doll/{render}'
+            if ref not in res:
+                res[ref] = next((r[ref] for r in old.values() if ref in r), None) or \
+                    import_ref(port, _pad_ref(f'doll/{render}', size), f'angles mq29 {ref}')
+                json.dump(res, open(done, 'w'), indent=1)
+            for seed in (111, 222):
+                key = f'{name} {seed} {v}'
+                if key not in res:
+                    res[key] = gen(port, {**QWEN29, 'seed': seed, 'positive': text + keep,
+                                          'cardName': f'angles mq29 qwen {key}',
+                                          'media': [{'role': 'inputImage', 'url': srcs[srckey]},
+                                                    {'role': 'inputImage2', 'url': res[ref]}]})
+                    json.dump(res, open(done, 'w'), indent=1)
+    rows = []
+    for name, (srckey, _, views) in MQ29_RUNS.items():
+        rows.append([(srcs[srckey], f'{name} source')])
+        for s in (111, 222):
+            rows.append([(None, f'{name} {s} FLUX.3')] + [(old[n].get(k.format(s=s)), v)
+                                                         for v, (_, _, (n, k)) in views.items()])
+            rows.append([(None, f'{name} {s} Qwen 2.1')] + [(res.get(f'{name} {s} {v}'), v) for v in views])
+    _sheet(rows, 'mq_blender29_qwen')
+
+
+# Round 30 (Fabio 2026-10-24, after the split: low on Qwen-Image 2.1, turns/back/high on FLUX.3).
+# (a) PLAIN REF: Qwen pasted the doll ref's grey room ~9/20 in round 29 - the same 20 edits with the doll on white, no
+#     floor or walls (blender/plain_build.py -- plain -> out/doll_plain/).
+# (b) LOW ON A TURNED VIEW, the split's two-step: the FLUX.3 turn (round 27 tq fl, rounds 25/24 tqb r) is the input of a
+#     Qwen low, ref = the doll from the low camera at that turned angle (tq_fl_lo / tq_br_lo, plain). Seeds 111/222.
+def _lo30(floor, above, side, head):
+    return ('Shift the viewpoint of the first image down to match the mannequin reference in the second image: keep the '
+            f'same {side} view of the woman as in the first image, but the view drops to just above {floor}, looking '
+            'steeply up at her. Her sneakers and legs are now large at the bottom of the frame, her body rises and '
+            f'narrows toward the top, {head} is small near the top edge, and above her {above} now fills the background.')
+
+
+MQ30_PLACE = {  # source -> (floor, what shows above her)
+    'anime': ('the street surface', 'the open blue sky with the power lines and the shop signs'),
+    'photo': ('the grey studio floor', 'the dark studio ceiling with a softbox light, instead of the grey backdrop,'),
+}
+MQ30_TURNS = {  # view -> (low ref, side words, head words, FLUX.3 turn cell per source (round, key))
+    'tq fl': ('tq_fl_lo', 'three-quarter side', 'her head, seen from below at the side,',
+              {'anime': (27, 'anime {s} tq fl side'), 'photo': (27, 'photo {s} tq fl side')}),
+    'tqb r': ('tq_br_lo', 'rear three-quarter', 'the back of her head',
+              {'anime': (25, 'street 222 {s} tqb r'), 'photo': (24, 'photo {s} tqb r')}),
+}
+
+
+def blender30(port):
+    done = os.path.join(OUT, 'mq_blender30.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    old = {n: json.load(open(os.path.join(OUT, f'mq_blender{n}.json'))) for n in (7, 19, 23, 24, 25, 27, 29)}
+    srcs = {**json.load(open(os.path.join(OUT, 'pitch.json'))), 'street 222': old[23]['street 222']}
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+
+    def ref(render, size):
+        k = f'ref {size[0]}x{size[1]} doll_plain/{render}'
+        if k not in res:
+            res[k] = import_ref(port, _pad_ref(f'doll_plain/{render}', size), f'angles mq30 {k}')
+            json.dump(res, open(done, 'w'), indent=1)
+        return res[k]
+
+    def edit(key, src, refurl, text):
+        if key not in res:
+            res[key] = gen(port, {**QWEN29, 'seed': int(key.split()[1]), 'positive': text,
+                                  'cardName': f'angles mq30 qwen {key}',
+                                  'media': [{'role': 'inputImage', 'url': src}, {'role': 'inputImage2', 'url': refurl}]})
+            json.dump(res, open(done, 'w'), indent=1)
+
+    for name, (srckey, keep, views) in MQ29_RUNS.items():  # (a)
+        size = Image.open(disk(srcs[srckey])).size
+        for v, (render, text, _) in views.items():
+            for seed in (111, 222):
+                edit(f'{name} {seed} {v}', srcs[srckey], ref(render, size), text + keep)
+    for name, (_, keep, _) in MQ29_RUNS.items():  # (b)
+        for v, (render, side, head, cells) in MQ30_TURNS.items():
+            for seed in (111, 222):
+                n, k = cells[name]
+                src = old[n][k.format(s=seed)]
+                edit(f'{name} {seed} {v} lo', src, ref(render, Image.open(disk(src)).size),
+                     _lo30(*MQ30_PLACE[name], side, head) + keep)
+    rows = []
+    for name, (srckey, _, views) in MQ29_RUNS.items():
+        rows.append([(srcs[srckey], f'{name} source')])
+        for s in (111, 222):
+            rows.append([(None, f'{name} {s} room ref (r29)')] + [(old[29].get(f'{name} {s} {v}'), v) for v in views])
+            rows.append([(None, f'{name} {s} plain ref')] + [(res.get(f'{name} {s} {v}'), v) for v in views])
+    _sheet(rows, 'mq_blender30_qwen_plain')
+    rows = []
+    for name in MQ29_RUNS:
+        for s in (111, 222):
+            rows.append([(None, f'{name} {s}')] + [c for v, (_, _, _, cells) in MQ30_TURNS.items() for c in (
+                (old[cells[name][0]].get(cells[name][1].format(s=s)), f'{v} FLUX.3 turn'),
+                (res.get(f'{name} {s} {v} lo'), f'{v} + Qwen low'))])
+    _sheet(rows, 'mq_blender30_turn_then_low')
+
+
 if __name__ == '__main__':
     if sys.argv[1:2] == ['best']:
         best()
+    elif sys.argv[2:3] == ['blender30']:
+        blender30(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['blender29']:
+        blender29(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['blender28']:
+        blender28(int(sys.argv[1]))
     elif sys.argv[2:3] == ['blender27']:
         blender27(int(sys.argv[1]))
     elif sys.argv[2:3] == ['blender26']:

@@ -579,3 +579,53 @@ user's ratio later; a crop changes the zoom, so the gizmo may need per-ratio-fam
   - Read: the turn's size is set by the words, not the ref angle. "Almost side-on" lands at profile on the 2D source and
     at three-quarter-ish on the photo. Next: a middle wording (drop "almost side-on" / "long way round", keep the
     near-side body parts + "far shoulder partly hidden") to land at 45 on both - or use this wording as a SIDE stop.
+- 2026-10-24 ROUND 28, A MIDDLE TURN WORDING (`angles.py <port> blender28`, sheet
+  `research/sheets/mq_blender28_turn_middle.jpg`, results `research/out/mq_blender28.json`). `_TURN28` = round 27's end
+  state without "a long way round" / "almost side-on": seen in a three-quarter view from her left, body turned about
+  halfway toward frame-left at 45 deg, near-side body parts kept, far shoulder PARTLY hidden, face in three-quarter.
+  45-deg doll ref, same sources/keeps/seeds as round 27. 8 FLUX.3 Turbo edits (~32 s each).
+  FIRST READ (agent, full-size upper-body crops, 45 words | r27 side | r28 middle):
+  - REGRESSED. anime 4/4 and photo 4/4 land back on the old mild ~15-20 deg turn, near pixel-for-pixel the 45-deg-words
+    cells; round 27 turned far more on every seed.
+  - Read: FLUX.3 answers the turn wording in two settings, not a dial - "three-quarter" words = the mild turn,
+    "side-on" words = the big one. Round 27's `_TURN27` STAYS the 3/4 front wording (reverted, per Fabio's rule); on the
+    2D source it lands near profile, so the Flow's 3/4 front stop may need its own per-style words later.
+- 2026-10-24 ROUND 29, THE QWEN-IMAGE 2.1 RE-RUN (`angles.py <port> blender29`, sheet `research/sheets/mq_blender29_qwen.jpg`,
+  results `research/out/mq_blender29.json`). The people recipe as of round 28 - doll refs, each view's best words (2D
+  street reveal words, round 27's side words for tq fl, the reveal lows) - on `qwen-image-2-1` edit with NO ratio/tier
+  (the API refuses a tier alone; without both the edit keeps image 1's frame). 5 views x anime + photo x seeds 111/222 =
+  20 edits, ~50 s each (vs FLUX.3 Turbo ~32 s). FLUX.3 cell on the same seed + words beside each.
+  FIRST READ (agent, full-size strips):
+  - LOW (front lo reveal): QWEN WINS 4/4 - a true ground-level worm's-eye (huge sneakers, legs towering), stronger than
+    FLUX.3's; street kept on anime, studio ceiling + softboxes shown on photo.
+  - QWEN TAKES THE REF'S ROOM: ~9/20 cells swap the place for the doll ref's dark grey studio (anime 111 front hi,
+    222 tqb r, 222 tq fl half; photo 111 tqb r + tq fl, 222 back eye + tqb r + tq fl) or a plain floor (anime 222 front
+    hi). FLUX.3 held the place in all 20. Qwen also pulls the camera back (subject smaller) on the photo.
+  - tq fl (side words): Qwen lands full profile on all 4 (overshoots more than FLUX.3); FLUX.3 photo 222 a real 3/4.
+  - High: both move up; Qwen's anime loses the street, photo goes further back. Identity + 2D style held on both.
+  - Read: per-view, not per-model - Qwen owns the LOW stop, FLUX.3 the turns, back and high. Fabio 2026-10-24: a
+    Qwen + FLUX.3 blend is fine, as the Character Sheet Editor routes each change to its winning model (operationBy).
+    Untested fix for Qwen's room paste: a doll ref on a flat/neutral background, or a keep line naming the place.
+  - FABIO 2026-10-24 (eye test on mq_blender29_qwen): the split is right - LOW on Qwen-Image 2.1; turns, back and high
+    on FLUX.3.
+- 2026-10-24 ROUND 30, QWEN PLAIN REF + LOW ON A TURNED VIEW (`angles.py <port> blender30`, sheets
+  `research/sheets/mq_blender30_qwen_plain.jpg` + `mq_blender30_turn_then_low.jpg`, results `research/out/mq_blender30.json`).
+  New refs: `blender/plain_build.py` on `doll_refs.blend` -> low twins `tq_fl_lo` / `tq_br_lo` (front_lo's 0.15 m height,
+  1.8 m, 25-deg tilt at the turned angles) and, with `-- plain`, every camera with the floor and walls hidden, rendered
+  on transparency and flattened onto white -> `out/doll_plain/` (Workbench ignores world.color: it rendered flat dark
+  grey). 28 Qwen-Image 2.1 edits, ~55 s each.
+  (a) PLAIN REF, round 29's 20 edits again:
+  - Qwen copies the REF'S BACKGROUND, whatever it is: the room paste drops from ~9/20 to 4/20, but those 4 (anime 222
+    tqb r + tq fl, photo 111 tqb r + tq fl) now go to a WHITE backdrop instead. Fixed: photo 222 back eye/tqb r/tq fl
+    (grey backdrop kept), anime 111 front hi (purple ground back, street still not shown).
+  - The low stop holds 4/4 with the plain ref (same strong worm's-eye, place kept). The plain ref costs it nothing.
+  (b) FLUX.3 TURN, THEN QWEN LOW (`_lo30` words: keep the same side view, drop to just above the floor, name what shows
+      above her), plain low-twin ref:
+  - 8/8 PASS. A real ground-level low on every turned view; the turn side is kept (tq fl still faces frame-left,
+    tqb r still from behind-right); the place kept and revealed (street + sky + power lines on anime; studio ceiling +
+    softbox on photo); identity + anime style held. One flaw: anime 222 tq fl crops her head off the top (1/8), anime
+    111 tq fl has it at the very edge.
+  - Read: the split chains. A low on a turned stop = two edits (FLUX.3 yaw, then Qwen pitch), as Fabio's slider rule
+    already says (both sliders moved = two edits). Qwen's ref-background copy matters little in the split: Qwen only
+    runs the low stop, where it keeps the place. Use the plain refs for Qwen. Head crop: maybe add "her whole head
+    still in frame" to the low words.
