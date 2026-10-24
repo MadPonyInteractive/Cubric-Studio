@@ -7080,3 +7080,5 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1279", "at": "2026-10-24T20:36:19+01:00", "actor": "claude", "from": "doing", "to": "doing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1279", "at": "2026-10-24T20:51:52+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "shipped 18379ccc0, CI green"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1268", "at": "2026-10-24T22:18:21+01:00", "actor": "LTX 2.5 model 11", "from": "todo", "to": "doing", "reason": "Fabio: stack reorder first, not dev-gated"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1282", "at": "2026-10-24T23:06:26+01:00", "actor": "claude", "column": "todo", "title": "Gallery filter: a Stacks row that shows only stacks"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1282", "at": "2026-10-24T23:07:15+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started."}
