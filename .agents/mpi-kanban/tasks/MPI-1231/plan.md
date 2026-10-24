@@ -23,6 +23,10 @@
   (`OPENS_FOR_USER`), routines refuse. Full suite green; modules load in an isolated page (age gate
   not clicked: Fabio's consent). NOT run live (GPU). Doc: existing-flows/storyboard.md. NEXT: Fabio
   looks at the Flow in his app (dev), then Phase 0 on the GPU (planner + panels).
+- 2026-10-25 ("LTX 2.5 model 12", Fabio's first look): shapes = LTX's 16:9 / 9:16 / 21:9 / 1:1 (21:9 as
+  exact pixels `WIDE_21_9`, built + checked in an isolated page); ten slots -> `grid: true` numbered tile
+  grid (MpiBaseFlow `_buildSlotGrid`), which should also stop the info column being pushed down. 208f9ccd0.
+  NOT SEEN on screen (isolated copy stops at the 18+ gate; never click it). NEXT: Fabio's look, then Phase 0.
 
 ## Phase 0: Panel recipe - `user-ux` (local GPU, Fabio's yes; no money)
 
