@@ -189,6 +189,21 @@ test('step versions: every member moves one, clamped to its own history', () => 
     assert.strictEqual(S.applyStepVersions(groups, 'nope', 1).groups, groups);
 });
 
+test('reorder: members take the new order, the stack keeps its slot, a bad set is refused', () => {
+    const s = stackOf('s', ['a', 'b', 'c'], { createdAt: '2026-09-21T00:00:00Z' });
+    const groups = [img('a'), img('b'), img('c'), img('x'), s];
+    const out = S.applyReorderMembers(groups, 's', ['c', 'a', 'b']);
+    const moved = out.find(g => g.id === 's');
+    assert.deepStrictEqual(moved.members, ['c', 'a', 'b'], 'the new first member is the gallery face');
+    assert.strictEqual(moved.createdAt, s.createdAt, 'the stack does not move in the grid');
+    assert.strictEqual(out.find(g => g.id === 'a'), groups[0], 'members themselves are untouched');
+    assert.strictEqual(S.applyReorderMembers(groups, 's', ['a', 'b', 'c']), groups, 'same order is a no-op');
+    assert.strictEqual(S.applyReorderMembers(groups, 's', ['c', 'a']), groups, 'a member missing is refused');
+    assert.strictEqual(S.applyReorderMembers(groups, 's', ['c', 'a', 'x']), groups, 'a stranger is refused');
+    assert.strictEqual(S.applyReorderMembers(groups, 's', ['c', 'c', 'a']), groups, 'a duplicate is refused');
+    assert.strictEqual(S.applyReorderMembers(groups, 'a', ['a']), groups, 'not a stack');
+});
+
 test('header stats: every member version, under the stack id', () => {
     const s = stackOf('s', ['a', 'b']);
     const out = S.stackStatsGroup(s, [img('a'), img('b'), img('x'), s]);

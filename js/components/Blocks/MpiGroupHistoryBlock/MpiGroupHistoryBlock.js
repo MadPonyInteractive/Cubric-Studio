@@ -63,7 +63,7 @@ import { loadAll as loadAssets } from '../../../services/assetService.js';
 import { extractFilenameFromPath, extractAbsPath, resolveMediaUrl, downloadMediaFiles } from '../../../utils/mediaActions.js';
 import { describeItem } from '../../../utils/describeAction.js';
 import { resolveActiveModel, setSelectedModelId, getSelectedOp, setSelectedOp } from '../../../utils/modelHelpers.js';
-import { updateGroup, addGroup, removeGroup, applyPromptReuseSettings, removeFromStack, stepStackVersions, stackGroups } from '../../../services/projectService.js';
+import { updateGroup, addGroup, removeGroup, applyPromptReuseSettings, removeFromStack, reorderStack, stepStackVersions, stackGroups } from '../../../services/projectService.js';
 import { buildPromptReuseSettings, resolvePromptReuseMediaItems, payloadHasReusableImages, payloadHasReusableVideos, payloadHasReusableAudio, isFlowCardItem } from '../../../utils/promptReuse.js';
 import {
     promoteHistoryEntry,
@@ -562,6 +562,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                 controlsMount.appendChild(_videoBarHost);
             }
             memberStrip = MpiThumbStrip.mount(stripWrap, {
+                allowReorder: true,
                 decorateThumb: (thumbEl, index) => {
                     const m = state.currentProject?.itemGroups?.find(g => g.id === _stripIds[index]);
                     const item = m?.history?.[m.selectedIndex ?? 0];
@@ -578,6 +579,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             memberStrip.on('thumb-select', ({ index }) => _showMemberAt(index));
             memberStrip.on('scrub-end', ({ index }) => _showMemberAt(index));
             memberStrip.on('selection-change', ({ indices }) => { _picked = indices; _syncRunCount(); });
+            memberStrip.on('reorder', ({ from, to }) => _reorderMembers(from, to));
             memberStrip.on('menu-select', ({ key, index, selection }) => {
                 const members = _stackMembers();
                 const ids = (selection.includes(index) ? selection : [index]).map(i => members[i]?.id).filter(Boolean);
@@ -1722,6 +1724,28 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         function _showMemberAt(index) {
             const member = _stackMembers()[index];
             if (member && member.id !== _group.id) _showMember(member);
+        }
+
+        /**
+         * Hold-and-drag on the strip (MPI-1268). The strip already shows the new order;
+         * `_stripIds` and the picks follow it now, so the repaint `reorderStack`'s
+         * `project:group-updated` brings keeps the picks.
+         */
+        function _reorderMembers(from, to) {
+            const stack = state.currentProject?.itemGroups?.find(g => g.id === _stackId);
+            if (!stack || from === to) return;
+            const shown = [..._stripIds];
+            const pickedIds = _picked.map(i => shown[i]);
+            const [moved] = shown.splice(from, 1);
+            shown.splice(to, 0, moved);
+            // The strip lists only members with a history (`_stackMembers`); any other
+            // member keeps its slot in `stack.members`.
+            const visible = new Set(shown);
+            let next = 0;
+            const ordered = stack.members.map(id => (visible.has(id) ? shown[next++] : id));
+            _stripIds = shown;
+            _picked = pickedIds.map(id => shown.indexOf(id));
+            reorderStack(_stackId, ordered);
         }
 
         /** The stack changed under the workspace: follow it, or leave when it is gone. */

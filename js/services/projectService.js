@@ -31,6 +31,7 @@ import {
     applyUnstack,
     applyAddMembers,
     applyRemoveMembers,
+    applyReorderMembers,
     applySettleResultStack,
     applyStepVersions,
 } from '../data/stackModel.js';
@@ -642,6 +643,27 @@ export async function removeFromStack(stackId, memberIds) {
         if (stack) Events.emit('project:group-updated', { group: stack });
         else Events.emit('project:group-removed', { groupId: stackId });
         for (const g of itemGroups.filter(g => memberIds.includes(g.id))) Events.emit('project:group-updated', { group: g });
+    });
+}
+
+/**
+ * Put a stack's members in a new order (MPI-1268, the History strip's hold-and-drag). One
+ * write; the new first member becomes the gallery face. Emits `project:group-updated` for
+ * the stack. A list that is not exactly the current members changes nothing.
+ * @param {string} stackId
+ * @param {string[]} orderedIds
+ * @returns {Promise<boolean>} whether the order changed
+ */
+export async function reorderStack(stackId, orderedIds) {
+    return _enqueueMutation(async () => {
+        const groups = state.currentProject?.itemGroups;
+        if (!groups) return false;
+        const itemGroups = applyReorderMembers(groups, stackId, orderedIds);
+        if (itemGroups === groups) return false;
+        state.currentProject = { ...state.currentProject, updatedAt: new Date().toISOString(), itemGroups };
+        await persistGroups();
+        Events.emit('project:group-updated', { group: itemGroups.find(g => g.id === stackId) });
+        return true;
     });
 }
 

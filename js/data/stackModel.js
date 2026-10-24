@@ -184,6 +184,25 @@ export function applyRemoveMembers(groups, stackId, memberIds = []) {
 }
 
 /**
+ * Puts a stack's members in a new order (MPI-1268, the History strip's hold-and-drag). The
+ * new first member is the gallery face; the stack keeps its own `createdAt`, so its slot in
+ * the grid does not move.
+ * @param {string[]} orderedIds - exactly the current members, in the new order
+ * @returns {Array<Object>} new groups array; unchanged when the ids are not exactly the
+ *   current members, or the order is the same
+ */
+export function applyReorderMembers(groups, stackId, orderedIds = []) {
+    const stack = groups.find(g => g.id === stackId);
+    if (!isStack(stack)) return groups;
+    const current = stack.members;
+    const sameSet = orderedIds.length === current.length
+        && new Set(orderedIds).size === current.length
+        && orderedIds.every(id => current.includes(id));
+    if (!sameSet || orderedIds.every((id, i) => id === current[i])) return groups;
+    return groups.map(g => (g.id === stackId ? { ...g, members: [...orderedIds] } : g));
+}
+
+/**
  * The History workspace's ◀ Version ▶ (MPI-949 Phase 4): every member's current version
  * moves `delta` steps, clamped to its own history, so a member with no earlier (or later)
  * version stays put. Only a member whose index moves is replaced.
