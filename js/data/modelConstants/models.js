@@ -1952,8 +1952,9 @@ const ALL_MODELS = [
         // the source times the factor.
         imageSizedOps: ['control', 'detail', 'upscale'],
         // Edit follows reference 1 (the encoder's latent) unless the Custom size button is
-        // on (MPI-1207): then an unmasked edit takes the ratio + tier picker.
-        customSizeOps: ['edit'],
+        // on (MPI-1207): then an unmasked edit takes the ratio + tier picker. Control the
+        // same (MPI-1271): on, image 1 is padded to the picked size ('Control Custom Size').
+        customSizeOps: ['edit', 'control'],
         qualityTiers: ['1k', '2k'],
         // Krea 2's grid: 1k is the FLUX set, 2k the larger class. Every edge is /32.
         ratios: {

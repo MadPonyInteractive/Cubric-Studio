@@ -21,7 +21,7 @@ import { MpiRadioGroup } from '../../Primitives/MpiRadioGroup/MpiRadioGroup.js';
 import { qsa } from '../../../utils/dom.js';
 import { state } from '../../../state.js';
 import { getOpSettings, getSharedSettings, getModelSettings } from '../../../data/projectModel.js';
-import { commands, getCommandComponents, modelShowsStyleRack, modelShowsRatio, modelShowsBatch, CONTROL_TYPES, modelControlTypes, AUDIO_CATEGORIES, AUDIO_LENGTH, TTS_LANGUAGES, ttsLanguageValue, ttsLanguageParams, TTS_KNOBS, ttsKnobParams } from '../../../data/commandRegistry.js';
+import { commands, getCommandComponents, modelShowsStyleRack, modelShowsRatio, modelShowsCustomSize, modelShowsBatch,CONTROL_TYPES, modelControlTypes, AUDIO_CATEGORIES, AUDIO_LENGTH, TTS_LANGUAGES, ttsLanguageValue, ttsLanguageParams, TTS_KNOBS, ttsKnobParams } from '../../../data/commandRegistry.js';
 import { PROMPT_CONTROL_DEFAULTS } from '../../../data/promptControlDefaults.js';
 import { Events } from '../../../events.js';
 import { getModelRatios, usesQualityTier } from '../../../utils/ratios.js';
@@ -2254,7 +2254,7 @@ export function visibleControlIds(model, operation, ctx = {}) {
         // it mounts with the ratio or not at all (MPI-1181).
         if (id === 'qualityTier' && commands[operation]?.sizeOptIn && !modelShowsRatio(model, operation)) return false;
         // The Custom size button gates that picker, so it exists exactly where the picker can.
-        if (id === 'customSize' && !(commands[operation]?.sizeOptIn && modelShowsRatio(model, operation))) return false;
+        if (id === 'customSize' && !modelShowsCustomSize(model, operation)) return false;
 
         // Qwen-Edit tier radio (Input_Tier) mounts only for models that ship a
         // runtime accelerator-tier switch (Qwen-Image-Edit). Capability-gated so

@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1271",
+  "title": "Custom size on Control: pad the control image to the picked ratio",
+  "description": "Control gets the Custom size button on models naming it in customSizeOps: Resize Image v2 (pad) to Input_Width/Height, used when custom size is on and no mask is drawn, else the source passes through. Fabio wired Qwen Edit; port to Qwen-Image 2.1, then the other control graphs.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-24T09:35:08+01:00",
+  "updated_at": "2026-10-24T09:35:08+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

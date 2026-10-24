@@ -2465,11 +2465,13 @@ export const MpiPromptBox = ComponentFactory.create({
 
         // Park or restore the size picker per the Custom size button (MPI-1181). No button
         // mounted (an op without `sizeOptIn`) = nothing is gated. A drawn mask keeps the
-        // source frame, so it greys the button out and parks the picker too (MPI-1207).
+        // source frame on an edit, so it greys the button out and parks the picker too
+        // (MPI-1207). Not on control (MPI-1271, Fabio): a masked control can be one figure
+        // in a big picture that still wants the padded size.
         function _applyCustomSize() {
             const btn = _activeControls.get('customSize');
             if (!btn) return;
-            const masked = _context.hasMask === true;
+            const masked = _context.hasMask === true && commands[activeOperation]?.sizeOptIn === true;
             btn.setMasked?.(masked);
             const on = btn.getValue() === true && !masked;
             for (const [id, host] of _sizeHosts) {

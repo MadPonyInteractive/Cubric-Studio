@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1271", "at": "2026-10-24T09:35:08+01:00", "actor": "claude", "column": "doing", "title": "Custom size on Control: pad the control image to the picked ratio"}

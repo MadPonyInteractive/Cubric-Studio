@@ -1214,7 +1214,7 @@
       "preprocessor": "OpenposePreprocessor",
       "resolution": 1024,
       "image": [
-        "100",
+        "150",
         0
       ]
     },
@@ -1228,7 +1228,7 @@
       "preprocessor": "DepthAnythingV2Preprocessor",
       "resolution": 1024,
       "image": [
-        "100",
+        "150",
         0
       ]
     },
@@ -1242,7 +1242,7 @@
       "preprocessor": "ScribblePreprocessor",
       "resolution": 1024,
       "image": [
-        "100",
+        "150",
         0
       ]
     },
@@ -1256,7 +1256,7 @@
       "preprocessor": "CannyEdgePreprocessor",
       "resolution": 1024,
       "image": [
-        "100",
+        "150",
         0
       ]
     },
@@ -1353,7 +1353,7 @@
   "110": {
     "inputs": {
       "image": [
-        "100",
+        "150",
         0
       ]
     },
@@ -2036,6 +2036,52 @@
     "class_type": "TextEncodeQwenImage21",
     "_meta": {
       "title": "Text Encode (control subjects)"
+    }
+  },
+  "149": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "keep_proportion": "pad",
+      "pad_color": "0, 0, 0",
+      "crop_position": "center",
+      "divisible_by": 32,
+      "device": "cpu",
+      "image": [
+        "11",
+        0
+      ],
+      "width": [
+        "6",
+        0
+      ],
+      "height": [
+        "7",
+        0
+      ]
+    },
+    "class_type": "ImageResizeKJv2",
+    "_meta": {
+      "title": "Resize to Custom Size (pad)"
+    }
+  },
+  "150": {
+    "inputs": {
+      "true": [
+        "149",
+        0
+      ],
+      "false": [
+        "100",
+        0
+      ],
+      "boolean": [
+        "128",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Control Custom Size"
     }
   }
 }

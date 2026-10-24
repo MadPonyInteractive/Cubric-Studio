@@ -32,7 +32,7 @@ import {
     getModelRatios, usesQualityTier, qualityTiersFor, clampQualityTier, defaultQualityTier,
 } from '../utils/ratios.js';
 import {
-    getCommandDefault, modelShowsStyleRack, modelShowsBatch, modelShowsRatio,
+    getCommandDefault, modelShowsStyleRack, modelShowsBatch, modelShowsRatio, modelShowsCustomSize,
     getCommandMediaInputs, filterMediaInputsForModel, getCommandComponents,
     AUDIO_CATEGORIES, AUDIO_LENGTH, TTS_LANGUAGES, audioCategoryValue, ttsLanguageValue, ttsLanguageParams,
     TTS_KNOBS, ttsKnobParams,
@@ -275,7 +275,7 @@ export function namedParamsFor(model, operation) {
         ...(modelShowsTransparent(model, operation) ? { transparent: true } : {}),
         // An edit whose size sits behind the Custom size button (`customSizeOps`, MPI-1181/1207): ratio and
         // qualityTier are optional there, and leaving both out keeps reference 1's own frame (resolveNamedParams).
-        ...(modelShowsRatio(model, operation) && getCommandComponents(operation).includes('customSize') ? { customSize: true } : {}),
+        ...(modelShowsCustomSize(model, operation) ? { customSize: true } : {}),
         // Boxes (MPI-1181): where things go in the frame, the PromptBox Boxes panel's list.
         ...(modelTakesBoxes(model, operation) ? { boxes: true } : {}),
     };
@@ -576,7 +576,7 @@ export function resolveNamedParams(project, model, operation, named = {}) {
     // FLUX.3's edit (MPI-1181): the size picker sits behind the Custom size button. A
     // named ratio or tier turns it on; unasked, the project's own button decides; off, the
     // edit follows reference 1 and no size is injected (the PromptBox parks the picker).
-    const sizeGated = modelShowsRatio(model, operation) && getCommandComponents(operation).includes('customSize');
+    const sizeGated = modelShowsCustomSize(model, operation);
     const customSize = sizeGated && (ratio !== undefined || qualityTier !== undefined
         || getOpSettings(project || {}, model?.id, operation).customSize === true);
     if (sizeGated) {

@@ -1,0 +1,62 @@
+'use strict';
+
+/**
+ * control-custom-size.test.cjs — MPI-1271.
+ *
+ * Control gets the Custom size button on a model naming `control` in `customSizeOps`: on,
+ * the graph pads image 1 to the picked ratio + tier; off, the control follows its source as
+ * before. Every other model's control keeps following its source, with no button and no
+ * picker, until its graph learns the padded path.
+ */
+
+const assert = require('node:assert/strict');
+const test = require('node:test');
+
+const { resolveNamedParams } = require('../js/data/generationControls.js');
+const { MODELS } = require('../js/data/modelConstants/models.js');
+
+const QWEN21 = MODELS.find((m) => m.id === 'qwen-image-2-1');
+const RATIO = { shared: { image: { ratioSelector: { selectedRatio: '1:1', orientation: 'portrait' } } } };
+const optedIn = (m) => m.customSizeOps?.includes('control');
+const controlModels = MODELS.filter((m) => m.supportedOps?.includes('control'));
+
+test('the button and its picker exist on control exactly where the model opts in', async () => {
+    const { modelShowsRatio, modelShowsCustomSize } = await import('../js/data/commandRegistry.js');
+    assert.ok(optedIn(QWEN21));
+    for (const m of controlModels) {
+        assert.equal(modelShowsCustomSize(m, 'control'), !!optedIn(m), m.id);
+        assert.equal(modelShowsRatio(m, 'control'), !!optedIn(m), `${m.id}: no picker without the button`);
+    }
+    // The edit family is unchanged.
+    assert.equal(modelShowsCustomSize(QWEN21, 'edit'), true);
+});
+
+test('prompt box: the button mounts before ratio + tier on an opted-in control', async () => {
+    const { visibleControlIds } = await import('../js/components/Organisms/MpiPromptBox/PromptBoxControls.js');
+    const ids = visibleControlIds(QWEN21, 'control', {});
+    assert.ok(ids.includes('customSize'));
+    assert.ok(ids.indexOf('customSize') < ids.indexOf('ratio'));
+    for (const m of controlModels.filter((x) => !optedIn(x))) {
+        const other = visibleControlIds(m, 'control', {});
+        assert.ok(!other.includes('customSize') && !other.includes('ratio'), m.id);
+    }
+});
+
+test('agent control: off by default, a named ratio turns it on and sizes the run', () => {
+    const off = resolveNamedParams(RATIO, QWEN21, 'control', {});
+    assert.equal(off.ok, true);
+    assert.equal(off.injectionParams.Input_custom_size, false);
+    assert.equal(off.injectionParams.Width, undefined);
+    const on = resolveNamedParams(RATIO, QWEN21, 'control', { ratio: '1:1' });
+    assert.equal(on.injectionParams.Input_custom_size, true);
+    assert.ok(on.injectionParams.Width > 0);
+});
+
+test('agent control on a model that has not opted in: no flag, no size', () => {
+    for (const m of controlModels.filter((x) => !optedIn(x))) {
+        const r = resolveNamedParams(RATIO, m, 'control', {});
+        assert.equal(r.ok, true, m.id);
+        assert.equal('Input_custom_size' in r.injectionParams, false, m.id);
+        assert.equal(r.injectionParams.Width, undefined, m.id);
+    }
+});

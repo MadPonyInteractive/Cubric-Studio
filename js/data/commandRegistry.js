@@ -396,7 +396,9 @@ export const commands = {
         // (Qwen alone has no strength node). `ratio` is suppressed per model by
         // `imageSizedOps`/modelShowsRatio, which is how Klein/Krea2/Qwen hide it here
         // while SDXL and Chroma keep it.
-        components: ['qualityTier', 'qwenTier', 'controlType', 'styleSelect', 'stylization', 'controlStrength', 'ratio', 'batch', 'krea2Turbo'],
+        // `customSize` mounts only where modelShowsCustomSize says (MPI-1271), and MUST come
+        // before qualityTier and ratio, which sit behind it there.
+        components: ['customSize', 'qualityTier', 'qwenTier', 'controlType', 'styleSelect', 'stylization', 'controlStrength', 'ratio', 'batch', 'krea2Turbo'],
     },
     // FLUX.2 Klein's instruction edit (MPI-354). A separate op from `edit` and
     // `krea2Edit` for one reason: THREE reference images. `ReferenceLatent` sets
@@ -2094,11 +2096,28 @@ export function modelShowsStyleRack(model, operation) {
  */
 export function modelShowsRatio(model, operation) {
     if (!getCommandComponents(operation).includes('ratio')) return false;
-    // An op that follows its source on every model but the ones naming it in
-    // `customSizeOps` (MPI-1181, MPI-1207: the edit family's unmasked frame).
-    if (commands[operation]?.sizeOptIn && !model?.customSizeOps?.includes(operation)) return false;
+    // A model naming the op in `customSizeOps` shows the picker behind its Custom size
+    // button: the edit family's frame (MPI-1181, MPI-1207), and a control its graph
+    // otherwise sizes from the source (`imageSizedOps`, MPI-1271).
+    if (model?.customSizeOps?.includes(operation)) return true;
+    // An op that follows its source on every other model.
+    if (commands[operation]?.sizeOptIn) return false;
     const imageSized = Array.isArray(model?.imageSizedOps) ? model.imageSizedOps : [];
     return !imageSized.includes(operation);
+}
+
+/**
+ * May `model` show the Custom size button on `operation`? (MPI-1181, MPI-1271)
+ *
+ * The button gates the size picker on an op that otherwise follows its source: an op
+ * with `sizeOptIn` (the edit family), or one the model names in `customSizeOps`. Control
+ * is the second kind: every graph sizes it from the source (`imageSizedOps`), and a model
+ * opts in once its graph pads the source to the picked size when asked.
+ */
+export function modelShowsCustomSize(model, operation) {
+    if (!getCommandComponents(operation).includes('customSize')) return false;
+    const optIn = commands[operation]?.sizeOptIn === true || model?.customSizeOps?.includes(operation) === true;
+    return optIn && modelShowsRatio(model, operation);
 }
 
 /**
