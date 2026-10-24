@@ -1,8 +1,8 @@
 {
   "id": "575e77e9-f3c9-40fe-bb6d-2027e56af489",
   "revision": 0,
-  "last_node_id": 148,
-  "last_link_id": 367,
+  "last_node_id": 150,
+  "last_link_id": 373,
   "nodes": [
     {
       "id": 1,
@@ -342,7 +342,8 @@
           "type": "INT",
           "links": [
             180,
-            224
+            224,
+            369
           ]
         }
       ],
@@ -391,7 +392,8 @@
           "type": "INT",
           "links": [
             181,
-            225
+            225,
+            370
           ]
         }
       ],
@@ -585,7 +587,8 @@
             223,
             251,
             277,
-            304
+            304,
+            368
           ]
         },
         {
@@ -5787,11 +5790,7 @@
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
-            278,
-            279,
-            280,
-            281,
-            292
+            372
           ]
         }
       ],
@@ -8016,7 +8015,8 @@
           "name": "boolean",
           "type": "BOOLEAN",
           "links": [
-            331
+            331,
+            373
           ]
         }
       ],
@@ -9525,6 +9525,227 @@
         "negative_prompt": "",
         "resolution": 1024
       }
+    },
+    {
+      "id": 149,
+      "type": "ImageResizeKJv2",
+      "pos": [
+        1400,
+        1600
+      ],
+      "size": [
+        270,
+        286
+      ],
+      "flags": {},
+      "order": 216,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "image",
+          "name": "image",
+          "type": "IMAGE",
+          "link": 368
+        },
+        {
+          "localized_name": "mask",
+          "name": "mask",
+          "shape": 7,
+          "type": "MASK",
+          "link": null
+        },
+        {
+          "localized_name": "width",
+          "name": "width",
+          "type": "INT",
+          "widget": {
+            "name": "width"
+          },
+          "link": 369
+        },
+        {
+          "localized_name": "height",
+          "name": "height",
+          "type": "INT",
+          "widget": {
+            "name": "height"
+          },
+          "link": 370
+        },
+        {
+          "localized_name": "upscale_method",
+          "name": "upscale_method",
+          "type": "COMBO",
+          "widget": {
+            "name": "upscale_method"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "keep_proportion",
+          "name": "keep_proportion",
+          "type": "COMBO",
+          "widget": {
+            "name": "keep_proportion"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "pad_color",
+          "name": "pad_color",
+          "type": "STRING",
+          "widget": {
+            "name": "pad_color"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "crop_position",
+          "name": "crop_position",
+          "type": "COMBO",
+          "widget": {
+            "name": "crop_position"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "divisible_by",
+          "name": "divisible_by",
+          "type": "INT",
+          "widget": {
+            "name": "divisible_by"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "device",
+          "name": "device",
+          "shape": 7,
+          "type": "COMBO",
+          "widget": {
+            "name": "device"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "IMAGE",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            371
+          ]
+        },
+        {
+          "localized_name": "width",
+          "name": "width",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "localized_name": "height",
+          "name": "height",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "localized_name": "mask",
+          "name": "mask",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-kjnodes",
+        "ver": "35e5956193769d18a13136cdedb73a36a05c73e6",
+        "Node name for S&R": "ImageResizeKJv2"
+      },
+      "widgets_values": [
+        512,
+        512,
+        "lanczos",
+        "pad",
+        "0, 0, 0",
+        "center",
+        32,
+        "cpu"
+      ],
+      "widgets_values_named": {
+        "width": 512,
+        "height": 512,
+        "upscale_method": "lanczos",
+        "keep_proportion": "pad",
+        "pad_color": "0, 0, 0",
+        "crop_position": "center",
+        "divisible_by": 32,
+        "device": "cpu"
+      },
+      "title": "Resize to Custom Size (pad)"
+    },
+    {
+      "id": 150,
+      "type": "MpiIfElse",
+      "pos": [
+        1400,
+        1450
+      ],
+      "size": [
+        270,
+        78
+      ],
+      "flags": {},
+      "order": 217,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "true",
+          "name": "true",
+          "type": "*",
+          "link": 371
+        },
+        {
+          "localized_name": "false",
+          "name": "false",
+          "type": "*",
+          "link": 372
+        },
+        {
+          "localized_name": "boolean",
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "boolean"
+          },
+          "link": 373
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "output",
+          "name": "output",
+          "type": "*",
+          "links": [
+            278,
+            279,
+            280,
+            281,
+            292
+          ]
+        }
+      ],
+      "title": "Control Custom Size",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
+        "Node name for S&R": "MpiIfElse"
+      },
+      "widgets_values": [
+        true
+      ],
+      "widgets_values_named": {
+        "boolean": true
+      }
     }
   ],
   "links": [
@@ -10498,7 +10719,7 @@
     ],
     [
       278,
-      100,
+      150,
       0,
       101,
       0,
@@ -10506,7 +10727,7 @@
     ],
     [
       279,
-      100,
+      150,
       0,
       102,
       0,
@@ -10514,7 +10735,7 @@
     ],
     [
       280,
-      100,
+      150,
       0,
       103,
       0,
@@ -10522,7 +10743,7 @@
     ],
     [
       281,
-      100,
+      150,
       0,
       104,
       0,
@@ -10610,7 +10831,7 @@
     ],
     [
       292,
-      100,
+      150,
       0,
       110,
       0,
@@ -11199,6 +11420,54 @@
       148,
       5,
       "STRING"
+    ],
+    [
+      368,
+      11,
+      0,
+      149,
+      0,
+      "IMAGE"
+    ],
+    [
+      369,
+      6,
+      0,
+      149,
+      2,
+      "INT"
+    ],
+    [
+      370,
+      7,
+      0,
+      149,
+      3,
+      "INT"
+    ],
+    [
+      371,
+      149,
+      0,
+      150,
+      0,
+      "*"
+    ],
+    [
+      372,
+      100,
+      0,
+      150,
+      1,
+      "*"
+    ],
+    [
+      373,
+      128,
+      0,
+      150,
+      2,
+      "BOOLEAN"
     ]
   ],
   "groups": [
