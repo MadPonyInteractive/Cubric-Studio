@@ -1,0 +1,71 @@
+(node:24656) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/AI/Mpi/Cubric-Vision/js/shell/agentToolOps.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\AI\Mpi\Cubric-Vision\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+agent-test: XiaomiMiMo/MiMo-V2.6-Flash · 8 case(s) × 1 
+price: $0.14/M in, $0.28/M out
+[2026-10-24T20:31:29.500Z] [WARN] [project] ffprobe failed for C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: Command failed: C:\AI\Mpi\Cubric-Vision\node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe -v error -print_format json -show_streams -show_format C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4
+C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: No such file or directory
+
+[2026-10-24T20:31:29.504Z] [INFO] [agent] look FRESH result i2v_004.mp4: FAILED: Could not read "i2v_004.mp4" as a clip: could not read "i2v_004.mp4" as a video
+[2026-10-24T20:33:18.117Z] [INFO] [agent] look FRESH result t2i_001.png: A young woman with long straight blonde hair dances alone in a bright white studio, full body, facing the camera. She spins and her hair swings out across the frame. White crop top, light blue jeans, white sneakers.
+  video-hair-to-video-edit #1: pass · 4 calls · 56338 in / 730 out · $0.00809 · 143.5s
+[2026-10-24T20:33:41.793Z] [WARN] [project] ffprobe failed for C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: Command failed: C:\AI\Mpi\Cubric-Vision\node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe -v error -print_format json -show_streams -show_format C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4
+C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: No such file or directory
+
+[2026-10-24T20:33:41.795Z] [INFO] [agent] look FRESH result i2v_004.mp4: FAILED: Could not read "i2v_004.mp4" as a clip: could not read "i2v_004.mp4" as a video
+[2026-10-24T20:34:26.430Z] [WARN] [project] ffprobe failed for C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: Command failed: C:\AI\Mpi\Cubric-Vision\node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe -v error -print_format json -show_streams -show_format C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4
+C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: No such file or directory
+
+[2026-10-24T20:34:26.478Z] [WARN] [project] ffprobe failed for C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: Command failed: C:\AI\Mpi\Cubric-Vision\node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe -v error -print_format json -show_streams -show_format C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4
+C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: No such file or directory
+
+[2026-10-24T20:34:26.480Z] [INFO] [agent] look FRESH result i2v_004.mp4: FAILED: Could not read "i2v_004.mp4" as a clip: could not read "i2v_004.mp4" as a video
+[2026-10-24T20:38:42.019Z] [INFO] [agent] look FRESH result t2i_001.png: A young woman with long straight blonde hair dances alone in a bright white studio, full body, facing the camera. She spins and her hair swings out across the frame. White crop top, light blue jeans, white sneakers.
+  video-coat-to-outfit #1: pass · 7 calls · 79783 in / 1265 out · $0.01152 · 323.9s
+[2026-10-24T20:39:55.599Z] [WARN] [project] ffprobe failed for C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: Command failed: C:\AI\Mpi\Cubric-Vision\node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe -v error -print_format json -show_streams -show_format C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4
+C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: No such file or directory
+
+[2026-10-24T20:39:55.600Z] [INFO] [agent] look FRESH result i2v_004.mp4: FAILED: Could not read "i2v_004.mp4" as a clip: could not read "i2v_004.mp4" as a video
+[2026-10-24T20:43:03.006Z] [WARN] [project] ffprobe failed for C:/Users/maker/Documents/Cubric/Fox Shoot/Media/make_001.gif: Command failed: C:\AI\Mpi\Cubric-Vision\node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe -v error -print_format json -show_streams -show_format C:/Users/maker/Documents/Cubric/Fox Shoot/Media/make_001.gif
+C:/Users/maker/Documents/Cubric/Fox Shoot/Media/make_001.gif: No such file or directory
+
+[2026-10-24T20:43:03.008Z] [INFO] [agent] look FRESH result make_001.gif: FAILED: Could not read "make_001.gif" as a clip: could not read "make_001.gif" as a video
+[2026-10-24T20:44:32.106Z] [WARN] [project] ffprobe failed for C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: Command failed: C:\AI\Mpi\Cubric-Vision\node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe -v error -print_format json -show_streams -show_format C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4
+C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: No such file or directory
+
+[2026-10-24T20:44:32.107Z] [INFO] [agent] look FRESH result i2v_004.mp4: FAILED: Could not read "i2v_004.mp4" as a clip: could not read "i2v_004.mp4" as a video
+[2026-10-24T20:45:39.600Z] [INFO] [agent] look FRESH result t2i_001.png: A young woman with long straight blonde hair dances alone in a bright white studio, full body, facing the camera. She spins and her hair swings out across the frame. White crop top, light blue jeans, white sneakers.
+  video-buns-keeps-face #1: pass · 11 calls · 190409 in / 2500 out · $0.02736 · 417.6s
+[2026-10-24T20:47:37.887Z] [WARN] [project] ffprobe failed for C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: Command failed: C:\AI\Mpi\Cubric-Vision\node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe -v error -print_format json -show_streams -show_format C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4
+C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: No such file or directory
+
+[2026-10-24T20:47:37.888Z] [INFO] [agent] look FRESH result i2v_004.mp4: FAILED: Could not read "i2v_004.mp4" as a clip: could not read "i2v_004.mp4" as a video
+[2026-10-24T20:47:37.888Z] [INFO] [agent] look FRESH attachment att_person.png: Full-body photo of a tall woman with short curly red hair and freckles, in a green bomber jacket, black trousers and boots, standing in a park.
+[2026-10-24T20:50:25.603Z] [WARN] [project] ffprobe failed for C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: Command failed: C:\AI\Mpi\Cubric-Vision\node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe -v error -print_format json -show_streams -show_format C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4
+C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_004.mp4: No such file or directory
+
+[2026-10-24T20:51:51.686Z] [INFO] [agent] look FRESH result t2i_001.png: A young woman with long straight blonde hair dances alone in a bright white studio, full body, facing the camera. She spins and her hair swings out across the frame. White crop top, light blue jeans, white sneakers.
+  video-person-from-picture #1: pass · 7 calls · 114141 in / 1551 out · $0.01641 · 372.1s
+[2026-10-24T20:53:35.227Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  sheet-from-words #1: FAIL · 5 calls · 76958 in / 527 out · $0.01092 · 153.2s
+      - the character is not in positive
+      turn 0 calls: read_knowledge({"id":"app:flows"}) list_models({}) describe_model({"id":"character-sheet"}) generate({"operation":"flowCharacterSheet","prompt":"Grizzled old sea captain, late 60s, weathered tanned skin and deep crow's feet, thick white beard and bushy white eyebrows, wearing a bright yellow oilskin coat with brass buttons over a dark fisherman's sweater, a clay pipe clenched in his teeth with a thin wisp of smoke, stern sea-weathered face, front view, side view, back view and close-up head study, neutral grey studio background, consistent character across all views, painterly concept art style","flowId":"character-sheet","cardName":"Sea captain character sheet"}) write_memory({"file":"fox-shoot-character.md","scope":"project","hook":"Recurring character in Fox Shoot; reuse these details for consistency.","text":"Character: grizzled old sea captain, late 60s, white beard, yellow oilskin coat, clay pipe. Built with the Character Sheet flow (front, side, back, close-up). Keep these details consistent in later generations.","title":"Fox Shoot — sea captain character"})
+      turn 0 reply: Starting the character sheet now with the sea captain's description — front, side, back and close-up views.
+[2026-10-24T20:55:04.813Z] [INFO] [agent] look FRESH attachment att_face.jpg: Head-and-shoulders photo of a man in his thirties with a shaved head, a short black beard and a small scar over his left eyebrow, in a grey hoodie, against a brick wall.
+  sheet-from-face-picture #1: pass · 8 calls · 89466 in / 929 out · $0.01279 · 218.4s
+[2026-10-24T20:58:14.385Z] [INFO] [agent] look FRESH attachment att_person.png: Full-body photo of a tall woman with short curly red hair and freckles, in a green bomber jacket, black trousers and boots, standing in a park.
+  sheet-from-body-picture #1: pass · 11 calls · 178609 in / 1795 out · $0.02551 · 342.5s
+[2026-10-24T21:05:04.938Z] [INFO] [agent] look FRESH result t2i_001.png: A character sheet on a plain grey background: the same young woman in a black ninja outfit over a purple shirt, shown three times: front view, back view and a close-up of her masked face.
+  sheet-editor-shirt #1: pass · 4 calls · 53295 in / 349 out · $0.00756 · 79.1s
+
+summary
+  OK   video-hair-to-video-edit 1/1 — changing the hair of the person in a video runs Video Edit on that video, face kept
+  OK   video-coat-to-outfit 1/1 — a new garment on the person in a video is Video Edit's Change the outfit
+  OK   video-buns-keeps-face 1/1 — a new hairstyle on the person in a video is Anything else, never Swap the head
+  OK   video-person-from-picture 1/1 — the person in a video swapped for the person in a picture: Swap the person, picture as image1
+  FAIL sheet-from-words 0/1 — a character sheet of a described character runs Character Sheet
+  OK   sheet-from-face-picture 1/1 — a character sheet from a face picture opens Character Sheet from Images at its face box
+  OK   sheet-from-body-picture 1/1 — the same from a full-body photo
+  OK   sheet-editor-shirt 1/1 — a new shirt on a character sheet is Character Sheet Editor's Clothes, never an image editor
+cost: $0.1202 for 8 conversations ($0.01502 each, cached priced as fresh) · billed $0.0105 · 0 picture(s) seen

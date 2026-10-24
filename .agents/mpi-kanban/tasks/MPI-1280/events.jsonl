@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1280", "at": "2026-10-24T21:03:03+01:00", "actor": "claude", "column": "todo", "title": "Cosmo: say what is starting the moment it starts"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1280", "at": "2026-10-24T21:03:37+01:00", "actor": "claude", "from": "todo", "to": "doing"}

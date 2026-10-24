@@ -224,7 +224,7 @@ Every event but `agent:session` also carries `session`, the key of its conversat
 | Event | Data | UI |
 |---|---|---|
 | `agent:working` | `{ turnId, working: boolean }` | mascot `waiting.png` + float while true |
-| `agent:message` | `{ turnId, id, text }` | one whole reply per model turn (D3) |
+| `agent:message` | `{ turnId, id, text }` | one whole reply per model turn (D3); a start line (MPI-1280, § Loop rules) is one too |
 | `agent:tool` | `{ turnId, id, tool, status, label }`, status `started` / `done` / `failed` | status line; `label` is plain copy, never the prompt |
 | `agent:confirm` | `{ turnId, confirmId, kind: 'install', modelId, modelName, downloadGb, flowId?, licence? }` | Yes / No card; `flowId` = a Flow (MPI-1127), `licence` adds the licence-screen line |
 | `agent:result` | `{ toolCallId, ok, output?: { itemId, groupId, type, filePath }, error? }` | result card, opens the card; `filePath` is the renderer item's, already a `/project-file?path=` url |
@@ -313,7 +313,7 @@ Every event but `agent:session` also carries `session`, the key of its conversat
   all of them). `describe_model`'s `startFrame` role carries a `use` line (`ROLE_USE`, `routes/connector.js`): the
   clip opens on that exact picture, so a character sheet goes to a `ref2v_*` op. Two reminders ride on
   results without refusing: `create_project`'s `note` asks for the brief note, and the first ok `generate` of a
-  turn with no successful `write_memory` carries `remember` (`MEMORY_NUDGE`, once per turn).
+  turn with no successful `write_memory` carries `remember` (`MEMORY_NUDGE`, once per turn). **Say-and-start (MPI-1280):** the Voice rule puts the reply to a `generate`/`gif`/`run_routine` in the message that calls it; the loop holds those words (`_startLine`) until a call passes its 1 s refusal race (`_sayStarted`) and drops them if every call was refused. A round that spoke and whose calls all started (or noted) ENDS the turn: the next round only narrated it again, and two rounds (the nudged note, then the reply) at ~35 s each on a long chat put the reply after a Turbo render (Fabio, 2026-10-24). A nudge that turn could not answer is read next turn (`MEMORY_LATER`), and an empty last reply after a spoken line draws no bubble.
 - **Harness:** `npm run agent:test` (26 cases x 3, real model, fake tools; `--bite` proves each assertion,
   `--samples <md>` writes prompts to read). A case's `look` is one fixture, or a map keyed by the
   attachment's `filePath` when two images must answer differently — two portraits giving the identical

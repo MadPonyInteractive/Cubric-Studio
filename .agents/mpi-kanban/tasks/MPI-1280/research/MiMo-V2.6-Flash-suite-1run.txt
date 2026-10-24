@@ -1,0 +1,21 @@
+(node:41916) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/AI/Mpi/Cubric-Vision/js/shell/agentToolOps.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\AI\Mpi\Cubric-Vision\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+agent-test: XiaomiMiMo/MiMo-V2.6-Flash · 55 case(s) × 1 
+price: $0.14/M in, $0.28/M out
+[2026-10-24T20:11:45.556Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  picks-installed-model #1: pass · 5 calls · 69100 in / 613 out · $0.00985 · 151.5s
+  install-needed #1: pass · 2 calls · 20919 in / 602 out · $0.00310 · 96.2s
+  auto-video-medium-turbo #1: pass · 4 calls · 51887 in / 459 out · $0.00739 · 147.0s
+[2026-10-24T20:18:20.134Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  max-resolution-is-top-tier #1: pass · 4 calls · 53587 in / 514 out · $0.00765 · 151.3s
+  max-resolution-video #1: pass · 4 calls · 51915 in / 642 out · $0.00745 · 145.4s
+  ask-first #1: FAIL · 6 calls · 86420 in / 880 out · $0.01235 · 418.2s
+      - the first reply asks no question
+      turn 0 calls: list_models({}) describe_model({"id":"minimax-h3"}) read_knowledge({"id":"guide:minimax-h3"}) [options:({})
+      turn 0 reply: 
+      turn 1 calls: generate({"cardName":"Waves on rocks at sunset","ratio":"16:9","prompt":"Coastal sunset look: low golden sun near the horizon, warm amber and rose light across a steel-blue sea, dark wet basalt rocks in the foreground catching orange rim light, spray glowing backlit, mood wild and serene. Cinematic wide shot, natural filmic grade.\n[Shot 1] A long swell rolls in from the right and breaks hard against the jagged rocks, throwing a burst of white spray into the golden light; the water cascades off the rock ledges and churns in the crevice, then a second smaller wave washes over the lower rocks and recedes, foam streaming back into the sea.\nThe camera is static, holding the frame steady on the rocks and the horizon.\noverall_soundscape: Deep roar of waves crashing against rock, hiss and fizz of retreating foam, dripping water in the foreground, a faint wind.\nnon_diegetic_music: N/A\nNo text, subtitles, logos or watermarks, no cartoon or CG rendering, no slow motion, no camera roll.","modelId":"minimax-h3","operation":"t2v_ms","qualityTier":"medium","turbo":true})
+      turn 1 reply: Starting the clip now — MiniMax H3, medium quality, turbo, 16:9, with surf sound generated alongside.
+  install-asks #1: pass · 3 calls · 34485 in / 174 out · $0.00488 · 92.9s
+[2026-10-24T20:29:54.991Z] [INFO] [agent] look FRESH attachment att_fox.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…

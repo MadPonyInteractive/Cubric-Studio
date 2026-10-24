@@ -3519,6 +3519,137 @@ describe('(m) the spend gate', () => {
 });
 
 // ---------------------------------------------------------------------------
+// MPI-1280: the line saying what starts reaches the chat when it starts
+// ---------------------------------------------------------------------------
+
+/**
+ * Live (Fabio, 2026-10-24): FLUX.3 on Turbo landed in ~25 s and Cosmo's "Running on edit_005 with
+ * FLUX.3 Klein..." came after it. The reply was written two model rounds after the dispatch (a
+ * nudged write_memory, then the reply), ~35 s each on a long chat. The line now rides with the
+ * call and is shown once the call is past the refusal race.
+ */
+describe('MPI-1280 say-and-start', () => {
+    const project = { folderPath: '/project', name: 'Test' };
+    const call = (id, name, args) => ({ text: '', toolCalls: [{ id, type: 'function', function: { name, arguments: JSON.stringify(args) } }] });
+    const fox = { modelId: 'test-model', operation: 't2i', prompt: 'A fox' };
+    const said = (fakeRes, text) => fakeRes.events.findIndex((e) => e.event === 'agent:message' && e.data.text === text);
+
+    test('the line riding with a generate shows before the render ends, and the turn ends there', async () => {
+        const { loop, tools, engine, fakeRes } = await makeLoop({
+            engineResponses: [{ ...call('g1', 'generate', fox), text: 'Running a fox on Test Model.' }, { text: 'Started.' }],
+            toolOpts: { generateDelay: 2500 },
+        });
+        tools.listModels = async () => ({ ok: true, models: [{ id: 'test-model', guides: [] }], flows: [] });
+        await loop.runTurn('Make a fox', [], project, 'auto', 'deepinfra', 't-say');
+
+        const line = said(fakeRes, 'Running a fox on Test Model.');
+        assert.ok(line >= 0, 'the start line reached the chat');
+        assert.equal(fakeRes.events.some((e) => e.event === 'agent:result'), false, 'before the render landed');
+        assert.equal(engine.calls.length, 1, 'no second model round between the dispatch and the user');
+        assert.equal(loop._history.filter((e) => e.kind === 'agent').length, 1, 'in history once, so a reload redraws it');
+        // The memory reminder the generate carried is read next turn, not paid for before the line.
+        assert.ok(loop._notes.some((n) => /write_memory/.test(n)), 'the memory reminder waits for the next turn');
+        await waitForEvent(fakeRes, (e) => e.event === 'agent:result', 4000);
+    });
+
+    test('a refused call never shows its start line', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({
+            engineResponses: [{ ...call('g1', 'generate', fox), text: 'Running a fox on Test Model.' }, { text: 'That style does not exist.' }],
+        });
+        tools.listModels = async () => ({ ok: true, models: [{ id: 'test-model', guides: [] }], flows: [] });
+        tools.generate = async () => ({ ok: false, error: { code: 'INVALID_STYLE_SELECT', message: 'no such style' } });
+        await loop.runTurn('Make a fox', [], project, 'auto', 'deepinfra', 't-refused');
+
+        assert.equal(said(fakeRes, 'Running a fox on Test Model.'), -1);
+        assert.ok(said(fakeRes, 'That style does not exist.') >= 0, 'the next round explains');
+    });
+
+    test('a waited step shows its line at the start, and an empty last reply draws no bubble', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({
+            engineResponses: [{ ...call('g1', 'generate', { ...fox, wait: true }), text: 'Making the fox first.' }, { text: '' }],
+            toolOpts: { generateDelay: 1500 },
+        });
+        tools.listModels = async () => ({ ok: true, models: [{ id: 'test-model', guides: [] }], flows: [] });
+        await loop.runTurn('Make a fox', [], project, 'auto', 'deepinfra', 't-wait');
+
+        const line = said(fakeRes, 'Making the fox first.');
+        const result = fakeRes.events.findIndex((e) => e.event === 'agent:result');
+        assert.ok(line >= 0 && line < result, 'shown when it started, before it landed');
+        assert.equal(fakeRes.events.some((e) => e.event === 'agent:message' && !e.data.text), false);
+    });
+
+    // The live shape: every model round is slower than the render. Before the fix the reply came
+    // two rounds after the dispatch (the nudged note, then the words), so it landed after the image.
+    test('with model rounds slower than the render, the user hears what started before it lands', async () => {
+        const { loop, tools, engine, fakeRes } = await makeLoop({
+            engineResponses: [
+                { ...call('g1', 'generate', fox), text: 'Running a fox on Test Model.' },
+                call('m1', 'write_memory', { file: 'fox.md', title: 'Fox', text: 'A red fox.' }),
+                { text: 'Running a fox on Test Model.' },
+            ],
+            toolOpts: { generateDelay: 1500 },
+        });
+        tools.listModels = async () => ({ ok: true, models: [{ id: 'test-model', guides: [] }], flows: [] });
+        tools.writeMemory = async () => ({ ok: true });
+        const chat = engine.chat;
+        engine.chat = async (req) => { await new Promise((r) => setTimeout(r, 800)); return chat(req); };
+        loop.runTurn('Make a fox', [], project, 'auto', 'deepinfra', 't-slow');
+        const result = await waitForEvent(fakeRes, (e) => e.event === 'agent:result', 6000);
+        assert.ok(result, 'the render landed');
+        assert.ok(said(fakeRes, 'Running a fox on Test Model.') >= 0, 'the line was already in the chat when it landed');
+        await waitForEvent(fakeRes, (e) => e.event === 'agent:working' && e.data.working === false, 6000);
+    });
+
+    test('a call sent with no words keeps the old shape: the turn carries on to its reply', async () => {
+        const { loop, tools, engine, fakeRes } = await makeLoop({
+            engineResponses: [call('g1', 'generate', fox), { text: 'A fox is on its way.' }],
+        });
+        tools.listModels = async () => ({ ok: true, models: [{ id: 'test-model', guides: [] }], flows: [] });
+        await loop.runTurn('Make a fox', [], project, 'auto', 'deepinfra', 't-silent');
+        assert.equal(engine.calls.length, 2);
+        assert.ok(said(fakeRes, 'A fox is on its way.') >= 0);
+        assert.equal(loop._notes.some((n) => /write_memory/.test(n)), false, 'the turn read its own memory reminder');
+    });
+
+    test('Stop after the line: one line in the chat, and the next turn hears the stop and the reminder', async () => {
+        const { loop, tools, engine, fakeRes } = await makeLoop({
+            engineResponses: [{ ...call('g1', 'generate', fox), text: 'Running a fox on Test Model.' }],
+        });
+        tools.listModels = async () => ({ ok: true, models: [{ id: 'test-model', guides: [] }], flows: [] });
+        tools.generate = async () => {
+            await new Promise((r) => setTimeout(r, 1300));
+            return { ok: false, error: { code: 'CANCELLED', message: 'The user pressed Stop.' } };
+        };
+        await loop.runTurn('Make a fox', [], project, 'auto', 'deepinfra', 't-stop');
+        await waitForEvent(fakeRes, (e) => e.event === 'agent:result', 3000);
+        assert.equal(engine.calls.length, 1);
+        assert.equal(fakeRes.events.filter((e) => e.event === 'agent:message').length, 1);
+        assert.ok(loop._notes.some((n) => /pressed Stop/.test(n)), 'the stop waits for the next turn');
+        assert.ok(loop._notes.some((n) => /write_memory/.test(n)), 'and so does the memory reminder');
+    });
+
+    test('a round with one refused call carries on, so the model can say what went wrong', async () => {
+        const { loop, tools, engine } = await makeLoop({
+            engineResponses: [
+                { text: 'Running two foxes.', toolCalls: [
+                    { id: 'g1', type: 'function', function: { name: 'generate', arguments: JSON.stringify(fox) } },
+                    { id: 'g2', type: 'function', function: { name: 'generate', arguments: JSON.stringify({ ...fox, prompt: 'A second fox' }) } },
+                ] },
+                { text: 'The second one was refused.' },
+            ],
+        });
+        tools.listModels = async () => ({ ok: true, models: [{ id: 'test-model', guides: [] }], flows: [] });
+        const generate = tools.generate;
+        let n = 0;
+        tools.generate = async (body) => (++n === 2
+            ? { ok: false, error: { code: 'INVALID_STYLE_SELECT', message: 'no such style' } }
+            : generate(body));
+        await loop.runTurn('Make two foxes', [], project, 'auto', 'deepinfra', 't-mixed');
+        assert.equal(engine.calls.length, 2);
+    });
+});
+
+// ---------------------------------------------------------------------------
 // (d) probe: no-tools model reported plainly, never retried
 // ---------------------------------------------------------------------------
 

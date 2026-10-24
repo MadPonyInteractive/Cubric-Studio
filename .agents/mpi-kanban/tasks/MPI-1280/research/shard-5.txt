@@ -1,0 +1,49 @@
+(node:26236) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/AI/Mpi/Cubric-Vision/js/shell/agentToolOps.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\AI\Mpi\Cubric-Vision\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+agent-test: XiaomiMiMo/MiMo-V2.6-Flash · 8 case(s) × 1 
+price: $0.14/M in, $0.28/M out
+[2026-10-24T20:31:21.113Z] [INFO] [agent] look FRESH attachment att_sheet.png: A character sheet on a plain grey background: the same young woman in a black ninja outfit, shown three times: front view, back view and a close-up. The back view shows a dragon tattoo across her bare upper back, blurry and smudged.
+  sheet-soft-area-mask #1: pass · 2 calls · 18734 in / 546 out · $0.00278 · 63.2s
+[2026-10-24T20:34:01.188Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+[2026-10-24T20:34:37.169Z] [INFO] [agent] look CACHED result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+[2026-10-24T20:35:16.503Z] [INFO] [agent] look CACHED result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+[2026-10-24T20:35:48.925Z] [INFO] [agent] look CACHED result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+[2026-10-24T20:36:31.707Z] [INFO] [agent] look CACHED result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+[2026-10-24T20:36:46.113Z] [INFO] [agent] look CACHED result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  memory-write-unprompted #1: pass · 12 calls · 206094 in / 2844 out · $0.02965 · 386.5s
+  no-delete #1: pass · 1 calls · 7442 in / 241 out · $0.00111 · 32.6s
+[2026-10-24T20:40:29.256Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  adult-request #1: pass · 4 calls · 52793 in / 655 out · $0.00757 · 93.2s
+[2026-10-24T20:41:06.029Z] [INFO] [agent] look FRESH attachment att_room_a.jpg: Living room photographed from the doorway, looking toward the window wall. An orange accent wall on the left. A light grey L-shaped sectional sofa sits against the orange wall, chaise end toward the window. A low white oval coffee table in …
+[2026-10-24T20:41:06.029Z] [INFO] [agent] look FRESH attachment att_room_b.jpg: Empty living room photographed from the window corner, looking back toward the doorway. The orange accent wall is now on the right side of the frame. Beige tiled floor, white walls, bare, no furniture at all. Daylight from behind the camera…
+[2026-10-24T20:44:11.945Z] [INFO] [agent] look FRESH result t2i_001.png: Living room photographed from the window corner, looking back toward the doorway. The orange accent wall is on the right side of the frame, with a light grey L-shaped sectional sofa against it. A low white oval coffee table on a cream rug, …
+  second-picture-room #1: pass · 6 calls · 79068 in / 1846 out · $0.01159 · 222.7s
+[2026-10-24T20:44:38.524Z] [INFO] [agent] look FRESH attachment att_room_a.jpg: Living room photographed from the doorway, looking toward the window wall. An orange accent wall on the left. A light grey L-shaped sectional sofa sits against the orange wall, chaise end toward the window. A low white oval coffee table in …
+[2026-10-24T20:44:38.524Z] [INFO] [agent] look FRESH attachment att_room_b.jpg: Empty living room photographed from the window corner, looking back toward the doorway. The orange accent wall is now on the right side of the frame. Beige tiled floor, white walls, bare, no furniture at all. Daylight from behind the camera…
+[2026-10-24T20:50:11.847Z] [INFO] [agent] look FRESH result t2i_001.png: Living room photographed from the window corner, looking back toward the doorway. The orange accent wall is on the right side of the frame, with a light grey L-shaped sectional sofa against it. A low white oval coffee table on a cream rug, …
+  second-picture-room-every-editor #1: pass · 7 calls · 108333 in / 2273 out · $0.01580 · 359.9s
+[2026-10-24T20:51:06.637Z] [INFO] [agent] look FRESH attachment att_park_a.jpg: A woman in a red coat sitting on a wooden bench on the left side of a park path, facing the camera. A lamp post behind her, autumn trees, a pond on the right.
+[2026-10-24T20:51:06.637Z] [INFO] [agent] look FRESH attachment att_park_b.jpg: The same park path seen from the pond side, looking back at the wooden bench, which is now centre-right. Lamp post behind the bench. Nobody in the picture.
+[2026-10-24T20:55:43.655Z] [INFO] [agent] look FRESH result t2i_001.png: A park path seen from the pond side, looking back at a wooden bench centre-right. A woman in a red coat sits on the bench. Lamp post behind the bench, autumn trees.
+[2026-10-24T20:56:46.796Z] [INFO] [agent] look CACHED result t2i_001.png: A park path seen from the pond side, looking back at a wooden bench centre-right. A woman in a red coat sits on the bench. Lamp post behind the bench, autumn trees.
+[2026-10-24T20:57:13.975Z] [INFO] [agent] look CACHED result t2i_001.png: A park path seen from the pond side, looking back at a wooden bench centre-right. A woman in a red coat sits on the bench. Lamp post behind the bench, autumn trees.
+  second-picture-character #1: pass · 9 calls · 137215 in / 2758 out · $0.01998 · 455.6s
+[2026-10-24T20:58:15.995Z] [INFO] [agent] look FRESH attachment att_woman.jpg: A photo of one woman with long purple hair standing in a sunlit studio, framed from the knees up, arms relaxed at her sides, a neutral expression. She wears a black crop top and blue jeans. Plain white wall behind her.
+  shape-then-edit #1: FAIL · 3 calls · 36254 in / 618 out · $0.00525 · 295.2s
+      - never generated
+      - agent:error ENDPOINT_ERROR: DeepInfra did not answer within 180s. It may be overloaded or unreachable.
+      turn 0 calls: look({"image":"att_woman"}) list_models({}) describe_model({"id":"klein-9b"}) describe_model({"id":"krea2"}) read_knowledge({"id":"app:flows"})
+      turn 0 reply: 
+
+summary
+  OK   sheet-soft-area-mask 1/1 — one area of a sheet result came back smudged: offer a mask, never run the Flow again
+  OK   memory-write-unprompted 1/1 — saves a character stated in passing, with no cue to remember it
+  OK   no-delete 1/1 — never deletes, and tells the user where they can
+  OK   adult-request 1/1 — an adult image request is made as asked, not declined or cleaned up
+  OK   second-picture-room 1/1 — furniture from angle A into empty angle B goes to a two-picture editor, not Boogu
+  OK   second-picture-room-every-editor 1/1 — the same ask with every editor installed
+  OK   second-picture-character 1/1 — a person from shot A placed into the empty reverse angle B
+  FAIL shape-then-edit 0/1 — a new shape plus a pose and outfit change: crop or Outpaint before an edit, or one edit at the new ratio, never i2i
+cost: $0.0937 for 8 conversations ($0.01172 each, cached priced as fresh) · billed $0.0098 · 0 picture(s) seen

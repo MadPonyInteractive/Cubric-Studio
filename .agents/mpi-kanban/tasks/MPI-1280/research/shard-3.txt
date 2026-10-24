@@ -1,0 +1,41 @@
+(node:21016) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/AI/Mpi/Cubric-Vision/js/shell/agentToolOps.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\AI\Mpi\Cubric-Vision\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+agent-test: XiaomiMiMo/MiMo-V2.6-Flash · 8 case(s) × 1 
+price: $0.14/M in, $0.28/M out
+[2026-10-24T20:31:19.759Z] [INFO] [agent] look FRESH attachment att_graded.jpg: A still of a parking garage where everything is tinted a sickly green, crushed blacks, soft focus, shot from a high corner.
+[2026-10-24T20:32:30.115Z] [INFO] [agent] look FRESH attachment att_graded.jpg: A still of a parking garage where everything is tinted a sickly green, crushed blacks, soft focus, shot from a high corner.
+  look-grade-into-prompt #1: pass · 4 calls · 52575 in / 1924 out · $0.00790 · 208.1s
+[2026-10-24T20:34:28.271Z] [INFO] [agent] look FRESH attachment att_lit.jpg: A photo of a bowl of lemons on a table lit by one hard window light from the left, deep shadows on the right, faint film grain.
+[2026-10-24T20:35:26.886Z] [INFO] [agent] look FRESH result t2i_001.png: A photo of a bowl of lemons on a table lit by one hard window light from the left, deep shadows on the right, faint film grain.
+  look-light-into-prompt #1: pass · 4 calls · 54045 in / 588 out · $0.00773 · 65.2s
+  check-in-holds #1: pass · 1 calls · 7491 in / 260 out · $0.00112 · 29.2s
+  check-in-only #1: pass · 2 calls · 20981 in / 361 out · $0.00304 · 83.1s
+  check-in-proceeds #1: FAIL · 7 calls · 96429 in / 1777 out · $0.01400 · 342.6s
+      - agent:error ENDPOINT_ERROR: fetch failed
+      turn 0 calls: list_models({}) describe_model({"id":"minimax-h3"}) write_memory({"file":"fox-shoot-lighthouse.md","hook":"Base idea for the \"Fox Shoot\" project video about an old lighthouse keeper.","text":"Video idea: old lighthouse keeper climbs the spiral stairs at night carrying a lantern; at the top he finds the great lamp already lit by someone else (unseen). Slow and eerie, ~8 seconds. Plan: MiniMax H3 t2v, 16:9, medium quality tier, turbo.","title":"Fox Shoot — lighthouse keeper video"})
+      turn 0 reply: Noted the base idea in the project notes so it survives a restart.
+      turn 1 calls: generate({"qualityTier":"medium","prompt":"Slow eerie tracking shot at night inside an old stone lighthouse. An elderly lighthouse keeper in a heavy coat climbs a narrow spiral staircase, holding a glowing brass hand lantern that casts warm swinging light on the curved stone walls and iron rail. The camera follows him from behind and slightly above as he ascends the worn steps, dust drifting in the lantern glow. He reaches the top doorway and steps into the lamp room, and the camera rises with him to reveal: the great lighthouse lens is already lit, burning bright with no one tending it, cold white light cutting through the glass while his lantern dims against it. He stops, silhouetted, staring. Slow, quiet, dread-filled mood, cinematic shadows, deep blacks, subtle film grain.","ratio":"16:9","turbo":true,"cardName":"Keeper's night climb","operation":"t2v_ms","modelId":"minimax-h3","duration":8}) read_knowledge({"id":"guide:minimax-h3"}) generate({"modelId":"minimax-h3","operation":"t2v_ms","prompt":"Old lighthouse at night look: grey weathered stone, deep blacks and cold blue moonlight cut by the warm orange glow of a hand lantern, mood slow and eerie.\n[Shot 1] An elderly lighthouse keeper with a weathered face and heavy wool coat climbs a narrow spiral staircase, holding up a brass hand lantern; the lamp room above is already lit, its bright white beam sweeping through the glass and reaching down the stairwell ahead of him. He keeps climbing steadily, one worn step at a time, until he reaches the top doorway and stops dead in the threshold, his jaw tight with dread, and holds still there for the rest of the shot as the white beam sweeps past his face.\nThe camera follows behind him, pedestal up at his walking speed through the stairwell, then eases to static behind his shoulder in the doorway.\noverall_soundscape: Slow heavy boots on stone steps echoing in the tower, the low sea wind moaning outside, the faint rhythmic mechanical hum of the turning lamp above.\nnon_diegetic_music: A low sustained string drone with sparse high piano notes, quiet and unsettling.\nNo text, subtitles, logos or watermarks, no cartoon or CG rendering, no slow motion.","qualityTier":"medium","ratio":"16:9","turbo":true,"cardName":"Keeper's night climb"})
+      turn 1 reply: 
+  user-stop-not-requeued #1: pass · 7 calls · 102060 in / 851 out · $0.01453 · 218.1s
+[2026-10-24T20:47:13.474Z] [INFO] [agent] look FRESH attachment att_fox.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+[2026-10-24T20:50:04.596Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  outpaint-grows-one-side #1: pass · 4 calls · 53643 in / 387 out · $0.00762 · 204.7s
+  over-boxed-head #1: FAIL · 3 calls · 35849 in / 101 out · $0.00505 · 291.4s
+      - never measured a box at all
+      - the reply does not tell the user what went wrong with the measurement
+      - agent:error ENDPOINT_ERROR: DeepInfra did not answer within 180s. It may be overloaded or unreachable.
+      turn 0 calls: read_knowledge({"id":"app:flows"}) list_models({}) describe_model({"id":"head-swap"})
+      turn 0 reply: 
+
+summary
+  OK   look-grade-into-prompt 1/1 — a picture given for one quality of its look puts that quality in the prompt (look-grade-into-prompt)
+  OK   look-light-into-prompt 1/1 — a picture given for one quality of its look puts that quality in the prompt (look-light-into-prompt)
+  OK   check-in-holds 1/1 — asked "did you understand? don't start yet", it says what it understood and makes nothing
+  OK   check-in-only 1/1 — a bare "make sense?" after an idea makes nothing until the user says go
+  FAIL check-in-proceeds 0/1 — Proceed after a check-in generates
+  OK   user-stop-not-requeued 1/1 — a generation the user stopped is never queued again unasked
+  OK   outpaint-grows-one-side 1/1 — "expand it up" is Outpaint grown up only, at the shape asked for
+  FAIL over-boxed-head 0/1 — a "head" box that is the whole person is refused, not squared into the neighbour
+cost: $0.0610 for 8 conversations ($0.00762 each, cached priced as fresh) · billed $0.0074 · 0 picture(s) seen

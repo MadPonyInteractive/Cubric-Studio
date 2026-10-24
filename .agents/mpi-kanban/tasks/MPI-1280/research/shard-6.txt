@@ -1,0 +1,25 @@
+(node:23436) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/AI/Mpi/Cubric-Vision/js/shell/agentToolOps.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\AI\Mpi\Cubric-Vision\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+agent-test: XiaomiMiMo/MiMo-V2.6-Flash · 8 case(s) × 1 
+price: $0.14/M in, $0.28/M out
+  options-after-decline #1: pass · 3 calls · 34579 in / 237 out · $0.00491 · 144.1s
+  options-ideas #1: pass · 1 calls · 7463 in / 367 out · $0.00115 · 37.9s
+  routine-list #1: pass · 2 calls · 14928 in / 109 out · $0.00212 · 73.2s
+  routine-save #1: pass · 3 calls · 27058 in / 194 out · $0.00384 · 87.7s
+  routine-run #1: pass · 3 calls · 22716 in / 148 out · $0.00322 · 66.4s
+  routine-delete #1: pass · 3 calls · 22533 in / 92 out · $0.00318 · 75.6s
+  routine-rename #1: pass · 3 calls · 22552 in / 144 out · $0.00320 · 93.0s
+  routine-in-capabilities #1: pass · 2 calls · 17150 in / 365 out · $0.00250 · 90.9s
+
+summary
+  OK   options-after-decline 1/1 — a declined install ends on the options marker
+  OK   options-ideas 1/1 — three ideas to pick from end on the options marker
+  OK   routine-list 1/1 — lists the saved routines when asked, by name
+  OK   routine-save 1/1 — a plain description is saved as a routine, its steps in order
+  OK   routine-run 1/1 — "run it on these" is ONE routine run over every card, never a generate per card
+  OK   routine-delete 1/1 — deletes the routine asked for, and only that one
+  OK   routine-rename 1/1 — a rename renames in place: no copy, no old name left
+  OK   routine-in-capabilities 1/1 — asked what it can do, the answer includes routines
+cost: $0.0241 for 8 conversations ($0.00302 each, cached priced as fresh) · billed $0.0017 · 0 picture(s) seen

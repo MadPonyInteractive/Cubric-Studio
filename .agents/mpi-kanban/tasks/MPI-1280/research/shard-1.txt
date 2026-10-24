@@ -1,0 +1,32 @@
+(node:29216) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/AI/Mpi/Cubric-Vision/js/shell/agentToolOps.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\AI\Mpi\Cubric-Vision\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+agent-test: XiaomiMiMo/MiMo-V2.6-Flash · 8 case(s) × 1 
+price: $0.14/M in, $0.28/M out
+[2026-10-24T20:31:22.281Z] [INFO] [agent] look FRESH attachment att_fox.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  look-before-comment #1: pass · 2 calls · 15083 in / 298 out · $0.00220 · 107.2s
+[2026-10-24T20:33:05.183Z] [INFO] [agent] look FRESH attachment att_fox.png: I’m sorry, but I can’t help with describing this image.
+  look-refusal #1: pass · 2 calls · 15012 in / 137 out · $0.00214 · 45.5s
+  video-limit #1: FAIL · 2 calls · 14917 in / 90 out · $0.00211 · 81.6s
+      - did not state that it cannot watch video
+      turn 0 calls: list_cards({})
+      turn 0 reply: The project has no cards in it — there's no video here from earlier that I can find. It may have been made in a different project.
+[2026-10-24T20:39:16.378Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  create-then-generate #1: pass · 7 calls · 96517 in / 1058 out · $0.01381 · 286.6s
+  open-by-name #1: pass · 3 calls · 22676 in / 71 out · $0.00319 · 142.0s
+  new-project-brief #1: pass · 6 calls · 67958 in / 791 out · $0.00974 · 164.5s
+  reads-guide-first #1: pass · 4 calls · 51887 in / 485 out · $0.00740 · 125.6s
+[2026-10-24T20:50:05.820Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  memory-read #1: pass · 5 calls · 61630 in / 820 out · $0.00886 · 199.3s
+
+summary
+  OK   look-before-comment 1/1 — calls look before commenting on an image
+  OK   look-refusal 1/1 — a look refusal -> says so and suggests the local describer
+  FAIL video-limit 0/1 — "watch this video" -> the honest limit
+  OK   create-then-generate 1/1 — landing page, no project -> creates one, opens it, and MAKES what was asked, background or not
+  OK   open-by-name 1/1 — opens a project by its name, with the folder list_projects gave
+  OK   new-project-brief 1/1 — a new project with a goal -> named after it, opened, and a brief note saved there
+  OK   reads-guide-first 1/1 — reads the model's guide before its first prompt for it
+  OK   memory-read 1/1 — reads a project note before relying on it
+cost: $0.0494 for 8 conversations ($0.00618 each, cached priced as fresh) · billed $0.0045 · 0 picture(s) seen

@@ -1,0 +1,20 @@
+(node:36984) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/AI/Mpi/Cubric-Vision/js/shell/agentToolOps.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\AI\Mpi\Cubric-Vision\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+agent-test: XiaomiMiMo/MiMo-V2.6-Flash · 3 case(s) × 1 
+price: $0.14/M in, $0.28/M out
+  check-in-proceeds #1: pass · 5 calls · 60516 in / 1316 out · $0.00884 · 169.3s
+  over-boxed-head #1: pass · 6 calls · 88879 in / 734 out · $0.01265 · 130.7s
+[2026-10-24T21:10:44.046Z] [INFO] [agent] look FRESH attachment att_woman.jpg: A photo of one woman with long purple hair standing in a sunlit studio, framed from the knees up, arms relaxed at her sides, a neutral expression. She wears a black crop top and blue jeans. Plain white wall behind her.
+  shape-then-edit #1: FAIL · 3 calls · 36254 in / 874 out · $0.00532 · 287.2s
+      - never generated
+      - agent:error ENDPOINT_ERROR: DeepInfra did not answer within 180s. It may be overloaded or unreachable.
+      turn 0 calls: look({"image":"att_woman"}) list_models({}) describe_model({"id":"klein-9b"}) describe_model({"id":"krea2"})
+      turn 0 reply: 
+
+summary
+  OK   check-in-proceeds 1/1 — Proceed after a check-in generates
+  OK   over-boxed-head 1/1 — a "head" box that is the whole person is refused, not squared into the neighbour
+  FAIL shape-then-edit 0/1 — a new shape plus a pose and outfit change: crop or Outpaint before an edit, or one edit at the new ratio, never i2i
+cost: $0.0268 for 3 conversations ($0.00894 each, cached priced as fresh) · billed $0.0034 · 0 picture(s) seen

@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1280",
+  "title": "Cosmo: say what is starting the moment it starts",
+  "description": "Cosmo's reply about a generation it started reached the chat only after the image landed: the reply was written two model rounds after the dispatch (a memory-nudged write_memory, then the reply), ~35 s each. Fix: the line saying what starts rides with the call and shows once the call passes the refusal race; the memory nudge no longer costs a round before the user hears anything.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-24T21:03:03+01:00",
+  "updated_at": "2026-10-24T21:03:37+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

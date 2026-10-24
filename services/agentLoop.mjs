@@ -448,6 +448,8 @@ export const MAX_STEPS = 16;
 
 // Sent with the one call made after the last round, and never kept in the conversation.
 const MEMORY_NUDGE = 'Nothing is noted this turn. If the user stated a goal, a character, a look or a decision, save it with write_memory now; nothing to keep, ignore this.';
+// MPI-1280: the same ask when the turn ended on its start line, read at the next turn's opening.
+const MEMORY_LATER = '[Your last turn noted nothing. If the user stated a goal, a character, a look or a decision there, save it with write_memory; nothing to keep, ignore this.]';
 const EDIT_OPS = new Set(['edit', 'kleinEdit', 'krea2Edit', 'qwenEdit']);
 // MPI-1125 — rules only one kind of op needs. They were system-prompt rules paid on every
 // request; now they ride on the describe_model (or list_cards) result that precedes the call
@@ -805,6 +807,19 @@ export class AgentLoop {
         const entry = keep ? this._historyEntry('tool', { id, tool: 'gpu_wait', args: {}, status: 'started', label: GPU_WAIT_LABEL }) : null;
         this._gpuLines.push({ turnId, id, entry });
         this._emit('agent:tool', { turnId, id, tool: 'gpu_wait', status: 'started', label: GPU_WAIT_LABEL });
+    }
+
+    /**
+     * MPI-1280 — the words that rode with this round's calls, shown the moment one of them is
+     * past its refusal race: the user hears what is running while it runs, not one or two model
+     * rounds later (~35 s each on a long chat, longer than a Turbo render). Once per round.
+     */
+    _sayStarted() {
+        const line = this._startLine;
+        if (!line || line.shown) return;
+        line.shown = true;
+        const entry = this._historyEntry('agent', { text: line.text });
+        this._emit('agent:message', { turnId: line.turnId, id: entry.id, text: line.text });
     }
 
     _waitForGpu(turnId) {
@@ -1263,7 +1278,11 @@ export class AgentLoop {
             }
             body[key] = Array.isArray(ref) ? ids : ids[0];
         }
-        const r = await run(body);
+        // Awaited in the turn, but the start line (MPI-1280) shows once the route has not refused it.
+        const pending = run(body);
+        const early = await Promise.race([pending.catch(() => ({ ok: false })), new Promise((resolve) => { setTimeout(() => resolve(null), EARLY_REFUSAL_MS); })]);
+        if (!early || early.ok) this._sayStarted();
+        const r = await pending;
         if (!r?.ok || !r.output) return JSON.stringify(r);
         const { itemId, ...output } = r.output;
         this._registerResult(output.filePath, null, itemId, output.groupId);
@@ -1840,6 +1859,7 @@ export class AgentLoop {
         // A refusal (a card of the wrong kind, a step the app turned down) answers at once.
         const early = await Promise.race([pending, new Promise((resolve) => { setTimeout(() => resolve(null), EARLY_REFUSAL_MS); })]);
         if (early && !early.ok) return JSON.stringify(early);
+        this._sayStarted();
 
         const id = crypto.randomUUID();
         this._routineRuns.add(id);
@@ -2200,7 +2220,7 @@ export class AgentLoop {
 
 ${modeRules}
 
-Voice rule: write the reply, never the thinking behind it; the app already shows the user every step you take. Do not name a rule, a note, an op's description or a knowledge entry, do not justify a choice they have not questioned, and do not write your plan and then carry it out in the same message. Address them as "you", never as "the user". A why is one short line, not a paragraph.
+Voice rule: write the reply, never the thinking behind it; the app already shows the user every step you take. Do not name a rule, a note, an op's description or a knowledge entry, do not justify a choice they have not questioned, and do not write your plan and then carry it out in the same message, with one exception: the message that calls generate, gif or run_routine also carries your reply, one or two short lines saying what is starting (which picture, which model, what changes). The app shows it the moment the job starts, and it is your whole reply: never repeat it after the result. Address them as "you", never as "the user". A why is one short line, not a paragraph.
 
 Content rule: the user is an adult on their own machine. Nudity and adult themes are allowed: write them as asked, never soften them. Never a real, named person. Someone under 18 is never nude, in underwear, sexual or suggestive, and under 16 wears no swimwear. Write generation prompts in English. A CHILD_SAFETY refusal is final: say why in one line.
 
@@ -2236,7 +2256,7 @@ Cards rule: the App state line lists only what this conversation touched; list_c
 
 Repeat rule: to repeat a card, read it in full first (list_cards with its groupId) and follow what it says.
 
-Memory rule: your notes survive a restart, per project and global (all projects, only when asked); the first message lists them, and read_memory reads one before you rely on it. The moment the user states a goal, names or describes a character, settles a look, decides something, or a model or setting works or fails, call write_memory that turn, without asking: a turn ending without the note loses it. Say in one line what you noted. One note per thing: update it, never add a second. Never save keys, passwords or personal data.
+Memory rule: your notes survive a restart, per project and global (all projects, only when asked); the first message lists them, and read_memory reads one before you rely on it. The moment the user states a goal, names or describes a character, settles a look, decides something, or a model or setting works or fails, call write_memory that turn, without asking, in the same message as any job you start: a turn ending without the note loses it. Say in one line what you noted. One note per thing: update it, never add a second. Never save keys, passwords or personal data.
 
 Naming rule: a finished generation reports its card id. When a result is worth referring to later, name its card with rename_card, or pass cardName with generate.
 
@@ -2621,6 +2641,7 @@ ${knowledgeIndex}`.trim();
                         message: `Nothing was generated: ${early.error?.message || 'the generation was refused.'}${miss && where ? ` Call describe_model with "${where}" for the values it accepts, then send it again.` : ''}${offer}`,
                     } });
                 }
+                this._sayStarted();
                 // It is queued. Until it lands, this is the only trace of what was asked for.
                 // A batch keeps ONE ledger entry for all its items (`_newBatch`).
                 const askedIn = currentProject;
@@ -3289,6 +3310,7 @@ ${knowledgeIndex}`.trim();
             let nudged = false;   // the memory reminder already rode on a generate result
             let yielded = false;  // ended early for a render on this card (MPI-913)
             let lastRefused = null; // { key, result } of the call just refused (MPI-941 Phase 13)
+            let spokeThisTurn = false; // a start line reached the chat (MPI-1280)
             this._reviewEnd = null; // a GPU yield may have ended the last turn before it was read
             for (;;) {
                 // Out of rounds: this call carries NO tools, so the model can only answer in
@@ -3319,13 +3341,21 @@ ${knowledgeIndex}`.trim();
                     // The Options rule's marker goes the same way, and comes back as buttons (MPI-941 Phase 7).
                     const { text: msgText, options } = _takeOptions(declined ? stripped.trim() : raw);
                     this._messages.push({ role: 'assistant', content: raw });
-                    const entry = this._historyEntry('agent', { text: msgText, ...(options && { options }) });
-                    this._emit('agent:message', { turnId, id: entry.id, text: msgText, ...(options && { options }), ...(declined && { declined: true }) });
+                    // Nothing more to say after a start line already shown (MPI-1280): no empty bubble.
+                    if (msgText || options || !spokeThisTurn) {
+                        const entry = this._historyEntry('agent', { text: msgText, ...(options && { options }) });
+                        this._emit('agent:message', { turnId, id: entry.id, text: msgText, ...(options && { options }), ...(declined && { declined: true }) });
+                    }
                     break;
                 }
 
                 // Add assistant message (with tool_calls) to context
                 this._messages.push({ role: 'assistant', content: llmRes.text || '', tool_calls: toolCalls });
+                // MPI-1280: words riding with the calls are the line saying what starts. They wait
+                // for a call to get past its refusal race (`_sayStarted`), and a round whose calls
+                // were all refused never shows them: the next round says what went wrong.
+                this._startLine = llmRes.text?.trim() ? { turnId, text: llmRes.text.trim() } : null;
+                let started = true; // every call of this round started a job (or noted one)
 
                 // Execute each tool call. Once the request is handed to another project's
                 // conversation (D5) the rest of the batch does not run, but a provider still
@@ -3413,12 +3443,15 @@ ${knowledgeIndex}`.trim();
                     let refused = false;
                     let opened = null;
                     let replied = false; // a review card answered in words: nothing started (MPI-1005)
+                    let ranOn = false;   // a job started and still running, or a note written (MPI-1280)
                     try {
                         const parsed = JSON.parse(resultText);
                         refused = toolStatus === 'done' && parsed?.ok === false;
                         opened = toolName === 'generate' && parsed?.ok && typeof parsed.opened === 'string' ? parsed.opened : null;
                         replied = toolName === 'generate' && parsed?.replied === true;
+                        ranOn = toolStatus === 'done' && parsed?.ok === true && (!!parsed.started || toolName === 'write_memory');
                     } catch { /* not JSON */ }
+                    started &&= ranOn;
                     if (!refused) lastRefused = null;
                     else if (callKey !== lastRefused?.key) lastRefused = { key: callKey, result: JSON.parse(resultText) };
                     // A click the app then refused (a field missing) is the model's to fix (MPI-1005).
@@ -3440,6 +3473,9 @@ ${knowledgeIndex}`.trim();
                     // Append tool result to LLM context
                     this._messages.push({ role: 'tool', tool_call_id: tc.id, content: resultText });
                 }
+                const spoke = !!this._startLine?.shown;
+                spokeThisTurn ||= spoke;
+                this._startLine = null;
 
                 // MPI-1208: the pictures `see` showed, once every tool result is in (nothing may
                 // sit between a tool call and its results). A user message, the one place every
@@ -3466,6 +3502,14 @@ ${knowledgeIndex}`.trim();
                     this._messages.push({ role: 'assistant', content: GPU_YIELD });
                     this._gpuWaitLine(turnId, true);
                     yielded = true;
+                    break;
+                }
+
+                // MPI-1280: the user has heard what started and every call of the round is running.
+                // Another round would only narrate it again, ~35 s later on a long chat. The memory
+                // reminder the generate carried is read next turn (a wake, or the user's message).
+                if (spoke && started) {
+                    if (nudged && !noted) this._notes.push(MEMORY_LATER);
                     break;
                 }
 

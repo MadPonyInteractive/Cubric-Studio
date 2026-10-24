@@ -1,0 +1,42 @@
+(node:27880) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/AI/Mpi/Cubric-Vision/js/shell/agentToolOps.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\AI\Mpi\Cubric-Vision\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+agent-test: XiaomiMiMo/MiMo-V2.6-Flash · 8 case(s) × 1 
+price: $0.14/M in, $0.28/M out
+  memory-write #1: pass · 2 calls · 15042 in / 160 out · $0.00215 · 87.4s
+[2026-10-24T20:32:55.005Z] [INFO] [agent] look FRESH attachment att_fox.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+[2026-10-24T20:34:44.401Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+[2026-10-24T20:36:34.160Z] [INFO] [agent] look CACHED result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  ranked-editor #1: pass · 9 calls · 150855 in / 1410 out · $0.02151 · 253.1s
+[2026-10-24T20:37:01.009Z] [INFO] [agent] look FRESH attachment att_fox.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+[2026-10-24T20:39:26.377Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  rerun-on-named-model #1: pass · 5 calls · 67969 in / 1542 out · $0.00995 · 172.2s
+[2026-10-24T20:39:51.605Z] [INFO] [agent] look FRESH attachment att_fox.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+[2026-10-24T20:42:09.809Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  text-in-picture #1: pass · 6 calls · 88241 in / 569 out · $0.01251 · 193.3s
+[2026-10-24T20:43:12.207Z] [INFO] [agent] look FRESH attachment att_sheet.png: A character sheet on a plain grey background: the same young woman in a black and purple ninja outfit shown three times, front view, back view and a close-up of her masked face.
+  sheet-goes-to-reference #1: pass · 4 calls · 53224 in / 1028 out · $0.00774 · 166.9s
+[2026-10-24T20:45:54.197Z] [INFO] [agent] look FRESH attachment att_angle.jpg: A photo taken from very low on the ground looking up at a man standing in a narrow city street, the buildings leaning in above him, overcast sky.
+  angle-picture-goes-to-reference #1: pass · 4 calls · 52970 in / 1537 out · $0.00785 · 223.5s
+[2026-10-24T20:50:22.981Z] [INFO] [agent] look FRESH attachment att_legs.jpg: Two pairs of legs side by side on a white background, knee down: on the left black pantyhose and black stiletto heels, on the right bare tanned legs in white knee-high boots.
+[2026-10-24T20:50:22.990Z] [INFO] [agent] look FRESH attachment att_hallway.jpg: A long narrow hotel hallway with a red patterned carpet, cream walls and doors on both sides, warm ceiling lights, seen from one end.
+[2026-10-24T20:50:23.021Z] [WARN] [project] ffprobe failed for C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_007.mp4: Command failed: C:\AI\Mpi\Cubric-Vision\node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe -v error -print_format json -show_streams -show_format C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_007.mp4
+C:/Users/maker/Documents/Cubric/Fox Shoot/Media/i2v_007.mp4: No such file or directory
+
+[2026-10-24T20:50:23.022Z] [INFO] [agent] look FRESH result i2v_007.mp4: FAILED: Could not read "i2v_007.mp4" as a clip: could not read "i2v_007.mp4" as a video
+  several-subjects-reference-whole #1: pass · 8 calls · 122233 in / 2432 out · $0.01779 · 366.7s
+[2026-10-24T20:55:59.275Z] [INFO] [agent] look FRESH attachment att_grainy.jpg: A photo of a street at dusk with very heavy, coarse film grain over everything and a strong magenta colour cast.
+[2026-10-24T20:57:20.288Z] [INFO] [agent] look FRESH result t2i_001.png: A photo of a street at dusk with very heavy, coarse film grain over everything and a strong magenta colour cast.
+  look-grain-into-prompt #1: pass · 4 calls · 61152 in / 772 out · $0.00878 · 123.6s
+
+summary
+  OK   memory-write 1/1 — saves what the user asks it to remember about the project
+  OK   ranked-editor 1/1 — takes the best-ranked installed editor, and still obeys a named model
+  OK   rerun-on-named-model 1/1 — "this image, but with model X" is a text-to-image re-run on X, not an i2i restyle
+  OK   text-in-picture 1/1 — words in a picture are an edit with the words quoted, never a refusal
+  OK   sheet-goes-to-reference 1/1 — a character sheet feeds a reference-to-video op, never a start frame
+  OK   angle-picture-goes-to-reference 1/1 — a picture given for its camera angle feeds a reference op, never an edit
+  OK   several-subjects-reference-whole 1/1 — a reference picture of two subjects goes in whole, both named, no which-one question
+  OK   look-grain-into-prompt 1/1 — a picture given for one quality of its look puts that quality in the prompt (look-grain-into-prompt)
+cost: $0.0883 for 8 conversations ($0.01104 each, cached priced as fresh) · billed $0.0103 · 0 picture(s) seen

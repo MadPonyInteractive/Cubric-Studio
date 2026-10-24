@@ -1,0 +1,20 @@
+(node:33404) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/AI/Mpi/Cubric-Vision/js/shell/agentToolOps.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\AI\Mpi\Cubric-Vision\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+agent-test: XiaomiMiMo/MiMo-V2.6-Flash · 2 case(s) × 1 
+price: $0.14/M in, $0.28/M out
+  video-limit #1: FAIL · 3 calls · 22560 in / 281 out · $0.00324 · 106.2s
+      - did not state that it cannot watch video
+      turn 0 calls: list_cards({}) list_projects({})
+      turn 0 reply: I looked in "Fox Shoot" and it's empty — no cards at all. The video is likely in one of your other projects: "Harbour Nights" or "Wedding Stills".
+[2026-10-24T21:08:16.715Z] [INFO] [agent] look FRESH result t2i_001.png: A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blo…
+  sheet-from-words #1: FAIL · 5 calls · 76951 in / 616 out · $0.01095 · 123.5s
+      - the character is not in positive
+      turn 0 calls: read_knowledge({"id":"app:flows"}) list_models({}) describe_model({"id":"character-sheet"}) generate({"flowId":"character-sheet","cardName":"Old sea captain sheet","prompt":"Grizzled old sea captain, weathered tanned skin, deep wrinkles, full white beard and bushy white eyebrows, wearing a bright yellow oilskin coat over a dark fisherman's sweater, a clay pipe held in his mouth with faint wisps of smoke, squinting blue eyes, salt-sprayed hair, front view, side view and close-up bust portrait on a plain neutral grey studio background, consistent character in every panel, realistic concept art lighting","operation":"flowCharacterSheet"}) write_memory({"hook":"Character for the Fox Shoot project — reuse when generating more of him.","title":"Sea captain character design","text":"Grizzled old sea captain used in project \"Fox Shoot\": weathered wrinkled skin, full white beard and bushy white eyebrows, bright yellow oilskin coat over a dark fisherman's sweater, clay pipe in his mouth, squinting blue eyes, salt-sprayed hair. Made as a character sheet (front, side, close-up) on plain grey studio background.","file":"sea-captain-character.md"})
+      turn 0 reply: Your captain's character sheet is rendering — front, side and close-up views in his oilskin coat and pipe, on the Character Sheet flow. I've noted his look for future shots.
+
+summary
+  FAIL video-limit 0/1 — "watch this video" -> the honest limit
+  FAIL sheet-from-words 0/1 — a character sheet of a described character runs Character Sheet
+cost: $0.0142 for 2 conversations ($0.00709 each, cached priced as fresh) · billed $0.0013 · 0 picture(s) seen
