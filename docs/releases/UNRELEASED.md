@@ -67,6 +67,7 @@
 - Qwen-Image 2.1's Control takes up to two more pictures: the first still gives the pose, depth, scribble or edges, and the others give the person or thing drawn into it, instead of describing them in the prompt (MPI-1269).
 - Stacks can be reordered: in the Stack workspace, hold a picture in the strip and drag it to a new place. The stack's cover in the gallery follows the new first picture (MPI-1268).
 - Right-click a stack and pick Create Sheet to lay its pictures out on one sheet, numbered in stack order. Whole pictures (on by default) keeps every picture uncropped in an even grid, and the sheet's shape is picked from portrait or landscape ratios (MPI-1268).
+- The gallery Filter has a Stacks switch under Only: turn it on to see just your stacks. It appears once the project has a stack (MPI-1282).
 - When an update is ready, the Dev updates panel (the bell) shows an "Update to v…" button at the top, naming the version the posts below talk about (MPI-1242).
 
 ## Fixes
