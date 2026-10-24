@@ -9,6 +9,13 @@
 - Shape: idea in words + OPTIONAL pictures of characters/places (zero or many) -> a planner writes N panels (a picture
   prompt + an intent line each) -> FLUX.3 Klein edit draws each panel from the references -> one STACK
   of panel cards in story order, each with its intent line as the card NOTE -> the numbered overview.
+- 2026-10-24 ("LTX 2.5 model 12", no GPU): Phase 1 plumbing BUILT. Flow dev gate = `devOnly` on a
+  FlowDef, filtered at the `FLOWS` export (`ALL_FLOWS`), `tests/flow-dev-gate.test.cjs` (both configs in
+  child processes, mutation-checked). Driver = `js/services/storyboardRunner.js` `runStoryboard(panels,
+  {name}, deps)`, pure like routineRunner; 7 tests. Deps NOT wired yet: the renderer side (submit via
+  `submitFlowGeneration` + `runLanding`, addStack, update-meta note, `reorderStack`, `/combine-images`
+  numbered+whole) lands with the FlowDef. A stopped run gets its order but no overview. NEXT: Phase 0
+  (GPU) or the FlowDef via /mpi-add-flow. Planner `[PANEL n]` parser not written (Phase 0).
 
 ## Phase 0: Panel recipe - `user-ux` (local GPU, Fabio's yes; no money)
 
@@ -21,7 +28,7 @@
 
 ## Phase 1: Flow - `auto`, then `user-ux`
 
-- [ ] **Flow dev gate (new, small):** no Flow gate exists today (`FLOWS` returned whole by `listFlows`,
+- [x] **Flow dev gate (new, small):** no Flow gate exists today (`FLOWS` returned whole by `listFlows`,
   flowsRegistry.js:539/:2963). Add `devOnly` on a FlowDef, filtered like plugins
   (`pluginsRegistry.js:174`) on `APP_CONFIG.dev_mode`. **Verify:** unit test, a devOnly Flow is absent
   from `listFlows` in a release config. (Source: `tasks/MPI-1191/research/flow-machinery.md`.)

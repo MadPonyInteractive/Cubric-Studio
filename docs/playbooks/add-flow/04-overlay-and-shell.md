@@ -202,9 +202,9 @@ Flow runs surface errors like every other gen: `ui:error` = GitHub-report DIALOG
 memory` / `OutOfMemoryError`) is user-actionable ("inputs too large") → downgraded to a
 `ui:warning` toast in `commandExecutor`, NOT the report dialog.
 
-## Dev-gate — LIFTED (MPI-589)
+## Dev-gate — the Library is open (MPI-589); ONE Flow is gated by `devOnly` (MPI-1231)
 
-The Flow Library is a **user route**: Landing nav (`projectUI.js`), the Flows button on the
-gallery bar (`navigation.js`), and Tab. The `≥4 flows` condition this doc used to describe was met
-and the gate came off. Only the **Ctrl+Tab radial** is still `APP_CONFIG.dev_mode`-gated
-(`navigation.js:353`), and it is one door among several rather than the only one.
+The Flow Library is a **user route** (Landing nav, the gallery bar's Flows button, Tab); only the
+Ctrl+Tab radial stays `APP_CONFIG.dev_mode`-gated (`navigation.js:353`). To hide one unreleased Flow,
+set `devOnly: true` on its FlowDef: `FLOWS` drops it at the export in a release build (`npm start
+nodev` to see one), so the Library, dispatch and the orphan sweep all agree (`tests/flow-dev-gate.test.cjs`).

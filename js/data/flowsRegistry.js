@@ -30,6 +30,9 @@
  *                                       `video`, this never turns the tile into a video tile: the
  *                                       tile stays the 4/5 still. Omit and the hero shows `preview`.
  * @property {string}   description    - Slide-over copy
+ * @property {boolean}  [devOnly]      - Present in source runs only, like a `devOnly` ModelDef or
+ *                                       PluginDef (MPI-1231): filtered at the one `FLOWS` export, so
+ *                                       the Library, dispatch, the orphan sweep and every gate agree.
  * @property {Array<string|{label: string, models: string[], optional?: boolean, for?: string[]}>} requiredModels - MODEL ids (NOT dep
  *                                       ids); drives the availability badge. Each entry is a SLOT
  *                                       — one ROLE the graph plays a model in. The object form
@@ -352,6 +355,7 @@
 'use strict';
 
 import { state } from '../state.js';
+import { APP_CONFIG } from '../../dev_configs/app_config.js';
 import { DEPS } from './modelConstants/dependencies.js';
 import { getPlugin } from './pluginsRegistry.js';
 import { MODELS } from './modelConstants/models.js';
@@ -536,7 +540,7 @@ const SHEET_CLOTHES_CHECKS = ['upper body, the chest and belly', 'lower body, th
     message: 'Dress the sheet first: pick Clothes and say what the character wears. Under 18 a character must wear ordinary clothes on the sheet before its age changes, and this sheet does not show them. At 16 or 17 swimwear is fine when you ask for it under Clothes. The age can stay set: the clothes go on first.',
 })));
 
-export const FLOWS = [
+const ALL_FLOWS = [
     // head-swap and drama-box LEFT THE APP (MPI-781, umbrella MPI-780 phase 2). They are
     // sold as Flow packages, authored in their own repo under their own licence — never in
     // this AGPL tree. They install into `user_flows/` and register as `user:head-swap` /
@@ -2958,6 +2962,9 @@ export const FLOWS = [
         ],
     },
 ];
+
+/** @type {FlowDef[]} Every Flow a user can see. A `devOnly` entry exists in source runs only. */
+export const FLOWS = ALL_FLOWS.filter(f => !f.devOnly || APP_CONFIG.dev_mode);
 
 /** @returns {FlowDef[]} All flow descriptors. */
 export function listFlows() {

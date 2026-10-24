@@ -1,0 +1,10 @@
+{
+ "schema": "mpi-kanban/task-files/v1",
+ "files": [
+  "js/data/flowsRegistry.js",
+  "tests/flow-dev-gate.test.cjs",
+  "js/services/storyboardRunner.js",
+  "tests/storyboard-runner.test.cjs",
+  "docs/playbooks/add-flow/04-overlay-and-shell.md"
+ ]
+}
