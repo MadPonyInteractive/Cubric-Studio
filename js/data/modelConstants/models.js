@@ -810,7 +810,6 @@ const ALL_MODELS = [
         // both tiers, the accelerator LoRA standing in for the deleted Turbo weight.
         id: 'krea2-nsfw',
         sizeTier: 'balanced',   // see the SFW card
-        featured: true,
         // NO modelFamily — see the SFW card above.
         name: 'Krea 2 NSFW',
         dropdownMeta: 'PHOTO',
@@ -1458,6 +1457,7 @@ const ALL_MODELS = [
         id: 'ltx-25',
         devOnly: true,
         sizeTier: 'balanced',
+        featured: true,
         modelFamily: 'LTX-2.5',
         name: 'LTX 2.5',
         dropdownMeta: 'VIDEO',
