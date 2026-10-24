@@ -37,3 +37,5 @@ answer, but the reply carried no "?" (the check is literal); run 1 sent its ques
 `[options:` tool call. Not shown to be caused by the change (that turn starts nothing), not ruled out.
 Billed about $0.064 in all (approved $0.07). The start line is visible in the bench replies, e.g.
 "Starting the character sheet now with the sea captain's description".
+
+2026-10-24 follow-up: ask-first drop judged NOT caused by the change. In all 4 failed runs turn 0 started nothing and asked for the settings; the new Voice exception applies only to a message that calls generate/gif/run_routine, which turn 0 never does. The same no-'?' fail happened before this change (MPI-1125 #3, MPI-1208). The grader's literal '?' is the fault: MPI-1281. No paid re-run needed.

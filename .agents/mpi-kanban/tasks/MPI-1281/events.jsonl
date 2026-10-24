@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1281", "at": "2026-10-24T22:56:17+01:00", "actor": "claude", "column": "todo", "title": "Agent bench: ask-first grades the ask, not a literal '?'"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1281", "at": "2026-10-24T23:03:06+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1281", "at": "2026-10-24T23:26:36+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on 091e467f0."}

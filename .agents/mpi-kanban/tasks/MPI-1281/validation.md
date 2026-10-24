@@ -11,3 +11,6 @@
 - MPI-1280 suite run #1: the model sent its ask as a tool call named `[options:` (UNKNOWN_TOOL), then ended on
   empty text; `agentLoop` emits an empty agent:message, so the user sees an empty Cosmo bubble. One-off model glitch.
 - llmEngines.mjs: the four 55-case agentTest stamps re-stamped 30dd5a845c08 unrun (Fabio 2026-10-24), comment says why. npm test 3610 pass 0 fail; lint clean.
+
+## CI
+- Tests run 40137479685 green on 091e467f0.
