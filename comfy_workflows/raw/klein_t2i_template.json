@@ -1,8 +1,8 @@
 {
   "id": "63093cae-c4df-499d-9fe9-c92e3c3cf490",
   "revision": 0,
-  "last_node_id": 722,
-  "last_link_id": 1161,
+  "last_node_id": 723,
+  "last_link_id": 1169,
   "nodes": [
     {
       "id": 2,
@@ -18,7 +18,7 @@
       "flags": {
         "collapsed": true
       },
-      "order": 213,
+      "order": 214,
       "mode": 0,
       "inputs": [
         {
@@ -77,7 +77,7 @@
       "flags": {
         "collapsed": true
       },
-      "order": 230,
+      "order": 233,
       "mode": 0,
       "inputs": [
         {
@@ -167,7 +167,7 @@
       "flags": {
         "collapsed": true
       },
-      "order": 252,
+      "order": 253,
       "mode": 0,
       "inputs": [
         {
@@ -216,7 +216,7 @@
         448.12206452926966
       ],
       "flags": {},
-      "order": 263,
+      "order": 264,
       "mode": 0,
       "inputs": [
         {
@@ -346,7 +346,7 @@
         122
       ],
       "flags": {},
-      "order": 274,
+      "order": 275,
       "mode": 0,
       "inputs": [
         {
@@ -408,7 +408,7 @@
         122
       ],
       "flags": {},
-      "order": 279,
+      "order": 280,
       "mode": 0,
       "inputs": [
         {
@@ -470,7 +470,7 @@
         122
       ],
       "flags": {},
-      "order": 283,
+      "order": 284,
       "mode": 0,
       "inputs": [
         {
@@ -532,7 +532,7 @@
         122
       ],
       "flags": {},
-      "order": 267,
+      "order": 268,
       "mode": 0,
       "inputs": [
         {
@@ -594,7 +594,7 @@
         122
       ],
       "flags": {},
-      "order": 261,
+      "order": 262,
       "mode": 0,
       "inputs": [
         {
@@ -694,7 +694,7 @@
         456
       ],
       "flags": {},
-      "order": 241,
+      "order": 244,
       "mode": 0,
       "inputs": [
         {
@@ -799,7 +799,7 @@
       "flags": {
         "collapsed": false
       },
-      "order": 200,
+      "order": 201,
       "mode": 0,
       "inputs": [
         {
@@ -853,7 +853,7 @@
         214
       ],
       "flags": {},
-      "order": 246,
+      "order": 247,
       "mode": 0,
       "inputs": [
         {
@@ -1023,7 +1023,7 @@
         78
       ],
       "flags": {},
-      "order": 258,
+      "order": 259,
       "mode": 0,
       "inputs": [
         {
@@ -1117,7 +1117,7 @@
         98
       ],
       "flags": {},
-      "order": 266,
+      "order": 261,
       "mode": 0,
       "inputs": [
         {
@@ -1305,13 +1305,13 @@
       "flags": {
         "collapsed": false
       },
-      "order": 233,
+      "order": 219,
       "mode": 0,
       "inputs": [
         {
           "name": "pixels",
           "type": "IMAGE",
-          "link": 199
+          "link": 1165
         },
         {
           "name": "vae",
@@ -1407,7 +1407,7 @@
         326
       ],
       "flags": {},
-      "order": 273,
+      "order": 267,
       "mode": 0,
       "inputs": [
         {
@@ -1632,7 +1632,7 @@
         106
       ],
       "flags": {},
-      "order": 239,
+      "order": 242,
       "mode": 0,
       "inputs": [
         {
@@ -1772,7 +1772,7 @@
         52.83909299396419
       ],
       "flags": {},
-      "order": 210,
+      "order": 211,
       "mode": 0,
       "inputs": [
         {
@@ -1817,7 +1817,7 @@
         54.32552927420602
       ],
       "flags": {},
-      "order": 180,
+      "order": 181,
       "mode": 0,
       "inputs": [
         {
@@ -1908,7 +1908,7 @@
         52.83909299396464
       ],
       "flags": {},
-      "order": 238,
+      "order": 241,
       "mode": 0,
       "inputs": [
         {
@@ -1992,7 +1992,7 @@
         60.27127439517153
       ],
       "flags": {},
-      "order": 179,
+      "order": 180,
       "mode": 0,
       "inputs": [
         {
@@ -2121,7 +2121,7 @@
         124.00000000000003
       ],
       "flags": {},
-      "order": 211,
+      "order": 212,
       "mode": 0,
       "inputs": [
         {
@@ -2577,7 +2577,7 @@
         52.83909299396419
       ],
       "flags": {},
-      "order": 224,
+      "order": 227,
       "mode": 0,
       "inputs": [
         {
@@ -2718,7 +2718,7 @@
         55.8119655544474
       ],
       "flags": {},
-      "order": 257,
+      "order": 258,
       "mode": 0,
       "inputs": [
         {
@@ -3015,8 +3015,8 @@
       "id": 242,
       "type": "GetNode",
       "pos": [
-        2878.444506447177,
-        -452.10116321634956
+        2867.5357839938374,
+        -452.87509284986385
       ],
       "size": [
         210,
@@ -3031,7 +3031,7 @@
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
-            350
+            1167
           ]
         }
       ],
@@ -3063,7 +3063,7 @@
       "flags": {
         "collapsed": true
       },
-      "order": 249,
+      "order": 250,
       "mode": 0,
       "inputs": [
         {
@@ -3161,7 +3161,7 @@
       "flags": {
         "collapsed": true
       },
-      "order": 262,
+      "order": 263,
       "mode": 0,
       "inputs": [
         {
@@ -3417,7 +3417,7 @@
         78
       ],
       "flags": {},
-      "order": 181,
+      "order": 182,
       "mode": 0,
       "inputs": [
         {
@@ -3714,7 +3714,7 @@
         464.03158951520027
       ],
       "flags": {},
-      "order": 220,
+      "order": 223,
       "mode": 0,
       "inputs": [
         {
@@ -3853,7 +3853,7 @@
       "flags": {
         "collapsed": false
       },
-      "order": 201,
+      "order": 202,
       "mode": 0,
       "inputs": [
         {
@@ -4036,7 +4036,7 @@
         46
       ],
       "flags": {},
-      "order": 187,
+      "order": 188,
       "mode": 0,
       "inputs": [
         {
@@ -4077,7 +4077,7 @@
         80.16694118867758
       ],
       "flags": {},
-      "order": 204,
+      "order": 205,
       "mode": 0,
       "inputs": [
         {
@@ -4303,7 +4303,7 @@
         78
       ],
       "flags": {},
-      "order": 186,
+      "order": 187,
       "mode": 0,
       "inputs": [
         {
@@ -4595,7 +4595,7 @@
         26
       ],
       "flags": {},
-      "order": 282,
+      "order": 279,
       "mode": 0,
       "inputs": [
         {
@@ -4632,7 +4632,7 @@
         54.72526045722657
       ],
       "flags": {},
-      "order": 237,
+      "order": 240,
       "mode": 0,
       "inputs": [
         {
@@ -4675,7 +4675,7 @@
         26
       ],
       "flags": {},
-      "order": 248,
+      "order": 249,
       "mode": 0,
       "inputs": [
         {
@@ -4712,7 +4712,7 @@
         26
       ],
       "flags": {},
-      "order": 256,
+      "order": 257,
       "mode": 0,
       "inputs": [
         {
@@ -4924,7 +4924,7 @@
         78
       ],
       "flags": {},
-      "order": 190,
+      "order": 191,
       "mode": 0,
       "inputs": [
         {
@@ -4971,7 +4971,7 @@
         60
       ],
       "flags": {},
-      "order": 209,
+      "order": 210,
       "mode": 0,
       "inputs": [
         {
@@ -5062,7 +5062,7 @@
         60
       ],
       "flags": {},
-      "order": 191,
+      "order": 192,
       "mode": 0,
       "inputs": [
         {
@@ -5881,7 +5881,7 @@
         206
       ],
       "flags": {},
-      "order": 184,
+      "order": 185,
       "mode": 0,
       "inputs": [
         {
@@ -6136,7 +6136,7 @@
         27.486436280240923
       ],
       "flags": {},
-      "order": 240,
+      "order": 243,
       "mode": 0,
       "inputs": [
         {
@@ -6174,7 +6174,7 @@
         801.0323354350385
       ],
       "flags": {},
-      "order": 251,
+      "order": 252,
       "mode": 4,
       "inputs": [
         {
@@ -6324,7 +6324,7 @@
         27.486436280240923
       ],
       "flags": {},
-      "order": 285,
+      "order": 286,
       "mode": 0,
       "inputs": [
         {
@@ -6389,7 +6389,7 @@
         106
       ],
       "flags": {},
-      "order": 212,
+      "order": 213,
       "mode": 0,
       "inputs": [
         {
@@ -6557,7 +6557,7 @@
         46
       ],
       "flags": {},
-      "order": 219,
+      "order": 222,
       "mode": 4,
       "inputs": [
         {
@@ -6637,7 +6637,7 @@
         27.486436280240923
       ],
       "flags": {},
-      "order": 250,
+      "order": 251,
       "mode": 0,
       "inputs": [
         {
@@ -6676,7 +6676,7 @@
       "flags": {
         "collapsed": false
       },
-      "order": 254,
+      "order": 246,
       "mode": 0,
       "inputs": [
         {
@@ -6727,13 +6727,13 @@
         124
       ],
       "flags": {},
-      "order": 232,
+      "order": 218,
       "mode": 0,
       "inputs": [
         {
           "name": "image",
           "type": "IMAGE",
-          "link": 175
+          "link": 1164
         }
       ],
       "outputs": [
@@ -6770,7 +6770,9 @@
         "secondTabText": "Send Back",
         "secondTabOffset": 80,
         "secondTabWidth": 65
-      }
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
     },
     {
       "id": 137,
@@ -6786,7 +6788,7 @@
       "flags": {
         "collapsed": false
       },
-      "order": 245,
+      "order": 237,
       "mode": 0,
       "inputs": [
         {
@@ -6913,7 +6915,7 @@
         106
       ],
       "flags": {},
-      "order": 243,
+      "order": 235,
       "mode": 0,
       "inputs": [
         {
@@ -6977,7 +6979,7 @@
         78
       ],
       "flags": {},
-      "order": 260,
+      "order": 255,
       "mode": 0,
       "inputs": [
         {
@@ -7034,7 +7036,7 @@
         26
       ],
       "flags": {},
-      "order": 286,
+      "order": 283,
       "mode": 0,
       "inputs": [
         {
@@ -7109,7 +7111,7 @@
       "flags": {
         "collapsed": true
       },
-      "order": 185,
+      "order": 186,
       "mode": 0,
       "inputs": [
         {
@@ -7163,8 +7165,8 @@
       "id": 123,
       "type": "DepthAnythingV2Preprocessor",
       "pos": [
-        3131.6668022802382,
-        -446.5103525364295
+        3122.74818459879,
+        -455.4289702178781
       ],
       "size": [
         290.8345703125,
@@ -7177,7 +7179,7 @@
         {
           "name": "image",
           "type": "IMAGE",
-          "link": 350
+          "link": 1167
         }
       ],
       "outputs": [
@@ -7186,7 +7188,7 @@
           "type": "IMAGE",
           "links": [
             1159,
-            1160
+            1168
           ]
         }
       ],
@@ -7197,66 +7199,11 @@
       },
       "widgets_values": [
         "depth_anything_v2_vits.pth",
-        512
+        1024
       ],
       "widgets_values_named": {
         "ckpt_name": "depth_anything_v2_vits.pth",
-        "resolution": 512
-      }
-    },
-    {
-      "id": 131,
-      "type": "ImageScaleToTotalPixels",
-      "pos": [
-        3686.6785231942067,
-        -389.86453242765265
-      ],
-      "size": [
-        270,
-        106
-      ],
-      "flags": {},
-      "order": 217,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "image",
-          "type": "IMAGE",
-          "link": 1161
-        }
-      ],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            175,
-            199,
-            836
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.8.2",
-        "Node name for S&R": "ImageScaleToTotalPixels",
-        "enableTabs": false,
-        "tabWidth": 65,
-        "tabXOffset": 10,
-        "hasSecondTab": false,
-        "secondTabText": "Send Back",
-        "secondTabOffset": 80,
-        "secondTabWidth": 65
-      },
-      "widgets_values": [
-        "nearest-exact",
-        1,
-        16
-      ],
-      "widgets_values_named": {
-        "upscale_method": "nearest-exact",
-        "megapixels": 1,
-        "resolution_steps": 16
+        "resolution": 1024
       }
     },
     {
@@ -7271,7 +7218,7 @@
         46
       ],
       "flags": {},
-      "order": 278,
+      "order": 274,
       "mode": 0,
       "inputs": [
         {
@@ -7371,7 +7318,7 @@
         106
       ],
       "flags": {},
-      "order": 244,
+      "order": 236,
       "mode": 0,
       "inputs": [
         {
@@ -7626,7 +7573,7 @@
       "flags": {
         "collapsed": false
       },
-      "order": 236,
+      "order": 239,
       "mode": 4,
       "inputs": [
         {
@@ -7751,7 +7698,7 @@
         46
       ],
       "flags": {},
-      "order": 247,
+      "order": 248,
       "mode": 4,
       "inputs": [
         {
@@ -7912,13 +7859,13 @@
         246
       ],
       "flags": {},
-      "order": 234,
+      "order": 220,
       "mode": 4,
       "inputs": [
         {
           "name": "images",
           "type": "IMAGE",
-          "link": 836
+          "link": 1166
         }
       ],
       "outputs": [
@@ -8161,7 +8108,7 @@
       "flags": {
         "collapsed": true
       },
-      "order": 195,
+      "order": 196,
       "mode": 0,
       "inputs": [
         {
@@ -8246,7 +8193,7 @@
         82
       ],
       "flags": {},
-      "order": 189,
+      "order": 190,
       "mode": 4,
       "inputs": [
         {
@@ -8290,7 +8237,7 @@
         56.07022971129601
       ],
       "flags": {},
-      "order": 205,
+      "order": 206,
       "mode": 0,
       "inputs": [
         {
@@ -8430,7 +8377,7 @@
         58
       ],
       "flags": {},
-      "order": 206,
+      "order": 207,
       "mode": 0,
       "inputs": [
         {
@@ -8475,7 +8422,7 @@
         246
       ],
       "flags": {},
-      "order": 223,
+      "order": 226,
       "mode": 4,
       "inputs": [
         {
@@ -8548,7 +8495,7 @@
         26
       ],
       "flags": {},
-      "order": 222,
+      "order": 225,
       "mode": 0,
       "inputs": [
         {
@@ -9133,7 +9080,7 @@
         26
       ],
       "flags": {},
-      "order": 208,
+      "order": 209,
       "mode": 4,
       "inputs": [
         {
@@ -9168,7 +9115,7 @@
         106
       ],
       "flags": {},
-      "order": 192,
+      "order": 193,
       "mode": 0,
       "inputs": [
         {
@@ -9217,7 +9164,7 @@
         650
       ],
       "flags": {},
-      "order": 188,
+      "order": 189,
       "mode": 0,
       "inputs": [
         {
@@ -9456,7 +9403,7 @@
         98
       ],
       "flags": {},
-      "order": 268,
+      "order": 269,
       "mode": 0,
       "inputs": [
         {
@@ -9694,7 +9641,7 @@
         26
       ],
       "flags": {},
-      "order": 203,
+      "order": 204,
       "mode": 0,
       "inputs": [
         {
@@ -9730,7 +9677,7 @@
         246
       ],
       "flags": {},
-      "order": 193,
+      "order": 194,
       "mode": 4,
       "inputs": [
         {
@@ -9766,7 +9713,7 @@
       "flags": {
         "collapsed": false
       },
-      "order": 229,
+      "order": 232,
       "mode": 0,
       "inputs": [
         {
@@ -10003,7 +9950,7 @@
         26
       ],
       "flags": {},
-      "order": 194,
+      "order": 195,
       "mode": 0,
       "inputs": [
         {
@@ -10094,7 +10041,7 @@
         26
       ],
       "flags": {},
-      "order": 183,
+      "order": 184,
       "mode": 0,
       "inputs": [
         {
@@ -10133,7 +10080,7 @@
       "flags": {
         "collapsed": false
       },
-      "order": 202,
+      "order": 203,
       "mode": 0,
       "inputs": [
         {
@@ -10296,7 +10243,7 @@
       "flags": {
         "collapsed": false
       },
-      "order": 182,
+      "order": 183,
       "mode": 0,
       "inputs": [
         {
@@ -10483,7 +10430,7 @@
         46
       ],
       "flags": {},
-      "order": 225,
+      "order": 228,
       "mode": 0,
       "inputs": [
         {
@@ -10524,7 +10471,7 @@
         415.41379631929055
       ],
       "flags": {},
-      "order": 275,
+      "order": 276,
       "mode": 0,
       "inputs": [
         {
@@ -10780,7 +10727,7 @@
         606
       ],
       "flags": {},
-      "order": 276,
+      "order": 277,
       "mode": 0,
       "inputs": [
         {
@@ -10883,7 +10830,7 @@
         78
       ],
       "flags": {},
-      "order": 280,
+      "order": 281,
       "mode": 0,
       "inputs": [
         {
@@ -10938,7 +10885,7 @@
         58.93348174295397
       ],
       "flags": {},
-      "order": 284,
+      "order": 285,
       "mode": 0,
       "inputs": [
         {
@@ -11104,7 +11051,7 @@
         246.0000000000001
       ],
       "flags": {},
-      "order": 207,
+      "order": 208,
       "mode": 4,
       "inputs": [
         {
@@ -11140,7 +11087,7 @@
         58
       ],
       "flags": {},
-      "order": 269,
+      "order": 270,
       "mode": 0,
       "inputs": [
         {
@@ -11226,7 +11173,7 @@
         246
       ],
       "flags": {},
-      "order": 221,
+      "order": 224,
       "mode": 4,
       "inputs": [
         {
@@ -11584,7 +11531,7 @@
         90
       ],
       "flags": {},
-      "order": 218,
+      "order": 221,
       "mode": 0,
       "inputs": [
         {
@@ -11683,7 +11630,7 @@
       "flags": {
         "collapsed": true
       },
-      "order": 270,
+      "order": 271,
       "mode": 4,
       "inputs": [
         {
@@ -11746,7 +11693,7 @@
         215.0999999999999
       ],
       "flags": {},
-      "order": 255,
+      "order": 256,
       "mode": 0,
       "inputs": [
         {
@@ -11815,7 +11762,7 @@
       "flags": {
         "collapsed": true
       },
-      "order": 264,
+      "order": 265,
       "mode": 0,
       "inputs": [
         {
@@ -11873,7 +11820,7 @@
         60
       ],
       "flags": {},
-      "order": 271,
+      "order": 272,
       "mode": 0,
       "inputs": [
         {
@@ -11914,7 +11861,7 @@
         318.784949653881
       ],
       "flags": {},
-      "order": 235,
+      "order": 238,
       "mode": 0,
       "inputs": [
         {
@@ -12011,7 +11958,7 @@
         106
       ],
       "flags": {},
-      "order": 214,
+      "order": 215,
       "mode": 0,
       "inputs": [
         {
@@ -12259,7 +12206,7 @@
         26
       ],
       "flags": {},
-      "order": 196,
+      "order": 197,
       "mode": 0,
       "inputs": [
         {
@@ -12443,7 +12390,7 @@
         220
       ],
       "flags": {},
-      "order": 197,
+      "order": 198,
       "mode": 0,
       "inputs": [
         {
@@ -12525,7 +12472,7 @@
       "flags": {
         "collapsed": false
       },
-      "order": 259,
+      "order": 260,
       "mode": 0,
       "inputs": [
         {
@@ -12770,7 +12717,7 @@
         78
       ],
       "flags": {},
-      "order": 281,
+      "order": 282,
       "mode": 0,
       "inputs": [
         {
@@ -12902,8 +12849,8 @@
       "id": 691,
       "type": "GetNode",
       "pos": [
-        3758.127985580413,
-        2653.1404770010154
+        3738.8043139372753,
+        2638.276114198601
       ],
       "size": [
         210,
@@ -12979,7 +12926,7 @@
       "type": "MpiBooleanCompare",
       "pos": [
         4008.127985580413,
-        2653.1404770010154
+        2685.8420751663257
       ],
       "size": [
         210,
@@ -13170,7 +13117,7 @@
         78
       ],
       "flags": {},
-      "order": 226,
+      "order": 229,
       "mode": 0,
       "inputs": [
         {
@@ -13225,7 +13172,7 @@
         78
       ],
       "flags": {},
-      "order": 227,
+      "order": 230,
       "mode": 0,
       "inputs": [
         {
@@ -13280,7 +13227,7 @@
         78
       ],
       "flags": {},
-      "order": 228,
+      "order": 231,
       "mode": 0,
       "inputs": [
         {
@@ -13568,7 +13515,7 @@
         224
       ],
       "flags": {},
-      "order": 198,
+      "order": 199,
       "mode": 0,
       "inputs": [
         {
@@ -13633,7 +13580,7 @@
       "flags": {
         "collapsed": false
       },
-      "order": 265,
+      "order": 266,
       "mode": 0,
       "inputs": [
         {
@@ -13811,7 +13758,7 @@
         224
       ],
       "flags": {},
-      "order": 272,
+      "order": 273,
       "mode": 0,
       "inputs": [
         {
@@ -13875,7 +13822,7 @@
       "flags": {
         "collapsed": false
       },
-      "order": 277,
+      "order": 278,
       "mode": 0,
       "inputs": [
         {
@@ -14055,7 +14002,7 @@
         100
       ],
       "flags": {},
-      "order": 215,
+      "order": 216,
       "mode": 0,
       "inputs": [
         {
@@ -14106,7 +14053,7 @@
         30
       ],
       "flags": {},
-      "order": 216,
+      "order": 217,
       "mode": 0,
       "inputs": [
         {
@@ -14143,7 +14090,7 @@
         60
       ],
       "flags": {},
-      "order": 231,
+      "order": 234,
       "mode": 0,
       "inputs": [
         {
@@ -14186,7 +14133,7 @@
         30
       ],
       "flags": {},
-      "order": 242,
+      "order": 245,
       "mode": 0,
       "inputs": [
         {
@@ -14223,7 +14170,7 @@
         50
       ],
       "flags": {},
-      "order": 253,
+      "order": 254,
       "mode": 0,
       "inputs": [
         {
@@ -14257,15 +14204,15 @@
       "id": 717,
       "type": "MpiIfElse",
       "pos": [
-        3435.3319866428888,
-        -317.3396557071364
+        3743.6753803128067,
+        -335.7665517431874
       ],
       "size": [
         210,
         78
       ],
       "flags": {},
-      "order": 199,
+      "order": 200,
       "mode": 0,
       "inputs": [
         {
@@ -14276,7 +14223,7 @@
         {
           "name": "false",
           "type": "*",
-          "link": 1160
+          "link": 1169
         },
         {
           "name": "boolean",
@@ -14292,10 +14239,13 @@
           "name": "output",
           "type": "*",
           "links": [
-            1161
+            1164,
+            1165,
+            1166
           ]
         }
       ],
+      "title": "Custom Size (control)",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
         "ver": "3d00c1633f92c2166dd3facbc9d641cff8a196f9",
@@ -14306,8 +14256,7 @@
       ],
       "widgets_values_named": {
         "boolean": true
-      },
-      "title": "Custom Size (control)"
+      }
     },
     {
       "id": 719,
@@ -14318,7 +14267,7 @@
       ],
       "size": [
         270,
-        286
+        336
       ],
       "flags": {},
       "order": 178,
@@ -14515,6 +14464,59 @@
       },
       "color": "#2a363b",
       "bgcolor": "#3f5159"
+    },
+    {
+      "id": 723,
+      "type": "ImageScaleToTotalPixels",
+      "pos": [
+        3432.6086495246877,
+        -464.5547154848937
+      ],
+      "size": [
+        270,
+        106
+      ],
+      "flags": {},
+      "order": 179,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 1168
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            1169
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.8.2",
+        "Node name for S&R": "ImageScaleToTotalPixels",
+        "enableTabs": false,
+        "tabWidth": 65,
+        "tabXOffset": 10,
+        "hasSecondTab": false,
+        "secondTabText": "Send Back",
+        "secondTabOffset": 80,
+        "secondTabWidth": 65
+      },
+      "widgets_values": [
+        "nearest-exact",
+        1,
+        16
+      ],
+      "widgets_values_named": {
+        "upscale_method": "nearest-exact",
+        "megapixels": 1,
+        "resolution_steps": 16
+      }
     }
   ],
   "links": [
@@ -14775,14 +14777,6 @@
       "LATENT"
     ],
     [
-      175,
-      131,
-      0,
-      115,
-      0,
-      "IMAGE"
-    ],
-    [
       176,
       113,
       0,
@@ -14827,14 +14821,6 @@
       130,
       0,
       129,
-      0,
-      "IMAGE"
-    ],
-    [
-      199,
-      131,
-      0,
-      135,
       0,
       "IMAGE"
     ],
@@ -15245,14 +15231,6 @@
       241,
       0,
       "BOOLEAN"
-    ],
-    [
-      350,
-      242,
-      0,
-      123,
-      0,
-      "IMAGE"
     ],
     [
       351,
@@ -15999,14 +15977,6 @@
       "STRING"
     ],
     [
-      836,
-      131,
-      0,
-      563,
-      0,
-      "IMAGE"
-    ],
-    [
       846,
       210,
       0,
@@ -16599,14 +16569,6 @@
       "IMAGE"
     ],
     [
-      1098,
-      397,
-      0,
-      683,
-      1,
-      "FLOAT"
-    ],
-    [
       1099,
       683,
       0,
@@ -16629,22 +16591,6 @@
       685,
       2,
       "BASIC_PIPE"
-    ],
-    [
-      1103,
-      673,
-      0,
-      685,
-      8,
-      "INT"
-    ],
-    [
-      1104,
-      678,
-      0,
-      685,
-      9,
-      "FLOAT"
     ],
     [
       1105,
@@ -16831,36 +16777,12 @@
       "INT"
     ],
     [
-      1128,
-      701,
-      0,
-      684,
-      4,
-      "INT"
-    ],
-    [
       1129,
       702,
       0,
       685,
       6,
       "FLOAT"
-    ],
-    [
-      1130,
-      703,
-      0,
-      685,
-      7,
-      "FLOAT"
-    ],
-    [
-      1131,
-      704,
-      0,
-      685,
-      10,
-      "STRING"
     ],
     [
       1132,
@@ -16903,14 +16825,6 @@
       "BASIC_PIPE"
     ],
     [
-      1138,
-      673,
-      0,
-      707,
-      6,
-      "INT"
-    ],
-    [
       1139,
       708,
       0,
@@ -16949,22 +16863,6 @@
       710,
       2,
       "BASIC_PIPE"
-    ],
-    [
-      1144,
-      673,
-      0,
-      710,
-      6,
-      "INT"
-    ],
-    [
-      1145,
-      678,
-      0,
-      710,
-      7,
-      "FLOAT"
     ],
     [
       1146,
@@ -17029,6 +16927,70 @@
       685,
       1,
       "SEGS"
+    ],
+    [
+      1154,
+      719,
+      0,
+      717,
+      0,
+      "IMAGE"
+    ],
+    [
+      1156,
+      720,
+      0,
+      719,
+      2,
+      "INT"
+    ],
+    [
+      1157,
+      721,
+      0,
+      719,
+      3,
+      "INT"
+    ],
+    [
+      1158,
+      722,
+      0,
+      717,
+      2,
+      "BOOLEAN"
+    ],
+    [
+      1159,
+      123,
+      0,
+      719,
+      0,
+      "IMAGE"
+    ],
+    [
+      67,
+      61,
+      0,
+      6,
+      0,
+      "CLIP"
+    ],
+    [
+      4,
+      4,
+      0,
+      6,
+      5,
+      "STRING"
+    ],
+    [
+      683,
+      450,
+      0,
+      396,
+      0,
+      "IMAGE"
     ],
     [
       1008,
@@ -17111,83 +17073,123 @@
       "FLOAT"
     ],
     [
-      67,
-      61,
+      1098,
+      397,
       0,
-      6,
-      0,
-      "CLIP"
+      683,
+      1,
+      "FLOAT"
     ],
     [
-      4,
-      4,
+      1128,
+      701,
       0,
-      6,
-      5,
+      684,
+      4,
+      "INT"
+    ],
+    [
+      1130,
+      703,
+      0,
+      685,
+      7,
+      "FLOAT"
+    ],
+    [
+      1103,
+      673,
+      0,
+      685,
+      8,
+      "INT"
+    ],
+    [
+      1104,
+      678,
+      0,
+      685,
+      9,
+      "FLOAT"
+    ],
+    [
+      1131,
+      704,
+      0,
+      685,
+      10,
       "STRING"
     ],
     [
-      683,
-      450,
+      1138,
+      673,
       0,
-      396,
-      0,
-      "IMAGE"
-    ],
-    [
-      1154,
-      719,
-      0,
-      717,
-      0,
-      "IMAGE"
-    ],
-    [
-      1156,
-      720,
-      0,
-      719,
-      2,
+      707,
+      6,
       "INT"
     ],
     [
-      1157,
-      721,
+      1144,
+      673,
       0,
-      719,
-      3,
+      710,
+      6,
       "INT"
     ],
     [
-      1158,
-      722,
+      1145,
+      678,
       0,
-      717,
-      2,
-      "BOOLEAN"
+      710,
+      7,
+      "FLOAT"
     ],
     [
-      1159,
-      123,
+      1164,
+      717,
       0,
-      719,
+      115,
       0,
       "IMAGE"
     ],
     [
-      1160,
+      1165,
+      717,
+      0,
+      135,
+      0,
+      "IMAGE"
+    ],
+    [
+      1166,
+      717,
+      0,
+      563,
+      0,
+      "IMAGE"
+    ],
+    [
+      1167,
+      242,
+      0,
       123,
+      0,
+      "IMAGE"
+    ],
+    [
+      1168,
+      123,
+      0,
+      723,
+      0,
+      "IMAGE"
+    ],
+    [
+      1169,
+      723,
       0,
       717,
       1,
-      "IMAGE"
-    ],
-    [
-      1161,
-      717,
-      0,
-      131,
-      0,
       "IMAGE"
     ]
   ],
@@ -17328,10 +17330,10 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.6727499949325609,
+      "scale": 0.8140274938683989,
       "offset": [
-        -2487.495889077728,
-        985.9290530547654
+        -2553.1047673901107,
+        879.0803400169971
       ]
     },
     "reroutes": [

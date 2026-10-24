@@ -72,3 +72,31 @@ test('every local control graph pads behind ONE Input_custom_size, so every cont
         assert.ok(optedIn(m), `${m.id}: the graph pads, so customSizeOps must name control`);
     }
 });
+
+// SDXL's final resize read its size from image 1, so a 1344x768 latent came out in image 1's
+// shape. Walk the control branch up from Output_Image: every Get Image Size on it must read
+// through Input_custom_size, or the picked size is lost after the sampler.
+test('on the control branch, every size the output reads follows Input_custom_size', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    for (const m of controlModels.filter((x) => x.workflows?.control)) {
+        const g = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'comfy_workflows', m.workflows.control), 'utf8'));
+        const wf = m.opInject?.control?.Input_wf_type;
+        const isWfType = (ref) => Array.isArray(ref) && g[ref[0]]?._meta?.title === 'Input_wf_type';
+        const upstream = (id, seen = new Set()) => {
+            if (seen.has(id)) return seen;
+            seen.add(id);
+            const n = g[id];
+            const pick = wf !== undefined && /^MpiAnySwitch/.test(n.class_type) && isWfType(n.inputs.select)
+                ? [n.inputs[`any_${wf}`]] : Object.values(n.inputs);
+            for (const ref of pick) if (Array.isArray(ref) && g[ref[0]]) upstream(ref[0], seen);
+            return seen;
+        };
+        const out = Object.keys(g).find((k) => g[k]._meta?.title === 'Output_Image');
+        for (const id of upstream(out)) {
+            if (g[id].class_type !== 'GetImageSize') continue;
+            const reads = [...upstream(g[id].inputs.image[0])].map((k) => g[k]._meta?.title);
+            assert.ok(reads.includes('Input_custom_size'), `${m.id}: Get Image Size ${id} ignores Custom size`);
+        }
+    }
+});

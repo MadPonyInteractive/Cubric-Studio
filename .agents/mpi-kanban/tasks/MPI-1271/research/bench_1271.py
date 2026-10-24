@@ -16,6 +16,8 @@ GRAPHS = {   # model -> (runtime, control wf_type)
     'chroma': ('chroma_t2i.json', 3),
     'krea2': ('krea2_t2i_sfw.json', 3),
     'klein': ('klein_t2i.json', 3),
+    'chroma_hyper': ('chroma_hyper_t2i.json', 3),   # same template as chroma, weights on this box
+    'klein_9b': ('klein_9b_t2i.json', 3),           # same template as klein
     'qwen_edit': ('qwen_edit.json', 2),
     'qwen21': ('qwen_image_2_1.json', 3),
 }
@@ -37,7 +39,10 @@ def build(name, on):
 def run(g, tag):
     body = json.dumps({'prompt': g, 'client_id': 'mpi1271'}).encode()
     try:
-        pid = json.load(urllib.request.urlopen(urllib.request.Request(f'{URL}/prompt', body, {'Content-Type': 'application/json'})))['prompt_id']
+        r = json.load(urllib.request.urlopen(urllib.request.Request(f'{URL}/prompt', body, {'Content-Type': 'application/json'})))
+        pid = r['prompt_id']
+        if r.get('node_errors'):   # ComfyUI drops an invalid output node and still runs the rest
+            print(tag, 'NODE ERRORS', json.dumps(r['node_errors'])[:1500], flush=True)
     except urllib.error.HTTPError as e:
         print(tag, 'REJECTED', e.read().decode()[:1500], flush=True); return
     t0 = time.time()
@@ -50,7 +55,8 @@ def run(g, tag):
     if h['status'].get('status_str') != 'success':
         print(tag, 'FAILED', json.dumps(h['status'])[:1500], flush=True); return
     out_id = next(k for k, n in g.items() if n.get('_meta', {}).get('title') == 'Output_Image')
-    ims = h['outputs'].get(out_id, {}).get('images') or next(o['images'] for o in h['outputs'].values() if o.get('images'))
+    ims = h['outputs'].get(out_id, {}).get('images')   # never fall back: Input_Image previews the source
+    if not ims: print(tag, 'NO OUTPUT', sorted(h['outputs']), flush=True); return
     im = ims[0]
     data = urllib.request.urlopen(f"{URL}/view?filename={im['filename']}&subfolder={im['subfolder']}&type={im['type']}").read()
     path = os.path.join(HERE, f'mpi1271_{tag}.png'); open(path, 'wb').write(data)
