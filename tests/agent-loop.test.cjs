@@ -2890,14 +2890,25 @@ describe('(l) one ask, many cards', () => {
         const refs = seeCards(loop, 50);
         const pending = loop._executeTool('generate', { modelId: 'test-model', operation: 'upscale', cards: refs }, 'turn-batch-50', project);
         const ask = await waitForEvent(fakeRes, (e) => e.event === 'agent:confirm');
-        const t0 = Date.now();
-        await loop.confirm(ask.data.confirmId, true);
-        const out = JSON.parse(await pending);
-        const queueMs = Date.now() - t0;
+        // The first card still meets the refusal window (1 s); the other 49 must not. Counted,
+        // not timed: a wall clock around a real 1 s wait failed on GitHub runners that stalled
+        // 0.7 s, while the same 50-card queue took 34 ms in the test above (MPI-1275).
+        const realSetTimeout = global.setTimeout;
+        let windows = 0;
+        global.setTimeout = (fn, ms, ...rest) => {
+            if (ms === 1000) windows += 1;
+            return realSetTimeout(fn, ms, ...rest);
+        };
+        let out;
+        try {
+            await loop.confirm(ask.data.confirmId, true);
+            out = JSON.parse(await pending);
+        } finally {
+            global.setTimeout = realSetTimeout;
+        }
 
         assert.equal(out.started, 50);
-        // The first card still meets the refusal window (1 s); the other 49 must not.
-        assert.ok(queueMs < 1600, `queueing fifty took ${queueMs} ms: validate once, then queue`);
+        assert.equal(windows, 1, `fifty cards waited ${windows} refusal windows: validate once, then queue`);
 
         assert.ok(await waitForEvent(fakeRes, (e) => e.event === 'agent:drained'), 'the batch never drained');
         assert.equal(fakeRes.events.filter((e) => e.event === 'agent:drained').length, 1, 'the wake fires once');
