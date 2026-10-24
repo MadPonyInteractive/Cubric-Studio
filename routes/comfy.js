@@ -295,6 +295,8 @@ router.get('/comfy/status', async (req, res) => {
     // cannot outlive the breakage.
     const flags = {
         needsRestart,
+        // MPI-1272: installed nodes not yet scanned — restart only for a run that uses one.
+        nodesPending: processState.comfyNodesPending === true,
         restartReason: processState.comfyRestartReason,
         depsWarning: processState.lastDepsWarning || _importFailureWarning() || await curatedDepsFailure(),
     };
@@ -584,6 +586,7 @@ async function _startComfy(req, res) {
         const isUserRestart = req.body && req.body.isUserRestart;
         if (isUserRestart) {
             processState.comfyNeedsRestart = false;
+            processState.comfyNodesPending = false;
             processState.comfyRestartReason = null;
         }
 
@@ -635,6 +638,7 @@ async function _startComfy(req, res) {
         // We are about to SPAWN a fresh process → its node scan will pick up any
         // newly-installed custom node, satisfying the restart need. Clear the flag.
         processState.comfyNeedsRestart = false;
+        processState.comfyNodesPending = false;
         processState.comfyRestartReason = null;
 
         const pythonPath = getPythonBin(ENGINE_ROOT);

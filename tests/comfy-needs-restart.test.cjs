@@ -26,8 +26,11 @@ function gateDecision({ frontendFlag, serverFlag, running, ready }) {
 }
 
 // ── Server flag lifecycle (mirrors routes/comfy.js) ───────────────────────────
+// MPI-1272: a node install now sets comfyNodesPending, whose restart is decided per run
+// (tests/restart-gate-node-classes.test.cjs). comfyNeedsRestart, pinned here, keeps the
+// restart-before-every-run meaning for the causes that need it.
 function installCustomNode(ps, { remoteActive }) {
-    if (!remoteActive) ps.comfyNeedsRestart = true;      // local install sets server flag
+    if (!remoteActive) ps.comfyNodesPending = true;      // local install sets server flag
 }
 function comfyStart(ps, { alreadyRunning, isUserRestart }) {
     if (isUserRestart) ps.comfyNeedsRestart = false;
@@ -73,13 +76,13 @@ function run() {
     );
 
     // 6. Local install sets the server flag; remote install does NOT poison it.
-    const psLocal = { comfyNeedsRestart: false };
+    const psLocal = { comfyNodesPending: false };
     installCustomNode(psLocal, { remoteActive: false });
-    assert.strictEqual(psLocal.comfyNeedsRestart, true, 'local install sets server flag');
+    assert.strictEqual(psLocal.comfyNodesPending, true, 'local install sets server flag');
 
-    const psRemote = { comfyNeedsRestart: false };
+    const psRemote = { comfyNodesPending: false };
     installCustomNode(psRemote, { remoteActive: true });
-    assert.strictEqual(psRemote.comfyNeedsRestart, false, 'remote install must not set the local server flag');
+    assert.strictEqual(psRemote.comfyNodesPending, false, 'remote install must not set the local server flag');
 
     // 7. Fresh spawn clears the flag (no restart-loop); "already running" start does NOT.
     const psSpawn = { comfyNeedsRestart: true };

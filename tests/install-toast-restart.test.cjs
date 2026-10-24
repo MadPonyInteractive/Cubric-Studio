@@ -47,15 +47,19 @@ test('installed toast carries Restart engine only while a restart is pending', a
     notif.destroyNotificationService();
     notif.initNotificationService();
 
-    state.comfyNeedsRestart = false;
+    // MPI-1272: a local node install sets comfyNodesPending, not comfyNeedsRestart.
+    state.comfyNodesPending = false;
     Events.emit('download:complete', { modelId: 'some-model' });
-    state.comfyNeedsRestart = true;
+    state.comfyNodesPending = true;
     Events.emit('download:complete', { modelId: 'some-model' });
     notif.destroyNotificationService();
+    state.comfyNodesPending = false;
 
     assert.strictEqual(toasts.length, 2);
     assert.strictEqual(toasts[0].opts, undefined);
     assert.strictEqual(toasts[1].opts.action.text, 'Restart engine');
+    assert.match(toasts[1].message, /restarts the first time you use it/,
+        'a local install no longer restarts before the NEXT generation, only before one that needs it');
     toasts[1].opts.action.onClick();
     off();
     assert.strictEqual(restarts, 1);
@@ -74,4 +78,5 @@ test('a completed restart clears the pending flag, so the next generation does n
     const body = src.slice(start, src.indexOf('} catch (err) {', start));
     assert.match(body, /state\.remoteComfyNeedsRestart = false/);
     assert.match(body, /state\.comfyNeedsRestart = false/);
+    assert.match(body, /state\.comfyNodesPending = false/);
 });

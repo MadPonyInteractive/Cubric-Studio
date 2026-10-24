@@ -527,7 +527,8 @@ watchdog then force-failed the Pod dep (live on a CPU Pod, 2026-10-01).
 In `js/state.js`:
 - `downloadJobs[]` — `DownloadJob[]` array, persisted for shutdown recovery
 - `downloadQueueActive` — `boolean`, true when any download is in progress
-- `comfyNeedsRestart` — `boolean`, true after custom node install; triggers auto-restart in `ensureServerRunning()`
+- `comfyNodesPending` — `boolean`, true after a local custom node install; `ensureServerRunning()` restarts only for a run that uses a node ComfyUI has not loaded (MPI-1272)
+- `comfyNeedsRestart` — `boolean`, true after a Settings models-path change; restarts before the next local generation, whatever it runs
 
 ## Download Events (Lifecycle)
 
@@ -637,6 +638,8 @@ instance and leaves the classification wrong.
 ## ComfyUI Auto-Restart
 When `comfyNeedsRestart` is true, `ensureServerRunning()` in `comfyController.js` stops ComfyUI, starts it again with `{ isUserRestart: true }`, and polls until ready before any generation proceeds.
 
+**A node install does NOT restart under every run (MPI-1272).** It sets `comfyNodesPending` (server `processState` + frontend `state`, echoed on `/comfy/status` as `nodesPending`). `runWorkflow` loads the graph BEFORE the gate and passes it in; `_readyOrRestartForNodes` probes `/object_info/<class>` for each distinct `class_type` (ComfyUI answers `{}` for a class it has not registered) and restarts only if one is missing. A failed probe counts as missing. The flag stays set across runs that do not need it, so ten queued installs cost one restart, on the first run of a model that uses the new nodes. Callers without a graph (boot warm-up, repair) never restart for it. The Pod keeps restarting before its next run (`remoteComfyNeedsRestart`): no model install reaches that path now (`runpod-remote-engine.md`), and the wrapper exposes no `/object_info`.
+
 ## NDH Download Gotchas
 
 `node-downloader-helper` v2.1.11 key traps: writes straight to final filename (no `.part` suffix), so a killed partial sits at the final path. `removeOnStop`/`removeOnFail` default TRUE — they ate a 5.66GB partial via the watchdog's `stop()` pre-MPI-317; both are now set false and deletion is owned by `.cancel()` alone. `.download()` resumes a marker-blessed partial via `resumeFromFile` (explicit Range; NDH truncates on a 200-not-206 answer) and scrubs only unusable/stale partials (no blind `resumeIfFileExists`). `models/check` uses bare `fs.pathExists` — partial-at-final-path reads as installed (false positive). MPI-54: `<file>.cubricdl` sidecar marker + `isCompleteOnDisk()` + `routes/downloadCompletion.js` fix this.
@@ -686,8 +689,8 @@ released app. Do not "fix" a recurrence with a retry or a try/catch at the pip c
 cause is the engine being up, not pip being flaky.
 
 Nothing is later for the deps: a custom-node install already REQUIRES a restart before
-ComfyUI scans the new nodes (`comfyNeedsRestart` → the gen gate's stop+start in
-`js/services/comfyController.js`), so they land on exactly the boot that first loads the
+ComfyUI scans the new nodes (`comfyNodesPending` → the gen gate's stop+start in
+`js/services/comfyController.js`, MPI-1272), so they land on exactly the boot that first loads the
 nodes needing them. `_runCustomNodeInstall` keeps setting that flag; it is what carries
 the deps to their install point.
 

@@ -693,6 +693,7 @@ async function _runEngineDownload(chosenModelsRoot) {
             // Stop any running ComfyUI and clear restart flag — fresh install needs a clean start
             stopComfyUI();
             processState.comfyNeedsRestart = false;
+            processState.comfyNodesPending = false;
             broadcastEngineEvent('engine:complete', { success: true });
             logger.info('engine', `Engine provisioning complete for type: ${type}`);
         }
@@ -1220,6 +1221,7 @@ router.post('/engine/upgrade', (req, res) => _oneEngineJob('upgrade', res, async
                 logger.info('engine', `Upgrading engine in place to ${COMFY_VERSION}`);
                 await _upgradeEngineInPlace();
                 processState.comfyNeedsRestart = false;
+                processState.comfyNodesPending = false;
                 broadcastEngineEvent('engine:complete', { success: true });
                 return;
             } catch (err) {

@@ -262,12 +262,14 @@ export function initNotificationService() {
                 });
                 return;
             }
-            // MPI-1247 — new custom nodes load only on an engine restart, which the next
-            // generation would otherwise pay for. Offer it now; the flag is set before this
-            // event on both engines (downloadManager.js orders them).
-            const needsRestart = remoteEngineClient.isRemote() ? state.remoteComfyNeedsRestart : state.comfyNeedsRestart;
-            if (needsRestart) {
-                StatusBar.notify(`${message} Restart the engine to load it now, or it restarts before your next generation.`, 'success', undefined,
+            // MPI-1247 — new custom nodes load only on an engine restart. Offer it now; the
+            // flag is set before this event on both engines (downloadManager.js orders them).
+            // MPI-1272: locally only a run that uses the new nodes pays it; the Pod still
+            // restarts before its next generation.
+            const remote = remoteEngineClient.isRemote();
+            if (remote ? state.remoteComfyNeedsRestart : state.comfyNodesPending) {
+                const when = remote ? 'before your next generation' : 'the first time you use it';
+                StatusBar.notify(`${message} Restart the engine to load it now, or it restarts ${when}.`, 'success', undefined,
                     { action: { text: 'Restart engine', onClick: () => Events.emit('engine:restart') } });
                 return;
             }

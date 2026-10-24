@@ -906,8 +906,9 @@ const downloadService = {
             // install during a remote session wrongly stop+restarted a healthy LOCAL
             // ComfyUI on the next local-pinned gen. Keep them separate — each
             // engine's ready-path consumes its own flag.
+            // A local install restarts only for a run that needs the new nodes (MPI-1272).
             if (data?.remote === true) state.remoteComfyNeedsRestart = true;
-            else state.comfyNeedsRestart = true;
+            else state.comfyNodesPending = true;
             Events.emit('comfy:needs-restart', data);
         });
 

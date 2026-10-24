@@ -477,7 +477,7 @@ async function _performRestart(remote, onStopped) {
         // MPI-1247: the fresh process has loaded every installed node, so the pending
         // restart is paid. Left set, the next generation's gate restarted it a second time.
         if (remote) state.remoteComfyNeedsRestart = false;
-        else state.comfyNeedsRestart = false;
+        else { state.comfyNeedsRestart = false; state.comfyNodesPending = false; }
     } catch (err) {
         clientLogger.error('navigation', `Restart engine failed: ${err.message}`);
         Events.emit('ui:error', { title: 'Restart failed', message: `Could not restart the engine: ${err.message}` });

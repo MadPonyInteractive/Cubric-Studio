@@ -380,6 +380,9 @@ function createEngine({ engine, alwaysLocal }) {
      * Ensures the ComfyUI Python process is running and ready.
      * Emits `comfy:starting` → polls `/comfy/status` → emits `comfy:ready`.
      * On failure emits `comfy:error` and `ui:error`.
+     * @param {{ background?: boolean, workflow?: object }} [opts] `workflow`: the graph
+     *   about to run — with installed nodes pending, the local engine restarts only if it
+     *   uses one ComfyUI has not loaded (MPI-1272).
      * @returns {Promise<{ ready: boolean, remoteComfyRestarted: boolean }>}
      */
     async ensureServerRunning(opts = {}) {
@@ -460,45 +463,24 @@ function createEngine({ engine, alwaysLocal }) {
             // a node was installed while ComfyUI was still BOOTING (its scan already
             // ran + cached an import failure). Honor either.
             const needsRestart = state.comfyNeedsRestart || status.needsRestart === true;
+            // MPI-1272: installed custom nodes the running engine has not scanned. Unlike
+            // needsRestart this does NOT restart for every run — only for one whose graph
+            // uses a node class ComfyUI has not registered (see _readyOrRestartForNodes).
+            const nodesPending = state.comfyNodesPending || status.nodesPending === true;
 
-            // ── Auto-restart if custom nodes were installed (even if ComfyUI is ready) ─
+            // ── Auto-restart when the engine must reload, whatever runs next ─────────
             if (needsRestart && status.running) {
-                // restartReason: a server-side cause other than a node install (MPI-1024).
-                clientLogger.info('comfy', `Engine restart pending — triggering auto-restart (${status.restartReason || 'custom nodes installed'})`);
-                Events.emit('ui:info', {
-                    message: status.restartReason || 'Restarting ComfyUI — new custom nodes were installed.',
-                });
-
-                await fetch('/comfy/stop', { method: 'POST' });
-                await new Promise(r => setTimeout(r, 2000));
-
-                await fetch('/comfy/start', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ isUserRestart: true }),
-                });
-
-                // Poll until ready
-                let retries = COMFY_READY_TIMEOUT_S;
-                while (retries-- > 0) {
-                    await new Promise(r => setTimeout(r, 1000));
-                    try {
-                        const check = await fetch('/comfy/status').then(r => r.json());
-                        if (check.ready) {
-                            state.comfyNeedsRestart = false;
-                            this._emitLifecycle('comfy:ready');
-                            return { ready: true, remoteComfyRestarted: false };
-                        }
-                    } catch (e) { /* keep polling */ }
-                }
-                throw new Error('ComfyUI auto-restart failed to become ready.');
+                // restartReason: a server-side cause (MPI-1024); else a Settings path change.
+                clientLogger.info('comfy', `Engine restart pending — triggering auto-restart (${status.restartReason || 'settings changed'})`);
+                return await this._restartLocalEngine(status.restartReason || 'Restarting ComfyUI to apply your new settings.');
             }
 
             // If ComfyUI is not running and a restart was pending, just clear the
-            // frontend flag (the fresh start below scans nodes anew; the server flag
-            // is cleared by /comfy/start when it spawns the process).
-            if (needsRestart && !status.running) {
+            // frontend flags (the fresh start below scans nodes anew; the server flags
+            // are cleared by /comfy/start when it spawns the process).
+            if ((needsRestart || nodesPending) && !status.running) {
                 state.comfyNeedsRestart = false;
+                state.comfyNodesPending = false;
             }
 
             // Already running and ready — skip the startup indicator to avoid a
@@ -508,8 +490,7 @@ function createEngine({ engine, alwaysLocal }) {
             // `state.availableLoras` empty, which fails the missing-LoRA guard open
             // (_findMissingModel treats an empty list as "engine not ready").
             if (status.running && status.ready) {
-                this._emitLifecycle('comfy:ready');
-                return { ready: true, remoteComfyRestarted: false };
+                return await this._readyOrRestartForNodes(nodesPending, opts.workflow);
             }
 
             // background: a boot auto-start brings the engine up silently — no
@@ -555,8 +536,10 @@ function createEngine({ engine, alwaysLocal }) {
                 // up, not at the user's first generation attempt.
                 this._noteDepsWarning(check);
                 if (check.ready) {
-                    this._emitLifecycle('comfy:ready');
-                    return { ready: true, remoteComfyRestarted: false };
+                    // A process that was already BOOTING when nodes landed may have run its
+                    // node scan before them (the install-mid-boot race), so the check applies here
+                    // too. A process we just spawned cleared the flag and passes straight on.
+                    return await this._readyOrRestartForNodes(nodesPending && status.running, opts.workflow);
                 }
                 // MPI-415: the engine can DIE during startup — a missing module, an
                 // illegal instruction, a bad driver. That is knowable the instant it
@@ -619,6 +602,84 @@ function createEngine({ engine, alwaysLocal }) {
     },
 
     /**
+     * The local engine is up and ready. With installed nodes still unscanned
+     * (MPI-1272), restart it only when the workflow about to run uses a node class
+     * ComfyUI has not registered; otherwise run now and leave the flag for the model
+     * that needs it. No workflow (a boot warm-up, a repair) means nothing needs them yet.
+     * @param {boolean} nodesPending
+     * @param {object|null|undefined} workflow API-format graph about to be queued
+     * @returns {Promise<{ ready: boolean, remoteComfyRestarted: boolean }>}
+     * @private
+     */
+    async _readyOrRestartForNodes(nodesPending, workflow) {
+        if (nodesPending && workflow) {
+            const missing = await this._unloadedNodeClasses(workflow);
+            if (missing.length) {
+                clientLogger.info('comfy', `Engine restart pending — this run needs nodes the engine has not loaded (${missing.join(', ')})`);
+                return await this._restartLocalEngine('Restarting ComfyUI to load the new nodes this model needs.');
+            }
+            clientLogger.info('comfy', 'New nodes are installed but this run does not use them — skipping the engine restart');
+        }
+        this._emitLifecycle('comfy:ready');
+        return { ready: true, remoteComfyRestarted: false };
+    },
+
+    /**
+     * The workflow's node classes the running ComfyUI has not registered. ComfyUI's
+     * `/object_info/<class>` answers `{}` for a class it does not know; a failed probe
+     * counts as missing, so a doubt costs a restart rather than a broken run.
+     * @param {object} workflow API-format graph (`{ id: { class_type, ... } }`)
+     * @returns {Promise<string[]>}
+     * @private
+     */
+    async _unloadedNodeClasses(workflow) {
+        const classes = [...new Set(Object.values(workflow).map(n => n?.class_type).filter(Boolean))];
+        const loaded = await Promise.all(classes.map(cls =>
+            fetch(`${this.httpBase()}/object_info/${encodeURIComponent(cls)}`)
+                .then(r => (r.ok ? r.json() : {}))
+                .then(info => Boolean(info?.[cls]))
+                .catch(() => false)
+        ));
+        return classes.filter((_, i) => !loaded[i]);
+    },
+
+    /**
+     * Stop and start the local ComfyUI, then wait for it to be ready. Clears both
+     * restart flags on success (the fresh process scanned every installed node).
+     * @param {string} message what the user is told is happening
+     * @returns {Promise<{ ready: boolean, remoteComfyRestarted: boolean }>}
+     * @private
+     */
+    async _restartLocalEngine(message) {
+        Events.emit('ui:info', { message });
+
+        await fetch('/comfy/stop', { method: 'POST' });
+        await new Promise(r => setTimeout(r, 2000));
+
+        await fetch('/comfy/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isUserRestart: true }),
+        });
+
+        // Poll until ready
+        let retries = COMFY_READY_TIMEOUT_S;
+        while (retries-- > 0) {
+            await new Promise(r => setTimeout(r, 1000));
+            try {
+                const check = await fetch('/comfy/status').then(r => r.json());
+                if (check.ready) {
+                    state.comfyNeedsRestart = false;
+                    state.comfyNodesPending = false;
+                    this._emitLifecycle('comfy:ready');
+                    return { ready: true, remoteComfyRestarted: false };
+                }
+            } catch (e) { /* keep polling */ }
+        }
+        throw new Error('ComfyUI auto-restart failed to become ready.');
+    },
+
+    /**
      * Remote-mode readiness check. Polls the Express-side wrapper health relay
      * until the Pod's wrapper reports ready. Pod start/stop lifecycle is owned
      * by the backend (and, later, the Settings boot gate) — this only waits.
@@ -626,7 +687,7 @@ function createEngine({ engine, alwaysLocal }) {
      * @returns {Promise<{ ready: boolean, remoteComfyRestarted: boolean }>}
      * @private
      */
-    async _ensureRemoteReady({ background = false } = {}) {
+    async _ensureRemoteReady({ background = false, workflow = null } = {}) {
         // Step 4.2 lifecycle: the Pod is created explicitly via Connect in
         // Settings (create-on-Connect / delete-on-Disconnect), never lazily at
         // generation — so generation does NOT auto-create a Pod (avoids a silent
@@ -793,7 +854,7 @@ function createEngine({ engine, alwaysLocal }) {
         }
         clientLogger.info('comfy', 'Remote engine not connected — falling back to the local engine.');
         // Fall to the LOCAL engine instance — it always takes the local branch.
-        return await localEngine.ensureServerRunning({ background });
+        return await localEngine.ensureServerRunning({ background, workflow });
     },
 
     /**
@@ -1525,25 +1586,11 @@ function createEngine({ engine, alwaysLocal }) {
         // MPI-74 P6: engine selection now happens at the CALL SITE — the dispatch
         // path picks getEngine(forceLocal) and calls .runWorkflow on it. So `this`
         // is already the correct engine; `this._alwaysLocal` drives all routing.
-        const serverReady = await this.ensureServerRunning(opts);
-
-        // MPI-673 / issue #2: the engine is UP but its curated Python packages never
-        // installed, so five node packs failed to import. Dispatching anyway is what
-        // produced the reported dialog — ComfyUI rejects the graph on whichever missing
-        // class it reaches first ("Node 'ClownsharKSampler' not found"), which names a
-        // node the user never chose and reads as a broken app. Refuse here instead, with
-        // the real reason. Local engines only; the Pod runs no curated pass, and the
-        // remote path never populates this flag.
-        const isLocalRun = this._alwaysLocal || !remoteEngineClient.isRemote();
-        if (isLocalRun && state.comfyDepsWarning) {
-            const err = new Error(DEPS_BROKEN_MESSAGE);
-            err.code = 'python_deps_broken';
-            throw err;
-        }
-
         let workflow = workflowOrId;
 
-        // 1. Load workflow if it's an ID string
+        // 1. Load workflow if it's an ID string. BEFORE the engine gate (MPI-1272): the
+        // gate reads the graph's node classes to decide whether a pending node install
+        // needs a restart for THIS run.
         if (typeof workflow === 'string') {
             const registry = state.allComfyWorkflows || [];
             const wfConfig = registry.find(w => w.id === workflow);
@@ -1566,6 +1613,22 @@ function createEngine({ engine, alwaysLocal }) {
             if (!_hasCapture) {
                 clientLogger.warn('comfy', `Workflow "${file}" has no capture node (Output / Output_* / Preview / Detected) — run will report no output. Node naming law: every workflow needs a capture node.`);
             }
+        }
+
+        const serverReady = await this.ensureServerRunning({ ...opts, workflow });
+
+        // MPI-673 / issue #2: the engine is UP but its curated Python packages never
+        // installed, so five node packs failed to import. Dispatching anyway is what
+        // produced the reported dialog — ComfyUI rejects the graph on whichever missing
+        // class it reaches first ("Node 'ClownsharKSampler' not found"), which names a
+        // node the user never chose and reads as a broken app. Refuse here instead, with
+        // the real reason. Local engines only; the Pod runs no curated pass, and the
+        // remote path never populates this flag.
+        const isLocalRun = this._alwaysLocal || !remoteEngineClient.isRemote();
+        if (isLocalRun && state.comfyDepsWarning) {
+            const err = new Error(DEPS_BROKEN_MESSAGE);
+            err.code = 'python_deps_broken';
+            throw err;
         }
 
         // 2. Handle media inputs by inspecting the matching workflow node input.

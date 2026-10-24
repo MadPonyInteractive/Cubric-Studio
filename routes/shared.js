@@ -348,7 +348,13 @@ const COMFYUI_PORT = 48188;
 
 const processState = {
     activeComfyProcess: null,
+    // A restart the next generation MUST pay, whatever it runs (dynamic VRAM fault).
     comfyNeedsRestart: false,
+    // MPI-1272: a model install added custom nodes the running engine has not scanned.
+    // Only a run that USES one of them pays the restart (the gen gate checks the
+    // workflow's class_types against /object_info), so ten queued installs never stall
+    // generations on a model that is already loaded. Cleared with comfyNeedsRestart.
+    comfyNodesPending: false,
     // MPI-415: why the engine child last died, so a crash can be REPORTED instead of
     // waited out. The readiness poll used to watch only for "ready" and never for
     // "gone", so a process that died in under a second still cost the user the full

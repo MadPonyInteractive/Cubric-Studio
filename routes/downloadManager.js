@@ -3092,7 +3092,7 @@ async function _runCustomNodeInstall(modelJob, onNode = null) {
     // which on Windows makes replacing an already-imported package (cv2.pyd) a hard
     // `WinError 5` and the whole model install a `Download Failed`. It now runs from
     // `/comfy/start` with the process down; see `ensureCuratedPythonDeps` in
-    // routes/shared.js. The `comfyNeedsRestart` flag set at the end of this function is
+    // routes/shared.js. The `comfyNodesPending` flag set at the end of this function is
     // what carries the deps to that boot — the same restart the new nodes already need
     // before ComfyUI will scan them.
 
@@ -3267,7 +3267,8 @@ async function _runCustomNodeInstall(modelJob, onNode = null) {
 
     _setModelStatus(modelJob, 'done', 'local done');
     // A custom node was installed. The frontend gets `comfy:needs-restart` (→
-    // state.comfyNeedsRestart) and the gen gate restarts ComfyUI. But that flag is
+    // state.comfyNodesPending) and the gen gate restarts ComfyUI the first time a run
+    // needs one of the new nodes (MPI-1272). But that flag is
     // FRONTEND-ONLY and dies on an app restart — and if the node was installed while
     // ComfyUI was still BOOTING (e.g. "start ComfyUI on launch" + Install pressed
     // mid-boot), ComfyUI's one-shot node scan already ran and cached an IMPORT
@@ -3278,7 +3279,7 @@ async function _runCustomNodeInstall(modelJob, onNode = null) {
     // (state.remoteComfyNeedsRestart), so don't poison the local flag during a
     // remote session.
     if (!remoteModels.isRemoteActive()) {
-        processState.comfyNeedsRestart = true;
+        processState.comfyNodesPending = true;
     }
     _broadcast('comfy:needs-restart', { modelId: modelJob.modelId });
     // AFTER the restart flag, as the remote path already orders it: the "installed"

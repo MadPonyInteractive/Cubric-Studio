@@ -109,7 +109,8 @@ const _state = {
     downloadQueueActive: false, // true when any download is in progress
     uploadJobs: [],              // MPI-1057 — Upload models jobs {id,type,filename,totalBytes,sentBytes,status,error}; the server's upload:snapshot, replaced whole
     cpuJobs: [],                 // MPI-1104 — non-GPU jobs {id,label,progress} (progress null = no real %); services/cpuJobs.js runCpuJob, shown in the queue panel's Transfers
-    comfyNeedsRestart: false,   // true after a LOCAL custom-node/model install — restarts the local ComfyUI
+    comfyNeedsRestart: false,   // true after a Settings models-path change — the next LOCAL generation restarts ComfyUI, whatever it runs
+    comfyNodesPending: false,   // MPI-1272 — true after a LOCAL install added custom nodes; ComfyUI restarts only for a run that uses a node it has not loaded
     remoteComfyNeedsRestart: false, // true after a REMOTE (Pod) install — restarts the Pod's ComfyUI, NOT the local one (kept separate so a remote install never restarts a healthy local engine during a dual-engine session)
 
     // ── Gallery organization ───────────────────────────────────────────────────
