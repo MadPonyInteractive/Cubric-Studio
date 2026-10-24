@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1271", "at": "2026-10-24T09:35:08+01:00", "actor": "claude", "column": "doing", "title": "Custom size on Control: pad the control image to the picked ratio"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1271", "at": "2026-10-24T13:51:18+01:00", "actor": "f2b29a55-490c-4a2f-8fe2-48679076102e", "from": "doing", "to": "done", "reason": "Custom size on Control lands at the exact picked size on every local control model; bench in validation.md; CI green on 68e0a52aa"}
