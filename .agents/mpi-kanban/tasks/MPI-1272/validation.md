@@ -10,7 +10,8 @@ A local model install that adds custom nodes now sets `comfyNodesPending` (serve
 
 - ComfyUI's route read in the bench source (`server.py` `get_object_info_node`): returns `{}` unless the class is in `NODE_CLASS_MAPPINGS`.
 - `tests/restart-gate-node-classes.test.cjs`: the REAL gate methods lifted from source, run against a stubbed `/object_info`: loaded classes = no restart; missing class = restart; probe failure = restart; nothing pending or no graph = no probe. Wiring pinned by source; `nodesPending` read off a real `/comfy/status`.
-- `npm run lint` exit 0, `npm test` 3579 pass / 0 fail.
+- `npm run lint` exit 0, `npm test` 3579 pass / 0 fail; the pre-push hook re-ran both green on `65e90263` and `5a2ccfa8`, and CI (`tests.yml`) passed on `65e90263`.
+- Claim audit at close-out: 0 FALSE. Its overstatements were fixed in `5a2ccfa8`: the changelog line says "on your computer" (the Pod still restarts before its next run), the downloads rule names the two graph-less callers, and three stale comments were corrected.
 
 ## Not covered
 
