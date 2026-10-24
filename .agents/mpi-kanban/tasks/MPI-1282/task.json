@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1282",
+  "title": "Gallery filter: a Stacks row that shows only stacks",
+  "description": "Fabio: make stacks part of the gallery FILTER. Turning Stacks on under Only shows nothing but stack cards.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-24T23:06:26+01:00",
+  "updated_at": "2026-10-24T23:07:15+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

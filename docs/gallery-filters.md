@@ -73,7 +73,7 @@ in Vision rose and has no filter row of its own. A wrong chip is easier to miss 
 
 ## The filter contract: `gallerySort` (`js/utils/galleryFilter.js`)
 
-`state.gallerySort = { order, scope, hiddenKinds, marks, previews }`, starting from the
+`state.gallerySort = { order, scope, hiddenKinds, marks, previews, stacks }`, starting from the
 frozen `DEFAULT_GALLERY_SORT` (spread it — its arrays are frozen too). In-memory by design: a
 launch never opens into a filtered-looking gallery (MPI-678). Replace the top-level key, never
 mutate it.
@@ -81,12 +81,15 @@ mutate it.
 - `matchesGallerySort(group, item, sort)` is the grid's only predicate: **scope first**
   (subtractive), then **a generating placeholder passes** (MPI-1028: unmarked and result-less, any
   Only row hid the one card the user was waiting on; it can still drop out when it lands), then `hiddenKinds` via `kindOfItem(item)`, then the `marks` "only" list (the
-  card's mark is one of them — marks OR together) and the `previews` "only" flag, ANDed. `order` hides nothing.
+  card's mark is one of them — marks OR together), the `previews` "only" flag and the `stacks` one (MPI-1282, `isStack`), ANDed. `order` hides nothing.
 - `isGalleryFiltered(sort)` — any hidden kind or flag. It drives the FILTER heat dot and the
   empty states; Oldest does not count.
 - `listedKinds(entries, sort)` — the panel's rows: kinds with a card in the CURRENT scope,
   plus every hidden kind (so a hidden kind can always be switched back on), in panel order.
   NONE hides the listed kinds only.
+- `listsStacks(entries, sort)` — the panel lists its Stacks row only with a stack in the CURRENT
+  scope, or while the flag is on. The media picker never lists it: a stack has no file, so it is
+  not among the picker's entries.
 - `describeGalleryFilter(sort, listed)` — `Videos, 3D Scenes · Dots, Squares`, shown as
   `Filtered: …`. Pass the listed kinds, or it names kinds the project has no cards of.
 - `byGalleryOrder(order)` — the createdAt comparator the grid and the media picker share.
@@ -110,7 +113,8 @@ reads as a dot, and anything unknown reads as unmarked.
   (its `updateGroup` finds no project card - a no-op); `generationService` copies placeholder
   i's mark onto output i when it builds the finished card. Copy a placeholder anywhere and the
   mark is silently dropped.
-- The panel's **Only** rows are Dots, Squares, Triangles, then Previews.
+- The panel's **Only** rows are Dots, Squares, Triangles, Previews, then Stacks (`layers`, the stack badge's icon).
+  A generating card still shows under Stacks (the MPI-1028 rule), so a run into a new stack shows its loose placeholders.
 - The media picker shows a tile's mark read-only and filters by it.
 
 Empty states: the archive says `Nothing archived` (`… in this filter` when filtered). A
@@ -163,3 +167,4 @@ Size slider, volume slider, FILTER, Archive, Info. It replaced the grid's second
 - `tests/desktop/gallery-filter-panel.spec.js` — chips, card marks (click, hold, persisted), panel, dot, SHOW ALL, group-history, the stats cut-off.
 - `tests/desktop/media-picker-cards.spec.js` — the shared panel on the picker's local sort, slot preselection, tile marks.
 - `tests/desktop/gallery-archive.spec.js` — the scope gates before the kinds.
+- `tests/desktop/gallery-filter-stacks.spec.js` — the Stacks row lists only with a stack, and shows only stacks.

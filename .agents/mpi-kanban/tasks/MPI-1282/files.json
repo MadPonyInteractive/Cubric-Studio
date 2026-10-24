@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/task-files/v1", "files": ["js/utils/galleryFilter.js", "js/components/galleryFilterPanel.js", "js/state.js", "tests/gallery-filter.test.cjs", "docs/gallery-filters.md", "docs/stacks.md", "tests/desktop/gallery-filter-stacks.spec.js"]}

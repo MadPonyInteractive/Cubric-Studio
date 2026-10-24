@@ -29,7 +29,7 @@ import { MpiButton } from './Primitives/MpiButton/MpiButton.js';
 import { MpiRadioGroup } from './Primitives/MpiRadioGroup/MpiRadioGroup.js';
 import { ce, qs, on } from '../utils/dom.js';
 import { renderIcon } from '../utils/icons.js';
-import { listedKinds, isGalleryFiltered, describeGalleryFilter, CARD_MARKS } from '../utils/galleryFilter.js';
+import { listedKinds, listsStacks, isGalleryFiltered, describeGalleryFilter, CARD_MARKS } from '../utils/galleryFilter.js';
 import { state } from '../state.js';
 
 const LEAVE_CLOSE_MS = 300;
@@ -85,7 +85,7 @@ export function mountGalleryFilter(slotEl, {
     let _openUnsubs = [];
     let _leaveTimer = null;
     let _kindsKey = null;
-    /** @type {Map<string, { toggle: object, stateWord: HTMLElement }>} key = `kind:<id>` | `mark:<id>` | `flag:previews` */
+    /** @type {Map<string, { toggle: object, stateWord: HTMLElement }>} key = `kind:<id>` | `mark:<id>` | `flag:previews` | `flag:stacks` */
     const _rows = new Map();
 
     const _listed = () => listedKinds(getEntries(), getSort());
@@ -170,7 +170,8 @@ export function mountGalleryFilter(slotEl, {
     /** Rebuild the rows only when the listed kinds change, so a toggled row keeps focus. */
     function _build() {
         const kinds = _listed();
-        const kindsKey = kinds.map(k => k.kind).join(',');
+        const withStacks = listsStacks(getEntries(), getSort());
+        const kindsKey = kinds.map(k => k.kind).join(',') + (withStacks ? '|stacks' : '');
         if (kindsKey !== _kindsKey) {
             _kindsKey = kindsKey;
             const list = qs('.mpi-gallery-filter__panel-list', _popup.el);
@@ -195,6 +196,10 @@ export function mountGalleryFilter(slotEl, {
                 key: 'flag:previews', label: 'Previews', icon: 'eye',
                 onToggle: (isOn) => _set({ previews: isOn }),
             });
+            if (withStacks) _appendRow(list, {
+                key: 'flag:stacks', label: 'Stacks', icon: 'layers',
+                onToggle: (isOn) => _set({ stacks: isOn }),
+            });
         }
         _syncRows();
     }
@@ -210,7 +215,7 @@ export function mountGalleryFilter(slotEl, {
         if (hostZ >= POPUP_Z) _popup.el.style.zIndex = String(hostZ + 1);
 
         const allBtn = MpiButton.mount(ce('div'), { text: 'All', variant: 'ghost', size: 'sm' });
-        allBtn.on('click', () => _set({ hiddenKinds: [], marks: [], previews: false }));
+        allBtn.on('click', () => _set({ hiddenKinds: [], marks: [], previews: false, stacks: false }));
         // NONE hides the LISTED kinds only: hiding the whole table would list every
         // kind the project has no cards of, since a hidden kind is always listed.
         const noneBtn = MpiButton.mount(ce('div'), { text: 'None', variant: 'ghost', size: 'sm' });

@@ -3,13 +3,14 @@
  * panel so the two can never disagree. MPI-785: the media picker runs the same contract on
  * its own local sort object.
  *
- * `gallerySort` = { order, scope, hiddenKinds, marks, previews }:
+ * `gallerySort` = { order, scope, hiddenKinds, marks, previews, stacks }:
  * - `scope` gates FIRST and is subtractive (MPI-678): an archived group is absent
  *   from the active gallery whatever else is set, and the active ones from the archive.
  * - `hiddenKinds` is an EXCLUSION list, so a kind added to ASSET_KINDS later shows by
  *   default instead of vanishing from every filtered gallery.
  * - `marks` is an "only" list of CARD_MARKS ids: a card shows when its mark is one of them.
- * - `previews` is an "only" flag. Marks and previews are ANDed on top of the kinds.
+ * - `previews` and `stacks` (MPI-1282) are "only" flags. Marks and flags are ANDed on top
+ *   of the kinds, so Stacks with Images hidden shows the video stacks.
  * - `order` hides nothing, so it never counts as filtered.
  *
  * Relative import only, so Node can load it (tests/gallery-filter.test.cjs).
@@ -23,6 +24,7 @@ export const DEFAULT_GALLERY_SORT = Object.freeze({
     hiddenKinds: Object.freeze([]),
     marks: Object.freeze([]),
     previews: false,
+    stacks: false,
 });
 
 /**
@@ -78,6 +80,7 @@ export function matchesGallerySort(group, item, sort) {
     if (sort.hiddenKinds?.includes(kindOfItem(kindItemOf(group, item)).kind)) return false;
     if (sort.marks?.length && !sort.marks.includes(markOf(group))) return false;
     if (sort.previews && item?.stage !== 'preview') return false;
+    if (sort.stacks && !isStack(group)) return false;
     return true;
 }
 
@@ -92,7 +95,7 @@ export function byGalleryOrder(order) {
 
 /** True when something is hidden — the FILTER button's heat dot. */
 export function isGalleryFiltered(sort) {
-    return !!(sort.hiddenKinds?.length || sort.marks?.length || sort.previews);
+    return !!(sort.hiddenKinds?.length || sort.marks?.length || sort.previews || sort.stacks);
 }
 
 /**
@@ -109,6 +112,7 @@ export function describeGalleryFilter(sort, kinds = PANEL_KINDS) {
         parts.push(CARD_MARKS.filter(m => sort.marks.includes(m.id)).map(m => m.label).join(', '));
     }
     if (sort.previews) parts.push('Previews');
+    if (sort.stacks) parts.push('Stacks');
     return parts.join(' · ');
 }
 
@@ -120,6 +124,15 @@ export function describeGalleryFilter(sort, kinds = PANEL_KINDS) {
 export function listedKinds(entries, sort) {
     const present = new Set(entries.filter(e => _inScope(e.group, sort)).map(e => kindOfItem(kindItemOf(e.group, e.item)).kind));
     return PANEL_KINDS.filter(k => present.has(k.kind) || sort.hiddenKinds?.includes(k.kind));
+}
+
+/**
+ * MPI-1282 — does the panel list the Stacks row? Only with a stack in the CURRENT scope, or
+ * while the flag is on (so it can be switched back off). The media picker never lists one:
+ * a stack has no file, so it never reaches the picker's entries.
+ */
+export function listsStacks(entries, sort) {
+    return !!sort.stacks || entries.some(e => isStack(e.group) && _inScope(e.group, sort));
 }
 
 /**

@@ -135,6 +135,28 @@ test('MPI-949: a stacked card is in no scope; a stack filters as its members\' k
     assert.deepStrictEqual(F.listedKinds(entries, sort()).map(k => k.kind), ['video']);
 });
 
+test('MPI-1282: the Stacks flag keeps only stacks, ANDed with the kinds', () => {
+    const imageStack = { type: 'stack', kind: 'image' };
+    const videoStack = { type: 'stack', kind: 'video' };
+    const asCallersPass = { type: 'stack' };
+    const s = sort({ stacks: true });
+    assert.strictEqual(F.matchesGallerySort(imageStack, asCallersPass, s), true);
+    assert.strictEqual(F.matchesGallerySort({}, IMG, s), false);
+    assert.strictEqual(F.matchesGallerySort({ stackId: 'x' }, IMG, s), false, 'a member stays inside its stack');
+    assert.strictEqual(F.matchesGallerySort(imageStack, asCallersPass, sort({ stacks: true, hiddenKinds: ['image'] })), false);
+    assert.strictEqual(F.matchesGallerySort(videoStack, asCallersPass, sort({ stacks: true, hiddenKinds: ['image'] })), true);
+
+    assert.strictEqual(F.isGalleryFiltered(s), true);
+    assert.strictEqual(F.describeGalleryFilter(sort({ marks: ['dot'], stacks: true })), 'Dots · Stacks');
+
+    // The row lists only with a stack in the current scope, or while the flag is on.
+    const entries = [{ group: imageStack, item: asCallersPass }, { group: {}, item: IMG }];
+    assert.strictEqual(F.listsStacks(entries, sort()), true);
+    assert.strictEqual(F.listsStacks(entries, sort({ scope: 'archived' })), false);
+    assert.strictEqual(F.listsStacks([{ group: {}, item: IMG }], sort()), false);
+    assert.strictEqual(F.listsStacks([], s), true);
+});
+
 test('MPI-1028: a generating card shows under any filter, and reads as what it is MAKING', () => {
     // The placeholder carries its input frame as an image item while it runs.
     const frame = { type: 'image', inputPreview: true, filePath: 'start.png' };

@@ -115,11 +115,11 @@ const _state = {
 
     // ── Gallery organization ───────────────────────────────────────────────────
     gallerySort: { ...DEFAULT_GALLERY_SORT, order: Storage.getGallerySortOrder() },
-                                     // { order, scope, hiddenKinds, marks, previews }; the contract is
+                                     // { order, scope, hiddenKinds, marks, previews, stacks }; the contract is
                                      // js/utils/galleryFilter.js (MPI-749). order: 'newest'|'oldest', hides nothing.
                                      // scope: 'active'|'archived' — SUBTRACTIVE, gates before every filter.
                                      // hiddenKinds: EXCLUDED ASSET_KINDS ids; marks: "only" CARD_MARKS ids;
-                                     // previews: "only" flag.
+                                     // previews, stacks: "only" flags.
                                      // ONLY `order` is mirrored to Storage (MPI-826). MPI-678's reason for keeping
                                      // this key in memory was the SCOPE — nobody should relaunch into a gallery
                                      // that looks wiped — and that still holds for scope and for the three filters,

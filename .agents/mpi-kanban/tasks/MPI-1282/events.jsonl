@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1282", "at": "2026-10-24T23:06:26+01:00", "actor": "claude", "column": "todo", "title": "Gallery filter: a Stacks row that shows only stacks"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1282", "at": "2026-10-24T23:07:15+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started."}
