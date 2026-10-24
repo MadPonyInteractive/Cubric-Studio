@@ -34,7 +34,6 @@ the same card or a new member card; one that fails closes with its findings.
 | InfiniSplat v2 | MPI-1183 Multi-view feed-forward splat on a 3D Scene path video | test | After 2.1 |
 | ATAS on MiniMax-H3 | MPI-1184 World memory across shots; spike before any adapter | scope | Parked; the spike needs Fabio's yes on ~$1.50 |
 | Fibo 2.0 (Bria, 8B edit) | MPI-1276 Edit Turbo bench vs Qwen-Image 2.1, FLUX.3 Klein, Qwen-Edit-2511; research.md has the desk research | test | Next engine bump past v0.42.1 (deferred until stable, Fabio 2026-10-24) |
-| PiD 1.5 | MPI-1185 Newer nvidia-pid upscaler: REPLACE, ADD or DROP | test | Nothing known |
 | YuE2 (song model) | MPI-775 Brainstorm: a Flow, DAW widgets (piano roll, track selector) | brainstorm | Nothing; widgets reuse Mix (MPI-917) |
 
 ## Notes per model (only what the member card does not say)
@@ -51,9 +50,10 @@ the same card or a new member card; one that fails closes with its findings.
   licence-gated, with the Boxes op (Fabio, 2026-10-19).
 - **InfiniSplat v2 vs ATAS:** both are candidates for the 3D Scene lift-back MPI-623 dropped;
   weigh one against the other before picking either. Both have non-commercial weights.
-- **PiD 1.5:** came from MPI-343 (Model upgrade evaluation queue), merged here on 2026-10-18. Its `plan.md` keeps the shared evaluation method for "is this newer build
-  worth shipping": licence first, measure (n=1 is not a measurement), REPLACE vs ADD explicit,
-  never delete a dep entry.
+- **PiD 1.5:** left this menu 2026-10-24 (Fabio): MPI-1185 is now a member of the LTX 2.5 release
+  (MPI-1267), benched old vs new and replacing the shipped PiD if it wins. MPI-343's `plan.md` still
+  keeps the shared evaluation method for "is this newer build worth shipping": licence first,
+  measure (n=1 is not a measurement), REPLACE vs ADD explicit, never delete a dep entry.
 
 ## Related, not members
 

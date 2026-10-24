@@ -12,6 +12,8 @@ none of them removes a gate. Decision record: memory `project_keyframes_storyboa
   finishes FLUX.3 / Multi-angle for 2.1.3 first. NEXT: pick a first member - MPI-1268 (stack reorder,
   no gate, small) or MPI-1231 Phase 0 (planner + panel bench, local GPU, yes already given); MPI-1266
   can run beside either. Nothing built yet.
+- 2026-10-24 (later, Fabio): PiD 1.5 (MPI-1185) joined from MPI-1179: an upgrade to the shipped PiD
+  upscaler, benched old vs new, replaces it if it wins.
 
 ## Members
 
@@ -20,6 +22,7 @@ none of them removes a gate. Decision record: memory `project_keyframes_storyboa
 | MPI-1266 | LTX 2.5 Stage 2: 2.5 in the existing LTX Flows, 2.5-only Flows, second download route (HF), `high` tier measure, Fabio's raw review + recipe validation, and finally `devOnly` off | - |
 | MPI-1268 | Stacks: reorder members in the Stack workspace + right-click Create Sheet (numbered, stack order). NOT gated (Fabio): ships in the next bug-fix release once it passes | - |
 | MPI-1231 | Storyboard Flow: idea + character/place pictures -> a stack of panel cards with intent lines as notes + the numbered overview. Users make their own videos from the panels | MPI-1268 (Create Sheet) |
+| MPI-1185 | PiD 1.5: an upgrade to the PiD upscaler we ship (`nvidia-pid`). Bench old vs new; if 1.5 wins it REPLACES the old one (Fabio expects it will). Joined 2026-10-24, from MPI-1179 | - |
 
 **Left the umbrella 2026-10-24 (Fabio):** MPI-1191 Keyframes to Video. Too big for this release
 ("maybe more than a week"); the Storyboard ships alone and users animate its panels themselves. 1191
@@ -30,9 +33,12 @@ keeps its decided design and research and sits under MPI-1134 (Story). MPI-1266'
 
 1. **In parallel:** MPI-1266 (model + existing Flows) and MPI-1268 (stacks). Disjoint files; one
    writer at a time on `flowsRegistry.js` (MPI-1266's Flow swaps vs MPI-1231's new Flow).
+   MPI-1185 (PiD 1.5) can run any time beside them; its bench touches no member's files, but its
+   swap shares `models.js` with MPI-1266, one writer at a time.
 2. **MPI-1231** once MPI-1268 ships (Create Sheet); its panel generation can start before.
 3. **Release:** every member done; Storyboard Flow graphics; UNRELEASED entries (LTX 2.5 model,
-   Storyboard, stack reorder + Create Sheet); then ALL gates come off in one change.
+   Storyboard, stack reorder + Create Sheet, PiD 1.5 if it replaced the old one); then ALL gates
+   come off in one change.
 
 ## Not in this umbrella
 

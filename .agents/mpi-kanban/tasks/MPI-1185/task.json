@@ -1,13 +1,13 @@
 {
   "schema": "mpi-kanban/task-card/v1",
   "id": "MPI-1185",
-  "title": "Bench PiD 1.5 (newer nvidia-pid upscaler generation): REPLACE, ADD or DROP",
-  "description": "UMBRELLA: MPI-1179 - New Models to Test. Menu: tasks/MPI-1179/plan.md. Split out of MPI-343 (merged into MPI-1179, 2026-10-18). ComfyUI v0.28.0 lists 'Support PID 1.5 models' (#14894), a newer generation of the PixelDiT upscaler we ship as nvidia-pid. Research only: what changed, does the four-checkpoint shape hold, REPLACE vs ADD vs DROP on a measured delta. Details: brief.md.",
+  "title": "PiD 1.5: bench it against the shipped nvidia-pid; if 1.5 wins, it replaces it",
+  "description": "UMBRELLA: MPI-1267 - LTX 2.5 release (joined 2026-10-24, Fabio; moved from MPI-1179 New Models to Test). Members and phase order: tasks/MPI-1267/plan.md. ComfyUI v0.28.0 lists 'Support PID 1.5 models' (#14894), a newer generation of the PixelDiT upscaler we ship as nvidia-pid. Fabio 2026-10-24: test the old and the new side by side; if 1.5 wins it REPLACES nvidia-pid (he expects it will). Details: brief.md.",
   "column": "todo",
   "maturity": "research",
   "status": "active",
   "created_at": "2026-10-18T11:37:10+01:00",
-  "updated_at": "2026-10-18T11:37:10+01:00",
+  "updated_at": "2026-10-24T19:38:00+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

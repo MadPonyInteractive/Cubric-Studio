@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1267", "at": "2026-10-24T03:07:18+01:00", "actor": "LTX_2.5_model_10", "column": "todo", "title": "UMBRELLA: LTX 2.5 release (all dev-gated; the gate comes off together)"}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1267", "at": "2026-10-24T03:07:43+01:00", "actor": "LTX 2.5 model 10", "fields": ["description"], "reason": "fix members pointer"}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1267", "at": "2026-10-24T03:11:39+01:00", "actor": "LTX 2.5 model 10", "fields": ["links", "maturity", "status"], "reason": "plan attached"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1267", "at": "2026-10-24T19:38:00+01:00", "actor": "dcf38165-7e27-44e7-8a47-e87986efee39", "fields": ["description"], "reason": "member added: MPI-1185 PiD 1.5 (Fabio)"}
