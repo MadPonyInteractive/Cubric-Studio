@@ -1,0 +1,3 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1270", "at": "2026-10-24T08:46:04+01:00", "actor": "claude", "column": "todo", "title": "Model Library: feature LTX 2.5, unfeature Krea 2 NSFW"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1270", "at": "2026-10-24T08:46:32+01:00", "actor": "claude", "from": "todo", "to": "doing"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1270", "at": "2026-10-24T08:49:27+01:00", "actor": "claude", "from": "doing", "to": "done"}

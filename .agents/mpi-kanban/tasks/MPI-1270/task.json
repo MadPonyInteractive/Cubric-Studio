@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1270",
+  "title": "Model Library: feature LTX 2.5, unfeature Krea 2 NSFW",
+  "description": "Move the featured star from krea2-nsfw to ltx-25 in models.js.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-24T08:46:04+01:00",
+  "updated_at": "2026-10-24T08:49:27+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

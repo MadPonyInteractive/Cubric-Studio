@@ -1,0 +1,3 @@
+- [x] `featured: true` on ltx-25
+- [x] krea2-nsfw no longer featured
+- [x] lint + tests pass
