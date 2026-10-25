@@ -572,6 +572,7 @@ const STORYBOARD_PLAN_ENHANCE_PARAMS = {
         '- Open on the medium and style. When the user names none, open on "Full-color cinematic film still, ".',
         '- Then the shot size and angle (wide establishing shot, medium shot, close-up, over-the-shoulder shot), the place, the light and the time of day.',
         '- Name each cast member in the shot by their cast name every time, even twice in one panel, and say where they are in the frame (frame-left, frame-right, foreground, background) and what they are doing at that instant.',
+        '- Never describe a cast member\'s looks in a Picture (no species, size, colours or clothes): the cast line is added to every panel that names them, and a second description fights it.',
         '- Only what can be seen in a single still picture: camera moves, cuts, sounds, speech and feelings go in the Intent.',
         '',
         'The Intent is one sentence for the person who will animate the panel: what happens in this shot and why it matters, with the camera move when there is one.',
@@ -3015,15 +3016,18 @@ const ALL_FLOWS = [
         // STACK of panel cards in story order, each with its intent line as the card note, and a
         // numbered overview sheet. Dev-gated until the LTX 2.5 release (umbrella MPI-1267).
         // No graph and no op of its own: `driver` hands Generate to `js/shell/storyboardDispatch.js`,
-        // which runs every panel as an ordinary FLUX.3 Klein generation (edit with pictures, t2i
-        // without), so each panel is a normal card the user can edit like any other.
+        // which runs every panel as an ordinary generation on the picked panel model (edit with
+        // pictures, t2i without), so each panel is a normal card the user can edit like any other.
         id: 'storyboard',
         devOnly: true,
         driver: 'storyboard',
         title: 'Storyboard',
         // No `preview` until Phase 2's /mpi-flow-graphics: the tile shows its placeholder.
         description: 'Turn an idea into a storyboard of numbered panels for a video. Each panel lands as its own picture in one stack, in story order, with a note saying what happens in the shot, plus one sheet showing every panel numbered. Add pictures of your characters and places to keep them the same in every panel.',
-        requiredModels: ['flux3-klein'],
+        // Edit models only: a panel with pictures is an edit (Fabio, 2026-10-25). Two routes:
+        // FLUX.3 Klein, and Qwen-Image 2.1 under its own non-commercial licence gate. No graph,
+        // so no `modelParams`: the driver reads the pick with `flowModelIds`.
+        requiredModels: [{ label: 'Panel model', models: ['flux3-klein', 'qwen-image-2-1'] }],
         // Never dispatched: it carries the ten reference slots (commandRegistry.js).
         operation: 'flowStoryboard',
         // The user reads the plan before any panel is drawn (Fabio, 2026-10-24); the agent's
@@ -3099,7 +3103,8 @@ const ALL_FLOWS = [
                     { v: '2k', label: '2K', info: 'Sharper panels, about twice as slow.' },
                 ],
             },
-            { id: 'turbo', type: 'toggle', label: 'Turbo', icon: 'bolt', default: true },
+            // FLUX.3's own switch: Qwen-Image 2.1 has none and refuses one (INVALID_TURBO).
+            { id: 'turbo', type: 'toggle', label: 'Turbo', icon: 'bolt', default: true, hiddenWhen: { modelNot: 'flux3-klein' } },
         ],
     },
 ];

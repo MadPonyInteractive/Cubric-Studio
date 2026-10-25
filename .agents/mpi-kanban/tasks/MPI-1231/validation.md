@@ -35,3 +35,18 @@ Boards: tikori (16:9, 3 refs from Tikori Characters, edit), diner (16:9, t2i), k
   panel gets the right cast lines on all 3 boards. Still seen: quoted speech in one diner panel; a
   closing panel that names no one ("three creatures") gets no cast line. Panels not redrawn.
 - Fabio's eye, 2026-10-25: PASSED ("that is so freaking cool. I got a tear in my eye ... Yes, port V2").
+
+
+## Panel models: FLUX.3 Klein vs Qwen-Image 2.1 (2026-10-25, LTX 2.5 model 17, local GPU under the lease)
+
+Same DeepSeek plan (fixed planner), Fabio's 3 Tikori pictures (hairless cat = Sphinx, white tiger =
+Jubie, purple fox on a lion), 6 panels, seeds 1231100+, 1344x768 edit, FLUX.3 Turbo. Script and
+sheet: research/models/ (bench.mjs, sheet_flux3_vs_qwen21.jpg). Time: FLUX.3 ~49 s/panel, Qwen ~78 s.
+- Both: panel 3 draws the Egyptian Sphinx monument (the name is a real thing; the note said only
+  "the bad guy", so nothing says cat). Both leak an extra ORANGE fox in panels 4-5 (Qwen) / 4 (FLUX.3).
+- FLUX.3: Jubie drawn as a standing humanoid tiger warrior (panel 5, note "protector warrior"); panel 6
+  puts the Sphinx in the friendship shot instead of Jubie.
+- Qwen 2.1: panel 1 walks the Sphinx and Jubie instead of the fox and the lion; panel 6 right (tiger,
+  fox, lion); keeps the tiger a tiger.
+- Read: neither model wins clearly; most misses trace to the NOTES (no species), not the model.
+  Fabio's verdict pending.

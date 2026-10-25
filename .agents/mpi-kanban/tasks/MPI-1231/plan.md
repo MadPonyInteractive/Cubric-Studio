@@ -112,6 +112,45 @@
   NOT SEEN on screen (the isolated copy stops at the 18+ gate). Total DeepInfra spend this session
   $0.0012 (7 calls). NEXT: Fabio reloads, presses Plan with Cosmo, Generates the 6-panel board.
 
+- 2026-10-25 ("LTX 2.5 model 17", Fabio's first Plan with Cosmo result): the plan FILLED (one line, as
+  designed). FOUND: the panel prose re-describes pictured cast ("Fox (a small, bright-orange fox ...)"
+  when picture 3's fox is purple; "the Sphinx, a massive mythological beast ... eagle wings" when picture
+  1 is a hairless cat noted only "the bad guy"): the pictured-cast rule covered the [CAST] line only.
+  FIX (uncommitted): a planner bullet "Never describe a cast member's looks in a Picture". Lint + prompt
+  tests green; NOT run live (a DeepSeek call, ~$0.0005, needs Fabio's yes). Fabio told to delete the two
+  descriptions in his plan box by hand before Generate. Noticed: the one-line plan is a wall to edit.
+- 2026-10-25 ("LTX 2.5 model 17"): the fixed planner run ONCE on DeepSeek V4 Flash 0731 (effort low) with
+  Fabio's board (notes reconstructed from his cast lines), $0.0004: no looks in any Picture, 6 panels,
+  script `scratchpad/plancall.mjs` pattern. Left: Jubie (a white tiger) got "arms"/"hand" because the
+  note said only "the protector warrior" (the planner cannot see). PARSER FIX: "Picture 1 is The
+  Sphinx" now drops its article, so it replaces the planner's "Sphinx" line instead of a second one
+  (test added; 14/14 storyboard + opener tests, lint clean).
+- 2026-10-25 PANEL MODELS DECIDED (Fabio): edit models only, so Chroma/MOSS are out. Two routes:
+  FLUX.3 Klein (default) and Qwen-Image 2.1 (non-commercial, gated by its own licence). Shape: a
+  choosable slot `requiredModels: [{ label: 'Panel model', models: ['flux3-klein', 'qwen-image-2-1'] }]`
+  (any-of-models.md; no graph, so no modelParams: the driver reads `flowModelIds(flow)` instead of
+  MODEL_ID). Qwen 2.1 takes 8 references (FLUX.3 10), has no turbo toggle; check 21:9 pixels on it.
+  Bench Qwen 2.1 on the same plan BEFORE wiring (local GPU, Fabio's go). Licence copy: the model's
+  existing gate, never "personal use" (the Qwen research licence grants research/evaluation only).
+- 2026-10-25 PICKER WIRED (uncommitted, Fabio "give the option"): slot `Panel model`
+  [flux3-klein, qwen-image-2-1]; storyboardDispatch reads `flowModelIds(flow)`, refuses more pictures
+  than the model's edit takes (`_maxReferences` from COMMANDS.edit + capabilities: 10 / 8) with a
+  toast, sends turbo only when `resolveTurboControlId(model)`; Turbo field `hiddenWhen modelNot
+  flux3-klein`; storyboard.md updated. Lint clean, 40 Flow tests green. Bench
+  `research/models/bench.mjs` (Fabio's 3 Tikori pictures, the DeepSeek plan, 6 panels x 2 models,
+  same seeds, 1344x768 edit) queued under the GPU lease behind MPI-1039's Blender job.
+
+- 2026-10-25 BENCH (research/models/, validation.md): FLUX.3 ~49 s vs Qwen ~78 s/panel, no clear
+  winner; both keep the picker. Misses trace to the planner being BLIND: both drew the Egyptian
+  Sphinx monument, a humanoid tiger, an extra orange fox.
+- 2026-10-25 DECIDED (Fabio): EVERY picture is ALWAYS described before planning, note or no note.
+  The note is the user's reference/purpose ("the bad guy"), never a description. Plan with Cosmo =
+  describe each picture (vision, `/llm/describe`) -> Cosmo gets per picture: the description + the
+  user's note, plus the idea -> plans the story. The cast line drawn into each panel carries the
+  description ("Sphinx is the hairless grey cat from the first image") so the word "Sphinx" cannot
+  beat the picture. NEXT SESSION builds it: every end visible (describe progress inside the
+  "Cosmo is planning..." press), cost per picture stated, a failed describe = a named failure.
+
 ## Phase 0: Panel recipe - `user-ux` (local GPU, Fabio's yes; no money)
 
 - [x] Planner system prompt on `/llm/enhance` (routes/llm.js:390) returning `[PANEL n]` blocks (picture

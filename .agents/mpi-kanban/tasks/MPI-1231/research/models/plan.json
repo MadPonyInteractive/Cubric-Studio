@@ -1,0 +1,43 @@
+{
+  "source": "Your idea: A story where the fox and the lion are going on an adventure and then the Sphinx tries to stop them at the entrance of the forest, asking for a toll. Then Jubie, the protector, scares the Sphinx away and becomes friends with the fox and the lion.\nYour pictures: Picture 1 is The Sphinx, the bad guy. Picture 2 is Jubie, the protector warrior. Picture 3 is The Fox and the Lion.\nPanels: 6\nVideo shape: 16:9",
+  "usage": {
+    "prompt_tokens": 605,
+    "total_tokens": 2715,
+    "completion_tokens": 2110,
+    "estimated_cost": 0.00041610000000000003,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": null
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 1376
+    }
+  },
+  "plan": "Storyboard plan:\n[CAST]  \nSphinx: the Sphinx from image 1, the bad guy.  \nJubie: the protector warrior from image 2.  \nFox: the Fox from image 3.  \nLion: the Lion from image 3.\n\n[PANEL 1]  \nPicture: Full-color cinematic film still, wide establishing shot, eye-level angle, of a sunlit meadow at the edge of a dark forest in late afternoon golden hour. The Fox and the Lion walk side-by-side in the foreground, frame-left, moving toward the forest. The Sphinx sits on a rocky outcropping at the forest entrance, frame-right, silhouetted against the tree line, watching them. Long shadows stretch across the grass.  \nIntent: Introduces the adventurers and the hidden threat waiting at the forest gate.\n\n[PANEL 2]  \nPicture: Full-color cinematic film still, medium shot, slightly low angle, at the forest entrance. The Sphinx stands in the center, frame-background, stretching out a large paw to bar the path. The Fox stands frame-left and the Lion stands frame-right in the foreground, both halted mid-step, looking up at the Sphinx. Dappled light from above mixes with the cool shade of the trees.  \nIntent: The Sphinx demands a toll, and the Fox and Lion are stopped cold.\n\n[PANEL 3]  \nPicture: Full-color cinematic film still, over-the-shoulder shot from behind the Fox and the Lion, looking up toward the Sphinx. The Sphinx looms in the upper third of the frame, its massive form filling the gap between the trees. The Fox and the Lion are blurred in the bottom foreground, their heads turned toward the Sphinx. Shadows deepen around them.  \nIntent: The viewers feel the weight of the Sphinx's threat through the adventurers' frightened perspective.\n\n[PANEL 4]  \nPicture: Full-color cinematic film still, medium shot, eye-level angle, inside the forest entrance. Jubie leaps into the center of the frame from above, landing between the Fox and the Lion (foreground) and the Sphinx (background). Jubie's arms are spread in a protective stance, facing the Sphinx. The Fox and the Lion step back, surprised. A beam of sunlight breaks through the canopy onto Jubie.  \nIntent: Jubie, the protector, intervenes dramatically, shifting the power balance.\n\n[PANEL 5]  \nPicture: Full-color cinematic film still, medium shot, wide angle, at the forest entrance. The Sphinx is fleeing into the background, frame-right, its body in a panicked scramble away from the trees. Jubie stands in the center foreground, arms crossed, watching it go. The Fox and the Lion are frame-left, looking up at Jubie with awe. The light is brighter now, as if the threat lifted.  \nIntent: Jubie scares the Sphinx away, proving their strength, and the adventurers react with relief and admiration.\n\n[PANEL 6]  \nPicture: Full-color cinematic film still, close-up, eye-level angle, at the edge of the now-welcoming forest. Jubie extends a hand in friendship, palm open. The Fox and the Lion each place a paw into Jubie's hand, all three standing together in a tight cluster, faces lit by warm morning light. The forest path behind them is clear and inviting.  \nIntent: The three new friends unite, and the adventure begins without obstacles, ending on a hopeful, warm note.",
+  "panels": [
+    {
+      "prompt": "Full-color cinematic film still, wide establishing shot, eye-level angle, of a sunlit meadow at the edge of a dark forest in late afternoon golden hour. The Fox and the Lion walk side-by-side in the foreground, frame-left, moving toward the forest. The Sphinx sits on a rocky outcropping at the forest entrance, frame-right, silhouetted against the tree line, watching them. Long shadows stretch across the grass. Sphinx is the Sphinx from image 1, the bad guy. Fox is the Fox from image 3. Lion is the Lion from image 3. The Sphinx is the bad guy from the first image. The Fox and the Lion is the Fox and the Lion from the third image.",
+      "intent": "Introduces the adventurers and the hidden threat waiting at the forest gate."
+    },
+    {
+      "prompt": "Full-color cinematic film still, medium shot, slightly low angle, at the forest entrance. The Sphinx stands in the center, frame-background, stretching out a large paw to bar the path. The Fox stands frame-left and the Lion stands frame-right in the foreground, both halted mid-step, looking up at the Sphinx. Dappled light from above mixes with the cool shade of the trees. Sphinx is the Sphinx from image 1, the bad guy. Fox is the Fox from image 3. Lion is the Lion from image 3. The Sphinx is the bad guy from the first image.",
+      "intent": "The Sphinx demands a toll, and the Fox and Lion are stopped cold."
+    },
+    {
+      "prompt": "Full-color cinematic film still, over-the-shoulder shot from behind the Fox and the Lion, looking up toward the Sphinx. The Sphinx looms in the upper third of the frame, its massive form filling the gap between the trees. The Fox and the Lion are blurred in the bottom foreground, their heads turned toward the Sphinx. Shadows deepen around them. Sphinx is the Sphinx from image 1, the bad guy. Fox is the Fox from image 3. Lion is the Lion from image 3. The Sphinx is the bad guy from the first image. The Fox and the Lion is the Fox and the Lion from the third image.",
+      "intent": "The viewers feel the weight of the Sphinx's threat through the adventurers' frightened perspective."
+    },
+    {
+      "prompt": "Full-color cinematic film still, medium shot, eye-level angle, inside the forest entrance. Jubie leaps into the center of the frame from above, landing between the Fox and the Lion (foreground) and the Sphinx (background). Jubie's arms are spread in a protective stance, facing the Sphinx. The Fox and the Lion step back, surprised. A beam of sunlight breaks through the canopy onto Jubie. Sphinx is the Sphinx from image 1, the bad guy. Jubie is the protector warrior from the second image. Fox is the Fox from image 3. Lion is the Lion from image 3. The Sphinx is the bad guy from the first image. The Fox and the Lion is the Fox and the Lion from the third image.",
+      "intent": "Jubie, the protector, intervenes dramatically, shifting the power balance."
+    },
+    {
+      "prompt": "Full-color cinematic film still, medium shot, wide angle, at the forest entrance. The Sphinx is fleeing into the background, frame-right, its body in a panicked scramble away from the trees. Jubie stands in the center foreground, arms crossed, watching it go. The Fox and the Lion are frame-left, looking up at Jubie with awe. The light is brighter now, as if the threat lifted. Sphinx is the Sphinx from image 1, the bad guy. Jubie is the protector warrior from the second image. Fox is the Fox from image 3. Lion is the Lion from image 3. The Sphinx is the bad guy from the first image. The Fox and the Lion is the Fox and the Lion from the third image.",
+      "intent": "Jubie scares the Sphinx away, proving their strength, and the adventurers react with relief and admiration."
+    },
+    {
+      "prompt": "Full-color cinematic film still, close-up, eye-level angle, at the edge of the now-welcoming forest. Jubie extends a hand in friendship, palm open. The Fox and the Lion each place a paw into Jubie's hand, all three standing together in a tight cluster, faces lit by warm morning light. The forest path behind them is clear and inviting. Jubie is the protector warrior from the second image. Fox is the Fox from image 3. Lion is the Lion from image 3. The Fox and the Lion is the Fox and the Lion from the third image.",
+      "intent": "The three new friends unite, and the adventure begins without obstacles, ending on a hopeful, warm note."
+    }
+  ]
+}

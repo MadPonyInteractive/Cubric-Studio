@@ -8,11 +8,16 @@ sheet. `devOnly: true` until the LTX 2.5 release (umbrella MPI-1267).
 
 - **No graph, no workflow.** `driver: 'storyboard'` makes the frame's Generate (`MpiBaseFlow._run`)
   call `FLOW_DRIVERS.storyboard` (`js/shell/storyboardDispatch.js`) instead of
-  `submitFlowGeneration`. Each panel is an ordinary FLUX.3 Klein generation built by the agent's
+  `submitFlowGeneration`. Each panel is an ordinary generation built by the agent's
   `buildGeneration`: `edit` with the pictures as references (renumbered from `inputImage`), `t2i`
   without; `ratio`/`qualityTier` turn Custom size on, so an edit keeps the video's shape.
+- **Panel model = a choosable slot, EDIT models only** (Fabio, 2026-10-25): FLUX.3 Klein (first,
+  recommended) or Qwen-Image 2.1 (research/evaluation licence, its own gate). The driver reads the
+  pick with `flowModelIds(flow)` (no graph, so no `modelParams`). Qwen takes 8 pictures (FLUX.3 10):
+  more is refused with a toast before anything queues. Turbo is FLUX.3's (`hiddenWhen: { modelNot }`);
+  the driver sends it only to a model with a turbo switch, since Qwen refuses one (INVALID_TURBO).
 - **Shapes = the video models' (LTX_RATIOS): 16:9, 9:16, 21:9, 1:1** (Fabio, 2026-10-25: never offer
-  a shape no video model takes). FLUX.3 has no 21:9: `WIDE_21_9` sends exact pixels (1568x672 /
+  a shape no video model takes). Neither panel model has 21:9: `WIDE_21_9` sends exact pixels (1568x672 /
   2240x960) over the named 16:9, which switches Custom size on.
 - **Ten slots as a numbered tile grid** (`grid: true` on the media group, MpiBaseFlow
   `_buildSlotGrid`): ten full-size boxes overran the screen and pushed the info column down. Filled
@@ -53,7 +58,12 @@ sheet. `devOnly: true` until the LTX 2.5 release (umbrella MPI-1267).
   Bix's line becomes "the grumpy hairless cat from the first image" (the planner cannot see the
   pictures and invented their looks). The frame persists the sentences, so a reopen reads them
   back (`readPictureSentences`); clearing a picture drops its note. The same sentence typed into
-  the idea still works. A picture showing a second animal leaks it into the panels.
+  the idea still works. A picture showing a second animal leaks it into the panels. The note's
+  article is dropped ("The Sphinx" -> `Sphinx`), so it replaces the planner's line of that name.
+- **A Picture never describes a cast member's looks** (planner rule, 2026-10-25): DeepSeek wrote
+  "Fox (a small, bright-orange fox)" for a purple fox in picture 3, fighting the cast line. What a
+  note does not say the planner guesses ("the protector warrior" got arms on a tiger): the note
+  must say what the picture shows.
 
 ## Agent
 

@@ -181,7 +181,11 @@ test('the user\'s "Picture N is NAME, a WHAT." replaces the planner\'s invented 
     const plan = '[CAST] Bix: a grumpy hairless cat with green eyes. Lilo: a purple fox in a red scarf. [PANEL 1] Picture: Bix and Lilo sneak past the diner. Intent: x';
     const idea = 'Picture 1 is Bix, a grumpy hairless cat. Picture 2 is the diner. They sneak around.';
     assert.strictEqual(parseStoryboardPlan(plan, idea)[0].prompt,
-        'Bix and Lilo sneak past the diner. Bix is the grumpy hairless cat from the first image. Lilo is a purple fox in a red scarf. the diner is the diner from the second image.');
+        'Bix and Lilo sneak past the diner. Bix is the grumpy hairless cat from the first image. Lilo is a purple fox in a red scarf. diner is the diner from the second image.');
+    // "The Sphinx" in a note is the planner's "Sphinx": one line, the picture's (Fabio's board, 2026-10-25).
+    const sphinx = parseStoryboardPlan('[CAST] Sphinx: the Sphinx from image 1, the bad guy. [PANEL 1] Picture: The Sphinx bars the path. Intent: x',
+        'Picture 1 is The Sphinx, the bad guy.');
+    assert.strictEqual(sphinx[0].prompt, 'The Sphinx bars the path. Sphinx is the bad guy from the first image.');
     // No cast block at all still gets the pictured names.
     assert.strictEqual(parseStoryboardPlan('[PANEL 1] Bix naps.', idea)[0].prompt, 'Bix naps. Bix is the grumpy hairless cat from the first image.');
 });

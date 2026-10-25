@@ -101,7 +101,9 @@ function _pictureCast(idea) {
     return [...String(idea || '').matchAll(/\bpicture\s+(\d+)\s+is\s+([^,.]+?)(?:,\s*(?:an?\s+)?([^.]+))?(?:\.|$)/gi)]
         .filter(([, n]) => ord[n - 1])
         .map(([, n, name, what]) => ({
-            name: name.trim(),
+            // "Picture 1 is The Sphinx" names the planner's "Sphinx": without the article it is the
+            // same key, so the picture's line replaces the planner's instead of riding beside it.
+            name: name.trim().replace(/^(the|an?)\s+/i, ''),
             // "Picture 2 is the diner." names nothing more: the line is "the diner from the second image".
             desc: `the ${(what || name).trim().replace(/^(the|an?)\s+/i, '')} from the ${ord[n - 1]} image`,
         }));

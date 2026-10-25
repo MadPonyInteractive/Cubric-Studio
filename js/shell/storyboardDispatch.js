@@ -2,7 +2,8 @@
  * storyboardDispatch.js — the app side of the Storyboard Flow (MPI-1231).
  *
  * `storyboardRunner.js` owns the order, landing and failure rules and touches the app only
- * through the `deps` built here. Each panel is an ordinary FLUX.3 Klein generation, built by
+ * through the `deps` built here. Each panel is an ordinary generation on the Flow's picked
+ * panel model (FLUX.3 Klein or Qwen-Image 2.1), built by
  * the SAME `buildGeneration` the agent and the routines use: `edit` with the user's pictures as
  * its references, `t2i` without. So a panel is a normal model card with its own prompt and
  * history, which the user edits, redoes or upscales like any other.
@@ -23,8 +24,17 @@ import { state } from '../state.js';
 import { buildGeneration } from './agentDispatch.js';
 import { landingOpts } from './routineDispatch.js';
 import { runGifJob } from './gifJobs.js';
+import { flowModelIds } from '../data/flowsRegistry.js';
+import { MODELS } from '../data/modelConstants/models.js';
+import { COMMANDS } from '../data/commandRegistry.js';
+import { resolveTurboControlId } from '../data/generationControls.js';
 
-const MODEL_ID = 'flux3-klein';
+/**
+ * How many pictures the model's edit takes: the edit op's slots its capabilities open
+ * (FLUX.3 Klein 10, Qwen-Image 2.1 8).
+ */
+const _maxReferences = model => COMMANDS.edit.mediaInputs
+    .filter(i => !i.requiresCapability || model?.capabilities?.[i.requiresCapability]).length;
 
 // 21:9 is a video shape (LTX_RATIOS) that FLUX.3's own size table lacks. It goes as exact
 // pixels over the named 16:9, which switches an edit's Custom size on: about the tier's pixel
@@ -48,13 +58,13 @@ function _references(mediaItems, roles) {
 /** The selected item of a group as it stands in the open project now. */
 const _liveGroup = (groupId) => (state.currentProject?.itemGroups || []).find(g => g.id === groupId);
 
-function _deps(project, { idea, references, ratio, qualityTier, turbo }) {
+function _deps(project, { modelId, idea, references, ratio, qualityTier, turbo }) {
     return {
         isLoopArmed: () => state.loopArmed === true,
 
         async submit(panel, index, landing) {
             const built = await buildGeneration({
-                modelId: MODEL_ID,
+                modelId,
                 operation: references.length ? 'edit' : 't2i',
                 positive: panel.prompt,
                 media: references,
@@ -150,14 +160,24 @@ async function runStoryboardFlow(flow, inputs) {
         return false;
     }
     const roles = flow.inputSchema.media[0].roles;
+    const [modelId] = flowModelIds(flow);
+    const model = MODELS.find(m => m.id === modelId);
+    const references = _references(inputs.mediaItems || [], roles);
+    const max = _maxReferences(model);
+    if (references.length > max) {
+        StatusBar.notify(`${model?.name || modelId} takes up to ${max} pictures and this storyboard has ${references.length}. Remove ${references.length - max}, or pick FLUX.3 Klein as the panel model.`, 'warning');
+        return false;
+    }
     const words = String(inputs.positive || '').trim();
     const name = truncateCardName(words ? `Storyboard · ${words}` : 'Storyboard');
     const run = await runStoryboard(panels, { name }, _deps(project, {
+        modelId,
         idea,
-        references: _references(inputs.mediaItems || [], roles),
+        references,
         ratio: inputs.ratio,
         qualityTier: inputs.qualityTier,
-        turbo: inputs.turbo !== false,
+        // A model with no turbo switch refuses one (INVALID_TURBO); the hidden toggle keeps its value.
+        turbo: resolveTurboControlId(model) ? inputs.turbo !== false : undefined,
     }));
     if (!run.ok) {
         StatusBar.notify(run.message, 'warning');
