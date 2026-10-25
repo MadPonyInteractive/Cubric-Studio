@@ -754,7 +754,9 @@
     transform: translate(-6px, -4px);
 }
 
-.mpi-group-card--show-info:hover .mpi-group-card__overlay {
+/* Not while renaming: this outranks the `--renaming` rule above, and the cursor is
+   still on the card while the user types. */
+.mpi-group-card--show-info:not(.mpi-group-card--renaming):hover .mpi-group-card__overlay {
     opacity: 0;
     transform: translate(-6px, 6px);
 }
