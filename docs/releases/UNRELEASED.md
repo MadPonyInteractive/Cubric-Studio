@@ -81,3 +81,5 @@
 - Flow steps with a drawing area (Crop, Cut-out, Place, Paint, Edges) open at full width at once, instead of widening a pixel at a time for a few seconds (MPI-1255).
 - Installing a model that brings new engine parts no longer restarts the engine on your computer before your next generation. It restarts when you first use a model that needs them, so models can download while you keep working (MPI-1272).
 - Less noise in the log: the mascot freeze warnings now appear only with speed diagnostics on, and a RunPod connect that stops early no longer logs a false freeze (MPI-1255).
+- Renaming a card in Show info mode: you can see what you type with the mouse still on the card (MPI-1289).
+- Compare labels each side with the card's name, not the file name (MPI-1290).
