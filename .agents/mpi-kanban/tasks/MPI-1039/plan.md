@@ -361,7 +361,7 @@ all 8 turns: head 133-144, feet 414-428, x ~480; 280 ms transform transition). F
 returns <turn>_far.webp (the 8 shipped in 6f5cc4701; the flag that held it off until then is gone; the gizmo test checks
 all 8 exist). Anchors re-checked on the server-room previews: unchanged. Far away only opens with Qwen installed (bench).
 Live-checked every rung + far in an isolated app; npm test green. Fabio's eye test: Eyes must be the prompt's ONE-eye
-close-up (half the face) - now scale 10 on the frame-left eye (450, 196); Face scale 5 on the screen (head top + chin cut).
+close-up (half the face) - now scale 10 on the frame-left eye (450, 196); Face scale 5 on the screen (head top + chin cut). Fabio APPROVED the zoom + far previews 2026-10-25 ("looks okay").
 PHASE 4 BUILT, AWAITING FABIO'S EYE TEST (2026-10-25, session "Flux 3 on flows 27", detail in validation.md):
 FlowDef `multi-angle` (devOnly, driver 'multiAngle' in FLOW_DRIVERS), slots-only op `flowMultiAngle`, step kind
 `angle` = `js/components/Organisms/MpiStepAngle/` (Cosmo preview + Turn/Height/Zoom sliders; Turn = full turn,
