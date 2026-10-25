@@ -64,5 +64,6 @@ the non-turbo chain before it. It gets sol-attn only, no Fast Motion switch.
 ## Not measured
 
 - Mode 1/2 quality on fast motion: Phase 1's losing upscale drew the motion at 672x384; these
-  draw it at 1344x768. Fabio's in-app test is the first look.
+  draw it at 1344x768. Fabio's first in-app runs (2026-10-25, modes 0 and 1) looked okay, with
+  tearing at turbo off that belongs to the old ref2va model (MPI-1284); no judged A/B yet.
 - 4K is out of reach on 16 GB on either path ([windowing.md](windowing.md)).
