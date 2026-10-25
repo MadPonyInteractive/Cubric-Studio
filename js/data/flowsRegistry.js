@@ -3151,7 +3151,7 @@ const ALL_FLOWS = [
         type: 'edit',
         inputSchema: {
             media: [
-                { type: 'image', mode: 'upto', max: 1, roles: ['inputImage'], labels: ['The person'] },
+                { type: 'image', mode: 'upto', max: 1, roles: ['inputImage'], labels: ['The person\nmade for a single person, but can work with more'] },
                 { type: 'image', mode: 'upto', max: 1, roles: ['inputImage2'],
                     labels: ['Whole outfit (optional)\na character sheet or turnaround of the same person\ngood for consistency and zooming out'] },
             ],
