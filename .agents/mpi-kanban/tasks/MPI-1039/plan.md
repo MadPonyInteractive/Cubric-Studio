@@ -368,6 +368,7 @@ refuses the rest). Same shape as r50 (angles.py, Qwen zoom pass on the accepted 
 passes: widen BENCHED_ZOOM / ZOOM_KEPT to carry height, open those rungs in multiAngleChoices, and render
 <turn>_lo_far / <turn>_hi_far previews (soft_render.py: add the stops - lo/hi camera, lens x 0.5 - then
 ship_assets.py) and have multiAnglePreview pick them by height. Zoom session archived.
+UI TWEAKS 2026-10-25 (session "Multi-Angle 31", Fabio): Zoom slider now far,full,waist,NONE,hs,face,eye (as-is in the middle, out left, in right; test added). Outfit slot hint line 3 "good for consistency and zooming out" asked of Storyboard 20 (holds flowsRegistry.js) - check it landed. Not committed.
 ROUND 51 STARTED 2026-10-25 (session "Flux 3 on flows 30"), PAUSED at 42/130 for Fabio's own GPU test: `angles.py
 <port> blender51` (resumes from out/mq_blender51.json, nothing redone), sheets r51{a,b}_zoom_{lo,hi}.jpg at the end.
 hs + far on every lo and hi cell the Flow runs (MQ51_CELLS). ROUTING CHANGE vs the handoff: the zoom pass is FLUX.3

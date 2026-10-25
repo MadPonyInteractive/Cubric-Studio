@@ -20,11 +20,13 @@ const load = p => import('file://' + path.join(ROOT, p).replace(/\\/g, '/'));
 const prompts = () => load('js/data/flowPrompts/multiAngle.js');
 const gizmo = () => load('js/components/Compounds/MpiAngleGizmo/MpiAngleGizmo.js');
 
-test('choices: every turn takes every height with Qwen; zoom only where benched, at eye level', async () => {
+test('choices: every turn takes every height with Qwen; zoom only where benched', async () => {
     const { multiAngleChoices, MULTI_ANGLE_TURNS } = await prompts();
     for (const turn of MULTI_ANGLE_TURNS) {
         assert.deepEqual(multiAngleChoices(turn, 'level').heights, ['level', 'lo', 'hi']);
-        assert.deepEqual(multiAngleChoices(turn, 'lo').zooms, ['none']);
+        // Round 51: far on every low and high; hs from above on a turned view only.
+        assert.deepEqual(multiAngleChoices(turn, 'lo').zooms, ['none', 'far']);
+        assert.deepEqual(multiAngleChoices(turn, 'hi').zooms, turn === 'front' ? ['none', 'far'] : ['none', 'hs', 'far']);
     }
     assert.deepEqual(multiAngleChoices('front', 'level').zooms, ['none', 'eye', 'face', 'hs', 'waist', 'full', 'far']);
     assert.deepEqual(multiAngleChoices('tq_br', 'level').zooms, ['none', 'hs']);
@@ -39,6 +41,8 @@ test('choices without Qwen: only the front high, and one-pass zooms on the front
     assert.deepEqual(multiAngleChoices('pr_r', 'level', off).heights, ['level']);
     assert.deepEqual(multiAngleChoices('front', 'level', off).zooms, ['none', 'eye', 'hs', 'waist', 'full']);
     assert.deepEqual(multiAngleChoices('tq_br', 'level', off).zooms, ['none']);
+    // The front high is FLUX.3, so its zoom pass would be Qwen.
+    assert.deepEqual(multiAngleChoices('front', 'hi', off).zooms, ['none']);
 });
 
 test('every choice the gizmo offers is a pick the planner runs', async () => {
@@ -63,17 +67,28 @@ test('the Turn slider is a full turn with the front in the middle', async () => 
     assert.deepEqual([...new Set(t)].sort(), [...MULTI_ANGLE_TURNS].sort());
 });
 
+test('the Zoom slider starts in the middle: out to the left, in to the right', async () => {
+    const { MULTI_ANGLE_SLIDERS, MULTI_ANGLE_RUNGS } = await prompts();
+    const z = MULTI_ANGLE_SLIDERS.zoom;
+    assert.equal(z[Math.floor(z.length / 2)], 'none');
+    // The ladder is closest first, so the slider reads it widest first.
+    assert.deepEqual(z.filter(r => r !== 'none'), [...MULTI_ANGLE_RUNGS].reverse());
+});
+
 test('every turn x height has its Cosmo preview on disk', async () => {
     const { multiAnglePreview, MULTI_ANGLE_TURNS, MULTI_ANGLE_HEIGHTS } = await prompts();
     for (const turn of MULTI_ANGLE_TURNS) {
         for (const height of MULTI_ANGLE_HEIGHTS) {
             assert.ok(fs.existsSync(path.join(ROOT, multiAnglePreview(turn, height))), `${turn}/${height}`);
         }
-        assert.ok(fs.existsSync(path.join(ROOT, multiAnglePreview(turn, 'level', 'far'))), `${turn}/far`);
+        for (const height of MULTI_ANGLE_HEIGHTS) {
+            assert.ok(fs.existsSync(path.join(ROOT, multiAnglePreview(turn, height, 'far'))), `${turn}/${height}/far`);
+        }
     }
     assert.equal(multiAnglePreview('front', 'level'), 'assets/flows/multi-angle/previews/front.webp');
     // Far away is its own wide render.
     assert.equal(multiAnglePreview('front', 'level', 'far'), 'assets/flows/multi-angle/previews/front_far.webp');
+    assert.equal(multiAnglePreview('tq_fl', 'lo', 'far'), 'assets/flows/multi-angle/previews/tq_fl_lo_far.webp');
     // A zoom-in rung keeps the view's own preview: the gizmo zooms it with CSS.
     assert.equal(multiAnglePreview('front', 'level', 'face'), 'assets/flows/multi-angle/previews/front.webp');
 });

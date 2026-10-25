@@ -99,16 +99,20 @@ export const MpiAngleGizmo = ComponentFactory.create({
         const previewEl = qs('#angle-gizmo-preview', el);
         // Warm every preview once, so a fast drag never shows the last stop's Cosmo under this one's name.
         MULTI_ANGLE_TURNS.forEach((t) => {
-            MULTI_ANGLE_HEIGHTS.forEach((h) => { new Image().src = multiAnglePreview(t, h); });
-            new Image().src = multiAnglePreview(t, 'level', 'far');
+            MULTI_ANGLE_HEIGHTS.forEach((h) => {
+                new Image().src = multiAnglePreview(t, h);
+                new Image().src = multiAnglePreview(t, h, 'far');
+            });
         });
 
         const posOf = key => (key === 'turn' ? _val.turnPos : S[key].indexOf(_val[key]));
 
         const _paint = () => {
             previewEl.src = multiAnglePreview(_val.turn, _val.height, _val.zoom);
-            // The zoom-in rungs are CSS on the preview; none and far leave it whole.
-            ZOOM_IN.forEach(r => previewEl.classList.toggle(`mpi-angle-gizmo__preview--${r}`, _val.zoom === r));
+            // The zoom-in rungs are CSS on the preview; none and far leave it whole. A high hs has its own anchor.
+            const hsHi = _val.zoom === 'hs' && _val.height === 'hi';
+            ZOOM_IN.forEach(r => previewEl.classList.toggle(`mpi-angle-gizmo__preview--${r}`, _val.zoom === r && !hsHi));
+            previewEl.classList.toggle('mpi-angle-gizmo__preview--hs-hi', hsHi);
             previewEl.alt = `Cosmo seen ${MULTI_ANGLE_LABELS.turn[_val.turn].toLowerCase()}, ${MULTI_ANGLE_LABELS.height[_val.height].toLowerCase()}`;
             const { heights } = multiAngleChoices(_val.turn, 'level', opts);
             const { zooms } = multiAngleChoices(_val.turn, _val.height, opts);

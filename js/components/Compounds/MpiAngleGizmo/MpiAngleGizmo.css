@@ -50,6 +50,12 @@
     transform: scale(2.3) translateY(7.8%);
 }
 
+/* Head and shoulders from above (round 51): the high renders' head box is ~95-300 of 540, so
+   the anchor is 205 at the same scale. */
+.mpi-angle-gizmo__preview--hs-hi {
+    transform: scale(2.3) translateY(12%);
+}
+
 .mpi-angle-gizmo__preview--waist {
     transform: scale(2) translateY(3.7%);
 }

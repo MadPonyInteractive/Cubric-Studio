@@ -55,6 +55,9 @@ const FACTS = {
         details: DETAILS,
         far: 'with the full height of the shop fronts and their signs at both sides, much more of the street in front '
             + 'of her and the street running on behind her',
+        farLow: 'with the full height of the shop fronts rising at both sides and the open sky with the power lines '
+            + 'above her',
+        farHigh: 'with much more of the paving around her seen from above, the kerb and the bases of the shop fronts',
     },
     photo: {
         subject: 'woman', pronoun: 'she', feet: 'sneakers', frontLowLegs: 'white sneakers and jeans', wears: 'earrings',
@@ -67,6 +70,10 @@ const FACTS = {
         details: DETAILS,
         far: 'and the whole studio now shows around her - the edges of the grey backdrop paper, light stands and '
             + 'softboxes at both sides, and the bare studio floor in front of her',
+        farLow: 'with the whole studio around her seen from below - the light stands and softboxes at both sides and '
+            + 'the dark studio ceiling above her',
+        farHigh: 'with much more of the bare studio floor around her seen from above, the edges of the grey backdrop '
+            + 'paper and the feet of the light stands',
     },
 };
 
@@ -81,6 +88,11 @@ function _cell(stop) {
         'zoom rear hs': [{ turn: 'tq_br', zoom: { from: 'full', to: 'hs' } }, 1],
     }[stop];
     if (zoom) return zoom;
+    const high = stop.match(/^zoom (.+) (lo|hi) (hs|far)$/); // round 51: the zoom pass after the turn and height
+    if (high) {
+        const turn = TURN[high[1]];
+        return [{ turn, height: high[2], zoom: { from: 'full', to: high[3] } }, turn === 'front' ? 1 : 2];
+    }
     const turned = stop.match(/^zoom (.+) (hs|far)$/); // round 50: the zoom pass after the turn
     if (turned) return [{ turn: TURN[turned[1]], zoom: { from: 'full', to: turned[2] } }, 1];
     const [turn, height] = [stop.replace(/ (lo|hi)$/, ''), (stop.match(/ (lo|hi)$/) || [])[1] || 'level'];

@@ -25,7 +25,10 @@ CELLS = [  # (stop, round, key with {n} = anime|photo); round 23 / 25 name the a
     ('zoom full', 46, '{n} 111 hs full'), ('zoom far', 49, '{n} 111 far chain'),
     ('zoom rear waist', 49, '{n} 111 rear waist'), ('zoom rear hs', 49, '{n} 111 rear hs'),
 ] + [(f'zoom {v} {r}', 50, f'{{n}} 111 {v} {r}') for v in ('tq fl', 'tq fr', 'pr l', 'pr r', 'tqb l', 'back')
-     for r in ('hs', 'far') if (v, r) != ('tqb l', 'hs')]  # round 50; tqb l hs lands at the waist
+     for r in ('hs', 'far') if (v, r) != ('tqb l', 'hs')] + [  # round 50; tqb l hs lands at the waist
+    (f'zoom {v} {h} {r}', 51, f'{{n}} 111 {v} {h} {r}')
+    for v in ('front', 'tq fl', 'tq fr', 'pr l', 'pr r', 'tqb l', 'tqb r', 'back') for h in ('lo', 'hi')
+    for r in ('hs', 'far') if r == 'far' or (h == 'hi' and v != 'front')]  # round 51: hs only from above, turned
 
 by_file = {}
 for p in glob.glob(os.path.join(META, '*.json')):

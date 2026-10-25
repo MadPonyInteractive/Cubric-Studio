@@ -39,6 +39,8 @@ SIDES: the shop fronts
 LEFT: the red vending machine and the blue awning
 RIGHT: the pink awning and the yellow sign board
 FAR: with the full height of the shop fronts and their signs at both sides, much more of the street in front of her and the street running on behind her
+FAR_LOW: with the full height of the shop fronts rising at both sides and the open sky with the power lines above her
+FAR_HIGH: with much more of the paving around her seen from above, the kerb and the bases of the shop fronts
 ONE_SIDED: brown bag | right | hip; wristwatch | left | wrist`,
     photo: `SUBJECT: woman
 PRONOUN: she
@@ -58,6 +60,8 @@ SIDES: none
 LEFT: none
 RIGHT: none
 FAR: and the whole studio now shows around her - the edges of the grey backdrop paper, light stands and softboxes at both sides, and the bare studio floor in front of her
+FAR_LOW: with the whole studio around her seen from below - the light stands and softboxes at both sides and the dark studio ceiling above her
+FAR_HIGH: with much more of the bare studio floor around her seen from above, the edges of the grey backdrop paper and the feet of the light stands
 ONE_SIDED: brown bag | right | hip; wristwatch | left | wrist`,
 };
 
@@ -71,6 +75,11 @@ const ZOOM = {
 };
 const _cell = (stop) => {
     if (ZOOM[stop]) return ZOOM[stop];
+    const high = stop.match(/^zoom (.+) (lo|hi) (hs|far)$/); // round 51: the zoom pass after the turn and height
+    if (high) {
+        const turn = TURN[high[1]];
+        return [{ turn, height: high[2], zoom: { from: 'full', to: high[3] } }, turn === 'front' ? 1 : 2];
+    }
     const turned = stop.match(/^zoom (.+) (hs|far)$/); // round 50: the zoom pass after the turn
     if (turned) return [{ turn: TURN[turned[1]], zoom: { from: 'full', to: turned[2] } }, 1];
     const height = (stop.match(/ (lo|hi)$/) || [])[1] || 'level';

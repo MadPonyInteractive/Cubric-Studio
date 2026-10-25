@@ -46,6 +46,17 @@ export const BENCHED_ZOOM = {
     back: ['hs', 'far'],
 };
 
+/**
+ * Zoom moves benched on a low or high view (round 51): far on every one; hs only from above on a turned
+ * view (a low hs lands at the waist, the rear ones on the seat; the front high hs keeps the feet in).
+ */
+export const BENCHED_ZOOM_HEIGHT = {
+    lo: Object.fromEntries(MULTI_ANGLE_TURNS.map(t => [t, ['far']])),
+    hi: Object.fromEntries(MULTI_ANGLE_TURNS.map(t => [t, t === 'front' ? ['far'] : ['hs', 'far']])),
+};
+
+const _benched = (turn, height) => (height === 'level' ? BENCHED_ZOOM : BENCHED_ZOOM_HEIGHT[height])?.[turn] || [];
+
 /** What the user reads for each stop: the gizmo's readouts and the card's name. */
 export const MULTI_ANGLE_LABELS = {
     turn: {
@@ -62,20 +73,22 @@ export const MULTI_ANGLE_LABELS = {
 /**
  * The gizmo's three sliders, left to right. TURN is a full turn round the person with the front in
  * the middle (Fabio 2026-10-25: Cosmo turns all the way round), so the back sits at both ends.
+ * ZOOM starts in the middle on the picture as it is: zoom out to the left, zoom in to the right
+ * (Fabio 2026-10-25).
  */
 export const MULTI_ANGLE_SLIDERS = {
     turn: ['back', 'tq_bl', 'pr_l', 'tq_fl', 'front', 'tq_fr', 'pr_r', 'tq_br', 'back'],
     height: ['lo', 'level', 'hi'],
-    zoom: ['none', ...MULTI_ANGLE_RUNGS],
+    zoom: ['far', 'full', 'waist', 'none', 'hs', 'face', 'eye'],
 };
 
 /**
  * The Cosmo preview of a turn + height, from the same Blender camera as that stop's doll ref. Far
- * away is its own wider render (zoom only opens at eye level); the zoom-in rungs are CSS on this one.
+ * away is its own wider render per height; the zoom-in rungs are CSS on this one.
  */
 export function multiAnglePreview(turn, height, zoom) {
-    if (zoom === 'far') return `assets/flows/multi-angle/previews/${turn}_far.webp`;
-    return `assets/flows/multi-angle/previews/${turn}${height && height !== 'level' ? `_${height}` : ''}.webp`;
+    const h = height && height !== 'level' ? `_${height}` : '';
+    return `assets/flows/multi-angle/previews/${turn}${h}${zoom === 'far' ? '_far' : ''}.webp`;
 }
 
 /**
@@ -90,8 +103,9 @@ export function multiAnglePreview(turn, height, zoom) {
  */
 export function multiAngleChoices(turn, height, { qwen = true } = {}) {
     const heights = MULTI_ANGLE_HEIGHTS.filter(h => h === 'level' || qwen || (turn === 'front' && h === 'hi'));
-    let rungs = height === 'level' ? (BENCHED_ZOOM[turn] || []) : [];
-    if (!qwen) rungs = turn === 'front' ? rungs.filter(r => !['face', 'far'].includes(r)) : [];
+    let rungs = _benched(turn, height);
+    // Without Qwen: a one-pass zoom on the eye-level front only (a front high's zoom pass is Qwen).
+    if (!qwen) rungs = turn === 'front' && height === 'level' ? rungs.filter(r => !['face', 'far'].includes(r)) : [];
     return { heights, zooms: ['none', ...rungs] };
 }
 
@@ -129,6 +143,27 @@ const ZOOM_KEPT = {
     back: p => `the view still looks at ${p.obj} from directly behind at eye level, the same back view as in the first `
         + 'image',
 };
+
+/** Where the camera is and the view's name, for a zoom pass on a low or high view (MQ51_SIDE). */
+const ZOOM_SIDE = {
+    front: p => [`in front of ${p.obj}`, 'front'],
+    tq_fl: p => [`at ${p.poss} left side`, 'three-quarter side'],
+    tq_fr: p => [`at ${p.poss} right side`, 'three-quarter side'],
+    pr_l: p => [`exactly side-on from ${p.poss} left`, 'side profile'],
+    pr_r: p => [`exactly side-on from ${p.poss} right`, 'side profile'],
+    tq_bl: p => [`behind ${p.poss} left shoulder`, 'rear three-quarter'],
+    tq_br: p => [`behind ${p.poss} right shoulder`, 'rear three-quarter'],
+    back: p => [`directly behind ${p.obj}`, 'back'],
+};
+
+/** The view a zoom pass keeps on a low or high view, said as it ran (round 51). */
+function _zoomKeptHeight(view, height, p) {
+    const [where, name] = ZOOM_SIDE[view](p);
+    const look = height === 'lo' ? `steeply up at ${p.obj} from just above the ground`
+        : `steeply down at ${p.obj} from high above`;
+    return `the view still looks ${look}, ${where}, the same ${height === 'lo' ? 'low' : 'high'} ${name} view as in `
+        + 'the first image';
+}
 
 /** The views a head-and-shoulders zoom sees from behind (rounds 49-50). */
 const REAR = ['tq_bl', 'tq_br', 'back'];
@@ -287,7 +322,8 @@ function _heightWords(turn, height, p, facts) {
  * whole-body or far rung must make up the unseen outfit - from the user's words, their second picture,
  * or plainly (rounds 46-48).
  */
-function _zoomWords(view, rung, p, facts, { fromClose = false, outfit = {} } = {}) {
+function _zoomWords(view, rung, p, facts, { fromClose = false, outfit = {}, height = 'level' } = {}) {
+    if (height !== 'level') return _zoomWordsHeight(view, height, rung, p, facts);
     const kept = ZOOM_KEPT[view](p);
     const near = facts.near || 'the place';
     if (rung === 'eye') {
@@ -330,6 +366,25 @@ function _zoomWords(view, rung, p, facts, { fromClose = false, outfit = {} } = {
         + `not ${p.obj}.` + rest + keep;
 }
 
+/** One zoom pass on a low or high view, from its whole figure (round 51: hs and far). */
+function _zoomWordsHeight(view, height, rung, p, facts) {
+    const kept = _zoomKeptHeight(view, height, p);
+    if (rung === 'hs') { // benched from above only
+        const rear = REAR.includes(view);
+        return 'Zoom in on the first image, keeping exactly the same viewing angle, height and perspective: '
+            + `${kept}. The view is now a head-and-shoulders close-up seen from above`
+            + `${rear ? ' and from behind' : ''}: ${rear ? `the back of ${p.poss} head, ${p.poss} neck` : `${p.poss} head, neck`}`
+            + ` and the top of ${p.poss} shoulders fill the frame, cropped just below the shoulders, with ${p.poss} whole `
+            + `head in frame; only a little of ${facts.ground} shows around ${p.obj}.` + _keepClose(p);
+    }
+    const far = height === 'lo' ? facts.farLow : facts.farHigh;
+    return 'Zoom out from the first image, keeping exactly the same viewing angle, height and perspective: '
+        + `${kept}. Frame the whole place: the camera is pulled far back, much further than in the first image. `
+        + `${p.Subj} ${p.verb('is')} now a small figure in the middle of the frame, about a quarter of the frame's height, `
+        + `seen from head to shoes${far ? `, ${far}` : ''}. Most of the frame is the place around ${p.obj}, not ${p.obj}.`
+        + _keepIt(p, ['face', 'hair', p.wears, 'clothes'], 'the same place and light');
+}
+
 /**
  * The describer's question: one `KEY: value` line per fact, read off the source before any pass. The
  * examples are the bench sources' own words, so a scene answers in the shape the bench proved.
@@ -364,6 +419,14 @@ export const MULTI_ANGLE_DESCRIBE_ASK = 'Look at this picture of one person. Ans
     + '"with", like "with the full height of the shop fronts and their signs at both sides and much more of the '
     + 'street in front of her" for a street, or "with the whole studio around her - the edges of the backdrop, '
     + 'light stands at both sides, and the bare floor in front of her" for a studio\n'
+    + 'FAR_LOW: the same, for a camera far back and low on the ground looking up, starting with "with", like "with '
+    + 'the full height of the shop fronts rising at both sides and the open sky with the power lines above her" or '
+    + '"with the whole studio around her seen from below - the light stands and softboxes at both sides and the dark '
+    + 'studio ceiling above her"\n'
+    + 'FAR_HIGH: the same, for a camera far back and high above looking down, starting with "with", like "with much '
+    + 'more of the paving around her seen from above, the kerb and the bases of the shop fronts" or "with much more '
+    + 'of the bare studio floor around her seen from above, the edges of the grey backdrop paper and the feet of the '
+    + 'light stands"\n'
     + 'ONE_SIDED: things worn on only one side of the body, as "thing | left or right (their own side) | where", '
     + 'separated by ";", like "brown bag | right | hip; wristwatch | left | wrist"; none: none';
 
@@ -409,6 +472,8 @@ export function parseMultiAngleFacts(text) {
         ground: _none(a.GROUND) || 'the ground',
         near: _none(a.PLACE_NAME) || 'the place',
         far: _none(a.FAR),
+        farLow: _none(a.FAR_LOW),
+        farHigh: _none(a.FAR_HIGH),
     };
     if (style !== 'photo') {
         facts.drawing = { noun: style, style: _none(a.DRAWING_STYLE) || `${style} drawing style`,
@@ -486,7 +551,8 @@ export function zoomRungs(from, to) {
  * @param {Object} pick - { turn, height, zoom?: { from, to }, outfit?: { words, ref } }; `zoom.from` is the
  *   input's framing (a rung), read from the source.
  * @param {Object} facts - from the source: { subject, pronoun, drawing?: { noun, style, marks }, feet,
- *   frontLowLegs, ground, lowReveal, frontLowReveal, highReveal, turnReveal, details, near, far, wears };
+ *   frontLowLegs, ground, lowReveal, frontLowReveal, highReveal, turnReveal, details, near, far, farLow, farHigh,
+ *   wears };
  *   a place slot is a sentence, or a map turn -> sentence.
  * @returns {{ ok: true, steps: Array<{ kind, model, ref, outfitRef?, prompt }> } | { ok: false, reason: string }}
  *   `ref` = the doll render under assets/flows/multi-angle/refs/ (image 2), null for a zoom pass;
@@ -512,8 +578,8 @@ export function multiAnglePlan(pick = {}, facts = {}) {
     }
     const zoom = pick.zoom;
     if (zoom?.to && zoom.to !== zoom.from) {
-        if (height !== 'level' || !(BENCHED_ZOOM[turn] || []).includes(zoom.to)
-            || (zoom.to === 'eye' && steps.length)) {
+        if (!_benched(turn, height).includes(zoom.to) || (zoom.to === 'eye' && steps.length)
+            || (height !== 'level' && zoom.from !== 'full')) {
             return { ok: false, reason: `Zoom to ${zoom.to} is not benched on ${turn} / ${height}.` };
         }
         const rungs = zoomRungs(zoom.from, zoom.to);
@@ -523,7 +589,7 @@ export function multiAnglePlan(pick = {}, facts = {}) {
             const madeUp = fromClose && i === 0 && (rung === 'full' || rung === 'far');
             steps.push({ kind: 'zoom', model: last() === FLUX3 ? QWEN : FLUX3, ref: null,
                 outfitRef: madeUp && !!pick.outfit?.ref,
-                prompt: _zoomWords(turn, rung, p, facts, { fromClose: madeUp, outfit: pick.outfit }) });
+                prompt: _zoomWords(turn, rung, p, facts, { fromClose: madeUp, outfit: pick.outfit, height }) });
         });
     }
     return { ok: true, steps };

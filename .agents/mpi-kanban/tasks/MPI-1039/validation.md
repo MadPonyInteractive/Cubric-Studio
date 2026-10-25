@@ -1017,3 +1017,18 @@ user's ratio later; a crop changes the zoom, so the gizmo may need per-ratio-fam
   - Read: the two-step zoom (FLUX.3 turn, Qwen zoom) holds on every turn for far, and for hs on the side views and the
     back. tqb l hs is the open cell (lands a notch wide on anime) - not offered. Widened: hs + far on tq fl, tq fr,
     pr l, pr r, back; far on tqb l (tqb r keeps hs only: its far is unbenched).
+- 2026-10-25 ROUND 51, ZOOM ON THE LOW AND HIGH VIEWS (`angles.py <port> blender51`, sheets
+  r51{a,b}_zoom_{lo,hi}.jpg): hs + far on every lo and hi cell the Flow runs. Zoom pass FLUX.3 Turbo 9:16 on the Qwen
+  lo/hi cells, Qwen on the FLUX.3 front hi. Anime + photo, seeds 111/222, 130 edits, 0 errors (paused at 42 for
+  Fabio's GPU test, resumed in session "Multi-Angle 31", ~20-80 s each).
+  GRADES (agent, sheets + crops; bar = the named framing, height/view/style kept):
+  - FAR, LOW: 32/32 - a small figure, camera still low (sky and building tops, the studio ceiling rig), turn kept.
+  - FAR, HIGH: 32/32 - a small figure from above on the street / studio floor, turn kept, front hi included.
+  - HS, HIGH, the seven turns (tq fl..back): 28/28 head-and-shoulders, looking down, turn and side kept.
+  - HS, HIGH, FRONT: 0/4 - the Qwen zoom on the FLUX.3 front hi gives a bigger foreshortened figure, feet still in
+    frame (anime 2/2 whole body, photo to the waist / knees). Not offered.
+  - HS, LOW, SIDE VIEWS + FRONT (front, tq fl, pr l, pr r): lands chest-to-WAIST-up, not hs, on most cells (the low
+    camera keeps the torso big); front anime 2/2 clean hs. tq fr 1/4 (anime crops to the hips with the bag).
+  - HS, LOW, BACK VIEWS (tqb l, tqb r, back): 0/12 - every one frames the seat and hips, head small at the top. Fail.
+  - Read: far opens on every lo and hi cell; hs opens on hi for the seven turned views. lo hs (and front hi hs) need
+    a stronger wording round before anything is offered - ask Fabio before the GPU.
