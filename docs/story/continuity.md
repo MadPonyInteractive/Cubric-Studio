@@ -19,6 +19,7 @@ Video Flow all call the same route. Nothing chains clips its own way.
 | Mode | When | Mechanism |
 |---|---|---|
 | `extend` | Continuous action that must not cut | Extend Video (MPI-591): latent path for our own output (full quality per link), pixel path for an imported clip |
+| `bridge` | A continuous run longer than one generation (Fabio, 2026-10-25) | Roots generated first (same seed + duration + start ref), then this shot fills the gap from BOTH neighbours' motion latents — no drift. Short fixed prompt, extra length. Engine support unverified: `.agents/mpi-kanban/tasks/MPI-1134/research/obvpm-bridging.md` |
 | `lastFrame` | Same moment, new prompt / new camera move | Previous take's last frame as the start frame (i2v / fl2va) |
 | `newShot` | A new angle or beat in the same scene | References only (Element picks + optionally a captured frame) on H3 Reference |
 | `cut` | New scene / location | Nothing carried over except the Elements |
