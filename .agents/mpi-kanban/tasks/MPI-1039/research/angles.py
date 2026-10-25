@@ -4246,9 +4246,112 @@ def blender50(port):
         _sheet(rows, f'r50{half}_zoom_turned_views')
 
 
+# Round 51 (Fabio 2026-10-25, approved): zoom only opens at eye level. The same two rungs as round 50 - hs (in) and
+# far (out) - on every LOW and HIGH cell the Flow runs, each input the accepted cell. Routing per round 44 ('never two
+# Qwen passes in a row', 'never FLUX.3 on a FLUX.3 result'): every low and every turned high is a Qwen result, so the
+# zoom pass is FLUX.3 (round 41 zoomed the Qwen tqb r hi on FLUX.3 8/8); the front high is FLUX.3, so its zoom is
+# Qwen. The photo front high was never benched on the bench woman: made here first with the r23 words. 130 edits.
+MQ51_SIDE = {  # view -> (where the camera is, the view's name)
+    'front': ('in front of her', 'front'), 'tq fl': ('at her left side', 'three-quarter side'),
+    'tq fr': ('at her right side', 'three-quarter side'), 'pr l': ('exactly side-on from her left', 'side profile'),
+    'pr r': ('exactly side-on from her right', 'side profile'),
+    'tqb l': ('behind her left shoulder', 'rear three-quarter'),
+    'tqb r': ('behind her right shoulder', 'rear three-quarter'), 'back': ('directly behind her', 'back'),
+}
+MQ51_CELLS = {  # height -> view -> the accepted cell (round, key)
+    'lo': {'front': (30, 'front lo reveal'), 'tq fl': (30, 'tq fl lo'), 'tq fr': (31, 'tq fr lo'),
+           'pr l': (35, 'pr l lo'), 'pr r': (35, 'pr r lo'), 'tqb l': (31, 'tqb l lo'), 'tqb r': (40, 'tqb r lo'),
+           'back': (31, 'back lo')},
+    'hi': {'front': (51, 'front hi'), 'tq fl': (34, 'tq fl hi framed'), 'tq fr': (35, 'tq fr hi'),
+           'pr l': (35, 'pr l hi'), 'pr r': (35, 'pr r hi'), 'tqb l': (35, 'tqb l hi'), 'tqb r': (40, 'tqb r hi'),
+           'back': (35, 'back hi')},
+}
+MQ51_NEAR = {  # height -> style -> what little of the place shows behind a close-up
+    'lo': {'anime': 'the sky and the shop signs above', 'photo': 'the dark studio ceiling above'},
+    'hi': MQ31_GROUND,
+}
+MQ51_FAR = {
+    'lo': {'anime': 'with the full height of the shop fronts rising at both sides and the open sky with the power '
+                    'lines above her',
+           'photo': 'with the whole studio around her seen from below - the light stands and softboxes at both sides '
+                    'and the dark studio ceiling above her'},
+    'hi': MQ41_PLACE_HI,
+}
+MQ51_PHOTO_HI_KEEP = (' Take only the viewing angle from the mannequin reference. The subject is still the real person '
+                      'from the first image, with their own head and hair, hands, clothes and shoes; keep their '
+                      'identity, pose, the place, the light and the image style of the first image unchanged.')
+REAR51 = ('tqb l', 'tqb r', 'back')
+
+
+def _zoom51(rung, view, height, style):
+    where, name = MQ51_SIDE[view]
+    look = 'steeply up at her from just above the ground' if height == 'lo' else 'steeply down at her from high above'
+    seen = 'from below' if height == 'lo' else 'from above'
+    kept = f'the view still looks {look}, {where}, the same {"low" if height == "lo" else "high"} {name} view as in ' \
+           'the first image'
+    if rung == 'far':
+        return ('Zoom out from the first image, keeping exactly the same viewing angle, height and perspective: '
+                f'{kept}. ' + MQ49_FAR.format(far=MQ51_FAR[height][style]) + MQ46_KEEP[style])
+    rear = view in REAR51
+    return (f'Zoom in on the first image, keeping exactly the same viewing angle, height and perspective: {kept}. The '
+            f'view is now a head-and-shoulders close-up seen {seen}{" and from behind" if rear else ""}: '
+            f'{"the back of her head, her neck" if rear else "her head, neck"} and the top of her shoulders fill the '
+            f'frame, cropped just below the shoulders, with her whole head in frame; only a little of '
+            f'{MQ51_NEAR[height][style]} shows around her.' + MQ43_KEEP[style])
+
+
+def blender51(port):
+    done = os.path.join(OUT, 'mq_blender51.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    rnds = {r: json.load(open(os.path.join(OUT, f'mq_blender{r}.json')))
+            for cells in MQ51_CELLS.values() for r, _ in cells.values() if r != 51}
+    rnds[51] = res
+    r23, r29 = (json.load(open(os.path.join(OUT, f'mq_blender{n}.json'))) for n in (23, 29))
+    photo = json.load(open(os.path.join(OUT, 'pitch.json')))['body input']
+
+    def cell(height, view, n, s):
+        r, k = MQ51_CELLS[height][view]
+        if (r, n) == (51, 'anime'):
+            return r23[f'street 222 {s} front hi']
+        return rnds[r][f'{n} {s} {k}']
+
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+    for seed in (111, 222):  # the photo front high, on FLUX.3 with the r23 words and the room ref
+        key = f'photo {seed} front hi'
+        if key not in res:
+            res[key] = gen(port, {**FAST, 'ratio': '9:16', 'seed': seed, 'cardName': f'angles mq51 {key}',
+                                  'positive': MQ7_BODY['front hi'][1] + MQ51_PHOTO_HI_KEEP,
+                                  'media': [{'role': 'inputImage', 'url': photo},
+                                            {'role': 'inputImage2', 'url': r29['ref 768x1344 doll/front_hi']}]})
+            json.dump(res, open(done, 'w'), indent=1)
+    for name in ('anime', 'photo'):
+        for seed in (111, 222):
+            for height, cells in MQ51_CELLS.items():
+                for view in cells:
+                    model = QWEN29 if (height, view) == ('hi', 'front') else {**FAST, 'ratio': '9:16'}
+                    for rung in ('hs', 'far'):
+                        key = f'{name} {seed} {view} {height} {rung}'
+                        if key not in res:
+                            res[key] = gen(port, {**model, 'seed': seed, 'cardName': f'angles mq51 {key}',
+                                                  'positive': _zoom51(rung, view, height, name),
+                                                  'media': [{'role': 'inputImage',
+                                                             'url': cell(height, view, name, seed)}]})
+                            json.dump(res, open(done, 'w'), indent=1)
+    for height in ('lo', 'hi'):
+        for half, views in (('a', ('front', 'tq fl', 'tq fr', 'pr l')), ('b', ('pr r', 'tqb l', 'tqb r', 'back'))):
+            rows = [[(None, f'{n} {s}')] + [c for v in views for c in (
+                (cell(height, v, n, s), f'{v} {height}'), (res.get(f'{n} {s} {v} {height} hs'), f'{v} {height} hs'),
+                (res.get(f'{n} {s} {v} {height} far'), f'{v} {height} far'))]
+                for n in ('anime', 'photo') for s in (111, 222)]
+            _sheet(rows, f'r51{half}_zoom_{height}')
+
+
 if __name__ == '__main__':
     if sys.argv[1:2] == ['best']:
         best()
+    elif sys.argv[2:3] == ['blender51']:
+        blender51(int(sys.argv[1]))
     elif sys.argv[2:3] == ['blender50']:
         blender50(int(sys.argv[1]))
     elif sys.argv[2:3] == ['blender49']:

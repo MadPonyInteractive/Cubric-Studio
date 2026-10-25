@@ -368,6 +368,15 @@ refuses the rest). Same shape as r50 (angles.py, Qwen zoom pass on the accepted 
 passes: widen BENCHED_ZOOM / ZOOM_KEPT to carry height, open those rungs in multiAngleChoices, and render
 <turn>_lo_far / <turn>_hi_far previews (soft_render.py: add the stops - lo/hi camera, lens x 0.5 - then
 ship_assets.py) and have multiAnglePreview pick them by height. Zoom session archived.
+ROUND 51 STARTED 2026-10-25 (session "Flux 3 on flows 30"), PAUSED at 42/130 for Fabio's own GPU test: `angles.py
+<port> blender51` (resumes from out/mq_blender51.json, nothing redone), sheets r51{a,b}_zoom_{lo,hi}.jpg at the end.
+hs + far on every lo and hi cell the Flow runs (MQ51_CELLS). ROUTING CHANGE vs the handoff: the zoom pass is FLUX.3
+Turbo 9:16 on the Qwen low/high cells (round 44: never two Qwen passes in a row), Qwen only on the FLUX.3 front hi;
+photo front hi made in-round first (r23 words + room ref). EARLY READ (anime 111 lo, 12 cells): far 6/6 good (small
+figure, low angle + turn kept); hs lands WAIST-UP not hs on every lo cell, tqb l lo hs crops to the hips (fail) - may
+need a stronger hs wording for the lows. Prepared, not rendered: soft_render.py + ship_assets.py know the 16
+<turn>_lo_far / <turn>_hi_far stops. Gizmo CSS hs anchor is eye-level only: Cosmo's box per height (cosmo_soft, 960x540)
+lo top ~97-116 bottom ~480, hi top ~91-104 bottom ~340-363 - a lo/hi hs needs its own modifier per height.
 PHASE 4 BUILT, AWAITING FABIO'S EYE TEST (2026-10-25, session "Flux 3 on flows 27", detail in validation.md):
 FlowDef `multi-angle` (devOnly, driver 'multiAngle' in FLOW_DRIVERS), slots-only op `flowMultiAngle`, step kind
 `angle` = `js/components/Organisms/MpiStepAngle/` (Cosmo preview + Turn/Height/Zoom sliders; Turn = full turn,

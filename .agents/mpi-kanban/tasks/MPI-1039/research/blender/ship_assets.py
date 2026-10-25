@@ -20,9 +20,9 @@ def copy(src, dst):
 
 
 for t in TURNS:
-    for h in ('', '_lo', '_hi', '_far'):
+    for h in ('', '_lo', '_hi', '_far', '_lo_far', '_hi_far'):
         stop = t + h
-        if h == '_far':
+        if h.endswith('_far'):
             pass  # a gizmo preview only (Far away is a zoom stop, not a ref camera)
         elif t != 'front' and h == '':
             copy(f'{HERE}/out/doll/{CAM.get(t, t)}.png', f'{DST}/refs/room/{stop}.png')
@@ -32,5 +32,5 @@ for t in TURNS:
             copy(f'{HERE}/out/doll_plain/{stop}.png', f'{DST}/refs/plain/{stop}.png')
         os.makedirs(f'{DST}/previews', exist_ok=True)
         # The lit 16:9 Cosmo in the sci-fi server room (scifi_build.py + soft_render.py, Fabio 2026-10-25), 24 stops
-        # plus the 8 wide <turn>_far views.
+        # plus the 8 wide <turn>_far views and the 16 wide low / high ones (round 51).
         Image.open(f'{HERE}/out/cosmo_scifi/{stop}.png').convert('RGB').save(f'{DST}/previews/{stop}.webp', quality=88, method=6)
