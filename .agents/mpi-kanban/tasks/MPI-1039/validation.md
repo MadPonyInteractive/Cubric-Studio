@@ -791,3 +791,54 @@ user's ratio later; a crop changes the zoom, so the gizmo may need per-ratio-fam
     high the mildest), size held (framing line), style + identity 8/8.
   - Read: the 3/4 back R low/high cells are fixed by fixing the turn - the pitch step needs no new words.
 - 2026-10-25 FLOW BUILD PHASE 1 (refs + previews): the 23 doll refs the approved grid uses already existed (out/doll = FLUX.3 steps, out/doll_plain = Qwen steps); 24 Cosmo previews rendered (blender/cosmo_cams.py, EEVEE + Freestyle, GPU lease, 24/24 rendered, no errors). Agent read of research/sheets/cosmo_previews.jpg: every 3/4 view turns the right way (tq fl screen frame-left, ear frame-right; tq bl / tq br ear on the near side), lows look up, highs look down. FAIL: pr l and pr r are identical (the face is a flat decal, so side-on nothing shows the facing). Copied to assets/flows/multi-angle/ by blender/ship_assets.py (47 files, 2.5 MB; refs byte-identical to the bench's).
+- 2026-10-25 ROUND 41, ZOOM AS ITS OWN WORDS-ONLY PASS (`angles.py <port> blender41`, sheet
+  `research/sheets/mq_blender41_zoom_pass.jpg`, results `research/out/mq_blender41.json`). One FLUX.3 Turbo edit, ONE
+  image (no ref), 9:16; words = round 21's relative crop / reveal + the view to keep + 'everything she wears stays on
+  the same side'. Inputs per style: the source front, the r39 tqb r turn (FLUX.3 output), the r40 tqb r high (Qwen
+  output; turn + height + zoom = the first 3-pass chain). Seeds 111/222, 24 edits, ~23 s each (~10 min GPU).
+  GRADES (agent, sheet + full-size crops):
+  - FRONT: in 4/4 clearly closer (crops mid-thigh, not the waist the words name), out 4/4 (photo: backdrop edges +
+    light stands; anime: more street, shop fronts). Bag on her right hip 4/4, watch on her left wrist 4/4, likeness kept.
+  - TQB R HIGH (3-pass): in 4/4 clearly closer, out 4/4 small with the ground from above. Bag right 4/4; near wrist bare
+    3/4 (anime 222 = the r39 watch miss Fabio accepted, inherited). High kept 3/4 (photo 111 zoom-in reads closer to
+    eye level). Likeness: no visible loss on the 3-pass chain (faces mostly hidden at this view - a front-facing chain is
+    still untested).
+  - TQB R EYE-LEVEL TURN: in 0/4, out 0/4 - FLUX.3 returns the input unchanged (mean pixel diff 3-6/255 = noise).
+  - Read: zoom in words works as its own pass on the source and on a Qwen result, but FLUX.3 will not re-edit a FLUX.3
+    turn - the same freeze as rounds 31-32 (no height change on a turned picture). Next: the zoom pass on Qwen for a
+    FLUX.3-turned input (r39 tqb r + r27 tq fl, 8-16 edits), as the height split already does.
+- 2026-10-25 ROUND 42, THE ZOOM PASS ON QWEN FOR FLUX.3 TURNS (`angles.py <port> blender42`, sheet
+  `research/sheets/mq_blender42_zoom_qwen.jpg` (r41's frozen FLUX.3 cells beside), results
+  `research/out/mq_blender42.json`). Round 41's words (tq fl view/crop words added), QWEN29, one image, no ratio/tier.
+  Inputs r39 tqb r + r27 tq fl, anime + photo, seeds 111/222, in + out = 16 edits, ~43 s each (~12 min GPU).
+  GRADES (agent, sheet + full-size crops):
+  - Qwen ZOOMS where FLUX.3 froze: in 8/8 clearly closer, out 8/8 far (photo: whole studio rig, anime: long street).
+  - View kept 8/8 in, 8/8 out (tqb r stays rear 3/4, tq fl stays near side-on; photo 222 tq fl in faces a little more
+    toward the camera, as its input already did).
+  - Sides: tqb r bag on the right hip 4/4; tq fl watch on the near left wrist 4/4 (correct for that side).
+  - MISS: photo tqb r zoom-in crops her HEAD off 2/2 (frame = shoulders to hips); anime tqb r in keeps the head 2/2.
+    Fix = round 31's 'with her whole head still in frame' on zoom-ins.
+  - Likeness: photo tq fl in faces read as the same woman; anime held.
+  - Read: the zoom pass routes like height - FLUX.3 on the source, Qwen on any picture FLUX.3 already turned (and on
+    Qwen results). FABIO 2026-10-25: zoom must span both ways - all the way in on a full body = the face, on a face =
+    an eye; all the way out = the far camera these rounds already get. So zoom is a ladder of named framings, not one
+    'closer' stop (next round).
+- 2026-10-25 ROUND 43, THE DEEP ZOOM RUNGS IN ONE PASS (`angles.py <port> blender43`, sheet
+  `research/sheets/mq_blender43_zoom_rungs.jpg`, results `research/out/mq_blender43.json`). Rungs head-and-shoulders
+  (hs) / face / eye named as the TARGET framing (+ the view to keep, a shorter keep line without hands/bag/shoes), one
+  edit each from the full body: front source on FLUX.3 (9:16), r27 tq fl turn on Qwen; + the face source -> eye on
+  FLUX.3 (4:5). Seeds 111/222, 26 edits (~33 min wall incl. Qwen ~40 s, FLUX.3 ~20 s; GPU ~13 min).
+  GRADES (agent, sheet):
+  - FRONT (FLUX.3): hs 4/4 a clean head-and-shoulders. face 0/4 a face-filling close-up - it lands one notch tighter
+    than hs at most (anime crops the crown, photo ~= hs). eye 4/4 a real extreme close-up of the right eye (frame-left,
+    the named one), half the face around it; style held 4/4.
+  - TQ FL (Qwen): hs 4/4, near-profile view kept. face 1/4 tighter (anime 111); photo 222 comes out WIDER (waist-up)
+    and anime 222 ~= hs. eye 2/4 (anime 111 profile eye, photo 111 a quarter-face close-up); anime 222 returns a
+    shoulder-and-hair view, photo 222 a half face with hair.
+  - FACE SOURCE -> EYE (FLUX.3): 2/2 excellent - the green eye, lashes, brow; the cheek moles on the right side.
+  - Likeness: photo hs/face rungs read as the same woman 8/8; an eye from a full body is invented detail (the source
+    face is ~100 px) - only the face source's eye carries her real eye.
+  - Read: from a full body, ONE pass reliably reaches hs and (on FLUX.3) the eye; the 'face' words do not separate
+    from hs; Qwen is unreliable past hs on a turned view. Ideas: stronger face words ('only her face, edge to edge,
+    the top of her head and her chin cut by the frame'), or deep rungs CHAINED (hs first, then face/eye from the hs,
+    the way the face source -> eye works 2/2), or crop + refine. Fabio's call.

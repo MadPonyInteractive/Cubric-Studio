@@ -284,6 +284,29 @@ People tests still open (agent's list, from validation.md rounds 5-7, 12, 15-16)
      studio ceiling / softbox) to the full-body studio low views.
   Then Fabio's eye test; Qwen-Image 2.1 re-run (NSFW) stays queued after.
 FABIO 2026-10-24 (afternoon, after rounds 19-22: "making progress, well done"): concern - every test source is PHOTOGRAPHIC; the recipe's words (real person, studio, softbox) may push a 2D source toward realism. NEXT ROUND = a flat 2D test, kept SHORT: convert the man or the woman to flat anime with Krea2 (Fabio: "Create2", its anime style, via edit / i2i), then run the people recipe on that one source (few key views, few seeds). Keep clause must say the drawing style stays (not "real person"). Then the 3/4 front-turn overshoot ref, Qwen-Image 2.1 re-run.
+ROUND 43 DONE (2026-10-25, validation.md): deep zoom rungs in ONE pass from a full body - hs 8/8 (FLUX.3 front +
+Qwen tq fl), eye 4/4 on FLUX.3 front but 2/4 on Qwen tq fl, the 'face' rung does not separate from hs (1/8); the face
+source -> eye 2/2 excellent. GPU ~13 min (26 edits). FABIO 2026-10-25: the face rung FAILED everywhere (chest still
+shows); his close-up wording = 'frame the face, the face fills the whole frame'. ROUND 44 WRITTEN, NOT RUN
+(`angles.py <port> blender44`, MQ44_FACE/MQ44_KEEP): face words lead with 'Frame her face: her face fills the whole
+frame', name what the edges cut, no neck/shoulders/clothes; keep line drops clothes + place. Arms: 'one' (full body ->
+face: FLUX.3 front, Qwen tq fl) vs 'chain' (r43 hs -> face, Qwen); anime + photo, 111/222 = 16 edits (~10 GPU min) -
+FABIO APPROVED the run (2026-10-25). Then: eye rung in the same style ('frame her right eye: it fills the whole
+frame'), outward rungs, the head-in-frame line on rear zoom-ins.
+ROUND 42 DONE (2026-10-25, validation.md): Qwen zooms the FLUX.3 turns FLUX.3 froze on - in 8/8, out 8/8, view and
+sides kept; miss: photo tqb r zoom-in crops the head off 2/2 (add 'her whole head still in frame'). GPU ~12 min.
+ZOOM ROUTING: FLUX.3 on the source, Qwen on any already-edited picture. FABIO 2026-10-25: zoom spans BOTH ways - all
+the way in on a full body = the face, on a face = an eye; all the way out = the far camera. Agent proposal: the zoom
+slider = a LADDER of named framings (far / full body / waist-up / head-and-shoulders / face / eye), the agent reads the
+input's framing and names the target N rungs away. NEXT (needs Fabio's go, GPU): round 43 = the deep rungs
+(head-and-shoulders, face, eye) on the front source + the tq fl turn, anime + photo, 111/222 (24 edits, ~15 min),
++ the face source -> eye; optional arm: crop + refine for the deepest rungs.
+ROUND 41 DONE (2026-10-25, validation.md): zoom as its own words-only FLUX.3 pass (one image, no ref) works on the
+source front (in/out 8/8) and on the Qwen high of the 3-pass chain (8/8, bag right 4/4, no visible likeness loss),
+but FLUX.3 returns a FLUX.3 TURN unchanged (0/8) - the rounds 31-32 freeze. GPU ~10 min (24 edits). NEXT (needs
+Fabio's go, GPU): round 42 = the zoom pass on Qwen (QWEN29, one image) for the FLUX.3 turns r39 tqb r + r27 tq fl,
+anime + photo, 111/222, in + out = 16 edits (~16 min). Zoom-in crops mid-thigh, not the named waist - fine for a
+'closer' stop. Then: confirm the 'Cosmo full rotation' reading, gizmo switches, build phase 2.
 ZOOM PHASE NEXT (Fabio 2026-10-25). Zoom fell out of the spec unasked (r19/r21 proved zoom IN WORDS on people, then
 the bench moved on); Fabio puts it back:
 - Zoom = WORDS, never a zoomed doll ref (what r21 proved). Zoom is its OWN PASS (generation): touched slider = a
