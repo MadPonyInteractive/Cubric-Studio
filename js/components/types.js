@@ -2170,8 +2170,8 @@
  * is what lets the History overlay and a Flow's result frame share it (MPI-585).
  *
  * Instance methods (on instance.el):
- *   open(itemA, itemB) — load the pair; itemA = left/before, itemB = right/after.
- *                        Resolves false when the pair could not be loaded, so a
+ *   open(itemA, itemB, names?) — load the pair; itemA = left/before, itemB = right/after;
+ *                        names {a, b} = each side's card name. Resolves false when the pair could not be loaded, so a
  *                        caller with a fallback can show it instead of a blank frame.
  *   destroy()          — unbind the hotkeys and destroy the canvas
  */
@@ -2183,8 +2183,8 @@
  * The History TAKEOVER around MpiCompareView — it owns the overlay and nothing else.
  *
  * Instance methods (on instance.el):
- *   open(itemA, itemB) — load two MediaItems and show the overlay
- *                        itemA = left/before, itemB = right/after
+ *   open(itemA, itemB, names?) — load two MediaItems and show the overlay
+ *                        itemA = left/before, itemB = right/after; names as MpiCompareView
  *   hide()             — close the overlay and destroy the compare surface
  *
  * Emits:

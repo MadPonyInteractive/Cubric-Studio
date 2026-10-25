@@ -384,7 +384,7 @@ export const MpiGalleryBlock = ComponentFactory.create({
             const itemA = getSelectedItem(g[0]);
             const itemB = getSelectedItem(g[1]);
             if (!itemA || !itemB) return;
-            _compareOverlay.el.open(itemA, itemB);
+            _compareOverlay.el.open(itemA, itemB, { a: g[0].customName, b: g[1].customName });
         });
 
         // ── Combine ─────────────────────────────────────────────────────────────

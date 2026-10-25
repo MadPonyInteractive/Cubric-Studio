@@ -15,7 +15,8 @@
  *   compare.on('close', () => {});
  *
  * Instance methods (on instance.el):
- *   open(itemA, itemB) — load two MediaItems / HistoryItems and show the overlay
+ *   open(itemA, itemB, names?) — load two MediaItems / HistoryItems and show the overlay;
+ *                        names {a, b} = each side's card name (see MpiCompareView)
  *
  * Emits:
  *   'close' {} — overlay closed (forwarded from MpiOverlay)
@@ -61,8 +62,9 @@ export const MpiCompareOverlay = ComponentFactory.create({
         /**
          * @param {object} itemA — left (before)
          * @param {object} itemB — right (after, revealed by the slider)
+         * @param {{a?: string, b?: string}} [names] — each side's card name, when set
          */
-        el.open = async (itemA, itemB) => {
+        el.open = async (itemA, itemB, names) => {
             // Remount per open: MpiCompareView owns one canvas per instance, and a
             // second pair must not inherit the first one's loaded videos.
             _teardownView();
@@ -71,7 +73,7 @@ export const MpiCompareOverlay = ComponentFactory.create({
             // Show BEFORE loading — the canvas sizes itself off its container, and a
             // hidden container measures zero.
             overlay.el.show();
-            await _view.el.open(itemA, itemB);
+            await _view.el.open(itemA, itemB, names);
         };
 
         const _origHide = el.hide;

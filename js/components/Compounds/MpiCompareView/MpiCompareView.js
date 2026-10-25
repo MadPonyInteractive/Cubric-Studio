@@ -25,8 +25,9 @@
  *   view.el.destroy();
  *
  * Instance methods (on instance.el):
- *   open(itemA, itemB) — load the pair; itemA is the BEFORE (left), itemB the
- *                        AFTER (right, revealed by the slider)
+ *   open(itemA, itemB, names?) — load the pair; itemA is the BEFORE (left), itemB the
+ *                        AFTER (right, revealed by the slider); names {a, b} are
+ *                        each side's card name, shown in place of the item's
  *   destroy()          — unbind hotkeys and destroy the canvas
  */
 
@@ -88,9 +89,11 @@ function _basenameNoExt(filePath) {
     return dot > 0 ? base.slice(0, dot) : base;
 }
 
-function _labelFor(item, fallback) {
-    // Same name the History list shows (MpiHistoryList: displayName || operation).
-    return _truncate(item?.name || item?.displayName || item?.operation || _basenameNoExt(_pathOf(item)) || fallback);
+function _labelFor(item, fallback, cardName) {
+    // A caller that knows the gallery card passes its user-set name (customName); an
+    // item never carries it. Otherwise the name the History list shows
+    // (MpiHistoryList: displayName || operation).
+    return _truncate(cardName || item?.name || item?.displayName || item?.operation || _basenameNoExt(_pathOf(item)) || fallback);
 }
 
 export const MpiCompareView = ComponentFactory.create({
@@ -150,11 +153,12 @@ export const MpiCompareView = ComponentFactory.create({
         /**
          * @param {object} itemA — left (before)
          * @param {object} itemB — right (after, revealed by the slider)
+         * @param {{a?: string, b?: string}} [names] — each side's card name, when set
          * @returns {Promise<boolean>} false when the pair could not be loaded, so a
          *   caller with a fallback (a Flow result pane) can show it instead of an
          *   empty frame.
          */
-        el.open = async (itemA, itemB) => {
+        el.open = async (itemA, itemB, names = {}) => {
             _ensureCanvas();
 
             const urlA = _resolveUrl(itemA);
@@ -162,8 +166,8 @@ export const MpiCompareView = ComponentFactory.create({
             const isVideoA = _isVideoItem(itemA);
             const isVideoB = _isVideoItem(itemB);
 
-            labelBefore.textContent = _labelFor(itemA, 'Before');
-            labelAfter.textContent  = _labelFor(itemB, 'After');
+            labelBefore.textContent = _labelFor(itemA, 'Before', names.a);
+            labelAfter.textContent  = _labelFor(itemB, 'After', names.b);
 
             try {
                 if (isVideoA) {
