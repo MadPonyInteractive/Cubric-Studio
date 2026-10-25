@@ -213,6 +213,8 @@ Too slow on the local 4060 Ti. Fabio chose a persistent volume over a fresh Pod 
   show). Quality verdict pending (Fabio).
 - 2026-10-25 **Phase 1c**: v2 Shot D 136/88 s, Cs 124/94 s (4/4 ok), sbs `sbs/p1c_{D,Cs}_<seed>` (ours |
   v1.3 | v2). Verdict pending.
+- 2026-10-25: Pod `e8e1vtrxvl5q6g` DELETED 10:39 UTC (97 min, ~$1.16); RunPod lists no Pods.
+  **Spent ~$3.92 of $3-5.** The volume `l545j38pyx` still exists (~$0.35/day).
 - 2026-10-25 **Resolution rethink (Fabio, for the next session's brainstorm, feeds MPI-1285):**
   "single pass up to 1080p, upscale only for 2K/4K" does not work: High and Very High cannot
   render single-pass at 10-15 s on 16 GB cards (already measured). Idea: every tier above the
