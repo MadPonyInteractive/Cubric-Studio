@@ -10,7 +10,7 @@ const body = {
     name: 'cubric-h3-bench',
     cloud: 'SECURE',
     image: 'runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2204',
-    disk: 40,
+    disk: 150, // boot.sh copies every weight (~118 GB) here: the volume is ~4x slower to load from
     ports: ['8188/http', '22/tcp'],
     entrypoint: ['bash', '-c', 'echo "$BOOT_B64" | base64 -d > /tmp/boot.sh && bash /tmp/boot.sh'],
     env: {

@@ -114,15 +114,47 @@ Too slow on the local 4060 Ti. Fabio chose a persistent volume over a fresh Pod 
 - Volume is FILLED and verified: venv (py3.10, torch 2.12.0+cu130, triton 3.7.0), ComfyUI at the
   pin, all four node packs loading (1145 classes: MpiNodes 137, MMH3 14, LBH 5, Veda 1), all 14
   weights at full size, no `.aria2` leftovers. A GPU Pod now boots to COMFY_READY in ~2-3 min.
-- No Pod running (terminated so it does not idle while graphs are built).
-- Next: write `research/prompts.md` (lines + named sounds in every prompt), build the Step 0
-  graphs (none / ours / Benji's MMH3 + LMS), THEN rent the Pod (`create-pod.mjs`) and run them.
+- `research/prompts.md` written (A-D, lines + named sounds, seeds 1135001/1135002, 4 s).
+- Step 0 graphs: `research/step0/build_step0.py` writes 12 API graphs from the SHIPPED
+  `minimax_h3_fl2va.json` (Shot A) / `minimax_h3_r2va.json` (Shot C) at 1344x768, stage-1 turbo.
+  `none` = stage-1 halving maths set to full size, preview output only; `ours` = shipped;
+  `benji` = `MMH3UltimateUpscale` on the stage-1 latent (chunks 85/17, anchor 1.0, LBH 3D
+  upscaler, 512 tiles 128/32, min 256, linear) with LMS 0.70 on the refine model, euler/beta
+  2 steps denoise 0.30. Benji's tile size was not in the brief: 512 (the node default) is a pick.
+  `check_graphs.py <url>` validates against `/object_info` (passed on the local bench);
+  `run_graphs.py <url> <clipdir> <graphs...>` uploads the refs, runs, logs `results.md`.
+- 2026-10-25: Pod 1 `e3s7unjly7j3ms` (weights on the volume, 372 s/clip) terminated. Pod 2
+  **`zb86nk40jri923` is RUNNING** (150 GB container disk, weights copied to `/root/models`;
+  SSH `ssh -i ~/.ssh/id_ed25519 -p 44446 root@213.173.109.44`, log `/workspace/bench/boot.log`).
+  It removes itself 240 min after boot (~05:25 local, 2026-10-25). ComfyUI on it was started by
+  hand (boot.sh's bare `wait` hung on the HARD_MIN timer; fixed in boot.sh since).
+- Step 0 is being fed by `run_graphs.py` running in the "H3 Singularity 3" session (left open):
+  rows land in `research/results.md`, clips in `C:/AI/Mpi/_private/mpi1135-clips/`
+  (log `C:/AI/Mpi/_private/mpi1135-step0b.log`). Done so far, Shot A seed 1: ours 114 s, none
+  125 s, Benji 140 s; ours seed 2 113 s. Order: rest of fl2va Shot A, then ref2va Shot C x6.
+- Next: when all 12 rows are in, TERMINATE the Pod (`rp.mjs DELETE /pods/zb86nk40jri923`),
+  build the side-by-sides (per shot+seed: none | ours | benji) for Fabio, and log his Step 0
+  verdict. Then build the Phase 1 graphs on the winning upscale and run them PER MODEL.
+- Spent: ~$0.95 before Pod 2; Pod 2 at $0.72/h on top.
 - Spent: ~$0.63 of the $3-5 Pod budget (GPU 47 min + the first Pod $0.06 + CPU fill $0.01).
 - Watching boot: `watch.mjs` (RunPod log API) printed nothing in 30 min; poll
   `https://<id>-8188.proxy.runpod.net/system_stats` and SSH (`tail boot.log`) instead.
   Restart a Pod with `POST https://rest.runpod.io/v1/pods/<id>/restart` (v2 has no restart).
 
 ## Plan Drift
+
+- 2026-10-25 (Fabio): **run per MODEL, never per phase.** A load is the slow part, so one model
+  stays loaded and does every shot it covers (A, B, C, D), then the next model. Phase 1 runs as:
+  Singularity A/B/C/D -> FastH3 Trim A/B/D -> ours fl2va A/B/D -> ours ref2va C (or ours first,
+  to reuse what is resident after Step 0). Step 0 is already grouped: fl2va Shot A x6, then
+  ref2va Shot C x6. Judging stays one comparison per shot.
+- 2026-10-25: first Step 0 clip took 372 s, of which ~45 s sampling. The rest was
+  "Model Initializing": ComfyUI's dynamic VRAM loading streams the weights from the FILE on
+  every load, and the file was on the network volume (0.67 GB/s vs 2.6 GB/s on the container
+  disk). Fix: `create-pod.mjs` asks for a 150 GB container disk, `boot.sh` copies every weight
+  there and points ComfyUI at it first (`extra_model_paths`, `is_default`). Fabio: leave the
+  shipped `MpiClearVram` nodes alone, they are not the bottleneck.
+- 2026-10-25: the RunPod proxy 403s Python's urllib User-Agent; both scripts send a browser one.
 
 - 2026-10-25: first fill split by Fabio's call: GPU Pod for venv/ComfyUI/nodes, then a CPU Pod
   (`create-cpu-pod.mjs`, `boot.sh WEIGHTS_ONLY=1`, $0.12/h, removes itself) for the weights in

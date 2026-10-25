@@ -83,5 +83,27 @@ wait "${P[@]}"; P=()
 echo "BENCH weights done"; du -sh $M
 [ -n "${WEIGHTS_ONLY:-}" ] && { echo "BENCH weights-only fill finished - removing pod"; runpodctl remove pod "$RUNPOD_POD_ID"; sleep infinity; }
 
+# --- weights onto the container disk (create-pod.mjs asks for 150 GB). ComfyUI's dynamic VRAM
+# loading streams a model out of its file on EVERY load, ~75 s per DiT load off the network
+# volume (reads ~0.67 GB/s); the container disk reads ~2.6 GB/s. is_default puts these paths
+# ahead of the volume's, which stays the fallback (Veda reads its own folder from there).
+L=/root/models
+echo "BENCH copying weights to $L"
+P=()
+for d in diffusion_models text_encoders vae latent_upscale_models loras; do
+  mkdir -p $L/$d; cp -rn $M/$d/. $L/$d/ & P+=($!)
+done
+wait "${P[@]}"; echo "BENCH weights local"  # a bare `wait` also waits on the HARD_MIN timer; du -sh $L; df -h /
+cat > /root/extra_models.yaml <<EOF
+local:
+  base_path: $L
+  is_default: true
+  diffusion_models: diffusion_models
+  text_encoders: text_encoders
+  vae: vae
+  latent_upscale_models: latent_upscale_models
+  loras: loras
+EOF
+
 echo "BENCH comfy start"
-cd $C && exec $PY main.py --listen 0.0.0.0 --port 8188 --output-directory $B/output
+cd $C && exec $PY main.py --listen 0.0.0.0 --port 8188 --output-directory $B/output --extra-model-paths-config /root/extra_models.yaml
