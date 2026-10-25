@@ -121,7 +121,8 @@ Flow-specific notes:
 | The `main-area` Flow overlay spares `#shell-info-bar` but stashing `#tool-container` collapses the sticky bar to the top — pin it `absolute; bottom:0` while `.main-area--overlay` is set | [04](04-overlay-and-shell.md) |
 | **A value a flow does not DECLARE must not carry its `Input_*` title.** `_buildParams` emits **`Input_Positive`, `Input_Negative` and `Input_Negative_Audio`** on every run (`Input_Negative: negative \|\| ''`, etc.) whatever the flow declares, so any of those three titles on a node the flow leaves undeclared is silently overwritten with an empty string. Head Swap and Outpaint bake their instruction and leave the prompt node untitled; Scribble bakes its negative and titles that node `negative prompt`. **Draw It In shipped the negative half of this bug** — node 19 held a baked negative, the FlowDef declared no `negative` field, and every render it ever made ran with an empty negative, with nothing failing and nothing logged (found MPI-620). Do NOT instead teach the app to skip an empty value — nearly every other graph relies on that empty string to wipe a leftover authoring prompt | [existing-flows/outpaint.md](existing-flows/outpaint.md) |
 | **Prompt text written without the model's guide.** A Flow has no `GUIDE_NOT_READ` gate, so a fixed prompt (or a bench prompt) in the wrong register ships silently: FLUX.3 bench opened "Create a photograph of ..." and described the bench man, so anime inputs would turn photoreal. Read `docs/agent/models/<model>.md` first; keep the prompt generic ("the subject") | [01](01-descriptor-and-ops.md) § READ THE MODEL'S GUIDE |
-| **A driver Flow that never reports its jobs runs blind.** The frame learns a run's tempId in `submitFlowGeneration`, which a `driver` skips: unless the driver calls `frame.onJob(opts.tempId, done)` for EVERY job it queues, the pane shows no live latents, no sweep, a greyed Stop, and the result never lands there. Nothing fails. Shipped twice (Storyboard, then Multi-angle, 2026-10-25); pinned by `tests/flow-drivers-report-jobs.test.cjs` | § Driver Flows |
+| **A driver Flow that never reports its jobs runs blind.** The frame learns a run's tempId in `submitFlowGeneration`, which a `driver` skips: unless the driver calls `frame.onJob(queued.queueJobId, done)` for EVERY job it queues, the pane shows no live latents, no sweep, a greyed Stop, and the result never lands there. Nothing fails. Shipped twice (Storyboard, then Multi-angle, 2026-10-25); pinned by `tests/flow-drivers-report-jobs.test.cjs` | § Driver Flows |
+| **One Stop press must stop the whole Flow run** (Fabio, 2026-10-25): every stacked press, leg, pass and driver job, pending too. A driver that does not check `frame.stopped()` before each enqueue keeps queuing after Stop, because between two of its jobs nothing is in the queue to cancel (MPI-1293) | [ui/stop-button.md](ui/stop-button.md) |
 | `operation_registry.json` is a hand-maintained superset — **never regenerate** (strips `universal` flags) | [01](01-descriptor-and-ops.md) |
 | `preview` is **ONE field feeding THREE placements** — tile and detail thumb crop it `4/5 cover`, the in-flow hero shows it at natural aspect. Art composed for the hero gets centre-cropped in the grid with no warning | [06](06-preview-image.md) |
 | **A Flow works for the user and is invisible to Cosmo.** The agent picks a Flow by `does` (the first sentence of `description`) and fills it from `id`/`label`/`type`/`default`/`options` only: a `hidden` field, a `voices` roster and anything explained in a `note`/`hint` reach it as a bare name and get filled blind. Nothing fails | [07](07-agent-knowledge.md) |
@@ -132,11 +133,14 @@ A FlowDef with `driver: '<id>'` makes Generate call `FLOW_DRIVERS[id](flow, inpu
 (`js/shell/storyboardDispatch.js`) instead of `submitFlowGeneration`. Its op carries the media slots
 only. Examples: [Storyboard](existing-flows/storyboard.md) (many panels), Multi-angle (a chain of 1-3
 edits on one card, `js/shell/multiAngleDispatch.js`). The driver owns everything the frame would
-otherwise do for a graph Flow, so for EVERY `enqueueGeneration` it makes:
+otherwise do for a graph Flow, so for EVERY `enqueueGeneration` it makes (the frame's half is
+`MpiBaseFlow` `_run` / `_followDriverJob`):
 
-- **Report the job:** `frame?.onJob?.(opts.tempId, done)`, with `opts` the `landingOpts(...)` passed to
-  `enqueueGeneration` and `done` a promise settling `{ ok, item }` / `{ ok: false, code }`. This one call
-  gives the pane its live latents, the sweep, Stop, and the landed picture.
+- **Report the job:** `frame?.onJob?.(queued.queueJobId, done)` (`queued` = what `enqueueGeneration`
+  returned, `done` settles `{ ok, item }` / `{ ok: false, code }`): latents, sweep, Stop, the picture.
+  The queue id, never `opts.tempId`: a job landing in a card's history has none (MPI-1293).
+- **Honour Stop, return the end:** `frame?.stopped?.()` right before each enqueue, and `{ finished }`
+  (or `false` when nothing started), so one press stops the whole run — [ui/stop-button.md](ui/stop-button.md).
 - **Stamp the Flow on the job:** `config.flowId = flow.id` and `config.flowInputs = inputs`, so the
   sidecar records the Flow and Reuse > Apply to App reopens it with its inputs. Without them the card
   reuses as the bare model op (an edit), never the Flow.
@@ -146,7 +150,7 @@ otherwise do for a graph Flow, so for EVERY `enqueueGeneration` it makes:
   row (`queued: true` on `describeImage`), never silent.
 
 `tests/flow-drivers-report-jobs.test.cjs` reads `FLOW_DRIVERS` and fails a driver that takes no
-`frame` or queues more jobs than it reports.
+`frame`, queues more jobs than it reports or Stop-checks, reports a tempId, or returns no `{ finished }`.
 
 ## Hard rules
 
@@ -168,7 +172,7 @@ Flow-specific additions:
 - [ ] Register the op in **4 files**: `commandRegistry.js` (`universal:true`, mediaType, mediaInputs with `Input_*` titles + correct per-slot mediaType — **audio = `'audio'`**), `universal_workflows.js`, `operationRegistry.js`, `operation_registry.json` (hand-maintained superset) — [01](01-descriptor-and-ops.md)
 - [ ] Add the `FlowDef` in `flowsRegistry.js` (`requiredModels` = MODEL ids, `{ label, models }` slots, or `[]`; `inputSchema.media` slot groups; `mediaType`; `type`) — [01](01-descriptor-and-ops.md)
 - [ ] Media roles in `inputSchema.media[].roles` MATCH the op's `mediaInputs` keys — [02](02-media-io.md)
-- [ ] **Driver Flow?** (`driver`, no graph) every job it queues calls `frame.onJob(tempId, done)` and carries `flowId` + `flowInputs`, a chain sets `flowStep`, and the driver is in `FLOW_DRIVERS` so `tests/flow-drivers-report-jobs.test.cjs` checks it — § Driver Flows
+- [ ] **Driver Flow?** (`driver`, no graph) every job it queues calls `frame.onJob(queued.queueJobId, done)` after a `frame.stopped()` check and carries `flowId` + `flowInputs`, a chain sets `flowStep`, the driver returns `{ finished }`, and it is in `FLOW_DRIVERS` so `tests/flow-drivers-report-jobs.test.cjs` checks it — § Driver Flows
 - [ ] Controls: declare `fields: [...]` on the FlowDef (MPI-531/MPI-572) — the SAME `fields` a step declares, placed on the run slide — the frame renders them, `Input_*` ids route into `injectionParams`. **There is no BESPOKE component surface** (MPI-572 deleted the per-Flow `uiComponent` Organism, which a third-party Flow can never ship) — but every declared field MOUNTS an app Primitive (MPI-582), so a Flow is nothing but components. If a control is not expressible, add a PRIMITIVE plus the FIELD TYPE, never a bare input — [ui/carousel-frame/fields.md](ui/carousel-frame/fields.md)
 - [ ] Does the flow IMPROVE media the user supplied? Declare `result: { compare: '<input role>' }` for the shared before/after surface. Omit when a comparison says nothing (same pixels, or an output that is not the same footage) — [ui/result-pane.md](ui/result-pane.md)
 - [ ] Nothing to do for a VIDEO result's player: a single video result mounts MpiVideoViewer + MpiVideoControlBar automatically, with compare (when declared) as a toggle on top — [ui/result-pane.md](ui/result-pane.md) § every video result gets the real player

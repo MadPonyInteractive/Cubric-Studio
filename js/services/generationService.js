@@ -1038,12 +1038,22 @@ export function cancelRunningCueJob(queueJobId) {
  */
 export function cancelBatch(batchId) {
     if (!batchId) return;
+    cancelCueJobs(j => j.opts.batchId === batchId);
+}
+
+/**
+ * MPI-1293 — cancels every pending and running Cue job `match` picks, in `cancelBatch`'s
+ * order: pending first, so a lane drain cannot promote one of them between the two steps.
+ * A Flow window's Stop calls it with the jobs it started.
+ * @param {function(Object): boolean} match - a Cue job (`queueJobId`, `opts`, `config`)
+ */
+export function cancelCueJobs(match) {
     // Step 1: drain the pending side first — the drain cannot promote a removed job.
-    removeCueJob(j => j.opts.batchId === batchId);
-    // Step 2: stop any running job in this batch across ALL lanes.
+    removeCueJob(match);
+    // Step 2: stop any running match across ALL lanes.
     for (const lane of LANE_ORDER) {
         const active = _lanes[lane].active;
-        if (active?.opts?.batchId === batchId) {
+        if (active && match(active)) {
             cancelRunningCueJob(active.queueJobId);
         }
     }

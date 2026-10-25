@@ -29,7 +29,7 @@ import { isVideoFile } from '../../../utils/file.js';
 import { qs, ce, on } from '../../../utils/dom.js';
 import { renderIcon } from '../../../utils/icons.js';
 import { getStepKind, stepValueToParam, stepValueToMedia, isFrameKind } from './stepKinds.js';
-import { enqueueGeneration, findMissingMediaSlot } from '../../../services/generationService.js';
+import { enqueueGeneration, findMissingMediaSlot, cancelCueJobs } from '../../../services/generationService.js';
 import { getCommand } from '../../../data/commandRegistry.js';
 import {
     flowEnhanceDecls, enhanceTargets, enhanceSources, enhanceSourceText, enhancedWrites,
@@ -489,13 +489,22 @@ export const MpiBaseFlow = ComponentFactory.create({
          * `submitFlowGeneration` returns one. Membership is therefore by object
          * identity, never by id: an unstamped token is a real run that has not been
          * dispatched yet.
-         * @type {Set<{tempId: ?string, handle?: import('../../../services/flowService.js').FlowRun}>}
+         * A driver Flow's job carries its `queueJobId` instead (`_followDriverJob`).
+         * @type {Set<{tempId: ?string, queueJobId?: string, handle?: {cancelled: boolean, cancel: function}}>}
          */
         const _runs = new Set();
         /** Is ANY run in flight. Derived from `_runs`; written only by `_syncRunning`. */
         let _running = false;
-        /** The tempIds of the runs that have been dispatched. */
-        const _myTempIds = () => [..._runs].map(r => r.tempId).filter(Boolean);
+        /**
+         * Is this generation one of THIS frame's runs: a graph Flow's run by its tempId (every leg
+         * and pass shares it), a driver's job by its queue id. A driver job landing in a card's
+         * history (Multi-angle's pass 2 on) has no tempId, so it showed no latents and Stop could
+         * not find it (MPI-1293).
+         * @param {{tempId?: ?string, queueJobId?: ?string}} [job] - an activeGenerations entry, or a Cue job's ids
+         * @param {Iterable<Object>} [runs] - the runs to ask; `_cancel` passes a snapshot
+         */
+        const _isMine = ({ tempId, queueJobId } = {}, runs = _runs) => [...runs].some(r =>
+            (r.tempId && r.tempId === tempId) || (r.queueJobId && r.queueJobId === queueJobId));
         /**
          * Latent playback (MPI-571). This pane used to paint every frame the bus
          * handed it, the instant it arrived — so a burst previewer replayed the
@@ -2567,7 +2576,7 @@ export const MpiBaseFlow = ComponentFactory.create({
             if (_running) {
                 _setScanline(true);
                 _syncResultEmpty();
-                const entry = activeGenerations.list().find(e => _myTempIds().includes(e.tempId));
+                const entry = activeGenerations.list().find(e => _isMine(e));
                 const last = entry && activeGenerations.getLastPreview(entry.id);
                 if (last?.url) _paintResult(last.url, { blurring: true });
             }
@@ -3719,7 +3728,7 @@ export const MpiBaseFlow = ComponentFactory.create({
         _unsubs.push(Events.on('preview:frame', ({ promptId, url }) => {
             if (!url || !_runs.size) return;
             const entry = activeGenerations.byPromptId(promptId);
-            if (!entry?.tempId || !_myTempIds().includes(entry.tempId)) return;
+            if (!entry || !_isMine(entry)) return;
             _previewPlayer.push(url, activeGenerations.getPreviewClip(entry.id));
         }));
 
@@ -3732,8 +3741,8 @@ export const MpiBaseFlow = ComponentFactory.create({
         // into one growing loop. MPI-167.
         _unsubs.push(Events.on('generation:preview-reset', ({ id, clip }) => {
             if (!_runs.size) return;
-            const tempId = activeGenerations.get(id)?.tempId;
-            if (!tempId || !_myTempIds().includes(tempId)) return;
+            const entry = activeGenerations.get(id);
+            if (!entry || !_isMine(entry)) return;
             _previewPlayer.reset(clip);
         }));
 
@@ -4050,8 +4059,30 @@ export const MpiBaseFlow = ComponentFactory.create({
             // driver owns the order, its queue row and the stack, and skips the op submit (its op
             // only carries the media slots). It reports each job it queues, which the frame
             // follows like its own run: live latents, the sweep, Stop, and the picture as it lands.
+            //
+            // The whole driver run is ONE token too, from the press to its last job (MPI-1293):
+            // between two of its jobs (a describe, a ref fetch, the cast before the panels) nothing
+            // is queued, and the frame used to read idle there, with Stop doing nothing and the
+            // next job queuing anyway. Stop flags this token's handle, and the driver asks
+            // `frame.stopped()` right before every enqueue.
             if (flow.driver) {
-                await FLOW_DRIVERS[flow.driver](flow, inputs, { onJob: _followDriverJob });
+                const run = { tempId: null, handle: { cancelled: false, cancel() { this.cancelled = true; } } };
+                _runs.add(run);
+                _syncRunning();
+                _setGauge(0);
+                _setStatus('Generating…');
+                const started = await FLOW_DRIVERS[flow.driver](flow, inputs, {
+                    onJob: _followDriverJob, stopped: () => run.handle.cancelled,
+                });
+                // `false` = refused before any job, and its toast said why.
+                Promise.resolve(started && started.finished).then((out) => {
+                    const stopped = run.handle.cancelled || out?.cancelled;
+                    const failed = !stopped && !!out && (!out.ok || !!out.error);
+                    _settle(run, !out ? '' : stopped ? 'Cancelled.' : failed ? 'Generation failed.' : 'Done — saved to your gallery.', { failed });
+                    _setGauge(_runs.size || !out?.ok || stopped ? 0 : 100);
+                    // Each job painted its own result; a run that did not finish drops the last latent.
+                    if (stopped || failed) _dropLatentPreview();
+                });
                 return;
             }
 
@@ -4182,13 +4213,14 @@ export const MpiBaseFlow = ComponentFactory.create({
         }
 
         /**
-         * One job a Flow driver queued (Storyboard's cast picture or panel), tracked as a run
-         * of this frame by its tempId.
-         * @param {string} tempId
+         * One job a Flow driver queued (Storyboard's cast picture or panel, a Multi-angle pass),
+         * tracked as a run of this frame by its queue id: a job landing in a card's history has
+         * no tempId (MPI-1293).
+         * @param {string} queueJobId
          * @param {Promise<{ok: boolean, item?: Object, code?: string}>} done - settles at its end
          */
-        function _followDriverJob(tempId, done) {
-            const run = { tempId };
+        function _followDriverJob(queueJobId, done) {
+            const run = { tempId: null, queueJobId };
             _runs.add(run);
             _syncRunning();
             _setStatus('Generating…');
@@ -4260,25 +4292,24 @@ export const MpiBaseFlow = ComponentFactory.create({
         }
 
         /**
-         * Stop the job that is RUNNING, exactly as the PromptBox's Stop does. No toast
-         * — a user action is self-evident. activeGenerations.cancel() owns the whole
-         * path (exec.cancel → end → generation:cancelled); the submit's onCancel
-         * settles this pane.
+         * ONE press stops EVERYTHING this frame started (Fabio, 2026-10-25, MPI-1293): every
+         * stacked run, every job a driver queued, running and pending, and whatever a run would
+         * queue next. It used to stop one job per press (MPI-822 left pending ones to the queue's
+         * per-row Stop), so a Storyboard took ten presses. No toast — a user action is
+         * self-evident; each job's onCancel settles this pane.
          *
-         * With runs stacked (MPI-822) this deliberately does NOT clear the frame's
-         * whole queue: a job still PENDING is stopped per-row in the queue slide-over,
-         * which rides above this overlay. Falls back to the first of ours only when
-         * none has reached `running` yet.
+         * The queue's own Stop on each of our jobs first, pending before running, so a lane
+         * drain cannot promote one of ours in between. A pending job lives only in the queue,
+         * never in activeGenerations, which is why this is not a registry walk. Then every
+         * handle, so a run that is not in the queue right now (describing, in a cloud edit,
+         * between its legs or passes, a driver between jobs: MPI-1083) queues nothing more.
+         * Both read a snapshot: each cancelled job's onCancel drops its run from `_runs`.
          */
         function _cancel() {
             if (!_running) return;
-            const mine = _myTempIds();
-            const ours = activeGenerations.list().filter(e => mine.includes(e.tempId));
-            const entry = ours.find(e => e.status === 'running') || ours[0];
-            if (entry) activeGenerations.cancel(entry.id);
-            // A run still describing, in a cloud edit, or between its legs or passes has no
-            // queue entry to stop (MPI-1083): its handle ends it at its next enqueue.
-            else [..._runs].find(r => r.handle)?.handle.cancel();
+            const runs = [..._runs];
+            cancelCueJobs(j => _isMine({ tempId: j.opts?.tempId, queueJobId: j.queueJobId }, runs));
+            for (const r of runs) r.handle?.cancel();
         }
 
         // Ctrl+Enter runs the OPEN flow, not the PromptBox behind it — bound per

@@ -45,6 +45,21 @@ test('every driver Flow takes the frame and reports each job it queues', () => {
     }
 });
 
+// One Stop press stops the whole run (MPI-1293). The frame matches a job by its queue id: a job
+// landing in a card's history has no tempId (Multi-angle's pass 2 showed no latents and Stop missed
+// it). Between two jobs nothing is queued, so the driver must ask `frame.stopped()` before each
+// enqueue, and hand back its `finished` so the frame stays busy (and Stop live) until the last job.
+test('every driver Flow reports queue ids, honours Stop before each enqueue, and returns its end', () => {
+    for (const { id, fn } of _drivers()) {
+        const src = _source(fn);
+        assert.ok(!/\.onJob\?\.\(opts\.tempId/.test(src), `${id}: report the job's queueJobId, not its tempId`);
+        const queues = (src.match(/enqueueGeneration\(/g) || []).length;
+        const checks = (src.match(/frame\?\.stopped\?\.\(\)\) return \{ ok: false, code: 'CANCELLED'/g) || []).length;
+        assert.ok(checks >= queues, `${id}: ${queues} enqueueGeneration call(s), ${checks} frame.stopped() check(s)`);
+        assert.ok(/return \{ finished:/.test(src), `${id}: ${fn} never returns { finished }`);
+    }
+});
+
 // Without `flowId` on the job, the card's sidecar says "an edit" and Reuse opens the bare model
 // instead of the Flow (Multi-angle, 2026-10-25).
 test('every driver Flow stamps its jobs with flowId + flowInputs, so Reuse reopens the Flow', () => {

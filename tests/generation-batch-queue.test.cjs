@@ -27,13 +27,14 @@ const mod = (...p) => pathToFileURL(path.join(__dirname, '..', ...p)).href;
 globalThis.fetch = () => new Promise(() => {});
 
 let collapseQueueBatches;
-let enqueueGeneration, cancelBatch, peekCueQueue, getGenerationQueueSnapshot;
+let enqueueGeneration, cancelBatch, cancelCueJobs, peekCueQueue, getGenerationQueueSnapshot;
 
 test.before(async () => {
     ({ collapseQueueBatches } = await import(mod('js', 'services', 'generationBatch.js')));
     ({
         enqueueGeneration,
         cancelBatch,
+        cancelCueJobs,
         peekCueQueue,
         getGenerationQueueSnapshot,
     } = await import(mod('js', 'services', 'generationService.js')));
@@ -206,4 +207,35 @@ test('cancelBatch: snapshot getGenerationQueueSnapshot uses collapseQueueBatches
 
     // Cleanup so subsequent tests see a clean slate.
     cancelBatch('snapshot-check-batch');
+});
+
+// ── MPI-1293: a Flow window's one Stop — cancelCueJobs(match) ────────────
+
+test('cancelCueJobs: stops every job a Flow window started, pending and running, by tempId or queue id', () => {
+    // A graph Flow's run (its legs share one tempId) and a driver's jobs (known only by queue id:
+    // a pass landing in a card's history has no tempId).
+    // An empty queue first, so the graph run below is dispatched and RUNNING, the others pending.
+    cancelCueJobs(() => true);
+    const cancelled = [];
+    const cb = (name) => ({ onCancel: (why) => cancelled.push({ name, stopped: why?.stopped === true }) });
+    const graph = enqueueGeneration(_cfg(), cb('graph'), { tempId: 'flow-run-1' });
+    assert.strictEqual(getGenerationQueueSnapshot().items.find(i => i.queueJobId === graph.queueJobId)?.status, 'running');
+    const pass1 = enqueueGeneration(_cfg(), cb('pass1'), {});
+    const pass2 = enqueueGeneration(_cfg(), cb('pass2'), {});
+    const other = enqueueGeneration(_cfg(), cb('other'), {}); // another window's job
+    const mine = new Set([pass1.queueJobId, pass2.queueJobId]);
+    const ours = j => j.opts?.tempId === 'flow-run-1' || mine.has(j.queueJobId);
+
+    cancelCueJobs(ours);
+
+    const snap = getGenerationQueueSnapshot();
+    for (const { queueJobId } of [graph, pass1, pass2]) {
+        assert.ok(!peekCueQueue().some(j => j.queueJobId === queueJobId), `${queueJobId} no longer pending`);
+        assert.ok(!snap.items.some(i => i.queueJobId === queueJobId), `${queueJobId} gone from the queue panel, running or pending`);
+    }
+    assert.ok(peekCueQueue().some(j => j.queueJobId === other.queueJobId), "the other window's job is untouched");
+    // Each pending job of ours ends as a user Stop, so a driver reads it as CANCELLED.
+    assert.ok(cancelled.length >= 2 && cancelled.every(c => c.name !== 'other' && c.stopped));
+
+    cancelCueJobs(j => j.queueJobId === other.queueJobId);
 });

@@ -1,0 +1,15 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/services/generationService.js",
+    "js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js",
+    "js/shell/storyboardDispatch.js",
+    "js/shell/multiAngleDispatch.js",
+    "tests/generation-batch-queue.test.cjs",
+    "tests/flow-drivers-report-jobs.test.cjs",
+    "docs/playbooks/add-flow/",
+    "docs/generation-lifecycle.md",
+    ".claude/skills/mpi-add-flow/SKILL.md",
+    "tests/flow-cue-stacks.test.cjs"
+  ]
+}

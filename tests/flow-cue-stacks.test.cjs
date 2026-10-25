@@ -9,7 +9,7 @@
  * the same shape flow-frame.test.cjs and flow-step-param-binding.test.cjs use.
  *
  * NOT TESTABLE HERE, stated rather than skipped in silence: that three presses
- * actually produce three cards, that Stop ends only the running one, and that the
+ * actually produce three cards, that one Stop ends all of them (MPI-1293), and that the
  * queue slide-over opens over the flow overlay. Those need a real engine and
  * Fabio's eyes (MPI-822 plan.md § Verification).
  */
@@ -55,11 +55,12 @@ test('the frame holds N runs, matched by token identity not by one id', () => {
     assert.match(src, /const run = \{ tempId: null \};\s*\n\s*_runs\.add\(run\);/);
     assert.match(src, /run\.tempId = res\.tempId \|\| null;/);
 
-    // Every surface that used to compare against the one id now asks the set.
-    assert.match(src, /const _myTempIds = \(\) => \[\.\.\._runs\]\.map\(r => r\.tempId\)\.filter\(Boolean\);/);
+    // Every surface that used to compare against the one id now asks the set: by tempId, or by
+    // queue id for a driver's job, which has no tempId once it lands in a card's history (MPI-1293).
+    assert.match(src, /const _isMine = \(\{ tempId, queueJobId \} = \{\}, runs = _runs\) => \[\.\.\.runs\]\.some\(/);
     for (const site of [
-        /Events\.on\('preview:frame'[\s\S]{0,320}?_myTempIds\(\)\.includes\(entry\.tempId\)/,
-        /Events\.on\('generation:preview-reset'[\s\S]{0,320}?_myTempIds\(\)\.includes\(tempId\)/,
+        /Events\.on\('preview:frame'[\s\S]{0,320}?!_isMine\(entry\)/,
+        /Events\.on\('generation:preview-reset'[\s\S]{0,320}?!_isMine\(entry\)/,
     ]) assert.match(src, site);
 
     // `_running` survives as a DERIVED read, so the scanline / dock / result-replay

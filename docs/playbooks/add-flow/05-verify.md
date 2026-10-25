@@ -48,6 +48,10 @@ the user drives the end-to-end live run. Confirm each:
       None of this is in `npm test` for a graph Flow; a driver Flow's wiring is pinned by
       `tests/flow-drivers-report-jobs.test.cjs`, but only a live run shows it. Name these to the
       user when handing over the live run, so they look (Multi-angle shipped without any of it).
+- [ ] **One Stop stops the whole run** (MPI-1293): on a Flow that queues more than one job (stacked
+      presses, legs, passes, a driver's panels), ONE press of the frame's Stop mid-run ends every
+      job, pending included, and nothing more queues afterwards. Press it once during a job and once
+      between two jobs (a describe, a ref, the cast before the panels): the queue empties both times.
 - [ ] **Status bar** shows progress during the run (STITCHING/GENERATING + timer), at the BOTTOM of
       the flow overlay (not collapsed to the top).
 - [ ] **The peeking mascot** along the frame's bottom edge: Lingo while a prompt is written (Cosmo

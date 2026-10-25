@@ -103,6 +103,9 @@ player every single-video result gets, and the snapshot that survives close -> r
 in **[ui/result-pane.md](ui/result-pane.md)**. They are one subject and they were most of
 this file; splitting them is what brought it back under the 200-line budget (MPI-638).
 
+**Stop:** one press stops EVERYTHING the Flow started, pending jobs and a driver's next job
+included (MPI-1293) — [ui/stop-button.md](ui/stop-button.md).
+
 ## Install progress (multi-model)
 
 The detail footer has three states: **Install models** (missing, idle) → **aggregated % bar +

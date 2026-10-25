@@ -23,6 +23,7 @@ overlay / Flow Library. The procedure for wiring a flow is the numbered sections
 | [switch-bank-fields.md](switch-bank-fields.md) | **One field, N graph values** — an `MpiInt` selecting `MpiAnySwitch` banks, for a preset (resolution, duration) one field cannot otherwise reach | Character Sheet (MPI-504) |
 | [result-pane.md](result-pane.md) | **What the run slide shows once a run finishes** — the declared `result.compare` before/after, the real video player every single-video result gets, and the session snapshot that survives close -> reopen | Head Swap / LTX Upscale (MPI-585/587) |
 | [peeking-mascot.md](peeking-mascot.md) | **The mascot peeking along the frame's bottom edge while a Flow works** — Lingo writes, Prism / Reel + Vinyl / Vinyl generate by `mediaType`, Cosmo plans. The frame owns it; a Flow only declares the right `mediaType` | Storyboard (MPI-1231 -> MPI-1292) |
+| [stop-button.md](stop-button.md) | **The frame's Stop** — one press stops every job the Flow started, pending ones and a driver's next one included; what a driver Flow must do for it | Storyboard / Multi-angle (MPI-1293) |
 | [lora-rack.md](lora-rack.md) | **The user's own LoRAs in a flow** — `loras: true` on a model SLOT gives that phase a rack and a cogwheel that reuses the app's Model Settings panel, plus the injection chain that makes them actually run. One rack per phase, one cogwheel, beside that slot's model dropdown on the run slide | Character Sheet (MPI-504 -> MPI-608/610 -> MPI-638) |
 
 ## Baseline rules

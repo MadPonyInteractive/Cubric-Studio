@@ -65,6 +65,9 @@ function _deps(project, { outfitWords, flow, inputs }, frame) {
                 ...(step.model === FLUX3 ? { turbo: true } : {}),
             }, project);
             if (!built.ok) return built;
+            // Stop was pressed during the describe, a ref fetch or this build: the chain ends here,
+            // as stopped, and nothing more is queued (MPI-1293).
+            if (frame?.stopped?.()) return { ok: false, code: 'CANCELLED', message: 'The user pressed Stop.' };
             // The user pressed Generate: their toasts show, and the child-safety gate reads their
             // own outfit words beside the pass prompt built from the picture.
             // `flowId` + `flowInputs` ride to the sidecar, so Reuse > Apply to App reopens Multi-angle with
@@ -85,8 +88,9 @@ function _deps(project, { outfitWords, flow, inputs }, frame) {
                     : { ok: false, code: 'NO_OUTPUT', message: 'Nothing came back for this pass.' }),
             }, opts);
             if (!queued) return { ok: false, code: 'REJECTED', message: `The ${step.kind} pass was rejected before it entered the queue.` };
-            // The Flow frame follows each pass by its tempId: live latents, sweep, Stop, the result.
-            frame?.onJob?.(opts.tempId, done);
+            // The Flow frame follows each pass by its queue id: live latents, sweep, Stop, the result.
+            // Never the tempId: pass 2 on lands in pass 1's card and has none (MPI-1293).
+            frame?.onJob?.(queued.queueJobId, done);
             return { ok: true, done };
         },
     };
@@ -106,8 +110,9 @@ function _summary(name, out) {
  * @param {Object} inputs - the frame's inputs: `angle` (the gizmo's { turn, height, zoom: a target rung
  *   or 'none' }), `outfitWords`, `mediaItems` (`inputImage` the person, optional `inputImage2` the outfit
  *   picture)
- * @param {{onJob?: function(string, Promise<Object>): void}} [frame] - the Flow frame, told of each pass it queues
- * @returns {Promise<boolean>} true once the chain has started
+ * @param {{onJob?: function(string, Promise<Object>): void, stopped?: function(): boolean}} [frame] - the Flow
+ *   frame, told of each pass it queues (its queueJobId and its `done`); `stopped()` is true once its Stop was pressed
+ * @returns {Promise<false|{finished: Promise<Object>}>} false when nothing started; else the chain's end
  */
 export async function runMultiAngleFlow(flow, inputs, frame) {
     const project = state.currentProject;
@@ -133,10 +138,10 @@ export async function runMultiAngleFlow(flow, inputs, frame) {
         StatusBar.notify(run.message, 'warning');
         return false;
     }
-    run.finished.then(async (out) => {
+    return { finished: run.finished.then(async (out) => {
         if (out.group) await nameCard(out.group, name);
         const { text, variant } = _summary(name, out);
         StatusBar.notify(text, variant);
-    });
-    return true;
+        return out;
+    }) };
 }
