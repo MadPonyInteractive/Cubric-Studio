@@ -40,4 +40,8 @@
 - Done by Fabio, 2026-10-25: MiniMax H3 (fl2va) with sol-attn, a Reuse of the baseline run
   (same settings, same start frame), 1344x768, 3 s: **3m 28s -> 2m 32s**, 56 s faster (~27%,
   one sample each). The first GPU execution of the fl2va sol-attn graph; it ran clean.
-- (pending) The Superman request through Cosmo comes back with Fast Motion on, set by Cosmo.
+- Cosmo, 2026-10-25: Fabio asked for the two heroes flying in the clouds, talking, a plane
+  passing fast over them, 4 s, with NO word about Fast Motion. Cosmo picked H3 Reference and
+  said "with fast motion on for the jet screaming past": the rule fires unasked. (An earlier
+  "animate this image" request rightly went to MiniMax H3, where Fast Motion does not exist.)
+  The finished card's info row confirming Fast Motion on is the last look.
