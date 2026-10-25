@@ -1,0 +1,39 @@
+{
+  "id": "kite",
+  "idea": "A boy flies a red kite on a windy cliff above the sea. The string snaps and the kite drifts away over the water. His grandfather finds it caught on the rocks of the beach below and brings it back to him.",
+  "refs": [],
+  "ratio": "9:16",
+  "size": [
+    768,
+    1344
+  ],
+  "panels": [
+    {
+      "prompt": "Full-color cinematic film still, wide establishing shot from below the cliff’s edge, looking up at the wind-swept sea horizon with jagged rocks in foreground. A red kite soars high above the cliffs as a small figure runs toward it on the rocky path.",
+      "intent": "The camera holds steady to establish scale — the vastness of ocean and sky contrasted by the tiny human presence chasing freedom."
+    },
+    {
+      "prompt": "Medium shot, slightly low angle, following the boy running along the cliffside trail; his arms flailing for balance, eyes fixed upward at the kite. Wind whips through his hair, sand kicks underfoot. Behind him, the grandfather stands motionless near a rusted metal signpost. Boy is 10-year-old boy, fair skin, short brown hair, wearing a faded blue t-shirt and khaki shorts. Grandfather is 65–70 years old, weathered face, gray beard, wears a dark wool sweater over a collared shirt and sturdy hiking boots.",
+      "intent": "Camera tracks left past the boy's shoulder to emphasize urgency — he is not alone but unprepared for what comes next."
+    },
+    {
+      "prompt": "Close-up, eye-level shot focusing only on the broken string dangling between two fingers gripping its end — one hand belongs to the boy, trembling; another unseen hand (grandfather) reaches down just out of frame. Background blurred into white noise of wind. Boy is 10-year-old boy, fair skin, short brown hair, wearing a faded blue t-shirt and khaki shorts. Grandfather is 65–70 years old, weathered face, gray beard, wears a dark wool sweater over a collared shirt and sturdy hiking boots.",
+      "intent": "Freeze-frame moment where tension peaks — the string snaps mid-air, leaving no time to react before disaster unfolds."
+    },
+    {
+      "prompt": "Over-the-shoulder shot from behind the boy, who now crouches beside an overturned plastic bucket filled with seaweed while staring blankly ahead. His grandfather walks slowly forward carrying nothing except silence. Boy is 10-year-old boy, fair skin, short brown hair, wearing a faded blue t-shirt and khaki shorts. Grandfather is 65–70 years old, weathered face, gray beard, wears a dark wool sweater over a collared shirt and sturdy hiking boots.",
+      "intent": "Slow-motion dolly-in reveals emotional weight — regret lingers like salt air clinging to every surface."
+    },
+    {
+      "prompt": "Wide-angle drone view descending vertically onto the beach below, showing waves crashing against blackened stones beneath which lies tangled rope and half-buried fabric — unmistakably part of the same red kite.",
+      "intent": "Pull back dramatically to show context — this isn’t random debris; it was deliberately placed there after being lost during flight."
+    },
+    {
+      "prompt": "Low-angle close-up centered on the grandfather kneeling barefoot on wet rock, gently pulling free the torn tail section of the kite using both hands — blood-red thread visible despite fading coloration. He looks directly at the viewer without speaking. Grandfather is 65–70 years old, weathered face, gray beard, wears a dark wool sweater over a collared shirt and sturdy hiking boots.",
+      "intent": "Final cut zooms tightly around his knuckles working methodically — repair becomes redemption, memory preserved even if imperfect."
+    }
+  ],
+  "seed": 1231003,
+  "ms": 15318,
+  "text": "[CAST]  Boy: 10-year-old boy, fair skin, short brown hair, wearing a faded blue t-shirt and khaki shorts. Grandfather: 65–70 years old, weathered face, gray beard, wears a dark wool sweater over a collared shirt and sturdy hiking boots.[PANEL 1] Picture: Full-color cinematic film still, wide establishing shot from below the cliff’s edge, looking up at the wind-swept sea horizon with jagged rocks in foreground. A red kite soars high above the cliffs as a small figure runs toward it on the rocky path. Intent: The camera holds steady to establish scale — the vastness of ocean and sky contrasted by the tiny human presence chasing freedom. [PANEL 2] Picture: Medium shot, slightly low angle, following the boy running along the cliffside trail; his arms flailing for balance, eyes fixed upward at the kite. Wind whips through his hair, sand kicks underfoot. Behind him, the grandfather stands motionless near a rusted metal signpost. Intent: Camera tracks left past the boy's shoulder to emphasize urgency — he is not alone but unprepared for what comes next.[PANEL 3] Picture: Close-up, eye-level shot focusing only on the broken string dangling between two fingers gripping its end — one hand belongs to the boy, trembling; another unseen hand (grandfather) reaches down just out of frame. Background blurred into white noise of wind. Intent: Freeze-frame moment where tension peaks — the string snaps mid-air, leaving no time to react before disaster unfolds.[PANEL 4] Picture: Over-the-shoulder shot from behind the boy, who now crouches beside an overturned plastic bucket filled with seaweed while staring blankly ahead. His grandfather walks slowly forward carrying nothing except silence. Intent: Slow-motion dolly-in reveals emotional weight — regret lingers like salt air clinging to every surface.[PANEL 5] Picture: Wide-angle drone view descending vertically onto the beach below, showing waves crashing against blackened stones beneath which lies tangled rope and half-buried fabric — unmistakably part of the same red kite. Intent: Pull back dramatically to show context — this isn’t random debris; it was deliberately placed there after being lost during flight.[PANEL 6] Picture: Low-angle close-up centered on the grandfather kneeling barefoot on wet rock, gently pulling free the torn tail section of the kite using both hands — blood-red thread visible despite fading coloration. He looks directly at the viewer without speaking. Intent: Final cut zooms tightly around his knuckles working methodically — repair becomes redemption, memory preserved even if imperfect."
+}

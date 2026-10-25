@@ -1,0 +1,39 @@
+{
+  "id": "diner",
+  "idea": "A waitress in a late-night diner meets a stranger who knows her name.",
+  "refs": [],
+  "ratio": "16:9",
+  "size": [
+    1344,
+    768
+  ],
+  "panels": [
+    {
+      "prompt": "Full-color cinematic film still, wide establishing shot of the dimly lit diner at midnight — flickering neon signs, empty booths, one lone table where Lena is wiping down a counter while checking her phone. The Stranger enters from the back door, hesitating before stepping inside. Lena is A young woman, 20s, with dark brown hair and fair skin. Wears a black waitress uniform with a white apron, red pin on her chest. Stands in a diner setting. Stranger is Male, late 30s to early 40s, wearing a worn leather jacket over a faded blue shirt. Has messy grayish-brown hair and stubble. Looks tired but alert.",
+      "intent": "Establish the lonely atmosphere as the Stranger’s arrival disrupts it."
+    },
+    {
+      "prompt": "Medium shot, slightly low angle — Lena turns sharply toward the doorway, eyes widening as she sees him. She drops her rag mid-motion; the camera tilts up to show her face showing shock mixed with curiosity. He stands frozen near the entrance, looking directly at her. Lena is A young woman, 20s, with dark brown hair and fair skin. Wears a black waitress uniform with a white apron, red pin on her chest. Stands in a diner setting.",
+      "intent": "Show their first encounter — tension rising through body language alone."
+    },
+    {
+      "prompt": "Close-up of Lena’s hands gripping the edge of the counter as she slowly walks forward, voice barely audible: “You know my name?” Her expression shifts between wary and hopeful. Camera lingers on her trembling fingers. Lena is A young woman, 20s, with dark brown hair and fair skin. Wears a black waitress uniform with a white apron, red pin on her chest. Stands in a diner setting.",
+      "intent": "Introduce the core mystery — why does he know her?"
+    },
+    {
+      "prompt": "Over-the-shoulder shot from behind the Stranger — we see his gaze locked onto Lena as he speaks softly, “I’ve been waiting for you.” His hand reaches into his pocket, pulling out an old photo album. Lena is A young woman, 20s, with dark brown hair and fair skin. Wears a black waitress uniform with a white apron, red pin on her chest. Stands in a diner setting. Stranger is Male, late 30s to early 40s, wearing a worn leather jacket over a faded blue shirt. Has messy grayish-brown hair and stubble. Looks tired but alert.",
+      "intent": "Reveal that this isn’t just coincidence — there's history here."
+    },
+    {
+      "prompt": "Tight close-up — Lena stares at the photo album, then looks away quickly, blinking rapidly. Behind her, the diner lights reflect off wet glassware left by previous customers. She whispers something under her breath — perhaps disbelief or fear. Lena is A young woman, 20s, with dark brown hair and fair skin. Wears a black waitress uniform with a white apron, red pin on her chest. Stands in a diner setting.",
+      "intent": "Build emotional stakes — what if this stranger knows too much? What will happen next?"
+    },
+    {
+      "prompt": "Slow push-in to Lena’s face — now fully illuminated by overhead fluorescent light — tears welling in her eyes as she says aloud, “Then… tell me who I am to you,” holding the album open like a secret. The Stranger doesn't answer yet — only smiles faintly. Lena is A young woman, 20s, with dark brown hair and fair skin. Wears a black waitress uniform with a white apron, red pin on her chest. Stands in a diner setting. Stranger is Male, late 30s to early 40s, wearing a worn leather jacket over a faded blue shirt. Has messy grayish-brown hair and stubble. Looks tired but alert.",
+      "intent": "End not with resolution, but revelation — they’re both trapped in memory, and time may be running out."
+    }
+  ],
+  "seed": 1231002,
+  "ms": 15169,
+  "text": "[CAST]  Lena: A young woman, 20s, with dark brown hair and fair skin. Wears a black waitress uniform with a white apron, red pin on her chest. Stands in a diner setting.  Stranger: Male, late 30s to early 40s, wearing a worn leather jacket over a faded blue shirt. Has messy grayish-brown hair and stubble. Looks tired but alert.[ PANEL 1 ]  Picture: Full-color cinematic film still, wide establishing shot of the dimly lit diner at midnight — flickering neon signs, empty booths, one lone table where Lena is wiping down a counter while checking her phone. The Stranger enters from the back door, hesitating before stepping inside. Intent: Establish the lonely atmosphere as the Stranger’s arrival disrupts it.[ PANEL 2 ]  Picture: Medium shot, slightly low angle — Lena turns sharply toward the doorway, eyes widening as she sees him. She drops her rag mid-motion; the camera tilts up to show her face showing shock mixed with curiosity. He stands frozen near the entrance, looking directly at her. Intent: Show their first encounter — tension rising through body language alone.[ PANEL 3 ]  Picture: Close-up of Lena’s hands gripping the edge of the counter as she slowly walks forward, voice barely audible: “You know my name?” Her expression shifts between wary and hopeful. Camera lingers on her trembling fingers. Intent: Introduce the core mystery — why does he know her?[ PANEL 4 ]  Picture: Over-the-shoulder shot from behind the Stranger — we see his gaze locked onto Lena as he speaks softly, “I’ve been waiting for you.” His hand reaches into his pocket, pulling out an old photo album. Intent: Reveal that this isn’t just coincidence — there's history here.[ PANEL 5 ]  Picture: Tight close-up — Lena stares at the photo album, then looks away quickly, blinking rapidly. Behind her, the diner lights reflect off wet glassware left by previous customers. She whispers something under her breath — perhaps disbelief or fear. Intent: Build emotional stakes — what if this stranger knows too much? What will happen next?[ PANEL 6 ]  Picture: Slow push-in to Lena’s face — now fully illuminated by overhead fluorescent light — tears welling in her eyes as she says aloud, “Then… tell me who I am to you,” holding the album open like a secret. The Stranger doesn't answer yet — only smiles faintly. Intent: End not with resolution, but revelation — they’re both trapped in memory, and time may be running out."
+}

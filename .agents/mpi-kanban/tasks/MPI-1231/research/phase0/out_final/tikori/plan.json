@@ -1,0 +1,43 @@
+{
+  "id": "tikori",
+  "idea": "Picture 1 is Bix, a grumpy hairless cat. Picture 2 is Lilo, a purple fox. Picture 3 is Snow, a white tiger. Bix and Lilo sneak through the forest to steal the golden apple Snow is sleeping beside. Snow wakes up and chases them, they trip into a stream, and in the end the three of them share the apple on a log.",
+  "refs": [
+    "C:/Users/Fabio/Documents/Cubric Studio/Projects/Tikori Characters/Media/t2i_d919b5be.png",
+    "C:/Users/Fabio/Documents/Cubric Studio/Projects/Tikori Characters/Media/edit_d84a4325.jpg",
+    "C:/Users/Fabio/Documents/Cubric Studio/Projects/Tikori Characters/Media/t2i_8ef43aa4.png"
+  ],
+  "ratio": "16:9",
+  "size": [
+    1344,
+    768
+  ],
+  "panels": [
+    {
+      "prompt": "Full-color cinematic film still, medium shot from slightly low angle, dense forest canopy above, dappled sunlight filtering through leaves. Bix is frame-left, crouched low behind mossy roots, tail twitching nervously. Lilo is frame-right, darting forward silently on all fours, nose to the ground. Snow sleeps peacefully beside them, curled around a golden apple glowing faintly under tree roots — unaware of their presence. Bix is the grumpy hairless cat from the first image. Lilo is the purple fox from the second image. Snow is the white tiger from the third image.",
+      "intent": "The camera holds as they move closer to the sleeping tiger’s prize, establishing tension before action begins."
+    },
+    {
+      "prompt": "Full-color cinematic film still, close-up tracking shot following Lilo’s paw as she leaps over fallen branches toward the apple. Bix is now foreground-center, his body tense but frozen mid-step, one ear flattened back. Snow stirs slightly, head turning slowly — not yet awake. A single leaf falls into the air between them. Bix is the grumpy hairless cat from the first image. Lilo is the purple fox from the second image. Snow is the white tiger from the third image.",
+      "intent": "Camera pushes in to emphasize stealth and impending danger — the moment where the thief’s foot nearly brushes the forbidden fruit."
+    },
+    {
+      "prompt": "Full-color cinematic film still, shaky handheld shot, high-angle looking down at three figures tumbling backward off a root bridge into rushing stream water. Bix is submerged up to neck, flailing legs. Lilo is half-submerged, clinging desperately to a branch. Snow stands waist-deep in the current, roaring upward, claws extended, trying to grab them both. Bix is the grumpy hairless cat from the first image. Lilo is the purple fox from the second image. Snow is the white tiger from the third image.",
+      "intent": "Cut sharply here for chaos — this panel ends the chase, forcing the trio into an aquatic tumble that will change everything."
+    },
+    {
+      "prompt": "Full-color cinematic film still, slow-motion medium shot, raindrops falling vertically across screen while snowflakes swirl in mist rising from the log. All three are sitting together on a floating pine-log near shore, soaked, shivering, sharing the same golden apple. Bix stares blankly ahead. Lilo nibbles gently at it. Snow watches calmly, tongue out, purring softly despite exhaustion. Bix is the grumpy hairless cat from the first image. Lilo is the purple fox from the second image. Snow is the white tiger from the third image.",
+      "intent": "Freeze-frame after impact — the resolution comes when greed becomes shared joy, ending any rivalry or fear."
+    },
+    {
+      "prompt": "Full-color cinematic film still, tight close-up centered on the cracked surface of the golden apple being split open by two tiny hands (Lilo's left hand, Bix's right). Their fingers interlock briefly as they pull apart the skin. Behind them, Snow licks her lips contentedly, watching without judgment. Light glows warmly from within the core. Bix is the grumpy hairless cat from the first image. Lilo is the purple fox from the second image. Snow is the white tiger from the third image.",
+      "intent": "Slow zoom-in to show how the stolen treasure has become something sacred — the only thing worth risking life for."
+    },
+    {
+      "prompt": "Full-color cinematic film still, wide establishing shot framed against twilight sky fading to indigo. Three creatures sit side-by-side on the wet log, silhouetted against distant trees. No movement except gentle breathing. One final drop of rain lands perfectly on each of their heads.",
+      "intent": "Final freeze-frame — peace settles over them like silence itself, marking the end of pursuit and beginning of friendship."
+    }
+  ],
+  "seed": 1231001,
+  "ms": 19516,
+  "text": "[CAST]  Bix: a grumpy hairless cat, with pale gray fur and wide, unimpressed eyes; wears no clothes.  Lilo: a purple fox with sleek fur, pointed ears, and sharp green eyes; dressed in a torn blue tunic.  Snow: a white tiger with black stripes, piercing amber eyes, and thick orange-tipped paws; wears a simple silver collar.[PANEL 1] Picture: Full-color cinematic film still, medium shot from slightly low angle, dense forest canopy above, dappled sunlight filtering through leaves. Bix is frame-left, crouched low behind mossy roots, tail twitching nervously. Lilo is frame-right, darting forward silently on all fours, nose to the ground. Snow sleeps peacefully beside them, curled around a golden apple glowing faintly under tree roots — unaware of their presence. Intent: The camera holds as they move closer to the sleeping tiger’s prize, establishing tension before action begins.[PANEL 2] Picture: Full-color cinematic film still, close-up tracking shot following Lilo’s paw as she leaps over fallen branches toward the apple. Bix is now foreground-center, his body tense but frozen mid-step, one ear flattened back. Snow stirs slightly, head turning slowly — not yet awake. A single leaf falls into the air between them. Intent: Camera pushes in to emphasize stealth and impending danger — the moment where the thief’s foot nearly brushes the forbidden fruit.[PANEL 3] Picture: Full-color cinematic film still, shaky handheld shot, high-angle looking down at three figures tumbling backward off a root bridge into rushing stream water. Bix is submerged up to neck, flailing legs. Lilo is half-submerged, clinging desperately to a branch. Snow stands waist-deep in the current, roaring upward, claws extended, trying to grab them both. Intent: Cut sharply here for chaos — this panel ends the chase, forcing the trio into an aquatic tumble that will change everything.[PANEL 4] Picture: Full-color cinematic film still, slow-motion medium shot, raindrops falling vertically across screen while snowflakes swirl in mist rising from the log. All three are sitting together on a floating pine-log near shore, soaked, shivering, sharing the same golden apple. Bix stares blankly ahead. Lilo nibbles gently at it. Snow watches calmly, tongue out, purring softly despite exhaustion. Intent: Freeze-frame after impact — the resolution comes when greed becomes shared joy, ending any rivalry or fear.[PANEL 5] Picture: Full-color cinematic film still, tight close-up centered on the cracked surface of the golden apple being split open by two tiny hands (Lilo's left hand, Bix's right). Their fingers interlock briefly as they pull apart the skin. Behind them, Snow licks her lips contentedly, watching without judgment. Light glows warmly from within the core. Intent: Slow zoom-in to show how the stolen treasure has become something sacred — the only thing worth risking life for.[PANEL 6] Picture: Full-color cinematic film still, wide establishing shot framed against twilight sky fading to indigo. Three creatures sit side-by-side on the wet log, silhouetted against distant trees. No movement except gentle breathing. One final drop of rain lands perfectly on each of their heads. Intent: Final freeze-frame — peace settles over them like silence itself, marking the end of pursuit and beginning of friendship."
+}

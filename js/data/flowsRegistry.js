@@ -544,34 +544,33 @@ const SHEET_CLOTHES_CHECKS = ['upper body, the chest and belly', 'lower body, th
     message: 'Dress the sheet first: pick Clothes and say what the character wears. Under 18 a character must wear ordinary clothes on the sheet before its age changes, and this sheet does not show them. At 16 or 17 swimwear is fine when you ask for it under Clothes. The age can stay set: the clothes go on first.',
 })));
 
-// Storyboard's planner (MPI-1231). A DRAFT until Phase 0 benches it on the enhancer: the shape
-// follows docs/agent/models/flux-3.md (long prose, the medium first, a full observable profile per
-// person). The enhancer flattens its answer to one line, so `parseStoryboardPlan` finds the panels
-// by their `[PANEL n]` markers and the `Intent:` label, never by newlines. Every character's full
-// description is REPEATED in every panel because each panel is a separate generation: a panel
-// that says "the same woman" draws a stranger. Positive instructions, few prohibitions: Music
-// Maker's recipe showed a stack of "No X" lines teaches the 4B to loop.
+// Storyboard's planner (MPI-1231), benched in Phase 0 (tasks/MPI-1231/validation.md). The 4B writes
+// the cast ONCE in a `[CAST]` block and names the cast in each panel; `parseStoryboardPlan` appends
+// each named cast member's line to the panel, because each panel is a separate generation and the
+// 4B, told to repeat descriptions, wrote "the same waitress" from panel 2 on (a stranger every
+// time). It cannot see the user's pictures and invented their looks however it was told, so the
+// parser also turns the user's own "Picture N is NAME, a WHAT." into that cast line. The enhancer
+// flattens its answer to one line: panels are found by `[PANEL n]` and `Intent:`, never newlines.
+// "Name, never a pronoun" and "speech goes in the Intent" are the bench's two faults: a stranger
+// called "him" got no line and changed clothes, and quoted speech rendered as lettering.
 const STORYBOARD_PLAN_ENHANCE_PARAMS = {
     Input_System_Prompt: [
         '<|im_start|>system',
-        'You are a storyboard artist planning the still panels of a short video. The user message gives the idea, how many panels to write and the shape of the video. Write exactly that many panels, in story order, as one plan.',
+        'You are a storyboard artist planning the still panels of a short video. The user message gives the idea, how many panels to write and the shape of the video. Write the cast once, then exactly that many panels, in story order.',
         '',
-        'Write every panel in this form: [PANEL n] Picture: the picture prompt. Intent: one sentence.',
+        'First write [CAST] and one line per character or recurring place, in this form: Name: description. Give each a short name (use the user\'s names). When the user says a picture shows it ("Picture 1 is Bix, a cat"), the description is only "the cat from image 1", using the ordinal of that picture and what the user said it is, nothing more: you cannot see the picture. Otherwise describe it fully: species or ethnicity, gender, age range, skin or fur, hair, and clothes with their colours.',
         '',
-        'The Intent is one sentence for the person who will animate the panel: what happens in this shot and why it matters, with the camera move when there is one. It may end with a rough length in seconds.',
+        'Then write every panel in this form: [PANEL n] Picture: the picture prompt. Intent: one sentence.',
         '',
-        'The Picture is a prompt for an image model: one prose block of 80 to 160 words, stating the picture itself.',
+        'The Picture is one frozen instant, as a camera sees it, in 50 to 100 words of prose:',
         '- Open on the medium and style. When the user names none, open on "Full-color cinematic film still, ".',
         '- Then the shot size and angle (wide establishing shot, medium shot, close-up, over-the-shoulder shot), the place, the light and the time of day.',
-        '- Describe every character in full each time they appear, with the same words in every panel: ethnicity, gender, age range, skin tone, hair, and the same clothes in the same colours. Each panel is drawn on its own, so write the description out again rather than referring back to an earlier panel.',
-        '- A place that returns keeps the same colours, materials and signs in every panel it appears in.',
-        '- Place things in the frame: frame-left, frame-right, foreground, background. Say what each person is doing at that instant, as a camera would see it.',
+        '- Name each cast member in the shot by their cast name every time, even twice in one panel, and say where they are in the frame (frame-left, frame-right, foreground, background) and what they are doing at that instant.',
+        '- Only what can be seen in a single still picture: camera moves, cuts, sounds, speech and feelings go in the Intent.',
         '',
-        'When the user says their pictures show a character or a place ("picture 1 is my hero"), write each panel that uses them as a request built from those pictures: "Create a cinematic film still of the man from the first image ...", naming each picture by its ordinal and what it shows, and keep that person\'s face, hair and clothes.',
+        'The Intent is one sentence for the person who will animate the panel: what happens in this shot and why it matters, with the camera move when there is one.',
         '',
-        'Vary the shots so the panels read as an edited sequence: open wide on the place, move closer for action and feeling, and close on a shot that ends the moment.',
-        '',
-        'Keep every name, place, object and word the user gave. Leave the video shape and the panel numbers out of the Picture text. Write in English. Start with [PANEL 1] and stop after the last panel.',
+        'Vary the shots so the panels read as an edited sequence: open wide on the place, move closer for action and feeling, and close on a shot that ends the moment. Keep every name, place, object and word the user gave. Write in English. Start with [CAST] and stop after the last panel.',
         '<|im_end|>',
         '<|im_start|>user',
     ].join('\n'),
@@ -3036,11 +3035,11 @@ const ALL_FLOWS = [
                 kind: 'fields',
                 tickerLabel: 'Plan',
                 title: 'Plan the storyboard',
-                hint: 'Enhance writes one block per panel: the picture, then its intent. Edit it freely: whatever is in the plan box is what gets drawn. Added pictures? Say who or what each one shows, by number.',
+                hint: 'Enhance writes the cast once, then one block per panel: the picture, then its intent. Edit it freely: whatever is in the plan box is what gets drawn, and a cast line you change changes every panel. Added pictures? Say who each one shows, like "Picture 1 is Lena, a waitress." A picture works best with one character alone in it.',
                 fields: [
                     {
                         id: 'positive', type: 'text', rows: 4, label: 'Your idea',
-                        placeholder: 'A waitress in a late-night diner meets a stranger who knows her name. Picture 1 is the waitress.',
+                        placeholder: 'A waitress in a late-night diner meets a stranger who knows her name. Picture 1 is Lena, a waitress.',
                     },
                     {
                         id: 'panelCount', type: 'slider', label: 'Panels', min: 3, max: 12, step: 1, default: 6,
@@ -3053,7 +3052,7 @@ const ALL_FLOWS = [
                     },
                     {
                         id: 'plan', type: 'text', rows: 12, label: 'The plan',
-                        placeholder: 'Press Enhance, or write it yourself: [PANEL 1] Picture: ... Intent: ...',
+                        placeholder: 'Press Enhance, or write it yourself: [CAST] Lena: ... [PANEL 1] Picture: ... Intent: ...',
                     },
                 ],
             },

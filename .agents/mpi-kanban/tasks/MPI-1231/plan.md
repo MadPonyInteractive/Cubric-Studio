@@ -27,10 +27,22 @@
   exact pixels `WIDE_21_9`, built + checked in an isolated page); ten slots -> `grid: true` numbered tile
   grid (MpiBaseFlow `_buildSlotGrid`), which should also stop the info column being pushed down. 208f9ccd0.
   NOT SEEN on screen (isolated copy stops at the 18+ gate; never click it). NEXT: Fabio's look, then Phase 0.
+- 2026-10-25 ("LTX 2.5 model 13"): Fabio approved the layout ("Looks right"). Phase 0 benched on :8188
+  (`research/phase0/`, results in validation.md): the shipped DRAFT planner (v1) drops the cast after
+  panel 1 and invents pictured looks; v2 = `[CAST]` block written once + code appends each named cast
+  line, picture lines from the user's "Picture N is NAME, a WHAT." -> consistent cast on 18 panels.
+  Fabio's eye PASSED ("so freaking cool ... port V2"). v2 PORTED (uncommitted): planner prompt in
+  flowsRegistry.js (+ "name every time", "speech in the Intent"), `parseStoryboardPlan(plan, idea)`
+  cast-aware (2 new tests), dispatch passes the idea, hint/placeholder name "Picture 1 is Lena, a
+  waitress.", storyboard.md. Reparse of the bench plans = the 18 drawn prompts; lint clean; npm test
+  3624 pass / 0 fail. Shipped prompt then run once on the 4B (`out_final/`): it found the glued-cast
+  parser bug, fixed + tested (12 runner tests; npm test 3625 pass / 0 fail). NEXT: commit
+  (mpi-handoff), then the Phase 1 live run in Fabio's app (Enhance + Generate, a 6-panel board lands as
+  one stack with notes + overview), then Phase 2.
 
 ## Phase 0: Panel recipe - `user-ux` (local GPU, Fabio's yes; no money)
 
-- [ ] Planner system prompt on `/llm/enhance` (routes/llm.js:390) returning `[PANEL n]` blocks (picture
+- [x] Planner system prompt on `/llm/enhance` (routes/llm.js:390) returning `[PANEL n]` blocks (picture
   prompt + intent line), parsed in JS; tested through the enhancer harness on the user's default LLM.
   Then 2-3 storyboards drawn by hand-run FLUX.3 Klein `edit` (up to 10 references, `multiReference10`)
   at the video's ratio (send ratio / Custom size: output otherwise follows picture 1). **Verify:**

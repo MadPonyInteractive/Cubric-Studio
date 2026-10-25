@@ -30,11 +30,16 @@ sheet. `devOnly: true` until the LTX 2.5 release (umbrella MPI-1267).
 ## The plan
 
 - Enhance (`from: positive, panelCount, ratio`, `to: plan`) runs `STORYBOARD_PLAN_ENHANCE_PARAMS`
-  (flowsRegistry.js). **DRAFT, unbenched**: Phase 0 tests it on the enhancer.
+  (flowsRegistry.js), benched in Phase 0 (`tasks/MPI-1231/validation.md`, 3 boards, 18 panels).
 - The enhancer flattens its answer to one line, so `parseStoryboardPlan` splits on `[PANEL n]`
   and `Intent:`, never on newlines. Generate with no parsable plan refuses and says to press Enhance.
-- Each panel is drawn alone, so the planner repeats every character's full description in every
-  panel; the user names what each picture shows ("picture 1 is the waitress").
+- **The cast is repeated by CODE, not the planner.** Each panel is drawn alone; told to repeat
+  descriptions, the 4B wrote "the same waitress" from panel 2 on. The plan opens on `[CAST] Name:
+  description ...`; `parseStoryboardPlan(plan, idea)` appends the line of every cast name a panel
+  mentions. Editing one cast line changes every panel. A panel that says "him" gets no line.
+- **Pictured characters come from the user's sentence**: "Picture 1 is Bix, a grumpy hairless cat."
+  becomes Bix's line, "the grumpy hairless cat from the first image" (the planner cannot see the
+  pictures and invented their looks). A picture showing a second animal leaks it into the panels.
 
 ## Agent
 

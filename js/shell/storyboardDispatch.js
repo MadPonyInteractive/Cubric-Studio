@@ -141,13 +141,13 @@ async function runStoryboardFlow(flow, inputs) {
         StatusBar.notify('Open a project first: the storyboard lands in its gallery.', 'warning');
         return false;
     }
-    const panels = parseStoryboardPlan(inputs.plan);
+    const idea = String(inputs.positive || '').trim();
+    const panels = parseStoryboardPlan(inputs.plan, idea);
     if (!panels.length) {
         StatusBar.notify('Press Enhance to write the plan first, or write it yourself as [PANEL 1] Picture: ... Intent: ...', 'warning');
         return false;
     }
     const roles = flow.inputSchema.media[0].roles;
-    const idea = String(inputs.positive || '').trim();
     const name = truncateCardName(idea ? `Storyboard · ${idea}` : 'Storyboard');
     const run = await runStoryboard(panels, { name }, _deps(project, {
         idea,

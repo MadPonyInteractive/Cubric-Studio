@@ -158,6 +158,34 @@ test('a block with no Intent keeps its words as the prompt; text before the firs
     assert.deepStrictEqual(parseStoryboardPlan(undefined), []);
 });
 
+// The planner's real v2 shape (Phase 0 bench, diner board): the cast once, then panels by name.
+const CAST_PLAN = '[CAST]  Lena: A young woman, 20s, with dark brown hair. Wears a black waitress uniform.  Stranger: Male, late 30s, in a worn leather jacket. [PANEL 1] Picture: Wide shot, Lena wipes the counter as the Stranger walks in. Intent: He arrives. [PANEL 2] Picture: Close-up of lena alone. Intent: She wonders. [PANEL 3] Picture: An empty diner at dawn. Intent: The end.';
+
+test('every panel carries the cast line of each cast name it mentions, and only those', () => {
+    const [p1, p2, p3] = parseStoryboardPlan(CAST_PLAN);
+    assert.strictEqual(p1.prompt, 'Wide shot, Lena wipes the counter as the Stranger walks in. Lena is a young woman, 20s, with dark brown hair. Wears a black waitress uniform. Stranger is male, late 30s, in a worn leather jacket.');
+    assert.strictEqual(p2.prompt, 'Close-up of lena alone. Lena is a young woman, 20s, with dark brown hair. Wears a black waitress uniform.');
+    assert.strictEqual(p3.prompt, 'An empty diner at dawn.');
+    assert.strictEqual(p1.intent, 'He arrives.');
+});
+
+test('cast lines glued by the enhancer\'s newline strip still split, and a longer name is found by one of its words', () => {
+    // Verbatim shape of the shipped prompt's bench run (kite board, 2026-10-25).
+    const plan = '[CAST]  Leo: 10-year-old boy, short brown hair. He runs barefoot.Grandpa Finn: 65-year-old man, navy wool jacket.Red Kite: A large red diamond-shaped kite. [PANEL 1] Picture: Grandpa holds the kite while Leo watches. Intent: x [PANEL 2] Picture: A red sky. Intent: y';
+    const [p1, p2] = parseStoryboardPlan(plan);
+    assert.strictEqual(p1.prompt, 'Grandpa holds the kite while Leo watches. Leo is 10-year-old boy, short brown hair. He runs barefoot. Grandpa Finn is 65-year-old man, navy wool jacket.');
+    assert.strictEqual(p2.prompt, 'A red sky.', 'a lower-case "red" is not the Red Kite');
+});
+
+test('the user\'s "Picture N is NAME, a WHAT." replaces the planner\'s invented line for that name', () => {
+    const plan = '[CAST] Bix: a grumpy hairless cat with green eyes. Lilo: a purple fox in a red scarf. [PANEL 1] Picture: Bix and Lilo sneak past the diner. Intent: x';
+    const idea = 'Picture 1 is Bix, a grumpy hairless cat. Picture 2 is the diner. They sneak around.';
+    assert.strictEqual(parseStoryboardPlan(plan, idea)[0].prompt,
+        'Bix and Lilo sneak past the diner. Bix is the grumpy hairless cat from the first image. Lilo is a purple fox in a red scarf. the diner is the diner from the second image.');
+    // No cast block at all still gets the pictured names.
+    assert.strictEqual(parseStoryboardPlan('[PANEL 1] Bix naps.', idea)[0].prompt, 'Bix naps. Bix is the grumpy hairless cat from the first image.');
+});
+
 test('nothing runs and no stack is made when every panel is refused, or Loop is armed, or a panel is blank', async () => {
     const all = fakeApp({ refuse: () => ({ code: 'REJECTED', message: 'Vision rejected the step.' }) });
     assert.deepStrictEqual(await runStoryboard(plan(2), { name: 'H' }, all.deps),
