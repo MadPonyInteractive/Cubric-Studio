@@ -279,6 +279,7 @@ export async function runEnhanceDecl(d, source, { flowId } = {}) {
         prompt: source,
         injectionParams: d.injectionParams,
         modelId: d.model || null,
+        onAgent: d.runsOn === 'agent',
     });
     const name = getFlowById(flowId)?.title || flowId || d.id;
     if (result.ok && result.text) {

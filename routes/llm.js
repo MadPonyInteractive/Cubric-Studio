@@ -380,14 +380,14 @@ router.post('/llm/ollama/cloud/add', async (req, res) => {
  * with empty text, every caller dropped it without a word: Storyboard's Enhance ended
  * with an empty plan box, no toast and no log line. The finish reason says which.
  */
-function _enhanceAnswer(result, maxTokens) {
+function _enhanceAnswer(result, maxTokens, pickWhere = 'in Remote > Language Models') {
     const text = String(result.text || '').trim();
     if (text) return { ok: true, text, backend: result.backend, model: result.model };
     const why = result.finishReason === 'length'
         ? ` It stopped at the ${maxTokens ? `${maxTokens}-token ` : ''}limit before writing anything.`
         : '';
     logger.warn('system', `llm enhance: ${result.model} on ${result.backend} answered nothing (finish: ${result.finishReason || '?'})`);
-    return { ok: false, error: `${result.model} answered with nothing.${why} Press Enhance again, or pick another model in Remote > Language Models.` };
+    return { ok: false, error: `${result.model} answered with nothing.${why} Press it again, or pick another model ${pickWhere}.` };
 }
 
 /**
@@ -400,6 +400,8 @@ function _enhanceAnswer(result, maxTokens) {
  *               enhancer. ollama: a neutral `MODEL_REGISTRY` id, omitted -> the default.
  *   `profileId` endpoint only: the shared connection (MPI-774) to run on.
  *   `maxTokens` a positive integer cap on the reply. Omitted -> the provider's own.
+ *   `job`       endpoint only: 'agent' runs Cosmo's model (an empty `modelId` -> the agent's
+ *               recommended one); anything else is 'enhance'.
  *
  * The ComfyUI backend is deliberately NOT reachable here: it runs as a queued
  * ComfyUI job through the existing `promptEnhance` operation, which the renderer
@@ -408,6 +410,9 @@ function _enhanceAnswer(result, maxTokens) {
  */
 router.post('/llm/enhance', async (req, res) => {
     const { prompt, system, backend, modelId, maxTokens: askedMax, profileId } = req.body || {};
+    // 'agent' = a Flow that plans with Cosmo's model (MPI-1231): an empty pick falls back to
+    // the agent's recommended model, not the enhancer's.
+    const job = req.body?.job === 'agent' ? 'agent' : 'enhance';
     if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
         return res.json({ ok: false, error: 'Write a prompt first, then Enhance.' });
     }
@@ -420,7 +425,7 @@ router.post('/llm/enhance', async (req, res) => {
     const maxTokens = Number.isInteger(askedMax) && askedMax > 0 ? askedMax : undefined;
 
     try {
-        const { OllamaEngine, chatEngineFor, getModel, DEFAULT_MODEL_ID, ollamaTagged, modelName, resolveConnection, recommendedModel } = await engines();
+        const { OllamaEngine, chatEngineFor, getModel, DEFAULT_MODEL_ID, ollamaTagged, modelName, resolveConnection, recommendedModel, RECOMMENDED_REMOTE_MODELS } = await engines();
 
         // ── Endpoint branch (MPI-737): raw modelId, no MODEL_REGISTRY lookup ────
         if (backend === 'endpoint') {
@@ -428,19 +433,26 @@ router.post('/llm/enhance', async (req, res) => {
                 return res.json({ ok: false, error: { code: 'BAD_REQUEST', message: 'profileId is required for backend:endpoint.' } });
             }
             const { profile, key } = await resolveConnection(profileId, ask);
-            if (!profile || !profile.baseURL) return void _connectionError(res, 'NO_PROFILE', 'Connection not found, or it has no base URL.');
-            if (!key && profileId !== 'ollama') return void _connectionError(res, 'NO_KEY', 'No API key saved for this connection.');
-            // No pick yet -> the connection's recommended enhancer (exact ids per preset).
-            const model = (typeof modelId === 'string' && modelId) || recommendedModel(profileId, 'enhance');
+            // No connection, no key or no model for Cosmo is ONE answer to the user (Fabio,
+            // 2026-10-25): the Flow needs an agent and none is set up. The Flow's toast opens Remote.
+            const noAgent = () => void _connectionError(res, 'NO_AGENT', 'This Flow needs an agent to do its job, and no agent is set up. Pick a connection and an agent model under Agent in Remote.');
+            if (!profile || !profile.baseURL) return job === 'agent' ? noAgent() : void _connectionError(res, 'NO_PROFILE', 'Connection not found, or it has no base URL.');
+            if (!key && profileId !== 'ollama') return job === 'agent' ? noAgent() : void _connectionError(res, 'NO_KEY', 'No API key saved for this connection.');
+            // No pick yet -> the connection's recommended model for the job (exact ids per preset).
+            const model = (typeof modelId === 'string' && modelId) || recommendedModel(profileId, job);
             if (!model) {
+                if (job === 'agent') return noAgent();
                 return res.json({ ok: false, error: { code: 'BAD_REQUEST',
                     message: 'No enhancement model is picked for this connection. Pick one in Remote > Language Models.' } });
             }
+            // MPI-891: a model whose table row carries an effort thinks in the channel we never
+            // show; without it DeepSeek V4 deliberates in the reply, which here is the answer.
+            const reasoningEffort = (RECOMMENDED_REMOTE_MODELS[profileId] || []).find((r) => r.id === model)?.reasoningEffort;
             try {
                 // The Ollama connection goes native, as describe does (MPI-912).
                 const { engine } = chatEngineFor(profileId, key, profile.baseURL, profile);
-                const result = await engine.complete(prompt, { model, system, maxTokens });
-                return res.json(_enhanceAnswer(result, maxTokens));
+                const result = await engine.complete(prompt, { model, system, maxTokens, reasoningEffort });
+                return res.json(_enhanceAnswer(result, maxTokens, job === 'agent' ? 'under Agent model in Remote' : undefined));
             } catch (err) {
                 logger.error('system', `llm enhance (endpoint) failed: ${err && err.message}`);
                 return void _connectionError(res, 'ENDPOINT_ERROR', (err && err.message) || 'Endpoint enhance failed.', err && err.status);

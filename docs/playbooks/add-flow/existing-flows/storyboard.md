@@ -29,10 +29,18 @@ sheet. `devOnly: true` until the LTX 2.5 release (umbrella MPI-1267).
 
 ## The plan
 
-- Enhance (`from: positive, panelCount, ratio`, `to: plan`) runs `STORYBOARD_PLAN_ENHANCE_PARAMS`
-  (flowsRegistry.js), benched in Phase 0 (`tasks/MPI-1231/validation.md`, 3 boards, 18 panels).
+- **Plan with Cosmo** (an enhance button, `from: positive, pictureNotes, panelCount, ratio`,
+  `to: plan`) runs `STORYBOARD_PLAN_ENHANCE_PARAMS` (flowsRegistry.js), benched in Phase 0
+  (`tasks/MPI-1231/validation.md`, 3 boards, 18 panels).
+- **It runs on COSMO'S model, not the enhance pick** (`runsOn: 'agent'`, Fabio 2026-10-25): the
+  agent's connection + `Storage.getAgentPrefs().model`, `/llm/enhance` with `job: 'agent'` (an empty
+  pick -> the agent's recommended model; a row's `reasoningEffort` rides along). A small enhance
+  pick (DeepInfra gemma-3-12b) broke the format. No connection, key or model -> `NO_AGENT`, a
+  toast with "Open Remote". `busyLabel` sets the pressed text.
+- **The answer opens on "Storyboard plan:", never on `[CAST]`**: DeepInfra blanks a gemma-3 reply
+  that starts with `[` (read as a tool call; tokens still billed). `tests/enhance-opener.test.cjs`.
 - The enhancer flattens its answer to one line, so `parseStoryboardPlan` splits on `[PANEL n]`
-  and `Intent:`, never on newlines. Generate with no parsable plan refuses and says to press Enhance.
+  and `Intent:`, never on newlines. Generate with no parsable plan refuses and says to press Plan with Cosmo.
 - **The cast is repeated by CODE, not the planner.** Each panel is drawn alone; told to repeat
   descriptions, the 4B wrote "the same waitress" from panel 2 on. The plan opens on `[CAST] Name:
   description ...`; `parseStoryboardPlan(plan, idea)` appends the line of every cast name a panel

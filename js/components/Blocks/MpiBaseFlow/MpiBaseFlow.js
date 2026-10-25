@@ -120,6 +120,12 @@ import { buildLicenceRows } from '../../../utils/flowLicences.js';
  * Props: { flow: FlowDef, initialInputs?: Object }.
  */
 
+/** The Remote panel, where the agent is set up. Loaded on click, as `llmPickCheck` does. */
+function _openRemote() {
+    import('../MpiRemote/MpiRemote.js').then(({ MpiRemote }) =>
+        Events.emit('slide-over:open', { title: 'Remote', component: MpiRemote }));
+}
+
 /**
  * Returns the declared media groups from the flow's inputSchema, or [] for media-free flows.
  * @param {import('../../../data/flowsRegistry.js').FlowDef} [flow]
@@ -1324,7 +1330,7 @@ export const MpiBaseFlow = ComponentFactory.create({
                 btn.classList.toggle('mpi-btn--primary', stale);
                 btn.classList.toggle('mpi-btn--secondary', !stale);
                 btn.setDisabled?.(!!_enhancing);
-                btn.setLabel?.(busy ? 'Enhancing…' : (d.label || 'Enhance'));
+                btn.setLabel?.(busy ? (d.busyLabel || 'Enhancing…') : (d.label || 'Enhance'));
             });
         }
 
@@ -1429,7 +1435,9 @@ export const MpiBaseFlow = ComponentFactory.create({
                 if (result.ok && result.text) _writeEnhanced(d, result.text);
                 else if (!result.ok && !result.cancelled) {
                     clientLogger.error('MpiBaseFlow', 'prompt enhance failed', result.error);
-                    if (!silent && result.error) Events.emit('ui:warning', { message: result.error });
+                    // A Flow that plans with Cosmo and finds no agent set up takes the user there.
+                    const action = result.errorCode === 'NO_AGENT' ? { text: 'Open Remote', onClick: _openRemote } : undefined;
+                    if (!silent && result.error) Events.emit('ui:warning', { message: result.error, action });
                 }
                 _enhancing = null;
                 _paintEnhance();

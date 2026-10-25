@@ -614,7 +614,7 @@ function enhancerGraph() {
  * @returns {string}
  */
 export function withRemoteSettingsHint(code, message) {
-    if (!code || code === 'BAD_REQUEST' || code === 'BAD_IMAGE') return message;
+    if (!code || code === 'BAD_REQUEST' || code === 'BAD_IMAGE' || code === 'NO_AGENT') return message;
     return `${message} Check Remote > Language Models.`;
 }
 
@@ -624,13 +624,13 @@ export function withRemoteSettingsHint(code, message) {
  * MPI-737: on the endpoint branch, `profileId` (from `Storage.getLlmConnection()`)
  * is sent so the route can resolve the connection without the renderer touching the key.
  */
-async function runServerBackend({ prompt, system, backend, modelId, maxTokens, profileId }) {
+async function runServerBackend({ prompt, system, backend, modelId, maxTokens, profileId, job }) {
     try {
         const res = await fetch('/llm/enhance', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                prompt, system, backend, modelId, maxTokens,
+                prompt, system, backend, modelId, maxTokens, job,
                 ...(backend === 'endpoint' && profileId ? { profileId } : {}),
             }),
         });
@@ -795,20 +795,26 @@ const _childSafetyRefusal = (r) => ({ ok: false, error: r.message, errorCode: r.
  * @param {object} [a.injectionParams]  the declaration's own params, by node title
  * @param {string} [a.modelId]          ComfyUI queue pin; the server backends ignore it
  * @returns {Promise<{ok:boolean, text?:string, backend?:string, model?:string, error?:string, cancelled?:boolean}>}
+ *
+ * `onAgent` (MPI-1231): the declaration plans with Cosmo, so it runs on the agent's connection
+ * and model whatever the enhance pick is. Storyboard's planner is a planning job, and the
+ * enhance pick can be a small model that cannot hold its format.
+ *
+ * @param {boolean} [a.onAgent]
  */
-export async function enhanceFlow({ prompt, injectionParams, modelId = null } = {}) {
-    const backend = await runnableBackend(backendPreference());
+export async function enhanceFlow({ prompt, injectionParams, modelId = null, onAgent = false } = {}) {
+    const backend = onAgent ? 'endpoint' : await runnableBackend(backendPreference());
     // MPI-1056: the request and the result both pass the child-safety gate.
     const asked = await childSafetyCheck(prompt, {}, backend);
     if (!asked.ok) return _childSafetyRefusal(asked);
-    const result = await _enhanceFlowOn(backend, { prompt, injectionParams, modelId });
+    const result = await _enhanceFlowOn(backend, { prompt, injectionParams, modelId, onAgent });
     if (!result.ok) return result;
     const wrote = await childSafetyCheck(result.text, {}, backend);
     return wrote.ok ? result : _childSafetyRefusal(wrote);
 }
 
 /** `enhanceFlow`'s run on one backend, unchecked. */
-async function _enhanceFlowOn(backend, { prompt, injectionParams, modelId }) {
+async function _enhanceFlowOn(backend, { prompt, injectionParams, modelId, onAgent }) {
     if (backend === 'comfy') return runComfyEnhance({ prompt, injectionParams, modelId });
 
     let params;
@@ -822,9 +828,12 @@ async function _enhanceFlowOn(backend, { prompt, injectionParams, modelId }) {
         prompt,
         system: unwrapChatMl(params.Input_System_Prompt),
         backend,
-        modelId: backend === 'endpoint' ? await _endpointEnhanceModel(profileId) : enhancerModelPreference(),
+        // Cosmo's pick; '' leaves it to the server, which falls back to the agent's recommended model.
+        modelId: onAgent ? (Storage.getAgentPrefs().model || undefined)
+            : backend === 'endpoint' ? await _endpointEnhanceModel(profileId) : enhancerModelPreference(),
         maxTokens: params['Input_Text_Gen.max_length'],
         ...(backend === 'endpoint' ? { profileId } : {}),
+        ...(onAgent ? { job: 'agent' } : {}),
     });
     if (!result.ok) return result;
     const text = postProcessLikeGraph(result.text, params);

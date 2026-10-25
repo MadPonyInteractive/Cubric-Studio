@@ -87,6 +87,30 @@
   (rebuild via enhanceSourceText + unwrapChatMl of STORYBOARD_PLAN_ENHANCE_PARAMS, send with
   DeepInfraEngine.complete from node); vary one thing per call (input, then system prompt) to find the
   cause, fix at the root. Suggested workaround meanwhile: enhance model -> gemma-4-26B-A4B-it.
+- 2026-10-25 ("LTX 2.5 model 16", 6 DeepInfra calls, $0.0007): ROOT CAUSE - DeepInfra reads a
+  gemma-3-12b reply that STARTS with `[` as a tool call and returns empty content, tokens billed
+  (~1000; logprobs showed only the tail after the last `[`; `tool_choice: "none"` does not help).
+  "[HELLO] world" -> "", "HELLO world" -> itself, planner told to open on "Storyboard plan:" -> the
+  full plan. FIX (uncommitted): both marker recipes open on words - Storyboard
+  `Start with the words "Storyboard plan:", then [CAST]`, Music Maker (released, same trap)
+  `Start with the words "Music plan:", then ... three blocks`; parser/splitEnhanced already skip
+  text before the marker. Guard: tests/enhance-opener.test.cjs (fails on HEAD's prompts). Lint
+  clean, npm test 3630 pass / 0 fail. Music Maker's new opener NOT run live on any model.
+  ALSO SEEN: gemma-3-12b breaks the planner format - "Picture: Picture 1 is Jasper the Protector.
+  Intent: ..." with the prose AFTER the Intent, and full looks for pictured characters - so its
+  panels would draw from the one-liner. The 12B is a weak planner; gemma-4-26B is the pick.
+  NEXT: Fabio retries Enhance (plan box fills, opens "Storyboard plan:") + Generate a 6-panel board.
+- 2026-10-25 ("LTX 2.5 model 16", Fabio's call): PLANNING IS COSMO'S JOB. The button is "Plan with
+  Cosmo" (busy "Cosmo is planning…", icon sparkle) and runs on the AGENT's connection + model
+  (`runsOn: 'agent'` on the decl -> `enhanceFlow({onAgent})` -> `/llm/enhance` `job: 'agent'`; an
+  empty pick -> recommendedModel(...,'agent'); a table row's `reasoningEffort` now rides on every
+  `/llm/enhance` endpoint call, which also fixes enhance on DeepSeek 0731). No connection/key/model
+  -> `NO_AGENT` -> warning toast "This Flow needs an agent..." with an "Open Remote" button
+  (MpiBaseFlow `_openRemote`). `busyLabel` is a new optional decl key. Cap 3200 -> 8000: DeepSeek V4
+  Flash (effort low) spent 1,923 reasoning + 776 answer tokens on the 6-panel plan, clean format,
+  $0.0005. Tests: llm-describe (+2 route), flow-enhance (+1 client); lint clean, npm test 3633/0.
+  NOT SEEN on screen (the isolated copy stops at the 18+ gate). Total DeepInfra spend this session
+  $0.0012 (7 calls). NEXT: Fabio reloads, presses Plan with Cosmo, Generates the 6-panel board.
 
 ## Phase 0: Panel recipe - `user-ux` (local GPU, Fabio's yes; no money)
 

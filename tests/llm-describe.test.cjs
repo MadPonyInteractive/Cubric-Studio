@@ -456,6 +456,52 @@ test('MPI-1231: an EMPTY endpoint answer is a failure that names the model and t
     }
 });
 
+test('MPI-1231: job agent runs Cosmo\'s model - an empty pick is the agent default, a row\'s reasoning effort rides along', async () => {
+    const sent = [];
+    const restore = stubUpstream(async (url, init) => {
+        sent.push(JSON.parse(init.body));
+        return okJson({ choices: [{ message: { content: 'Storyboard plan: [CAST] ...' }, finish_reason: 'stop' }], usage: null });
+    });
+    const { recommendedModel } = await import('../services/llmEngines.mjs');
+    try {
+        await withEnvKey('test-key', () => withServer(async (base) => {
+            for (const modelId of [undefined, 'deepseek-ai/DeepSeek-V4-Flash-0731']) {
+                const res = await fetch(`${base}/llm/enhance`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ backend: 'endpoint', profileId: 'deepinfra', job: 'agent', modelId, prompt: 'an idea' }),
+                });
+                assert.equal((await res.json()).ok, true);
+            }
+        }));
+        assert.equal(sent[0].model, recommendedModel('deepinfra', 'agent'));
+        assert.notEqual(sent[0].model, recommendedModel('deepinfra', 'enhance'));
+        assert.equal(sent[1].model, 'deepseek-ai/DeepSeek-V4-Flash-0731');
+        assert.equal(sent[1].reasoning_effort, 'low');
+    } finally {
+        restore();
+    }
+});
+
+test('MPI-1231: job agent with no key or no model answers NO_AGENT, the code the Flow\'s Open Remote toast keys on', async () => {
+    const restore = stubUpstream(async (url) => { throw new Error(`unexpected upstream ${url}`); });
+    try {
+        await withEnvKey(undefined, () => withServer(async (base) => {
+            const res = await fetch(`${base}/llm/enhance`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ backend: 'endpoint', profileId: 'deepinfra', job: 'agent', prompt: 'an idea' }),
+            });
+            const body = await res.json();
+            assert.equal(body.ok, false);
+            assert.equal(body.error.code, 'NO_AGENT');
+            assert.match(body.error.message, /needs an agent/);
+        }));
+    } finally {
+        restore();
+    }
+});
+
 test('MPI-912: enhance on the Ollama connection goes native with think off; an empty pick runs the recommended model', async () => {
     let sent = null;
     const restore = stubUpstream(async (url) => { throw new Error(`unexpected upstream ${url}`); });

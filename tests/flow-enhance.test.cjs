@@ -314,6 +314,58 @@ test('MPI-1231: an answer the Flow\'s clean-up patterns empty is a WARNED failur
     }
 });
 
+test('MPI-1231: a runsOn agent declaration plans on Cosmo\'s connection and pick, whatever the enhance pick, and NO_AGENT arrives bare', async () => {
+    const fe = await esm('js/services/flowEnhance.js');
+    const svc = await esm('js/services/llmService.js');
+    const { FLOWS } = await esm('js/data/flowsRegistry.js');
+    const d = fe.flowEnhanceDecls(FLOWS.find(f => f.id === 'storyboard'))[0];
+    assert.strictEqual(d.runsOn, 'agent');
+    assert.strictEqual(d.label, 'Plan with Cosmo');
+
+    const realFetch = global.fetch;
+    const realWarn = console.warn;
+    console.warn = () => {};
+    const sent = [];
+    let answer = { ok: true, text: 'Storyboard plan: [CAST] Lena: a waitress. [PANEL 1] Picture: Lena. Intent: x', backend: 'deepinfra', model: 'm' };
+    global.fetch = (url, init) => {
+        if (String(url).startsWith('/comfy_workflows/')) {
+            const graph = JSON.parse(fs.readFileSync(repo(`comfy_workflows/${String(url).slice('/comfy_workflows/'.length)}`), 'utf8'));
+            return Promise.resolve({ ok: true, json: () => Promise.resolve(graph) });
+        }
+        if (url === '/llm/enhance') {
+            const body = JSON.parse(init.body);
+            sent.push(body);
+            // The child-safety judge (16 tokens) answers ok; the planner answers `answer`.
+            return Promise.resolve({ ok: true, json: () => Promise.resolve(body.maxTokens === 16 ? { ok: true, text: 'SAFE' } : answer) });
+        }
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+    };
+    svc.setBackendPreference('comfy');
+    _ls.mpi_llm_connection = JSON.stringify({ profileId: 'deepinfra' });
+    _ls.mpi_agent_prefs = JSON.stringify({ models: { deepinfra: 'deepseek-ai/DeepSeek-V4-Flash-0731' } });
+    try {
+        const ok = await fe.runEnhanceDecl(d, 'Your idea: x', { flowId: 'storyboard' });
+        assert.strictEqual(ok.ok, true, JSON.stringify(ok));
+        const plan = sent.find(b => b.job === 'agent');
+        assert.ok(plan, 'the planner call carries job: agent');
+        assert.strictEqual(plan.backend, 'endpoint');
+        assert.strictEqual(plan.profileId, 'deepinfra');
+        assert.strictEqual(plan.modelId, 'deepseek-ai/DeepSeek-V4-Flash-0731');
+
+        answer = { ok: false, error: { code: 'NO_AGENT', message: 'This Flow needs an agent to do its job, and no agent is set up.' } };
+        const none = await fe.runEnhanceDecl(d, 'Your idea: x', { flowId: 'storyboard' });
+        assert.strictEqual(none.ok, false);
+        assert.strictEqual(none.errorCode, 'NO_AGENT');
+        assert.strictEqual(none.error, 'This Flow needs an agent to do its job, and no agent is set up.');
+    } finally {
+        delete _ls['cubric.llm.backend'];
+        delete _ls.mpi_llm_connection;
+        delete _ls.mpi_agent_prefs;
+        global.fetch = realFetch;
+        console.warn = realWarn;
+    }
+});
+
 // ── 2. The agent run: enhanceFlowRun ─────────────────────────────────────────────────────────
 test('enhanceFlowRun: Song is enhanced ONCE, on the hand run\'s own prompt, and the patch carries the blocks', async () => {
     const fe = await esm('js/services/flowEnhance.js');

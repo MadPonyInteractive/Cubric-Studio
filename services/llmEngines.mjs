@@ -872,7 +872,7 @@ export class DeepInfraEngine {
                 ...(opts.system ? [{ role: 'system', content: opts.system }] : []),
                 { role: 'user', content: prompt },
             ],
-            options: { maxTokens: opts.maxTokens },
+            options: { maxTokens: opts.maxTokens, reasoningEffort: opts.reasoningEffort },
         });
     }
 

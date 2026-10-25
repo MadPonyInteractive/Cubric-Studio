@@ -146,7 +146,7 @@ async function runStoryboardFlow(flow, inputs) {
     const idea = [inputs.positive, inputs.pictureNotes].map(s => String(s || '').trim()).filter(Boolean).join(' ');
     const panels = parseStoryboardPlan(inputs.plan, idea);
     if (!panels.length) {
-        StatusBar.notify('Press Enhance to write the plan first, or write it yourself as [PANEL 1] Picture: ... Intent: ...', 'warning');
+        StatusBar.notify('Press Plan with Cosmo to write the plan first, or write it yourself as [PANEL 1] Picture: ... Intent: ...', 'warning');
         return false;
     }
     const roles = flow.inputSchema.media[0].roles;

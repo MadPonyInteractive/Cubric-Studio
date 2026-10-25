@@ -471,7 +471,11 @@ const MINIMAX_MUSIC_ENHANCE_PARAMS = {
         // now says never INVENT one, which was always the point.
         'THE CAST COMES FROM THE USER THE SAME WAY. A "Voices:" line lists every singer on its own line as Voice N (Type), where a bare label means the user left the type open. Write [VOCAL] for exactly that cast: give each voice its own phrases, and where a "Voice notes:" line describes timbre, delivery, harmonies, backing vocals OR WHICH SECTIONS A VOICE SINGS, carry those words through into your phrases. A placement the user wrote — "the female in the intro and chorus", "Voice 2 takes the verse" — is theirs and belongs in [VOCAL] in their terms; you are forbidden from INVENTING a running order, never from carrying one they gave you. THAT LIST IS CLOSED IN BOTH DIRECTIONS — introduce no singer they did not cast, and leave none of theirs out. Never state that the track lacks a vocal the user asked for.',
         '',
-        'Output EXACTLY three blocks, in this order, each opening with its marker on the same line:',
+        // 🔴 NEVER LET THE ANSWER OPEN ON A `[` (MPI-1231, measured 2026-10-25): DeepInfra reads a
+        // gemma-3 reply that starts with `[` as a tool call and hands back EMPTY content, the
+        // tokens still billed ("[HELLO] world" -> "", "HELLO world" -> itself). `splitEnhanced`
+        // finds each marker anywhere, so the opening words fall away.
+        'Start with the words "Music plan:", then output EXACTLY three blocks, in this order, each opening with its marker on the same line:',
         '[MOOD] Feel and listening occasion in a few phrases, then the production texture: mix, room, grain. Name no instruments here and do not describe the running order.',
         '[VOCAL] Timbre, delivery, backing vocals and any section placement the user gave, as phrases, covering every voice in the cast. Where the cast holds more than one voice, open on the cast itself — never on a single summary vocal, which reads as the whole track having one singer.',
         '[ARRANGEMENT] Open with the core instrument bed as one list, then describe how that bed develops and what carries each part, in phrases. Write no section lines and name no sections.',
@@ -479,7 +483,7 @@ const MINIMAX_MUSIC_ENHANCE_PARAMS = {
         'Rules:',
         '- 250 to 450 words in total, weighted towards [ARRANGEMENT].',
         '- Do not invent a BPM, a time signature or a named artist. Do not name the genre — it is written for you. You MAY name a key and scale.',
-        '- Do not write lyrics, bracketed tags such as [Verse], or any text outside the three blocks.',
+        '- Do not write lyrics, bracketed tags such as [Verse], or any other text outside the three blocks.',
         // 🔴 THE RULE THAT FIXED A REAL DEFECT — keep it whatever else changes here. The
         // 4B was writing a complete TIMED plan nobody asked for ("At 1:20, the strings
         // enter… By 2:15, the full orchestra erupts") while the user's own sections sat in
@@ -553,6 +557,8 @@ const SHEET_CLOTHES_CHECKS = ['upper body, the chest and belly', 'lower body, th
 // flattens its answer to one line: panels are found by `[PANEL n]` and `Intent:`, never newlines.
 // "Name, never a pronoun" and "speech goes in the Intent" are the bench's two faults: a stranger
 // called "him" got no line and changed clothes, and quoted speech rendered as lettering.
+// It opens on "Storyboard plan:", never on `[CAST]`: DeepInfra's gemma-3-12b answered "[CAST]..."
+// with empty content (the Music Maker note above); the parser starts at `[CAST]`.
 const STORYBOARD_PLAN_ENHANCE_PARAMS = {
     Input_System_Prompt: [
         '<|im_start|>system',
@@ -570,14 +576,17 @@ const STORYBOARD_PLAN_ENHANCE_PARAMS = {
         '',
         'The Intent is one sentence for the person who will animate the panel: what happens in this shot and why it matters, with the camera move when there is one.',
         '',
-        'Vary the shots so the panels read as an edited sequence: open wide on the place, move closer for action and feeling, and close on a shot that ends the moment. Keep every name, place, object and word the user gave. Write in English. Start with [CAST] and stop after the last panel.',
+        'Vary the shots so the panels read as an edited sequence: open wide on the place, move closer for action and feeling, and close on a shot that ends the moment. Keep every name, place, object and word the user gave. Write in English. Start with the words "Storyboard plan:", then [CAST] and stop after the last panel.',
         '<|im_end|>',
         '<|im_start|>user',
     ].join('\n'),
     'Input_Scrub_Negation.regex_pattern': '(?!)',
     'Input_Tidy.regex_pattern': '\\s+$',
     // 12 panels x ~160 words is ~2,600 tokens; the cap is a guard against a loop, not the budget.
-    'Input_Text_Gen.max_length': 3200,
+    // A thinking model's reasoning counts against it too: DeepSeek V4 Flash (Cosmo's model, effort
+    // low) spent 1,923 reasoning + 776 answer tokens on a 6-panel plan (2026-10-25), so 3,200 would
+    // cut a 12-panel one.
+    'Input_Text_Gen.max_length': 8000,
 };
 
 const ALL_FLOWS = [
@@ -3036,7 +3045,7 @@ const ALL_FLOWS = [
                 tickerLabel: 'Plan',
                 title: 'Plan the storyboard',
                 hint: [
-                    'Enhance writes the cast once, then one block per panel: the picture, then its intent. Edit it freely: whatever is in the plan box is what gets drawn, and a cast line you change changes every panel.',
+                    'Plan with Cosmo writes the cast once, then one block per panel: the picture, then its intent. Edit it freely: whatever is in the plan box is what gets drawn, and a cast line you change changes every panel.',
                     'How many panels: a calm moment reads well in 4 to 6. A fast action scene with many cuts wants 10 to 12, one panel per cut.',
                     'Added pictures? Under each one, say who or what it shows, like "Lena, a waitress". A picture works best with one character alone in it.',
                 ],
@@ -3056,14 +3065,17 @@ const ALL_FLOWS = [
                         id: 'panelCount', type: 'slider', label: 'Panels', min: 3, max: 12, step: 1, default: 6, col: 'right',
                     },
                     {
-                        id: 'enhance', type: 'button', label: 'Enhance', icon: 'enhance', col: 'right',
-                        action: 'enhance',
+                        // Planning is Cosmo's job (Fabio, 2026-10-25): it runs on the agent's model,
+                        // not the enhance pick, which can be a small model that drops the format.
+                        id: 'enhance', type: 'button', label: 'Plan with Cosmo', busyLabel: 'Cosmo is planning…',
+                        icon: 'sparkle', col: 'right',
+                        action: 'enhance', runsOn: 'agent',
                         from: ['positive', 'pictureNotes', 'panelCount', 'ratio'], to: 'plan',
                         injectionParams: STORYBOARD_PLAN_ENHANCE_PARAMS,
                     },
                     {
                         id: 'plan', type: 'text', rows: 12, label: 'The plan', col: 'right',
-                        placeholder: 'Press Enhance, or write it yourself: [CAST] Lena: ... [PANEL 1] Picture: ... Intent: ...',
+                        placeholder: 'Press Plan with Cosmo, or write it yourself: [CAST] Lena: ... [PANEL 1] Picture: ... Intent: ...',
                     },
                 ],
             },
