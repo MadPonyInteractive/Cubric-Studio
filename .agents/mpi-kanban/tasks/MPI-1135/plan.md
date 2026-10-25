@@ -154,6 +154,25 @@ Too slow on the local 4060 Ti. Fabio chose a persistent volume over a fresh Pod 
   Open offer to Fabio, unanswered: add a Shot C variant with the character descriptions
   stripped (ours arm, both models, 2 seeds, ~$0.10) to test the community "describing the
   character hurts identity" report (`brief.md` ## Noticed). Ask before adding it.
+- 2026-10-25 ("H3 Singularity 5"): Fabio said yes to the extra Shot C test, as TWO variants (ours
+  arm, both models, 2 seeds): `Cb` = looks stripped, `Cs` = Cb plus MiniMax's
+  `subject_definitions` / `retention_analysis` with visible-only traits (EllipsesMark's HF tip).
+  Prompts in `prompts.md`; `build_phase1.py` now writes 32 graphs. Phase 1 Pod
+  **`fli4ckspb2aghh`** created 02:42 GMT with `HARD_MIN=120` (32 clips do not fit in 90).
+- 2026-10-25 **Phase 1 DONE**: 32/32 ok (`results.md`), clips in `C:/AI/Mpi/_private/mpi1135-clips/`.
+  Pod DELETED 04:07 UTC (84 min, ~$1.01); RunPod lists no Pods. **Spent ~$2.76 of $3-5.**
+  Timings: fl2va none ~120 s / ours-upscale ~107 s on both models (same speed); Shot C
+  Singularity none ~157 s / ours-upscale ~126 s; D ~129 / ~112 s. **Cb/Cs (shorter-description
+  prompts) ran ~92-115 s at ~30 GB RAM vs Shot C's ~126 s at ~54 GB**, graphs identical apart
+  from the prompt (diffed); cause unexplained. EasyCache grep NOT done for this run: this boot's
+  ComfyUI output never reached `boot.log` (it stops at "nodes done"), and the 0-skip lines in it
+  are from earlier Pods. Side-by-sides: `build_sbs.sh <dir> p1` (now N panels) ->
+  `sbs/p1_<shot>_<seed>` (Sing none | ours none | Sing +up | ours +up) and
+  `sbs/p1prompt_{sing,ours}_<seed>` (C | stripped | sections), each with `_detail`.
+- 2026-10-25 Fabio's Phase 1 verdict (in `validation.md`): **sections always** in ref prompting,
+  **Singularity v1.3 replaces ours**, new **Fast Motion** control (no upscale route; 2K/4K still
+  upscale above 1080x1920). Next: Phase 2 on Singularity (needs a Pod and the full-volume fix,
+  and runs past the $3 floor of the budget), plus the three build jobs, which are not this card's.
 - Spent: ~$0.95 before Pod 2; Pod 2 at $0.72/h on top.
 - Spent: ~$0.63 of the $3-5 Pod budget (GPU 47 min + the first Pod $0.06 + CPU fill $0.01).
 - Watching boot: `watch.mjs` (RunPod log API) printed nothing in 30 min; poll
@@ -161,6 +180,18 @@ Too slow on the local 4060 Ti. Fabio chose a persistent volume over a fresh Pod 
   Restart a Pod with `POST https://rest.runpod.io/v1/pods/<id>/restart` (v2 has no restart).
 
 ## Plan Drift
+
+- 2026-10-25 ("H3 Singularity 5"): **the network volume `l545j38pyx` is FULL** (quota ~145 GB,
+  weights 130 GB). The v1.3 download died at 19.8 of 20.97 GB ("Disk quota exceeded"; aria2 left
+  its `.aria2` file, boot.sh still logged "weights done"), boot.sh copied the stub to
+  `/root/models`, and ComfyUI's `/upload/image` answered 500 (0-byte file). Fixed on Pod
+  `fli4ckspb2aghh` by hand: v1.3 resumed with `aria2c -c` straight onto `/root/models`, sha256
+  matches HF's etag (`412a7b12...`), and the broken partial on the volume was deleted, which freed
+  room for uploads and clips. **The volume now has no v1.3**: the next boot re-downloads it onto
+  a volume with ~20 GB free, and it fails the same way. Before the next Pod, either delete the dropped
+  `*_v2_*` + `fastvideo_*` weights (~38 GB, Fabio's call) or make boot.sh fetch v1.3 straight to
+  `/root/models`. Also: `curl` from Git Bash returns 000 on the proxy URL; check readiness with
+  `check_graphs.py` (urllib) instead.
 
 - 2026-10-25 (Fabio): **FastH3 Trim OUT** (no reference op; the product needs ref2v).
   **Singularity v2 OUT, v1.3 IN**: the HF community tab reports v2 as a regression from v1.3

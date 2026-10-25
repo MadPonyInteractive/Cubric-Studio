@@ -51,6 +51,47 @@ non_diegetic_music: N/A
 No text, subtitles, logos or watermarks, no cartoon or overly-CG rendering, no soft dissolves, no warped anatomy, no flicker, no slow-motion.
 ```
 
+## Shot Cb: Shot C with the character descriptions stripped (ref2v, ours arm only)
+
+Added 2026-10-25 (Fabio): tests the Singularity HF community report that describing a referenced
+character damages identity. Shot C with only the looks removed: the reference line names the
+role alone, and the beat loses "tattooed" and the wet-linework clause. Everything else verbatim.
+
+```text
+Bright tropical beach at midday look: turquoise and white-sand palette, hard sun, spray glittering in the air, mood joyful and loose, a wide shot on a 35mm lens.
+Use <Picture 1> as the woman and <Picture 2> as the man.
+[Shot 1] The woman from <Picture 1> and the man from <Picture 2> run side by side down the white sand and straight into the sea, splashing through the shallows as waves break against their legs and spray flies up around them, water streaming down their arms and backs. Laughing as she runs, she shouts to him, "Last one in buys dinner!" and he calls back, breathless and laughing, "That's not fair, you started early!" as a wave crashes over them both.
+The camera tracks behind and beside them at a steady speed as they run into the water.
+overall_soundscape: Waves breaking and hissing back over the sand, water splashing and churning around their legs, a steady sea wind, gulls crying overhead, their bare feet pounding the wet sand.
+non_diegetic_music: N/A
+No text, subtitles, logos or watermarks, no cartoon or overly-CG rendering, no soft dissolves, no warped anatomy, no flicker, no slow-motion.
+```
+
+## Shot Cs: Shot Cb plus MiniMax's two reference sections (ref2v, ours arm only)
+
+Added 2026-10-25 (EllipsesMark on the Singularity HF community): name the character in
+`subject_definitions`, put only what the reference SHOWS in `retention_analysis` (hair, facial
+details), never ethnicity or origin. Format from MiniMax's `ref-en.txt` §2.1 / §4.1
+(`MadPony-Identity/research/findings/minimax-h3-ref-en.txt`). The body below the two sections is
+Shot Cb byte for byte, so Cs vs Cb isolates the sections and Cb vs C isolates the stripping.
+Traits read off the two sheets.
+
+```text
+subject_definitions:
+<Subject 1> is the woman in <Picture 1>, with a black-to-pink ombre bob and a blunt fringe, brown eyes, a wide smile, a thin gold necklace with a round pendant, black-and-copper ornamental tattoos covering her neck, torso, arms and legs, and a black string bikini.
+<Subject 2> is the man in <Picture 2>, with short grey hair, blue-grey eyes, grey stubble, a lean lined face, black-and-copper ornamental tattoos covering his neck, torso, arms and legs, white drawstring shorts, white canvas sneakers and a brown leather crossbody bag.
+retention_analysis:
+<Subject 1> (appears in [Shot 1]): fully_preserved - her face, ombre bob with fringe, necklace, full-body tattoo linework and black bikini are retained.
+<Subject 2> (appears in [Shot 1]): fully_preserved - his face, short grey hair, stubble, full-body tattoo linework, white shorts and brown leather crossbody bag are retained.
+Bright tropical beach at midday look: turquoise and white-sand palette, hard sun, spray glittering in the air, mood joyful and loose, a wide shot on a 35mm lens.
+Use <Picture 1> as the woman and <Picture 2> as the man.
+[Shot 1] The woman from <Picture 1> and the man from <Picture 2> run side by side down the white sand and straight into the sea, splashing through the shallows as waves break against their legs and spray flies up around them, water streaming down their arms and backs. Laughing as she runs, she shouts to him, "Last one in buys dinner!" and he calls back, breathless and laughing, "That's not fair, you started early!" as a wave crashes over them both.
+The camera tracks behind and beside them at a steady speed as they run into the water.
+overall_soundscape: Waves breaking and hissing back over the sand, water splashing and churning around their legs, a steady sea wind, gulls crying overhead, their bare feet pounding the wet sand.
+non_diegetic_music: N/A
+No text, subtitles, logos or watermarks, no cartoon or overly-CG rendering, no soft dissolves, no warped anatomy, no flicker, no slow-motion.
+```
+
 ## Shot D: walk-in to a close-up (i2v, beach)
 
 Start frame: `t2i_011.png` (Fabio's Qwen 2.1 project, outside git). Portrait run.

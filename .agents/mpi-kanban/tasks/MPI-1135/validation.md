@@ -62,3 +62,29 @@ Most likely causes of our bad benji clips: a 2-step refine on a NON-turbo model 
 denoising in 2 steps), 512 tiles (the dotted / grid texture), and a 0.26 MP draft. His 0.30 is
 the denoise, so Step 0b's 0.485 was further from his setup, not closer. The realism LoRA and its
 trigger are part of his look and are not in anything we ship (licence unknown).
+
+## Phase 1: Singularity v1.3 vs ours, none vs ours-upscale, prompt sections (2026-10-25, Fabio)
+
+Side-by-sides `C:/AI/Mpi/_private/mpi1135-clips/sbs/p1_<shot>_<seed>` (Sing none | ours none |
+Sing +up | ours +up) and `p1prompt_{sing,ours}_<seed>` (Shot C | stripped `Cb` | sections `Cs`),
+judged on the `_detail` files. 32/32 clips ok, numbers in `research/results.md`.
+
+- **Upscale route:** fine on low action (Shot D, the woman walking up to the camera), where it
+  looks the same as no upscale. On fast motion, **no upscale wins every time.**
+- **Model:** on fast motion **Singularity v1.3 wins by a small margin every time.** Same render
+  speed as ours on every shot.
+- **Identity (Cs vs Cb vs C):** hard to judge, because the characters face away and are only seen
+  in profile at a distance. But **sections win clearly on wardrobe and props**: with sections the
+  man ALWAYS has his bag and shoes, and the bag swings like a real object. Stripped (and sometimes
+  the normal prompt) loses the shoes, swaps the bag for something else, or fuses it to his body.
+  Only sections keep the back of her bikini. To Fabio's eye, sections also tear the tattoos and hair less.
+
+**Verdict (Fabio):**
+1. **Always prompt with sections** (`subject_definitions` + `retention_analysis`, visible
+   traits only) in reference mode.
+2. **Singularity v1.3 is better than our H3**: replace.
+3. **New "Fast Motion" control** next to Turbo: when ON, skip our upscale route and render with the
+   no-upscale path. 2K / 4K still upscale, but only when the user goes above 1080x1920.
+
+Not checked: whether sections help FACE identity (no frontal close shot in Shot C), and the EasyCache
+skip lines (this run's ComfyUI output never reached `boot.log`).
