@@ -329,6 +329,24 @@ gpu_lease.py (~1 s a frame; the cpu/gpu switch is gone). Sheet out/cosmo_soft_ch
 out/cosmo_soft/; the gizmo stage is now aspect-ratio 16/9, image object-fit cover. pr_l and pr_r look alike (Cosmo is
 symmetric; the readout names the side). Live-checked in an isolated app: 188x106 stage, no note. Committed + pushed.
 r50 handed to its own session "MPI-1039 r50 zoom bench on turned views" (owns angles.py + multiAngle.js).
+NEXT - GIZMO ZOOM PREVIEW (Fabio 2026-10-25, decided, NOT STARTED): today the Cosmo preview ignores the Zoom slider.
+(1) Zoom-IN stops (eye, face, hs, waist, full) = CSS on the preview image: a BEM modifier per rung (scale +
+transform-origin at Cosmo's eyes / face / head+shoulders / waist / body centre, short transition). Measure Cosmo's
+box in the eye-level renders first (pink-pixel bbox in out/cosmo_soft/{front,tq_fl,...,back}.png; eyeballed on
+front: head y 140-245, torso 285-385, feet ~415 of 540, x ~480) - zoom only opens at eye level, so one anchor per
+rung should fit every turn. 960 px source shown at ~188 px, so up to ~5x stays sharp enough.
+(2) FAR AWAY = 8 extra WIDE Blender renders (Fabio chose this over cropping the default): soft_render.py gets a
+`far` mode that renders each turn's eye-level camera (front_eye / back_eye / the turn name) with a wider lens
+(try lens x 0.5, check the room still covers the frame) to out/cosmo_soft/<turn>_far.png; ship_assets.py ships them
+as previews/<turn>_far.webp; multiAnglePreview(turn, height, zoom) returns the _far file when zoom === 'far'
+(update the gizmo's _paint + warm-up loop, and tests/multi-angle-gizmo.test.cjs's file-exists check).
+Fabio may first restyle the 24 renders himself (edit model, or texture on floor + walls): if he does, the far renders
+must match his look - ask before rendering them. Low/high zoom bench (round 51) proposed, not approved.
+SESSION SPLIT (Fabio 2026-10-25, for the next session): start a separate session for the ZOOMS (the CSS zoom in
+the gizmo; round 51 only on his GPU yes) while the main session does the NEW 3D RENDERS (his restyle of the room /
+Cosmo previews + the 8 far views). The renders session owns research/blender/* + assets/flows/multi-angle/previews/;
+the zoom session owns MpiAngleGizmo/* + multiAngle.js + tests/multi-angle-*.test.cjs. multiAnglePreview's far
+branch sits in multiAngle.js: the zoom session writes it, the renders session only ships <turn>_far.webp.
 PHASE 4 BUILT, AWAITING FABIO'S EYE TEST (2026-10-25, session "Flux 3 on flows 27", detail in validation.md):
 FlowDef `multi-angle` (devOnly, driver 'multiAngle' in FLOW_DRIVERS), slots-only op `flowMultiAngle`, step kind
 `angle` = `js/components/Organisms/MpiStepAngle/` (Cosmo preview + Turn/Height/Zoom sliders; Turn = full turn,
