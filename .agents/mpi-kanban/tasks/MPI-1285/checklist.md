@@ -8,5 +8,5 @@
 - [x] Tests + lint green
 - [x] sol-attn on MiniMax H3 (fl2va) stage 1, same settings, EasyCache kept, test pinned
 - [x] GPU runs of the r2va graph: Fabio in the app, 2026-10-25, every mode he tried (validation.md)
-- [ ] GPU run of MiniMax H3 (fl2va) with sol-attn: Fabio, against the 3m 28s baseline
+- [x] GPU run of MiniMax H3 (fl2va) with sol-attn: Fabio, 3m 28s -> 2m 32s (validation.md)
 - [ ] Superman re-run through Cosmo: Cosmo sets Fast Motion on by itself

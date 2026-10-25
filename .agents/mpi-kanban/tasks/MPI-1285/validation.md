@@ -37,6 +37,7 @@
   sol-attn on the Fast Motion-off path: 2m 56s -> 2m 38s (~10%, one sample each). Mode 0
   costs more than the half-size path, as expected (stage 1 drawn at full size).
   Tearing with turbo off is the old ref2va DiT (MPI-1284), not this card.
-- (pending) MiniMax H3 (fl2va) with sol-attn: no GPU run yet. Compare against the 3m 28s
-  baseline above.
+- Done by Fabio, 2026-10-25: MiniMax H3 (fl2va) with sol-attn, a Reuse of the baseline run
+  (same settings, same start frame), 1344x768, 3 s: **3m 28s -> 2m 32s**, 56 s faster (~27%,
+  one sample each). The first GPU execution of the fl2va sol-attn graph; it ran clean.
 - (pending) The Superman request through Cosmo comes back with Fast Motion on, set by Cosmo.
