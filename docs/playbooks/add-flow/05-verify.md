@@ -50,6 +50,9 @@ the user drives the end-to-end live run. Confirm each:
       user when handing over the live run, so they look (Multi-angle shipped without any of it).
 - [ ] **Status bar** shows progress during the run (STITCHING/GENERATING + timer), at the BOTTOM of
       the flow overlay (not collapsed to the top).
+- [ ] **The peeking mascot** along the frame's bottom edge: Lingo while a prompt is written (Cosmo
+      for an agent plan), then Prism / Reel + Vinyl / Vinyl by `mediaType` while it generates, and
+      nobody once it ends — [ui/peeking-mascot.md](ui/peeking-mascot.md).
 - [ ] **Ctrl+Enter** runs the OPEN flow, not the PromptBox behind it; works again after closing.
 - [ ] **Reuse**: reuse a flow card → reopens the Flow with its inputs restored, across a restart
       (sidecar `flowId`/`flowInputs` hydrate) and in the same session (live item).

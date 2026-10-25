@@ -79,6 +79,7 @@ file the moment you reach a step that needs it, and only that section.
 | An flow-vs-browser divergence is ALWAYS a flow-side injection/routing bug, never the workflow | 02 |
 | **Prompt text written without the model's guide** (no `GUIDE_NOT_READ` gate for a Flow): read `docs/agent/models/<model>.md` first; the prompt names "the subject", never the bench picture | 01 |
 | uiComponent is OPTIONAL — omit for a media-only flow (BaseFlow renders slots) | 01/04 |
+| **The peeking mascot comes from `mediaType`** (what the Flow MAKES: image Prism, video Reel + Vinyl, audio Vinyl) and the enhance declaration (Lingo; Cosmo for `runsOn: 'agent'`). The frame owns it — never add one of your own | ui/peeking-mascot.md |
 | **A driver Flow (`driver`, no graph) must call `frame.onJob(tempId, done)` for EVERY job it queues**, and set `flowStep` `'n/total'` on a chain. Without it: no live latents, greyed Stop, no result in the pane, nothing fails. Shipped twice; `tests/flow-drivers-report-jobs.test.cjs` pins it | README § Driver Flows |
 | **A Flow that works by hand is invisible to Cosmo.** It picks by `does` (the first sentence of `description`) and fills from id/label/type/default/options/min/max only: a `hidden` field, a `voices` roster or a note-carried meaning arrives as a bare name and is filled blind. No gate makes it read `flows.md`, and the system prompt has almost no byte budget left for a per-Flow rule | 07 |
 
