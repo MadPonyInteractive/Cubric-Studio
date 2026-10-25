@@ -132,9 +132,28 @@ Too slow on the local 4060 Ti. Fabio chose a persistent volume over a fresh Pod 
   rows land in `research/results.md`, clips in `C:/AI/Mpi/_private/mpi1135-clips/`
   (log `C:/AI/Mpi/_private/mpi1135-step0b.log`). Done so far, Shot A seed 1: ours 114 s, none
   125 s, Benji 140 s; ours seed 2 113 s. Order: rest of fl2va Shot A, then ref2va Shot C x6.
-- Next: when all 12 rows are in, TERMINATE the Pod (`rp.mjs DELETE /pods/zb86nk40jri923`),
-  build the side-by-sides (per shot+seed: none | ours | benji) for Fabio, and log his Step 0
-  verdict. Then build the Phase 1 graphs on the winning upscale and run them PER MODEL.
+- 2026-10-25: **Step 0 DONE**, all 12 rows in, Pod 2 gone (RunPod lists no Pods). Side-by-sides
+  built by `research/step0/build_sbs.sh` (full + `_detail` true-pixel crop, render times on the
+  labels, three audio passes). Fabio's verdict in `validation.md`: none wins at 1344x768, benji
+  bad, ours at 2K best overall.
+- 2026-10-25 Step 0b (Fabio): Benji's arm at refine denoise **0.485**, Shot C, 2 seeds, on our
+  ref2va and then on Singularity, nothing else changed (`step0/build_b485.py`, graphs
+  `b485_{ours,sing}_C_<seed>`). Pod 3 **`2u50xc8wdze96k`** booted 01:23 GMT (COMFY_READY in
+  ~6.5 min), `HARD_MIN=90` (create-pod.mjs now reads HARD_MIN from the env). Local bench is held
+  by a peer, so graphs were checked against the Pod's /object_info. Side-by-sides:
+  `build_sbs.sh <dir> b485` -> none | benji .485 ours | benji .485 Singularity.
+  Ran 4/4 ok (ours 208/174 s, Singularity 195/173 s); Pod 3 DELETED 01:42 UTC (~20 min,
+  ~$0.25). Side-by-sides sent; Fabio's verdict pending. Spent so far ~$1.75 of $3-5.
+- Next (handoff 2026-10-25): **start the Phase 1 Pod** (Fabio approved starting it in a new
+  session; ~65 min, ~$0.80, ~$1.75 spent so far of $3-5). `create-pod.mjs` with `HARD_MIN=90`,
+  wait for /system_stats, `check_graphs.py <url>` (local bench is held by a peer), then
+  `run_graphs.py <url> C:/AI/Mpi/_private/mpi1135-clips graphs/p1_*.json` in build_phase1.py's
+  printed order (Singularity first, then ours). Grep the Pod's ComfyUI log for EasyCache skip
+  lines on the ours-arm Shot C runs. Terminate, then side-by-sides (extend `build_sbs.sh`:
+  none | ours per model, and Singularity vs ours per arm) for Fabio's look.
+  Open offer to Fabio, unanswered: add a Shot C variant with the character descriptions
+  stripped (ours arm, both models, 2 seeds, ~$0.10) to test the community "describing the
+  character hurts identity" report (`brief.md` ## Noticed). Ask before adding it.
 - Spent: ~$0.95 before Pod 2; Pod 2 at $0.72/h on top.
 - Spent: ~$0.63 of the $3-5 Pod budget (GPU 47 min + the first Pod $0.06 + CPU fill $0.01).
 - Watching boot: `watch.mjs` (RunPod log API) printed nothing in 30 min; poll
@@ -142,6 +161,30 @@ Too slow on the local 4060 Ti. Fabio chose a persistent volume over a fresh Pod 
   Restart a Pod with `POST https://rest.runpod.io/v1/pods/<id>/restart` (v2 has no restart).
 
 ## Plan Drift
+
+- 2026-10-25 (Fabio): **FastH3 Trim OUT** (no reference op; the product needs ref2v).
+  **Singularity v2 OUT, v1.3 IN**: the HF community tab reports v2 as a regression from v1.3
+  (NSFW content nobody asked for, squashed characters; only gain a bit more natural skin), and
+  Benji's file runs v1.3. Singularity IS the tearing fix candidate: trained for fast action and
+  fighting, which base H3 lacks. Bench file: `Minimax-h3_Singularity_ref2va_Pruned_v1.3_int8`
+  (20.97 GB, the same pruned int8 class as our shipped files; Benji runs the 34 GB unpruned).
+  Phase 1 = `step0/build_phase1.py`, 24 graphs `p1_<model>_<arm>_<shot>_<seed>`: Singularity
+  none/ours on A, B, C, D, then ours none/ours on B, D (ours A, C reuse Step 0's clips).
+  `pod/boot.sh` fetches v1.3 and no longer copies `*_v2_*` / `fastvideo_*` to the container disk.
+
+- 2026-10-25 (Fabio, after reading Benji's real workflow): **Benji closed.** Phase 1 keeps the
+  fixed inputs: 1344x768 for every arm (a bigger frame always wins, so it is not a fair test),
+  our 8-step turbo (4-step already tested, worse), Singularity **v2** (v1.3 in his file predates
+  it), no NVIDIA RTX VSR (not every card / OS), no realism LoRA. Phase 1 = **none and ours on
+  each of the three models** (ours H3, Singularity, FastH3 Trim), per model, Shots A-D where the
+  model covers them, 2 seeds. Veda stays a Phase 2 SPEED arm judged on the high-action shot (B):
+  Benji himself says it breaks physics on fast action, which is the tearing we are fixing.
+- 2026-10-25 EasyCache trace (shipped graphs): under turbo it is OUT of the fl2va graph entirely
+  (369 picks the plain shift), but in **r2va the turbo-on refine runs THROUGH EasyCache** (586
+  true -> 523 <- 520 EasyCache). The turbo DRAFT never touches it in either graph, and it skips 0
+  of 8 turbo steps anyway (`docs/models/h3/performance.md`), so it cannot cause draft tearing.
+  Open: does it skip any of the 3 refine steps on ref2v? EasyCache is `verbose`, so the next
+  Pod's ComfyUI log answers it (grep the skip lines). Twin mismatch noted, not changed.
 
 - 2026-10-25 (Fabio): **run per MODEL, never per phase.** A load is the slow part, so one model
   stays loaded and does every shot it covers (A, B, C, D), then the next model. Phase 1 runs as:

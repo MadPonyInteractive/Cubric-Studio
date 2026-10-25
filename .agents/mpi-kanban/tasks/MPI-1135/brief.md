@@ -147,3 +147,15 @@ the size before pulling.
 
 A verdict per candidate in `validation.md`: replace / add as a separate model / drop, with the
 evidence. A pass becomes the `/mpi-add-model` job (on this card or a new member card under MPI-1179).
+
+## Noticed
+
+- 2026-10-25 (Fabio, from Singularity's HF community, UNVERIFIED): in ref2v, **describing the
+  character damages identity**. Supply the character sheet and say little about looks or
+  wardrobe; the model already sees them, and a description makes it redraw the character.
+  Our Shot C prompt names attributes ("grey hair", "brown leather crossbody bag", "full-body
+  tattoos and wardrobe") in its reference line; kept as is so every arm stays comparable.
+  The in-app H3 r2v recipe (`js/data/recipes/minimax-h3.recipe.js`) gives each reference a
+  job but has no rule against describing a referenced character, and MiniMax's own guide asks
+  for 350-500 words. If the bench confirms it, that recipe is where the fix lands
+  (`/create-enhancer-recipe` heal path).

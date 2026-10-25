@@ -16,7 +16,7 @@ const body = {
     env: {
         BOOT_B64: boot.toString('base64'),
         PUBLIC_KEY: fs.readFileSync(path.join(os.homedir(), '.ssh', 'id_ed25519.pub'), 'utf8').trim(),
-        HARD_MIN: '240',
+        HARD_MIN: process.env.HARD_MIN || '240',
     },
     gpu: { id: 'NVIDIA RTX PRO 4500 Blackwell', count: 1, minCudaVersion: '13.0', minRamPerGpu: 62 },
     dataCenterIds: ['EU-RO-1'],
