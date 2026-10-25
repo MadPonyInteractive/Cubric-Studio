@@ -252,6 +252,45 @@ Too slow on the local 4060 Ti. Fabio chose a persistent volume over a fresh Pod 
   (Turbo-off is dropped: Fabio already knows turbo costs skin.) Then side-by-sides vs `p1c_s2_none_D_1135001`.
   **Cinematic V2** (TuTu_1018, civarchive 2890588, 148 MB): Fabio has DOWNLOADED it; it runs on HIS GPU
   (local bench :8188) later, never uploaded to a Pod. Ask him for the file path.
+- 2026-10-25 ("H3 Singularity 8") **Phase 1e** replaces the list above. `fal/MiniMax-H3-Realism-LoRA`
+  does not exist (404 with the logged-in token) -> test 1 dropped. Fabio: his GPU is busy (a peer's
+  tests), so everything runs on a Pod, at **8 s** (dialogue extended: she keeps talking at the lens),
+  baseline re-run. Cinematic V2 (`M:/CubricModels/loras/minimax-h3/H3_cinematic_V2.safetensors`)
+  uploaded TEMPORARILY to R2 `cubric-models/vision/tmp/mpi1135/H3_cinematic_V2.safetensors`
+  (155,110,296 B) -> **delete it from R2 if Fabio does not approve the LoRA.** Six clips,
+  `step0/build_p1e.py`: base | photo | nocg | cine (0.85 both stages) | upbase (shipped upscale route)
+  | upcine (Cine V2 on the refine model ONLY). sbs `build_sbs.sh <dir> p1e`. Pod **`n1lylyr55uiuwc`**
+  created 12:15 UTC, `HARD_MIN=60`, SSH `-p 48754 root@213.173.107.238`, ready in 285 s.
+  boot.sh no longer fetches v1.3.
+- 2026-10-25 **Phase 1e DONE**, 6/6 ok: single pass 285 s each, upbase 186 s, upcine 113 s (its stage 1
+  came from ComfyUI's cache, same seed/prompt: NOT a speed result). No "lora key not loaded" lines.
+  Pod DELETED 12:45 UTC (30 min, ~$0.36). **Spent ~$4.28 of $5.** sbs `sbs/p1e{prompt,lora}_D_1135001{,_detail}`.
+  **FINDING: the 8 s SINGLE-PASS clips (base/photo/nocg/cine, 896x1088) do NOT keep the i2v start
+  frame** (frame 1 is a different beach: no driftwood/grass); the 4 s single pass (p1c) and both 8 s
+  upscale-route clips (stage 1 at 448x544) do. Only duration + prompt differ from p1c, so the likely
+  cause is length x resolution diluting the start-frame anchor (unproven). This matters for MPI-1285's
+  Fast Motion ON = single pass. Cine V2 on both stages changes frame 1 further; on the refine only
+  (upcine) frame 1 matches upbase. Fabio's verdicts in validation.md (prompt words: not noticeable;
+  Cine 0.85 overcooked on stage 1, invisible on the refine only).
+- 2026-10-25 **Phase 1e follow-up**, Pod `why0hst3y1bl3n` ~13:22-13:47 UTC (~$0.30, **total ~$4.58 of $5**),
+  4/4 ok: `p1e_{s2,s13}_strip` (look line + gulls removed) -> **start frame KEPT on both** = the prompt
+  was the cause (validation.md). `p1e_s2_cine070` (0.70, base prompt so still loses the frame) and
+  `p1e_s2_upcine100` (1.0 refine only). sbs `sbs/p1e{strip,cine,upcine}_D_1135001{,_detail}`.
+  boot.sh fetches v1.3 again. **R2 temp LoRA still up** (delete if Cine V2 is not approved).
+  Next: Fabio's verdict on Cine 0.70 / refine 1.0.
+- 2026-10-25 **Fabio's final Phase 1e verdict: NO LoRAs; Singularity is not an i2v model.** MiniMax H3
+  stays (sol-attn only); H3 Reference keeps its name on a Singularity v2 base; Fast Motion = Reference
+  only; nothing deprecated (validation.md; MPI-1284/1285/1286 titles, descriptions, briefs updated).
+  Cine V2 local copy -> Recycle Bin. People LoRA (`M:/CubricModels/loras/bench-mpi1135/`) is LOCKED by the
+  local ComfyUI (loaded in Phase 1d; a peer is using that ComfyUI) -> recycle it after a restart. R2 temp
+  object `cubric-models/vision/tmp/mpi1135/H3_cinematic_V2.safetensors` left for Fabio to delete.
+  Memory note `project_singularity_h3_is_the_only_h3` is now WRONG: update waits on Fabio's OK.
+  The bench's research work is done; what is left is close-out (mpi-end-session).
+- 2026-10-25 R2 temp LoRA DELETED by Fabio (HEAD 404). Memory note rewritten (Fabio OK'd). Fabio's Cosmo
+  guidance written to `docs/agent/models/minimax-h3.md`: i2v on H3 Reference is a lottery, Cosmo says so
+  and offers MiniMax H3 (the TRUE i2v; Fabio's paste said "H3 reference", a typo he confirmed); with a
+  first frame the look line never restates the picture. agent-doc tests 9/9. **Next: Fabio tests that in
+  the app, then mpi-end-session.**
 - Spent: ~$0.95 before Pod 2; Pod 2 at $0.72/h on top.
 - Spent: ~$0.63 of the $3-5 Pod budget (GPU 47 min + the first Pod $0.06 + CPU fill $0.01).
 - Watching boot: `watch.mjs` (RunPod log API) printed nothing in 30 min; poll

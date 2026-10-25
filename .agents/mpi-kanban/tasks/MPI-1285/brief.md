@@ -1,5 +1,8 @@
 # MPI-1285 brief: H3 Fast Motion control and the upscale tiers
 
+**Scope (Fabio, 2026-10-25, MPI-1135 Phase 1e): MiniMax H3 Reference ONLY** (its base becomes
+Singularity v2, MPI-1284). Fast Motion never lands in MiniMax H3; that model only gains sol-attn.
+
 ## Design (Fabio, 2026-10-25, MPI-1135 brainstorm)
 
 - **Fast Motion OFF** = today's two-pass workflow (half-size stage 1 + 3D latent upscale + refine),

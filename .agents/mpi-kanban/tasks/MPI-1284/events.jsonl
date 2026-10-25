@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1284", "at": "2026-10-25T09:01:15+00:00", "actor": "H3 Singularity 6", "column": "todo", "title": "Singularity H3 replaces our H3 transformers (one fused file for t2v / i2v / ref2v), licence check first"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1284", "at": "2026-10-25T17:30:25+00:00", "actor": "H3 Singularity 8", "fields": ["description", "title"], "reason": "Fabio: Singularity only under H3 Reference; MiniMax H3 stays (MPI-1135 Phase 1e)"}

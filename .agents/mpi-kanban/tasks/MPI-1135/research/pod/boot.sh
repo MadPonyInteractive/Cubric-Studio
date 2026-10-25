@@ -65,7 +65,7 @@ P=()
 R2=https://models.cubric.studio/vision/models
 HF=https://huggingface.co
 # Fabio 2026-10-25: ours and FastH3 Trim are out of the bench; deleted to free the full volume
-# (quota ~145 GB). Singularity v1.3 and v2 stay: one more v1.3 vs v2 test, then Phase 2 on the winner.
+# (quota ~145 GB). v2 won Phase 1b; v1.3 stays for start-frame comparisons.
 rm -f $M/diffusion_models/fastvideo_* $M/diffusion_models/minimax_h3_fl2va_pruned_int8_convrot.safetensors $M/diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors
 get diffusion_models/Minimax-h3_Singularity_ref2va_v2_pruned_int8.safetensors $HF/WarmBloodAban/Minimax-h3_Singularity/resolve/main/Minimax-h3_Singularity_ref2va_v2_pruned_int8.safetensors & P+=($!)
 get diffusion_models/Minimax-h3_Singularity_ref2va_Pruned_v1.3_int8.safetensors $HF/WarmBloodAban/Minimax-h3_Singularity/resolve/main/Minimax-h3_Singularity_ref2va_Pruned_v1.3_int8.safetensors & P+=($!)

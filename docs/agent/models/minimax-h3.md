@@ -16,8 +16,8 @@ guide:
 - A character or place must stay the same across clips: use `ref2v_ms` with their
   reference pictures.
 - A still should come alive: `i2v_ms` with that still as the first frame. No `i2v_ms`
-  installed, or the user names the reference op: `ref2v_ms` does it too, see "A first or
-  last frame on ref2v_ms" below.
+  installed, or the user names the reference op: `ref2v_ms` can try it, but it often misses,
+  see "A first or last frame on ref2v_ms" below.
 
 ## Settings
 
@@ -36,7 +36,11 @@ guide:
 Plain text, no markdown, these parts in this order:
 
 1. A look line: subject and style, palette, atmosphere, mood. A lens, film stock or shot
-   size goes here too; nothing else in the prompt gives them a home.
+   size goes here too; nothing else in the prompt gives them a home. With a first frame
+   (`i2v_ms`, or a frame on `ref2v_ms`) the picture already shows the subject, setting and
+   palette: do not restate them. Words describing what the picture shows win over the
+   picture (measured: "a woman in a coral bikini on a white-sand beach, turquoise" turned a
+   driftwood beach into a generic one, gulls and all; without that line the frame held).
 2. `ref2v_ms` only: a reference line giving every reference a job, e.g. "Use <Picture 1>
    as the rider's face and clothes, and <Picture 2> as the setting only, not its framing."
 3. The shots. `[Shot 1]` never has a time. A later shot opens with its cut instant:
@@ -89,10 +93,14 @@ camera, the sound of the place, the constraint line. Then check the action again
 
 ### A first or last frame on ref2v_ms
 
-`ref2v_ms` has no frame slot, but it follows a picture cited as a frame: the clip opens (or
-closes) close to it. Close, not exact: the angle, the framing or a detail can drift. `i2v_ms`
-pins the frame exactly, so when the user wanted that exact picture and only `ref2v_ms` is
-installed, use it and say so in one line; never stop for an install instead.
+`ref2v_ms` has no frame slot, but it often follows a picture cited as a frame: the clip opens
+(or closes) close to it. Often, not always: it is a lottery. The angle, the framing or a detail
+can drift, the whole frame can be swapped for a new one, and a LoRA on the reference model
+makes a miss much more likely. `i2v_ms` (`minimax-h3`) is the true image to video. When the
+user wants that exact picture to come alive and only `ref2v_ms` is installed, say so before
+you run it: "I can try it with H3 Reference, but it does not always keep your picture. For
+true image to video there is MiniMax H3: want me to install it?" When both are installed,
+use `i2v_ms`, and `ref2v_ms` only when the user asks for it.
 
 Give the frame its job in the reference line, then write what happens next:
 "Open the shot on <Picture 1> as its first frame, keeping its composition, camera angle and

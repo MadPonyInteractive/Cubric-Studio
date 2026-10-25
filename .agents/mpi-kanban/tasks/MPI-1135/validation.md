@@ -115,3 +115,32 @@ p1c clip vs the SAME graph + `fal/MiniMax-H3-Realism-People-LoRA` at 0.7 (Input_
 `r34l1sm , ultra realistic video.` (`step0/build_p1d.py`). Ran on the LOCAL bench (RTX 4060 Ti, 332 s,
 VRAM 15.0 GB). Side-by-side `sbs/p1d_D_1135001` (v2 | v2 + LoRA; true pixels already, no `_detail`).
 **Verdict (Fabio): REJECTED.** The LoRA turns image-to-video into reference-to-video: the first frame is NOT the start image (new background, sea, gulls), and the skin is no better. Next: online research for other skin-fix LoRAs (two sub-agents).
+
+## Phase 1e: 8 s Shot D, prompt wording + Cinematic V2 (2026-10-25, Fabio)
+
+Pod, seed 1135001, v2, turbo, 8 s (`step0/build_p1e.py`), sbs `sbs/p1e{prompt,lora}_D_1135001`.
+The 8 s single-pass clips LOST the i2v start frame (the 4 s p1c clip and the upscale-route clips kept it).
+**Verdict (Fabio), prompt set:** + "Photorealistic, natural lighting, realistic skin texture" slightly best,
+then the same with the "no cartoon or overly-CG rendering" line removed, then base. **Not a noticeable
+improvement.** A fixed "Photorealistic" cannot ship anyway: the style word must follow the shot's own
+style (animation, cartoon, anime, 3D CGI); same for the CG negation. For MPI-1284's prompt guide.
+**Verdict (Fabio), Cinematic V2 at 0.85:** on the refine stage only (upcine) not noticeable, may need MORE
+strength there; on stage 1 (cine) overcooked, 0.65-0.70 is probably right.
+
+### Phase 1e start-frame test (2026-10-25)
+
+`p1e_{s2,s13}_strip_D_1135001`: the 8 s base prompt minus its look line ("The supplied frame shows a
+woman ... white-sand beach: bright turquoise ...") and minus "gulls calling over the water". **Both v2
+and v1.3 now open on the real start image** (driftwood, grass); the base prompt opens on a generic
+turquoise beach with gulls. Cause found: on i2v, **words describing what the picture shows override the
+picture** (HF discussion #32's report, and our own guide's rule, docs/agent/models/minimax-h3.md:87,
+which the bench prompt broke). The Phase 1d People-LoRA rejection used the same prompt, so it is
+confounded. Feeds MPI-1284 (prompt guide) and MPI-1285 (single pass).
+
+### Phase 1e final verdict (Fabio, 2026-10-25)
+
+**No LoRAs.** Every LoRA tried on Singularity lost the i2v first frame, so a user's own LoRA would make
+i2v a lottery: **Singularity is not an image-to-video model.** Decisions: **MiniMax H3 (fl2va) stays**
+(only gains sol-attn; non-turbo sol-attn + EasyCache); **MiniMax H3 Reference keeps its name, its base
+model becomes Singularity v2** (ours was the weak one, more tearing); **Fast Motion lands in H3 Reference
+only**; nothing is deprecated. The tested LoRAs are deleted. Cards updated: MPI-1284, MPI-1285, MPI-1286.

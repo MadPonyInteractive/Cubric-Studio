@@ -10,6 +10,7 @@
 #   p1b:   Singularity v1.3 | v2, no upscale, Shot B (only when asked by name)
 #   p1c:   ours | v1.3 | v2 on Shot D (i2v, no upscale) and Shot Cs (ref2v, sections, ours route)
 #   p1d:   v2 | v2 + realism-people LoRA 0.7 (+ trigger), Shot D seed 1 (local bench)
+#   p1e:   8 s Shot D seed 1: base | +Photorealistic | +Photoreal no CG line; base | +Cinematic V2 | upscale | upscale + Cine V2 on refine only
 #   p2:    speed arms on v2, Shot B: turbo | sol | Veda; 25 steps | EC | sol | Veda; EC | sol+EC | Veda+EC
 # Usage: build_sbs.sh [<clipdir>] [step0|b485|p1|p1b|p2]   -> <clipdir>/sbs/<set>_<shot>_<seed>{,_detail}.mp4
 set -euo pipefail
@@ -92,6 +93,18 @@ for seed in 1135001 1135002; do
   fi
   if [[ $want == p1d ]]; then
     sbs "p1d_D_${seed}" "p1c_s2_none_D_${seed}" "Sing v2" "p1d_s2_real07_D_${seed}" "v2 + realism LoRA 0.7"
+  fi
+  if [[ $want == p1e ]]; then
+    sbs "p1eprompt_D_${seed}" "p1e_s2_base_D_${seed}" "8 s base" "p1e_s2_photo_D_${seed}" "+ Photorealistic" \
+      "p1e_s2_nocg_D_${seed}" "+ Photoreal, no CG line"
+    sbs "p1elora_D_${seed}" "p1e_s2_base_D_${seed}" "8 s base" "p1e_s2_cine_D_${seed}" "+ Cinematic V2" \
+      "p1e_s2_upbase_D_${seed}" "upscale" "p1e_s2_upcine_D_${seed}" "upscale + Cine V2 refine only"
+    sbs "p1estrip_D_${seed}" "p1e_s2_base_D_${seed}" "v2 base" "p1e_s2_strip_D_${seed}" "v2 no look line" \
+      "p1e_s13_strip_D_${seed}" "v1.3 no look line"
+    sbs "p1ecine_D_${seed}" "p1e_s2_base_D_${seed}" "8 s base" "p1e_s2_cine_D_${seed}" "Cine V2 0.85" \
+      "p1e_s2_cine070_D_${seed}" "Cine V2 0.70"
+    sbs "p1eupcine_D_${seed}" "p1e_s2_upbase_D_${seed}" "upscale" "p1e_s2_upcine_D_${seed}" "refine Cine 0.85" \
+      "p1e_s2_upcine100_D_${seed}" "refine Cine 1.0"
   fi
   if [[ $want == p2 ]]; then
     sbs "p2turbo_B_${seed}" "p2_t_base_B_${seed}" "turbo" "p2_t_sol_B_${seed}" "turbo sol-attn" \
