@@ -66,8 +66,10 @@ Decisions taken at planning (each a pick, said in one line, not a stop):
 
 ## Current State
 
-2026-10-25 (H3 Singularity 11): fl2va sol-attn is built and verified by lint + tests; no GPU run
-of it yet. Left: commit + push the fl2va work, Fabio's in-app look, the Superman re-run.
+CLOSED 2026-10-25 (H3 Singularity 11). Everything shipped and pushed; CI green on both code
+commits (c399b5e4b, 71315e370). Fabio ran both graphs in the app (validation.md: sol-attn
+2m 56s -> 2m 38s on H3 Reference, 3m 28s -> 2m 32s on MiniMax H3) and Cosmo set Fast Motion on
+unasked for a fast-action request. Singularity v2 weight swap stays on MPI-1284.
 
 Earlier: committed and pushed at handoff (2026-10-25). Fabio is testing in the app: "looks okay",
 little difference on one scene, still some tearing with turbo off + Fast Motion on (expected:

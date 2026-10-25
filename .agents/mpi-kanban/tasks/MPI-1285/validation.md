@@ -14,10 +14,10 @@
 - `npm run lint` clean; `npm test` 3669 tests, 0 fail. One budget raised on purpose:
   agent tool schemas 16,394 -> 16,494 bytes for Cosmo's `fastMotion` (noted in the test).
 
-## Not run yet
+## GPU runs
 
-- No GPU execution of the new graph by me: the engine on this box is Fabio's live session.
-  His in-app run is the first real execution (one-pass and upscale modes).
+- None by an agent (the engine on this box is Fabio's live session). Fabio's in-app runs below
+  were the first real executions (one-pass and upscale modes, and fl2va sol-attn).
 
 ## Fabio in the app
 
