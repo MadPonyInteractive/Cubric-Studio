@@ -12,8 +12,10 @@ used" for Story / Infinite Video.
 - **No new workflow for Story.** Infinite Video and Cosmo's generations run the Singularity H3
   model workflow (MPI-1284) as is; LoRAs added to it are not Story's concern. H3 also joins the
   Extend Video Flow, so extend/bridge use whatever that model workflow provides.
-- **Always generate at 1344, never lower.** Above that, the tier upscales. 1344 already has
-  unnoticeable tearing, so the cheap low-res draft is off the table.
+- **Always ASK for 1344 or more, never lower.** How the workflow gets there is its own business
+  (Fast Motion off: half canvas + 2× inside the workflow; on: native 1344). Any tier above 1344
+  upscales FROM 1344. 1344 already has unnoticeable tearing; Story never designs its own low-res
+  draft.
 - **Fast Motion is chosen per scene by the planner:** OFF for a talking close-up and for medium
   shots at slow/medium pace; ON for fighting, running, jumping, car chases — a lot happening fast.
   This is a field the shot planner sets, not the user per shot.
