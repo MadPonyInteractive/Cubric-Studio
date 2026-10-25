@@ -29,7 +29,7 @@ function _name(pick) {
     return `Multi-angle · ${parts.join(', ')}`;
 }
 
-function _deps(project, { outfitWords }, frame) {
+function _deps(project, { outfitWords, flow, inputs }, frame) {
     return {
         isLoopArmed: () => state.loopArmed === true,
 
@@ -67,8 +67,11 @@ function _deps(project, { outfitWords }, frame) {
             if (!built.ok) return built;
             // The user pressed Generate: their toasts show, and the child-safety gate reads their
             // own outfit words beside the pass prompt built from the picture.
+            // `flowId` + `flowInputs` ride to the sidecar, so Reuse > Apply to App reopens Multi-angle with
+            // the picture and camera that made this pass, not a bare edit.
             // flowStep: the status bar reads "Editing 1/2", so a chain does not look like the same pass twice.
             const config = { ...built.config, byAgent: false, userWords: [outfitWords, step.prompt].filter(Boolean),
+                flowId: flow.id, flowInputs: inputs,
                 ...(total > 1 ? { flowStep: `${index}/${total}` } : {}) };
             let settle;
             const done = new Promise((resolve) => { settle = resolve; });
@@ -125,7 +128,7 @@ export async function runMultiAngleFlow(flow, inputs, frame) {
     const outfitWords = String(inputs.outfitWords || '').trim();
     const name = _name(pick);
     const run = await runMultiAngle({ source: url('inputImage'), pick, outfit: { words: outfitWords, url: url('inputImage2') } },
-        _deps(project, { outfitWords }, frame));
+        _deps(project, { outfitWords, flow, inputs }, frame));
     if (!run.ok) {
         StatusBar.notify(run.message, 'warning');
         return false;

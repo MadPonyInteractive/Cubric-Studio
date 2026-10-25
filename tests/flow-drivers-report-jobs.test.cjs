@@ -44,3 +44,12 @@ test('every driver Flow takes the frame and reports each job it queues', () => {
         assert.ok(queues > 0 && reports >= queues, `${id}: ${queues} enqueueGeneration call(s), ${reports} frame.onJob report(s)`);
     }
 });
+
+// Without `flowId` on the job, the card's sidecar says "an edit" and Reuse opens the bare model
+// instead of the Flow (Multi-angle, 2026-10-25).
+test('every driver Flow stamps its jobs with flowId + flowInputs, so Reuse reopens the Flow', () => {
+    for (const { id, fn } of _drivers()) {
+        const src = _source(fn);
+        assert.match(src, /flowId: flow\.id, flowInputs: inputs/, `${id}: the job config never carries flowId + flowInputs`);
+    }
+});

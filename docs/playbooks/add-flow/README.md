@@ -137,6 +137,9 @@ otherwise do for a graph Flow, so for EVERY `enqueueGeneration` it makes:
 - **Report the job:** `frame?.onJob?.(opts.tempId, done)`, with `opts` the `landingOpts(...)` passed to
   `enqueueGeneration` and `done` a promise settling `{ ok, item }` / `{ ok: false, code }`. This one call
   gives the pane its live latents, the sweep, Stop, and the landed picture.
+- **Stamp the Flow on the job:** `config.flowId = flow.id` and `config.flowInputs = inputs`, so the
+  sidecar records the Flow and Reuse > Apply to App reopens it with its inputs. Without them the card
+  reuses as the bare model op (an edit), never the Flow.
 - **Name a chain's place:** a job that is one leg of a chain sets `config.flowStep = '<n>/<total>'`, so
   the status bar reads "Editing 1/2", never the same "Editing" twice.
 - **Show work before the first job:** a read, plan or describe before anything queues is its own queue
@@ -165,7 +168,7 @@ Flow-specific additions:
 - [ ] Register the op in **4 files**: `commandRegistry.js` (`universal:true`, mediaType, mediaInputs with `Input_*` titles + correct per-slot mediaType — **audio = `'audio'`**), `universal_workflows.js`, `operationRegistry.js`, `operation_registry.json` (hand-maintained superset) — [01](01-descriptor-and-ops.md)
 - [ ] Add the `FlowDef` in `flowsRegistry.js` (`requiredModels` = MODEL ids, `{ label, models }` slots, or `[]`; `inputSchema.media` slot groups; `mediaType`; `type`) — [01](01-descriptor-and-ops.md)
 - [ ] Media roles in `inputSchema.media[].roles` MATCH the op's `mediaInputs` keys — [02](02-media-io.md)
-- [ ] **Driver Flow?** (`driver`, no graph) every job it queues calls `frame.onJob(tempId, done)`, a chain sets `flowStep`, and the driver is in `FLOW_DRIVERS` so `tests/flow-drivers-report-jobs.test.cjs` checks it — § Driver Flows
+- [ ] **Driver Flow?** (`driver`, no graph) every job it queues calls `frame.onJob(tempId, done)` and carries `flowId` + `flowInputs`, a chain sets `flowStep`, and the driver is in `FLOW_DRIVERS` so `tests/flow-drivers-report-jobs.test.cjs` checks it — § Driver Flows
 - [ ] Controls: declare `fields: [...]` on the FlowDef (MPI-531/MPI-572) — the SAME `fields` a step declares, placed on the run slide — the frame renders them, `Input_*` ids route into `injectionParams`. **There is no BESPOKE component surface** (MPI-572 deleted the per-Flow `uiComponent` Organism, which a third-party Flow can never ship) — but every declared field MOUNTS an app Primitive (MPI-582), so a Flow is nothing but components. If a control is not expressible, add a PRIMITIVE plus the FIELD TYPE, never a bare input — [ui/carousel-frame/fields.md](ui/carousel-frame/fields.md)
 - [ ] Does the flow IMPROVE media the user supplied? Declare `result: { compare: '<input role>' }` for the shared before/after surface. Omit when a comparison says nothing (same pixels, or an output that is not the same footage) — [ui/result-pane.md](ui/result-pane.md)
 - [ ] Nothing to do for a VIDEO result's player: a single video result mounts MpiVideoViewer + MpiVideoControlBar automatically, with compare (when declared) as a toggle on top — [ui/result-pane.md](ui/result-pane.md) § every video result gets the real player
