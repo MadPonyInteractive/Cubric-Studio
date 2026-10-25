@@ -21,8 +21,8 @@
 
 ## Fabio in the app
 
-- Done by Fabio, 2026-10-25: the button, the Preview gate and real GPU runs of both graphs
-  (the first executions of the new r2va routing and of fl2va sol-attn). His Superman/truck
+- Done by Fabio, 2026-10-25: the button, the Preview gate and real GPU runs of the r2va graph
+  (the first executions of the new routing). His Superman/truck
   board, 3 s clips, wall times as the cards show them:
 
   | run | size | time |
@@ -32,9 +32,11 @@
   | H3 Reference, Fast Motion on, turbo on (mode 0) | 1344x768 | 4m 10s |
   | H3 Reference, Fast Motion off, new graph (sol-attn) | 1344x768 | 2m 38s |
   | H3 Reference, Fast Motion off, before | 1344x768 | 2m 56s |
-  | MiniMax H3 (fl2va, sol-attn) | 1344x768 | 3m 28s |
+  | MiniMax H3 (fl2va), BEFORE sol-attn (baseline) | 1344x768 | 3m 28s |
 
   sol-attn on the Fast Motion-off path: 2m 56s -> 2m 38s (~10%, one sample each). Mode 0
   costs more than the half-size path, as expected (stage 1 drawn at full size).
   Tearing with turbo off is the old ref2va DiT (MPI-1284), not this card.
+- (pending) MiniMax H3 (fl2va) with sol-attn: no GPU run yet. Compare against the 3m 28s
+  baseline above.
 - (pending) The Superman request through Cosmo comes back with Fast Motion on, set by Cosmo.

@@ -7,5 +7,6 @@
 - [x] Cosmo rule in docs/agent/models/minimax-h3.md; docs/models/h3/fast-motion.md
 - [x] Tests + lint green
 - [x] sol-attn on MiniMax H3 (fl2va) stage 1, same settings, EasyCache kept, test pinned
-- [x] GPU runs: Fabio in the app, 2026-10-25, both graphs, every mode he tried (validation.md)
+- [x] GPU runs of the r2va graph: Fabio in the app, 2026-10-25, every mode he tried (validation.md)
+- [ ] GPU run of MiniMax H3 (fl2va) with sol-attn: Fabio, against the 3m 28s baseline
 - [ ] Superman re-run through Cosmo: Cosmo sets Fast Motion on by itself (the only item left)
