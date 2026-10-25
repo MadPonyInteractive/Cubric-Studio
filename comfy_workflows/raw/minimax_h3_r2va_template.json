@@ -1,8 +1,8 @@
 {
   "id": "b7203ad8-1d79-4f1b-9c51-5818c6501c66",
   "revision": 0,
-  "last_node_id": 879,
-  "last_link_id": 1186,
+  "last_node_id": 891,
+  "last_link_id": 1231,
   "nodes": [
     {
       "id": 196,
@@ -1651,7 +1651,7 @@
           "widget": {
             "name": "mode.width"
           },
-          "link": 1166
+          "link": 1212
         },
         {
           "name": "mode.height",
@@ -1659,7 +1659,7 @@
           "widget": {
             "name": "mode.height"
           },
-          "link": 1167
+          "link": 1213
         }
       ],
       "outputs": [
@@ -1667,7 +1667,8 @@
           "name": "latent",
           "type": "*",
           "links": [
-            851
+            1214,
+            1219
           ]
         }
       ],
@@ -1974,19 +1975,19 @@
         {
           "name": "a",
           "type": "*",
-          "link": 888
+          "link": 1197
         },
         {
           "name": "b",
           "shape": 7,
           "type": "*",
-          "link": null
+          "link": 1198
         },
         {
           "name": "c",
           "shape": 7,
           "type": "*",
-          "link": null
+          "link": 1199
         }
       ],
       "outputs": [
@@ -1998,17 +1999,17 @@
           ]
         }
       ],
-      "title": "floor(a/2)",
+      "title": "Stage 1 Height",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
         "ver": "cd951391ae9f5aa068e48cd4252d7549f20550ab",
         "Node name for S&R": "MpiMath"
       },
       "widgets_values": [
-        "floor(a / 64) * 32"
+        "floor(a / 64) * 32 if c == 3 else (a if c == 0 else b)"
       ],
       "widgets_values_named": {
-        "math_expression": "floor(a / 64) * 32"
+        "math_expression": "floor(a / 64) * 32 if c == 3 else (a if c == 0 else b)"
       }
     },
     {
@@ -5398,7 +5399,8 @@
           "name": "passthrough",
           "type": "*",
           "links": [
-            988
+            988,
+            1223
           ]
         }
       ],
@@ -5546,7 +5548,7 @@
           "label": "video_latent",
           "name": "video_latent",
           "type": "LATENT",
-          "link": 851
+          "link": 1221
         },
         {
           "label": "audio_latent",
@@ -6137,7 +6139,7 @@
         {
           "name": "samples",
           "type": "LATENT",
-          "link": 994
+          "link": 1226
         },
         {
           "name": "vae",
@@ -6186,7 +6188,7 @@
         {
           "name": "samples",
           "type": "LATENT",
-          "link": 995
+          "link": 1227
         },
         {
           "name": "vae",
@@ -6453,9 +6455,7 @@
           "name": "output",
           "type": "*",
           "links": [
-            1101,
-            1102,
-            1103
+            1228
           ]
         }
       ],
@@ -6865,7 +6865,7 @@
         {
           "name": "model",
           "type": "MODEL",
-          "link": 1102
+          "link": 1230
         }
       ],
       "outputs": [
@@ -6953,7 +6953,7 @@
         {
           "name": "model",
           "type": "MODEL",
-          "link": 1103
+          "link": 1231
         },
         {
           "name": "conditioning",
@@ -7077,7 +7077,7 @@
         {
           "name": "model",
           "type": "MODEL",
-          "link": 1101
+          "link": 1229
         }
       ],
       "outputs": [
@@ -7125,19 +7125,19 @@
         {
           "name": "a",
           "type": "*",
-          "link": 889
+          "link": 1194
         },
         {
           "name": "b",
           "shape": 7,
           "type": "*",
-          "link": null
+          "link": 1195
         },
         {
           "name": "c",
           "shape": 7,
           "type": "*",
-          "link": null
+          "link": 1196
         }
       ],
       "outputs": [
@@ -7149,17 +7149,17 @@
           ]
         }
       ],
-      "title": "floor(a/2)",
+      "title": "Stage 1 Width",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
         "ver": "cd951391ae9f5aa068e48cd4252d7549f20550ab",
         "Node name for S&R": "MpiMath"
       },
       "widgets_values": [
-        "floor(a / 64) * 32"
+        "floor(a / 64) * 32 if c == 3 else (a if c == 0 else b)"
       ],
       "widgets_values_named": {
-        "math_expression": "floor(a / 64) * 32"
+        "math_expression": "floor(a / 64) * 32 if c == 3 else (a if c == 0 else b)"
       }
     },
     {
@@ -7339,7 +7339,12 @@
           "name": "int",
           "type": "INT",
           "links": [
-            889
+            1187,
+            1189,
+            1191,
+            1194,
+            1200,
+            1204
           ]
         }
       ],
@@ -7385,7 +7390,11 @@
           "name": "int",
           "type": "INT",
           "links": [
-            888
+            1188,
+            1190,
+            1197,
+            1202,
+            1207
           ]
         }
       ],
@@ -8091,7 +8100,7 @@
         {
           "name": "*",
           "type": "*",
-          "link": 1165
+          "link": 1211
         }
       ],
       "outputs": [
@@ -8140,13 +8149,13 @@
           "name": "b",
           "shape": 7,
           "type": "*",
-          "link": 842
+          "link": 1202
         },
         {
           "name": "c",
           "shape": 7,
           "type": "*",
-          "link": null
+          "link": 1203
         }
       ],
       "outputs": [
@@ -8154,7 +8163,8 @@
           "name": "result",
           "type": "*",
           "links": [
-            1165
+            1208,
+            1213
           ]
         }
       ],
@@ -8164,10 +8174,10 @@
         "Node name for S&R": "MpiMath"
       },
       "widgets_values": [
-        "floor(floor(a / 16) * 16 * b / 32 + 0.5) * 32"
+        "b if c < 2 else 2 * a"
       ],
       "widgets_values_named": {
-        "math_expression": "floor(floor(a / 16) * 16 * b / 32 + 0.5) * 32"
+        "math_expression": "b if c < 2 else 2 * a"
       }
     },
     {
@@ -8196,13 +8206,13 @@
           "name": "b",
           "shape": 7,
           "type": "*",
-          "link": 840
+          "link": 1200
         },
         {
           "name": "c",
           "shape": 7,
           "type": "*",
-          "link": null
+          "link": 1201
         }
       ],
       "outputs": [
@@ -8210,7 +8220,8 @@
           "name": "result",
           "type": "*",
           "links": [
-            1164
+            1205,
+            1212
           ]
         }
       ],
@@ -8220,48 +8231,10 @@
         "Node name for S&R": "MpiMath"
       },
       "widgets_values": [
-        "floor(floor(a / 16) * 16 * b / 32 + 0.5) * 32"
+        "b if c < 2 else 2 * a"
       ],
       "widgets_values_named": {
-        "math_expression": "floor(floor(a / 16) * 16 * b / 32 + 0.5) * 32"
-      }
-    },
-    {
-      "id": 578,
-      "type": "MpiFloat",
-      "pos": [
-        -3219.250940666181,
-        5800.14040046453
-      ],
-      "size": [
-        270,
-        58
-      ],
-      "flags": {},
-      "order": 88,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "float",
-          "type": "FLOAT",
-          "links": [
-            840,
-            842
-          ]
-        }
-      ],
-      "title": "Upscale Factor",
-      "properties": {
-        "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "39c31ca24fa2f0431e56a3073f05e0d45293be03",
-        "Node name for S&R": "MpiFloat"
-      },
-      "widgets_values": [
-        2
-      ],
-      "widgets_values_named": {
-        "float": 2
+        "math_expression": "b if c < 2 else 2 * a"
       }
     },
     {
@@ -8493,82 +8466,6 @@
       }
     },
     {
-      "id": 867,
-      "type": "GetNode",
-      "pos": [
-        861.0572372451533,
-        6704.637211079235
-      ],
-      "size": [
-        210,
-        60
-      ],
-      "flags": {
-        "collapsed": true
-      },
-      "order": 95,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            1166
-          ]
-        }
-      ],
-      "title": "Get_W up",
-      "properties": {
-        "Node name for S&R": "GetNode",
-        "aux_id": "kijai/ComfyUI-KJNodes"
-      },
-      "widgets_values": [
-        "W up"
-      ],
-      "widgets_values_named": {
-        "Constant": "W up"
-      }
-    },
-    {
-      "id": 868,
-      "type": "GetNode",
-      "pos": [
-        866.0572372451535,
-        6754.230299486483
-      ],
-      "size": [
-        210,
-        58
-      ],
-      "flags": {
-        "collapsed": true
-      },
-      "order": 96,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            1167
-          ]
-        }
-      ],
-      "title": "Get_H up",
-      "properties": {
-        "Node name for S&R": "GetNode",
-        "aux_id": "kijai/ComfyUI-KJNodes"
-      },
-      "widgets_values": [
-        "H up"
-      ],
-      "widgets_values_named": {
-        "Constant": "H up"
-      }
-    },
-    {
       "id": 863,
       "type": "SetNode",
       "pos": [
@@ -8586,7 +8483,7 @@
         {
           "name": "*",
           "type": "*",
-          "link": 1164
+          "link": 1210
         }
       ],
       "outputs": [
@@ -9112,8 +9009,7 @@
           "name": "output",
           "type": "LATENT",
           "links": [
-            994,
-            995
+            1224
           ]
         },
         {
@@ -9756,6 +9652,675 @@
       "widgets_values_named": {
         "Constant": "a2"
       }
+    },
+    {
+      "type": "MpiSimpleBoolean",
+      "pos": [
+        -3235.684991067697,
+        5810.636270029426
+      ],
+      "size": [
+        226,
+        58
+      ],
+      "title": "Input_Fast_Motion",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "links": [
+            1193
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "ec82d9a4ff650beabfb508412efd03e989ebb92c",
+        "Node name for S&R": "MpiSimpleBoolean"
+      },
+      "widgets_values": [
+        false
+      ],
+      "widgets_values_named": {
+        "boolean": false
+      },
+      "color": "#432",
+      "bgcolor": "#653",
+      "flags": {},
+      "order": 999,
+      "mode": 0,
+      "id": 880
+    },
+    {
+      "type": "MpiMath",
+      "pos": [
+        -3235.684991067697,
+        5910.636270029426
+      ],
+      "size": [
+        290,
+        128
+      ],
+      "title": "Base Width",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "*",
+          "link": 1187
+        },
+        {
+          "name": "b",
+          "shape": 7,
+          "type": "*",
+          "link": 1188
+        },
+        {
+          "name": "c",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "result",
+          "type": "*",
+          "links": [
+            1192,
+            1195
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "ec82d9a4ff650beabfb508412efd03e989ebb92c",
+        "Node name for S&R": "MpiMath"
+      },
+      "widgets_values": [
+        "768 if a == b else ((1536 if a > 2.2 * b else 1344) if a > b else 768)"
+      ],
+      "widgets_values_named": {
+        "math_expression": "768 if a == b else ((1536 if a > 2.2 * b else 1344) if a > b else 768)"
+      },
+      "flags": {},
+      "order": 999,
+      "mode": 0,
+      "id": 881
+    },
+    {
+      "type": "MpiMath",
+      "pos": [
+        -3235.684991067697,
+        5970.636270029426
+      ],
+      "size": [
+        290,
+        128
+      ],
+      "title": "Base Height",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "*",
+          "link": 1189
+        },
+        {
+          "name": "b",
+          "shape": 7,
+          "type": "*",
+          "link": 1190
+        },
+        {
+          "name": "c",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "result",
+          "type": "*",
+          "links": [
+            1198
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "ec82d9a4ff650beabfb508412efd03e989ebb92c",
+        "Node name for S&R": "MpiMath"
+      },
+      "widgets_values": [
+        "768 if a == b else ((640 if a > 2.2 * b else 768) if a > b else 1344)"
+      ],
+      "widgets_values_named": {
+        "math_expression": "768 if a == b else ((640 if a > 2.2 * b else 768) if a > b else 1344)"
+      },
+      "flags": {},
+      "order": 999,
+      "mode": 0,
+      "id": 882
+    },
+    {
+      "type": "MpiMath",
+      "pos": [
+        -3235.684991067697,
+        6030.636270029426
+      ],
+      "size": [
+        290,
+        128
+      ],
+      "title": "Fast Motion Mode",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "*",
+          "link": 1191
+        },
+        {
+          "name": "b",
+          "shape": 7,
+          "type": "*",
+          "link": 1192
+        },
+        {
+          "name": "c",
+          "shape": 7,
+          "type": "*",
+          "link": 1193
+        }
+      ],
+      "outputs": [
+        {
+          "name": "result",
+          "type": "*",
+          "links": [
+            1196,
+            1199,
+            1201,
+            1203,
+            1206,
+            1209,
+            1217,
+            1222
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "ec82d9a4ff650beabfb508412efd03e989ebb92c",
+        "Node name for S&R": "MpiMath"
+      },
+      "widgets_values": [
+        "(0 if a <= b else (1 if a <= 2 * b else 2)) if c else 3"
+      ],
+      "widgets_values_named": {
+        "math_expression": "(0 if a <= b else (1 if a <= 2 * b else 2)) if c else 3"
+      },
+      "flags": {},
+      "order": 999,
+      "mode": 0,
+      "id": 883
+    },
+    {
+      "type": "MpiMath",
+      "pos": [
+        -2862.880391575928,
+        6032.792420729471
+      ],
+      "size": [
+        290,
+        128
+      ],
+      "title": "Refine Width",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "*",
+          "link": 1204
+        },
+        {
+          "name": "b",
+          "shape": 7,
+          "type": "*",
+          "link": 1205
+        },
+        {
+          "name": "c",
+          "shape": 7,
+          "type": "*",
+          "link": 1206
+        }
+      ],
+      "outputs": [
+        {
+          "name": "result",
+          "type": "*",
+          "links": [
+            1210,
+            1215
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "ec82d9a4ff650beabfb508412efd03e989ebb92c",
+        "Node name for S&R": "MpiMath"
+      },
+      "widgets_values": [
+        "b if c == 3 else a"
+      ],
+      "widgets_values_named": {
+        "math_expression": "b if c == 3 else a"
+      },
+      "flags": {},
+      "order": 999,
+      "mode": 0,
+      "id": 884
+    },
+    {
+      "type": "MpiMath",
+      "pos": [
+        -2862.880391575928,
+        6092.792420729471
+      ],
+      "size": [
+        290,
+        128
+      ],
+      "title": "Refine Height",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "*",
+          "link": 1207
+        },
+        {
+          "name": "b",
+          "shape": 7,
+          "type": "*",
+          "link": 1208
+        },
+        {
+          "name": "c",
+          "shape": 7,
+          "type": "*",
+          "link": 1209
+        }
+      ],
+      "outputs": [
+        {
+          "name": "result",
+          "type": "*",
+          "links": [
+            1211,
+            1216
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "ec82d9a4ff650beabfb508412efd03e989ebb92c",
+        "Node name for S&R": "MpiMath"
+      },
+      "widgets_values": [
+        "b if c == 3 else a"
+      ],
+      "widgets_values_named": {
+        "math_expression": "b if c == 3 else a"
+      },
+      "flags": {},
+      "order": 999,
+      "mode": 0,
+      "id": 885
+    },
+    {
+      "type": "MinimaxH3LatentUpscaler3D",
+      "pos": [
+        1041.3915994315464,
+        6929.455190141932
+      ],
+      "size": [
+        319.566015625,
+        250
+      ],
+      "flags": {},
+      "order": 177,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "latent",
+          "type": "*",
+          "link": 1214
+        },
+        {
+          "name": "mode.width",
+          "type": "INT",
+          "widget": {
+            "name": "mode.width"
+          },
+          "link": 1215
+        },
+        {
+          "name": "mode.height",
+          "type": "INT",
+          "widget": {
+            "name": "mode.height"
+          },
+          "link": 1216
+        }
+      ],
+      "outputs": [
+        {
+          "name": "latent",
+          "type": "*",
+          "links": [
+            1218
+          ]
+        }
+      ],
+      "properties": {
+        "aux_id": "LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler",
+        "ver": "d7c01b9011f2e8439493f6c02c29995a27df276f",
+        "Node name for S&R": "MinimaxH3LatentUpscaler3D"
+      },
+      "widgets_values": [
+        "minimax_h3_latent_upscaler_3d_bf16.safetensors",
+        "target dimensions",
+        1280,
+        704,
+        32,
+        true,
+        true,
+        "cuda",
+        "bf16"
+      ],
+      "widgets_values_named": {
+        "model_name": "minimax_h3_latent_upscaler_3d_bf16.safetensors",
+        "mode": "target dimensions",
+        "mode.width": 1280,
+        "mode.height": 704,
+        "align": 32,
+        "enable_temporal_chunking": true,
+        "force_unload": true,
+        "device": "cuda",
+        "precision": "bf16"
+      },
+      "title": "Hop 2 Upscaler (Fast Motion 4K)",
+      "id": 886
+    },
+    {
+      "type": "MpiMath",
+      "pos": [
+        1041.3915994315464,
+        7209.455190141932
+      ],
+      "size": [
+        290,
+        128
+      ],
+      "title": "Needs Hop 2",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "*",
+          "link": 1217
+        },
+        {
+          "name": "b",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        },
+        {
+          "name": "c",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "result",
+          "type": "*",
+          "links": [
+            1220
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "ec82d9a4ff650beabfb508412efd03e989ebb92c",
+        "Node name for S&R": "MpiMath"
+      },
+      "widgets_values": [
+        "a == 2"
+      ],
+      "widgets_values_named": {
+        "math_expression": "a == 2"
+      },
+      "flags": {},
+      "order": 999,
+      "mode": 0,
+      "id": 887
+    },
+    {
+      "type": "MpiIfElse",
+      "pos": [
+        1401.3915994315464,
+        6929.455190141932
+      ],
+      "size": [
+        210,
+        78
+      ],
+      "inputs": [
+        {
+          "name": "true",
+          "type": "*",
+          "link": 1218
+        },
+        {
+          "name": "false",
+          "type": "*",
+          "link": 1219
+        },
+        {
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "boolean"
+          },
+          "link": 1220
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "*",
+          "links": [
+            1221
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "ec82d9a4ff650beabfb508412efd03e989ebb92c",
+        "Node name for S&R": "MpiIfElse"
+      },
+      "widgets_values": [
+        true
+      ],
+      "widgets_values_named": {
+        "boolean": true
+      },
+      "flags": {},
+      "order": 999,
+      "mode": 0,
+      "id": 888
+    },
+    {
+      "type": "MpiMath",
+      "pos": [
+        2361.094450788726,
+        6294.136068929869
+      ],
+      "size": [
+        290,
+        128
+      ],
+      "title": "One Pass",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "*",
+          "link": 1222
+        },
+        {
+          "name": "b",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        },
+        {
+          "name": "c",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "result",
+          "type": "*",
+          "links": [
+            1225
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "ec82d9a4ff650beabfb508412efd03e989ebb92c",
+        "Node name for S&R": "MpiMath"
+      },
+      "widgets_values": [
+        "a == 0"
+      ],
+      "widgets_values_named": {
+        "math_expression": "a == 0"
+      },
+      "flags": {},
+      "order": 999,
+      "mode": 0,
+      "id": 889
+    },
+    {
+      "type": "MpiIfElse",
+      "pos": [
+        2361.094450788726,
+        6374.136068929869
+      ],
+      "size": [
+        210,
+        78
+      ],
+      "inputs": [
+        {
+          "name": "true",
+          "type": "*",
+          "link": 1223
+        },
+        {
+          "name": "false",
+          "type": "*",
+          "link": 1224
+        },
+        {
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "boolean"
+          },
+          "link": 1225
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "*",
+          "links": [
+            1226,
+            1227
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "ec82d9a4ff650beabfb508412efd03e989ebb92c",
+        "Node name for S&R": "MpiIfElse"
+      },
+      "widgets_values": [
+        true
+      ],
+      "widgets_values_named": {
+        "boolean": true
+      },
+      "flags": {},
+      "order": 999,
+      "mode": 0,
+      "id": 890
+    },
+    {
+      "type": "BlockSparseAttention",
+      "pos": [
+        -1587.9062542566903,
+        6749.039769085377
+      ],
+      "size": [
+        320,
+        250
+      ],
+      "title": "sol-attn",
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 1228
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            1229,
+            1230,
+            1231
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "Node name for S&R": "BlockSparseAttention"
+      },
+      "widgets_values": [
+        "sol-attn",
+        1.3,
+        0.2,
+        1.0,
+        "",
+        12288,
+        256,
+        "exact_kv_and_rows",
+        false
+      ],
+      "flags": {},
+      "order": 999,
+      "mode": 0,
+      "id": 891
     }
   ],
   "links": [
@@ -10160,28 +10725,12 @@
       "*"
     ],
     [
-      840,
-      578,
-      0,
-      582,
-      1,
-      "FLOAT"
-    ],
-    [
       841,
       577,
       0,
       583,
       0,
       "*"
-    ],
-    [
-      842,
-      578,
-      0,
-      583,
-      1,
-      "FLOAT"
     ],
     [
       844,
@@ -10214,14 +10763,6 @@
       586,
       2,
       "BOOLEAN"
-    ],
-    [
-      851,
-      585,
-      0,
-      588,
-      0,
-      "LATENT"
     ],
     [
       852,
@@ -10294,22 +10835,6 @@
       619,
       0,
       "*"
-    ],
-    [
-      888,
-      622,
-      0,
-      620,
-      0,
-      "INT"
-    ],
-    [
-      889,
-      623,
-      0,
-      621,
-      0,
-      "INT"
     ],
     [
       903,
@@ -10888,22 +11413,6 @@
       "LATENT"
     ],
     [
-      994,
-      712,
-      0,
-      605,
-      0,
-      "LATENT"
-    ],
-    [
-      995,
-      712,
-      0,
-      606,
-      0,
-      "LATENT"
-    ],
-    [
       997,
       606,
       0,
@@ -11056,30 +11565,6 @@
       "MODEL"
     ],
     [
-      1101,
-      561,
-      0,
-      564,
-      0,
-      "MODEL"
-    ],
-    [
-      1102,
-      561,
-      0,
-      560,
-      0,
-      "MODEL"
-    ],
-    [
-      1103,
-      561,
-      0,
-      562,
-      0,
-      "MODEL"
-    ],
-    [
       1117,
       600,
       0,
@@ -11126,38 +11611,6 @@
       610,
       1,
       "AUDIO"
-    ],
-    [
-      1164,
-      582,
-      0,
-      863,
-      0,
-      "*"
-    ],
-    [
-      1165,
-      583,
-      0,
-      866,
-      0,
-      "*"
-    ],
-    [
-      1166,
-      867,
-      0,
-      585,
-      1,
-      "INT"
-    ],
-    [
-      1167,
-      868,
-      0,
-      585,
-      2,
-      "INT"
     ],
     [
       1168,
@@ -11270,6 +11723,366 @@
       565,
       4,
       "LATENT"
+    ],
+    [
+      1187,
+      623,
+      0,
+      881,
+      0,
+      "INT"
+    ],
+    [
+      1188,
+      622,
+      0,
+      881,
+      1,
+      "INT"
+    ],
+    [
+      1189,
+      623,
+      0,
+      882,
+      0,
+      "INT"
+    ],
+    [
+      1190,
+      622,
+      0,
+      882,
+      1,
+      "INT"
+    ],
+    [
+      1191,
+      623,
+      0,
+      883,
+      0,
+      "INT"
+    ],
+    [
+      1192,
+      881,
+      0,
+      883,
+      1,
+      "*"
+    ],
+    [
+      1193,
+      880,
+      0,
+      883,
+      2,
+      "BOOLEAN"
+    ],
+    [
+      1194,
+      623,
+      0,
+      621,
+      0,
+      "INT"
+    ],
+    [
+      1195,
+      881,
+      0,
+      621,
+      1,
+      "*"
+    ],
+    [
+      1196,
+      883,
+      0,
+      621,
+      2,
+      "*"
+    ],
+    [
+      1197,
+      622,
+      0,
+      620,
+      0,
+      "INT"
+    ],
+    [
+      1198,
+      882,
+      0,
+      620,
+      1,
+      "*"
+    ],
+    [
+      1199,
+      883,
+      0,
+      620,
+      2,
+      "*"
+    ],
+    [
+      1200,
+      623,
+      0,
+      582,
+      1,
+      "INT"
+    ],
+    [
+      1201,
+      883,
+      0,
+      582,
+      2,
+      "*"
+    ],
+    [
+      1202,
+      622,
+      0,
+      583,
+      1,
+      "INT"
+    ],
+    [
+      1203,
+      883,
+      0,
+      583,
+      2,
+      "*"
+    ],
+    [
+      1204,
+      623,
+      0,
+      884,
+      0,
+      "INT"
+    ],
+    [
+      1205,
+      582,
+      0,
+      884,
+      1,
+      "*"
+    ],
+    [
+      1206,
+      883,
+      0,
+      884,
+      2,
+      "*"
+    ],
+    [
+      1207,
+      622,
+      0,
+      885,
+      0,
+      "INT"
+    ],
+    [
+      1208,
+      583,
+      0,
+      885,
+      1,
+      "*"
+    ],
+    [
+      1209,
+      883,
+      0,
+      885,
+      2,
+      "*"
+    ],
+    [
+      1210,
+      884,
+      0,
+      863,
+      0,
+      "*"
+    ],
+    [
+      1211,
+      885,
+      0,
+      866,
+      0,
+      "*"
+    ],
+    [
+      1212,
+      582,
+      0,
+      585,
+      1,
+      "INT"
+    ],
+    [
+      1213,
+      583,
+      0,
+      585,
+      2,
+      "INT"
+    ],
+    [
+      1214,
+      585,
+      0,
+      886,
+      0,
+      "*"
+    ],
+    [
+      1215,
+      884,
+      0,
+      886,
+      1,
+      "INT"
+    ],
+    [
+      1216,
+      885,
+      0,
+      886,
+      2,
+      "INT"
+    ],
+    [
+      1217,
+      883,
+      0,
+      887,
+      0,
+      "*"
+    ],
+    [
+      1218,
+      886,
+      0,
+      888,
+      0,
+      "*"
+    ],
+    [
+      1219,
+      585,
+      0,
+      888,
+      1,
+      "*"
+    ],
+    [
+      1220,
+      887,
+      0,
+      888,
+      2,
+      "BOOLEAN"
+    ],
+    [
+      1221,
+      888,
+      0,
+      588,
+      0,
+      "*"
+    ],
+    [
+      1222,
+      883,
+      0,
+      889,
+      0,
+      "*"
+    ],
+    [
+      1223,
+      711,
+      0,
+      890,
+      0,
+      "LATENT"
+    ],
+    [
+      1224,
+      712,
+      0,
+      890,
+      1,
+      "LATENT"
+    ],
+    [
+      1225,
+      889,
+      0,
+      890,
+      2,
+      "BOOLEAN"
+    ],
+    [
+      1226,
+      890,
+      0,
+      605,
+      0,
+      "LATENT"
+    ],
+    [
+      1227,
+      890,
+      0,
+      606,
+      0,
+      "LATENT"
+    ],
+    [
+      1228,
+      561,
+      0,
+      891,
+      0,
+      "MODEL"
+    ],
+    [
+      1229,
+      891,
+      0,
+      564,
+      0,
+      "MODEL"
+    ],
+    [
+      1230,
+      891,
+      0,
+      560,
+      0,
+      "MODEL"
+    ],
+    [
+      1231,
+      891,
+      0,
+      562,
+      0,
+      "MODEL"
     ]
   ],
   "groups": [
