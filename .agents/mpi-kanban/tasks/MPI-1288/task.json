@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1288",
+  "title": "See how people land on cubric.studio",
+  "description": "Downloads jumped to ~400 Windows full zips a day (2.1.2: 1,720 in 4 days) but GitHub traffic cannot say from where: the cubric.studio download button links straight to the release asset, so GitHub sees ~15 page views a day and no referrer. The site promises 'No analytics' (footer, index.html:160) and has none. cubric.studio DNS is on Cloudflare (DNS only, not proxied; server is GitHub Pages). Repo: C:\\AI\\Mpi\\Cubric Studio (Website) (no board there, so the card lives here). Options, cheapest first: (1) Google Search Console, verify by a DNS TXT record on Cloudflare: search terms, landing pages and clicks, no script, nothing on the visitor, keeps the promise. (2) Cloudflare Web Analytics beacon: cookieless, free, gives referrers, pages, countries; but it IS analytics, so the footer line and the privacy page must change first (Fabio's product call). (3) Orange-cloud the record so Cloudflare counts requests server-side: no script, but GitHub Pages HTTPS behind the proxy needs care, and zone analytics give totals, not per-visitor referrers. Fabio decides between (2) and nothing; (1) is a free first step. Also: ask the Discord 'how did you find us?'. Source session: Identity 2026-10-25.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-10-25T19:51:55+00:00",
+  "updated_at": "2026-10-25T19:51:55+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
