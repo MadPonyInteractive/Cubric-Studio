@@ -25,6 +25,14 @@ Singularity v2, MPI-1284). Fast Motion never lands in MiniMax H3; that model onl
 - The time-chunked refine ALREADY EXISTS and is measured on 16 GB: `MpiWindowedSampler`, see
   `docs/models/h3/windowing.md` (window ceiling read from the stage-2 target size). Reuse it, no new bench.
 
+## Cosmo must set it (Fabio, 2026-10-25, MPI-1135 in-app test)
+
+- The switch is also an agent param: Cosmo turns Fast Motion ON for a fast-action scene (a
+  launch, a flight, a chase, a fight) on H3 Reference, without asking. Fabio's test: Superman
+  speaks, then flies off; Cosmo ran it on H3 Reference with no way to turn Fast Motion on.
+- Done = the param in the connector/describe_model + a "Fast Motion" rule in
+  `docs/agent/models/minimax-h3.md` + that same test re-run in the app.
+
 ## Open
 - Whether the native-base upscale still loses on fast motion is untested: Phase 1's losing upscale
   drew the motion at 672x384, this one draws it at 1344x768 (the winning "none" clip).

@@ -297,6 +297,10 @@ Too slow on the local 4060 Ti. Fabio chose a persistent volume over a fresh Pod 
   `https://<id>-8188.proxy.runpod.net/system_stats` and SSH (`tail boot.log`) instead.
   Restart a Pod with `POST https://rest.runpod.io/v1/pods/<id>/restart` (v2 has no restart).
 
+- 2026-10-25 ("H3 Singularity 9") Fabio's in-app test of the guide: run 1 picked i2v_ms over the named
+  H3 Reference and restated the picture; guide fixed (named model wins, no warning, no restate), run 2
+  correct. Fast Motion-by-Cosmo added to MPI-1285's brief. **Card closed.**
+
 ## Plan Drift
 
 - 2026-10-25 ("H3 Singularity 5"): **the network volume `l545j38pyx` is FULL** (quota ~145 GB,

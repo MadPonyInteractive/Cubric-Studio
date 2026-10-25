@@ -18,6 +18,9 @@ guide:
 - A still should come alive: `i2v_ms` with that still as the first frame. No `i2v_ms`
   installed, or the user names the reference op: `ref2v_ms` can try it, but it often misses,
   see "A first or last frame on ref2v_ms" below.
+- The model the user names wins. "Use MiniMax H3 Reference, but as image to video" means
+  `ref2v_ms` with the still as its first frame, not `i2v_ms`: their words say what the clip
+  does, the model name says which card runs it. Run it without a warning; they chose.
 
 ## Settings
 
@@ -37,8 +40,11 @@ Plain text, no markdown, these parts in this order:
 
 1. A look line: subject and style, palette, atmosphere, mood. A lens, film stock or shot
    size goes here too; nothing else in the prompt gives them a home. With a first frame
-   (`i2v_ms`, or a frame on `ref2v_ms`) the picture already shows the subject, setting and
-   palette: do not restate them. Words describing what the picture shows win over the
+   (`i2v_ms`, or a frame on `ref2v_ms`) the picture already shows the subject, setting,
+   light, weather, time of day and palette: do not restate any of them. Keep only what the
+   picture cannot show (a lens, a mood), or drop the line. "Wide eye-level shot, cloudy
+   late-morning city street, natural soft daylight" over a still of that street is a restate.
+   Words describing what the picture shows win over the
    picture (measured: "a woman in a coral bikini on a white-sand beach, turquoise" turned a
    driftwood beach into a generic one, gulls and all; without that line the frame held).
 2. `ref2v_ms` only: a reference line giving every reference a job, e.g. "Use <Picture 1>
@@ -100,7 +106,8 @@ makes a miss much more likely. `i2v_ms` (`minimax-h3`) is the true image to vide
 user wants that exact picture to come alive and only `ref2v_ms` is installed, say so before
 you run it: "I can try it with H3 Reference, but it does not always keep your picture. For
 true image to video there is MiniMax H3: want me to install it?" When both are installed,
-use `i2v_ms`, and `ref2v_ms` only when the user asks for it.
+use `i2v_ms`, and `ref2v_ms` only when the user asks for it. When they name H3 Reference,
+run `ref2v_ms` and say nothing about the lottery: they already chose it.
 
 Give the frame its job in the reference line, then write what happens next:
 "Open the shot on <Picture 1> as its first frame, keeping its composition, camera angle and

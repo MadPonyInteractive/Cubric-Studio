@@ -144,3 +144,14 @@ i2v a lottery: **Singularity is not an image-to-video model.** Decisions: **Mini
 (only gains sol-attn; non-turbo sol-attn + EasyCache); **MiniMax H3 Reference keeps its name, its base
 model becomes Singularity v2** (ours was the weak one, more tearing); **Fast Motion lands in H3 Reference
 only**; nothing is deprecated. The tested LoRAs are deleted. Cards updated: MPI-1284, MPI-1285, MPI-1286.
+
+## Cosmo H3 guide, in-app test (Fabio, 2026-10-25)
+
+Ask: "do image-to-video on this scene ... please use MiniMax H3 reference but do it as image-to-video"
+(both H3 models installed). Run 1 (guide at 2ad8d7d39): Cosmo ran `minimax-h3:i2v_ms`, ignoring the
+named model, and opened with "Wide eye-level shot, cloudy late-morning city street, natural soft
+daylight", a restate of the still. Guide fixed: the model the user names wins, no lottery warning when
+they chose it, and the look line never restates setting, light, weather or time of day. Run 2 after
+Start over (app log 19:16:55): `minimax-h3-ref2va:ref2v_ms`, no warning, prompt opens "Open the shot on
+<Picture 1> as its first frame ..." then the action only. **Verdict (Fabio): accepted.** Fast Motion
+for this fast-action scene is not built yet: MPI-1285 (brief now says Cosmo turns it on himself).
