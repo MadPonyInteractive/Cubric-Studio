@@ -6,6 +6,17 @@ Workflow: `chanon/comfyui-obvpm-timeline`, **GPL-3.0 → ideas only, nothing cop
 LTX Director in MPI-1191). Fabio, 2026-10-25: "a research technique that should be considered and
 used" for Story / Infinite Video.
 
+## READ FIRST — what changed after this was written (Fabio, 2026-10-25, MPI-1135)
+
+- **Singularity H3 v2 replaces both MiniMax H3 and H3 Reference** (2.1.3, build card MPI-1284).
+  Every "H3" below means Singularity H3 by the time Story is built; re-check each claim on it.
+- **New Fast Motion switch: when on, there is NO upscale stage.** A low-MP draft upscaled tears on
+  fast motion. So Technique 1 (0.2 MP draft → ×3 upscale) and "bridge at 0.2 MP, upscale the whole
+  timeline" only hold for calm shots (his demos are a woman talking to camera — the best case).
+  A Fast Motion run must be drafted, rooted and bridged at FINAL resolution: slower and heavier per
+  clip, and a 12 s bridge at full res may not fit in VRAM. The planner needs a per-run choice:
+  calm → low-res chain + upscale; fast → full-res roots + bridges, shorter ones. Bench both.
+
 ## The problem it solves
 
 Chain-extending (each clip continues from the previous clip's latents) **drifts**: after six
