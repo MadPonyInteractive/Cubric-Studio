@@ -1,0 +1,49 @@
+{
+  "ask": "Say what the main subject of this picture is and how it looks, as one phrase of at most 25 words that starts with \"a\" or \"an\": first its art style (a photo, a 3D-animated cartoon, an anime drawing, a watercolour painting...), then what kind of creature, person, thing or place it is, then its most telling colours, body shape and clothes. Never its pose, what it is doing or what is around it. For example: a 3D-animated cartoon hairless grey cat with large ears and wrinkled skin. Answer with the phrase only.",
+  "looks": [
+    "a 3D-animated cartoon hairless grey cat with large ears, wrinkled skin, and amber eyes",
+    "a 3D-animated cartoon white tiger with brown stripes and a muscular body"
+  ],
+  "source": "Your idea: Create a story with the cat and the tiger. They are enemies. The tiger is good, the cat is bad. Make them fight next to a volcano at night. Intense fight, it's raining, and the tiger wins. Do a nice introduction for one and the other as they arrive at the meeting place by the volcano.\nYour pictures: Picture 1 shows a 3D-animated cartoon hairless grey cat with large ears, wrinkled skin, and amber eyes. Picture 2 shows a 3D-animated cartoon white tiger with brown stripes and a muscular body.\nPanels: 6\nVideo shape: 16:9",
+  "plan": "Storyboard plan:\n\n[CAST]  \nCat: a 3D-animated cartoon hairless grey cat with large ears, wrinkled skin, and amber eyes from image 1  \nTiger: a 3D-animated cartoon white tiger with brown stripes and a muscular body from image 2  \n\n[PLACES]  \nVolcano's Edge: a rocky volcanic slope with glowing lava flows nearby, night, heavy rain.\n\n[PANEL 1]  \nPicture: 3D-animated cartoon film still, wide establishing shot, high angle overlooking a volcanic slope, dark night sky, heavy rain falling in streaks, molten lava glowing in crevices in the background, a flat rocky ledge in the center foreground, empty, lit by orange volcanic glow and occasional lightning.  \nIntent: Sets the ominous, rainy night meeting place at the volcano before either character arrives.\n\n[PANEL 2]  \nPicture: 3D-animated cartoon film still, medium shot, low angle, Cat striding confidently from frame-left onto the rocky ledge, rain dripping off his ears and wrinkled skin, amber eyes glowing, volcanic light casting long shadows, frame-right clear.  \nIntent: Introduces the villain as he arrives at the meeting spot, exuding arrogance and menace.\n\n[PANEL 3]  \nPicture: 3D-animated cartoon film still, medium shot, side profile, Tiger walking from frame-right onto the ledge, muscular body moving steadily, rain streaming down his striped fur, Cat visible in the background frame-left, both facing each other, volcanic glow behind them.  \nIntent: Introduces the hero as he arrives to confront the cat, establishing their face-off.\n\n[PANEL 4]  \nPicture: 3D-animated cartoon film still, close-up action shot, Tiger and Cat locked in a mid-struggle, Tiger's paw raised high and Cat snarling, claws out, bodies tensed, rain splashing between them, volcanic embers floating in the air.  \nIntent: Captures the peak of the intense, physical fight between the two enemies.\n\n[PANEL 5]  \nPicture: 3D-animated cartoon film still, over-the-shoulder shot, Tiger standing tall in the foreground, looking down, Cat lying on the ground frame-center, pinned under Tiger's paw, soaked and defeated, rain falling heavily, lava glow flickering on the rocks.  \nIntent: Shows Tiger's victory as the cat is subdued and beaten.\n\n[PANEL 6]  \nPicture: 3D-animated cartoon film still, wide shot, high angle, Tiger standing alone on the rocky ledge at Volcano's Edge, rain still falling, head raised, volcanic glow behind him, the defeated Cat visible as a small lump on the ground far below in the frame-lower-left, night sky above.  \nIntent: Closes the story on the tiger's triumph and the end of the conflict at the volcano.",
+  "usage": {
+    "prompt_tokens": 769,
+    "total_tokens": 2899,
+    "completion_tokens": 2130,
+    "estimated_cost": 0.00042954,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": null
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 1532
+    }
+  },
+  "spent": 0.0005007400000000001,
+  "panels": [
+    {
+      "prompt": "3D-animated cartoon film still, wide establishing shot, high angle overlooking a volcanic slope, dark night sky, heavy rain falling in streaks, molten lava glowing in crevices in the background, a flat rocky ledge in the center foreground, empty, lit by orange volcanic glow and occasional lightning.",
+      "intent": "Sets the ominous, rainy night meeting place at the volcano before either character arrives."
+    },
+    {
+      "prompt": "3D-animated cartoon film still, medium shot, low angle, Cat striding confidently from frame-left onto the rocky ledge, rain dripping off his ears and wrinkled skin, amber eyes glowing, volcanic light casting long shadows, frame-right clear. Cat is a 3D-animated cartoon hairless grey cat with large ears, wrinkled skin, and amber eyes from image 1.",
+      "intent": "Introduces the villain as he arrives at the meeting spot, exuding arrogance and menace."
+    },
+    {
+      "prompt": "3D-animated cartoon film still, medium shot, side profile, Tiger walking from frame-right onto the ledge, muscular body moving steadily, rain streaming down his striped fur, Cat visible in the background frame-left, both facing each other, volcanic glow behind them. Cat is a 3D-animated cartoon hairless grey cat with large ears, wrinkled skin, and amber eyes from image 1. Tiger is a 3D-animated cartoon white tiger with brown stripes and a muscular body from image 2.",
+      "intent": "Introduces the hero as he arrives to confront the cat, establishing their face-off."
+    },
+    {
+      "prompt": "3D-animated cartoon film still, close-up action shot, Tiger and Cat locked in a mid-struggle, Tiger's paw raised high and Cat snarling, claws out, bodies tensed, rain splashing between them, volcanic embers floating in the air. Cat is a 3D-animated cartoon hairless grey cat with large ears, wrinkled skin, and amber eyes from image 1. Tiger is a 3D-animated cartoon white tiger with brown stripes and a muscular body from image 2.",
+      "intent": "Captures the peak of the intense, physical fight between the two enemies."
+    },
+    {
+      "prompt": "3D-animated cartoon film still, over-the-shoulder shot, Tiger standing tall in the foreground, looking down, Cat lying on the ground frame-center, pinned under Tiger's paw, soaked and defeated, rain falling heavily, lava glow flickering on the rocks. Cat is a 3D-animated cartoon hairless grey cat with large ears, wrinkled skin, and amber eyes from image 1. Tiger is a 3D-animated cartoon white tiger with brown stripes and a muscular body from image 2.",
+      "intent": "Shows Tiger's victory as the cat is subdued and beaten."
+    },
+    {
+      "prompt": "3D-animated cartoon film still, wide shot, high angle, Tiger standing alone on the rocky ledge at Volcano's Edge, rain still falling, head raised, volcanic glow behind him, the defeated Cat visible as a small lump on the ground far below in the frame-lower-left, night sky above. Cat is a 3D-animated cartoon hairless grey cat with large ears, wrinkled skin, and amber eyes from image 1. Tiger is a 3D-animated cartoon white tiger with brown stripes and a muscular body from image 2. Volcano's Edge is a rocky volcanic slope with glowing lava flows nearby, night, heavy rain.",
+      "intent": "Closes the story on the tiger's triumph and the end of the conflict at the volcano."
+    }
+  ]
+}

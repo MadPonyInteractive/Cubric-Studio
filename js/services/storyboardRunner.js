@@ -114,13 +114,14 @@ function _mentions(prompt, name) {
  * the first panel; a `[PLACES]` line is marked `place`.
  * A name is one to four Capitalised words before a colon; its description runs to the next
  * name. The enhancer deletes newlines without a space, so a line can end glued to the next
- * name ("nervous energy.Jasper: A man"): a name may follow a full stop directly.
+ * name ("nervous energy.Jasper: A man", "from image 1The Tiger: a white tiger"): a name may
+ * follow a full stop or a digit directly.
  */
 function _castLines(plan) {
     const block = (tag, place) => {
         const m = plan.match(new RegExp(`\\[\\s*${tag}\\s*\\]([\\s\\S]*?)(?=\\[\\s*(?:PANEL|PLACES|CAST)|$)`, 'i'));
         if (!m) return [];
-        const heads = [...m[1].matchAll(/(?:^|[\s.;,])([A-Z][\w'-]*(?: [A-Z][\w'-]*){0,3})\s*:/g)];
+        const heads = [...m[1].matchAll(/(?:^|[\s.;,\d])([A-Z][\w'-]*(?: [A-Z][\w'-]*){0,3})\s*:/g)];
         return heads.map((h, i) => {
             const from = h.index + h[0].length;
             const desc = m[1].slice(from, i + 1 < heads.length ? heads[i + 1].index + 1 : undefined);
@@ -158,7 +159,7 @@ const _lowerLead = s => (/^(?:A\s|[A-Z][a-z])/.test(s) ? s[0].toLowerCase() + s.
  * @param {{name: string, sheet?: boolean}} opts - the stack's name, and the queue row's label;
  *   `sheet: false` makes no overview (the cast pictures drawn before the panels)
  * @param {StoryboardDeps} deps
- * @returns {Promise<{ok: false, code: string, message: string}|{ok: true, runId: string, stackId: string,
+ * @returns {Promise<{ok: false, code: string, message: string}|{ok: true, runId: string, stackId: string|null,
  *   finished: Promise<{ok: boolean, cancelled: boolean, reordered: boolean, overview: boolean,
  *   panels: Array<{index: number, groupId: string|null, item?: Object, error?: {code: string, message: string}}>}>}>}
  */
@@ -169,8 +170,11 @@ export async function runStoryboard(panels, { name, sheet = true }, deps) {
     if (blank !== -1) return _fail('EMPTY_PANEL', `Nothing was drawn: panel ${blank + 1} has no picture prompt.`);
 
     const runId = deps.newId();
-    const stackId = deps.newId();
-    const landing = { batchId: runId, batchLabel: name, batchTotal: panels.length, stackId };
+    // ONE picture is a plain card named for the run, never a stack of one (Fabio: the lone
+    // Dragon of a Cast). `stackId` is then null.
+    const stackId = panels.length > 1 ? deps.newId() : null;
+    const landing = { batchId: runId, batchLabel: name, batchTotal: panels.length,
+        ...(stackId ? { stackId } : { cardName: name }) };
 
     // Every job FIRST, the stack after: the settle drops a filling stack with no live job.
     const subs = [];
@@ -180,7 +184,7 @@ export async function runStoryboard(panels, { name, sheet = true }, deps) {
         const first = subs[0];
         return _fail(first.code, `Nothing was drawn: panel 1 was refused. ${first.message}`);
     }
-    await deps.addStack({ id: stackId, name, kind: 'image', expected: queued });
+    if (stackId) await deps.addStack({ id: stackId, name, kind: 'image', expected: queued });
 
     const panel = async (sub, index) => {
         if (!sub.ok) return { index, groupId: null, error: { code: sub.code, message: sub.message } };

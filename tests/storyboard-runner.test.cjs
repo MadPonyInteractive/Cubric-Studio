@@ -81,6 +81,18 @@ test('every job is queued before the stack, all on one landing', async () => {
     await run.finished;
 });
 
+test('one picture lands as a plain named card, never a stack of one', async () => {
+    const app = fakeApp();
+    const run = await runStoryboard(plan(1), { name: 'Dragon', sheet: false }, app.deps);
+    assert.strictEqual(run.stackId, null);
+    assert.deepStrictEqual(app.calls.map(c => c[0]), ['submit']);
+    assert.deepStrictEqual(app.calls[0][2], { batchId: run.runId, batchLabel: 'Dragon', batchTotal: 1, cardName: 'Dragon' });
+    app.finish(0);
+    const out = await run.finished;
+    assert.strictEqual(out.ok, true);
+    assert.deepStrictEqual(out.panels.map(p => p.groupId), ['card0']);
+});
+
 test('cards arriving out of order end in panel order, each with its note, then the overview', async () => {
     const app = fakeApp();
     const run = await runStoryboard(plan(4), { name: 'Heist' }, app.deps);
@@ -175,6 +187,13 @@ test('cast lines glued by the enhancer\'s newline strip still split, and a longe
     const [p1, p2] = parseStoryboardPlan(plan);
     assert.strictEqual(p1.prompt, 'Grandpa holds the kite while Leo watches. Leo is 10-year-old boy, short brown hair. He runs barefoot. Grandpa Finn is 65-year-old man, navy wool jacket.');
     assert.strictEqual(p2.prompt, 'A red sky.', 'a lower-case "red" is not the Red Kite');
+});
+
+test('a cast name glued to the image number before it keeps its first word', () => {
+    // Fabio's volcano board (Qwen-Image 2.1, 2026-10-25) drew "...from image 1The. Tiger is ...".
+    const plan = '[CAST] The Cat: a wrinkled grey hairless cat from image 1The Tiger: a white tiger from image 2 [PANEL 1] Picture: The Cat faces The Tiger. Intent: x';
+    assert.strictEqual(parseStoryboardPlan(plan)[0].prompt,
+        'The Cat faces The Tiger. The Cat is a wrinkled grey hairless cat from image 1. The Tiger is a white tiger from image 2.');
 });
 
 test('the plan\'s cast line wins; the user\'s "Picture N is NAME, a WHAT." fills a pictured name the plan lacks', () => {

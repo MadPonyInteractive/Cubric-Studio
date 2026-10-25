@@ -217,6 +217,10 @@ export const MpiBaseFlow = ComponentFactory.create({
             <div class="mpi-base-flow__stage" id="flow-stage">
                 <div class="mpi-base-flow__slides" id="flow-slides"></div>
             </div>
+            <!-- MPI-1231: Cosmo peeks up from the bottom edge while a job of his runs. -->
+            <div class="mpi-base-flow__peek" aria-hidden="true">
+                <video class="mpi-base-flow__peek-clip" muted playsinline preload="none"></video>
+            </div>
         </div>`,
 
     setup: (el, props, emit) => {
@@ -1359,6 +1363,60 @@ export const MpiBaseFlow = ComponentFactory.create({
             enhancedWrites(d, text, _mayEnhanceWrite).forEach(([id, v]) => _setEnhanced(id, v));
         }
 
+        // ── Cosmo peeks while he plans (MPI-1231, Fabio) ─────────────────────────
+        // A declaration that `runsOn: 'agent'` is Cosmo's own work, so while it runs his
+        // head pops up along the frame's bottom edge, peek after peek at a new spot each
+        // time: the prompt box's peek (MPI-909) on a loop that lasts as long as the job.
+        // Reduced motion gets none — the button's busy label already says he is on it.
+        //
+        // A different clip each time, never the same twice running (Fabio: "not so
+        // repetitive"). `peek` rises by itself; the STANDING clips have his head on row 187
+        // of 620 in their rest pose (measured on each, as the agent chat's ledge hangs
+        // `agent-thinking`), so they hang by that row and slide up into the same window.
+        // Left out: clips whose hands rise far above his head (happy-1, heads-up) and would shear.
+        const _PEEK_CLIPS = ['peek', 'agent-thinking', 'agent-listening', 'idle-1', 'idle-2', 'idle-3', 'greet-1', 'greet-2'];
+        const _peekWrap = qs('.mpi-base-flow__peek', el);
+        const _peekClip = qs('.mpi-base-flow__peek-clip', el);
+        const _PEEK_LIVE = 'mpi-base-flow__peek--live';
+        let _peeking = false;
+        let _peekTimer = null;
+        let _peekLast = null;
+        function _peekOnce() {
+            if (!_peeking) return;
+            const pool = _PEEK_CLIPS.filter(c => c !== _peekLast);
+            const clip = _peekLast ? pool[Math.floor(Math.random() * pool.length)] : 'peek';
+            _peekLast = clip;
+            _peekWrap.style.setProperty('--peek-x', `${12 + Math.random() * 76}%`);
+            _peekClip.classList.toggle('mpi-base-flow__peek-clip--standing', clip !== 'peek');
+            _peekClip.src = `assets/mascot/studio/${clip}.webm`;
+            _peekClip.play().catch(() => {});
+        }
+        function _cosmoPeeks(live) {
+            clearTimeout(_peekTimer);
+            _peeking = live && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (_peeking) {
+                _peekLast = null;
+                _peekOnce();
+            } else {
+                _peekWrap.classList.remove(_PEEK_LIVE);
+                _peekClip.pause();
+            }
+        }
+        // Shown once it plays, not when its src is set: a fresh src is blank until it decodes,
+        // and the standing slide needs its start pose painted before the live class lands.
+        _unsubs.push(on(_peekClip, 'playing', () => {
+            if (_peeking) _peekWrap.classList.add(_PEEK_LIVE);
+        }));
+        _unsubs.push(on(_peekClip, 'ended', () => {
+            _peekWrap.classList.remove(_PEEK_LIVE);
+            if (_peeking) _peekTimer = setTimeout(_peekOnce, 700 + Math.random() * 1500);
+        }));
+        _unsubs.push(() => {
+            _cosmoPeeks(false);
+            _peekClip.removeAttribute('src');
+            _peekClip.load();
+        });
+
         /**
          * @param {Object} d  the enhance declaration
          * @param {boolean} [silent]  suppress the two user-facing warnings. Set by the
@@ -1397,6 +1455,7 @@ export const MpiBaseFlow = ComponentFactory.create({
             const settled = new Promise((res) => { _settle = res; });
             _enhancing = d.id;
             _paintEnhance();
+            if (d.runsOn === 'agent') _cosmoPeeks(true);
 
             // ONE DISPATCH, SHARED WITH THE PROMPT BOX (MPI-677 step 1b). This used to
             // be its own `enqueueGeneration` call, a near-copy of the one in
@@ -1440,6 +1499,7 @@ export const MpiBaseFlow = ComponentFactory.create({
                 _enhancing = null;
                 _enhanceStage = null;
                 _paintEnhance();
+                _cosmoPeeks(false);
                 _settle();
             });
             return settled;
@@ -3947,10 +4007,11 @@ export const MpiBaseFlow = ComponentFactory.create({
             _persistInputs(inputs);
 
             // A Flow whose one press fans out into many model jobs (MPI-1231, Storyboard): its
-            // driver owns the run, its queue row and every end, so the frame's run token, result
-            // pane and op submit stay out of it. Its op only carries the media slots.
+            // driver owns the order, its queue row and the stack, and skips the op submit (its op
+            // only carries the media slots). It reports each job it queues, which the frame
+            // follows like its own run: live latents, the sweep, Stop, and the picture as it lands.
             if (flow.driver) {
-                await FLOW_DRIVERS[flow.driver](flow, inputs);
+                await FLOW_DRIVERS[flow.driver](flow, inputs, { onJob: _followDriverJob });
                 return;
             }
 
@@ -4078,6 +4139,25 @@ export const MpiBaseFlow = ComponentFactory.create({
                     _dropLatentPreview();
                 },
             };
+        }
+
+        /**
+         * One job a Flow driver queued (Storyboard's cast picture or panel), tracked as a run
+         * of this frame by its tempId.
+         * @param {string} tempId
+         * @param {Promise<{ok: boolean, item?: Object, code?: string}>} done - settles at its end
+         */
+        function _followDriverJob(tempId, done) {
+            const run = { tempId };
+            _runs.add(run);
+            _syncRunning();
+            _setStatus('Generating…');
+            const end = _runCallbacks(run);
+            done.then((r) => {
+                if (r.ok) end.onComplete({ item: r.item });
+                else if (r.code === 'CANCELLED') end.onCancel();
+                else end.onError();
+            });
         }
 
         /**

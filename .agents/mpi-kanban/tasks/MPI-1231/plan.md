@@ -193,6 +193,62 @@
   per hosted call (llmEngines.mjs): a 6-panel plan 71 s; a 12-panel one may near it (named TIMEOUT
   toast, not silent). NEXT (Fabio's ask): Cosmo peek animation at the bottom of the Flow UI while the
   plan is written; then Generate with the Dragon cast stage when the GPU is free.
+- 2026-10-25 ("LTX 2.5 model 20"): COSMO PEEKS BUILT (uncommitted): any enhance decl with
+  `runsOn: 'agent'` plays `assets/mascot/studio/peek.webm` along the frame's bottom edge, peek after
+  peek at a random x (0.7-2.2 s gaps), from press to settle; none under reduced motion. MpiBaseFlow.js
+  (`_cosmoPeeks`, hooked in `_runEnhance` + its finally, torn down via `_unsubs`) + .css
+  (`__peek`, the prompt box's 62/182 window at 220px). Lint + npm test 3671/0. NOT SEEN on screen
+  (18+ gate). Fabio was generating the 6 panels when this landed. NEXT: Fabio's eye on the peeks and
+  the panel run, then commit.
+- 2026-10-25 ("LTX 2.5 model 20", Fabio's live Generate): NO LATENTS in the frame's result pane - the
+  driver path skipped the frame's run tokens by design, and the pane paints only its own tempIds.
+  FIX (uncommitted): drivers get a 3rd arg `{ onJob(tempId, done) }`; storyboardDispatch `_deps`
+  reports each queued cast picture/panel (landingOpts tempId); MpiBaseFlow `_followDriverJob` makes it a
+  run (latents, sweep, Stop on the running panel, result on land). multiAngle ignores the arg. Lint +
+  npm test 3671/0. NOT SEEN. ALSO: the status bar's "EDITING · 1" is the graph STAGE, not a count, and
+  says nothing of the panel number the queue row shows ("5 / 6"): Fabio found it confusing; proposed
+  the status bar name the batch position (statusBar.js, all batches) - his call.
+- 2026-10-25 ("LTX 2.5 model 20"): Fabio's 6-panel board PASSED his eye ("I think this is a win";
+  panel 5 an extra lion, panel 4 no surprise at the tiger: fixable later). FIX (uncommitted): a ONE-
+  picture run is a plain card named for the run, no stack of one (`runStoryboard`: stackId null,
+  landing `cardName`); a lone cast actor's card is named for the actor ("Dragon"). +1 runner test;
+  npm test 3672/0. OPEN (Fabio asked "how do I reuse this flow?"): panels are plain FLUX cards with
+  no `flowId`/`flowInputs`, so card Reuse fills the prompt box with that panel's prompt and the
+  Storyboard's inputs live only in session `s_flowInputs` (gone on restart). Proposed: stamp
+  flowId + the frame snapshot on each panel so Reuse reopens Storyboard (`openFlowFromReuse`) -
+  his call.
+- 2026-10-25: Fabio's eye PASSED the Cosmo peeks ("Cosmo peek is working"). Still to see: live
+  latents in the pane + the lone Dragon card on his next Generate. His screenshot shows the
+  "Lena, a waitress" placeholder under a cat and a tiger (the Noticed item: reads like a value).
+- 2026-10-25: Fabio: peeks too repetitive. Now a different clip each peek (`_PEEK_CLIPS`: peek, then
+  agent-thinking/-listening, idle-1..3, greet-1/2, never the same twice running). Measured: every
+  standing studio clip's rest head row is 187/620 (feet 556), so `--standing` hangs it by that row
+  (the agent-chat ledge rule) and slides it up (`--t-base`); happy-1/heads-up left out (hands to
+  row 80-110 would shear). Shown on `playing`, not on src set. Framing eye-checked in a scratch page
+  (all 8 read as a head over the edge). Lint + npm test 3672/0. Fabio's eye next.
+- 2026-10-25, Fabio's 2nd board (cat vs white tiger by a volcano, Qwen-Image 2.1 edit, 6 panels):
+  LATENTS PASSED ("Latents came out nicely"). Faults, read from the panel sidecars
+  (Documents/Cubric Studio/Projects/Tikori Characters/Media/.meta): (1) PARSER: "from image 1The
+  Tiger:" (newline stripped next to a digit) cut the name to "Tiger" and glued "The" onto the cat's
+  line -> FIXED, a name may follow a digit (+1 test, 16/16). (2) STYLE: his pictures are 3D-cartoon,
+  the planner opens every panel on "Full-color cinematic film still" (no style named) and the picture
+  ask never names the medium -> photoreal panels. (3) SETTING LEAK: the describe answered "a white
+  tiger ... sitting in a green forest", copied into every tiger panel against the volcano. (4) PLACES:
+  "Volcano Ridge" is words only; panels 4-5 never name it so get no place line; the volcano differs
+  every shot. Fabio: "maybe we need to rethink adding environments as well". (5) No model prompting
+  guide reaches the planner: one model-neutral prompt for FLUX.3 and Qwen 2.1. (6) Panels carry NO
+  flowId/flowInputs (sidecar flowId null), so Reuse cannot reopen the Flow. NEXT (needs Fabio's yes,
+  ~$0.002 of DeepInfra): picture ask names the art style and never the pose/surroundings; planner opens
+  on the pictures' style when the user names none; re-plan his volcano board and compare.
+- 2026-10-25 STYLE/SETTING FIX (uncommitted, Fabio's yes): `STORYBOARD_PICTURE_ASK` asks art style
+  first and never pose/surroundings; planner opens on the pictures' style ("3D-animated cartoon film
+  still, ") when the user names none, the same every panel. Re-bench `research/style-fix/rebench.mjs`
+  (out.json), his models, $0.0005: looks "a 3D-animated cartoon hairless grey cat ... amber eyes" /
+  "... white tiger with brown stripes and a muscular body" (no forest); all 6 panels open on the
+  cartoon style; names clean ("Cat", "Tiger"); [PLACES] "Volcano's Edge" named only in panel 6. NOT
+  drawn (GPU = Fabio's). Also in flowsRegistry: Multi-Angle 31's label line ("good for consistency
+  and zooming out"), at its request - commit it with this. npm test 3674/0.
+  OPEN product call: draw a recurring place first (overturns "places never drawn").
 
 ## Phase 0: Panel recipe - `user-ux` (local GPU, Fabio's yes; no money)
 

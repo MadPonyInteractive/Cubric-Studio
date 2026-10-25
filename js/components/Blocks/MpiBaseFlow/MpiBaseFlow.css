@@ -1264,3 +1264,46 @@
     .mpi-base-flow__gauge > span { transition-duration: 1ms; }
     .mpi-base-flow__scanline { display: none; }
 }
+
+/* Cosmo peeks while he plans (MPI-1231). The prompt box's peek framing (MpiPromptBox.css):
+   peek.webm is cut by its own frame at the bottom, so the clip sits on the frame's bottom
+   edge and a window just taller than the head shows only what clears it. --peek-x is set
+   per peek by the JS, which also skips the peeks under reduced motion. */
+.mpi-base-flow__peek {
+    --peek-w: 220px;
+    position: absolute;
+    bottom: 0;
+    left: var(--peek-x, 50%);
+    transform: translateX(-50%);
+    width: var(--peek-w);
+    height: calc(var(--peek-w) * 62 / 182);
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity var(--t-fast) var(--ease);
+}
+
+.mpi-base-flow__peek--live {
+    opacity: 1;
+}
+
+.mpi-base-flow__peek-clip {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+}
+
+/* A standing clip, hung by its head row (187/620) with the same headroom as the agent
+   chat's ledge, slides up from below the edge; `peek` makes its own rise. */
+.mpi-base-flow__peek-clip--standing {
+    bottom: auto;
+    top: calc(var(--peek-w) * -187 / 620 + var(--peek-w) * 10 / 182);
+    transform: translateY(100%);
+    transition: transform var(--t-base) var(--ease);
+}
+
+.mpi-base-flow__peek--live .mpi-base-flow__peek-clip--standing {
+    transform: none;
+}

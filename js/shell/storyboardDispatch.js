@@ -59,7 +59,7 @@ function _references(mediaItems, roles) {
 /** The selected item of a group as it stands in the open project now. */
 const _liveGroup = (groupId) => (state.currentProject?.itemGroups || []).find(g => g.id === groupId);
 
-function _deps(project, { modelId, idea, references, ratio, qualityTier, turbo }) {
+function _deps(project, { modelId, idea, references, ratio, qualityTier, turbo }, frame) {
     return {
         isLoopArmed: () => state.loopArmed === true,
 
@@ -78,6 +78,7 @@ function _deps(project, { modelId, idea, references, ratio, qualityTier, turbo }
             const config = { ...built.config, byAgent: false, userWords: [idea, panel.prompt] };
             let settle;
             const done = new Promise((resolve) => { settle = resolve; });
+            const opts = landingOpts(landing, 'image', built.run.width, built.run.height);
             const queued = enqueueGeneration(config, {
                 onComplete: ({ item, group }) => settle({ ok: true, item, group }),
                 onError: (err) => settle({ ok: false, code: err?.code || 'RUNTIME_ERROR',
@@ -85,8 +86,10 @@ function _deps(project, { modelId, idea, references, ratio, qualityTier, turbo }
                 onCancel: (why) => settle(why?.stopped
                     ? { ok: false, code: 'CANCELLED', message: 'The user pressed Stop.' }
                     : { ok: false, code: 'NO_OUTPUT', message: 'Nothing came back for this panel.' }),
-            }, landingOpts(landing, 'image', built.run.width, built.run.height));
+            }, opts);
             if (!queued) return { ok: false, code: 'REJECTED', message: `Panel ${index + 1} was rejected before it entered the queue.` };
+            // The Flow frame follows each panel by its tempId: live latents, sweep, Stop, the result.
+            frame?.onJob?.(opts.tempId, done);
             return { ok: true, done };
         },
 
@@ -144,9 +147,11 @@ function _summary(name, out) {
  * @param {Object} flow - the FlowDef
  * @param {Object} inputs - the frame's collected inputs (`positive`, `plan`, `ratio`,
  *   `qualityTier`, `turbo`, `mediaItems`)
+ * @param {{onJob?: function(string, Promise<Object>): void}} [frame] - the Flow frame, told of
+ *   every queued picture (its tempId and its `done`) so its result pane can follow it
  * @returns {Promise<boolean>} true once the panels are queued
  */
-async function runStoryboardFlow(flow, inputs) {
+async function runStoryboardFlow(flow, inputs, frame) {
     const project = state.currentProject;
     if (!project?.folderPath) {
         StatusBar.notify('Open a project first: the storyboard lands in its gallery.', 'warning');
@@ -183,12 +188,13 @@ async function runStoryboardFlow(flow, inputs) {
     // dragon: as many as the model's free reference slots hold, most-named first.
     const wanted = recurringActors(inputs.plan, idea);
     const actors = wanted.slice(0, Math.max(0, max - references.length));
-    if (!actors.length) return _drawPanels(panels, name, _deps(project, { ...opts, references }));
+    if (!actors.length) return _drawPanels(panels, name, _deps(project, { ...opts, references }, frame));
 
-    const castName = truncateCardName(`${name} · Cast`);
+    // One actor lands as a plain card under its own name; two or more as a Cast stack.
+    const castName = truncateCardName(actors.length > 1 ? `${name} · Cast` : actors[0].name);
     const cast = await runStoryboard(actors.map(a => ({ prompt: _castPrompt(a), intent: `${a.name}: ${a.desc}` })),
         { name: castName, sheet: false },
-        _deps(project, { ...opts, references: [], ratio: '1:1' }));
+        _deps(project, { ...opts, references: [], ratio: '1:1' }, frame));
     if (!cast.ok) {
         StatusBar.notify(cast.message, 'warning');
         return false;
@@ -208,7 +214,7 @@ async function runStoryboardFlow(flow, inputs) {
         const actorImages = Object.fromEntries(drawn.map((r, k) => [actors[r.index].name.toLowerCase(), references.length + k + 1]));
         const refs = [...references, ...drawn.map(r => ({ url: r.item.filePath }))]
             .map((r, i) => ({ role: i ? `inputImage${i + 1}` : 'inputImage', url: r.url }));
-        await _drawPanels(parseStoryboardPlan(inputs.plan, idea, actorImages), name, _deps(project, { ...opts, references: refs }));
+        await _drawPanels(parseStoryboardPlan(inputs.plan, idea, actorImages), name, _deps(project, { ...opts, references: refs }, frame));
     });
     return true;
 }

@@ -572,7 +572,7 @@ const STORYBOARD_PLAN_ENHANCE_PARAMS = {
         'Then write every panel in this form: [PANEL n] Picture: the picture prompt. Intent: one sentence.',
         '',
         'The Picture is one frozen instant, as a camera sees it, in 50 to 100 words of prose:',
-        '- Open on the medium and style. When the user names none, open on "Full-color cinematic film still, ".',
+        '- Open on the medium and style. When the user names none, open on the style the pictures show ("It shows a 3D-animated cartoon fox" opens on "3D-animated cartoon film still, "), the same in every panel; with no pictures, on "Full-color cinematic film still, ".',
         '- Then the shot size and angle (wide establishing shot, medium shot, close-up, over-the-shoulder shot), the place, the light and the time of day.',
         '- Name each cast member in the shot by their cast name every time, even twice in one panel, and say where they are in the frame (frame-left, frame-right, foreground, background) and what they are doing at that instant.',
         '- Never describe a cast member\'s looks in a Picture (no species, size, colours or clothes): the cast line is added to every panel that names them, and a second description fights it.',
@@ -595,7 +595,11 @@ const STORYBOARD_PLAN_ENHANCE_PARAMS = {
 
 // What each Storyboard picture is asked before planning (MPI-1231): one short phrase, because the
 // planner copies it into the cast line and the parser adds that line to every panel naming it.
-const STORYBOARD_PICTURE_ASK = 'Say what the main subject of this picture is and how it looks, as one phrase of at most 20 words that starts with "a" or "an": what kind of creature, person, thing or place it is, then its most telling colours, body shape and clothes. For example: a hairless grey cat with large ears and wrinkled skin. Answer with the phrase only.';
+// It names the picture's art style first, which rides into every panel: without it a 3D-cartoon cat
+// and tiger came back photoreal under the planner's "cinematic film still" (Fabio's volcano board,
+// 2026-10-25). Never the pose or the place: "a white tiger ... sitting in a green forest" put a forest
+// into every volcano panel.
+const STORYBOARD_PICTURE_ASK = 'Say what the main subject of this picture is and how it looks, as one phrase of at most 25 words that starts with "a" or "an": first its art style (a photo, a 3D-animated cartoon, an anime drawing, a watercolour painting...), then what kind of creature, person, thing or place it is, then its most telling colours, body shape and clothes. Never its pose, what it is doing or what is around it. For example: a 3D-animated cartoon hairless grey cat with large ears and wrinkled skin. Answer with the phrase only.';
 
 const ALL_FLOWS = [
     // head-swap and drama-box LEFT THE APP (MPI-781, umbrella MPI-780 phase 2). They are
@@ -3147,7 +3151,7 @@ const ALL_FLOWS = [
             media: [
                 { type: 'image', mode: 'upto', max: 1, roles: ['inputImage'], labels: ['The person'] },
                 { type: 'image', mode: 'upto', max: 1, roles: ['inputImage2'],
-                    labels: ['Whole outfit (optional)\na character sheet or turnaround of the same person'] },
+                    labels: ['Whole outfit (optional)\na character sheet or turnaround of the same person\ngood for consistency and zooming out'] },
             ],
         },
         fields: [
