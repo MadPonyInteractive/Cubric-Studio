@@ -23,6 +23,7 @@
 
 import { enhanceFlow, backendPreference, describeImage, describeBackendPreference, describeModelPreference } from './llmService.js';
 import { clientLogger } from './clientLogger.js';
+import { formatPrice } from '../data/modelConstants/deepinfraPricing.js';
 import { firstFrameDataUrl } from '../utils/video.js';
 import { resolveMediaUrl } from '../utils/mediaActions.js';
 import { getFlowById, flowModelIds, ruleHolds, flowMediaCtx } from '../data/flowsRegistry.js';
@@ -666,7 +667,8 @@ export function picturesCostLine(step) {
     const paid = step.costs.filter(c => c > 0);
     if (!paid.length) return `Described ${described} picture${s} with ${step.model || 'your describe model'} first; it sent no price.`;
     const each = paid.reduce((a, c) => a + c, 0) / paid.length;
-    return `Described ${described} picture${s} with ${step.model || 'your describe model'} first, about $${each.toFixed(4)} a picture.`;
+    // `formatPrice`'s one significant figure: four decimals read "$0.0000" for a gemma describe.
+    return `Described ${described} picture${s} with ${step.model || 'your describe model'} first, ${formatPrice(each)} a picture.`;
 }
 
 /** The width a sheet is measured at: a small copy, as MPI-1086's `research/bench/gaps.py` benched. */

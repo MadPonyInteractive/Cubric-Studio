@@ -12,7 +12,7 @@
  * that declares `driver` (MpiBaseFlow `_run`).
  */
 
-import { runStoryboard, parseStoryboardPlan } from '../services/storyboardRunner.js';
+import { runStoryboard, parseStoryboardPlan, recurringActors } from '../services/storyboardRunner.js';
 import { enqueueGeneration } from '../services/generationService.js';
 import { addGroup, updateGroup, reorderStack } from '../services/projectService.js';
 import { clientLogger } from '../services/clientLogger.js';
@@ -171,15 +171,55 @@ async function runStoryboardFlow(flow, inputs) {
     }
     const words = String(inputs.positive || '').trim();
     const name = truncateCardName(words ? `Storyboard · ${words}` : 'Storyboard');
-    const run = await runStoryboard(panels, { name }, _deps(project, {
+    const opts = {
         modelId,
         idea,
-        references,
         ratio: inputs.ratio,
         qualityTier: inputs.qualityTier,
         // A model with no turbo switch refuses one (INVALID_TURBO); the hidden toggle keeps its value.
         turbo: resolveTurboControlId(model) ? inputs.turbo !== false : undefined,
-    }));
+    };
+    // A recurring actor with no picture gets one drawn first, so every panel draws the SAME
+    // dragon: as many as the model's free reference slots hold, most-named first.
+    const wanted = recurringActors(inputs.plan, idea);
+    const actors = wanted.slice(0, Math.max(0, max - references.length));
+    if (!actors.length) return _drawPanels(panels, name, _deps(project, { ...opts, references }));
+
+    const castName = truncateCardName(`${name} · Cast`);
+    const cast = await runStoryboard(actors.map(a => ({ prompt: _castPrompt(a), intent: `${a.name}: ${a.desc}` })),
+        { name: castName, sheet: false },
+        _deps(project, { ...opts, references: [], ratio: '1:1' }));
+    if (!cast.ok) {
+        StatusBar.notify(cast.message, 'warning');
+        return false;
+    }
+    const left = wanted.slice(actors.length).map(a => a.name);
+    StatusBar.notify(`${name}: drawing ${actors.map(a => a.name).join(', ')} first, so every panel shows the same one. The panels follow.`
+        + (left.length ? ` ${left.join(', ')} stays in words: ${model?.name || modelId} takes ${max} pictures.` : ''), 'info');
+    cast.finished.then(async (out) => {
+        if (out.cancelled) {
+            StatusBar.notify(`${name} stopped while drawing the cast: no panel was drawn.`, 'info');
+            return;
+        }
+        const drawn = out.panels.filter(r => r.item?.filePath);
+        const missing = out.panels.filter(r => !r.item?.filePath).map(r => actors[r.index].name);
+        if (missing.length) StatusBar.notify(`${name}: the picture of ${missing.join(', ')} failed, so the panels describe them in words.`, 'warning');
+        // The cast pictures follow the user's in the edit, so each is image (user pictures + its place).
+        const actorImages = Object.fromEntries(drawn.map((r, k) => [actors[r.index].name.toLowerCase(), references.length + k + 1]));
+        const refs = [...references, ...drawn.map(r => ({ url: r.item.filePath }))]
+            .map((r, i) => ({ role: i ? `inputImage${i + 1}` : 'inputImage', url: r.url }));
+        await _drawPanels(parseStoryboardPlan(inputs.plan, idea, actorImages), name, _deps(project, { ...opts, references: refs }));
+    });
+    return true;
+}
+
+/** A cast member alone and whole, so the panel model can lift it into any shot. */
+const _castPrompt = ({ name, desc }) =>
+    `Reference picture of ${name}: ${desc}. The whole of it in view and centred, on a plain light grey background, in even studio light. Nothing else in the picture.`;
+
+/** Queues the panels; the status bar names the end. */
+async function _drawPanels(panels, name, deps) {
+    const run = await runStoryboard(panels, { name }, deps);
     if (!run.ok) {
         StatusBar.notify(run.message, 'warning');
         return false;

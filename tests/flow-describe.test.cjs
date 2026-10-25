@@ -313,6 +313,9 @@ test('describePictures: every picture is described in slot order, a cleared slot
     assert.deepEqual(seen, ['1/2', '2/2']);
     assert.deepEqual([...step.looks], ['a look of a', undefined, 'a look of c'], 'stray punctuation is trimmed, slots keep their numbers');
     assert.equal(fe.picturesCostLine(step), 'Described 2 pictures with gemma first, about $0.0002 a picture.');
+    // Fabio's toast read "about $0.0000 a picture" for a gemma-4 describe (2026-10-25).
+    assert.equal(fe.picturesCostLine({ ...step, costs: [0.000023, undefined, 0.000019] }),
+        'Described 2 pictures with gemma first, about $0.00002 a picture.');
 });
 
 test('describePictures: a failed or empty describe names the picture, a Stop is quiet, a repeat costs nothing', async () => {

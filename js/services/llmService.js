@@ -624,25 +624,58 @@ export function withRemoteSettingsHint(code, message) {
  * MPI-737: on the endpoint branch, `profileId` (from `Storage.getLlmConnection()`)
  * is sent so the route can resolve the connection without the renderer touching the key.
  */
-async function runServerBackend({ prompt, system, backend, modelId, maxTokens, profileId, job }) {
+async function runServerBackend({ prompt, system, backend, modelId, maxTokens, profileId, job, queued = false }) {
+    const request = {
+        prompt, system, backend, modelId, maxTokens, job,
+        ...(backend === 'endpoint' && profileId ? { profileId } : {}),
+    };
+    // The endpoint branch answers with the connection routes' `{ code, message }`
+    // envelope; every enhance caller shows `error` as text.
+    const envelope = body => (body.ok || typeof body.error !== 'object' || !body.error
+        ? body
+        : { ...body, error: withRemoteSettingsHint(body.error.code, body.error.message), errorCode: body.error.code });
+    if (queued) return _queuedServerEnhance(request, envelope);
     try {
         const res = await fetch('/llm/enhance', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                prompt, system, backend, modelId, maxTokens, job,
-                ...(backend === 'endpoint' && profileId ? { profileId } : {}),
-            }),
+            body: JSON.stringify(request),
         });
-        const body = await res.json();
-        // The endpoint branch answers with the connection routes' `{ code, message }`
-        // envelope; every enhance caller shows `error` as text.
-        return body.ok || typeof body.error !== 'object' || !body.error
-            ? body
-            : { ...body, error: withRemoteSettingsHint(body.error.code, body.error.message), errorCode: body.error.code };
+        return envelope(await res.json());
     } catch (err) {
         return { ok: false, error: (err && err.message) || 'The app server did not answer.' };
     }
+}
+
+/**
+ * A user's own Enhance on the server backends, as a queue job on the `cloud` lane
+ * (`describeExecutor.js`): a row, the moving sweep, the status bar and Stop, like an online
+ * describe. It was a bare fetch, and Plan with Cosmo sat 71 s with nothing on screen
+ * (MPI-1231). The child-safety judge stays bare: it runs inside a job that already shows.
+ */
+async function _queuedServerEnhance(request, envelope) {
+    const { enqueueGeneration } = await import('./generationService.js');
+    return new Promise((resolve) => {
+        let answer = {};
+        const queuedJob = enqueueGeneration(
+            {
+                operation: COMFY_ENHANCE_OP,
+                model: { id: null, mediaType: 'image' },
+                positive: request.prompt,
+                negative: '',
+                enhanceEndpoint: { body: request, onAnswer: (body) => { answer = body; } },
+            },
+            {
+                onText: (text) => resolve({ ...answer, ok: true, text }),
+                onError: (err) => resolve(err?.message === 'cancelled_before_dispatch'
+                    ? { ok: false, cancelled: true, error: 'Enhance cancelled.' }
+                    : answer.ok === false ? envelope(answer) : { ok: false, error: err?.message || 'Enhance failed.' }),
+                onCancel: () => resolve({ ok: false, cancelled: true, error: 'Enhance cancelled.' }),
+            },
+            { scope: 'gallery' },
+        );
+        if (!queuedJob) resolve({ ok: false, errorCode: 'REJECTED', error: 'Vision rejected the enhance job before it entered the queue.' });
+    });
 }
 
 /**
@@ -834,6 +867,7 @@ async function _enhanceFlowOn(backend, { prompt, injectionParams, modelId, onAge
         maxTokens: params['Input_Text_Gen.max_length'],
         ...(backend === 'endpoint' ? { profileId } : {}),
         ...(onAgent ? { job: 'agent' } : {}),
+        queued: true,
     });
     if (!result.ok) return result;
     const text = postProcessLikeGraph(result.text, params);
@@ -855,6 +889,8 @@ async function _enhanceFlowOn(backend, { prompt, injectionParams, modelId, onAge
  * @param {string} [a.backend]      explicit override; defaults to the preference, then ComfyUI
  * @param {boolean} [a.transparent] No Background is on (MPI-1049): the brief says so
  * @param {string}  [a.style]       the picked style LoRA's label (MPI-1249): the picture is in it
+ * @param {boolean} [a.queued]     server backends: a queue row on the cloud lane (`_queuedServerEnhance`);
+ *        false only inside a job that already shows (`settleInGraphEnhance`)
  * @param {Array<{x:number,y:number,w:number,h:number,desc?:string}>} [a.boxes] the user's Boxes
  *        (MPI-1181): a recipe with a `<mode>_bbox` mode plans around them and returns the
  *        caption plus the reconciled table; any other mode reads them as layout hints
@@ -865,7 +901,7 @@ async function _enhanceFlowOn(backend, { prompt, injectionParams, modelId, onAge
  *          parsed. `text` is then the positive half alone — the caller must not
  *          re-split it.
  */
-export async function enhance({ prompt, model, recipeKey, mode, operation, references, pictures, backend, transparent, style, boxes } = {}) {
+export async function enhance({ prompt, model, recipeKey, mode, operation, references, pictures, backend, transparent, style, boxes, queued = true } = {}) {
     const idea = String(prompt || '').trim();
     if (!idea) return { ok: false, error: 'Write a prompt first, then Enhance.' };
 
@@ -927,6 +963,7 @@ export async function enhance({ prompt, model, recipeKey, mode, operation, refer
             backend: chosen,
             modelId: resolvedModelId,
             ...(chosen === 'endpoint' ? { profileId } : {}),
+            queued,
         });
 
     if (!result.ok) {
@@ -1051,7 +1088,8 @@ export async function settleInGraphEnhance(payload, deps = {}) {
     // MPI-1249: the style the rack will apply, by the index the prompt box injected.
     const styleIndex = Number(injection['Input_Style_Selector.selector']) || 0;
     const style = styleIndex > 0 ? model?.styleLoraLabels?.[styleIndex] : undefined;
-    const result = await (deps.enhance ?? enhance)({ prompt, model, backend, style });
+    // Not queued: this runs inside the job's own dispatch, which already shows.
+    const result = await (deps.enhance ?? enhance)({ prompt, model, backend, style, queued: false });
     const text = result?.ok ? String(result.text || '').trim() : '';
     if (!text) {
         const why = String(result?.error || 'The enhancer returned no text.').trim();

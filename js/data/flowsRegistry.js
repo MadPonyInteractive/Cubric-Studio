@@ -558,6 +558,8 @@ const SHEET_CLOTHES_CHECKS = ['upper body, the chest and belly', 'lower body, th
 // flattens its answer to one line: panels are found by `[PANEL n]` and `Intent:`, never newlines.
 // "Name, never a pronoun" and "speech goes in the Intent" are the bench's two faults: a stranger
 // called "him" got no line and changed clothes, and quoted speech rendered as lettering.
+// Places go in their own `[PLACES]` block: a cast member with no picture that two panels name gets
+// a picture drawn before the panels (`recurringActors`), and a place must not (2026-10-25).
 // It opens on "Storyboard plan:", never on `[CAST]`: DeepInfra's gemma-3-12b answered "[CAST]..."
 // with empty content (the Music Maker note above); the parser starts at `[CAST]`.
 const STORYBOARD_PLAN_ENHANCE_PARAMS = {
@@ -565,7 +567,7 @@ const STORYBOARD_PLAN_ENHANCE_PARAMS = {
         '<|im_start|>system',
         'You are a storyboard artist planning the still panels of a short video. The user message gives the idea, how many panels to write and the shape of the video. Write the cast once, then exactly that many panels, in story order.',
         '',
-        'First write [CAST] and one line per character or recurring place, in this form: Name: description. Give each a short name (use the user\'s names). Each picture the user added says what it shows ("Picture 1 is Bix, the villain. It shows a hairless grey cat with large ears."): the user\'s words say who it is and its part in the story, the "It shows" words say what it looks like. A cast member from a picture gets those words copied exactly, then "from image" and its number, nothing more: "Bix: a hairless grey cat with large ears from image 1". It stays what the picture shows whatever its part: an animal stays an animal, never a person. Describe anyone else fully: species or ethnicity, gender, age range, skin or fur, hair, and clothes with their colours.',
+        'First write [CAST] and one line per character, creature or object that matters to the story, in this form: Name: description. Then write [PLACES] and one line per place that comes back, in the same form. Give each a short name (use the user\'s names). Each picture the user added says what it shows ("Picture 1 is Bix, the villain. It shows a hairless grey cat with large ears."): the user\'s words say who it is and its part in the story, the "It shows" words say what it looks like. A cast member from a picture gets those words copied exactly, then "from image" and its number, nothing more: "Bix: a hairless grey cat with large ears from image 1". It stays what the picture shows whatever its part: an animal stays an animal, never a person. Describe anyone else fully: species or ethnicity, gender, age range, skin or fur, hair, and clothes with their colours.',
         '',
         'Then write every panel in this form: [PANEL n] Picture: the picture prompt. Intent: one sentence.',
         '',
@@ -578,7 +580,7 @@ const STORYBOARD_PLAN_ENHANCE_PARAMS = {
         '',
         'The Intent is one sentence for the person who will animate the panel: what happens in this shot and why it matters, with the camera move when there is one.',
         '',
-        'Vary the shots so the panels read as an edited sequence: open wide on the place, move closer for action and feeling, and close on a shot that ends the moment. Keep every name, place, object and word the user gave. Write in English. Start with the words "Storyboard plan:", then [CAST] and stop after the last panel.',
+        'Vary the shots so the panels read as an edited sequence: open wide on the place, move closer for action and feeling, and close on a shot that ends the moment. Keep every name, place, object and word the user gave. Write in English. Start with the words "Storyboard plan:", then [CAST], then [PLACES], and stop after the last panel.',
         '<|im_end|>',
         '<|im_start|>user',
     ].join('\n'),

@@ -668,7 +668,7 @@ test('generationService branches on provider BEFORE runCommand, not inside it', 
     // MPI-1069 put the tool head (Resize on sharp/ffmpeg) in front of it; the cloud branch
     // must still come before runCommand. MPI-1106 put the mask track (GIF cut-out) beside it,
     // MPI-1109 the online Describe in front.
-    assert.match(src, /const exec = \(config\.describeEndpoint \? runDescribeCommand\s*: isToolOp\(operation\) \? runToolCommand\s*: isMaskTrackOp\(operation\) \? runGifCutoutTrack\s*: model\.provider \? runCloudCommand : runCommand\)\(\{/,
+    assert.match(src, /const exec = \(config\.describeEndpoint \|\| config\.enhanceEndpoint \? runDescribeCommand\s*: isToolOp\(operation\) \? runToolCommand\s*: isMaskTrackOp\(operation\) \? runGifCutoutTrack\s*: model\.provider \? runCloudCommand : runCommand\)\(\{/,
         'the cloud seam is gone from generationService — a cloud model would dispatch to ComfyUI');
     assert.match(src, /import \{ runCloudCommand \}/, 'the cloud head is not imported');
 
@@ -679,4 +679,28 @@ test('generationService branches on provider BEFORE runCommand, not inside it', 
     // The intent lane must read the MODEL, or the store's lane and the service's lane
     // disagree — the MPI-213 phantom "1 RUNNING" that never drains.
     assert.match(src, /provider\) return 'cloud'/, '_laneOf does not know about cloud models');
+});
+
+// ── an online Enhance on the cloud lane (MPI-1231) ──────────────────────────────────────────
+
+test('an online Enhance is a cloud-lane job that posts its request to /llm/enhance and ends on its text', async () => {
+    // Plan with Cosmo sat 71 s on DeepSeek with nothing on screen: it was a bare fetch.
+    const { runDescribeCommand } = require('../js/services/describeExecutor.js');
+    const realFetch = global.fetch;
+    const sent = [];
+    const answers = [];
+    global.fetch = async (url, init) => {
+        sent.push([String(url), JSON.parse(init.body)]);
+        return { ok: true, status: 200, json: async () => ({ ok: true, text: 'Storyboard plan: [CAST] ...', model: 'deepseek' }) };
+    };
+    const request = { prompt: 'a dragon', system: 's', backend: 'endpoint', profileId: 'p1', job: 'agent' };
+    const exec = runDescribeCommand({ genId: 'gen-e', operation: 'promptEnhance', enhanceEndpoint: { body: request, onAnswer: b => answers.push(b) } });
+    const out = await new Promise((resolve) => {
+        exec.onComplete = (urls, info) => resolve(info);
+        exec.onError = (err) => resolve({ err });
+    }).finally(() => { global.fetch = realFetch; });
+    assert.deepEqual(sent, [['/llm/enhance', request]]);
+    assert.equal(out.promptText, 'Storyboard plan: [CAST] ...');
+    assert.equal(answers[0].model, 'deepseek', 'the caller gets the route\'s whole answer');
+    assert.equal(jobOf(exec).engine, 'cloud');
 });

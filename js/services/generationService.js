@@ -127,7 +127,8 @@ function _laneOf(jobOrOpts) {
     // MODEL, before the toggle: a cue job carries its config, which carries the model.
     if (jobOrOpts?.config?.model?.provider || jobOrOpts?.model?.provider) return 'cloud';
     // MPI-1109 — an online Describe is a cloud call too: it runs beside the engines.
-    if (jobOrOpts?.config?.describeEndpoint) return 'cloud';
+    // MPI-1231 — and so is an online Enhance (endpoint or Ollama).
+    if (jobOrOpts?.config?.describeEndpoint || jobOrOpts?.config?.enhanceEndpoint) return 'cloud';
     // MPI-1069 — a tool op runs on no engine at all, so neither flag applies either.
     if (isToolOp(jobOrOpts?.config?.operation)) return 'tool';
     if (opts.forceLocal === true || remoteEngineClient.isDownloadOnly()) return 'local';
@@ -283,7 +284,7 @@ function _buildQueueDisplay(config = {}, opts = {}, source = 'manual', isLoop = 
         // until MPI-82's spine reads opts.forceLocal — inert on routing for now.
         // MPI-851: 'cloud' is a third value here for the same reason it is a third
         // lane — a DeepInfra job badged 'remote' claims the user's Pod is running it.
-        engine: isToolOp(config.operation) ? 'tool' : (model.provider || config.describeEndpoint) ? 'cloud' : (opts.forceLocal ? 'local' : 'remote'),
+        engine: isToolOp(config.operation) ? 'tool' : (model.provider || config.describeEndpoint || config.enhanceEndpoint) ? 'cloud' : (opts.forceLocal ? 'local' : 'remote'),
         // MPI-949: batch membership fields for grouped queue rows.
         batchId:    opts.batchId    ?? null,
         batchLabel: opts.batchLabel ?? null,
@@ -1360,14 +1361,15 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
     // ComfyUI on a machine that may have no GPU at all.
     // MPI-1069 — and a tool op (Resize) runs on neither: sharp/ffmpeg in our own server.
     // MPI-1106 — and a mask track (GIF cut-out, Video Mask) runs its own graph runner.
-    // MPI-1109 — and an online Describe posts to the Language Models connection.
-    const exec = (config.describeEndpoint ? runDescribeCommand
+    // MPI-1109 — and an online Describe posts to the Language Models connection (MPI-1231: an Enhance too).
+    const exec = (config.describeEndpoint || config.enhanceEndpoint ? runDescribeCommand
         : isToolOp(operation) ? runToolCommand
             : isMaskTrackOp(operation) ? runGifCutoutTrack
                 : model.provider ? runCloudCommand : runCommand)({
         genId: _regId,
         operation,
         describeEndpoint: config.describeEndpoint || null,
+        enhanceEndpoint: config.enhanceEndpoint || null,
         modelId: model.id,
         positive,
         negative,

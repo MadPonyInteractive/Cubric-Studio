@@ -47,20 +47,55 @@ const _fail = (code, message) => ({ ok: false, code, message });
  * @param {string} text
  * @param {string} [idea] - the user's idea: its "Picture N is NAME, a WHAT." sentences
  *   become cast lines (see `_pictureCast`)
+ * @param {Object<string, number>} [actorImages] - a drawn cast picture's image number per
+ *   lower-cased cast name (`recurringActors`): that cast line ends "from image N", like a
+ *   pictured one
  * @returns {StoryboardPanel[]}
  */
-export function parseStoryboardPlan(text, idea = '') {
-    const plan = String(text || '');
-    // The plan box's line wins: it carries the picture's description and the user's own edits.
-    const cast = [..._pictureCast(idea), ..._castLines(plan)].reduce((m, c) => m.set(c.name.toLowerCase(), c), new Map());
-    return plan.split(/\[\s*PANEL\s*\d*\s*\]/i).slice(1).map((block) => {
-        const [picture, intent = ''] = block.split(/\bIntent\s*:/i);
-        const prompt = picture.replace(/^\s*Picture\s*:/i, '').trim();
-        if (!prompt) return null;
+export function parseStoryboardPlan(text, idea = '', actorImages = {}) {
+    const cast = _cast(String(text || ''), idea);
+    return _blocks(String(text || '')).map(({ prompt, intent }) => {
         const named = [...cast.values()].filter(c => _mentions(prompt, c.name));
-        return { prompt: [prompt, ...named.map(c => `${c.name} is ${c.desc}.`)].join(' '), intent: intent.trim() };
-    }).filter(Boolean);
+        const line = (c) => {
+            const n = actorImages[c.name.toLowerCase()];
+            return `${c.name} is ${c.desc}${n ? ` from image ${n}` : ''}.`;
+        };
+        return { prompt: [prompt, ...named.map(line)].join(' '), intent };
+    });
 }
+
+/**
+ * The cast members with no picture that two or more panels name, most-named first: each panel
+ * is drawn alone, so a dragon described only in words is a different dragon in every panel
+ * (Fabio, 2026-10-25). The driver draws each one a picture before the panels, and every panel
+ * naming it gets that picture as a reference. Only `[CAST]` lines count, never `[PLACES]`: a
+ * place drawn as a reference pastes the same background into every shot. A cast line that
+ * already says "from image" is a picture the user gave.
+ * @param {string} text - the plan box
+ * @param {string} [idea] - as `parseStoryboardPlan`
+ * @returns {Array<{name: string, desc: string}>}
+ */
+export function recurringActors(text, idea = '') {
+    const plan = String(text || '');
+    const pictured = new Set(_pictureCast(idea).map(c => c.name.toLowerCase()));
+    const blocks = _blocks(plan);
+    return _castLines(plan)
+        .filter(c => !c.place && !pictured.has(c.name.toLowerCase()) && !/\bfrom\s+(?:the\s+\w+\s+)?image\b/i.test(c.desc))
+        .map((c, order) => ({ ...c, order, count: blocks.filter(b => _mentions(b.prompt, c.name)).length }))
+        .filter(c => c.count >= 2)
+        .sort((a, b) => b.count - a.count || a.order - b.order)
+        .map(({ name, desc }) => ({ name, desc }));
+}
+
+/** Every cast and place line by lower-cased name. The plan box's line wins over the note's: it
+ * carries the picture's description and the user's own edits. */
+const _cast = (plan, idea) => [..._pictureCast(idea), ..._castLines(plan)].reduce((m, c) => m.set(c.name.toLowerCase(), c), new Map());
+
+/** The panels' own words: a block's `Intent:` part, and the rest less a leading `Picture:`. */
+const _blocks = plan => plan.split(/\[\s*PANEL\s*\d*\s*\]/i).slice(1).map((block) => {
+    const [picture, intent = ''] = block.split(/\bIntent\s*:/i);
+    return { prompt: picture.replace(/^\s*Picture\s*:/i, '').trim(), intent: intent.trim() };
+}).filter(b => b.prompt);
 
 const _escape = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -75,20 +110,24 @@ function _mentions(prompt, name) {
 }
 
 /**
- * `[CAST] Lena: a young waitress ... Stranger: a man in his 40s ...`, up to the first panel.
+ * `[CAST] Lena: a young waitress ... Stranger: a man in his 40s ... [PLACES] Diner: ...`, up to
+ * the first panel; a `[PLACES]` line is marked `place`.
  * A name is one to four Capitalised words before a colon; its description runs to the next
  * name. The enhancer deletes newlines without a space, so a line can end glued to the next
  * name ("nervous energy.Jasper: A man"): a name may follow a full stop directly.
  */
 function _castLines(plan) {
-    const m = plan.match(/\[\s*CAST\s*\]([\s\S]*?)(?=\[\s*PANEL|$)/i);
-    if (!m) return [];
-    const heads = [...m[1].matchAll(/(?:^|[\s.;,])([A-Z][\w'-]*(?: [A-Z][\w'-]*){0,3})\s*:/g)];
-    return heads.map((h, i) => {
-        const from = h.index + h[0].length;
-        const desc = m[1].slice(from, i + 1 < heads.length ? heads[i + 1].index + 1 : undefined);
-        return { name: h[1], desc: _lowerLead(desc.trim().replace(/[.;,]+$/, '')) };
-    }).filter(c => c.desc);
+    const block = (tag, place) => {
+        const m = plan.match(new RegExp(`\\[\\s*${tag}\\s*\\]([\\s\\S]*?)(?=\\[\\s*(?:PANEL|PLACES|CAST)|$)`, 'i'));
+        if (!m) return [];
+        const heads = [...m[1].matchAll(/(?:^|[\s.;,])([A-Z][\w'-]*(?: [A-Z][\w'-]*){0,3})\s*:/g)];
+        return heads.map((h, i) => {
+            const from = h.index + h[0].length;
+            const desc = m[1].slice(from, i + 1 < heads.length ? heads[i + 1].index + 1 : undefined);
+            return { name: h[1], desc: _lowerLead(desc.trim().replace(/[.;,]+$/, '')), place };
+        }).filter(c => c.desc);
+    };
+    return [...block('CAST', false), ...block('PLACES', true)];
 }
 
 /**
@@ -116,13 +155,14 @@ const _lowerLead = s => (/^(?:A\s|[A-Z][a-z])/.test(s) ? s[0].toLowerCase() + s.
 
 /**
  * @param {StoryboardPanel[]} panels - in story order
- * @param {{name: string}} opts - the stack's name, and the queue row's label
+ * @param {{name: string, sheet?: boolean}} opts - the stack's name, and the queue row's label;
+ *   `sheet: false` makes no overview (the cast pictures drawn before the panels)
  * @param {StoryboardDeps} deps
  * @returns {Promise<{ok: false, code: string, message: string}|{ok: true, runId: string, stackId: string,
  *   finished: Promise<{ok: boolean, cancelled: boolean, reordered: boolean, overview: boolean,
- *   panels: Array<{index: number, groupId: string|null, error?: {code: string, message: string}}>}>}>}
+ *   panels: Array<{index: number, groupId: string|null, item?: Object, error?: {code: string, message: string}}>}>}>}
  */
-export async function runStoryboard(panels, { name }, deps) {
+export async function runStoryboard(panels, { name, sheet = true }, deps) {
     if (deps.isLoopArmed()) return _fail('LOOP_ARMED', 'Disarm Loop before drawing a storyboard.');
     if (!Array.isArray(panels) || !panels.length) return _fail('NO_PANELS', 'Nothing was drawn: the plan has no panels.');
     const blank = panels.findIndex(p => !p?.prompt?.trim());
@@ -148,7 +188,7 @@ export async function runStoryboard(panels, { name }, deps) {
         if (!res.ok) return { index, groupId: null, error: { code: res.code, message: res.message } };
         const intent = panels[index].intent?.trim();
         if (intent) await deps.writeNote(res.item, intent);
-        return { index, groupId: res.group.id };
+        return { index, groupId: res.group.id, item: res.item };
     };
 
     const finished = Promise.all(subs.map(panel)).then(async (rows) => {
@@ -156,7 +196,7 @@ export async function runStoryboard(panels, { name }, deps) {
         const cancelled = rows.some(r => r.error?.code === 'CANCELLED');
         const reordered = landed.length > 1 ? await deps.reorderStack(stackId, landed) : false;
         // A sheet needs two pictures (`/combine-images`); a stopped run gets none.
-        const overview = landed.length > 1 && !cancelled;
+        const overview = sheet && landed.length > 1 && !cancelled;
         if (overview) await deps.makeOverview(landed, name);
         return { ok: landed.length > 0, cancelled, reordered, overview, panels: rows };
     });

@@ -172,6 +172,27 @@
   the face as the full-body ref). Restore loop now `restoreSlotItems` (declaredFields.js), skips a
   foreign role; test in flow-describe (fails without the fix). npm test 3661/0. Uncommitted: when it
   lands, give the peer the hash so it closes MPI-1287.
+- 2026-10-25 ("LTX 2.5 model 19", Fabio's ask, no GPU): RECURRING ACTORS GET A PICTURE FIRST. An
+  unpictured `[CAST]` member named in 2+ panels (dragon, red truck) is drawn first (t2i 1:1, grey
+  background) into its own "<name> · Cast" stack (Fabio's pick), then the panels run as edit with it
+  as a reference ("Dragon is ... from image N"). Places excluded (Fabio's pick): planner prompt now
+  writes a `[PLACES]` block after `[CAST]`. `recurringActors` + `actorImages` in storyboardRunner.js,
+  `sheet: false` + `item` on rows, cast stage in storyboardDispatch.js. 2 new tests, npm test
+  3669/0, lint clean. UNCOMMITTED. NOT RUN LIVE: the planner's `[PLACES]` split (one Cosmo plan) and
+  the cast stage (GPU, Fabio is using it). NEXT: Fabio's live look covers both: Plan with Cosmo
+  (check [CAST]/[PLACES]), then Generate (Cast stack first, then panels).
+- 2026-10-25 ("LTX 2.5 model 19", Fabio's live Plan press): PLAN PASSED - [CAST] White Tiger/Cat/Lion/
+  Fox "from image N", Dragon unpictured (-> drawn first on Generate), [PLACES] Forest Entrance/Clearing.
+  Describes 3.5 s total (not blocked by the peer's GPU work); Cosmo's plan 71 s on DeepSeek V4 Flash with
+  NOTHING on screen. ROOT: every server-backend enhance (`runServerBackend`) was a bare fetch. FIX: a
+  user's enhance (enhanceFlow + enhance(), default `queued`) is now a cloud-lane queue job through
+  `describeExecutor.js` (`enhanceEndpoint` config -> `/llm/enhance`): row, sweep, status bar, Stop.
+  Child-safety judge and `settleInGraphEnhance` stay bare (`queued: false`, guarded by
+  in-graph-enhance.test). Toast "$0.0000 a picture" -> `formatPrice` ("about $0.00002"). npm test
+  3671/0. NOT SEEN live: the queue row (Fabio's next Plan press). 180 s rule = REMOTE_CHAT_TIMEOUT_MS
+  per hosted call (llmEngines.mjs): a 6-panel plan 71 s; a 12-panel one may near it (named TIMEOUT
+  toast, not silent). NEXT (Fabio's ask): Cosmo peek animation at the bottom of the Flow UI while the
+  plan is written; then Generate with the Dragon cast stage when the GPU is free.
 
 ## Phase 0: Panel recipe - `user-ux` (local GPU, Fabio's yes; no money)
 

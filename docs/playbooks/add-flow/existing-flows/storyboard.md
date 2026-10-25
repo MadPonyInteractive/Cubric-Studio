@@ -72,6 +72,14 @@ sheet. `devOnly: true` until the LTX 2.5 release (umbrella MPI-1267).
   (it carries the description and the user's edits); the note's line only fills a pictured name
   the plan lacks (a hand-written plan). The note's article is dropped ("The Sphinx" -> `Sphinx`)
   so the two share a key.
+- **A recurring actor with no picture gets one drawn first** (Fabio 2026-10-25: a dragon in words is
+  a new dragon every panel). `recurringActors(plan, idea)` = `[CAST]` lines (never `[PLACES]`: a
+  drawn place pastes one background into every shot) with no picture that 2+ panels name, most-named
+  first, capped at the model's free reference slots (the rest stay words, the status line says so).
+  The driver draws them (`t2i`, 1:1, plain grey background) into their OWN stack "<name> · Cast"
+  (`sheet: false`, no overview), then queues the panels as `edit` with those pictures after the
+  user's; `parseStoryboardPlan(plan, idea, actorImages)` ends that cast line "from image N". A failed
+  actor picture is a warning and the panels describe it in words; Stop during the cast draws no panel.
 - **A Picture never describes a cast member's looks** (planner rule, 2026-10-25): DeepSeek wrote
   "Fox (a small, bright-orange fox)" for a purple fox in picture 3, fighting the cast line.
 

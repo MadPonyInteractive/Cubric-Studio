@@ -11,6 +11,10 @@
  *
  * Every exit path reaches a terminal store phase: a job left live keeps its lane busy.
  * A config opts in with `describeEndpoint` (llmService `describeImage({ queued: true })`).
+ *
+ * An online ENHANCE (`/llm/enhance`, endpoint or Ollama) runs the same way with
+ * `enhanceEndpoint` (llmService `runServerBackend({ queued: true })`, MPI-1231): Storyboard's
+ * Plan with Cosmo sat 71 s on DeepSeek with nothing on screen but the button's words.
  */
 
 'use strict';
@@ -68,7 +72,9 @@ export function runDescribeCommand(payload) {
         };
         if (stopped()) { settleCancelled(); return; }
 
-        const { profileId, modelId, question, crop, greedy, onAnswer } = payload.describeEndpoint || {};
+        const enhance = payload.enhanceEndpoint;
+        const { profileId, modelId, question, crop, greedy } = payload.describeEndpoint || {};
+        const onAnswer = (enhance || payload.describeEndpoint || {}).onAnswer;
         const item = (payload.mediaItems || [])[0];
 
         generationStore.advance(jobId, PHASES.SUBMITTING);
@@ -77,11 +83,11 @@ export function runDescribeCommand(payload) {
 
         let body;
         try {
-            const res = await fetch('/llm/describe', {
+            const res = await fetch(enhance ? '/llm/enhance' : '/llm/describe', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 signal: controller.signal,
-                body: JSON.stringify({
+                body: JSON.stringify(enhance ? enhance.body : {
                     profileId,
                     ...(modelId ? { modelId } : {}),
                     imagePath: item?.url,
@@ -97,9 +103,12 @@ export function runDescribeCommand(payload) {
         if (stopped()) { settleCancelled(); return; }
 
         if (!body?.ok) {
-            const message = (typeof body?.error === 'object' ? body.error?.message : body?.error) || 'The description failed.';
+            const message = (typeof body?.error === 'object' ? body.error?.message : body?.error)
+                || (enhance ? 'Enhance failed.' : 'The description failed.');
             const code = typeof body?.error === 'object' ? body.error?.code : undefined;
-            generationStore.settle(jobId, PHASES.ERROR, { error: code || 'DESCRIBE_FAILED' });
+            // An enhance caller reads the route's own envelope (`withRemoteSettingsHint`), as the bare fetch did.
+            if (enhance) onAnswer?.(body);
+            generationStore.settle(jobId, PHASES.ERROR, { error: code || (enhance ? 'ENHANCE_FAILED' : 'DESCRIBE_FAILED') });
             pulse(false);
             exec.onError?.(Object.assign(new Error(message), code ? { code } : {}));
             return;
