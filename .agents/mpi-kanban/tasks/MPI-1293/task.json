@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1293",
+  "title": "Stop in a multi-job Flow stops everything that Flow has queued, not one job per press",
+  "description": "Fabio 2026-10-25: a Flow that fans one press into several generations (Storyboard panels, Multi-angle passes, chained legs) stops only the running job per Stop press, so the user presses Stop up to ten times. One press must stop everything queued for that Flow. Today: MpiBaseFlow _cancel cancels one entry (running, else the first), and its doc comment says that is deliberate since run stacking (MPI-822) - this card overrides that for the Flow frame's Stop.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-10-25T23:17:15+00:00",
+  "updated_at": "2026-10-25T23:17:15+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

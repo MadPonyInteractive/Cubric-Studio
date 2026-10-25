@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1293", "at": "2026-10-25T23:17:15+00:00", "actor": "claude", "column": "todo", "title": "Stop in a multi-job Flow stops everything that Flow has queued, not one job per press"}
