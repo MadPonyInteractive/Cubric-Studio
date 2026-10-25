@@ -368,6 +368,13 @@ refuses the rest). Same shape as r50 (angles.py, Qwen zoom pass on the accepted 
 passes: widen BENCHED_ZOOM / ZOOM_KEPT to carry height, open those rungs in multiAngleChoices, and render
 <turn>_lo_far / <turn>_hi_far previews (soft_render.py: add the stops - lo/hi camera, lens x 0.5 - then
 ship_assets.py) and have multiAnglePreview pick them by height. Zoom session archived.
+ROUND 51 SHIPPED 2026-10-25 (session "Multi-Angle 31"): 0a4954ca0 - far on every lo/hi view, hs from above on the 7
+turned views (BENCHED_ZOOM_HEIGHT; low hs + front-high hs fail, Fabio: fine as is, no more zoom rounds). New describer
+facts FAR_LOW / FAR_HIGH (NOT live-checked on gemma yet - costs a few cents, ask first). 16 lo/hi far previews shipped,
+high hs CSS anchor (--hs-hi). Zoom slider: far,full,waist,NONE,hs,face,eye. 525589595 - Fabio's first live run found
+no latents / greyed Stop / no result in the pane / 'Editing 1' twice: the driver never called frame.onJob (added by
+Storyboard 20 in a9cf62a0a). Fixed + flowStep n/total; tests/flow-drivers-report-jobs.test.cjs; add-flow playbook +
+skill got a Driver Flows section. NEXT: Fabio re-runs the Flow live (latents, Stop, result, 1/2) -> phase 5.
 UI TWEAKS 2026-10-25 (session "Multi-Angle 31", Fabio): Zoom slider now far,full,waist,NONE,hs,face,eye (as-is in the middle, out left, in right; test added). Outfit slot hint line 3 "good for consistency and zooming out" asked of Storyboard 20 (holds flowsRegistry.js) - check it landed. Not committed.
 ROUND 51 STARTED 2026-10-25 (session "Flux 3 on flows 30"), PAUSED at 42/130 for Fabio's own GPU test: `angles.py
 <port> blender51` (resumes from out/mq_blender51.json, nothing redone), sheets r51{a,b}_zoom_{lo,hi}.jpg at the end.
