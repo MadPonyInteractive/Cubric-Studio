@@ -88,3 +88,8 @@ judged on the `_detail` files. 32/32 clips ok, numbers in `research/results.md`.
 
 Not checked: whether sections help FACE identity (no frontal close shot in Shot C), and the EasyCache
 skip lines (this run's ComfyUI output never reached `boot.log`).
+
+## Phase 1b: Singularity v1.3 vs v2, Shot B, no upscale (2026-10-25, Fabio)
+
+Side-by-sides `sbs/p1b_B_<seed>{,_detail}` (v1.3 | v2), 4/4 ok, same speed (v2 128/86 s, v1.3
+123/86 s). **Verdict (Fabio): v2 wins.** Phase 2 speed arms run on v2 only. MPI-1284 ships v2.

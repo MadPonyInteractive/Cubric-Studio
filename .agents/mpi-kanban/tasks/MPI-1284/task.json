@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1284",
+  "title": "Singularity H3 replaces our H3 transformers (one fused file for t2v / i2v / ref2v), licence check first",
+  "description": "Fabio, 2026-10-25 (MPI-1135 Phase 1): Singularity v1.3 beats our H3 by a small margin on fast motion, at the same speed. Replace. Version (v1.3 or v2) is decided by MPI-1135's follow-up test on Shot B. Before wiring: (1) licence check. The source repo says apache-2.0, but it is an H3 fine-tune, so treat it as bound by the H3 Community Licence and its territory clause. (2) Follow docs/playbooks/add-model/README.md 'Removing or re-tiering': never delete the old dep entries. One 21 GB file replaces both fl2va and ref2va.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-10-25T09:01:15+00:00",
+  "updated_at": "2026-10-25T09:01:15+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

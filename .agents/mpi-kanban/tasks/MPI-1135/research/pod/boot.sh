@@ -64,9 +64,10 @@ get() {  # get <folder/file> <url>
 P=()
 R2=https://models.cubric.studio/vision/models
 HF=https://huggingface.co
-get diffusion_models/minimax_h3_fl2va_pruned_int8_convrot.safetensors $HF/Comfy-Org/MiniMax-H3/resolve/main/diffusion_models/minimax_h3_fl2va_pruned_int8_convrot.safetensors & P+=($!)
-get diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors $HF/Comfy-Org/MiniMax-H3/resolve/main/diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors & P+=($!)
-# Singularity v1.3 (Fabio 2026-10-25: v2 and FastH3 Trim dropped; their files stay on the volume, not copied below)
+# Fabio 2026-10-25: ours and FastH3 Trim are out of the bench; deleted to free the full volume
+# (quota ~145 GB). Singularity v1.3 and v2 stay: one more v1.3 vs v2 test, then Phase 2 on the winner.
+rm -f $M/diffusion_models/fastvideo_* $M/diffusion_models/minimax_h3_fl2va_pruned_int8_convrot.safetensors $M/diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors
+get diffusion_models/Minimax-h3_Singularity_ref2va_v2_pruned_int8.safetensors $HF/WarmBloodAban/Minimax-h3_Singularity/resolve/main/Minimax-h3_Singularity_ref2va_v2_pruned_int8.safetensors & P+=($!)
 get diffusion_models/Minimax-h3_Singularity_ref2va_Pruned_v1.3_int8.safetensors $HF/WarmBloodAban/Minimax-h3_Singularity/resolve/main/Minimax-h3_Singularity_ref2va_Pruned_v1.3_int8.safetensors & P+=($!)
 get text_encoders/qwen3vl_32b_h3_ultra_uncensored_heretic_int8_convrot.safetensors $R2/text_encoders/qwen3vl_32b_h3_ultra_uncensored_heretic_int8_convrot.safetensors & P+=($!)
 wait "${P[@]}"; P=()
@@ -91,7 +92,7 @@ L=/root/models
 echo "BENCH copying weights to $L"
 P=()
 for d in diffusion_models text_encoders vae latent_upscale_models loras; do
-  mkdir -p $L/$d; (cd $M/$d && find . -type f ! -name "*_v2_*" ! -name "fastvideo_*" -exec cp -n --parents {} $L/$d/ \;) & P+=($!)
+  mkdir -p $L/$d; (cd $M/$d && find . -type f -exec cp -n --parents {} $L/$d/ \;) & P+=($!)
 done
 wait "${P[@]}"; echo "BENCH weights local"  # a bare `wait` also waits on the HARD_MIN timer; du -sh $L; df -h /
 cat > /root/extra_models.yaml <<EOF

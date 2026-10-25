@@ -7,7 +7,10 @@
 #   b485:  none | benji 0.485 on our model | benji 0.485 on Singularity, Shot C
 #   p1:    Singularity none | ours none | Singularity ours-upscale | ours ours-upscale, Shots A-D;
 #          p1prompt_<model>: Shot C | looks stripped (Cb) | Cb + MiniMax sections (Cs), ours arm
-# Usage: build_sbs.sh [<clipdir>] [step0|b485|p1]   -> <clipdir>/sbs/<set>_<shot>_<seed>{,_detail}.mp4
+#   p1b:   Singularity v1.3 | v2, no upscale, Shot B (only when asked by name)
+#   p1c:   ours | v1.3 | v2 on Shot D (i2v, no upscale) and Shot Cs (ref2v, sections, ours route)
+#   p2:    speed arms on v2, Shot B: turbo | sol | Veda; 25 steps | EC | sol | Veda; EC | sol+EC | Veda+EC
+# Usage: build_sbs.sh [<clipdir>] [step0|b485|p1|p1b|p2]   -> <clipdir>/sbs/<set>_<shot>_<seed>{,_detail}.mp4
 set -euo pipefail
 dir="${1:-C:/AI/Mpi/_private/mpi1135-clips}"
 mkdir -p "$dir/sbs"
@@ -76,5 +79,22 @@ for seed in 1135001 1135002; do
       "p1_sing_ours_Cb_${seed}" "Sing stripped" "p1_sing_ours_Cs_${seed}" "Sing sections"
     sbs "p1prompt_ours_${seed}" "step0_ours_C_${seed}" "ours C" \
       "p1_ours_ours_Cb_${seed}" "ours stripped" "p1_ours_ours_Cs_${seed}" "ours sections"
+  fi
+  if [[ $want == p1b ]]; then
+    sbs "p1b_B_${seed}" "p1b_s13_none_B_${seed}" "Sing v1.3" "p1b_s2_none_B_${seed}" "Sing v2"
+  fi
+  if [[ $want == p1c ]]; then
+    sbs "p1c_D_${seed}" "p1_ours_none_D_${seed}" "ours H3 fl2va" "p1_sing_none_D_${seed}" "Sing v1.3" \
+      "p1c_s2_none_D_${seed}" "Sing v2"
+    sbs "p1c_Cs_${seed}" "p1_ours_ours_Cs_${seed}" "ours H3 ref2va" "p1_sing_ours_Cs_${seed}" "Sing v1.3" \
+      "p1c_s2_ours_Cs_${seed}" "Sing v2"
+  fi
+  if [[ $want == p2 ]]; then
+    sbs "p2turbo_B_${seed}" "p2_t_base_B_${seed}" "turbo" "p2_t_sol_B_${seed}" "turbo sol-attn" \
+      "p2_t_veda_B_${seed}" "turbo Veda"
+    sbs "p2full_B_${seed}" "p2_n_base_B_${seed}" "25 steps" "p2_n_ec_B_${seed}" "EasyCache" \
+      "p2_n_sol_B_${seed}" "sol-attn" "p2_n_veda_B_${seed}" "Veda"
+    sbs "p2fullec_B_${seed}" "p2_n_ec_B_${seed}" "EasyCache" "p2_n_sol_ec_B_${seed}" "sol-attn+EC" \
+      "p2_n_veda_ec_B_${seed}" "Veda+EC"
   fi
 done

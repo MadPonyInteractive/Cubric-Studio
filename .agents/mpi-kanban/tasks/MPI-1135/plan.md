@@ -173,6 +173,53 @@ Too slow on the local 4060 Ti. Fabio chose a persistent volume over a fresh Pod 
   **Singularity v1.3 replaces ours**, new **Fast Motion** control (no upscale route; 2K/4K still
   upscale above 1080x1920). Next: Phase 2 on Singularity (needs a Pod and the full-volume fix,
   and runs past the $3 floor of the budget), plus the three build jobs, which are not this card's.
+- 2026-10-25 ("H3 Singularity 6"): cards made for the three build jobs: MPI-1283 (sections in H3
+  ref prompts), MPI-1284 (Singularity replaces our H3, licence check first), MPI-1285 (Fast
+  Motion control). Fabio: delete FastH3 Trim and OURS from the volume, keep Singularity v1.3 AND
+  v2 for one more test, **Phase 1b = v1.3 vs v2, Shot B, no upscale, 2 seeds**
+  (`step0/build_v2.py` -> `p1b_{s2,s13}_none_B_<seed>`, sbs `build_sbs.sh <dir> p1b`). boot.sh now
+  `rm`s those files from the volume and fetches v2 + v1.3 only. Phase 2 = speed arms on the
+  Phase 1b winner ONLY (no model comparison any more); Fabio approved ~$1.10-1.25 for it, but
+  wants to see Phase 1b first and **the Pod stays up while he judges**. Pod
+  **`e8e1vtrxvl5q6g`** created 09:02 UTC, `HARD_MIN=180` (removes itself ~12:02 UTC).
+  SSH `ssh -i ~/.ssh/id_ed25519 -p 29007 root@213.173.107.21`. COMFY_READY 09:14 (both
+  Singularity files full size, ours/FastH3 gone from the volume, container disk 73/150 GB).
+  Phase 1b ran 4/4 ok: v2 128/86 s, v1.3 123/86 s (the second seed skips the load). v1.3's file sizes match
+  Phase 1's same-seed clips. Side-by-sides `sbs/p1b_B_<seed>{,_detail}` sent 09:23; **Pod left
+  RUNNING, idle, waiting on Fabio's verdict** ($0.72/h).
+- 2026-10-25 Fabio: **v2 wins Phase 1b.** Phase 2 = speed arms on v2 only, Shot B, no upscale
+  (`step0/build_phase2.py`, 18 graphs `p2_<arm>_B_<seed>`, sbs `build_sbs.sh <dir> p2`). Found on
+  the Pod: the shipped graph ALREADY runs Comfy Kitchen int8 attention (393) on every path and
+  EasyCache on the non-turbo path, so both are baseline. Core ComfyUI has `BlockSparseAttention`
+  (sol-attn: training-free, H3-aware audio protection, comfy-kitchen 0.2.39, **no Triton**), which
+  replaces the VSA arm (core's vsa needs FastH3 weights). **Veda needs Triton** (its
+  requirements.txt), which the shipped engine cannot carry (performance.md), so Veda is measured
+  but is not shippable as things stand. Arms: t_base/t_sol/t_veda, n_base (EC out)/n_ec/n_sol/
+  n_sol_ec/n_veda/n_veda_ec. Run started ~09:45 UTC.
+- 2026-10-25 Fabio: v2 had only run t2v, so **Phase 1c** = v2 on Shot D (i2v, none) + Shot Cs
+  (ref2v, sections, ours route), 2 seeds, ~$0.10 (`build_v2.py 1c`, sbs `build_sbs.sh <dir> p1c`:
+  ours | v1.3 | v2). Ours on Shot D was the fl2va file (MiniMax H3, not Reference): Fabio says
+  Reference is weaker at i2v, and Singularity is a ref2va fine-tune, so judge v2's i2v against
+  our fl2va. Queued to run right after Phase 2.
+- 2026-10-25 Fabio: **Singularity H3 v2 is the ONLY H3** (memory note
+  `project_singularity_h3_is_the_only_h3`); 2.1.3 = the MOSS release, readiness card **MPI-1286**
+  (made this session: no 2.1.3 card existed), deprecates MiniMax H3 + H3 Reference. MPI-1284 has a brief.
+- 2026-10-25 **Phase 2 DONE**, 18/18 ok, sbs `sbs/p2{turbo,full,fullec}_B_<seed>{,_detail}`.
+  Compare SEED 2 times (warm): every seed-1 row after an arm change pays ~40 s and ~50 GB RAM (a
+  model re-patch/reload). Turbo: base 85, sol-attn 72 (-15%), Veda 71 (-16%; seed 1 88 s = Triton
+  JIT). Non-turbo 25 steps: base 246, EasyCache 212 (-14%, skips 3-5/25), sol 190 (-23%),
+  sol+EC 173 (-30%), Veda 201 (-18%), Veda+EC 181 (-26%). Veda computes 15% of attention but only
+  ~22 s of a step is attention at 4 s; gains grow with length (the 10/15 s runs are where it would
+  show). Quality verdict pending (Fabio).
+- 2026-10-25 **Phase 1c**: v2 Shot D 136/88 s, Cs 124/94 s (4/4 ok), sbs `sbs/p1c_{D,Cs}_<seed>` (ours |
+  v1.3 | v2). Verdict pending.
+- 2026-10-25 **Resolution rethink (Fabio, for the next session's brainstorm, feeds MPI-1285):**
+  "single pass up to 1080p, upscale only for 2K/4K" does not work: High and Very High cannot
+  render single-pass at 10-15 s on 16 GB cards (already measured). Idea: every tier above the
+  bench size (High, Very High, 2K, 4K) is an UPSCALE from the 1344x768 (or 768x1344) single pass,
+  with a factor per tier that lands on the target size. Every bench clip so far ran at 1344x768
+  (Shot D 896x1088). The shipped 3D upscaler takes target dimensions (`mode: target dimensions`,
+  node 419), so the factor is per tier, not fixed at 2. Brainstorm first, no build.
 - Spent: ~$0.95 before Pod 2; Pod 2 at $0.72/h on top.
 - Spent: ~$0.63 of the $3-5 Pod budget (GPU 47 min + the first Pod $0.06 + CPU fill $0.01).
 - Watching boot: `watch.mjs` (RunPod log API) printed nothing in 30 min; poll
