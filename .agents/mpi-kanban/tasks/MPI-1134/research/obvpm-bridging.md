@@ -8,6 +8,16 @@ used" for Story / Infinite Video.
 
 ## READ FIRST — what changed after this was written (Fabio, 2026-10-25, MPI-1135)
 
+**Fabio, 2026-10-25 (supersedes anything below that differs):**
+- **No new workflow for Story.** Infinite Video and Cosmo's generations run the Singularity H3
+  model workflow (MPI-1284) as is; LoRAs added to it are not Story's concern. H3 also joins the
+  Extend Video Flow, so extend/bridge use whatever that model workflow provides.
+- **Always generate at 1344, never lower.** Above that, the tier upscales. 1344 already has
+  unnoticeable tearing, so the cheap low-res draft is off the table.
+- **Fast Motion is chosen per scene by the planner:** OFF for a talking close-up and for medium
+  shots at slow/medium pace; ON for fighting, running, jumping, car chases — a lot happening fast.
+  This is a field the shot planner sets, not the user per shot.
+
 Confirmed by the H3 Singularity 7 session from MPI-1135 / MPI-1284 / MPI-1285 records.
 
 - **Singularity H3 v2 is the only H3** (one ref2va file: t2v, i2v, ref2v). 2.1.3 deprecates
