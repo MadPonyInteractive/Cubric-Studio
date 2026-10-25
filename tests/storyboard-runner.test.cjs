@@ -13,10 +13,10 @@ const path = require('node:path');
 
 const esm = (p) => import('file:///' + path.join(__dirname, '..', p).replace(/\\/g, '/'));
 
-let runStoryboard, parseStoryboardPlan, recurringActors, panelStyle, applyReorderMembers;
+let runStoryboard, parseStoryboardPlan, recurringActors, panelStyle, MAX_DRAWN_FIRST, applyReorderMembers;
 
 test.before(async () => {
-    ({ runStoryboard, parseStoryboardPlan, recurringActors, panelStyle } = await esm('js/services/storyboardRunner.js'));
+    ({ runStoryboard, parseStoryboardPlan, recurringActors, panelStyle, MAX_DRAWN_FIRST } = await esm('js/services/storyboardRunner.js'));
     ({ applyReorderMembers } = await esm('js/data/stackModel.js'));
 });
 
@@ -216,15 +216,41 @@ test('an unpictured cast member or place two panels name recurs, characters firs
     // ledge a different ledge. The Cave is named by two panels, and comes after both characters.
     const plan = '[CAST] Bix: a hairless grey cat from image 1. Dragon: a huge red dragon with gold horns. Red Truck: a battered red pickup truck. Owl: a small brown owl. [PLACES] Cave: a dark cave mouth. Hill: a grassy hill. [PANEL 1] Picture: Bix and the Dragon at the Cave. Intent: a [PANEL 2] Picture: The Dragon chases the Red Truck past the Cave. Intent: b [PANEL 3] Picture: Bix hides in the Red Truck on the Hill as the Owl watches. Intent: c [PANEL 4] Picture: The Dragon lands. Intent: d';
     assert.deepStrictEqual(recurringActors(plan), [
-        { name: 'Dragon', desc: 'a huge red dragon with gold horns', place: false },
-        { name: 'Red Truck', desc: 'a battered red pickup truck', place: false },
-        { name: 'Cave', desc: 'a dark cave mouth', place: true },
+        { name: 'Dragon', desc: 'a huge red dragon with gold horns', kind: 'character' },
+        { name: 'Red Truck', desc: 'a battered red pickup truck', kind: 'character' },
+        { name: 'Cave', desc: 'a dark cave mouth', kind: 'place' },
     ]);
     // A name from the user's own note is pictured even when the plan's line lacks "from image".
     assert.deepStrictEqual(recurringActors(plan.replace(' from image 1', ''), 'Picture 1 is Bix, the cat.').map(a => a.name), ['Dragon', 'Red Truck', 'Cave']);
     // The drawn pictures' numbers land on the actor's and the place's lines.
     const [p1] = parseStoryboardPlan(plan, '', { dragon: 2, cave: 3 });
     assert.strictEqual(p1.prompt, 'Bix and the Dragon at the Cave. Bix is a hairless grey cat from image 1. Dragon is a huge red dragon with gold horns from image 2. Cave is a dark cave mouth from image 3.');
+});
+
+test('objects come after characters and places, whatever their count; an [OBJECTS] line reaches the panels', () => {
+    // Fabio's bat-cave board drew seven pictures first; only MAX_DRAWN_FIRST are, so the order
+    // decides what is left in words: characters, then places, then objects.
+    const plan = '[CAST] Squirrel: a red squirrel in a green cape. [PLACES] Bat Cave: a vast dark cave. [OBJECTS] Gold Helmet: a dented gold helmet with a red plume. [PANEL 1] Picture: The Gold Helmet lies in the Bat Cave. Intent: a [PANEL 2] Picture: Squirrel lifts the Gold Helmet in the Bat Cave. Intent: b [PANEL 3] Picture: Squirrel wears the Gold Helmet. Intent: c';
+    assert.deepStrictEqual(recurringActors(plan).map(a => [a.name, a.kind]), [['Squirrel', 'character'], ['Bat Cave', 'place'], ['Gold Helmet', 'object']]);
+    assert.strictEqual(parseStoryboardPlan(plan, '', { 'gold helmet': 3 })[0].prompt,
+        'The Gold Helmet lies in the Bat Cave. Bat Cave is a vast dark cave. Gold Helmet is a dented gold helmet with a red plume from image 3.');
+    assert.strictEqual(MAX_DRAWN_FIRST, 4);
+});
+
+test('a name inside another name is no mention of it, and a name may hold "the"', () => {
+    // The bat-cave re-plan (2026-10-25, research/crowd-cap/out.json), flattened as the app does:
+    // "Cliff Over the River" read as "River", and "Bat Cave Interior" / "Gold Helmet" counted as
+    // mentions of "Bat Cave Entrance" / "Gold Elephant" by their shared word.
+    const plan = 'Storyboard plan:[CAST]Squirrel: A young squirrel.[PLACES]Bat Cave Entrance: A dark cave mouth.Bat Cave Interior: Deep, pitch-black cavern with stalactites.Cliff Over the River: A rocky cliff edge.River: A fast blue river.[OBJECTS]Gold Helmet: A gold helmet.Gold Elephant: A gold elephant figurine.'
+        + '[PANEL 1]Picture: Squirrel at Bat Cave Entrance. Intent: a[PANEL 2]Picture: Squirrel inside Bat Cave Interior grabs the Gold Helmet. Intent: b'
+        + '[PANEL 3]Picture: Squirrel in Bat Cave Interior wears the Gold Helmet. Intent: c[PANEL 4]Picture: Squirrel leaps off Cliff Over the River toward the River below. Intent: d'
+        + '[PANEL 5]Picture: Squirrel in the River holds the Gold Elephant. Intent: e';
+    assert.deepStrictEqual(recurringActors(plan).map(a => a.name), ['Squirrel', 'Bat Cave Interior', 'River', 'Gold Helmet']);
+    const panels = parseStoryboardPlan(plan);
+    assert.strictEqual(panels[1].prompt, 'Squirrel inside Bat Cave Interior grabs the Gold Helmet. Squirrel is a young squirrel. Bat Cave Interior is deep, pitch-black cavern with stalactites. Gold Helmet is a gold helmet.');
+    assert.strictEqual(panels[3].prompt, 'Squirrel leaps off Cliff Over the River toward the River below. Squirrel is a young squirrel. Cliff Over the River is a rocky cliff edge. River is a fast blue river.');
+    // The short-name fallback still works when no other name holds the word.
+    assert.match(parseStoryboardPlan('[CAST] Grandpa Finn: an old man. [PANEL 1] Grandpa holds the kite.')[0].prompt, /Grandpa Finn is an old man\./);
 });
 
 test('the panels\' shared opening is the style a picture drawn before them takes', () => {

@@ -55,8 +55,9 @@ const _fail = (code, message) => ({ ok: false, code, message });
  */
 export function parseStoryboardPlan(text, idea = '', actorImages = {}) {
     const cast = _cast(String(text || ''), idea);
+    const names = [...cast.values()].map(c => c.name);
     return _blocks(String(text || '')).map(({ prompt, intent }) => {
-        const named = [...cast.values()].filter(c => _mentions(prompt, c.name));
+        const named = [...cast.values()].filter(c => _mentions(prompt, c.name, names));
         const line = (c) => {
             const n = actorImages[c.name.toLowerCase()];
             return `${c.name} is ${c.desc}${n ? ` from image ${n}` : ''}.`;
@@ -70,25 +71,36 @@ export function parseStoryboardPlan(text, idea = '', actorImages = {}) {
  * drawn alone, so a dragon described only in words is a different dragon in every panel, and a
  * ledge a different ledge (Fabio, 2026-10-25; his volcano board drew three ledges in three
  * panels, one with no volcano). The driver draws each one a picture before the panels, and
- * every panel naming it gets that picture as a reference. Characters come first, places after
- * (`place: true`), each most-named first: the model's reference slots run out, and a face that
- * changes reads worse than a background. A line that already says "from image" is a picture
- * the user gave.
+ * every panel naming it gets that picture as a reference. Characters come first, then places,
+ * then objects, each most-named first: only `MAX_DRAWN_FIRST` are drawn, and a face that changes
+ * reads worse than a background, a background worse than a prop. A line that already says
+ * "from image" is a picture the user gave.
  * @param {string} text - the plan box
  * @param {string} [idea] - as `parseStoryboardPlan`
- * @returns {Array<{name: string, desc: string, place: boolean}>}
+ * @returns {Array<{name: string, desc: string, kind: 'character'|'place'|'object'}>}
  */
 export function recurringActors(text, idea = '') {
     const plan = String(text || '');
     const pictured = new Set(_pictureCast(idea).map(c => c.name.toLowerCase()));
     const blocks = _blocks(plan);
+    const names = [..._cast(plan, idea).values()].map(c => c.name);
     return _castLines(plan)
         .filter(c => !pictured.has(c.name.toLowerCase()) && !/\bfrom\s+(?:the\s+\w+\s+)?image\b/i.test(c.desc))
-        .map((c, order) => ({ ...c, order, count: blocks.filter(b => _mentions(b.prompt, c.name)).length }))
+        .map((c, order) => ({ ...c, order, count: blocks.filter(b => _mentions(b.prompt, c.name, names)).length }))
         .filter(c => c.count >= 2)
-        .sort((a, b) => a.place - b.place || b.count - a.count || a.order - b.order)
-        .map(({ name, desc, place }) => ({ name, desc, place }));
+        .sort((a, b) => _KINDS.indexOf(a.kind) - _KINDS.indexOf(b.kind) || b.count - a.count || a.order - b.order)
+        .map(({ name, desc, kind }) => ({ name, desc, kind }));
 }
+
+/** The order `recurringActors` puts them in. */
+const _KINDS = ['character', 'place', 'object'];
+
+/**
+ * How many pictures are drawn before the panels, at most. Fabio's bat-cave board drew seven
+ * (Squirrel, Rabbit, Bats, Gold Helmet, Gold Elephant, Bat Cave, River) and fed all seven to
+ * every panel, one short of Qwen-Image 2.1's limit, when a panel shows two or three of them.
+ */
+export const MAX_DRAWN_FIRST = 4;
 
 /**
  * The style every panel opens on ("3D-animated cartoon film still"), or '' when they differ:
@@ -104,7 +116,7 @@ export function panelStyle(panels) {
     return heads.length > 1 && heads[0] && heads.every(h => h === heads[0]) ? heads[0] : '';
 }
 
-/** Every cast and place line by lower-cased name. The plan box's line wins over the note's: it
+/** Every cast, place and object line by lower-cased name. The plan box's line wins over the note's: it
  * carries the picture's description and the user's own edits. */
 const _cast = (plan, idea) => [..._pictureCast(idea), ..._castLines(plan)].reduce((m, c) => m.set(c.name.toLowerCase(), c), new Map());
 
@@ -118,34 +130,43 @@ const _escape = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
  * A panel names a cast member by the whole name ("lena" too), or by one capitalised word of a
- * longer one: the planner cast "Grandpa Finn" and then wrote "Grandpa holds the kite".
+ * longer one: the planner cast "Grandpa Finn" and then wrote "Grandpa holds the kite". Every
+ * other cast name is taken out first, unless it is part of this one: "at Bat Cave Interior" is
+ * no mention of "Bat Cave Entrance", "the Gold Helmet" none of "Gold Elephant", and "Cliff Over
+ * the River" none of "River" (the bat-cave re-plan, 2026-10-25, put both caves in every cave panel).
+ * @param {string[]} [names] - every cast, place and object name in the plan
  */
-function _mentions(prompt, name) {
+function _mentions(prompt, name, names = []) {
+    prompt = names.filter(o => !new RegExp(`\\b${_escape(o)}\\b`, 'i').test(name))
+        .reduce((p, o) => p.replace(new RegExp(`\\b${_escape(o)}\\b`, 'gi'), ' '), prompt);
     if (new RegExp(`\\b${_escape(name)}\\b`, 'i').test(prompt)) return true;
+    // A word that is another whole name ("River" of "Cliff Over the River") names that one.
     const words = name.split(/\s+/).filter(w => w.length >= 4);
-    return words.length > 1 && words.some(w => new RegExp(`\\b${_escape(w)}\\b`).test(prompt));
+    return words.length > 1 && words.filter(w => !names.some(o => o.toLowerCase() === w.toLowerCase())).some(w => new RegExp(`\\b${_escape(w)}\\b`).test(prompt));
 }
 
 /**
- * `[CAST] Lena: a young waitress ... Stranger: a man in his 40s ... [PLACES] Diner: ...`, up to
- * the first panel; a `[PLACES]` line is marked `place`.
- * A name is one to four Capitalised words before a colon; its description runs to the next
+ * `[CAST] Lena: a young waitress ... Stranger: a man in his 40s ... [PLACES] Diner: ... [OBJECTS]
+ * Gold Helmet: ...`, up to the first panel; a line's `kind` is its block's. A hand-written plan
+ * with an object in `[CAST]` reads it as a character.
+ * A name is one to four Capitalised words before a colon, with small linking words between
+ * ("Cliff Over the River"; without them it read "River"); its description runs to the next
  * name. The enhancer deletes newlines without a space, so a line can end glued to the next
  * name ("nervous energy.Jasper: A man", "from image 1The Tiger: a white tiger"): a name may
  * follow a full stop or a digit directly.
  */
 function _castLines(plan) {
-    const block = (tag, place) => {
-        const m = plan.match(new RegExp(`\\[\\s*${tag}\\s*\\]([\\s\\S]*?)(?=\\[\\s*(?:PANEL|PLACES|CAST)|$)`, 'i'));
+    const block = (tag, kind) => {
+        const m = plan.match(new RegExp(`\\[\\s*${tag}\\s*\\]([\\s\\S]*?)(?=\\[\\s*(?:PANEL|PLACES|CAST|OBJECTS)|$)`, 'i'));
         if (!m) return [];
-        const heads = [...m[1].matchAll(/(?:^|[\s.;,\d])([A-Z][\w'-]*(?: [A-Z][\w'-]*){0,3})\s*:/g)];
+        const heads = [...m[1].matchAll(/(?:^|[\s.;,\d])([A-Z][\w'-]*(?: (?:(?:the|of|over|under|on|in|at|by|and|to|an?) )*[A-Z][\w'-]*){0,3})\s*:/g)];
         return heads.map((h, i) => {
             const from = h.index + h[0].length;
             const desc = m[1].slice(from, i + 1 < heads.length ? heads[i + 1].index + 1 : undefined);
-            return { name: h[1], desc: _lowerLead(desc.trim().replace(/[.;,]+$/, '')), place };
+            return { name: h[1], desc: _lowerLead(desc.trim().replace(/[.;,]+$/, '')), kind };
         }).filter(c => c.desc);
     };
-    return [...block('CAST', false), ...block('PLACES', true)];
+    return [...block('CAST', 'character'), ...block('PLACES', 'place'), ...block('OBJECTS', 'object')];
 }
 
 /**

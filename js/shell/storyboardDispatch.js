@@ -12,7 +12,7 @@
  * that declares `driver` (MpiBaseFlow `_run`).
  */
 
-import { runStoryboard, parseStoryboardPlan, recurringActors, panelStyle } from '../services/storyboardRunner.js';
+import { runStoryboard, parseStoryboardPlan, recurringActors, panelStyle, MAX_DRAWN_FIRST } from '../services/storyboardRunner.js';
 import { enqueueGeneration } from '../services/generationService.js';
 import { addGroup, updateGroup, reorderStack } from '../services/projectService.js';
 import { clientLogger } from '../services/clientLogger.js';
@@ -73,6 +73,8 @@ function _deps(project, { flow, inputs, unit, modelId, idea, references, ratio, 
                 ..._size(panel.ratio || ratio, qualityTier),
             }, project);
             if (!built.ok) return built;
+            // Stop was pressed while the panels were still going in (each waits on its build) or while the cast was drawn: nothing more is queued (MPI-1293).
+            if (frame?.stopped?.()) return { ok: false, code: 'CANCELLED', message: 'The user pressed Stop.' };
             // The user pressed Generate: their toasts show, and the child-safety gate reads
             // their own idea beside the panel prompt the planner wrote from it.
             // `flowId` + `flowInputs` ride to the sidecar, so Reuse > Apply to App reopens the
@@ -93,8 +95,8 @@ function _deps(project, { flow, inputs, unit, modelId, idea, references, ratio, 
                     : { ok: false, code: 'NO_OUTPUT', message: 'Nothing came back for this panel.' }),
             }, opts);
             if (!queued) return { ok: false, code: 'REJECTED', message: `Panel ${index + 1} was rejected before it entered the queue.` };
-            // The Flow frame follows each panel by its tempId: live latents, sweep, Stop, the result.
-            frame?.onJob?.(opts.tempId, done);
+            // The Flow frame follows each panel by its queue id: live latents, sweep, Stop, the result.
+            frame?.onJob?.(queued.queueJobId, done);
             return { ok: true, done };
         },
 
@@ -152,9 +154,11 @@ function _summary(name, out) {
  * @param {Object} flow - the FlowDef
  * @param {Object} inputs - the frame's collected inputs (`positive`, `plan`, `ratio`,
  *   `qualityTier`, `turbo`, `mediaItems`)
- * @param {{onJob?: function(string, Promise<Object>): void}} [frame] - the Flow frame, told of
- *   every queued picture (its tempId and its `done`) so its result pane can follow it
- * @returns {Promise<boolean>} true once the panels are queued
+ * @param {{onJob?: function(string, Promise<Object>): void, stopped?: function(): boolean}} [frame] -
+ *   the Flow frame, told of every queued picture (its queue id and its `done`) so its result pane
+ *   can follow it, and asked before each one goes in whether Stop was pressed
+ * @returns {Promise<false|{finished: Promise<Object>}>} false when nothing started, else the end
+ *   of the whole run
  */
 async function runStoryboardFlow(flow, inputs, frame) {
     const project = state.currentProject;
@@ -193,17 +197,18 @@ async function runStoryboardFlow(flow, inputs, frame) {
         turbo: resolveTurboControlId(model) ? inputs.turbo !== false : undefined,
     };
     // A recurring actor or place with no picture gets one drawn first, so every panel draws the
-    // SAME dragon on the SAME ledge: as many as the model's free reference slots hold,
-    // characters first. Each is drawn in the panels' own style.
+    // SAME dragon on the SAME ledge: up to MAX_DRAWN_FIRST, fewer when the model's free reference
+    // slots run out, characters first, then places, then objects. Each is drawn in the panels' style.
     const wanted = recurringActors(inputs.plan, idea);
-    const actors = wanted.slice(0, Math.max(0, max - references.length));
+    const free = max - references.length;
+    const actors = wanted.slice(0, Math.max(0, Math.min(MAX_DRAWN_FIRST, free)));
     if (!actors.length) return _drawPanels(panels, name, _deps(project, { ...opts, references }, frame));
 
     // One actor lands as a plain card under its own name; two or more as a Cast stack.
     const style = panelStyle(panels);
     const castName = truncateCardName(actors.length > 1 ? `${name} · Cast` : actors[0].name);
     const cast = await runStoryboard(actors.map(a => ({ prompt: _castPrompt(a, style), intent: `${a.name}: ${a.desc}`,
-        ratio: a.place ? inputs.ratio : '1:1' })),
+        ratio: a.kind === 'place' ? inputs.ratio : '1:1' })),
         { name: castName, sheet: false },
         _deps(project, { ...opts, unit: 'picture', references: [] }, frame));
     if (!cast.ok) {
@@ -212,11 +217,13 @@ async function runStoryboardFlow(flow, inputs, frame) {
     }
     const left = wanted.slice(actors.length).map(a => a.name);
     StatusBar.notify(`${name}: drawing ${actors.map(a => a.name).join(', ')} first, so every panel shows the same one. The panels follow.`
-        + (left.length ? ` ${left.join(', ')} stays in words: ${model?.name || modelId} takes ${max} pictures.` : ''), 'info');
-    cast.finished.then(async (out) => {
+        + (left.length ? ` ${left.join(', ')} stays in words: ${free > MAX_DRAWN_FIRST
+            ? `at most ${MAX_DRAWN_FIRST} pictures are drawn first.`
+            : `${model?.name || modelId} takes ${max} pictures.`}` : ''), 'info');
+    return { finished: cast.finished.then(async (out) => {
         if (out.cancelled) {
             StatusBar.notify(`${name} stopped while drawing the cast: no panel was drawn.`, 'info');
-            return;
+            return out;
         }
         const drawn = out.panels.filter(r => r.item?.filePath);
         const missing = out.panels.filter(r => !r.item?.filePath).map(r => actors[r.index].name);
@@ -225,9 +232,9 @@ async function runStoryboardFlow(flow, inputs, frame) {
         const actorImages = Object.fromEntries(drawn.map((r, k) => [actors[r.index].name.toLowerCase(), references.length + k + 1]));
         const refs = [...references, ...drawn.map(r => ({ url: r.item.filePath }))]
             .map((r, i) => ({ role: i ? `inputImage${i + 1}` : 'inputImage', url: r.url }));
-        await _drawPanels(parseStoryboardPlan(inputs.plan, idea, actorImages), name, _deps(project, { ...opts, references: refs }, frame));
-    });
-    return true;
+        const drawing = await _drawPanels(parseStoryboardPlan(inputs.plan, idea, actorImages), name, _deps(project, { ...opts, references: refs }, frame));
+        return drawing ? drawing.finished : { ok: false, cancelled: !!frame?.stopped?.() };
+    }) };
 }
 
 /**
@@ -237,7 +244,8 @@ async function runStoryboardFlow(flow, inputs, frame) {
  * product renders of a squirrel and a gold elephant (Fabio's bat-cave board, 2026-10-25), and a
  * cast drawn in mixed styles mixes every panel drawn from it.
  */
-function _castPrompt({ name, desc, place }, style) {
+function _castPrompt({ name, desc, kind }, style) {
+    const place = kind === 'place';
     const what = place
         ? `the place ${name}: ${desc}. A wide view of the whole place, empty: no people, animals or characters in it.`
         : `${name}: ${desc}. The whole of it in view and centred, alone on a plain light grey background. Nothing else in the picture.`;
@@ -249,14 +257,15 @@ function _castPrompt({ name, desc, place }, style) {
 async function _drawPanels(panels, name, deps) {
     const run = await runStoryboard(panels, { name }, deps);
     if (!run.ok) {
-        StatusBar.notify(run.message, 'warning');
+        if (run.code === 'CANCELLED') StatusBar.notify(`${name} stopped: no panel was drawn.`, 'info');
+        else StatusBar.notify(run.message, 'warning');
         return false;
     }
-    run.finished.then((out) => {
+    return { finished: run.finished.then((out) => {
         const { text, variant } = _summary(name, out);
         StatusBar.notify(text, variant);
-    });
-    return true;
+        return out;
+    }) };
 }
 
 /** Driver id (a FlowDef's `driver`) -> what Generate runs instead of the Flow's op. */

@@ -1,0 +1,109 @@
+{
+  "source": "Your idea: A squirrel and a rabbit are friends and they go on an adventure inside a bat cave. The bat cave is dark and they go in there to grab a gold helmet. As they grab the gold helmet, a lot of red eyes show up in the ceiling of the cave. It's all the bats but you can only see the eyes.\n\nThen they start running away, trying to escape the cave, and all the bats come after them. As they come out of the cave, there's a cliff right outside the cave. They jump the cliff and land on a river and the bats go away. They come out of the river and laugh together, holding the gold elephant in the air. Make it anime style please.\nPanels: 6\nVideo shape: 16:9",
+  "plan": "Storyboard plan:\n[CAST]\nSquirrel: A young, energetic anthropomorphic squirrel with reddish-brown fur, a fluffy tail, wearing a small blue backpack.\nRabbit: A slightly cautious anthropomorphic rabbit with white and grey fur, long ears, wearing a small green hat.\n\n[PLACES]\nBat Cave Entrance: A dark, gaping cave mouth framed by rocks and creeping vines.\nBat Cave Interior: Deep, pitch-black cavern with stalactites and a ceiling high above.\nCliff Over the River: A rocky cliff edge right outside the cave, dropping down to a winding river.\nRiver: A fast-flowing, sparkling blue river with gentle foam.\n\n[OBJECTS]\nGold Helmet: A shiny, ornate ancient gold helmet with a red plume.\nGold Elephant: A small, shiny gold elephant figurine that gleams in the light.\n\n[PANEL 1]\nPicture: Full-color anime film still, wide establishing shot, at Bat Cave Entrance, bright daylight with a clear sky, Squirrel on frame-left and Rabbit on frame-right standing at the cave mouth, looking into the darkness. Intent: Establishes the setting and the two friends gearing up for their adventure into the unknown cave.\n\n[PANEL 2]\nPicture: Full-color anime film still, medium shot, inside Bat Cave Interior, lit only by a small flashlight held by Rabbit, Squirrel tiptoes frame-left and Rabbit follows frame-right, the Gold Helmet faintly glinting in a shallow recess in the background. Intent: Shows the tense exploration of the dark cave as they approach the treasure.\n\n[PANEL 3]\nPicture: Full-color anime film still, close-up shot, inside Bat Cave Interior, Squirrel reaches out and grasps the Gold Helmet with one paw, Rabbit leans back in fear looking upward, the ceiling above them is crowded with dozens of small, glowing red eyes peering out of absolute darkness. Intent: The moment of triumph triggers the sinister reveal of countless bats hiding in the cave ceiling.\n\n[PANEL 4]\nPicture: Full-color anime film still, over-the-shoulder shot, inside Bat Cave Interior, Squirrel and Rabbit sprint away from the camera toward a bright opening in the distance, a dark mass of bat silhouettes with glowing red eyes swoops down from the ceiling behind them. Intent: The frantic chase begins as the bat swarm comes alive and pursues the fleeing friends.\n\n[PANEL 5]\nPicture: Full-color anime film still, low-angle wide shot, at Cliff Over the River, Squirrel and Rabbit are caught mid-leap off the rocky edge, arms and legs spread, falling toward the sparkling River below, a swirling cloud of bats with red eyes hovers just behind them at the cliff edge. Intent: The desperate leap of faith as they escape the cave, plunging toward the safety of the water.\n\n[PANEL 6]\nPicture: Full-color anime film still, medium shot, at River, bright sunny daylight, Squirrel and Rabbit are waist-deep in the water, soaked and laughing, Squirrel holds the Gold Elephant high in the air with both paws, water droplets sparkling around them. Intent: The happy resolution as the friends celebrate their survival and hold up their new prized treasure.",
+  "usage": {
+    "prompt_tokens": 869,
+    "total_tokens": 4032,
+    "completion_tokens": 3163,
+    "estimated_cost": 0.00062148,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": null
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 2490
+    }
+  },
+  "spent": 0.00062148,
+  "wanted": [
+    {
+      "name": "Squirrel",
+      "desc": "a young, energetic anthropomorphic squirrel with reddish-brown fur, a fluffy tail, wearing a small blue backpack",
+      "kind": "character"
+    },
+    {
+      "name": "Rabbit",
+      "desc": "a slightly cautious anthropomorphic rabbit with white and grey fur, long ears, wearing a small green hat",
+      "kind": "character"
+    },
+    {
+      "name": "Bat Cave Entrance",
+      "desc": "a dark, gaping cave mouth framed by rocks and creeping vines",
+      "kind": "place"
+    },
+    {
+      "name": "Bat Cave Interior",
+      "desc": "deep, pitch-black cavern with stalactites and a ceiling high above.Cliff Over the",
+      "kind": "place"
+    },
+    {
+      "name": "River",
+      "desc": "a rocky cliff edge right outside the cave, dropping down to a winding river",
+      "kind": "place"
+    },
+    {
+      "name": "River",
+      "desc": "a fast-flowing, sparkling blue river with gentle foam",
+      "kind": "place"
+    },
+    {
+      "name": "Gold Helmet",
+      "desc": "a shiny, ornate ancient gold helmet with a red plume",
+      "kind": "object"
+    },
+    {
+      "name": "Gold Elephant",
+      "desc": "a small, shiny gold elephant figurine that gleams in the light",
+      "kind": "object"
+    }
+  ],
+  "drawn": [
+    {
+      "name": "Squirrel",
+      "desc": "a young, energetic anthropomorphic squirrel with reddish-brown fur, a fluffy tail, wearing a small blue backpack",
+      "kind": "character"
+    },
+    {
+      "name": "Rabbit",
+      "desc": "a slightly cautious anthropomorphic rabbit with white and grey fur, long ears, wearing a small green hat",
+      "kind": "character"
+    },
+    {
+      "name": "Bat Cave Entrance",
+      "desc": "a dark, gaping cave mouth framed by rocks and creeping vines",
+      "kind": "place"
+    },
+    {
+      "name": "Bat Cave Interior",
+      "desc": "deep, pitch-black cavern with stalactites and a ceiling high above.Cliff Over the",
+      "kind": "place"
+    }
+  ],
+  "style": "Full-color anime film still",
+  "panels": [
+    {
+      "prompt": "Full-color anime film still, wide establishing shot, at Bat Cave Entrance, bright daylight with a clear sky, Squirrel on frame-left and Rabbit on frame-right standing at the cave mouth, looking into the darkness. Squirrel is a young, energetic anthropomorphic squirrel with reddish-brown fur, a fluffy tail, wearing a small blue backpack from image 1. Rabbit is a slightly cautious anthropomorphic rabbit with white and grey fur, long ears, wearing a small green hat from image 2. Bat Cave Entrance is a dark, gaping cave mouth framed by rocks and creeping vines from image 3. Bat Cave Interior is deep, pitch-black cavern with stalactites and a ceiling high above.Cliff Over the from image 4.",
+      "intent": "Establishes the setting and the two friends gearing up for their adventure into the unknown cave."
+    },
+    {
+      "prompt": "Full-color anime film still, medium shot, inside Bat Cave Interior, lit only by a small flashlight held by Rabbit, Squirrel tiptoes frame-left and Rabbit follows frame-right, the Gold Helmet faintly glinting in a shallow recess in the background. Squirrel is a young, energetic anthropomorphic squirrel with reddish-brown fur, a fluffy tail, wearing a small blue backpack from image 1. Rabbit is a slightly cautious anthropomorphic rabbit with white and grey fur, long ears, wearing a small green hat from image 2. Bat Cave Entrance is a dark, gaping cave mouth framed by rocks and creeping vines from image 3. Bat Cave Interior is deep, pitch-black cavern with stalactites and a ceiling high above.Cliff Over the from image 4. Gold Helmet is a shiny, ornate ancient gold helmet with a red plume. Gold Elephant is a small, shiny gold elephant figurine that gleams in the light.",
+      "intent": "Shows the tense exploration of the dark cave as they approach the treasure."
+    },
+    {
+      "prompt": "Full-color anime film still, close-up shot, inside Bat Cave Interior, Squirrel reaches out and grasps the Gold Helmet with one paw, Rabbit leans back in fear looking upward, the ceiling above them is crowded with dozens of small, glowing red eyes peering out of absolute darkness. Squirrel is a young, energetic anthropomorphic squirrel with reddish-brown fur, a fluffy tail, wearing a small blue backpack from image 1. Rabbit is a slightly cautious anthropomorphic rabbit with white and grey fur, long ears, wearing a small green hat from image 2. Bat Cave Entrance is a dark, gaping cave mouth framed by rocks and creeping vines from image 3. Bat Cave Interior is deep, pitch-black cavern with stalactites and a ceiling high above.Cliff Over the from image 4. Gold Helmet is a shiny, ornate ancient gold helmet with a red plume. Gold Elephant is a small, shiny gold elephant figurine that gleams in the light.",
+      "intent": "The moment of triumph triggers the sinister reveal of countless bats hiding in the cave ceiling."
+    },
+    {
+      "prompt": "Full-color anime film still, over-the-shoulder shot, inside Bat Cave Interior, Squirrel and Rabbit sprint away from the camera toward a bright opening in the distance, a dark mass of bat silhouettes with glowing red eyes swoops down from the ceiling behind them. Squirrel is a young, energetic anthropomorphic squirrel with reddish-brown fur, a fluffy tail, wearing a small blue backpack from image 1. Rabbit is a slightly cautious anthropomorphic rabbit with white and grey fur, long ears, wearing a small green hat from image 2. Bat Cave Entrance is a dark, gaping cave mouth framed by rocks and creeping vines from image 3. Bat Cave Interior is deep, pitch-black cavern with stalactites and a ceiling high above.Cliff Over the from image 4.",
+      "intent": "The frantic chase begins as the bat swarm comes alive and pursues the fleeing friends."
+    },
+    {
+      "prompt": "Full-color anime film still, low-angle wide shot, at Cliff Over the River, Squirrel and Rabbit are caught mid-leap off the rocky edge, arms and legs spread, falling toward the sparkling River below, a swirling cloud of bats with red eyes hovers just behind them at the cliff edge. Squirrel is a young, energetic anthropomorphic squirrel with reddish-brown fur, a fluffy tail, wearing a small blue backpack from image 1. Rabbit is a slightly cautious anthropomorphic rabbit with white and grey fur, long ears, wearing a small green hat from image 2. River is a fast-flowing, sparkling blue river with gentle foam.",
+      "intent": "The desperate leap of faith as they escape the cave, plunging toward the safety of the water."
+    },
+    {
+      "prompt": "Full-color anime film still, medium shot, at River, bright sunny daylight, Squirrel and Rabbit are waist-deep in the water, soaked and laughing, Squirrel holds the Gold Elephant high in the air with both paws, water droplets sparkling around them. Squirrel is a young, energetic anthropomorphic squirrel with reddish-brown fur, a fluffy tail, wearing a small blue backpack from image 1. Rabbit is a slightly cautious anthropomorphic rabbit with white and grey fur, long ears, wearing a small green hat from image 2. River is a fast-flowing, sparkling blue river with gentle foam. Gold Helmet is a shiny, ornate ancient gold helmet with a red plume. Gold Elephant is a small, shiny gold elephant figurine that gleams in the light.",
+      "intent": "The happy resolution as the friends celebrate their survival and hold up their new prized treasure."
+    }
+  ]
+}
