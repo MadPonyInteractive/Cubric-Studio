@@ -8,14 +8,25 @@ used" for Story / Infinite Video.
 
 ## READ FIRST — what changed after this was written (Fabio, 2026-10-25, MPI-1135)
 
-- **Singularity H3 v2 replaces both MiniMax H3 and H3 Reference** (2.1.3, build card MPI-1284).
-  Every "H3" below means Singularity H3 by the time Story is built; re-check each claim on it.
-- **New Fast Motion switch: when on, there is NO upscale stage.** A low-MP draft upscaled tears on
-  fast motion. So Technique 1 (0.2 MP draft → ×3 upscale) and "bridge at 0.2 MP, upscale the whole
-  timeline" only hold for calm shots (his demos are a woman talking to camera — the best case).
-  A Fast Motion run must be drafted, rooted and bridged at FINAL resolution: slower and heavier per
-  clip, and a 12 s bridge at full res may not fit in VRAM. The planner needs a per-run choice:
-  calm → low-res chain + upscale; fast → full-res roots + bridges, shorter ones. Bench both.
+Confirmed by the H3 Singularity 7 session from MPI-1135 / MPI-1284 / MPI-1285 records.
+
+- **Singularity H3 v2 is the only H3** (one ref2va file: t2v, i2v, ref2v). 2.1.3 deprecates
+  MiniMax H3 + H3 Reference (build card MPI-1284). Turbo 8-step LoRA stays; non-turbo 25 steps;
+  sol-attn always on (+ EasyCache non-turbo). Ref prompts always use sections.
+- **Fast Motion (MPI-1285):** OFF = today's two passes (stage 1 at HALF canvas, 3D latent
+  upscaler ×2, windowed refine). ON, Very Low–Medium = ONE pass at target size, no stage 2.
+  ON, High and up = stage 1 at NATIVE 1344×768 (Medium cell of the ratio), then upscale ~1.24×
+  (High) to ~1.9× (2K); 4K = two hops. Whether that still tears on fast motion: not benched.
+- **Technique 1 below is NOT supported by our bench.** Our 0.26 MP draft + 2× lost to no-upscale
+  on fast motion every time, and only tied on calm motion. 0.2 MP + 3× was never run on
+  Singularity. Story drafts follow the app's tiers above, not his 0.2 MP recipe.
+- **Windows** are sized from the stage-2 target (90 frames at 1.6–6 MP, 39 at 4K, overlap 17),
+  never a fixed 5 s, never spatial tiles (`docs/models/h3/windowing.md`).
+- **Root alignment:** a canvas change is a different latent shape, so the same seed gives a
+  different sample (`js/utils/ratios.js`). Roots must share seed, duration AND canvas.
+  Framing stability itself is untested on Singularity.
+- **Bridging (context from both ends):** untested, no evidence either way. It is the first bench
+  the Story work needs; the bridging lessons below are his, from the old H3.
 
 ## The problem it solves
 
