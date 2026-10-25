@@ -2,6 +2,15 @@
   "schema": "mpi-kanban/task-files/v1",
   "files": [
     ".agents/mpi-kanban/tasks/MPI-1039/",
-    "assets/flows/multi-angle/"
+    "assets/flows/multi-angle/",
+    "js/data/flowPrompts/multiAngle.js",
+    "tests/multi-angle-prompts.test.cjs",
+    "tests/fixtures/multi-angle-bench-prompts.json",
+    "js/services/multiAngleRunner.js",
+    "js/shell/multiAngleDispatch.js",
+    "routes/multiAngle.js",
+    "server.js",
+    "tests/multi-angle-runner.test.cjs",
+    "tests/multi-angle-ref-route.test.cjs"
   ]
 }

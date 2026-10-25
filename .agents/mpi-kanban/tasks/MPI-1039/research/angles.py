@@ -4118,9 +4118,80 @@ def blender48(port):
     _sheet(rows, 'mq_blender48_ref_leak')
 
 
+# Round 49 (Fabio 2026-10-25: (a) + (b) in one round). (a) The 'far' rung was small only 2/6 and the invented outfit
+# drifted between rungs (r46): reworded far (names the figure's size and that the place fills the frame), two arms -
+# 'chain' = far from r46's whole-body result (the outfit is already in the input; models alternate: portrait full is
+# FLUX.3 -> Qwen, hs full is Qwen -> FLUX.3 9:16) vs 'one' = the same words in one pass from the close-up (portrait on
+# FLUX.3, r43 hs on Qwen). (b) r42's Qwen zoom-in on the rear turn cut the head off on photo 2/2: the waist rung with
+# 'her whole head still in frame' + the r43 hs rung, on Qwen from r39 tqb r. Seeds 111/222, 20 edits.
+MQ49_FAR = ('Frame the whole place: the camera is pulled far back, much further than in the first image. She is now a '
+            'small figure in the middle of the frame, about a quarter of the frame\'s height, seen from head to shoes, '
+            '{far}. Most of the frame is the place around her, not her.')
+MQ49_REAR_WAIST = ('she is cropped at the waist: the back of her head, her shoulders and the back of her turtleneck fill '
+                   'the frame, with her whole head still in frame, from the top of her hair down')
+
+
+def _far49(style, rest):
+    return ('Zoom out from the first image, keeping exactly the same viewing angle, height and perspective: '
+            f'{MQ41_VIEWS["front"][0]}. ' + MQ49_FAR.format(far=MQ41_PLACE[style][1]) +
+            (MQ46_REST if rest else '') + MQ46_KEEP[style])
+
+
+def _rear49(rung, style):
+    kept = MQ41_VIEWS['tqb r'][0]
+    if rung == 'waist':
+        return (f'Zoom in on the first image, keeping exactly the same viewing angle, height and perspective: {kept}. '
+                f'The view is much closer than the first image: {MQ49_REAR_WAIST}, and only a little of '
+                f'{MQ41_PLACE[style][0]} shows around her.' + MQ41_KEEP[style])
+    return (f'Zoom in on the first image, keeping exactly the same viewing angle and perspective: {kept}. The view is '
+            'now a head-and-shoulders close-up from behind: the back of her head, her neck and the top of her '
+            'shoulders fill the frame, cropped just below the shoulders, with her whole head in frame; only a little '
+            f'of {MQ41_PLACE[style][0]} shows around her.' + MQ43_KEEP[style])
+
+
+def blender49(port):
+    done = os.path.join(OUT, 'mq_blender49.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    r39, r42, r43, r46 = (json.load(open(os.path.join(OUT, f'mq_blender{n}.json'))) for n in (39, 42, 43, 46))
+    face = json.load(open(os.path.join(OUT, 'pitch.json')))['face input']
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+
+    def edit(key, model, src, text):
+        if key not in res:
+            res[key] = gen(port, {**model, 'seed': int(key.split()[1]), 'cardName': f'angles mq49 {key}',
+                                  'positive': text, 'media': [{'role': 'inputImage', 'url': src}]})
+            json.dump(res, open(done, 'w'), indent=1)
+
+    for seed in (111, 222):
+        edit(f'portrait {seed} far chain', QWEN29, r46[f'portrait {seed} full'], _far49('photo', False))
+        edit(f'portrait {seed} far one', FAST, face, _far49('photo', True))
+    for name in ('anime', 'photo'):
+        for seed in (111, 222):
+            edit(f'{name} {seed} far chain', {**FAST, 'ratio': '9:16'}, r46[f'{name} {seed} hs full'],
+                 _far49(name, False))
+            edit(f'{name} {seed} far one', QWEN29, r43[f'{name} {seed} front hs'], _far49(name, True))
+            for rung in ('waist', 'hs'):
+                edit(f'{name} {seed} rear {rung}', QWEN29, r39[f'{name} {seed} tqb r'], _rear49(rung, name))
+    rows = [[(None, f'portrait {s}'), (face, 'portrait input'), (r46[f'portrait {s} full'], 'r46 full (chain input)'),
+             (r46[f'portrait {s} far'], 'r46 far'), (res.get(f'portrait {s} far one'), 'FLUX.3 far one'),
+             (res.get(f'portrait {s} far chain'), 'Qwen far chain')] for s in (111, 222)]
+    rows += [[(None, f'{n} {s}'), (r43[f'{n} {s} front hs'], 'r43 hs input'),
+              (r46[f'{n} {s} hs full'], 'r46 full (chain input)'), (r46[f'{n} {s} hs far'], 'r46 far'),
+              (res.get(f'{n} {s} far one'), 'Qwen far one'), (res.get(f'{n} {s} far chain'), 'FLUX.3 far chain')]
+             for n in ('anime', 'photo') for s in (111, 222)]
+    _sheet(rows, 'mq_blender49_far_rung')
+    rows = [[(None, f'{n} {s}'), (r39[f'{n} {s} tqb r'], 'tqb r input'), (r42[f'{n} {s} tqb r in'], 'r42 in'),
+             (res.get(f'{n} {s} rear waist'), 'Qwen waist + head'), (res.get(f'{n} {s} rear hs'), 'Qwen hs')]
+            for n in ('anime', 'photo') for s in (111, 222)]
+    _sheet(rows, 'mq_blender49_rear_zoom_in')
+
+
 if __name__ == '__main__':
     if sys.argv[1:2] == ['best']:
         best()
+    elif sys.argv[2:3] == ['blender49']:
+        blender49(int(sys.argv[1]))
     elif sys.argv[2:3] == ['blender48refs']:
         blender48refs(int(sys.argv[1]))
     elif sys.argv[2:3] == ['blender48']:

@@ -290,6 +290,34 @@ People tests still open (agent's list, from validation.md rounds 5-7, 12, 15-16)
      studio ceiling / softbox) to the full-body studio low views.
   Then Fabio's eye test; Qwen-Image 2.1 re-run (NSFW) stays queued after.
 FABIO 2026-10-24 (afternoon, after rounds 19-22: "making progress, well done"): concern - every test source is PHOTOGRAPHIC; the recipe's words (real person, studio, softbox) may push a 2D source toward realism. NEXT ROUND = a flat 2D test, kept SHORT: convert the man or the woman to flat anime with Krea2 (Fabio: "Create2", its anime style, via edit / i2i), then run the people recipe on that one source (few key views, few seeds). Keep clause must say the drawing style stays (not "real person"). Then the 3/4 front-turn overshoot ref, Qwen-Image 2.1 re-run.
+ROUND 49 DONE (2026-10-25, validation.md; Fabio's go on (a) + (b) together, then the Flow build): FAR from the
+whole-body result (models alternating) = small 6/6 AND the outfit kept 6/6 - the far rung is one more pass from the
+whole-body rung. One pass from a close-up: Qwen small 4/4 but outfit drifts; FLUX.3 0/2. REAR zoom-in: hs rung whole
+head 4/4; the waist rung on a rear PHOTO still cuts the head 2/2 (open cell). GPU ~15 min. Phase 2 input made:
+`research/accepted_prompts.py` -> `accepted_prompts.md` = the exact sidecar prompt of every accepted cell.
+FLOW BUILD PHASE 2 DONE (2026-10-25): `js/data/flowPrompts/multiAngle.js` - `multiAnglePlan(pick, facts)` returns
+the passes (turn / height / zoom), each with model, doll ref and prompt; fixed words verbatim from the bench,
+picture-specific words as `facts` slots (subject + pronoun, drawing {noun, style, marks}, ground, feet, frontLowLegs,
+lowReveal / frontLowReveal / highReveal / turnReveal / details as a sentence or a turn map, near, far, wears).
+`tests/multi-angle-prompts.test.cjs` rebuilds 57 bench cells word for word from the bench woman's facts (fixture
+`tests/fixtures/multi-angle-bench-prompts.json`, written by `research/accepted_prompts.py`), plus routing, outfit
+inputs, refusals, a 'they' subject. Zoom ladder added to flow-spec.md.
+FLOW BUILD PHASE 3 MOSTLY DONE (2026-10-25, session "Flux 3 on flows 25"): describer ask + parser
+(`MULTI_ANGLE_DESCRIBE_ASK`, `parseMultiAngleFacts` in multiAngle.js - KEY: value lines; a describer answer for each
+bench source rebuilds 53+ bench cells), pure chain `js/services/multiAngleRunner.js` (describe -> plan -> passes on ONE
+card: pass 1 new card, later passes in its history, each pass's image 1 = previous result), app deps
+`js/shell/multiAngleDispatch.js` (`runMultiAngleFlow`, NOT yet in FLOW_DRIVERS - storyboardDispatch.js is the
+Storyboard card's file; register in phase 4 with the FlowDef), ref route `routes/multiAngle.js` (POST
+/flows/multi-angle/ref pads the doll to the pass input's size with resizeOps' edge-pixel pad, writes
+`<project>/.flow-refs/multi-angle/`), mounted in server.js. Tests: `tests/multi-angle-runner.test.cjs` 7/7 +
+prompts 5/5 pass. LEFT IN PHASE 3: (1) a route test (`tests/multi-angle-ref-route.test.cjs`, express on port 0, a
+temp source, check size + edge pad + reuse); (2) eslint on the 4 new files + full npm test; (3) LIVE check of the
+describer on the two bench sources (pitch.json 'body input' photo, mq_blender23 'street 222' anime) in an isolated
+app - compare its answer with the test's ANSWER; the ask's examples are the bench's own words (copy risk to watch).
+OLD NEXT: phase 3 = the driver (`js/shell/multiAngleDispatch.js`, the storyboardDispatch shape) + the DESCRIBER that
+writes `facts` from the source (one vision call; its ask must produce the slot sentences in the bench's form - the
+Flow's quality lives there). Before phase 4 (gizmo): confirm Fabio's 'Cosmo should do a full rotation' reading and
+the identical profile L/R previews.
 ROUND 48 DONE (2026-10-25, validation.md): a second ref that DIFFERS from the target. CHARACTER SHEET (turnaround on
 white) = the clean ref: exact outfit, no pose / place / layout leak 8/8 (one figure always). A single full-body ref
 in another pose on white: exact outfit but POSE leaks 12/12 (hands on hips, words do not stop it) and the photo
@@ -430,7 +458,7 @@ Phases:
 - [ ] Stage 1 (face, 9 runs) + Fabio's eye test
 - [ ] Stage 2 full body, stage 3 rooms
 - [x] Decide: Flow or not - spec APPROVED 2026-10-25
-- [ ] Flow build phases 1-5 above (Fabio's go on the route first)
+- [ ] Flow build phases 1-5 above - 1 (refs + previews) and 2 (prompt builder) done 2026-10-25; 3-5 open
 
 ## Completed
 

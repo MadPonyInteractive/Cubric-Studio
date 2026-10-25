@@ -950,3 +950,26 @@ user's ratio later; a crop changes the zoom, so the gizmo may need per-ratio-fam
     second-ref slot asks for a character sheet / turnaround first; a single full-body picture works for the clothes
     but the result copies its pose (and on a plain photo backdrop, its backdrop). Prompt-box words alone (r47) never
     leak but give approximate colours.
+- 2026-10-25 ROUND 49, FAR RUNG REWORDED + REAR ZOOM-IN HEAD (`angles.py <port> blender49`, sheets
+  `research/sheets/mq_blender49_far_rung.jpg` + `mq_blender49_rear_zoom_in.jpg`, results `research/out/mq_blender49.json`).
+  (a) MQ49_FAR (names the figure's size - about a quarter of the frame's height - and 'most of the frame is the place')
+  in two arms: 'chain' = far from r46's whole-body result, models alternating (portrait full FLUX.3 -> Qwen; hs full
+  Qwen -> FLUX.3 9:16); 'one' = same words in one pass from the close-up (portrait FLUX.3, r43 hs Qwen). (b) Qwen
+  zoom-in on r39 tqb r: the waist rung + 'with her whole head still in frame, from the top of her hair down', and a
+  rear head-and-shoulders rung. Seeds 111/222, 20 edits, 0 errors (~15 min GPU, Fabio's yes).
+  GRADES (agent, sheets):
+  - FAR CHAIN: small figure 6/6 (whole studio rig / long street), view + style kept, and the outfit is exactly the
+    whole-body input's 6/6 - chaining from the whole body ends the r46 outfit drift.
+  - FAR ONE, Qwen from hs: small 4/4 (the new words work on Qwen) but the invented outfit drifts again (anime: a long
+    dress instead of the trousers 2/2). FAR ONE, FLUX.3 from the portrait: 0/2 smaller - the same frame as r46's far.
+  - REAR WAIST + head words: photo still cuts the head off at the top edge 2/2 (near-copy of r42 - Qwen ignores the
+    head line on this rung); anime keeps the head 2/2 as in r42.
+  - REAR HS rung: whole head in frame 4/4 (photo 2/2 clean; anime 111 grazes the hair top), rear view + side kept,
+    bag strap on the right shoulder 4/4.
+  - Read: the far rung = ONE MORE PASS from the whole-body rung (outward zoom walks the ladder: ... -> whole body ->
+    far), models alternating. Rear zoom-in: the hs rung is clean; the waist rung on a rear photo still crops the
+    head - an open cell (a 'Frame her from the waist up' rewording, r46 style, is unbenched on the rear).
+- 2026-10-25 FLOW BUILD PHASE 2 (prompt builder): `js/data/flowPrompts/multiAngle.js` + `tests/multi-angle-prompts.test.cjs`.
+  57 of the 61 accepted bench cells (`research/accepted_prompts.md`) rebuilt word for word from the bench woman's
+  facts; the 4 not rebuilt are named in the test (tq fl lo predates r31's head line; rear waist is unbenched). A
+  one-word mutation changes the output (checked). Full suite: 3640 tests, 0 fail; eslint clean on both files.

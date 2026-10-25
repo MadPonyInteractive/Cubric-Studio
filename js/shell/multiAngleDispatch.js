@@ -1,0 +1,129 @@
+/**
+ * multiAngleDispatch.js — the app side of the Multi-angle Flow (MPI-1039).
+ *
+ * `multiAngleRunner.js` owns the describe, the plan and the chain, and touches the app only through
+ * the `deps` built here. Each pass is an ordinary `edit` generation on FLUX.3 Klein or Qwen-Image 2.1,
+ * built by the SAME `buildGeneration` the agent and the routines use, exactly as the bench ran it over
+ * the connector (rounds 24-49): image 1 = the picture so far, image 2 = the doll ref or the user's
+ * outfit picture, no ratio or tier, so each pass keeps image 1's frame (flow-spec.md § Model settings).
+ *
+ * `runMultiAngleFlow` is what the Flow frame calls for a FlowDef with `driver: 'multiAngle'`, once the
+ * FlowDef exists (build phase 4).
+ */
+
+import { runMultiAngle } from '../services/multiAngleRunner.js';
+import { MULTI_ANGLE_DESCRIBE_ASK, FLUX3 } from '../data/flowPrompts/multiAngle.js';
+import { enqueueGeneration } from '../services/generationService.js';
+import { describeImage } from '../services/llmService.js';
+import { clientLogger } from '../services/clientLogger.js';
+import { StatusBar } from './statusBar.js';
+import { state } from '../state.js';
+import { buildGeneration, nameCard } from './agentDispatch.js';
+import { landingOpts } from './routineDispatch.js';
+
+const TURN_LABEL = {
+    front: 'front', tq_fl: '3/4 front left', tq_fr: '3/4 front right', pr_l: 'profile left', pr_r: 'profile right',
+    tq_bl: '3/4 back left', tq_br: '3/4 back right', back: 'back',
+};
+const HEIGHT_LABEL = { lo: 'low', hi: 'high' };
+
+/** The card's name: the camera it shows. */
+function _name(pick) {
+    const parts = [TURN_LABEL[pick.turn] || 'front', HEIGHT_LABEL[pick.height], pick.zoom].filter(Boolean);
+    return `Multi-angle · ${parts.join(', ')}`;
+}
+
+function _deps(project, { outfitWords }) {
+    return {
+        isLoopArmed: () => state.loopArmed === true,
+
+        async describe(url) {
+            // Queued: the read shows as its own row with Stop, before the first edit (no silent work).
+            const r = await describeImage({ imagePath: url, question: MULTI_ANGLE_DESCRIBE_ASK, greedy: true, queued: true });
+            clientLogger.info('multi-angle', r.ok ? `source read: ${String(r.text).replace(/\s+/g, ' ').slice(0, 300)}`
+                : `source read failed: ${r.error}`);
+            return r.ok ? { ok: true, text: r.text } : { ok: false, code: r.errorCode, message: r.error };
+        },
+
+        async ref(ref, imagePath) {
+            try {
+                const res = await fetch('/flows/multi-angle/ref', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ref, imagePath, folderPath: project.folderPath }),
+                });
+                const body = await res.json().catch(() => ({}));
+                if (!body.ok) return { ok: false, message: body.error?.message || `HTTP ${res.status}` };
+                return { ok: true, url: body.url };
+            } catch (err) {
+                return { ok: false, message: err.message };
+            }
+        },
+
+        async submit(step, media, landing) {
+            const built = await buildGeneration({
+                modelId: step.model,
+                operation: 'edit',
+                positive: step.prompt,
+                media,
+                ...(step.model === FLUX3 ? { turbo: true } : {}),
+            }, project);
+            if (!built.ok) return built;
+            // The user pressed Generate: their toasts show, and the child-safety gate reads their
+            // own outfit words beside the pass prompt built from the picture.
+            const config = { ...built.config, byAgent: false, userWords: [outfitWords, step.prompt].filter(Boolean) };
+            let settle;
+            const done = new Promise((resolve) => { settle = resolve; });
+            const queued = enqueueGeneration(config, {
+                onComplete: ({ item, group }) => settle({ ok: true, item, group }),
+                onError: (err) => settle({ ok: false, code: err?.code || 'RUNTIME_ERROR',
+                    message: err?.userMessage || 'The edit failed. See the app log for the cause.' }),
+                onCancel: (why) => settle(why?.stopped
+                    ? { ok: false, code: 'CANCELLED', message: 'The user pressed Stop.' }
+                    : { ok: false, code: 'NO_OUTPUT', message: 'Nothing came back for this pass.' }),
+            }, landingOpts(landing, 'image', built.run.width, built.run.height));
+            if (!queued) return { ok: false, code: 'REJECTED', message: `The ${step.kind} pass was rejected before it entered the queue.` };
+            return { ok: true, done };
+        },
+    };
+}
+
+/** What the user reads when the chain has ended. */
+function _summary(name, out) {
+    if (out.done === out.total) return { text: `${name} is ready.`, variant: 'success' };
+    if (out.cancelled) return { text: `${name} stopped after ${out.done} of ${out.total} steps.`, variant: 'info' };
+    const kept = out.done ? ` The first ${out.done} of ${out.total} steps are on the card.` : '';
+    return { text: `${name} failed: ${out.error?.message || 'a step failed'}.${kept}`, variant: 'warning' };
+}
+
+/**
+ * Generate on the Multi-angle Flow.
+ * @param {Object} flow - the FlowDef
+ * @param {Object} inputs - the frame's inputs: `turn`, `height`, `zoom` (a target rung, or none),
+ *   `outfitWords`, `mediaItems` (`inputImage` the person, optional `inputImage2` the outfit picture)
+ * @returns {Promise<boolean>} true once the chain has started
+ */
+export async function runMultiAngleFlow(flow, inputs) {
+    const project = state.currentProject;
+    if (!project?.folderPath) {
+        StatusBar.notify('Open a project first: the new view lands in its gallery.', 'warning');
+        return false;
+    }
+    const media = inputs.mediaItems || [];
+    const url = role => media.find(m => m?.role === role && m.url && m.mediaType === 'image')?.url;
+    const pick = { turn: inputs.turn, height: inputs.height, zoom: inputs.zoom && inputs.zoom !== 'none' ? inputs.zoom : null };
+    const outfitWords = String(inputs.outfitWords || '').trim();
+    const name = _name(pick);
+    const run = await runMultiAngle({ source: url('inputImage'), pick, outfit: { words: outfitWords, url: url('inputImage2') } },
+        _deps(project, { outfitWords }));
+    if (!run.ok) {
+        StatusBar.notify(run.message, 'warning');
+        return false;
+    }
+    run.finished.then(async (out) => {
+        if (out.group) await nameCard(out.group, name);
+        const { text, variant } = _summary(name, out);
+        StatusBar.notify(text, variant);
+    });
+    return true;
+}

@@ -68,6 +68,24 @@ Fabio 2026-10-23: the source may already be angled).
    the frame height." Without it Qwen pulls the camera back (r32-33); with it she keeps her size 8/8, the high holds
    7/8 (r34, Fabio's eye test pending).
 
+## Zoom (rounds 41-49, added 2026-10-25)
+A third slider: a LADDER of named framings - eye (half face) / face / head-and-shoulders / waist / whole body / far.
+Zoom is WORDS, never a zoomed doll ref, and its own pass (untouched slider = no pass). The agent reads the input's
+framing and names the target rung.
+- Models alternate: FLUX.3 on the untouched source, then the other model each pass (r42, r44).
+- In: head-and-shoulders = 1 pass (r43 8/8); face = head-and-shoulders then face (r44 chain 4/4, the face
+  frame keeps the collar); eye = ONE FLUX.3 pass from the untouched source, a half-face eye close-up is the deepest
+  rung (r43/r45, Fabio accepted).
+- Out: waist and whole body = 1 pass (r46 18/18); far = whole body, then far (r49: small 6/6, outfit kept 6/6; one
+  pass from a close-up drifts the outfit).
+- Zoom-out from a close-up has to make up the unseen outfit: two OPTIONAL inputs (Fabio) - a prompt box (right items,
+  rough colours, no leak, r47) and a second picture (a character sheet = exact outfit, no leak; a single full-body
+  shot also brings its pose and backdrop, r48). With neither, the outfit continues plainly (r46).
+- Benched views: the front (every rung) and the 3/4 back R up to head-and-shoulders (r49 4/4). The rear waist rung
+  on a photo crops the head (r42, r49) - greyed out; zoom on other turns and on heights is unbenched.
+- Built: `js/data/flowPrompts/multiAngle.js` (`multiAnglePlan`, `BENCHED_ZOOM`), pinned by
+  `tests/multi-angle-prompts.test.cjs`.
+
 ## The reference image (second input)
 - A pre-rendered doll (Fabio's unisex ControlNet doll, `blender/doll_build.py`), one render per stop, from the SAME
   Blender cameras as the Cosmo previews. FLUX.3 steps use the doll in its room (`out/doll/`); Qwen steps use the doll
