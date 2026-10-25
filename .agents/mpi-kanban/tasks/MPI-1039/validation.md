@@ -842,3 +842,111 @@ user's ratio later; a crop changes the zoom, so the gizmo may need per-ratio-fam
     from hs; Qwen is unreliable past hs on a turned view. Ideas: stronger face words ('only her face, edge to edge,
     the top of her head and her chin cut by the frame'), or deep rungs CHAINED (hs first, then face/eye from the hs,
     the way the face source -> eye works 2/2), or crop + refine. Fabio's call.
+- 2026-10-25 ROUND 44, THE FACE RUNG IN FABIO'S WORDS (`angles.py <port> blender44`, sheet
+  `research/sheets/mq_blender44_face_frame.jpg`, results `research/out/mq_blender44.json`). MQ44_FACE ('Frame her
+  face: her face fills the whole frame ... no neck, shoulders or clothes show') + MQ44_KEEP (no clothes, no place).
+  Arms: 'one' = full body -> face (front source on FLUX.3, r27 tq fl turn on Qwen); 'chain' = r43 hs -> face (Qwen).
+  Anime + photo, seeds 111/222, 16 edits, 0 errors (FLUX.3 ~21 s, Qwen ~43 s; ~9 min GPU).
+  GRADES (agent, sheet; bar = tighter than r43's face cell, likeness + style kept):
+  - The strict bar (face edge to edge, no neck/clothes) is met 0/16: the turtleneck collar shows in every cell.
+    'no neck, shoulders or clothes' is not obeyed; the gain is how much of the frame the face takes.
+  - FRONT ONE (FLUX.3): 2/4. Anime 111/222 tighter (crown cut, collar band only). Photo 111 ~= r43 (no gain).
+    Photo 222 BROKEN: a big-head caricature on the full body (bobblehead) - FLUX.3 scaled the head, not the camera.
+  - FRONT CHAIN (Qwen on the FLUX.3 hs): 4/4 - the best arm. Face takes ~2/3 of the frame, collar at the bottom
+    edge, likeness + style held 4/4 (anime stays flat 2D, photo stays photographic).
+  - TQ FL ONE (Qwen on the r27 turn): 4/4 tighter than r43 (face + collar), near-profile kept 3/4 (photo 222 turns
+    toward the camera); anime 222 swaps the street for blue sky.
+  - TQ FL CHAIN (Qwen on the Qwen hs): 0/4 - no tighter than the hs AND the style breaks 4/4: a gritty, over-
+    sharpened HDR/etching texture on skin, hair and background (anime too). Qwen on a Qwen result degrades.
+  - Read: chaining works when the hs came from FLUX.3 (one Qwen pass on a FLUX.3 picture); a second Qwen pass on a
+    Qwen picture is a new failure mode - the routing rule becomes 'never two Qwen passes in a row', mirroring
+    'never FLUX.3 on a FLUX.3 result'. Fabio's wording moved the rung (r43 face 1/8 tighter -> 10/16 tighter here),
+    but a face-only frame (no collar) still does not land; the face rung = 'face and the top of the collar'.
+- 2026-10-25 ROUND 45, THE EYE RUNG IN THE SAME WORDS (`angles.py <port> blender45`, sheet
+  `research/sheets/mq_blender45_eye_frame.jpg`, results `research/out/mq_blender45.json`). MQ45_EYE ('Frame her right
+  eye, the one on frame-left: the eye fills the whole frame ... no nose, mouth or hair show') + MQ44_KEEP, models
+  alternating per round 44's rule. Arms: 'hs' = Qwen on r43 front hs (FLUX.3); 'face' = FLUX.3 on r44 front chained
+  face (Qwen); 'tq face' = FLUX.3 on r44 tq fl one-pass face (Qwen), her near left eye. Anime + photo, 111/222, 12
+  edits, 0 errors (Qwen ~44 s, FLUX.3 ~23 s; ~6 min GPU). Reference column = r43's one-pass FLUX.3 front eye.
+  GRADES (agent, sheet; bar = the eye fills the frame, likeness + style kept):
+  - The strict bar (eye edge to edge, no nose/mouth) is met 0/12. FLUX.3's ceiling is a HALF-FACE eye close-up (eye,
+    brow, cheek, nose edge, often the lips) - the same framing r43's one pass from the FULL BODY already gives.
+  - EYE FROM HS (Qwen): 0/4. Anime 111/222 + photo 111 return the hs unchanged (Qwen freezes on the eye words, as
+    FLUX.3 does on its own turns); photo 222 shifts the frame sideways to a cheek + hair crop with no eye.
+  - EYE FROM FACE (FLUX.3): 3/4 at the half-face ceiling (anime 111 the best cell - eye, lashes, earring; frame-left
+    side right), anime 222 only a notch tighter. Photo 222 BROKEN: one eye on a face with no nose or mouth, the
+    collar below - anatomy fails when the eye words fight a face that fills the frame.
+  - EYE FROM TQ FACE (FLUX.3): 0/4 an eye frame, 3/4 a notch tighter (photo: brow-to-lips half profile, the near
+    eye kept); anime 222 ~= the input. Style held 4/4, view held 4/4.
+  - Read: chaining buys nothing for the eye - r43's ONE FLUX.3 pass from the full body reaches the same half-face eye
+    (4/4) without the risk of the broken photo 222. 'No nose, mouth' is ignored like 'no neck' was in round 44:
+    both models obey the TARGET subject, not what the frame should cut. The deepest rung the words reach is a
+    half-face eye close-up; an eye edge to edge needs crop + refine (crop the eye box from the face/hs cell, then a
+    detail/upscale pass) if Fabio wants it.
+  FABIO 2026-10-25: ACCEPTED - the half-face eye close-up is the deepest rung, one FLUX.3 pass from the source.
+- 2026-10-25 ROUND 46, THE OUTWARD RUNGS (`angles.py <port> blender46`, sheet
+  `research/sheets/mq_blender46_zoom_out_rungs.jpg`, results `research/out/mq_blender46.json`). Zoom OUT from a
+  close-up, rungs waist-up / whole body / far in the 'Frame her ...' style (MQ46_RUNGS), + 'what the first image does
+  not show of her outfit continues it plainly, in the same colours and style' on full/far, MQ46_KEEP. Arms: the
+  untouched studio PORTRAIT (face source, head-and-shoulders - the common user input) on FLUX.3 4:5; r43 front hs (a
+  FLUX.3 result) on Qwen, anime + photo. Seeds 111/222, 18 edits, 0 errors (FLUX.3 ~19 s, Qwen ~44 s; ~10 min GPU).
+  GRADES (agent, sheet; bar = the named framing, view/likeness/style kept, plausible invented outfit):
+  - Ladder order held 6/6 rows: waist < whole body < far, front eye-level view kept 18/18, style kept 18/18 (anime
+    stays flat 2D, photo stays photographic), earrings + necklace (portrait) + bag strap (hs inputs) kept.
+  - WAIST: 6/6 a wider frame; FLUX.3 portrait lands mid-torso (a notch short of the waist), Qwen hs only one small
+    notch out on anime 111 (cropped at the hips).
+  - WHOLE BODY: 6/6 head to shoes. The invented outfit is plausible and in the sweater's colours: portrait = a rust
+    knit dress (boots / heels), anime = a rust jumpsuit or wide trousers, photo hs = brown trousers + shoes. The real
+    source outfit (purple trousers + white sneakers anime, jeans + white sneakers photo) is of course not recovered.
+  - FAR: 6/6 more of the place - studio with softboxes and stands (photo), the long street (anime) - but she is
+    'small in the middle' only on photo hs (~55% of the height); portrait and anime stay at ~70-80% (~= whole body +
+    more place). Weakest rung.
+  - Outfit consistency across rungs: portrait 222 = a dress at 'full' but trousers at 'far'. Each rung invents anew.
+  - Likeness: portrait and photo hs read as the same woman at waist; at full/far the face is small and held.
+  - Read: zoom-out works both from an untouched portrait (FLUX.3) and from an edited close-up (Qwen) - 18/18 in the
+    right direction. Two open points for the Flow: (1) far needs stronger distance words (the figure a third of the
+    frame height, the whole place around her) - or it is 'whole body + place' and not a separate stop; (2) an
+    invented outfit drifts between rungs/seeds - the Flow should chain the outward rungs (far FROM the full-body
+    result) or have the agent name the outfit once and reuse the words.
+  FABIO 2026-10-25: zoom-out from a close-up gets two OPTIONAL Flow inputs - a prompt box for the unseen outfit/place
+  and a second reference image (full body / character sheet).
+- 2026-10-25 ROUND 47, THE OUTFIT INPUTS (`angles.py <port> blender47`, sheet
+  `research/sheets/mq_blender47_outfit_inputs.jpg`, results `research/out/mq_blender47.json`). r43 front hs (the real
+  outfit is known: anime purple trousers + white sneakers, photo dark jeans + white sneakers + bag on her right hip) ->
+  whole body / far on Qwen, round 46's words with three arms: 'words' (MQ47_OUTFIT, the prompt-box text), 'ref' (the
+  full-body source as inputImage2 + MQ47_REF 'the second image is only for her clothes'), 'both' (whole body only).
+  Anime + photo, seeds 111/222, 20 edits, 0 errors (one image ~40 s, two images ~60 s; ~16 min GPU).
+  GRADES (agent, sheet + mean pixel diff to the ref):
+  - WORDS: outfit right 8/8 - photo dark jeans + white sneakers 4/4, anime purple trousers + white sneakers 4/4 (but a
+    paler lavender than the real deep purple: the words carry the item, not the exact shade). Framing, place, style
+    and the bag strap kept; far still only ~= whole body + more place, as round 46.
+  - REF, FAR: outfit EXACT 4/4 (deep purple / dark jeans, white sneakers, the bag on the hip) at a new framing - the
+    figure is smaller than every other far cell (the best 'far' so far). This is the real proof the ref arm works.
+  - REF + BOTH, WHOLE BODY: outfit exact 8/8, but the result is close to a COPY of the ref (photo mean diff 6-13/255
+    = near-identical; anime 37-43 vs 55-65 for words, visually the ref redrawn - the ref's purple road, the ref's
+    pose). The bench's ref IS the target framing, so copying it looks right here - but in the Flow the ref may show a
+    different place, light or pose, and those would leak. Not yet proven: the ref arm from a ref in ANOTHER place/pose.
+  - Read: both inputs work. Words = the right items, approximate colours, zero leak. Ref = exact clothes; at a framing
+    unlike the ref (far) it transfers only the clothes, at the ref's own framing (whole body) it returns the ref.
+    Next test (if Fabio wants it): a ref that differs - a character sheet / full body on a plain backdrop, another
+    pose - zoomed out to whole body, to see if place/pose leak.
+- 2026-10-25 ROUND 48, A REF THAT DIFFERS (`angles.py <port> blender48refs` then `blender48`, sheets
+  `research/sheets/mq_blender48_refs.jpg` + `mq_blender48_ref_leak.jpg`, results `research/out/mq_blender48.json`).
+  Refs made by one FLUX.3 edit of each full-body source (MQ48_REFS), eye-checked good 4/4: 'A' = same outfit on a
+  plain white backdrop, hands on hips, turned a little; 'B' = a front / side / back turnaround sheet on white (16:9).
+  Then r43 front hs -> whole body (A, B, A + words) and far (A, B) on Qwen, round 47's words. Anime + photo, seeds
+  111/222, 4 + 20 edits, 0 errors (~22 min GPU).
+  GRADES (agent, sheet + backdrop brightness of the top corners, 0-255):
+  - OUTFIT: exact 20/20 from both refs (deep purple / dark jeans, white sneakers, the bag on the hip).
+  - LAYOUT leak from the sheet: 0/8 - always ONE figure, front view, at the named framing.
+  - POSE leak from ref A: 12/12 - every A cell (whole body, A + words, far) puts her hands on her hips. Ref B's
+    neutral front figure gives arms down 8/8. The prompt-box words do not stop it.
+  - PLACE leak from ref A: photo whole body 4/4 - the grey backdrop turns near-white (corners 225-231 vs 137-151 for
+    the hs input, r47 words, ref B). Anime street held 10/10; photo far held 4/4 (the far words name the studio rig).
+    Ref B: no place leak 8/8.
+  - Likeness + style held; anime stays flat 2D 10/10.
+  - Read: a CHARACTER SHEET is the clean second reference - exact outfit, no pose, place or layout leak (8/8). A
+    single full-body shot carries its POSE every time and, at the whole-body rung, its BACKDROP. For the Flow: the
+    second-ref slot asks for a character sheet / turnaround first; a single full-body picture works for the clothes
+    but the result copies its pose (and on a plain photo backdrop, its backdrop). Prompt-box words alone (r47) never
+    leak but give approximate colours.

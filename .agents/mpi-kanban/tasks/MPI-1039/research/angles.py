@@ -3910,9 +3910,227 @@ def blender44(port):
     _sheet(rows, 'mq_blender44_face_frame')
 
 
+# Round 45 (Fabio 2026-10-25, after round 44): the EYE rung in the same 'frame her ...' words. Round 44's routing rule
+# - never two Qwen passes in a row, never FLUX.3 on a FLUX.3 result - so the models alternate. Three arms, seeds
+# 111/222: 'hs' = Qwen on r43's front hs (FLUX.3); 'face' = FLUX.3 on r44's front chained face (Qwen); 'tq face' =
+# FLUX.3 on r44's tq fl one-pass face (Qwen), naming her near left eye. Anime + photo = 12 edits.
+MQ45_EYE = {
+    'front': 'Frame her right eye, the one on frame-left: the eye fills the whole frame, seen straight from the front. '
+             'Her eyebrow and the top of her cheek are cut by the frame edges; no nose, mouth or hair show.',
+    'tq fl': 'Frame her near left eye: the eye fills the whole frame, seen from her left side in the same three-quarter '
+             'profile as in the first image. Her eyebrow and the top of her cheek are cut by the frame edges; no nose, '
+             'mouth or hair show.',
+}
+
+
+def blender45(port):
+    done = os.path.join(OUT, 'mq_blender45.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    r43, r44 = (json.load(open(os.path.join(OUT, f'mq_blender{n}.json'))) for n in (43, 44))
+    arms = {'hs': (lambda n, s: r43[f'{n} {s} front hs'], QWEN29, 'front'),
+            'face': (lambda n, s: r44[f'{n} {s} front face chain'], {**FAST, 'ratio': '9:16'}, 'front'),
+            'tq face': (lambda n, s: r44[f'{n} {s} tq fl face one'], {**FAST, 'ratio': '9:16'}, 'tq fl')}
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+    for name in ('anime', 'photo'):
+        for seed in (111, 222):
+            for arm, (src, model, view) in arms.items():
+                key = f'{name} {seed} eye from {arm}'
+                if key not in res:
+                    res[key] = gen(port, {**model, 'seed': seed, 'cardName': f'angles mq45 {key}',
+                                          'positive': MQ45_EYE[view] + MQ44_KEEP[name],
+                                          'media': [{'role': 'inputImage', 'url': src(name, seed)}]})
+                    json.dump(res, open(done, 'w'), indent=1)
+    rows = [[(None, f'{n} {s}')] + [(r43.get(f'{n} {s} front eye'), 'r43 eye 1 pass')] +
+            [c for a, (src, _, _) in arms.items() for c in ((src(n, s), f'{a} input'),
+                                                             (res.get(f'{n} {s} eye from {a}'), f'eye from {a}'))]
+            for n in ('anime', 'photo') for s in (111, 222)]
+    _sheet(rows, 'mq_blender45_eye_frame')
+
+
+# Round 46 (Fabio 2026-10-25: the half-face eye is the deepest rung; now the OUTWARD rungs). Zoom out from a close-up:
+# the model must invent what the input never showed (the rest of the outfit, the place). Rungs named in round 44's
+# 'Frame her ...' style: waist-up, whole body, far. Arms (round 44's routing): 'portrait' = the untouched face source
+# (a head-and-shoulders studio portrait, the common user input) on FLUX.3 4:5; 'hs' = r43 front hs (a FLUX.3 result)
+# on Qwen, anime + photo. Seeds 111/222, 18 edits.
+MQ46_RUNGS = {
+    'waist': 'Frame her from the waist up: her head, arms and upper body fill the frame, cropped at the waist, with '
+             'more of {near} around her.',
+    'full': 'Frame her whole body: she stands seen from head to shoes, her whole figure filling the height of the '
+            'frame, with {near} around her.',
+    'far': 'Frame the whole place: the camera is far back and she stands small in the middle of the frame, seen from '
+           'head to shoes, {far}.',
+}
+MQ46_REST = ' What the first image does not show of her outfit continues it plainly, in the same colours and style.'
+MQ46_KEEP = {
+    'anime': ' It is still the same drawn anime woman from the first image, with her own face, hair, earrings and '
+             'clothes, in the same place and light and the same flat 2D anime drawing style - clean outlines, flat '
+             'colours. It stays a drawing, not a photo.',
+    'photo': ' It is still the same real person from the first image, with her own face, hair, earrings and clothes, '
+             'in the same place and light and the same photographic style.',
+}
+
+
+def _zoom46(rung, style):
+    return ('Zoom out from the first image, keeping exactly the same viewing angle, height and perspective: '
+            f'{MQ41_VIEWS["front"][0]}. ' +
+            MQ46_RUNGS[rung].format(near=MQ41_PLACE[style][0], far=MQ41_PLACE[style][1]) +
+            (MQ46_REST if rung != 'waist' else '') + MQ46_KEEP[style])
+
+
+def blender46(port):
+    done = os.path.join(OUT, 'mq_blender46.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    r43 = json.load(open(os.path.join(OUT, 'mq_blender43.json')))
+    face = json.load(open(os.path.join(OUT, 'pitch.json')))['face input']
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+
+    def edit(key, model, src, text):
+        if key not in res:
+            res[key] = gen(port, {**model, 'seed': int(key.split()[1]), 'cardName': f'angles mq46 {key}',
+                                  'positive': text, 'media': [{'role': 'inputImage', 'url': src}]})
+            json.dump(res, open(done, 'w'), indent=1)
+
+    for seed in (111, 222):
+        for rung in MQ46_RUNGS:
+            edit(f'portrait {seed} {rung}', FAST, face, _zoom46(rung, 'photo'))
+    for name in ('anime', 'photo'):
+        for seed in (111, 222):
+            for rung in MQ46_RUNGS:
+                edit(f'{name} {seed} hs {rung}', QWEN29, r43[f'{name} {seed} front hs'], _zoom46(rung, name))
+    rows = [[(None, f'portrait {s}'), (face, 'portrait input')] +
+            [(res.get(f'portrait {s} {r}'), f'FLUX.3 {r}') for r in MQ46_RUNGS] for s in (111, 222)]
+    rows += [[(None, f'{n} {s}'), (r43[f'{n} {s} front hs'], 'r43 hs input')] +
+             [(res.get(f'{n} {s} hs {r}'), f'Qwen {r}') for r in MQ46_RUNGS]
+             for n in ('anime', 'photo') for s in (111, 222)]
+    _sheet(rows, 'mq_blender46_zoom_out_rungs')
+
+
+# Round 47 (Fabio 2026-10-25, after round 46 invented the unseen outfit): the Flow gets two OPTIONAL inputs for
+# zoom-out from a close-up - a prompt box (what the rest of the outfit is) and a second reference image (a full-body
+# shot / character sheet). Bench: r43 front hs (Qwen; the real full-body outfit is known) zoomed out to whole body and
+# far, three arms: 'words' (the prompt-box text), 'ref' (the full-body source as image 2), 'both'; r46's no-help cells
+# beside. 'both' on the whole-body rung only. Anime + photo, seeds 111/222, 20 edits.
+MQ47_OUTFIT = {  # the prompt-box words a user would type
+    'anime': 'Below her turtleneck she wears purple trousers and white sneakers.',
+    'photo': 'Below her turtleneck she wears dark blue straight jeans and white sneakers.',
+}
+MQ47_REF = (' The second image shows the same woman in her whole outfit: everything she wears that the first image '
+            'does not show comes from the second image. The second image is only for her clothes - the view, framing, '
+            'pose and place come from the first image and these words.')
+
+
+def _zoom47(rung, style, arm):
+    rest = {'words': ' ' + MQ47_OUTFIT[style], 'ref': MQ47_REF, 'both': ' ' + MQ47_OUTFIT[style] + MQ47_REF}[arm]
+    return ('Zoom out from the first image, keeping exactly the same viewing angle, height and perspective: '
+            f'{MQ41_VIEWS["front"][0]}. ' +
+            MQ46_RUNGS[rung].format(near=MQ41_PLACE[style][0], far=MQ41_PLACE[style][1]) + rest + MQ46_KEEP[style])
+
+
+def blender47(port):
+    done = os.path.join(OUT, 'mq_blender47.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    r23, r43, r46 = (json.load(open(os.path.join(OUT, f'mq_blender{n}.json'))) for n in (23, 43, 46))
+    body = {'anime': r23['street 222'], 'photo': json.load(open(os.path.join(OUT, 'pitch.json')))['body input']}
+    cells = [('full', 'words'), ('full', 'ref'), ('full', 'both'), ('far', 'words'), ('far', 'ref')]
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+    for name in ('anime', 'photo'):
+        for seed in (111, 222):
+            for rung, arm in cells:
+                key = f'{name} {seed} {rung} {arm}'
+                if key not in res:
+                    media = [{'role': 'inputImage', 'url': r43[f'{name} {seed} front hs']}]
+                    if arm != 'words':
+                        media.append({'role': 'inputImage2', 'url': body[name]})
+                    res[key] = gen(port, {**QWEN29, 'seed': seed, 'cardName': f'angles mq47 {key}',
+                                          'positive': _zoom47(rung, name, arm), 'media': media})
+                    json.dump(res, open(done, 'w'), indent=1)
+    rows = [[(None, f'{n} {s}'), (r43[f'{n} {s} front hs'], 'hs input'), (body[n], 'ref = real outfit')] +
+            [c for rung, arms in (('full', ('words', 'ref', 'both')), ('far', ('words', 'ref'))) for c in (
+                (r46.get(f'{n} {s} hs {rung}'), f'{rung} r46 no help'),
+                *((res.get(f'{n} {s} {rung} {a}'), f'{rung} {a}') for a in arms))]
+            for n in ('anime', 'photo') for s in (111, 222)]
+    _sheet(rows, 'mq_blender47_outfit_inputs')
+
+
+# Round 48 (Fabio 2026-10-25): round 47's ref showed the target framing, so a copy looked right. Now refs that DIFFER:
+# 'A' = the same woman + outfit on a plain white backdrop, hands on hips, turned a little; 'B' = a character turnaround
+# sheet (front / side / back on white). Both made by one FLUX.3 edit of the full-body source (`blender48refs`, eye-
+# checked before the round). Then r43 front hs -> whole body (A, B, A + words) and far (A, B) on Qwen, round 47's words.
+# Grades: outfit, PLACE leak (white instead of street / grey studio), POSE leak (hands on hips), LAYOUT leak (several
+# figures from the sheet), likeness, style. Anime + photo, seeds 111/222, 4 + 20 edits.
+MQ48_STYLE = {'anime': ' Keep the same flat 2D anime drawing style - clean outlines, flat colours. It stays a drawing.',
+              'photo': ' Keep the same photographic style and the same real person.'}
+MQ48_REFS = {
+    'A': ('Place the same woman from the first image on a plain white studio backdrop with a white floor and nothing '
+          'else around her. She now stands with her hands on her hips, her body turned a little to her left, her face '
+          'toward the camera, seen from head to shoes. She wears exactly the same clothes, bag and shoes as in the '
+          'first image.', '9:16'),
+    'B': ('Turn the first image into a character turnaround sheet on a plain white background: the same woman shown '
+          'three times side by side, each from head to shoes and the same size, standing straight - seen from the '
+          'front, from her left side and from the back. She wears exactly the same clothes, bag and shoes in every '
+          'view.', '16:9'),
+}
+
+
+def blender48refs(port):
+    done = os.path.join(OUT, 'mq_blender48.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    r23 = json.load(open(os.path.join(OUT, 'mq_blender23.json')))
+    body = {'anime': r23['street 222'], 'photo': json.load(open(os.path.join(OUT, 'pitch.json')))['body input']}
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+    for name in ('anime', 'photo'):
+        for r, (text, ratio) in MQ48_REFS.items():
+            key = f'ref {name} {r}'
+            if key not in res:
+                res[key] = gen(port, {**FAST, 'ratio': ratio, 'seed': 111, 'cardName': f'angles mq48 {key}',
+                                      'positive': text + MQ48_STYLE[name],
+                                      'media': [{'role': 'inputImage', 'url': body[name]}]})
+                json.dump(res, open(done, 'w'), indent=1)
+    _sheet([[(None, n), (body[n], 'source')] + [(res.get(f'ref {n} {r}'), f'ref {r}') for r in MQ48_REFS]
+            for n in ('anime', 'photo')], 'mq_blender48_refs')
+
+
+def blender48(port):
+    done = os.path.join(OUT, 'mq_blender48.json')
+    res = json.load(open(done))
+    r43, r47 = (json.load(open(os.path.join(OUT, f'mq_blender{n}.json'))) for n in (43, 47))
+    cells = [('full', 'A'), ('full', 'B'), ('full', 'A words'), ('far', 'A'), ('far', 'B')]
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+    for name in ('anime', 'photo'):
+        for seed in (111, 222):
+            for rung, arm in cells:
+                key = f'{name} {seed} {rung} {arm}'
+                if key not in res:
+                    res[key] = gen(port, {**QWEN29, 'seed': seed, 'cardName': f'angles mq48 {key}',
+                                          'positive': _zoom47(rung, name, 'both' if 'words' in arm else 'ref'),
+                                          'media': [{'role': 'inputImage', 'url': r43[f'{name} {seed} front hs']},
+                                                    {'role': 'inputImage2', 'url': res[f'ref {name} {arm[0]}']}]})
+                    json.dump(res, open(done, 'w'), indent=1)
+    rows = [[(None, f'{n} {s}'), (r43[f'{n} {s} front hs'], 'hs input'), (res[f'ref {n} A'], 'ref A'),
+             (res[f'ref {n} B'], 'ref B'), (r47.get(f'{n} {s} full words'), 'full r47 words')] +
+            [(res.get(f'{n} {s} {rung} {arm}'), f'{rung} {arm}') for rung, arm in cells]
+            for n in ('anime', 'photo') for s in (111, 222)]
+    _sheet(rows, 'mq_blender48_ref_leak')
+
+
 if __name__ == '__main__':
     if sys.argv[1:2] == ['best']:
         best()
+    elif sys.argv[2:3] == ['blender48refs']:
+        blender48refs(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['blender48']:
+        blender48(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['blender47']:
+        blender47(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['blender46']:
+        blender46(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['blender45']:
+        blender45(int(sys.argv[1]))
     elif sys.argv[2:3] == ['blender44']:
         blender44(int(sys.argv[1]))
     elif sys.argv[2:3] == ['blender43']:

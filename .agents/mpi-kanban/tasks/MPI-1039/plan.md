@@ -244,6 +244,12 @@ node scripts/launch-instance.mjs` (run_in_background), use the printed port. Eve
   frame at the target angle, use it as the image model's reference.
 
 ## Flow UI notes (Fabio 2026-10-24)
+- FABIO 2026-10-25 (after round 46, zoom-out invents the unseen outfit): two OPTIONAL inputs for zoom-out from a
+  close-up - (1) a small PROMPT BOX where the user says what the rest of the outfit and the place are; (2) a SECOND
+  REFERENCE IMAGE (a full-body shot or a character sheet of the same character) the edit copies the unseen outfit
+  from. Both optional; the prompt box stays available alongside the ref. BENCHED rounds 47-48: words = right items,
+  rough colours, no leak; a character sheet ref = exact outfit, no leak; a single full-body ref = exact outfit but
+  its pose (and a plain backdrop) leaks. The slot's hint should ask for a character sheet / turnaround.
 - The gizmo's preview of the chosen view + zoom = a 3D COSMO (Fabio makes it on an image-to-3D site). Previews stay
   pre-rendered, one per slider stop, from the SAME Blender cameras as the model refs, so the preview shows exactly the
   view the edit gets. Keep Cosmo OUT of the model's ref (mannequin / cube / house) unless a bench proves it does not
@@ -284,6 +290,35 @@ People tests still open (agent's list, from validation.md rounds 5-7, 12, 15-16)
      studio ceiling / softbox) to the full-body studio low views.
   Then Fabio's eye test; Qwen-Image 2.1 re-run (NSFW) stays queued after.
 FABIO 2026-10-24 (afternoon, after rounds 19-22: "making progress, well done"): concern - every test source is PHOTOGRAPHIC; the recipe's words (real person, studio, softbox) may push a 2D source toward realism. NEXT ROUND = a flat 2D test, kept SHORT: convert the man or the woman to flat anime with Krea2 (Fabio: "Create2", its anime style, via edit / i2i), then run the people recipe on that one source (few key views, few seeds). Keep clause must say the drawing style stays (not "real person"). Then the 3/4 front-turn overshoot ref, Qwen-Image 2.1 re-run.
+ROUND 48 DONE (2026-10-25, validation.md): a second ref that DIFFERS from the target. CHARACTER SHEET (turnaround on
+white) = the clean ref: exact outfit, no pose / place / layout leak 8/8 (one figure always). A single full-body ref
+in another pose on white: exact outfit but POSE leaks 12/12 (hands on hips, words do not stop it) and the photo
+backdrop turns white at whole body 4/4. GPU ~22 min. FLOW CONSEQUENCE: the optional second-ref slot asks for a
+character sheet first; a single full-body picture is allowed but its pose comes along. NEXT (Fabio's call).
+ROUND 47 DONE (2026-10-25, validation.md): the two optional outfit inputs for zoom-out (Fabio's idea). WORDS (prompt
+box): right items 8/8, approximate colours, no leak. REF (full body as inputImage2): exact outfit; at 'far' 4/4 clean
+(and the smallest figure yet); at 'whole body' (= the ref's own framing) it returns a near-copy of the ref. GPU ~16
+min. NEXT (Fabio's call): a ref that DIFFERS from the target (plain-backdrop character sheet / other pose) -> whole
+body, to check place/pose leak; else the Flow build with both inputs.
+ROUND 46 DONE (2026-10-25, validation.md): OUTWARD rungs (waist / whole body / far, 'Frame her ...' words) from the
+untouched portrait (FLUX.3) and the r43 hs (Qwen) - 18/18 in the right order, view + style kept, invented outfit
+plausible in the sweater's colours. Weak: 'far' is small only 2/6 (else ~= whole body + more place); the invented
+outfit drifts between rungs (portrait 222 dress -> trousers). GPU ~10 min. ZOOM LADDER now: eye (half face, FLUX.3
+one pass from source) / face (+collar) / hs / waist / whole body / far. NEXT (Fabio's call): a far-rung rewording +
+outward chaining (far from the full-body result) round, or 'whole head still in frame' on rear zoom-ins, or start the
+Flow build phases with the ladder as is.
+FABIO 2026-10-25: half-face eye ACCEPTED as the deepest rung (one FLUX.3 pass from the source).
+ROUND 45 DONE (2026-10-25, validation.md): the eye rung in 'frame her eye' words, models alternating - eye edge to
+edge 0/12; FLUX.3's ceiling = a half-face eye close-up, the SAME as r43's one pass from the full body. Qwen freezes on
+eye words (hs returned 3/4); FLUX.3 on the Qwen front face breaks photo 222 (no nose/mouth). Chaining buys nothing
+for the eye: the eye rung = ONE FLUX.3 pass from the source. 'No X shows' is ignored by both models (r44 neck, r45
+nose). GPU ~6 min. NEXT (Fabio's call): accept 'half-face eye' as the deepest rung, or bench crop + refine for an
+edge-to-edge eye; then the outward rungs and 'whole head still in frame' on rear zoom-ins.
+ROUND 44 DONE (2026-10-25, validation.md): Fabio's 'frame her face' words - tighter than r43 in 10/16, a face-only
+frame (no collar) 0/16. Best arm = front CHAIN (FLUX.3 hs -> Qwen face) 4/4. New failures: FLUX.3 one pass on photo
+222 = a bobblehead (big head on the full body); Qwen on a Qwen hs (tq fl chain) = gritty HDR texture 4/4 - ROUTING
+RULE: never two Qwen passes in a row (as never FLUX.3 on FLUX.3). GPU ~9 min. NEXT (needs Fabio's go): the eye rung
+in the same 'frame her eye' style, from the FLUX.3 hs / face cells (alternating models), then outward rungs.
 ROUND 43 DONE (2026-10-25, validation.md): deep zoom rungs in ONE pass from a full body - hs 8/8 (FLUX.3 front +
 Qwen tq fl), eye 4/4 on FLUX.3 front but 2/4 on Qwen tq fl, the 'face' rung does not separate from hs (1/8); the face
 source -> eye 2/2 excellent. GPU ~13 min (26 edits). FABIO 2026-10-25: the face rung FAILED everywhere (chest still
