@@ -29,7 +29,7 @@ function _name(pick) {
     return `Multi-angle · ${parts.join(', ')}`;
 }
 
-function _deps(project, { outfitWords }) {
+function _deps(project, { outfitWords }, frame) {
     return {
         isLoopArmed: () => state.loopArmed === true,
 
@@ -56,7 +56,7 @@ function _deps(project, { outfitWords }) {
             }
         },
 
-        async submit(step, media, landing) {
+        async submit(step, media, landing, { index, total }) {
             const built = await buildGeneration({
                 modelId: step.model,
                 operation: 'edit',
@@ -67,9 +67,12 @@ function _deps(project, { outfitWords }) {
             if (!built.ok) return built;
             // The user pressed Generate: their toasts show, and the child-safety gate reads their
             // own outfit words beside the pass prompt built from the picture.
-            const config = { ...built.config, byAgent: false, userWords: [outfitWords, step.prompt].filter(Boolean) };
+            // flowStep: the status bar reads "Editing 1/2", so a chain does not look like the same pass twice.
+            const config = { ...built.config, byAgent: false, userWords: [outfitWords, step.prompt].filter(Boolean),
+                ...(total > 1 ? { flowStep: `${index}/${total}` } : {}) };
             let settle;
             const done = new Promise((resolve) => { settle = resolve; });
+            const opts = landingOpts(landing, 'image', built.run.width, built.run.height);
             const queued = enqueueGeneration(config, {
                 onComplete: ({ item, group }) => settle({ ok: true, item, group }),
                 onError: (err) => settle({ ok: false, code: err?.code || 'RUNTIME_ERROR',
@@ -77,8 +80,10 @@ function _deps(project, { outfitWords }) {
                 onCancel: (why) => settle(why?.stopped
                     ? { ok: false, code: 'CANCELLED', message: 'The user pressed Stop.' }
                     : { ok: false, code: 'NO_OUTPUT', message: 'Nothing came back for this pass.' }),
-            }, landingOpts(landing, 'image', built.run.width, built.run.height));
+            }, opts);
             if (!queued) return { ok: false, code: 'REJECTED', message: `The ${step.kind} pass was rejected before it entered the queue.` };
+            // The Flow frame follows each pass by its tempId: live latents, sweep, Stop, the result.
+            frame?.onJob?.(opts.tempId, done);
             return { ok: true, done };
         },
     };
@@ -98,9 +103,10 @@ function _summary(name, out) {
  * @param {Object} inputs - the frame's inputs: `angle` (the gizmo's { turn, height, zoom: a target rung
  *   or 'none' }), `outfitWords`, `mediaItems` (`inputImage` the person, optional `inputImage2` the outfit
  *   picture)
+ * @param {{onJob?: function(string, Promise<Object>): void}} [frame] - the Flow frame, told of each pass it queues
  * @returns {Promise<boolean>} true once the chain has started
  */
-export async function runMultiAngleFlow(flow, inputs) {
+export async function runMultiAngleFlow(flow, inputs, frame) {
     const project = state.currentProject;
     if (!project?.folderPath) {
         StatusBar.notify('Open a project first: the new view lands in its gallery.', 'warning');
@@ -119,7 +125,7 @@ export async function runMultiAngleFlow(flow, inputs) {
     const outfitWords = String(inputs.outfitWords || '').trim();
     const name = _name(pick);
     const run = await runMultiAngle({ source: url('inputImage'), pick, outfit: { words: outfitWords, url: url('inputImage2') } },
-        _deps(project, { outfitWords }));
+        _deps(project, { outfitWords }, frame));
     if (!run.ok) {
         StatusBar.notify(run.message, 'warning');
         return false;

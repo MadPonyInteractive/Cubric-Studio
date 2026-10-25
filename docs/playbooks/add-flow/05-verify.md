@@ -42,6 +42,12 @@ the user drives the end-to-end live run. Confirm each:
       inputs empty); the result pane shows all that landed; ONE "Generating…" placeholder during
       the run.
 - [ ] **Storage**: a dropped file lands in `Media/.preview-assets/` (NOT a new gallery card).
+- [ ] **The result pane follows the run**: live latents (blurred, sharpening) appear in the pane
+      while it samples, the sweep moves, the frame's Stop is ENABLED and stops it, and the picture
+      lands in the pane. A chained Flow's status bar counts its legs ("Editing 1/2", "2/2").
+      None of this is in `npm test` for a graph Flow; a driver Flow's wiring is pinned by
+      `tests/flow-drivers-report-jobs.test.cjs`, but only a live run shows it. Name these to the
+      user when handing over the live run, so they look (Multi-angle shipped without any of it).
 - [ ] **Status bar** shows progress during the run (STITCHING/GENERATING + timer), at the BOTTOM of
       the flow overlay (not collapsed to the top).
 - [ ] **Ctrl+Enter** runs the OPEN flow, not the PromptBox behind it; works again after closing.

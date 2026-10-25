@@ -18,10 +18,10 @@
  *   describe - the source's URL -> the describer's answer
  * @property {function(string, string): Promise<{ok: true, url: string}|{ok: false, message: string}>} ref -
  *   a doll ref (`room/tq_fl`) padded to the size of the picture at this URL
- * @property {function(Object, Array, Object): Promise<{ok: true, done: Promise<Object>}|{ok: false, code: string,
- *   message: string}>} submit - builds and ENQUEUES one pass `{ kind, model, prompt }` with its media and its
- *   landing (`{}` = a new card, `{ existingGroup }` = that card's history); `done` settles with
- *   `{ ok: true, item, group }` or `{ ok: false, code, message }`
+ * @property {function(Object, Array, Object, Object): Promise<{ok: true, done: Promise<Object>}|{ok: false, code: string,
+ *   message: string}>} submit - builds and ENQUEUES one pass `{ kind, model, prompt }` with its media, its
+ *   landing (`{}` = a new card, `{ existingGroup }` = that card's history) and its place in the chain
+ *   (`{ index, total }`, 1-based); `done` settles with `{ ok: true, item, group }` or `{ ok: false, code, message }`
  */
 
 import { multiAnglePlan, parseMultiAngleFacts } from '../data/flowPrompts/multiAngle.js';
@@ -68,7 +68,7 @@ export async function runMultiAngle({ source, pick = {}, outfit = {} }, deps) {
             } else if (step.outfitRef) {
                 media.push({ role: 'inputImage2', url: outfit.url });
             }
-            const sub = await deps.submit(step, media, group ? { existingGroup: group } : {});
+            const sub = await deps.submit(step, media, group ? { existingGroup: group } : {}, { index: i + 1, total });
             const res = sub.ok ? await sub.done : sub;
             if (!res.ok) return ended(i, group, { code: res.code, message: res.message }, res.code === 'CANCELLED');
             input = res.item.filePath;
