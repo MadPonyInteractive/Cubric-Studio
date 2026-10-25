@@ -1,8 +1,8 @@
 {
   "id": "e3f2b845-8f2c-4b5a-9caf-eac1029d3e7e",
   "revision": 0,
-  "last_node_id": 542,
-  "last_link_id": 780,
+  "last_node_id": 543,
+  "last_link_id": 781,
   "nodes": [
     {
       "id": 122,
@@ -2222,9 +2222,7 @@
           "name": "output",
           "type": "*",
           "links": [
-            653,
-            654,
-            655
+            781
           ]
         }
       ],
@@ -6107,6 +6105,55 @@
         "ver": "fd9bdcae56a6792cbc6d39756b7dfe51d20596e0",
         "Node name for S&R": "MpiClearVram"
       }
+    },
+    {
+      "type": "BlockSparseAttention",
+      "pos": [
+        -704.686730327592,
+        5058.457569323544
+      ],
+      "size": [
+        320,
+        250
+      ],
+      "title": "sol-attn",
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 781
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            653,
+            654,
+            655
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "Node name for S&R": "BlockSparseAttention"
+      },
+      "widgets_values": [
+        "sol-attn",
+        1.3,
+        0.2,
+        1.0,
+        "",
+        12288,
+        256,
+        "exact_kv_and_rows",
+        false
+      ],
+      "flags": {},
+      "order": 57,
+      "mode": 0,
+      "id": 543
     }
   ],
   "links": [
@@ -6520,7 +6567,7 @@
     ],
     [
       653,
-      457,
+      543,
       0,
       338,
       0,
@@ -6528,7 +6575,7 @@
     ],
     [
       654,
-      457,
+      543,
       0,
       140,
       0,
@@ -6536,7 +6583,7 @@
     ],
     [
       655,
-      457,
+      543,
       0,
       150,
       0,
@@ -7125,6 +7172,14 @@
       208,
       1,
       "AUDIO"
+    ],
+    [
+      781,
+      457,
+      0,
+      543,
+      0,
+      "MODEL"
     ]
   ],
   "groups": [
