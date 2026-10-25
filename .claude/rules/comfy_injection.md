@@ -55,6 +55,7 @@ These use the same LoRA object shape as flat slots, and the controller writes
 | `"Input_Negative"` | `inputs.value` | Negative prompt |
 | `"Input_Seed"` | `inputs.int` / `inputs.value` | Falls back to `noise_seed` on any KSampler |
 | `"Input_Width"` / `"Input_Height"` | `inputs.value` | Render dimensions |
+| `"Input_Fast_Motion"` | `inputs.boolean` | H3 Reference Fast Motion (`minimax_h3_r2va.json` only, MPI-1285): `MpiSimpleBoolean`, graph default false, filled in `generationControls.js` from named param `fastMotion`, else the `h3FastMotion` per-model setting. The graph derives every size from Width/Height + this switch, so callers that never send it run the old path. [docs/models/h3/fast-motion.md](../../docs/models/h3/fast-motion.md) |
 | `"Checkpoint"` / `"Model"` | `inputs.ckpt_name` / `unet_name` / `model_name` | Primary checkpoint (workflow-internal loader, not a bare-title deprecation target) |
 | `"Checkpoint_Refiner"` | `inputs.ckpt_name` | Refiner checkpoint |
 | `"Input_Lora_1"` … `"Input_Lora_6"` | `inputs.lora_name`, `strength_model`, `strength_clip` | User LoRA slots — system LoRAs are baked in, not injected |
