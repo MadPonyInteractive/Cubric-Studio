@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1292",
+  "title": "Every Flow has a peeking mascot: Lingo on prompt writing, Prism on images, Reel and Vinyl on video",
+  "description": "Fabio 2026-10-25: Storyboard's Cosmo peek (MPI-1231) widened to every Flow. While a Flow writes a prompt (Enhance, or the auto-enhance step of Generate) Lingo peeks; while it generates, the output's mascot peeks: Prism for images, Reel and Vinyl for video, Vinyl for audio. Cosmo keeps the agent's own planning.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-25T22:45:34+00:00",
+  "updated_at": "2026-10-25T22:46:00+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

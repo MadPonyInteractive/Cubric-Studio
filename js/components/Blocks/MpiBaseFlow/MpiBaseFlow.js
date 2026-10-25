@@ -217,7 +217,7 @@ export const MpiBaseFlow = ComponentFactory.create({
             <div class="mpi-base-flow__stage" id="flow-stage">
                 <div class="mpi-base-flow__slides" id="flow-slides"></div>
             </div>
-            <!-- MPI-1231: Cosmo peeks up from the bottom edge while a job of his runs. -->
+            <!-- MPI-1231/1292: the running job's mascot peeks up from the bottom edge. -->
             <div class="mpi-base-flow__peek" aria-hidden="true">
                 <video class="mpi-base-flow__peek-clip" muted playsinline preload="none"></video>
             </div>
@@ -1363,56 +1363,95 @@ export const MpiBaseFlow = ComponentFactory.create({
             enhancedWrites(d, text, _mayEnhanceWrite).forEach(([id, v]) => _setEnhanced(id, v));
         }
 
-        // ── Cosmo peeks while he plans (MPI-1231, Fabio) ─────────────────────────
-        // A declaration that `runsOn: 'agent'` is Cosmo's own work, so while it runs his
-        // head pops up along the frame's bottom edge, peek after peek at a new spot each
-        // time: the prompt box's peek (MPI-909) on a loop that lasts as long as the job.
-        // Reduced motion gets none — the button's busy label already says he is on it.
+        // ── A mascot peeks while the Flow works (MPI-1231, widened in MPI-1292, Fabio) ──
+        // While a job runs, a head pops up along the frame's bottom edge, peek after peek
+        // at a new spot each time: the prompt box's peek (MPI-909) on a loop that lasts as
+        // long as the job. WHO peeks is the job's mascot (`_peekCast`): Lingo while a
+        // prompt is being written (Enhance, or Generate's auto-enhance step), Cosmo while
+        // the agent plans (`runsOn: 'agent'`, Storyboard), then while it generates the
+        // mascot of what the Flow makes — Prism for pictures, Reel and Vinyl taking turns
+        // for video, Vinyl for audio. Reduced motion gets none — the busy labels and the
+        // sweep already say the Flow is working.
         //
         // A different clip each time, never the same twice running (Fabio: "not so
-        // repetitive"). `peek` rises by itself; the STANDING clips have his head on row 187
-        // of 620 in their rest pose (measured on each, as the agent chat's ledge hangs
-        // `agent-thinking`), so they hang by that row and slide up into the same window.
-        // Left out: clips whose hands rise far above his head (happy-1, heads-up) and would shear.
-        const _PEEK_CLIPS = ['peek', 'agent-thinking', 'agent-listening', 'idle-1', 'idle-2', 'idle-3', 'greet-1', 'greet-2'];
+        // repetitive"). `peek` rises by itself; the STANDING clips have the head on row 187
+        // of 620 in their rest pose — every mascot's (measured on each, as the agent chat's
+        // ledge hangs `agent-thinking`) — so they hang by that row and slide up into the same
+        // window. Left out: clips whose hands rise far above the head and would shear in the
+        // window (happy-1, heads-up; Lingo's idle-3 tops out at row 32). The tallest kept
+        // is Cosmo's idle-3 at row 146.
+        const _PEEK_CLIPS = {
+            studio: ['peek', 'agent-thinking', 'agent-listening', 'idle-1', 'idle-2', 'idle-3', 'greet-1', 'greet-2'],
+            prompt: ['peek', 'idle-1', 'idle-2', 'greet-1', 'greet-2'],
+            vision: ['peek', 'idle-1', 'idle-2', 'idle-3', 'greet-1', 'greet-2'],
+            video: ['peek', 'idle-1', 'idle-2', 'idle-3', 'greet-1', 'greet-2'],
+            audio: ['peek', 'idle-1', 'idle-2', 'idle-3', 'greet-1', 'greet-2'],
+        };
+        /** Who peeks while the Flow generates, by what it makes (the descriptor's `mediaType`). */
+        const _RUN_CAST = { image: ['vision'], video: ['video', 'audio'], audio: ['audio'] };
         const _peekWrap = qs('.mpi-base-flow__peek', el);
         const _peekClip = qs('.mpi-base-flow__peek-clip', el);
         const _PEEK_LIVE = 'mpi-base-flow__peek--live';
-        let _peeking = false;
+        let _peekCastNow = [];
         let _peekTimer = null;
         let _peekLast = null;
+        /** @returns {string[]} the mascots (asset folders) of the job running now; none when idle. */
+        function _peekCast() {
+            if (_enhancing) {
+                return _enhanceDecls.find(d => d.id === _enhancing)?.runsOn === 'agent' ? ['studio'] : ['prompt'];
+            }
+            if (_running) return _RUN_CAST[flow?.mediaType] || ['studio'];
+            return [];
+        }
         function _peekOnce() {
-            if (!_peeking) return;
-            const pool = _PEEK_CLIPS.filter(c => c !== _peekLast);
-            const clip = _peekLast ? pool[Math.floor(Math.random() * pool.length)] : 'peek';
+            if (!_peekCastNow.length) return;
+            const mascot = _peekCastNow[Math.floor(Math.random() * _peekCastNow.length)];
+            const pool = _PEEK_CLIPS[mascot].map(c => `${mascot}/${c}`).filter(c => c !== _peekLast);
+            // A new cast opens on its rising peek; after that any clip but the last one.
+            const clip = _peekLast?.startsWith(`${mascot}/`) ? pool[Math.floor(Math.random() * pool.length)] : `${mascot}/peek`;
             _peekLast = clip;
             _peekWrap.style.setProperty('--peek-x', `${12 + Math.random() * 76}%`);
-            _peekClip.classList.toggle('mpi-base-flow__peek-clip--standing', clip !== 'peek');
-            _peekClip.src = `assets/mascot/studio/${clip}.webm`;
+            _peekClip.classList.toggle('mpi-base-flow__peek-clip--standing', !clip.endsWith('/peek'));
+            _peekClip.src = `assets/mascot/${clip}.webm`;
             _peekClip.play().catch(() => {});
         }
-        function _cosmoPeeks(live) {
-            clearTimeout(_peekTimer);
-            _peeking = live && !matchMedia('(prefers-reduced-motion: reduce)').matches;
-            if (_peeking) {
-                _peekLast = null;
-                _peekOnce();
-            } else {
+        /**
+         * Re-read who should peek. Called wherever the Flow starts or ends a job: the
+         * enhancer's start and end, and `_syncRunning`. The same cast keeps its loop going,
+         * so a stacked run or Generate moving from its enhance step to sampling with the
+         * same mascot does not restart it. A new cast takes over at once when nobody is
+         * on screen (between peeks, or a clip still loading — Generate starts its run
+         * and then its enhance step in the same tick), else at the next peek, never
+         * mid-clip (a clip swaps only at its end, mascot-placement.md rule 1).
+         */
+        function _syncPeek() {
+            const cast = matchMedia('(prefers-reduced-motion: reduce)').matches ? [] : _peekCast();
+            const same = cast.length === _peekCastNow.length && cast.every(m => _peekCastNow.includes(m));
+            if (same) return;
+            _peekCastNow = cast;
+            if (!cast.length) {
+                clearTimeout(_peekTimer);
                 _peekWrap.classList.remove(_PEEK_LIVE);
                 _peekClip.pause();
+                _peekLast = null;
+            } else if (!_peekWrap.classList.contains(_PEEK_LIVE)) {
+                clearTimeout(_peekTimer);
+                _peekOnce();
             }
         }
         // Shown once it plays, not when its src is set: a fresh src is blank until it decodes,
         // and the standing slide needs its start pose painted before the live class lands.
         _unsubs.push(on(_peekClip, 'playing', () => {
-            if (_peeking) _peekWrap.classList.add(_PEEK_LIVE);
+            if (_peekCastNow.length) _peekWrap.classList.add(_PEEK_LIVE);
         }));
         _unsubs.push(on(_peekClip, 'ended', () => {
             _peekWrap.classList.remove(_PEEK_LIVE);
-            if (_peeking) _peekTimer = setTimeout(_peekOnce, 700 + Math.random() * 1500);
+            if (_peekCastNow.length) _peekTimer = setTimeout(_peekOnce, 700 + Math.random() * 1500);
         }));
         _unsubs.push(() => {
-            _cosmoPeeks(false);
+            _peekCastNow = [];
+            clearTimeout(_peekTimer);
+            _peekClip.pause();
             _peekClip.removeAttribute('src');
             _peekClip.load();
         });
@@ -1455,7 +1494,7 @@ export const MpiBaseFlow = ComponentFactory.create({
             const settled = new Promise((res) => { _settle = res; });
             _enhancing = d.id;
             _paintEnhance();
-            if (d.runsOn === 'agent') _cosmoPeeks(true);
+            _syncPeek();
 
             // ONE DISPATCH, SHARED WITH THE PROMPT BOX (MPI-677 step 1b). This used to
             // be its own `enqueueGeneration` call, a near-copy of the one in
@@ -1499,7 +1538,7 @@ export const MpiBaseFlow = ComponentFactory.create({
                 _enhancing = null;
                 _enhanceStage = null;
                 _paintEnhance();
-                _cosmoPeeks(false);
+                _syncPeek();
                 _settle();
             });
             return settled;
@@ -3718,6 +3757,7 @@ export const MpiBaseFlow = ComponentFactory.create({
             // Every reset path (complete / error / cancel) routes through here, so
             // disarming needs no separate call.
             _setScanline(_running);
+            _syncPeek();
             _syncResultEmpty();
             _syncRunUi();
         }

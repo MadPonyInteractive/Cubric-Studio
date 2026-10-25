@@ -1265,7 +1265,7 @@
     .mpi-base-flow__scanline { display: none; }
 }
 
-/* Cosmo peeks while he plans (MPI-1231). The prompt box's peek framing (MpiPromptBox.css):
+/* The running job's mascot peeks (MPI-1231, every Flow since MPI-1292). The prompt box's peek framing (MpiPromptBox.css):
    peek.webm is cut by its own frame at the bottom, so the clip sits on the frame's bottom
    edge and a window just taller than the head shows only what clears it. --peek-x is set
    per peek by the JS, which also skips the peeks under reduced motion. */

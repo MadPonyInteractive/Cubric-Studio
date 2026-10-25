@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1292", "at": "2026-10-25T22:45:34+00:00", "actor": "claude", "column": "todo", "title": "Every Flow has a peeking mascot: Lingo on prompt writing, Prism on images, Reel and Vinyl on video"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1292", "at": "2026-10-25T22:46:00+00:00", "actor": "claude", "from": "todo", "to": "doing"}
