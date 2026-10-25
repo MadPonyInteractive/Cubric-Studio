@@ -1,6 +1,6 @@
 # Multi-angle Flow - spec draft (for Fabio's approval)
 
-Status: DRAFT 2026-10-25, written from the bench (rounds 1-34, validation.md; prompt words = `research/angles.py`). People only; objects deferred.
+Status: DRAFT 2026-10-25, written from the bench (rounds 1-39, validation.md; prompt words = `research/angles.py`). People only; objects deferred.
 Nothing here is built. Every claim names the round that proved it.
 
 ## What the user gets
@@ -20,14 +20,16 @@ One picture of a person in, the same person seen from another camera position ou
 |---|---|---|---|
 | front | the source | Qwen, 1 edit (r29-30, 4/4) | FLUX.3, 1 edit (r7/r23) |
 | 3/4 front L/R | FLUX.3, 1 edit (r27, r31) | FLUX.3 turn, then Qwen low (r30-31) | FLUX.3 turn, then Qwen high (r32-34) |
-| profile L/R | FLUX.3, 1 edit (stage 2 b6 28/28; r35-36: R 4/4, L photo 6/6, L anime MIRRORED 0/6) | FLUX.3 turn, then Qwen low (r35, 8/8) | FLUX.3 turn, then Qwen high (r35, 8/8) |
-| 3/4 back L/R | FLUX.3, 1 edit (r25, r31) | FLUX.3 turn, then Qwen low (r30-31) | FLUX.3 turn, then Qwen high (r32-35) |
+| profile L/R | FLUX.3, 1 edit (stage 2 b6 28/28; r35-37: R 4/4, L 18/18 - mirror audit 2026-10-25) | FLUX.3 turn, then Qwen low (r35, 8/8) | FLUX.3 turn, then Qwen high (r35, 8/8) |
+| 3/4 back L/R | FLUX.3, 1 edit (L r31 12/12; R needs the one-sided details line, r38-39: photo 4/4, anime 1/4 watch) | FLUX.3 turn, then Qwen low (r30-31) | FLUX.3 turn, then Qwen high (r32-35) |
 | back | FLUX.3, 1 edit (r24-25) | FLUX.3 turn, then Qwen low (r31) | FLUX.3 turn, then Qwen high (r35, 4/4) |
 
-Every cell has now been run (r35, 2026-10-25). OPEN BLOCKER (r36-37): some turns come out as MIRROR IMAGES - the
-right side of the body drawn on the wrong side (the watch / bag check in validation.md). Clear on the anime left
-profile 0/6 (FLUX.3 and Qwen both), seen on approved anime cells too (r27 3/4 front L, r25 3/4 back R 222) and maybe
-one photo cell. Mirroring was never graded before round 36; an audit of every turn cell comes before this spec locks.
+Every cell has now been run (r35, 2026-10-25). MIRROR AUDIT DONE (2026-10-25, 198 cells, validation.md): every
+stop puts her one-sided details (watch on the left wrist, bag on the right hip) on the right side EXCEPT the 3/4 back
+R - bag on the wrong hip 18/20, a few full mirrors. Rounds 36-37's 'anime profile L mirrored' was a misread (18/18
+correct). A Qwen pitch step keeps its input's side exactly, so the 3/4 back R low/high cells carry the turn's error.
+FIX (r38-39): the 3/4 back R end state names each one-sided detail and the frame side it lands on - bag right 8/8,
+photo full pass 4/4; the anime still draws the watch on the near wrist 3/4 (Fabio 2026-10-25: accepted).
 
 Why two edits on a turned + pitched stop: FLUX.3 will not change the height of an already-turned picture (r31-32,
 0/16), and Qwen overshoots or pastes the ref's room when it turns (r29). FLUX.3 owns turns, Qwen owns height changes
@@ -48,6 +50,11 @@ Fabio 2026-10-23: the source may already be angled).
    shoulder is near, where the feet point, how much face shows; for heights, what is large at the top/bottom.
    The 3/4 front turn uses the "almost side-on" overshoot words (r27): the model under-turns, so the words aim past 45.
    Lows add "with her whole head still in frame" (r31: no head crop).
+   ONE-SIDED DETAILS (3/4 back R proven, r38-39): the agent reads the source for anything worn on one side (a watch,
+   a bag, a parting) and names, for the target view, which side is nearest and where each detail lands: "Her right
+   side is the one nearest the view: the brown bag that hangs at her right hip shows at frame-right beside her near
+   right arm ... Her near right wrist is bare: the wristwatch stays on her LEFT wrist, on the far arm." Without it the
+   3/4 back R puts the bag on the wrong hip 18/20 (mirror audit).
 3. REVEAL: name what the new view shows of the PLACE (r15, r25, r30, r33) - without it the place freezes on turns or
    drops on heights. The agent reads the source first and writes it: on a turn, which landmarks swap sides or leave
    the frame; on a low, what is above (sky, power lines, signs / studio ceiling + softbox); on a high, the ground

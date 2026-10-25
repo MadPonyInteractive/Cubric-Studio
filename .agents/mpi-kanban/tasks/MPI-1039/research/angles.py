@@ -3602,9 +3602,57 @@ def blender37(port):
     _sheet(rows, 'mq_blender37_profile_l_anime')
 
 
+# Round 38 (mirror audit 2026-10-25): tqb r is the one stop that puts her one-sided details on the wrong side (bag on
+# the left hip 2/20, some full mirrors); tqb l, same _tqb words, is 12/12. The end state now names the details that
+# side of her shows, the way the Flow's agent would read them off the source. Same sources, refs and seeds as 24/25.
+_TQB_R38 = (' Her right side is the one nearest the view: the brown bag that hangs at her right hip shows at '
+            'frame-right beside her near right arm, its strap running across her back from her left shoulder; her '
+            'left arm with the wristwatch is on the far side, mostly hidden by her body.')
+MQ38_RUNS = {  # cell -> (source, words, keep)
+    'anime': ('street 222', MQ25_VIEWS['tqb r'][1] + _TQB_R38, MQ23_KEEP),
+    'photo': ('body input', MQ7_BODY['tqb r'][1] + _TQB_R38, MQ6_KEEP),
+}
+# Round 39: round 38 put the bag right 8/8 but moved the watch onto the near right wrist 4/8 - the near wrist is now
+# named bare.
+_TQB_R39 = _TQB_R38.replace('; her left arm with the wristwatch is on the far side, mostly hidden by her body.',
+                            '. Her near right wrist is bare: the wristwatch stays on her LEFT wrist, on the far arm, '
+                            'hidden behind her body.')
+MQ39_RUNS = {n: (src, text.replace(_TQB_R38, _TQB_R39), keep) for n, (src, text, keep) in MQ38_RUNS.items()}
+
+
+def blender38(port, rnd=38):
+    runs = MQ39_RUNS if rnd == 39 else MQ38_RUNS
+    done = os.path.join(OUT, f'mq_blender{rnd}.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    r23, r24, r25 = (json.load(open(os.path.join(OUT, f'mq_blender{n}.json'))) for n in (23, 24, 25))
+    srcs = {**json.load(open(os.path.join(OUT, 'pitch.json'))), 'street 222': r23['street 222']}
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+    for name, (srckey, text, keep) in runs.items():
+        size = Image.open(disk(srcs[srckey])).size
+        ref = f'ref {size[0]}x{size[1]} doll/tq_br'
+        if ref not in res:
+            res[ref] = import_ref(port, _pad_ref('doll/tq_br', size), f'angles mq{rnd} {ref}')
+            json.dump(res, open(done, 'w'), indent=1)
+        for seed in MQ10_SEEDS:
+            key = f'{name} {seed} tqb r'
+            if key not in res:
+                res[key] = gen(port, {**FAST, 'ratio': '9:16', 'seed': seed, 'positive': text + keep,
+                                      'cardName': f'angles mq{rnd} {key}',
+                                      'media': [{'role': 'inputImage', 'url': srcs[srckey]},
+                                                {'role': 'inputImage2', 'url': res[ref]}]})
+                json.dump(res, open(done, 'w'), indent=1)
+    old = {'anime': lambda s: r25.get(f'street 222 {s} tqb r'), 'photo': lambda s: r24.get(f'photo {s} tqb r')}
+    rows = [[(None, f'{n} {tag}')] + [(get(s), f'{s}') for s in MQ10_SEEDS]
+            for n in runs for tag, get in (('old', old[n]), ('details', lambda s, n=n: res.get(f'{n} {s} tqb r')))]
+    _sheet(rows, f'mq_blender{rnd}_tqb_r_details')
+
+
 if __name__ == '__main__':
     if sys.argv[1:2] == ['best']:
         best()
+    elif sys.argv[2:3] in (['blender38'], ['blender39']):
+        blender38(int(sys.argv[1]), int(sys.argv[2][-2:]))
     elif sys.argv[2:3] == ['blender37']:
         blender37(int(sys.argv[1]))
     elif sys.argv[2:3] == ['blender36']:

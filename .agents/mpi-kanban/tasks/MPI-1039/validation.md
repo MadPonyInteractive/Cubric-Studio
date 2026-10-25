@@ -722,3 +722,59 @@ user's ratio later; a crop changes the zoom, so the gizmo may need per-ratio-fam
   mirrored (watch frame-right). Rounds 23-35 were graded on 'faces frame-X', never on the one-sided details, so a
   mirrored cell passed. NEXT: grade every turn cell of rounds 24-37 for mirroring (watch + bag) before the spec
   locks; the left-side anime turns look systematically mirrored.
+- 2026-10-25 MIRROR AUDIT, every turn cell of rounds 24-37 (198 cells, anime street 222 + photo woman), full-size
+  images (sheets + crops in the session scratchpad, rebuildable from `out/mq_blender24..37.json`). One-sided details:
+  WATCH on her LEFT wrist, crossbody BAG on her RIGHT hip (strap over the left shoulder). Expected per camera:
+  her left side near (tq fl / pr l / tqb l) -> nose toward frame-left, watch on the near wrist; her right side near
+  (tq fr / pr r / tqb r) -> nose toward frame-right, bag on the near hip; back -> watch frame-left, bag frame-right.
+  P = right side, M = full mirror (watch on the near wrist AND bag on the far hip), B = bag on the wrong hip only,
+  W = watch on the wrong wrist only, ? = no detail visible.
+
+  | Stop | Cells (round: grades) | Result |
+  |---|---|---|
+  | back eye | r24 anime PPPP, photo PPPP; r25 street PPPP; r29/30 Qwen anime ?B ?B, photo PP PP | FLUX.3 12/12; Qwen drops the bag to frame-left 2/4 anime |
+  | back lo / hi | r31 lo anime PP, photo PP; r35 hi anime PP, photo PP | 8/8 |
+  | tq fl (all wordings) | r25 PPPP; r26 65/80 16x P; r27 side anime PPPP, photo PPPP; r28 8x P; r29/30 Qwen 8x P | 44/44 |
+  | tq fl + lo / hi | r30 lo 4x P; r31-34 hi (FLUX.3 + Qwen, reveal, framed) 18x P | 22/22 |
+  | pr l | r35 anime PP, photo PP; r36 anime PPPP, photo PPPP; r37 Qwen PPPP, from tq PP | 18/18 |
+  | pr l + lo / hi | r35 lo anime PP, photo PP; hi anime PP, photo PP | 8/8 |
+  | tqb l (+ lo / hi) | r31 anime PP, photo PP; lo PP PP; r35 hi PP PP | 12/12 |
+  | tq fr (+ lo / hi) | r31 anime P W, photo PP; lo anime P W (inherits), photo PP; r35 hi PPPP | 10/12 (1 watch swap, inherited once) |
+  | pr r (+ lo / hi) | r35 anime PP, photo PP; lo PP PP; hi PP PP | 12/12 |
+  | **tqb r (FLUX.3 turn)** | **r24 anime BBBB; r24 photo M P B B; r25 street M M B B** | **1/12** |
+  | tqb r (Qwen turn) | r29 anime ? B, photo B B; r30 anime ? B, photo ? P | 1/8 |
+  | tqb r + lo / hi | r30 lo anime MM, photo M P; r31-34 hi anime 10x M, photo 111 M x4, 222 P x4 | = its input, every time |
+
+  READ:
+  - CORRECTION to rounds 35-37: the anime profile L is NOT mirrored. Full-size, every anime 'pr l' cell (r35 2/2, r36
+    4/4, r37 6/6) faces frame-LEFT with the watch on the near wrist and sneakers pointing frame-left - a correct left
+    profile. Round 35's "faces frame-right" read (and the correction under it) and round 37's MIRROR FINDING misread
+    the sheet; round 27 anime tq fl is also correct (faces frame-left, watch near). Rounds 36-37 were chasing a
+    problem that is not there.
+  - The ONE broken stop is the REAR 3/4 RIGHT (tqb r): 2/20 across FLUX.3 and Qwen. The body turn is right (faces away
+    toward frame-right), but the bag lands on her LEFT hip (frame-left) on most cells, and 3/12 FLUX.3 cells are full
+    mirrors (the watch on the near right wrist too). Its mirror twin tqb l, same `_tqb` words, is 12/12 - so the
+    words are symmetric and the model leans to one side.
+  - A pitch step (Qwen low/high) never fixes or breaks a side: every lo/hi cell has exactly its turned input's grade.
+    So the split's approved tqb r low/high cells (rounds 30-34, Fabio's eye test) carry the round 24/25 turn's error.
+  - NEXT: a fix round on tqb r only - name the one-sided details in the end state (the bag at her right hip beside the
+    near arm, the watch arm on the far side), 4 seeds x anime + photo, FLUX.3 Turbo.
+- 2026-10-25 ROUNDS 38-39, TQB R WITH THE ONE-SIDED DETAILS NAMED (`angles.py <port> blender38` / `blender39`, sheets
+  `research/sheets/mq_blender38_tqb_r_details.jpg` + `mq_blender39_tqb_r_details.jpg` (old cell row above each new
+  row), results `research/out/mq_blender38.json` / `39.json`). Round 24/25 words + doll tq_br ref, FLUX.3 Turbo,
+  seeds 111-444, plus one end-state sentence: (38) 'Her right side is the one nearest the view: the brown bag that hangs
+  at her right hip shows at frame-right beside her near right arm, its strap running across her back from her left
+  shoulder; her left arm with the wristwatch is on the far side, mostly hidden by her body.' (39) the same, the watch
+  clause replaced by 'Her near right wrist is bare: the wristwatch stays on her LEFT wrist, on the far arm, hidden
+  behind her body.' 8 + 8 edits, ~32 s each (~9 min GPU).
+  GRADES (agent, full-size + wrist crops):
+  - r38: BAG ON THE RIGHT HIP 8/8 (was 2/20), strap from the left shoulder 8/8. But the watch moves onto the near
+    right wrist 5/8 (anime 222/333/444, photo 111/222; anime 111 + photo 333/444 bare). Full pass 3/8 - naming the
+    watch at all pulls it into view.
+  - r39: PHOTO 4/4 full pass (bag near, near wrist bare). ANIME 1/4 (111); 222/333/444 still draw the watch on the
+    near wrist. Turn, street, style and identity held 8/8.
+  - Read: the details line fixes the bag on both styles and the whole stop on the photo. The anime still puts the
+    watch on whichever wrist shows. Flow rule: the agent names each one-sided detail and WHICH side of the frame it
+    lands on for that view (proven for the bag). Open: the anime watch on tqb r - next try (not run): leave the watch
+    out of the words and say only 'her near right hand is empty and bare', or accept it as a small-detail miss.
+  - FABIO 2026-10-25: accept the anime watch miss on tqb r; use the round 39 words (_TQB_R39) for the 3/4 back R stop.
