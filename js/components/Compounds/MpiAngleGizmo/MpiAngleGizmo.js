@@ -58,26 +58,6 @@ export function fitAngle(v, opts) {
 }
 
 /**
- * Why a slider is held where it is, said plainly, or '' when nothing is held.
- * @param {AngleValue} v
- * @param {{ qwen: boolean }} opts
- * @returns {string}
- */
-export function angleNote(v, opts) {
-    const { heights } = multiAngleChoices(v.turn, 'level', opts);
-    const { zooms } = multiAngleChoices(v.turn, v.height, opts);
-    const notes = [];
-    if (heights.length < MULTI_ANGLE_SLIDERS.height.length) {
-        notes.push('Low, and a height on a turned view, need Qwen-Image 2.1. Install it from the Flow Library.');
-    }
-    if (zooms.length === 1) notes.push('Zoom works on the front at eye level, and on the 3/4 back right up to head and shoulders.');
-    else if (zooms.length < MULTI_ANGLE_SLIDERS.zoom.length) {
-        notes.push(`On this view zoom goes only to: ${zooms.slice(1).map(z => MULTI_ANGLE_LABELS.zoom[z].toLowerCase()).join(', ')}.`);
-    }
-    return notes.join(' ');
-}
-
-/**
  * MpiAngleGizmo — the Multi-angle camera picker (MPI-1039), the `angle` field type.
  *
  * A small pre-rendered 3D Cosmo that shows where the camera goes, over three step sliders
@@ -107,7 +87,6 @@ export const MpiAngleGizmo = ComponentFactory.create({
                 </div>
                 <div class="mpi-angle-gizmo__slot" id="angle-gizmo-slot-${r.key}"></div>
             </div>`).join('')}
-            <p class="mpi-angle-gizmo__note" id="angle-gizmo-note" hidden></p>
         </div>`,
 
     setup: (el, props) => {
@@ -115,7 +94,6 @@ export const MpiAngleGizmo = ComponentFactory.create({
         const opts = { qwen: (state.s_installedModelIds || []).includes(QWEN) };
         let _val = fitAngle(normalizeAngle(props.value), opts);
         const previewEl = qs('#angle-gizmo-preview', el);
-        const noteEl = qs('#angle-gizmo-note', el);
         // Warm every preview once, so a fast drag never shows the last stop's Cosmo under this one's name.
         MULTI_ANGLE_TURNS.forEach(t => MULTI_ANGLE_HEIGHTS.forEach((h) => { new Image().src = multiAnglePreview(t, h); }));
 
@@ -135,9 +113,6 @@ export const MpiAngleGizmo = ComponentFactory.create({
                 row.inert = off;
                 _bars[key].el.setValueQuiet(posOf(key));
             });
-            const note = angleNote(_val, opts);
-            noteEl.textContent = note;
-            noteEl.hidden = !note;
         };
 
         const _pick = (key, pos) => {

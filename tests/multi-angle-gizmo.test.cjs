@@ -82,18 +82,14 @@ test('normalizeAngle: untouched = front, eye level, as in the picture; the back 
         { turn: 'front', turnPos: 4, height: 'level', zoom: 'none' });
 });
 
-test('fitAngle + angleNote: a stop the view cannot take falls back and says why', async () => {
-    const { fitAngle, angleNote, normalizeAngle } = await gizmo();
+test('fitAngle: a stop the view cannot take falls back', async () => {
+    const { fitAngle, normalizeAngle } = await gizmo();
     const on = { qwen: true };
     const off = { qwen: false };
     assert.equal(fitAngle(normalizeAngle({ turn: 'pr_l', zoom: 'face' }), on).zoom, 'none');
     assert.equal(fitAngle(normalizeAngle({ turn: 'tq_br', zoom: 'hs' }), on).zoom, 'hs');
     assert.equal(fitAngle(normalizeAngle({ turn: 'front', height: 'lo', zoom: 'face' }), on).zoom, 'none');
     assert.equal(fitAngle(normalizeAngle({ turn: 'tq_fl', height: 'hi' }), off).height, 'level');
-    assert.equal(angleNote(normalizeAngle(null), on), '');
-    assert.match(angleNote(normalizeAngle({ turn: 'pr_l' }), on), /Zoom works on the front/);
-    assert.match(angleNote(normalizeAngle({ turn: 'tq_br' }), on), /only to: head and shoulders/);
-    assert.match(angleNote(normalizeAngle(null), off), /need Qwen-Image 2\.1/);
 });
 
 test('FlowDef: driver, gizmo field and the slots-only op are all registered', async () => {

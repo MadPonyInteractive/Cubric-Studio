@@ -14,22 +14,20 @@
     width: 100%;
 }
 
-/* Fixed-size stage so the column does not jump as previews swap. */
+/* Fixed 16:9 stage, the previews' own shape, so the column does not jump as they swap. */
 .mpi-angle-gizmo__stage {
-    display: flex;
-    align-items: center;
-    justify-content: center;
     width: 100%;
-    height: 132px;
+    aspect-ratio: 16 / 9;
     border: 1px solid var(--line);
     background: var(--surface-canvas);
     overflow: hidden;
 }
 
 .mpi-angle-gizmo__preview {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
     user-select: none;
 }
 
@@ -50,15 +48,4 @@
 
 .mpi-angle-gizmo__slot .mpi-progress {
     min-width: 0;
-}
-
-.mpi-angle-gizmo__note {
-    margin: 0;
-    line-height: 1.4;
-    font-size: var(--t-2xs);
-    color: var(--ink-3);
-}
-
-.mpi-angle-gizmo__note[hidden] {
-    display: none;
 }

@@ -29,4 +29,5 @@ for t in TURNS:
         elif h:
             copy(f'{HERE}/out/doll_plain/{stop}.png', f'{DST}/refs/plain/{stop}.png')
         os.makedirs(f'{DST}/previews', exist_ok=True)
-        Image.open(f'{HERE}/out/cosmo/{stop}.png').save(f'{DST}/previews/{stop}.webp', quality=88, method=6)
+        # The soft, lit 16:9 Cosmo (soft_build.py + soft_render.py, Fabio 2026-10-25), not the flat out/cosmo/ ones.
+        Image.open(f'{HERE}/out/cosmo_soft/{stop}.png').convert('RGB').save(f'{DST}/previews/{stop}.webp', quality=88, method=6)

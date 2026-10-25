@@ -36,6 +36,7 @@ for o in s.objects:
     if o.name in ('floor', 'wall', 'wall_front'):
         o.data.materials.clear()
         o.data.materials.append(room)
+        o.visible_shadow = False  # a key light that lands behind a wall on some turns still reaches Cosmo
         continue
     if not o.name.startswith('Cosmo_'):
         continue
@@ -43,6 +44,8 @@ for o in s.objects:
         # The decal keeps its art, now lit: emission -> Principled fed by the same image, alpha cut-out kept.
         nt = o.active_material.node_tree
         tex = next(n for n in nt.nodes if n.type == 'TEX_IMAGE')
+        # soft_tex.py's copy: outline + pink fill cut out, so the lit plastic shows through.
+        tex.image = bpy.data.images.load(tex.image.filepath.replace('.png', '_soft.png'))
         em = next(n for n in nt.nodes if n.type == 'EMISSION')
         b = nt.nodes.new('ShaderNodeBsdfPrincipled')
         b.inputs['Roughness'].default_value = 0.35
@@ -62,7 +65,7 @@ for o in s.objects:
         p.use_smooth = True
 
 # Lights: key + fill are placed per camera by soft_render.py; the overhead one is fixed.
-for name, energy, size in (('soft_key', 900, 2.5), ('soft_fill', 250, 3.0), ('soft_top', 400, 4.0)):
+for name, energy, size in (('soft_key', 900, 2.5), ('soft_fill', 120, 3.0), ('soft_top', 300, 4.0)):
     light = bpy.data.lights.new(name, 'AREA')
     light.energy, light.size = energy, size
     obj = bpy.data.objects.new(name, light)
@@ -76,14 +79,22 @@ for name, energy, size in (('soft_key', 900, 2.5), ('soft_fill', 250, 3.0), ('so
 
 s.world.use_nodes = True
 s.world.node_tree.nodes['Background'].inputs['Color'].default_value = (0.5, 0.48, 0.46, 1)
-s.world.node_tree.nodes['Background'].inputs['Strength'].default_value = 0.35
+s.world.node_tree.nodes['Background'].inputs['Strength'].default_value = 0.15
+
+# 16:9 to fill the gizmo's stage (Fabio 2026-10-25). The vertical field of view stays what the square frame had, so
+# Cosmo is framed exactly as his doll ref and the room just widens at the sides.
+s.render.resolution_x, s.render.resolution_y = 960, 540
+for c in (o.data for o in s.objects if o.type == 'CAMERA'):
+    c.sensor_fit, c.sensor_height = 'VERTICAL', c.sensor_width
 
 s.render.use_freestyle = False
-s.render.engine = 'CYCLES'
-s.cycles.samples = 96
-s.cycles.use_denoising = True
+# EEVEE (Fabio 2026-10-25): good soft lighting in seconds a frame, so all 24 stops render in a minute.
+s.render.engine = 'BLENDER_EEVEE'
+s.eevee.taa_render_samples = 160
+s.eevee.use_raytracing = True
+s.eevee.use_shadows = True
 s.view_settings.view_transform = 'AgX'
-s.view_settings.look = 'AgX - Base Contrast'
+s.view_settings.look = 'AgX - Punchy'
 s.render.use_compositing = False
 s.render.image_settings.file_format = 'PNG'
 bpy.ops.wm.save_as_mainfile(filepath=OUT + '/cosmo_soft.blend', copy=True)

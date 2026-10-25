@@ -320,6 +320,15 @@ whole file; my import must not ride along). Until then the field renders nothing
 views - see validation.md r41-44/r49: two-step (turn on FLUX.3, zoom on Qwen) WORKS (r42 in/out 8/8 on tq fl + tqb r;
 r44 tq fl face 4/4); only tq fl + tqb r were ever run, so the ladder words exist only for front + tqb r. Proposed r50.
 Cosmo re-render by Fabio: cameras in research/blender/out/cosmo_previews.blend, ship via research/blender/ship_assets.py.
+2026-10-25 (session "Flux 3 on flows 28"): gizmo NOTE REMOVED (angleNote, __note element + CSS, its test asserts; a
+slider the view cannot take just greys). SOFT COSMO PREVIEWS DONE + SHIPPED, Fabio: "looks a lot better": soft_build.py
+now EEVEE (160 samples, raytracing), AgX Punchy, world 0.15, fill 120, decals on soft_tex.py's *_soft.png, room meshes
+cast no shadow (a key behind a wall left tq_br dark), and 16:9 960x540 with sensor_fit VERTICAL = the square frame's
+vertical FOV, so Cosmo is framed as before and the room widens. soft_render.py runs EEVEE on the GPU under
+gpu_lease.py (~1 s a frame; the cpu/gpu switch is gone). Sheet out/cosmo_soft_check.jpg. ship_assets.py reads
+out/cosmo_soft/; the gizmo stage is now aspect-ratio 16/9, image object-fit cover. pr_l and pr_r look alike (Cosmo is
+symmetric; the readout names the side). Live-checked in an isolated app: 188x106 stage, no note. Committed + pushed.
+r50 handed to its own session "MPI-1039 r50 zoom bench on turned views" (owns angles.py + multiAngle.js).
 PHASE 4 BUILT, AWAITING FABIO'S EYE TEST (2026-10-25, session "Flux 3 on flows 27", detail in validation.md):
 FlowDef `multi-angle` (devOnly, driver 'multiAngle' in FLOW_DRIVERS), slots-only op `flowMultiAngle`, step kind
 `angle` = `js/components/Organisms/MpiStepAngle/` (Cosmo preview + Turn/Height/Zoom sliders; Turn = full turn,
