@@ -362,6 +362,12 @@ returns <turn>_far.webp (the 8 shipped in 6f5cc4701; the flag that held it off u
 all 8 exist). Anchors re-checked on the server-room previews: unchanged. Far away only opens with Qwen installed (bench).
 Live-checked every rung + far in an isolated app; npm test green. Fabio's eye test: Eyes must be the prompt's ONE-eye
 close-up (half the face) - now scale 10 on the frame-left eye (450, 196); Face scale 5 on the screen (head top + chin cut). Fabio APPROVED the zoom + far previews 2026-10-25 ("looks okay").
+NEXT (Fabio 2026-10-25, end of "Flux 3 on flows 29"): ROUND 51 APPROVED - bench zoom (in AND out, incl. far) on the
+LOW and HIGH views, which today grey the Zoom slider (multiAngleChoices: rungs only at height 'level'; the plan
+refuses the rest). Same shape as r50 (angles.py, Qwen zoom pass on the accepted turn cell), sheets for Fabio. For what
+passes: widen BENCHED_ZOOM / ZOOM_KEPT to carry height, open those rungs in multiAngleChoices, and render
+<turn>_lo_far / <turn>_hi_far previews (soft_render.py: add the stops - lo/hi camera, lens x 0.5 - then
+ship_assets.py) and have multiAnglePreview pick them by height. Zoom session archived.
 PHASE 4 BUILT, AWAITING FABIO'S EYE TEST (2026-10-25, session "Flux 3 on flows 27", detail in validation.md):
 FlowDef `multi-angle` (devOnly, driver 'multiAngle' in FLOW_DRIVERS), slots-only op `flowMultiAngle`, step kind
 `angle` = `js/components/Organisms/MpiStepAngle/` (Cosmo preview + Turn/Height/Zoom sliders; Turn = full turn,
