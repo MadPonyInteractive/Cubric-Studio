@@ -64,7 +64,7 @@ test('the Turn slider is a full turn with the front in the middle', async () => 
 });
 
 test('every turn x height has its Cosmo preview on disk', async () => {
-    const { multiAnglePreview, MULTI_ANGLE_TURNS, MULTI_ANGLE_HEIGHTS, MULTI_ANGLE_FAR_PREVIEWS } = await prompts();
+    const { multiAnglePreview, MULTI_ANGLE_TURNS, MULTI_ANGLE_HEIGHTS } = await prompts();
     for (const turn of MULTI_ANGLE_TURNS) {
         for (const height of MULTI_ANGLE_HEIGHTS) {
             assert.ok(fs.existsSync(path.join(ROOT, multiAnglePreview(turn, height))), `${turn}/${height}`);
@@ -72,10 +72,8 @@ test('every turn x height has its Cosmo preview on disk', async () => {
         assert.ok(fs.existsSync(path.join(ROOT, multiAnglePreview(turn, 'level', 'far'))), `${turn}/far`);
     }
     assert.equal(multiAnglePreview('front', 'level'), 'assets/flows/multi-angle/previews/front.webp');
-    // Far away is its own wide render once those ship; until then the eye-level one, never a 404.
-    assert.equal(multiAnglePreview('front', 'level', 'far'), MULTI_ANGLE_FAR_PREVIEWS
-        ? 'assets/flows/multi-angle/previews/front_far.webp'
-        : 'assets/flows/multi-angle/previews/front.webp');
+    // Far away is its own wide render.
+    assert.equal(multiAnglePreview('front', 'level', 'far'), 'assets/flows/multi-angle/previews/front_far.webp');
     // A zoom-in rung keeps the view's own preview: the gizmo zooms it with CSS.
     assert.equal(multiAnglePreview('front', 'level', 'face'), 'assets/flows/multi-angle/previews/front.webp');
 });
