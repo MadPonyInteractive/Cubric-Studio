@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1289",
+  "title": "Gallery card rename stays visible in Show-info mode while the mouse is over the card",
+  "description": "In card info mode the hover rule hid the name overlay, and it outranked the renaming rule, so the rename field vanished under the cursor while typing.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-25T20:30:00+00:00",
+  "updated_at": "2026-10-25T20:31:23+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

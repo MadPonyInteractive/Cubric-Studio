@@ -1,0 +1,2 @@
+- [x] Rename field stays visible in Show-info mode with the cursor over the card
+- [x] Hover-to-hide still works for cards that are not renaming
