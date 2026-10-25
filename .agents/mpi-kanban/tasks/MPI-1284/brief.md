@@ -19,3 +19,5 @@
    dep entries (the orphan sweep reads `DEPS`).
 3. Ride-alongs from MPI-1135: MPI-1283 (sections in ref prompts), MPI-1285 (Fast Motion control).
    Phase 2 speed results (sol-attn / Veda / EasyCache) land in MPI-1135 `validation.md`.
+4. Speed (MPI-1135 Phase 2, Fabio 2026-10-25): **sol-attn (core `BlockSparseAttention`) always on**;
+   non-turbo = sol-attn + EasyCache. Veda out. Fast Motion / upscale-tier design: MPI-1285 brief.md.

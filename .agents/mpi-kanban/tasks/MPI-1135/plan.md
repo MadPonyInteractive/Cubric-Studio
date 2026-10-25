@@ -222,6 +222,36 @@ Too slow on the local 4060 Ti. Fabio chose a persistent volume over a fresh Pod 
   with a factor per tier that lands on the target size. Every bench clip so far ran at 1344x768
   (Shot D 896x1088). The shipped 3D upscaler takes target dimensions (`mode: target dimensions`,
   node 419), so the factor is per tier, not fixed at 2. Brainstorm first, no build.
+- 2026-10-25 ("H3 Singularity 7") Fabio: **Phase 2 verdict** in validation.md: Veda out, sol-attn
+  always on (looks better), non-turbo = sol-attn + EasyCache. **Tier design** agreed and written to
+  MPI-1285 `brief.md`: Fast Motion OFF = today's two-pass + sol-attn; ON = single pass for Very
+  Low/Low/Medium (Preview disabled), native 1344x768 stage 1 + upscale stage 2 for High/VH/2K/4K
+  (4K = two hops, refine split by time chunks, never tiles). Pod e8e1vtrxvl5q6g confirmed gone.
+  Fabio then: **Phase 1c = v2 holds up**; 1:1/21:9 base = Medium cell (yes); the time-chunked
+  refine already exists (`MpiWindowedSampler`, docs/models/h3/windowing.md), so no bench for it.
+  Benji's skin LoRA found: **`fal/MiniMax-H3-Realism-People-LoRA`**
+  (`h3-realism-people-t2v-i2v-r2v.safetensors`, 0.13 GB, trigger `r34l1sm`, he ran 0.7), licence =
+  the H3 Community Licence (same terms as H3 itself). Next: the 10 s skin pass (run order row 3),
+  re-scoped as base vs + realism LoRA on v2 + sol-attn; needs Fabio's yes on the price.
+- 2026-10-25 **Phase 1d (Fabio): no 10 s skin pass.** One clip instead: Shot D seed 1135001 (her skin
+  turns oily as she walks up) + fal Realism PEOPLE LoRA 0.7 + trigger, local bench (4060 Ti, 332 s),
+  `step0/build_p1d.py`, sbs `sbs/p1d_D_1135001`. **REJECTED**: it replaces the i2v start frame (acts like
+  ref2v) and the skin is no better (validation.md). Two research sub-agents -> `research/skin-loras.md`
+  (no LoRA proven; candidates; the Singularity card's prompting vs ours: V2 wants an explicit style word,
+  and our "no cartoon or overly-CG rendering" constraint puts "CG" in every prompt).
+- 2026-10-25 Fabio's framing (do not re-raise): upscaling above ~1 MP loses skin detail on EVERY model
+  (that is why the tiled LTX 2.5 upscale workflow is already scheduled), and turbo always adds plastic
+  skin: a known trade-off, not a bug to chase. **The lever under test is a LoRA**, plus prompt wording.
+- **NEXT (handoff 2026-10-25, Fabio approved running them on a Pod; state the price and clip count
+  before `create-pod.mjs`, the budget's $5 top is ~$1 away):** Shot D seed 1135001, v2, turbo ON, no
+  upscale, the p1c graph with ONE change each:
+  1. `fal/MiniMax-H3-Realism-LoRA` (the "official" one, predecessor of People; the research agent got
+     401 on its page, so check access first) at 0.7 + its trigger. Download it to the bench volume / Pod.
+  2. Style keyword: "Photorealistic, natural lighting, realistic skin texture" in the look line.
+  3. Same as 2 with "no cartoon or overly-CG rendering" removed from the constraint line.
+  (Turbo-off is dropped: Fabio already knows turbo costs skin.) Then side-by-sides vs `p1c_s2_none_D_1135001`.
+  **Cinematic V2** (TuTu_1018, civarchive 2890588, 148 MB): Fabio has DOWNLOADED it; it runs on HIS GPU
+  (local bench :8188) later, never uploaded to a Pod. Ask him for the file path.
 - Spent: ~$0.95 before Pod 2; Pod 2 at $0.72/h on top.
 - Spent: ~$0.63 of the $3-5 Pod budget (GPU 47 min + the first Pod $0.06 + CPU fill $0.01).
 - Watching boot: `watch.mjs` (RunPod log API) printed nothing in 30 min; poll

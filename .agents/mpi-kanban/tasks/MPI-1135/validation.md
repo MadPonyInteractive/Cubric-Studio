@@ -93,3 +93,25 @@ skip lines (this run's ComfyUI output never reached `boot.log`).
 
 Side-by-sides `sbs/p1b_B_<seed>{,_detail}` (v1.3 | v2), 4/4 ok, same speed (v2 128/86 s, v1.3
 123/86 s). **Verdict (Fabio): v2 wins.** Phase 2 speed arms run on v2 only. MPI-1284 ships v2.
+
+## Phase 2: speed arms on v2, Shot B, no upscale (2026-10-25, Fabio)
+
+Side-by-sides `sbs/p2{turbo,full,fullec}_B_<seed>{,_detail}`, 18/18 ok. Warm (seed 2) times: turbo
+base 85 s / sol 72 / Veda 71; non-turbo base 246 / EC 212 / sol 190 / sol+EC 173 / Veda 201 / Veda+EC 181.
+
+**Verdict (Fabio):**
+1. **Veda is out** ("absolute shit"), and it needed Triton anyway.
+2. **sol-attn (core `BlockSparseAttention`) looks BETTER than without it**, not only faster: always on.
+3. Non-turbo ships **sol-attn + EasyCache** (-30%); turbo ships sol-attn (-15%).
+
+## Phase 1c: v2 on i2v (Shot D) and ref2v (Shot Cs)
+
+Side-by-sides `sbs/p1c_{D,Cs}_<seed>` (ours | v1.3 | v2). **Verdict (Fabio): v2 holds up** on i2v and ref2v. MPI-1284 ships v2 for every op.
+
+## Phase 1d: realism-people LoRA on the plastic-skin clip (2026-10-25, Fabio)
+
+Shot D seed 1135001 (her skin turns oily/plastic as she walks up to the camera), v2, no upscale: the
+p1c clip vs the SAME graph + `fal/MiniMax-H3-Realism-People-LoRA` at 0.7 (Input_Lora_1) + trigger
+`r34l1sm , ultra realistic video.` (`step0/build_p1d.py`). Ran on the LOCAL bench (RTX 4060 Ti, 332 s,
+VRAM 15.0 GB). Side-by-side `sbs/p1d_D_1135001` (v2 | v2 + LoRA; true pixels already, no `_detail`).
+**Verdict (Fabio): REJECTED.** The LoRA turns image-to-video into reference-to-video: the first frame is NOT the start image (new background, sea, gulls), and the skin is no better. Next: online research for other skin-fix LoRAs (two sub-agents).

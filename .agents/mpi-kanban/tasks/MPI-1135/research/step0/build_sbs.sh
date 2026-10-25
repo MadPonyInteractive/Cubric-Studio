@@ -9,6 +9,7 @@
 #          p1prompt_<model>: Shot C | looks stripped (Cb) | Cb + MiniMax sections (Cs), ours arm
 #   p1b:   Singularity v1.3 | v2, no upscale, Shot B (only when asked by name)
 #   p1c:   ours | v1.3 | v2 on Shot D (i2v, no upscale) and Shot Cs (ref2v, sections, ours route)
+#   p1d:   v2 | v2 + realism-people LoRA 0.7 (+ trigger), Shot D seed 1 (local bench)
 #   p2:    speed arms on v2, Shot B: turbo | sol | Veda; 25 steps | EC | sol | Veda; EC | sol+EC | Veda+EC
 # Usage: build_sbs.sh [<clipdir>] [step0|b485|p1|p1b|p2]   -> <clipdir>/sbs/<set>_<shot>_<seed>{,_detail}.mp4
 set -euo pipefail
@@ -88,6 +89,9 @@ for seed in 1135001 1135002; do
       "p1c_s2_none_D_${seed}" "Sing v2"
     sbs "p1c_Cs_${seed}" "p1_ours_ours_Cs_${seed}" "ours H3 ref2va" "p1_sing_ours_Cs_${seed}" "Sing v1.3" \
       "p1c_s2_ours_Cs_${seed}" "Sing v2"
+  fi
+  if [[ $want == p1d ]]; then
+    sbs "p1d_D_${seed}" "p1c_s2_none_D_${seed}" "Sing v2" "p1d_s2_real07_D_${seed}" "v2 + realism LoRA 0.7"
   fi
   if [[ $want == p2 ]]; then
     sbs "p2turbo_B_${seed}" "p2_t_base_B_${seed}" "turbo" "p2_t_sol_B_${seed}" "turbo sol-attn" \

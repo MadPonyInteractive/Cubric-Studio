@@ -86,3 +86,4 @@ Clips live outside git (`C:/AI/Mpi/_private/mpi1135-clips/`).
 | p1c_s2_none_D_1135002 | ok | 88 | 25.9 | 30.2 | 2.7 |  |
 | p1c_s2_ours_Cs_1135001 | ok | 124 | 27.0 | 52.0 | 4.0 |  |
 | p1c_s2_ours_Cs_1135002 | ok | 94 | 23.9 | 31.0 | 4.0 |  |
+| p1d_s2_real07_D_1135001 | ok | 332 | 15.0 | 44.3 | 2.5 |  |
