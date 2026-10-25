@@ -3648,9 +3648,53 @@ def blender38(port, rnd=38):
     _sheet(rows, f'mq_blender{rnd}_tqb_r_details')
 
 
+# Round 40: the tqb r low/high cells (rounds 30/34) inherit the old turn's wrong-side bag. Re-run them on the round 39
+# turns: round 31's low words, round 33/34's high words + framing line, Qwen, plain twin refs, seeds 111/222.
+def blender40(port):
+    done = os.path.join(OUT, 'mq_blender40.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    old = {n: json.load(open(os.path.join(OUT, f'mq_blender{n}.json'))) for n in (24, 25, 30, 31, 32, 34, 39)}
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+
+    def ref(render, size):
+        k = f'ref {size[0]}x{size[1]} {render}'
+        if k not in res:
+            res[k] = next((r[k] for r in old.values() if k in r), None) or \
+                import_ref(port, _pad_ref(render, size), f'angles mq40 {k}')
+            json.dump(res, open(done, 'w'), indent=1)
+        return res[k]
+
+    side = 'rear three-quarter'
+    words = {'lo': lambda name: _lo31(*MQ30_PLACE[name], side, 'the back of her head'),
+             'hi': lambda name: (_hi33(side, 'tqb r') if name == 'anime' else _hi31(side, MQ31_GROUND[name])) + FRAME34}
+    for name, (_, keep, _) in MQ29_RUNS.items():
+        for seed in (111, 222):
+            src = old[39][f'{name} {seed} tqb r']
+            for h in ('lo', 'hi'):
+                key = f'{name} {seed} tqb r {h}'
+                if key not in res:
+                    res[key] = gen(port, {**QWEN29, 'seed': seed, 'positive': words[h](name) + keep,
+                                          'cardName': f'angles mq40 {key}',
+                                          'media': [{'role': 'inputImage', 'url': src}, {'role': 'inputImage2',
+                                                    'url': ref(f'doll_plain/tq_br_{h}', Image.open(disk(src)).size)}]})
+                    json.dump(res, open(done, 'w'), indent=1)
+    turn = {'anime': lambda s: old[25].get(f'street 222 {s} tqb r'), 'photo': lambda s: old[24].get(f'photo {s} tqb r')}
+    rows = []
+    for name in MQ29_RUNS:
+        for s in (111, 222):
+            rows.append([(None, f'{name} {s} old')] + [(turn[name](s), 'r24/25 turn'),
+                        (old[30].get(f'{name} {s} tqb r lo'), 'r30 low'), (old[34].get(f'{name} {s} tqb r hi framed'), 'r34 high')])
+            rows.append([(None, f'{name} {s} new')] + [(old[39].get(f'{name} {s} tqb r'), 'r39 turn'),
+                        (res.get(f'{name} {s} tqb r lo'), 'Qwen low'), (res.get(f'{name} {s} tqb r hi'), 'Qwen high')])
+    _sheet(rows, 'mq_blender40_tqb_r_pitch')
+
+
 if __name__ == '__main__':
     if sys.argv[1:2] == ['best']:
         best()
+    elif sys.argv[2:3] == ['blender40']:
+        blender40(int(sys.argv[1]))
     elif sys.argv[2:3] in (['blender38'], ['blender39']):
         blender38(int(sys.argv[1]), int(sys.argv[2][-2:]))
     elif sys.argv[2:3] == ['blender37']:

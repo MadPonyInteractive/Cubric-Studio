@@ -284,6 +284,32 @@ People tests still open (agent's list, from validation.md rounds 5-7, 12, 15-16)
      studio ceiling / softbox) to the full-body studio low views.
   Then Fabio's eye test; Qwen-Image 2.1 re-run (NSFW) stays queued after.
 FABIO 2026-10-24 (afternoon, after rounds 19-22: "making progress, well done"): concern - every test source is PHOTOGRAPHIC; the recipe's words (real person, studio, softbox) may push a 2D source toward realism. NEXT ROUND = a flat 2D test, kept SHORT: convert the man or the woman to flat anime with Krea2 (Fabio: "Create2", its anime style, via edit / i2i), then run the people recipe on that one source (few key views, few seeds). Keep clause must say the drawing style stays (not "real person"). Then the 3/4 front-turn overshoot ref, Qwen-Image 2.1 re-run.
+ZOOM PHASE NEXT (Fabio 2026-10-25). Zoom fell out of the spec unasked (r19/r21 proved zoom IN WORDS on people, then
+the bench moved on); Fabio puts it back:
+- Zoom = WORDS, never a zoomed doll ref (what r21 proved). Zoom is its OWN PASS (generation): touched slider = a
+  pass, untouched = no pass - rotation the same way (no turn touched = no turn pass). So a run is 1-3 passes.
+  Watch-out the bench must measure: every chained edit costs likeness (stage 2 b6) - a 3-pass run (turn, height,
+  zoom) is new ground; grade likeness on it.
+- DECIDED (Fabio 2026-10-25): SWITCHES that bypass rotation / zoom (only rotate, only zoom, or both) - NOT
+  auto-detecting the input's view ("we'd run into problems identifying the correct rotation").
+- UI: "Cosmo should do a full rotation" (Fabio's words) - agent reading: the gizmo's Cosmo turns all the way round
+  (360, every turn stop), which may also settle the identical profile L/R previews (the turn shows the facing).
+  Confirm the reading with Fabio before building the gizmo; the profile preview fix waits on it.
+- Zoom bench plan: zoom IN and OUT as a separate FLUX.3 pass (and Qwen if FLUX.3 fails) on: the source front, a
+  turned result (r39 tqb r / r27 tq fl), a pitched result (r40 / r34), anime + photo, seeds 111/222 - ~24 edits,
+  state the count + GPU minutes to Fabio first. Words start from r21's (relative to the source + name the crop /
+  what newly shows) - read them in angles.py blender21 + validation.md round 21.
+FLOW BUILD PHASE 1 DONE (2026-10-25; Fabio chose the DRIVER route): every doll ref the grid needs already existed
+(23: room = FLUX.3 steps, plain = Qwen steps); Cosmo previews rendered for all 24 stops (`blender/cosmo_cams.py`:
+cosmo.blend + doll_plain.blend's cameras + a new front_eye = back_eye turned round; sheet
+`research/sheets/cosmo_previews.jpg`). Shipped by `blender/ship_assets.py` to `assets/flows/multi-angle/`
+{refs/room, refs/plain, previews} named by stop `<turn>[_lo|_hi]` (2.5 MB, packaged: electron-builder ships **/*).
+OPEN (Fabio's eye test): profile L and R previews are IDENTICAL - flat face decal, nothing shows which way Cosmo
+faces side-on. NEXT: Fabio's verdict on the previews (+ a profile fix if he wants one), then phase 2 (prompt builder).
+SPEC APPROVED (Fabio 2026-10-25): build it; show only benched cells, grey out the rest (= overhead on turned stops;
+low/high cells need Qwen, so they also grey out when the optional Qwen is not installed). BUILD PLAN in § Flow build
+below; awaiting Fabio's pick on the route + the gizmo look before code.
+ROUND 40 DONE (2026-10-25, validation.md; flow-spec.md updated): the 3/4 back R low + high re-run on Qwen from the round 39 turns (angles.py blender40, sheet mq_blender40_tqb_r_pitch) - bag right 8/8, real low/high 8/8, near wrist bare 6/8 (the 2 misses = anime 222, inherited from its accepted turn). Every cell of the grid now passes the watch/bag check. GPU ~8 min (8 Qwen edits). NEXT: Fabio approves or changes flow-spec.md (incl. his two open questions at its end) -> /mpi-add-flow.
 MIRROR AUDIT + ROUNDS 38-39 DONE (2026-10-25, validation.md; flow-spec.md updated): all 198 turn cells of rounds 24-37 graded on the watch (left wrist) / bag (right hip). Every stop is right EXCEPT the 3/4 back R (bag on the wrong hip 18/20, some full mirrors); its Qwen low/high cells inherit the error. The 'anime profile L mirrored' finding of rounds 35-37 was a MISREAD - 18/18 correct. Fix: a one-sided-details line in the 3/4 back R end state (r38-39) - bag right 8/8, photo full pass 4/4, anime still puts the watch on the near wrist 3/4. GPU spent ~9 min (16 FLUX.3 edits). FABIO 2026-10-25: ACCEPT the anime watch miss (small-detail), no more watch rounds. NEXT: re-run the 3/4 back R low/high on the fixed turn; then Fabio approves flow-spec.md -> /mpi-add-flow. Driver: angles.py blender38/blender39 (shared function, rnd arg).
 ROUNDS 35-37 DONE (2026-10-25, validation.md): Fabio wants EVERY cell benched before approving the spec. Round 35 ran them all (new doll cams pr_l/pr_r + lo/hi twins + back/tq_fr/tq_bl hi via plain_build.py): every Qwen low/high on a turned stop works (28/28); profile R 4/4. BUT the anime profile L is a MIRROR image 0/6 (rounds 35-37: FLUX.3 words, stage-2 clauses, Qwen, FLUX.3 from tq fl - all draw her left side facing frame-right; watch-on-left-wrist / bag-on-right-hip check). The same check flags approved anime cells (r27 tq fl, r25 tqb r 222) and maybe photo r24 tqb r 111. NEXT: Fabio's call on the mirror finding; then a mirror audit of every turn cell (rounds 24-37) with the watch/bag check; then a fix round for the mirrored stops; flow-spec.md stays DRAFT until then.
 ROUND 34 DONE + SPEC DRAFTED (2026-10-25): Qwen high on a turn + the framing line 'she still fills most of the frame height' keeps her size 8/8, high holds 7/8 (photo 111 tq fl milder), street 4/4 - keep it (validation.md, Fabio's eye test on mq_blender34_high_framing pending). NSFW round SKIPPED (Fabio's 2026-10-25 note below). The proven recipe is written up as `flow-spec.md` (stops, per-stop model routing table, prompt template, refs, safety, gaps). NEXT: Fabio approves or changes flow-spec.md, incl. whether untested cells (profile + low/high, back + high) are offered; then /mpi-add-flow.
@@ -317,10 +343,36 @@ floor; only a FLOATING object (some product shots) has an underside to show. Flo
 "resting or floating" off the source and picks the low ref + wording. Caveat for round 19: front_lo sits at z 0.15,
 BELOW the plinth top (0.6), so the house ref shows the plinth's face, not a camera skimming the surface top.
 
+## Flow build (2026-10-25, /mpi-add-flow Step 0 done; playbook docs/playbooks/add-flow/)
+Shape: model Flow, `requiredModels` = flux3-klein (turns, front high) + qwen-image-2-1 OPTIONAL (front low, every
+low/high on a turned stop - non-commercial, as Character Sheet Editor). Input = ONE image slot (the person) + the
+TURN/HEIGHT gizmo; output `mediaType: 'image'` (one card per stop; "All angles" = a stack). Agent role: Cosmo OPENS
+it for the user (`agentOpens`) - the stop is a visual pick; `does` = "See the person in a picture from another camera
+angle - turned round, from low down or from above - in the same place and style."
+Route (agent pick - DRIVER Flow, the Storyboard shape, js/shell/storyboardDispatch.js): each edit is an ORDINARY
+flux3-klein / qwen-image-2-1 `edit` generation with the doll ref as image 2 - exactly what the bench ran over the
+connector (rounds 24-40), so no new ComfyUI graph and no new op graph. Alternative = a legs Flow with two new graphs
+(Character Sheet Editor shape): more machinery, must re-prove the recipe inside new graphs.
+Phases:
+1. Refs: render the doll for every benched cell (8 turns x level/low/high, room + plain sets) at the gizmo cameras;
+   ship them as app assets (Cosmo previews from the same cameras - only 4 rendered so far). Pad to the source size in
+   the app (r20 rule) - sharp, not a graph.
+2. Prompt builder `js/data/flowPrompts/multiAngle.js`: the angles.py words per stop (MOVE + END + REVEAL + KEEP +
+   one-sided details + framing), GENERIC (read docs/agent/models/flux-3*.md + qwen guide first). Source facts the
+   words need come from `describe` entries: photo vs drawing, the place + its landmarks left/right, one-sided details
+   (watch/bag side). Unit tests pin each stop's text.
+3. Driver: stop -> 1 or 2 queued edits (turn on FLUX.3, then pitch on Qwen); leg 2 takes leg 1's card; each edit its
+   own queue row (Fabio's slider rule). Child-safety gate in front of every Qwen step.
+4. FlowDef + slots-only op (4 files), gizmo: TURN x HEIGHT step sliders with the Cosmo preview per stop, unbenched
+   cells greyed (overhead on turned stops; Qwen cells when Qwen is missing). New Primitive + field type if no field
+   type fits (playbook fields.md) - LOOK-AND-FEEL = Fabio's eye test.
+5. Agent knowledge (07), tests, `/mpi-flow-graphics` tile + hero, UNRELEASED.md roster + entry, live run on own app.
+
 ## Remaining Work
 - [ ] Stage 1 (face, 9 runs) + Fabio's eye test
 - [ ] Stage 2 full body, stage 3 rooms
-- [ ] Decide: Flow or not - spec drafted in `flow-spec.md` (2026-10-25), waiting on Fabio's approval
+- [x] Decide: Flow or not - spec APPROVED 2026-10-25
+- [ ] Flow build phases 1-5 above (Fabio's go on the route first)
 
 ## Completed
 

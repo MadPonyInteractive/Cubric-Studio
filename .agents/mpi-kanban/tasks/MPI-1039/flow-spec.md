@@ -1,6 +1,6 @@
 # Multi-angle Flow - spec draft (for Fabio's approval)
 
-Status: DRAFT 2026-10-25, written from the bench (rounds 1-39, validation.md; prompt words = `research/angles.py`). People only; objects deferred.
+Status: DRAFT 2026-10-25, written from the bench (rounds 1-40, validation.md; prompt words = `research/angles.py`). People only; objects deferred.
 Nothing here is built. Every claim names the round that proved it.
 
 ## What the user gets
@@ -21,7 +21,7 @@ One picture of a person in, the same person seen from another camera position ou
 | front | the source | Qwen, 1 edit (r29-30, 4/4) | FLUX.3, 1 edit (r7/r23) |
 | 3/4 front L/R | FLUX.3, 1 edit (r27, r31) | FLUX.3 turn, then Qwen low (r30-31) | FLUX.3 turn, then Qwen high (r32-34) |
 | profile L/R | FLUX.3, 1 edit (stage 2 b6 28/28; r35-37: R 4/4, L 18/18 - mirror audit 2026-10-25) | FLUX.3 turn, then Qwen low (r35, 8/8) | FLUX.3 turn, then Qwen high (r35, 8/8) |
-| 3/4 back L/R | FLUX.3, 1 edit (L r31 12/12; R needs the one-sided details line, r38-39: photo 4/4, anime 1/4 watch) | FLUX.3 turn, then Qwen low (r30-31) | FLUX.3 turn, then Qwen high (r32-35) |
+| 3/4 back L/R | FLUX.3, 1 edit (L r31 12/12; R needs the one-sided details line, r38-39: photo 4/4, anime 1/4 watch) | FLUX.3 turn, then Qwen low (L r31; R r40 on the fixed turn, bag 4/4) | FLUX.3 turn, then Qwen high (L r35; R r40 on the fixed turn, bag 4/4) |
 | back | FLUX.3, 1 edit (r24-25) | FLUX.3 turn, then Qwen low (r31) | FLUX.3 turn, then Qwen high (r35, 4/4) |
 
 Every cell has now been run (r35, 2026-10-25). MIRROR AUDIT DONE (2026-10-25, 198 cells, validation.md): every
@@ -29,7 +29,9 @@ stop puts her one-sided details (watch on the left wrist, bag on the right hip) 
 R - bag on the wrong hip 18/20, a few full mirrors. Rounds 36-37's 'anime profile L mirrored' was a misread (18/18
 correct). A Qwen pitch step keeps its input's side exactly, so the 3/4 back R low/high cells carry the turn's error.
 FIX (r38-39): the 3/4 back R end state names each one-sided detail and the frame side it lands on - bag right 8/8,
-photo full pass 4/4; the anime still draws the watch on the near wrist 3/4 (Fabio 2026-10-25: accepted).
+photo full pass 4/4; the anime still draws the watch on the near wrist 3/4 (Fabio 2026-10-25: accepted). Its low and
+high, re-run on the fixed turn (r40): bag right 8/8, real low/high 8/8; the only misses are two anime watch cells
+inherited from their turn. The pitch step needs no details line - fix the turn and the low/high follow.
 
 Why two edits on a turned + pitched stop: FLUX.3 will not change the height of an already-turned picture (r31-32,
 0/16), and Qwen overshoots or pastes the ref's room when it turns (r29). FLUX.3 owns turns, Qwen owns height changes
@@ -86,6 +88,11 @@ Qwen step runs behind the child-safety gate like any other edit. No NSFW round r
 - Profile turns on the anime street: the street keeps running away behind her instead of across the frame (r35).
 - Every chained edit costs a little likeness (stage 2 b6) - two edits is the maximum per stop.
 
-## Decision asked of Fabio
+## DECISION (Fabio 2026-10-25): APPROVED
+Build it with this routing and these stops. Show only the benched cells; grey out the rest. Every turn x
+low/level/high cell is benched (r35-40), so what greys out is the unbenched heights: overhead on any turned stop.
+Next: /mpi-add-flow.
+
+## Decision asked of Fabio (answered above)
 Build it as a Flow with this routing and these stops? And: show only the benched cells (greyed-out others), or
 offer every cell and accept the untested ones as best effort?

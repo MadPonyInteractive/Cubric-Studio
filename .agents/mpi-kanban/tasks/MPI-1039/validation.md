@@ -778,3 +778,16 @@ user's ratio later; a crop changes the zoom, so the gizmo may need per-ratio-fam
     lands on for that view (proven for the bag). Open: the anime watch on tqb r - next try (not run): leave the watch
     out of the words and say only 'her near right hand is empty and bare', or accept it as a small-detail miss.
   - FABIO 2026-10-25: accept the anime watch miss on tqb r; use the round 39 words (_TQB_R39) for the 3/4 back R stop.
+- 2026-10-25 ROUND 40, TQB R LOW + HIGH ON THE FIXED TURN (`angles.py <port> blender40`, sheet
+  `research/sheets/mq_blender40_tqb_r_pitch.jpg` (old r24/25 turn + r30 low + r34 high row above each new row),
+  results `research/out/mq_blender40.json`). Inputs = the round 39 tqb r turns, seeds 111/222, anime + photo. Qwen
+  (QWEN29), plain twin refs doll_plain/tq_br_lo + tq_br_hi; low = round 31's words (`_lo31`, MQ30_PLACE), high =
+  round 33's reveal words (anime) / round 31's (photo) + round 34's framing line. 8 edits, ~58 s each (~8 min GPU).
+  GRADES (agent, full-size):
+  - BAG ON THE RIGHT HIP 8/8 (the old r30/r34 cells: 1/8), strap from the left shoulder 8/8.
+  - Near wrist bare 6/8: anime 222 lo + hi draw the watch on the near right wrist - its round 39 turn already did
+    (the miss Fabio accepted). Again a pitch step keeps its input's side exactly.
+  - Real low 4/4 (sky + power lines / softbox ceiling), real high 4/4 (anime street from above kept 2/2, photo 111
+    high the mildest), size held (framing line), style + identity 8/8.
+  - Read: the 3/4 back R low/high cells are fixed by fixing the turn - the pitch step needs no new words.
+- 2026-10-25 FLOW BUILD PHASE 1 (refs + previews): the 23 doll refs the approved grid uses already existed (out/doll = FLUX.3 steps, out/doll_plain = Qwen steps); 24 Cosmo previews rendered (blender/cosmo_cams.py, EEVEE + Freestyle, GPU lease, 24/24 rendered, no errors). Agent read of research/sheets/cosmo_previews.jpg: every 3/4 view turns the right way (tq fl screen frame-left, ear frame-right; tq bl / tq br ear on the near side), lows look up, highs look down. FAIL: pr l and pr r are identical (the face is a flat decal, so side-on nothing shows the facing). Copied to assets/flows/multi-angle/ by blender/ship_assets.py (47 files, 2.5 MB; refs byte-identical to the bench's).
