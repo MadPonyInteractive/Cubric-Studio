@@ -1,5 +1,5 @@
 # Flow build phase 1: copies the Multi-angle Flow's per-stop files into the app (assets/flows/multi-angle/), named by
-# stop = <turn>[_lo|_hi] (turn: front, tq_fl, tq_fr, pr_l, pr_r, tq_bl, tq_br, back).
+# stop = <turn>[_lo|_hi|_far] (turn: front, tq_fl, tq_fr, pr_l, pr_r, tq_bl, tq_br, back).
 # refs/room/  = the doll in its room, image 2 of a FLUX.3 step (turns + the front high)
 # refs/plain/ = the doll on white, image 2 of a Qwen step (front low + every low/high on a turned stop) - round 30
 # previews/   = the gizmo's Cosmo per stop (cosmo_cams.py), webp with alpha
@@ -20,14 +20,17 @@ def copy(src, dst):
 
 
 for t in TURNS:
-    for h in ('', '_lo', '_hi'):
+    for h in ('', '_lo', '_hi', '_far'):
         stop = t + h
-        if t != 'front' and h == '':
+        if h == '_far':
+            pass  # a gizmo preview only (Far away is a zoom stop, not a ref camera)
+        elif t != 'front' and h == '':
             copy(f'{HERE}/out/doll/{CAM.get(t, t)}.png', f'{DST}/refs/room/{stop}.png')
         elif stop == 'front_hi':
             copy(f'{HERE}/out/doll/front_hi.png', f'{DST}/refs/room/{stop}.png')
         elif h:
             copy(f'{HERE}/out/doll_plain/{stop}.png', f'{DST}/refs/plain/{stop}.png')
         os.makedirs(f'{DST}/previews', exist_ok=True)
-        # The soft, lit 16:9 Cosmo (soft_build.py + soft_render.py, Fabio 2026-10-25), not the flat out/cosmo/ ones.
-        Image.open(f'{HERE}/out/cosmo_soft/{stop}.png').convert('RGB').save(f'{DST}/previews/{stop}.webp', quality=88, method=6)
+        # The lit 16:9 Cosmo in the sci-fi server room (scifi_build.py + soft_render.py, Fabio 2026-10-25), 24 stops
+        # plus the 8 wide <turn>_far views.
+        Image.open(f'{HERE}/out/cosmo_scifi/{stop}.png').convert('RGB').save(f'{DST}/previews/{stop}.webp', quality=88, method=6)

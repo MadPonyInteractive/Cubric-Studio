@@ -347,6 +347,14 @@ the gizmo; round 51 only on his GPU yes) while the main session does the NEW 3D 
 Cosmo previews + the 8 far views). The renders session owns research/blender/* + assets/flows/multi-angle/previews/;
 the zoom session owns MpiAngleGizmo/* + multiAngle.js + tests/multi-angle-*.test.cjs. multiAnglePreview's far
 branch sits in multiAngle.js: the zoom session writes it, the renders session only ships <turn>_far.webp.
+2026-10-25 (session "Flux 3 on flows 29"): zoom work handed to session "MPI-1039 gizmo zoom preview". Fabio tried a
+grass + brick edit, then asked for a SCI-FI SERVER ROOM instead: research/blender/scifi_build.py (cosmo_soft.blend ->
+out/cosmo_scifi.blend: dark racks with rose/frost/green LEDs, tiled glossy floor, rose glow lines, ceiling strips; key
++ fill light-linked to EXCLUDE the room, else they pool on the floor). soft_render.py now writes out/<blend name>/ and
+renders 8 `<turn>_far` stops (eye camera, lens x 0.5). All 32 rendered (sheet out/cosmo_scifi_check.jpg), FABIO
+PASSED THE LOOK, SHIPPED: ship_assets.py reads out/cosmo_scifi/ and writes previews/<stop>.webp for 24 + 8 _far.
+Zoom session told the far files are in. Rebuild: blender -b out/cosmo_soft.blend --python scifi_build.py, then
+soft_render.py on out/cosmo_scifi.blend under gpu_lease.py, then python ship_assets.py.
 2026-10-25 (zoom session): GIZMO ZOOM BUILT, awaiting Fabio's eye test. Zoom-in rungs = `.mpi-angle-gizmo__preview--<rung>`
 (scale 5/3/2.3/2/1.6 + translateY onto eyes 196 / face 205 / hs 228 / waist 250 / body 280 of 540; pink bbox identical on
 all 8 turns: head 133-144, feet 414-428, x ~480; 280 ms transform transition). Far: multiAnglePreview(turn, height, zoom)
