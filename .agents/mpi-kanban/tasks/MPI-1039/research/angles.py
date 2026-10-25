@@ -4187,9 +4187,70 @@ def blender49(port):
     _sheet(rows, 'mq_blender49_rear_zoom_in')
 
 
+# Round 50 (Fabio 2026-10-25: open zoom on every view). The two-step zoom (FLUX.3 turn, then the zoom pass on Qwen)
+# only ran on tq fl and tqb r (rounds 42-44, 49). The ladder's in rung (hs, round 43 words; the rear form of round 49
+# on the rear views) and out rung (far, round 49 words; one pass from a whole body) on the 6 other turns, Qwen on each
+# accepted FLUX.3 turn cell, the view kept named per turn. Anime + photo, seeds 111/222, 48 edits.
+MQ50_KEPT = {  # view -> the view the zoom pass keeps
+    'tq fl': MQ41_VIEWS['tq fl'][0],
+    'tq fr': 'the view still looks at her from her right side at eye level, almost side-on, the same view as in the '
+             'first image',
+    'pr l': 'the view still looks at her exactly side-on from her left at eye level, in full profile, the same view '
+            'as in the first image',
+    'pr r': 'the view still looks at her exactly side-on from her right at eye level, in full profile, the same view '
+            'as in the first image',
+    'tqb l': 'the view still looks at her from behind her left shoulder at eye level, the same rear three-quarter '
+             'view as in the first image',
+    'back': 'the view still looks at her from directly behind at eye level, the same back view as in the first image',
+}
+MQ50_TURNS = {'tq fl': (27, 'tq fl side'), 'tq fr': (31, 'tq fr'), 'pr l': (35, 'pr l'), 'pr r': (35, 'pr r'),
+              'tqb l': (31, 'tqb l'), 'back': (24, 'back eye')}  # view -> the accepted turn cell (round, key)
+
+
+def _zoom50(rung, view, style):
+    kept = MQ50_KEPT[view]
+    if rung == 'far':
+        return ('Zoom out from the first image, keeping exactly the same viewing angle, height and perspective: '
+                f'{kept}. ' + MQ49_FAR.format(far=MQ41_PLACE[style][1]) + MQ46_KEEP[style])
+    if view in ('tqb l', 'back'):
+        return (f'Zoom in on the first image, keeping exactly the same viewing angle and perspective: {kept}. The view '
+                'is now a head-and-shoulders close-up from behind: the back of her head, her neck and the top of her '
+                'shoulders fill the frame, cropped just below the shoulders, with her whole head in frame; only a '
+                f'little of {MQ41_PLACE[style][0]} shows around her.' + MQ43_KEEP[style])
+    return (f'Zoom in on the first image, keeping exactly the same viewing angle and perspective: {kept}. ' +
+            MQ43_RUNGS['hs'].format(place=MQ41_PLACE[style][0]) + MQ43_KEEP[style])
+
+
+def blender50(port):
+    done = os.path.join(OUT, 'mq_blender50.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    rnds = {r: json.load(open(os.path.join(OUT, f'mq_blender{r}.json'))) for r, _ in MQ50_TURNS.values()}
+    turn = lambda v, n, s: rnds[MQ50_TURNS[v][0]][f'{n} {s} {MQ50_TURNS[v][1]}']
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+    for name in ('anime', 'photo'):
+        for seed in (111, 222):
+            for view in MQ50_TURNS:
+                for rung in ('hs', 'far'):
+                    key = f'{name} {seed} {view} {rung}'
+                    if key not in res:
+                        res[key] = gen(port, {**QWEN29, 'seed': seed, 'cardName': f'angles mq50 {key}',
+                                              'positive': _zoom50(rung, view, name),
+                                              'media': [{'role': 'inputImage', 'url': turn(view, name, seed)}]})
+                        json.dump(res, open(done, 'w'), indent=1)
+    for half, views in (('a', ('tq fl', 'tq fr', 'pr l')), ('b', ('pr r', 'tqb l', 'back'))):
+        rows = [[(None, f'{n} {s}')] + [c for v in views for c in (
+            (turn(v, n, s), f'{v} turn'), (res.get(f'{n} {s} {v} hs'), f'{v} Qwen hs'),
+            (res.get(f'{n} {s} {v} far'), f'{v} Qwen far'))]
+            for n in ('anime', 'photo') for s in (111, 222)]
+        _sheet(rows, f'r50{half}_zoom_turned_views')
+
+
 if __name__ == '__main__':
     if sys.argv[1:2] == ['best']:
         best()
+    elif sys.argv[2:3] == ['blender50']:
+        blender50(int(sys.argv[1]))
     elif sys.argv[2:3] == ['blender49']:
         blender49(int(sys.argv[1]))
     elif sys.argv[2:3] == ['blender48refs']:

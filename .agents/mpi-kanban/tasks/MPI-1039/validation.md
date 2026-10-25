@@ -998,3 +998,22 @@ user's ratio later; a crop changes the zoom, so the gizmo may need per-ratio-fam
   suite 3649 pass, 0 fail, eslint clean.
 - 2026-10-25 FLOW BUILD PHASE 4 (session "Flux 3 on flows 27"): FlowDef `multi-angle` (devOnly, driver 'multiAngle', FLUX.3 slot + OPTIONAL Qwen slot, agentOpens 'angle', slots inputImage + inputImage2, run-slide field outfitWords), slots-only op `flowMultiAngle` in 3 registries (no graph, like flowStoryboard), driver registered in FLOW_DRIVERS (storyboardDispatch.js, LTX 2.5 model 18 agreed). Gizmo = new step kind `angle` (`js/components/Organisms/MpiStepAngle/`): Cosmo preview over Turn (9 stops, full turn, front in the middle, back at both ends) / Height / Zoom sliders; offers only benched stops (`multiAngleChoices` in multiAngle.js; without Qwen only FLUX.3-alone stops); a disallowed stop keeps the thumb where it was; a slider with nothing to offer greys + inert; a note says why. Driver reads `stepValues.inputImage`; an untouched gizmo refuses Generate ('Pick a new view first'). Checks: tests/multi-angle-gizmo.test.cjs 8/8 (incl. every offered choice is a pick the planner runs, 24 previews on disk), full suite 3660 pass / 0 fail, eslint clean. LIVE in an isolated app: tile in the Library, gizmo renders, mouse drag works, preview swaps, greying + notes right, the pick lands in s_flowInputs stepValues and restores on reopen. Fixed on the way: note text overlapping (frame sets line-height 0), hint no longer repeats the note, all 24 previews preloaded (a fast drag showed the last stop's Cosmo). FOUND: MPI-1287 (frame restore put slot 1's picture into an empty slot 2 - also Character Sheet Editor); LTX 2.5 model 18 fixed it in its files (restoreSlotItems), confirmed live. NOT run: a GPU generation through the Flow (phase 5 live run).
 - 2026-10-25 GIZMO MOVED (Fabio: no Angle step, small on Generate): field type `angle` (js/utils/declaredFields.js branch, after LTX 2.5 model 18's e7593e3e6) mounting Compound `MpiAngleGizmo` (132-px Cosmo + Turn/Height/Zoom). Flow is 2 steps now (Inputs, Generate); agentOpens 'run'; driver reads inputs.angle. Full suite 3661 pass / 0 fail, eslint clean. LIVE in an isolated app: picker on the Generate slide above the outfit box, mouse drag on Turn moves Cosmo to 3/4 back right, note shows, value persisted as s_flowInputs['multi-angle'].angle. MPI-1287 closed (fixed in e7593e3e6, checked live).
+- 2026-10-25 ROUND 50, THE ZOOM LADDER ON THE OTHER SIX TURNS (`angles.py <port> blender50`, sheets
+  `research/sheets/r50a_zoom_turned_views.jpg` (tq fl / tq fr / pr l) + `r50b_zoom_turned_views.jpg` (pr r / tqb l /
+  back), results `research/out/mq_blender50.json`). Qwen zoom pass on each accepted FLUX.3 turn cell (r27 tq fl side,
+  r31 tq fr + tqb l, r35 pr l + pr r, r24 back eye): IN = the r43 hs rung (side views) or r49's rear hs form (tqb l,
+  back), OUT = r49's far rung, one pass from the whole body; the view kept named per turn (MQ50_KEPT). Anime + photo,
+  seeds 111/222, 48 edits, 0 errors, ~41 s each (~33 min GPU, Fabio's yes).
+  GRADES (agent, sheets + full-size crops; bar = the named framing, view/side/style kept):
+  - FAR: 24/24 - a small figure with the long street / the whole studio rig (softboxes, backdrop edges), the turn
+    kept (side-on, profile, rear 3/4, back), style kept (anime flat 2D, photo photographic).
+  - HS, SIDE VIEWS (tq fl, tq fr, pr l, pr r): 16/16 a head-and-shoulders close-up, whole head in frame, style kept.
+    View kept 15/16: photo 111 tq fr turns her face a notch toward the camera (r42 photo 222 tq fl did the same);
+    photo 222 tq fl is near-frontal because its INPUT already is. Profiles stay clean profiles 8/8. Earring side right.
+  - HS, BACK: 3/4 - photo 2/2 and anime 222 clean back-of-head + shoulders; anime 111 a notch wide (to the waist),
+    head kept.
+  - HS, TQB L: 1/4 - anime 2/2 land at WAIST-UP (back, arms, top of the trousers) not hs; photo 111 is hs but swings
+    to a straight back view (the cheek edge gone); photo 222 clean. Head kept 4/4 (unlike r42/r49's rear waist).
+  - Read: the two-step zoom (FLUX.3 turn, Qwen zoom) holds on every turn for far, and for hs on the side views and the
+    back. tqb l hs is the open cell (lands a notch wide on anime) - not offered. Widened: hs + far on tq fl, tq fr,
+    pr l, pr r, back; far on tqb l (tqb r keeps hs only: its far is unbenched).

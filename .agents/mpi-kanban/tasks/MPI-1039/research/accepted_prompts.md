@@ -367,3 +367,135 @@ Zoom in on the first image, keeping exactly the same viewing angle and perspecti
 ```text
 Zoom in on the first image, keeping exactly the same viewing angle and perspective: the view still looks at her from behind her right shoulder at eye level, the same rear three-quarter view as in the first image. The view is now a head-and-shoulders close-up from behind: the back of her head, her neck and the top of her shoulders fill the frame, cropped just below the shoulders, with her whole head in frame; only a little of the grey backdrop shows around her. The subject is still the real person from the first image, with their own face, hair and clothes; keep their identity, the place, the light and the image style of the first image unchanged.
 ```
+
+## zoom tq fl hs - anime (r50 `anime 111 tq fl hs`, qwen-image-2-1)
+
+```text
+Zoom in on the first image, keeping exactly the same viewing angle and perspective: the view still looks at her from her left side at eye level, almost side-on, the same view as in the first image. The view is now a head-and-shoulders close-up: her head, neck and the top of her shoulders fill the frame, cropped just below the shoulders, with her whole head in frame; only a little of the street shows behind her. The subject is still the same drawn anime woman from the first image, with her own face, hair and clothes; keep her identity, the place, the light and the flat 2D anime drawing style of the first image - clean outlines, flat colours - unchanged. It stays a drawing, not a photo.
+```
+
+## zoom tq fl hs - photo (r50 `photo 111 tq fl hs`, qwen-image-2-1)
+
+```text
+Zoom in on the first image, keeping exactly the same viewing angle and perspective: the view still looks at her from her left side at eye level, almost side-on, the same view as in the first image. The view is now a head-and-shoulders close-up: her head, neck and the top of her shoulders fill the frame, cropped just below the shoulders, with her whole head in frame; only a little of the grey backdrop shows behind her. The subject is still the real person from the first image, with their own face, hair and clothes; keep their identity, the place, the light and the image style of the first image unchanged.
+```
+
+## zoom tq fl far - anime (r50 `anime 111 tq fl far`, qwen-image-2-1)
+
+```text
+Zoom out from the first image, keeping exactly the same viewing angle, height and perspective: the view still looks at her from her left side at eye level, almost side-on, the same view as in the first image. Frame the whole place: the camera is pulled far back, much further than in the first image. She is now a small figure in the middle of the frame, about a quarter of the frame's height, seen from head to shoes, with the full height of the shop fronts and their signs at both sides, much more of the street in front of her and the street running on behind her. Most of the frame is the place around her, not her. It is still the same drawn anime woman from the first image, with her own face, hair, earrings and clothes, in the same place and light and the same flat 2D anime drawing style - clean outlines, flat colours. It stays a drawing, not a photo.
+```
+
+## zoom tq fl far - photo (r50 `photo 111 tq fl far`, qwen-image-2-1)
+
+```text
+Zoom out from the first image, keeping exactly the same viewing angle, height and perspective: the view still looks at her from her left side at eye level, almost side-on, the same view as in the first image. Frame the whole place: the camera is pulled far back, much further than in the first image. She is now a small figure in the middle of the frame, about a quarter of the frame's height, seen from head to shoes, and the whole studio now shows around her - the edges of the grey backdrop paper, light stands and softboxes at both sides, and the bare studio floor in front of her. Most of the frame is the place around her, not her. It is still the same real person from the first image, with her own face, hair, earrings and clothes, in the same place and light and the same photographic style.
+```
+
+## zoom tq fr hs - anime (r50 `anime 111 tq fr hs`, qwen-image-2-1)
+
+```text
+Zoom in on the first image, keeping exactly the same viewing angle and perspective: the view still looks at her from her right side at eye level, almost side-on, the same view as in the first image. The view is now a head-and-shoulders close-up: her head, neck and the top of her shoulders fill the frame, cropped just below the shoulders, with her whole head in frame; only a little of the street shows behind her. The subject is still the same drawn anime woman from the first image, with her own face, hair and clothes; keep her identity, the place, the light and the flat 2D anime drawing style of the first image - clean outlines, flat colours - unchanged. It stays a drawing, not a photo.
+```
+
+## zoom tq fr hs - photo (r50 `photo 111 tq fr hs`, qwen-image-2-1)
+
+```text
+Zoom in on the first image, keeping exactly the same viewing angle and perspective: the view still looks at her from her right side at eye level, almost side-on, the same view as in the first image. The view is now a head-and-shoulders close-up: her head, neck and the top of her shoulders fill the frame, cropped just below the shoulders, with her whole head in frame; only a little of the grey backdrop shows behind her. The subject is still the real person from the first image, with their own face, hair and clothes; keep their identity, the place, the light and the image style of the first image unchanged.
+```
+
+## zoom tq fr far - anime (r50 `anime 111 tq fr far`, qwen-image-2-1)
+
+```text
+Zoom out from the first image, keeping exactly the same viewing angle, height and perspective: the view still looks at her from her right side at eye level, almost side-on, the same view as in the first image. Frame the whole place: the camera is pulled far back, much further than in the first image. She is now a small figure in the middle of the frame, about a quarter of the frame's height, seen from head to shoes, with the full height of the shop fronts and their signs at both sides, much more of the street in front of her and the street running on behind her. Most of the frame is the place around her, not her. It is still the same drawn anime woman from the first image, with her own face, hair, earrings and clothes, in the same place and light and the same flat 2D anime drawing style - clean outlines, flat colours. It stays a drawing, not a photo.
+```
+
+## zoom tq fr far - photo (r50 `photo 111 tq fr far`, qwen-image-2-1)
+
+```text
+Zoom out from the first image, keeping exactly the same viewing angle, height and perspective: the view still looks at her from her right side at eye level, almost side-on, the same view as in the first image. Frame the whole place: the camera is pulled far back, much further than in the first image. She is now a small figure in the middle of the frame, about a quarter of the frame's height, seen from head to shoes, and the whole studio now shows around her - the edges of the grey backdrop paper, light stands and softboxes at both sides, and the bare studio floor in front of her. Most of the frame is the place around her, not her. It is still the same real person from the first image, with her own face, hair, earrings and clothes, in the same place and light and the same photographic style.
+```
+
+## zoom pr l hs - anime (r50 `anime 111 pr l hs`, qwen-image-2-1)
+
+```text
+Zoom in on the first image, keeping exactly the same viewing angle and perspective: the view still looks at her exactly side-on from her left at eye level, in full profile, the same view as in the first image. The view is now a head-and-shoulders close-up: her head, neck and the top of her shoulders fill the frame, cropped just below the shoulders, with her whole head in frame; only a little of the street shows behind her. The subject is still the same drawn anime woman from the first image, with her own face, hair and clothes; keep her identity, the place, the light and the flat 2D anime drawing style of the first image - clean outlines, flat colours - unchanged. It stays a drawing, not a photo.
+```
+
+## zoom pr l hs - photo (r50 `photo 111 pr l hs`, qwen-image-2-1)
+
+```text
+Zoom in on the first image, keeping exactly the same viewing angle and perspective: the view still looks at her exactly side-on from her left at eye level, in full profile, the same view as in the first image. The view is now a head-and-shoulders close-up: her head, neck and the top of her shoulders fill the frame, cropped just below the shoulders, with her whole head in frame; only a little of the grey backdrop shows behind her. The subject is still the real person from the first image, with their own face, hair and clothes; keep their identity, the place, the light and the image style of the first image unchanged.
+```
+
+## zoom pr l far - anime (r50 `anime 111 pr l far`, qwen-image-2-1)
+
+```text
+Zoom out from the first image, keeping exactly the same viewing angle, height and perspective: the view still looks at her exactly side-on from her left at eye level, in full profile, the same view as in the first image. Frame the whole place: the camera is pulled far back, much further than in the first image. She is now a small figure in the middle of the frame, about a quarter of the frame's height, seen from head to shoes, with the full height of the shop fronts and their signs at both sides, much more of the street in front of her and the street running on behind her. Most of the frame is the place around her, not her. It is still the same drawn anime woman from the first image, with her own face, hair, earrings and clothes, in the same place and light and the same flat 2D anime drawing style - clean outlines, flat colours. It stays a drawing, not a photo.
+```
+
+## zoom pr l far - photo (r50 `photo 111 pr l far`, qwen-image-2-1)
+
+```text
+Zoom out from the first image, keeping exactly the same viewing angle, height and perspective: the view still looks at her exactly side-on from her left at eye level, in full profile, the same view as in the first image. Frame the whole place: the camera is pulled far back, much further than in the first image. She is now a small figure in the middle of the frame, about a quarter of the frame's height, seen from head to shoes, and the whole studio now shows around her - the edges of the grey backdrop paper, light stands and softboxes at both sides, and the bare studio floor in front of her. Most of the frame is the place around her, not her. It is still the same real person from the first image, with her own face, hair, earrings and clothes, in the same place and light and the same photographic style.
+```
+
+## zoom pr r hs - anime (r50 `anime 111 pr r hs`, qwen-image-2-1)
+
+```text
+Zoom in on the first image, keeping exactly the same viewing angle and perspective: the view still looks at her exactly side-on from her right at eye level, in full profile, the same view as in the first image. The view is now a head-and-shoulders close-up: her head, neck and the top of her shoulders fill the frame, cropped just below the shoulders, with her whole head in frame; only a little of the street shows behind her. The subject is still the same drawn anime woman from the first image, with her own face, hair and clothes; keep her identity, the place, the light and the flat 2D anime drawing style of the first image - clean outlines, flat colours - unchanged. It stays a drawing, not a photo.
+```
+
+## zoom pr r hs - photo (r50 `photo 111 pr r hs`, qwen-image-2-1)
+
+```text
+Zoom in on the first image, keeping exactly the same viewing angle and perspective: the view still looks at her exactly side-on from her right at eye level, in full profile, the same view as in the first image. The view is now a head-and-shoulders close-up: her head, neck and the top of her shoulders fill the frame, cropped just below the shoulders, with her whole head in frame; only a little of the grey backdrop shows behind her. The subject is still the real person from the first image, with their own face, hair and clothes; keep their identity, the place, the light and the image style of the first image unchanged.
+```
+
+## zoom pr r far - anime (r50 `anime 111 pr r far`, qwen-image-2-1)
+
+```text
+Zoom out from the first image, keeping exactly the same viewing angle, height and perspective: the view still looks at her exactly side-on from her right at eye level, in full profile, the same view as in the first image. Frame the whole place: the camera is pulled far back, much further than in the first image. She is now a small figure in the middle of the frame, about a quarter of the frame's height, seen from head to shoes, with the full height of the shop fronts and their signs at both sides, much more of the street in front of her and the street running on behind her. Most of the frame is the place around her, not her. It is still the same drawn anime woman from the first image, with her own face, hair, earrings and clothes, in the same place and light and the same flat 2D anime drawing style - clean outlines, flat colours. It stays a drawing, not a photo.
+```
+
+## zoom pr r far - photo (r50 `photo 111 pr r far`, qwen-image-2-1)
+
+```text
+Zoom out from the first image, keeping exactly the same viewing angle, height and perspective: the view still looks at her exactly side-on from her right at eye level, in full profile, the same view as in the first image. Frame the whole place: the camera is pulled far back, much further than in the first image. She is now a small figure in the middle of the frame, about a quarter of the frame's height, seen from head to shoes, and the whole studio now shows around her - the edges of the grey backdrop paper, light stands and softboxes at both sides, and the bare studio floor in front of her. Most of the frame is the place around her, not her. It is still the same real person from the first image, with her own face, hair, earrings and clothes, in the same place and light and the same photographic style.
+```
+
+## zoom tqb l far - anime (r50 `anime 111 tqb l far`, qwen-image-2-1)
+
+```text
+Zoom out from the first image, keeping exactly the same viewing angle, height and perspective: the view still looks at her from behind her left shoulder at eye level, the same rear three-quarter view as in the first image. Frame the whole place: the camera is pulled far back, much further than in the first image. She is now a small figure in the middle of the frame, about a quarter of the frame's height, seen from head to shoes, with the full height of the shop fronts and their signs at both sides, much more of the street in front of her and the street running on behind her. Most of the frame is the place around her, not her. It is still the same drawn anime woman from the first image, with her own face, hair, earrings and clothes, in the same place and light and the same flat 2D anime drawing style - clean outlines, flat colours. It stays a drawing, not a photo.
+```
+
+## zoom tqb l far - photo (r50 `photo 111 tqb l far`, qwen-image-2-1)
+
+```text
+Zoom out from the first image, keeping exactly the same viewing angle, height and perspective: the view still looks at her from behind her left shoulder at eye level, the same rear three-quarter view as in the first image. Frame the whole place: the camera is pulled far back, much further than in the first image. She is now a small figure in the middle of the frame, about a quarter of the frame's height, seen from head to shoes, and the whole studio now shows around her - the edges of the grey backdrop paper, light stands and softboxes at both sides, and the bare studio floor in front of her. Most of the frame is the place around her, not her. It is still the same real person from the first image, with her own face, hair, earrings and clothes, in the same place and light and the same photographic style.
+```
+
+## zoom back hs - anime (r50 `anime 111 back hs`, qwen-image-2-1)
+
+```text
+Zoom in on the first image, keeping exactly the same viewing angle and perspective: the view still looks at her from directly behind at eye level, the same back view as in the first image. The view is now a head-and-shoulders close-up from behind: the back of her head, her neck and the top of her shoulders fill the frame, cropped just below the shoulders, with her whole head in frame; only a little of the street shows around her. The subject is still the same drawn anime woman from the first image, with her own face, hair and clothes; keep her identity, the place, the light and the flat 2D anime drawing style of the first image - clean outlines, flat colours - unchanged. It stays a drawing, not a photo.
+```
+
+## zoom back hs - photo (r50 `photo 111 back hs`, qwen-image-2-1)
+
+```text
+Zoom in on the first image, keeping exactly the same viewing angle and perspective: the view still looks at her from directly behind at eye level, the same back view as in the first image. The view is now a head-and-shoulders close-up from behind: the back of her head, her neck and the top of her shoulders fill the frame, cropped just below the shoulders, with her whole head in frame; only a little of the grey backdrop shows around her. The subject is still the real person from the first image, with their own face, hair and clothes; keep their identity, the place, the light and the image style of the first image unchanged.
+```
+
+## zoom back far - anime (r50 `anime 111 back far`, qwen-image-2-1)
+
+```text
+Zoom out from the first image, keeping exactly the same viewing angle, height and perspective: the view still looks at her from directly behind at eye level, the same back view as in the first image. Frame the whole place: the camera is pulled far back, much further than in the first image. She is now a small figure in the middle of the frame, about a quarter of the frame's height, seen from head to shoes, with the full height of the shop fronts and their signs at both sides, much more of the street in front of her and the street running on behind her. Most of the frame is the place around her, not her. It is still the same drawn anime woman from the first image, with her own face, hair, earrings and clothes, in the same place and light and the same flat 2D anime drawing style - clean outlines, flat colours. It stays a drawing, not a photo.
+```
+
+## zoom back far - photo (r50 `photo 111 back far`, qwen-image-2-1)
+
+```text
+Zoom out from the first image, keeping exactly the same viewing angle, height and perspective: the view still looks at her from directly behind at eye level, the same back view as in the first image. Frame the whole place: the camera is pulled far back, much further than in the first image. She is now a small figure in the middle of the frame, about a quarter of the frame's height, seen from head to shoes, and the whole studio now shows around her - the edges of the grey backdrop paper, light stands and softboxes at both sides, and the bare studio floor in front of her. Most of the frame is the place around her, not her. It is still the same real person from the first image, with her own face, hair, earrings and clothes, in the same place and light and the same photographic style.
+```

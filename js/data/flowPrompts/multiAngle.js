@@ -30,13 +30,20 @@ export const MULTI_ANGLE_RUNGS = ['eye', 'face', 'hs', 'waist', 'full', 'far'];
 
 /**
  * Zoom moves benched per view: view -> target rungs. Every turn x height cell is benched (rounds 35-40);
- * zoom only on the front, and on the 3/4 back R up to head and shoulders (round 49 - its waist rung on a
- * photo still cuts the head off). The eye rung only as the first pass on the untouched source (round 45:
- * Qwen freezes on eye words, and chaining buys nothing).
+ * the whole ladder on the front; on a turn, head and shoulders and far (round 50), except the 3/4 back L
+ * (hs lands at the waist on a drawing) and the 3/4 back R (round 49 - far unbenched in these words). The
+ * eye rung only as the first pass on the untouched source (round 45: Qwen freezes on eye words, and
+ * chaining buys nothing).
  */
 export const BENCHED_ZOOM = {
     front: ['eye', 'face', 'hs', 'waist', 'full', 'far'],
+    tq_fl: ['hs', 'far'],
+    tq_fr: ['hs', 'far'],
+    pr_l: ['hs', 'far'],
+    pr_r: ['hs', 'far'],
+    tq_bl: ['far'],
     tq_br: ['hs'],
+    back: ['hs', 'far'],
 };
 
 /** What the user reads for each stop: the gizmo's readouts and the card's name. */
@@ -100,12 +107,27 @@ const HEAD_LOW = {
     tq_bl: p => `the back of ${p.poss} head`, tq_br: p => `the back of ${p.poss} head`, back: p => `the back of ${p.poss} head`,
 };
 
-/** The view a zoom pass keeps, said as it ran (MQ41_VIEWS). */
+/** The view a zoom pass keeps, said as it ran (MQ41_VIEWS, MQ50_KEPT). */
 const ZOOM_KEPT = {
     front: p => `the view still looks at ${p.obj} straight from the front at eye level, as in the first image`,
+    tq_fl: p => `the view still looks at ${p.obj} from ${p.poss} left side at eye level, almost side-on, the same view `
+        + 'as in the first image',
+    tq_fr: p => `the view still looks at ${p.obj} from ${p.poss} right side at eye level, almost side-on, the same view `
+        + 'as in the first image',
+    pr_l: p => `the view still looks at ${p.obj} exactly side-on from ${p.poss} left at eye level, in full profile, the `
+        + 'same view as in the first image',
+    pr_r: p => `the view still looks at ${p.obj} exactly side-on from ${p.poss} right at eye level, in full profile, the `
+        + 'same view as in the first image',
+    tq_bl: p => `the view still looks at ${p.obj} from behind ${p.poss} left shoulder at eye level, the same rear `
+        + 'three-quarter view as in the first image',
     tq_br: p => `the view still looks at ${p.obj} from behind ${p.poss} right shoulder at eye level, the same rear `
         + 'three-quarter view as in the first image',
+    back: p => `the view still looks at ${p.obj} from directly behind at eye level, the same back view as in the first `
+        + 'image',
 };
+
+/** The views a head-and-shoulders zoom sees from behind (rounds 49-50). */
+const REAR = ['tq_bl', 'tq_br', 'back'];
 
 const KEEP_REF = ' Take only the viewing angle from the mannequin reference.';
 
@@ -277,7 +299,7 @@ function _zoomWords(view, rung, p, facts, { fromClose = false, outfit = {} } = {
             + _keepIt(p, ['face', 'eyes', !p.drawing && 'skin', 'hair', p.wears], 'the same light');
     }
     if (rung === 'hs') {
-        const rear = view !== 'front';
+        const rear = REAR.includes(view);
         return `Zoom in on the first image, keeping exactly the same viewing angle and perspective: ${kept}. The view `
             + `is now a head-and-shoulders close-up${rear ? ' from behind' : ''}: ${rear ? 'the back of ' : ''}${p.poss} `
             + `head, ${rear ? `${p.poss} ` : ''}neck and the top of ${p.poss} shoulders fill the frame, cropped just below `

@@ -71,6 +71,8 @@ const ZOOM = {
 };
 const _cell = (stop) => {
     if (ZOOM[stop]) return ZOOM[stop];
+    const turned = stop.match(/^zoom (.+) (hs|far)$/); // round 50: the zoom pass after the turn
+    if (turned) return [{ turn: TURN[turned[1]], zoom: { from: 'full', to: turned[2] } }, 1];
     const height = (stop.match(/ (lo|hi)$/) || [])[1] || 'level';
     const turn = stop.replace(/ (lo|hi)$/, '');
     return [{ turn: TURN[turn], height }, turn === 'front' || height === 'level' ? 0 : 1];
@@ -194,7 +196,7 @@ test('nothing starts for Loop, no picture, an unbenched pick or no move', async 
     const code = async (run, deps = _deps()) => (await runMultiAngle(run, deps)).code;
     assert.strictEqual(await code({ source: 's', pick: { turn: 'back' } }, _deps({ loop: true })), 'LOOP_ARMED');
     assert.strictEqual(await code({ pick: { turn: 'back' } }), 'NO_SOURCE');
-    assert.strictEqual(await code({ source: 's', pick: { turn: 'pr_l', zoom: 'hs' } }), 'NOT_BENCHED');
+    assert.strictEqual(await code({ source: 's', pick: { turn: 'tq_bl', zoom: 'hs' } }), 'NOT_BENCHED');
     assert.strictEqual(await code({ source: 's', pick: { turn: 'front' } }), 'NOTHING_TO_DO');
     const deps = _deps();
     deps.describe = async () => ({ ok: false, message: 'no describer set up' });

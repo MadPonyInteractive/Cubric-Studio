@@ -472,6 +472,11 @@ floor; only a FLOATING object (some product shots) has an underside to show. Flo
 "resting or floating" off the source and picks the low ref + wording. Caveat for round 19: front_lo sits at z 0.15,
 BELOW the plinth top (0.6), so the house ref shows the plinth's face, not a camera skimming the surface top.
 
+ROUND 50 DONE (2026-10-25, validation.md; FABIO EYE TEST PASSED "turned out very good"):
+zoom ladder on the 6 other turns, Qwen pass on each FLUX.3 turn, 48 edits. Far 24/24; hs 16/16 on tq fl / tq fr /
+pr l / pr r, back 3/4, tqb l 1/4 (anime lands waist-up). BENCHED_ZOOM widened: hs + far on tq_fl, tq_fr, pr_l, pr_r,
+back; far on tq_bl; tq_br unchanged (hs). Open: tqb l hs; tqb r far in r49 words; a far pick on a turned view from a
+CLOSE-UP source routes turn -> full -> far, and full on a turned view is unbenched.
 ## Flow build (2026-10-25, /mpi-add-flow Step 0 done; playbook docs/playbooks/add-flow/)
 Shape: model Flow, `requiredModels` = flux3-klein (turns, front high) + qwen-image-2-1 OPTIONAL (front low, every
 low/high on a turned stop - non-commercial, as Character Sheet Editor). Input = ONE image slot (the person) + the

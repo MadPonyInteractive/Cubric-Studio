@@ -28,7 +28,8 @@ test('choices: every turn takes every height with Qwen; zoom only where benched,
     }
     assert.deepEqual(multiAngleChoices('front', 'level').zooms, ['none', 'eye', 'face', 'hs', 'waist', 'full', 'far']);
     assert.deepEqual(multiAngleChoices('tq_br', 'level').zooms, ['none', 'hs']);
-    assert.deepEqual(multiAngleChoices('pr_l', 'level').zooms, ['none']);
+    assert.deepEqual(multiAngleChoices('pr_l', 'level').zooms, ['none', 'hs', 'far']);
+    assert.deepEqual(multiAngleChoices('tq_bl', 'level').zooms, ['none', 'far']);
 });
 
 test('choices without Qwen: only the front high, and one-pass zooms on the front', async () => {

@@ -81,6 +81,8 @@ function _cell(stop) {
         'zoom rear hs': [{ turn: 'tq_br', zoom: { from: 'full', to: 'hs' } }, 1],
     }[stop];
     if (zoom) return zoom;
+    const turned = stop.match(/^zoom (.+) (hs|far)$/); // round 50: the zoom pass after the turn
+    if (turned) return [{ turn: TURN[turned[1]], zoom: { from: 'full', to: turned[2] } }, 1];
     const [turn, height] = [stop.replace(/ (lo|hi)$/, ''), (stop.match(/ (lo|hi)$/) || [])[1] || 'level'];
     return [{ turn: TURN[turn], height }, turn === 'front' || height === 'level' ? 0 : 1];
 }
@@ -139,8 +141,9 @@ test('a zoom-out from a close-up makes up the outfit from the user\'s words or s
 test('unbenched zooms are refused', async () => {
     const { multiAnglePlan } = await builder();
     for (const pick of [
-        { turn: 'pr_l', zoom: { from: 'full', to: 'hs' } },
+        { turn: 'tq_bl', zoom: { from: 'full', to: 'hs' } },
         { turn: 'tq_br', zoom: { from: 'full', to: 'waist' } },
+        { turn: 'pr_l', zoom: { from: 'full', to: 'face' } },
         { turn: 'front', height: 'hi', zoom: { from: 'full', to: 'hs' } },
         { turn: 'tq_br', zoom: { from: 'full', to: 'eye' } },
         { turn: 'sideways' },
