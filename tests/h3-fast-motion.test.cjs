@@ -38,6 +38,23 @@ test('the r2va runtime carries the switch, defaulting off, and the routing nodes
     assert.equal(byTitle('sol-attn')?.inputs.selection, 'sol-attn');
 });
 
+test('MiniMax H3 (fl2va) carries the same sol-attn on its stage-1 model, and no Fast Motion', () => {
+    const fl2va = JSON.parse(fs.readFileSync(path.join(REPO, 'comfy_workflows/minimax_h3_fl2va.json'), 'utf8'));
+    const nodes = Object.entries(fl2va);
+    const sol = nodes.filter(([, n]) => n.class_type === 'BlockSparseAttention');
+    assert.equal(sol.length, 1);
+    const [solId, solNode] = sol[0];
+    const { model: _m, ...settings } = solNode.inputs;
+    const { model: _r, ...refSettings } = byTitle('sol-attn').inputs;
+    assert.deepEqual(settings, refSettings, 'same settings as H3 Reference');
+    // Fed by the turbo/non-turbo switch, read by both stage-1 schedulers and the guider.
+    assert.equal(fl2va[solNode.inputs.model[0]].class_type, 'MpiIfElse');
+    const readers = nodes.filter(([, n]) => n.inputs.model?.[0] === solId).map(([, n]) => n.class_type).sort();
+    assert.deepEqual(readers, ['BasicGuider', 'BasicScheduler', 'BasicScheduler']);
+    assert.ok(nodes.some(([, n]) => n.class_type === 'EasyCache'), 'EasyCache stays on non-turbo');
+    assert.ok(!nodes.some(([, n]) => n._meta?.title === 'Input_Fast_Motion'));
+});
+
 test('the JS one-pass copy agrees with the graph on every H3 cell', () => {
     // Mode 0 in the graph = target width <= base width, Fast Motion on.
     const baseW = (w, h) => (w === h ? 768 : (w > h ? (w > 2.2 * h ? 1536 : 1344) : 768));

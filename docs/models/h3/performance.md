@@ -105,6 +105,8 @@ and being CUDA-only it can never run on the macOS build. Its dispatch also branc
 and WAN only, with no LTX path.
 
 Reopen SolAttn only if it gains a licence AND an LTX branch. Do not re-test SageAttention.
+This rejects the NODE PACK only: core ComfyUI's `BlockSparseAttention` (`sol-attn`, no Triton)
+ships on both H3 graphs' stage-1 model since MPI-1285 ([fast-motion.md](fast-motion.md) § sol-attn).
 
 ## H3 SLA Attention (PlagueKind) — rejected on the same Triton line (2026-09-07)
 

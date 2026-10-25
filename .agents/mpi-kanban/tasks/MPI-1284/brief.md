@@ -27,3 +27,6 @@
    Phase 2 speed results (sol-attn / Veda / EasyCache) land in MPI-1135 `validation.md`.
 4. Speed (MPI-1135 Phase 2, Fabio 2026-10-25): **sol-attn (core `BlockSparseAttention`) always on**;
    non-turbo = sol-attn + EasyCache. Veda out. Fast Motion / upscale-tier design: MPI-1285 brief.md.
+   **Done on MPI-1285 (2026-10-25):** sol-attn is on the stage-1 model of BOTH graphs (r2va and
+   fl2va, EasyCache kept on non-turbo), pinned by `tests/h3-fast-motion.test.cjs`. This card's
+   speed half is closed; what is left here is the Singularity v2 weight swap on ref2va.

@@ -46,6 +46,11 @@ STAGE-1 model, after the turbo/non-turbo switch, in every switch state. That is 
 Phase 2 measured it (it looked better and was 15% faster on turbo, 30% with EasyCache
 non-turbo). The refine model is untouched: it was never measured there.
 
+MiniMax H3 (fl2va) carries the SAME node with the same settings, in the same place: after the
+turbo/non-turbo switch, read by both stage-1 schedulers and the guider; EasyCache still sits in
+the non-turbo chain before it. It gets sol-attn only, no Fast Motion switch.
+`tests/h3-fast-motion.test.cjs` pins both graphs.
+
 ## App side
 
 - Button `h3FastMotion` beside Turbo (capability `h3FastMotionToggle`, perModel, default off).

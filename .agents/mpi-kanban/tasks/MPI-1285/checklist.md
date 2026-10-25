@@ -6,5 +6,6 @@
 - [x] Agents: fastMotion named param (generationControls, connector, MCP, Cosmo tool, dispatch, routines)
 - [x] Cosmo rule in docs/agent/models/minimax-h3.md; docs/models/h3/fast-motion.md
 - [x] Tests + lint green
+- [x] sol-attn on MiniMax H3 (fl2va) stage 1, same settings, EasyCache kept, test pinned
 - [ ] GPU smoke: not run by me (Fabio's engine is his live session); his in-app run is the first
 - [ ] Fabio's in-app Superman re-run

@@ -27,6 +27,11 @@
     "tests/h3-fast-motion.test.cjs",
     "docs/models/h3/fast-motion.md",
     "docs/models/h3/README.md",
-    "tests/agent-prompt-budget.test.cjs"
+    "tests/agent-prompt-budget.test.cjs",
+    "comfy_workflows/raw/minimax_h3_fl2va_template.json",
+    "comfy_workflows/scripts/workflow_generation/minimax_h3_fl2va_template.json",
+    "comfy_workflows/minimax_h3_fl2va.json",
+    ".agents/mpi-kanban/tasks/MPI-1284/brief.md",
+    "docs/models/h3/performance.md"
   ]
 }

@@ -52,6 +52,12 @@ Decisions taken at planning (each a pick, said in one line, not a stop):
   through generationControls, connector, MCP, Cosmo tool, agentDispatch, routineModel; Reuse
   and the card info row; Cosmo rule; docs/models/h3/fast-motion.md (new, ref2va.md is >200
   lines); tests/h3-fast-motion.test.cjs.
+- [x] sol-attn on MiniMax H3 (fl2va), 2026-10-25 (H3 Singularity 11): raw edited by script
+  (scratchpad edit_fl2va_sol_attn.py: new node 543 between switch 457 and readers 140/150/338),
+  synced against 48188 (sync committed + pushed the raw as c2b158ba3). Runtime diff = node 543
+  + three re-pointed model inputs + a cosmetic title on 393. Test added (same settings as r2va,
+  no Input_Fast_Motion, EasyCache kept); fast-motion.md, a performance.md pointer and MPI-1284's
+  brief updated. Lint + 3,670 tests green.
 
 ## Remaining Work
 
@@ -60,7 +66,10 @@ Decisions taken at planning (each a pick, said in one line, not a stop):
 
 ## Current State
 
-Committed and pushed at handoff (2026-10-25). Fabio is testing in the app: "looks okay",
+2026-10-25 (H3 Singularity 11): fl2va sol-attn is built and verified by lint + tests; no GPU run
+of it yet. Left: commit + push the fl2va work, Fabio's in-app look, the Superman re-run.
+
+Earlier: committed and pushed at handoff (2026-10-25). Fabio is testing in the app: "looks okay",
 little difference on one scene, still some tearing with turbo off + Fast Motion on (expected:
 tearing is the old ref2va DiT, fixed by MPI-1284's Singularity v2 swap). He is trying 1080p
 (Very High = mode 1). Next (Fabio asked): sol-attn on MiniMax H3 (fl2va) too, stage-1 model,
