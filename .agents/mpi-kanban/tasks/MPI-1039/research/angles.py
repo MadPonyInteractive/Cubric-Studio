@@ -3393,9 +3393,226 @@ def blender33(port):
     _sheet(rows, 'mq_blender33_high_reveal')
 
 
+# Round 34: Qwen's high on a turn pulls the camera back (she comes out smaller than the turned input, rounds 32-33).
+# One framing line on the end state; anime = round 33's reveal words, photo = round 32's Qwen words. Same refs/seeds.
+FRAME34 = ' The camera stays as close to her as in the first image: she still fills most of the frame height.'
+
+
+def blender34(port):
+    done = os.path.join(OUT, 'mq_blender34.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    old = {n: json.load(open(os.path.join(OUT, f'mq_blender{n}.json'))) for n in (24, 25, 27, 30, 31, 32, 33)}
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+    words = {'anime': lambda side, v: _hi33(side, v), 'photo': lambda side, v: _hi31(side, MQ31_GROUND['photo'])}
+    for name, (_, keep, _) in MQ29_RUNS.items():
+        for v, (render, side, cells) in MQ31_HIGHS.items():
+            for seed in (111, 222):
+                n, k = cells[name]
+                src = old[n][k.format(s=seed)]
+                refkey = f'ref {"x".join(map(str, Image.open(disk(src)).size))} doll_plain/{render}'
+                key = f'{name} {seed} {v} hi framed'
+                if key not in res:
+                    res[key] = gen(port, {**QWEN29, 'seed': seed, 'positive': words[name](side, v) + FRAME34 + keep,
+                                          'cardName': f'angles mq34 {key}',
+                                          'media': [{'role': 'inputImage', 'url': src},
+                                                    {'role': 'inputImage2', 'url': old[32][refkey]}]})
+                    json.dump(res, open(done, 'w'), indent=1)
+    rows = []
+    for name in MQ29_RUNS:
+        prev = (lambda s, v: old[33].get(f'anime {s} {v} hi reveal')) if name == 'anime' else \
+            (lambda s, v: old[32].get(f'photo {s} {v} hi qwen'))
+        for s in (111, 222):
+            rows.append([(None, f'{name} {s}')] + [c for v, (_, _, cells) in MQ31_HIGHS.items() for c in (
+                (old[cells[name][0]].get(cells[name][1].format(s=s)), f'{v} turn'),
+                (prev(s, v), f'{v} Qwen r{33 if name == "anime" else 32}'),
+                (res.get(f'{name} {s} {v} hi framed'), f'{v} Qwen + framing'))])
+    _sheet(rows, 'mq_blender34_high_framing')
+
+
+# Round 35 (Fabio 2026-10-25: every cell of the turn x height grid before the spec is approved). The cells never
+# benched: (a) FLUX.3 PROFILE L/R turns on these sources (doll refs pr_l / pr_r, blender/plain_build.py); (b) Qwen low
+# on the profiles (round 31's low words); (c) Qwen high on the profiles, back, tq fr and tqb l (round 33's reveal +
+# round 34's framing line). Plain twin refs for Qwen, seeds 111/222.
+def _profile(side, frame, other):
+    return ('Shift the viewpoint of the first image around the subject to match the mannequin reference in the second '
+            f'image: the camera has moved a quarter of the way round to her {side}, so she is now seen exactly side-on '
+            f'from her {side}, in full profile facing {frame}. Her {side} shoulder, {side} arm, {side} hip and {side} '
+            f'leg are nearest the view, her {other} side is hidden behind her body, her feet point toward {frame}, and '
+            'her face is a clean profile: one eye, the nose and the lips seen in outline.')
+
+
+MQ35_PROFILES = {  # view -> (doll render, {source: words})
+    'pr l': ('pr_l', {
+        'anime': _profile('left', 'frame-left', 'right') + ' The street now runs across the frame from side to side: '
+                 'behind her the shop fronts on her right, with the red vending machine and the blue awning, fill the '
+                 'background seen straight on; the pink awning and the yellow sign board are no longer in view.',
+        'photo': _profile('left', 'frame-left', 'right') + ' The place around her is seen from that angle.'}),
+    'pr r': ('pr_r', {
+        'anime': _profile('right', 'frame-right', 'left') + ' The street now runs across the frame from side to side: '
+                 'behind her the shop fronts on her left, with the pink awning and the yellow sign board, fill the '
+                 'background seen straight on; the red vending machine and the blue awning are no longer in view.',
+        'photo': _profile('right', 'frame-right', 'left') + ' The place around her is seen from that angle.'}),
+}
+_VM, _PA = 'the red vending machine and the blue awning', 'the pink awning and the yellow sign board'
+MQ35_HIGHS = {  # view -> (high ref, side words, street landmarks seen from above, turn cell per source (round, key))
+    'pr l': ('pr_l_hi', 'side profile', _VM, {'anime': (35, 'anime {s} pr l'), 'photo': (35, 'photo {s} pr l')}),
+    'pr r': ('pr_r_hi', 'side profile', _PA, {'anime': (35, 'anime {s} pr r'), 'photo': (35, 'photo {s} pr r')}),
+    'back': ('back_hi', 'back', f'{_VM} on one side and {_PA} on the other',
+             {'anime': (25, 'street 222 {s} back eye'), 'photo': (24, 'photo {s} back eye')}),
+    'tq fr': ('tq_fr_hi', 'three-quarter side', _PA, {'anime': (31, 'anime {s} tq fr'), 'photo': (31, 'photo {s} tq fr')}),
+    'tqb l': ('tq_bl_hi', 'rear three-quarter', _VM, {'anime': (31, 'anime {s} tqb l'), 'photo': (31, 'photo {s} tqb l')}),
+}
+
+
+def _hi35(name, side, above):
+    if name == 'photo':
+        return _hi31(side, MQ31_GROUND['photo']) + FRAME34
+    return _hi31(side, '').replace(
+        ', and  fills the background behind her.',
+        ', and around her the street fills the background seen from above: the paving with its painted lines, the '
+        f'kerb, and the bases of the shop fronts with {above} seen from above at the edge of the frame.') + FRAME34
+
+
+def blender35(port):
+    done = os.path.join(OUT, 'mq_blender35.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    old = {n: json.load(open(os.path.join(OUT, f'mq_blender{n}.json'))) for n in (23, 24, 25, 31)}
+    old[35] = res
+    srcs = {**json.load(open(os.path.join(OUT, 'pitch.json'))), 'street 222': old[23]['street 222']}
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+
+    def ref(render, size):
+        k = f'ref {size[0]}x{size[1]} {render}'
+        if k not in res:
+            res[k] = import_ref(port, _pad_ref(render, size), f'angles mq35 {k}')
+            json.dump(res, open(done, 'w'), indent=1)
+        return res[k]
+
+    def edit(key, body, src, refurl, text):
+        if key not in res:
+            res[key] = gen(port, {**body, 'seed': int(key.split()[1]), 'positive': text,
+                                  'cardName': f'angles mq35 {key}',
+                                  'media': [{'role': 'inputImage', 'url': src}, {'role': 'inputImage2', 'url': refurl}]})
+            json.dump(res, open(done, 'w'), indent=1)
+
+    flux = {**FAST, 'ratio': '9:16'}
+    for name, (srckey, keep, _) in MQ29_RUNS.items():
+        size = Image.open(disk(srcs[srckey])).size
+        for v, (render, words) in MQ35_PROFILES.items():  # (a)
+            for seed in (111, 222):
+                edit(f'{name} {seed} {v}', flux, srcs[srckey], ref(f'doll/{render}', size), words[name] + keep)
+    for name, (_, keep, _) in MQ29_RUNS.items():
+        for v, (render, _) in MQ35_PROFILES.items():  # (b)
+            for seed in (111, 222):
+                src = res[f'{name} {seed} {v}']
+                edit(f'{name} {seed} {v} lo', QWEN29, src, ref(f'doll_plain/{render}_lo', Image.open(disk(src)).size),
+                     _lo31(*MQ30_PLACE[name], 'side profile', 'her head, seen from below in profile,') + keep)
+        for v, (render, side, above, cells) in MQ35_HIGHS.items():  # (c)
+            for seed in (111, 222):
+                n, k = cells[name]
+                src = old[n][k.format(s=seed)]
+                edit(f'{name} {seed} {v} hi', QWEN29, src, ref(f'doll_plain/{render}', Image.open(disk(src)).size),
+                     _hi35(name, side, above) + keep)
+    rows = []
+    for name in MQ29_RUNS:
+        for s in (111, 222):
+            rows.append([(None, f'{name} {s}')] + [c for v in MQ35_PROFILES for c in (
+                (res.get(f'{name} {s} {v}'), f'{v} FLUX.3 turn'), (res.get(f'{name} {s} {v} lo'), f'{v} + Qwen low'),
+                (res.get(f'{name} {s} {v} hi'), f'{v} + Qwen high'))])
+    _sheet(rows, 'mq_blender35_profiles')
+    rows = []
+    for name in MQ29_RUNS:
+        for s in (111, 222):
+            rows.append([(None, f'{name} {s}')] + [c for v, (_, _, _, cells) in MQ35_HIGHS.items() if v[:2] != 'pr'
+                                                    for c in ((old[cells[name][0]].get(cells[name][1].format(s=s)),
+                                                               f'{v} turn'),
+                                                              (res.get(f'{name} {s} {v} hi'), f'{v} + Qwen high'))])
+    _sheet(rows, 'mq_blender35_highs')
+
+
+# Round 36: round 35's profile L faced frame-RIGHT 3/4 (FLUX.3 ignored 'facing frame-left'). Stage 2's ORBIT 'pr L'
+# (28/28) named the camera's place and what ONLY that side shows; here plus frame anchors (nose toward frame-left, the
+# back of her head toward frame-right). Same reveal / keep, doll pr_l ref, seeds 111-444.
+_PR36_L = ('Shift the viewpoint of the first image around the subject to match the mannequin reference in the second '
+           'image: a strict left side profile - the camera stands exactly 90 degrees to her left, so she faces '
+           'frame-left. Only her left side shows: her left ear, one eye, her nose and chin outlined toward frame-left, '
+           'the back of her head toward frame-right, her left arm at her side nearest the view, her legs seen from the '
+           'side with her toes pointing to frame-left; her right side is hidden.')
+
+
+def blender36(port):
+    done = os.path.join(OUT, 'mq_blender36.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    r23, r35 = (json.load(open(os.path.join(OUT, f'mq_blender{n}.json'))) for n in (23, 35))
+    srcs = {**json.load(open(os.path.join(OUT, 'pitch.json'))), 'street 222': r23['street 222']}
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+    for name, (srckey, keep, _) in MQ29_RUNS.items():
+        size = Image.open(disk(srcs[srckey])).size
+        reveal = MQ35_PROFILES['pr l'][1][name].split('in outline.', 1)[1]
+        for seed in MQ10_SEEDS:
+            key = f'{name} {seed} pr l'
+            if key not in res:
+                res[key] = gen(port, {**FAST, 'ratio': '9:16', 'seed': seed, 'positive': _PR36_L + reveal + keep,
+                                      'cardName': f'angles mq36 {key}',
+                                      'media': [{'role': 'inputImage', 'url': srcs[srckey]},
+                                                {'role': 'inputImage2', 'url': r35[f'ref {size[0]}x{size[1]} doll/pr_l']}]})
+                json.dump(res, open(done, 'w'), indent=1)
+    rows = []
+    for name in MQ29_RUNS:
+        rows.append([(None, f'{name} r35')] + [(r35.get(f'{name} {s} pr l'), f'{s}') for s in (111, 222)])
+        rows.append([(None, f'{name} r36')] + [(res.get(f'{name} {s} pr l'), f'{s}') for s in MQ10_SEEDS])
+    _sheet(rows, 'mq_blender36_profile_l')
+
+
+# Round 37: on the ANIME street FLUX.3 gives a frame-right profile for pr l every time (rounds 35-36, 0/6; photo 6/6).
+# Two arms, round 36's words: (a) Qwen-Image 2.1 turns the source (it over-turned tq fl to a full profile in round 29),
+# plain pr_l ref, seeds 111-444; (b) FLUX.3 from its own round-27 tq fl side cell (already facing frame-left), 111/222.
+def blender37(port):
+    done = os.path.join(OUT, 'mq_blender37.json')
+    res = json.load(open(done)) if os.path.exists(done) else {}
+    r23, r27, r35, r36 = (json.load(open(os.path.join(OUT, f'mq_blender{n}.json'))) for n in (23, 27, 35, 36))
+    src = r23['street 222']
+    if not os.environ.get('MPI_KANBAN_GPU_SLOT'):
+        sys.exit('no GPU lease - run under gpu_lease.py run --poll 2 --')
+    text = _PR36_L + MQ35_PROFILES['pr l'][1]['anime'].split('in outline.', 1)[1] + MQ23_KEEP
+    size = Image.open(disk(src)).size
+    k = f'ref {size[0]}x{size[1]} doll_plain/pr_l'
+    if k not in res:
+        res[k] = import_ref(port, _pad_ref('doll_plain/pr_l', size), f'angles mq37 {k}')
+        json.dump(res, open(done, 'w'), indent=1)
+    jobs = [(f'anime {s} pr l qwen', QWEN29, s, src, res[k]) for s in MQ10_SEEDS]
+    for s in (111, 222):
+        tq = r27[f'anime {s} tq fl side']
+        tsize = Image.open(disk(tq)).size
+        jobs.append((f'anime {s} pr l from tq', {**FAST, 'ratio': '9:16'}, s, tq,
+                     r35[f'ref {tsize[0]}x{tsize[1]} doll/pr_l']))
+    for key, body, seed, first, ref in jobs:
+        if key not in res:
+            res[key] = gen(port, {**body, 'seed': seed, 'positive': text, 'cardName': f'angles mq37 {key}',
+                                  'media': [{'role': 'inputImage', 'url': first}, {'role': 'inputImage2', 'url': ref}]})
+            json.dump(res, open(done, 'w'), indent=1)
+    rows = [[(None, 'FLUX.3 r36')] + [(r36.get(f'anime {s} pr l'), f'{s}') for s in MQ10_SEEDS],
+            [(None, 'Qwen r37')] + [(res.get(f'anime {s} pr l qwen'), f'{s}') for s in MQ10_SEEDS],
+            [(None, 'FLUX.3 from tq')] + [c for s in (111, 222) for c in
+                                          ((r27.get(f'anime {s} tq fl side'), f'{s} tq fl input'),
+                                           (res.get(f'anime {s} pr l from tq'), f'{s} pr l'))]]
+    _sheet(rows, 'mq_blender37_profile_l_anime')
+
+
 if __name__ == '__main__':
     if sys.argv[1:2] == ['best']:
         best()
+    elif sys.argv[2:3] == ['blender37']:
+        blender37(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['blender36']:
+        blender36(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['blender35']:
+        blender35(int(sys.argv[1]))
+    elif sys.argv[2:3] == ['blender34']:
+        blender34(int(sys.argv[1]))
     elif sys.argv[2:3] == ['blender33']:
         blender33(int(sys.argv[1]))
     elif sys.argv[2:3] == ['blender32']:

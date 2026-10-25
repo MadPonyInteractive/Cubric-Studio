@@ -675,3 +675,50 @@ user's ratio later; a crop changes the zoom, so the gizmo may need per-ratio-fam
   - Read: the reveal rule holds for Qwen too - every pitch stop names what the new view sees. With rounds 30-33 the
     two-step (FLUX.3 yaw, then Qwen pitch with a reveal line) covers low and high on every turned stop.
   - FABIO 2026-10-25 (eye test on the round 31-33 sheets): they look right.
+- 2026-10-25 ROUND 34, QWEN HIGH ON A TURN + FRAMING LINE (`angles.py <port> blender34`, sheet
+  `research/sheets/mq_blender34_high_framing.jpg`, results `research/out/mq_blender34.json`). Rounds 32-33's Qwen high
+  (anime = round 33 reveal words, photo = round 32 words) plus one end-state line: 'The camera stays as close to her as
+  in the first image: she still fills most of the frame height.' Same 8 turned inputs, plain high-twin refs, seeds
+  111/222. 8 Qwen edits, ~59 s each.
+  FIRST READ (agent, sheet):
+  - 8/8 SHE IS BIGGER than without the line - close to the turned input's size on most cells (anime 222 tqb r was the
+    smallest in round 33, now fills the frame).
+  - The high holds on 7/8 (looking down, ground around her, shadow on the floor); photo 111 tq fl reads milder, nearer
+    eye level. The anime street from above stays 4/4 (paving, kerb, vending machine on tq fl), turn side kept 8/8,
+    identity + style held.
+  - Read: keep the framing line on Qwen high steps. Fabio's eye test pending.
+- 2026-10-25 ROUND 35, EVERY UNTESTED CELL (Fabio: the spec needs every angle) (`angles.py <port> blender35`, sheets
+  `research/sheets/mq_blender35_profiles.jpg` + `mq_blender35_highs.jpg`, results `research/out/mq_blender35.json`).
+  New doll cams from `blender/plain_build.py` (round 35 block): pr_l / pr_r (tq_fl's height + distance at +-90 deg),
+  pr_l_lo / pr_r_lo, and high twins pr_l_hi / pr_r_hi / back_hi / tq_fr_hi / tq_bl_hi, rendered to out/doll + out/doll_plain.
+  (a) 8 FLUX.3 profile turns (new `_profile` words + reveal / keep), (b) 8 Qwen lows on them (round 31 low words),
+  (c) 20 Qwen highs on pr l / pr r / back / tq fr / tqb l (round 33 reveal + round 34 framing). 36 edits, ~33 min.
+  FIRST READ (agent, sheets + head crops):
+  - (a) PROFILE R 4/4 a clean right profile facing frame-right. PROFILE L WRONG SIDE 3/4: anime 111 + 222 and photo
+    111 face frame-RIGHT (the pr r picture again); only photo 222 faces frame-left. FLUX.3 ignored 'facing frame-left'.
+    The anime street keeps running away behind her (the 'runs across the frame' reveal did not take); photo fine.
+  - (b) PROFILE + LOW 8/8 a real ground-level worm's-eye (huge sneakers, sky + power lines / black studio ceiling +
+    softbox), the profile kept from the input, identity + style held.
+  - (c) HIGH 20/20 moves up, identity + style held, the anime street seen from above 10/10 (paving, kerb, shop bases),
+    size kept: back 4/4 strong; tq fr 4/4 (photo milder); tqb l 4/4; pr r 4/4 (photo 111 mild); pr l 4/4 high but
+    Qwen re-turned anime 111 to face frame-left (follows the ref) while photo 111 kept the wrong side.
+  - Read: every low/high cell works once the turn is right. Open: the FLUX.3 profile L turn - next try round 36 =
+    stage 2's ORBIT 'pr L' clauses ('only her left side shows', the one-sided details) on 4 seeds.
+  - CORRECTION to the round 35 read (full-size check): photo pr l faces frame-left 2/2 (not 1/2); anime pr l faces
+    frame-right 2/2.
+- 2026-10-25 ROUND 36, PROFILE L WITH STAGE 2's CLAUSES (`angles.py <port> blender36`, sheet
+  `research/sheets/mq_blender36_profile_l.jpg`): '_PR36_L' (strict left side profile, camera exactly 90 deg to her left,
+  only her left side shows, nose toward frame-left, back of her head toward frame-right), FLUX.3, seeds 111-444.
+  Photo 4/4 a clean left profile facing frame-left. ANIME 0/4 - frame-right again (with round 35: 0/6).
+- 2026-10-25 ROUND 37, ANIME PROFILE L - TWO ARMS (`angles.py <port> blender37`, sheet
+  `research/sheets/mq_blender37_profile_l_anime.jpg`): (a) Qwen-Image 2.1 on the source, plain pr_l ref, 111-444:
+  0/4 - frame-right too, and 3/4 drop the street for the ref's WHITE background; (b) FLUX.3 from its round-27 tq fl
+  cell: 0/2, frame-right.
+  MIRROR FINDING (agent, one-sided details: the anime woman and the photo woman both wear the WATCH on the LEFT wrist
+  and the BAG on the RIGHT hip): the anime 'pr l' cells show the watch arm nearest the view while facing frame-right -
+  a pose that cannot exist = a MIRROR IMAGE of a left profile. The same check flags the APPROVED anime round 27 tq fl
+  (watch near, faces frame-right) and round 25 anime tqb r 222 (bag frame-left from behind-right); anime back 111/222,
+  tqb l 111, tq fr 111 and pr r 111 pass; photo tq fl / tq fr / back / pr l / pr r pass, photo 24 tqb r 111 looks
+  mirrored (watch frame-right). Rounds 23-35 were graded on 'faces frame-X', never on the one-sided details, so a
+  mirrored cell passed. NEXT: grade every turn cell of rounds 24-37 for mirroring (watch + bag) before the spec
+  locks; the left-side anime turns look systematically mirrored.

@@ -29,6 +29,30 @@ for src, out, names in (('front_lo', 'lo', ('tq_fl', 'tq_br', 'tq_fr', 'tq_bl'))
         twin.rotation_euler = (base.rotation_euler.x, 0, a)
         twin.name = f'{name}_{out}'
         s.collection.objects.link(twin)
+# Round 35: the profile stops (eye-level pr_l / pr_r = tq_fl's height and distance at +-90 deg), their low and high
+# twins, and the high twins still missing (back, tq_fr, tq_bl).
+eye = bpy.data.objects['tq_fl']
+for name, deg in (('pr_l', 90), ('pr_r', -90)):
+    a = math.radians(deg)
+    d = math.hypot(eye.location.x, eye.location.y)
+    twin = eye.copy()
+    twin.data = eye.data.copy()
+    twin.location = (d * math.sin(a), -d * math.cos(a), eye.location.z)
+    twin.rotation_euler = (eye.rotation_euler.x, 0, a)
+    twin.name = name
+    s.collection.objects.link(twin)
+for src, out, names in (('front_lo', 'lo', ('pr_l', 'pr_r')),
+                        ('front_hi', 'hi', ('pr_l', 'pr_r', 'back_eye', 'tq_fr', 'tq_bl'))):
+    base = bpy.data.objects[src]
+    d = -base.location.y
+    for name in names:
+        a = bpy.data.objects[name].rotation_euler.z
+        twin = base.copy()
+        twin.data = base.data.copy()
+        twin.location = (d * math.sin(a), -d * math.cos(a), base.location.z)
+        twin.rotation_euler = (base.rotation_euler.x, 0, a)
+        twin.name = f'{name.replace("_eye", "")}_{out}'
+        s.collection.objects.link(twin)
 if plain:
     for name in ('floor', 'wall', 'wall_front'):
         bpy.data.objects[name].hide_render = True
