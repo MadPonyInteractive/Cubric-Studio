@@ -127,6 +127,7 @@ export const TOOL_DEFS = [
                     tileSize: { type: 'number', description: 'With tiles: one of params.tileSizes; smaller = more detail.' },
                     upscaleFactor: { type: 'number', description: 'One of params.upscaleFactors; 1 keeps the size and needs tiles.' },
                     transparent: { type: 'boolean', description: 'Where params.transparent: no background. Describe the subject alone.' },
+                    fastMotion: { type: 'boolean', description: 'Where params.fastMotion; the model guide says when.' },
                     boxes: { type: 'array', items: { type: 'object' }, description: 'Where params.boxes: [{ name, x, y, w, h, desc }], x, y the top-left, all 0-1 of the picture; cite a box as <name>.' },
                     styleSelect: { type: 'string' },
                     stylization: { type: 'number' },
@@ -1170,7 +1171,7 @@ export class AgentLoop {
         const batch = Number(pinned.batch) > 1 ? ` Each generate makes ${pinned.batch}, the panel's batch.` : '';
         const clip = pinned.duration ? ` The clip is ${pinned.duration} s long: time any shots inside it.` : '';
         const ratio = pinned.ratio ? ` The ratio is ${pinned.ratio}.` : '';
-        return `[Settings panel: the user has it OPEN, so the model, the operation and every setting (duration, quality, ratio, batch, turbo, style, tiles, tile size, upscale factor, no background) are THEIRS for this turn. You supply only the prompt and the media (reference images, videos, audio), and name the card. The model is "${pinned.modelId}" (${pinned.name}, ${pinned.mediaType})${op}; the operations it can run are: ${ops}. Use ${use} on every generate and send no duration, quality, ratio, batch, count, turbo, style, tiles, tileSize or upscaleFactor — yours are ignored.${batch}${clip}${ratio} Write the prompt for THIS model and operation. If they cannot do what the user asked, say so plainly, say what they do instead, and ask them to change the model or operation, or close the settings panel so you pick — never switch it yourself, and never pretend a different one ran.]`;
+        return `[Settings panel: the user has it OPEN, so the model, the operation and every setting (duration, quality, ratio, batch, turbo, style, tiles, tile size, upscale factor, no background, fast motion) are THEIRS for this turn. You supply only the prompt and the media (reference images, videos, audio), and name the card. The model is "${pinned.modelId}" (${pinned.name}, ${pinned.mediaType})${op}; the operations it can run are: ${ops}. Use ${use} on every generate and send no duration, quality, ratio, batch, count, turbo, style, tiles, tileSize, upscaleFactor or fastMotion — yours are ignored.${batch}${clip}${ratio} Write the prompt for THIS model and operation. If they cannot do what the user asked, say so plainly, say what they do instead, and ask them to change the model or operation, or close the settings panel so you pick — never switch it yourself, and never pretend a different one ran.]`;
     }
 
     /**
@@ -3736,7 +3737,7 @@ function _projectFileUrl(absPath) {
  * (defaulted)` for all five runs: the number was in its reply and never in the call. The result
  * only said "started", so nothing it read could contradict the claim.
  */
-const _SENT_KEYS = ['ratio', 'qualityTier', 'turbo', 'duration', 'denoise', 'styleSelect', 'stylization', 'seed', 'category', 'language', 'tiles', 'tileSize', 'upscaleFactor', 'transparent', 'boxes'];
+const _SENT_KEYS = ['ratio', 'qualityTier', 'turbo', 'duration', 'denoise', 'styleSelect', 'stylization', 'seed', 'category', 'language', 'tiles', 'tileSize', 'upscaleFactor', 'transparent', 'fastMotion', 'boxes'];
 
 /**
  * A generate call's own fields in the connector's words: `prompt` goes as `positive`, and a

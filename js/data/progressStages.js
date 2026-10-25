@@ -76,6 +76,8 @@ export const PROGRESS_STAGES = Object.freeze({
     // head differs (MpiH3References instead of the keyframe path). So a whole run is both
     // passes = 2 bars, and either half on its own is 1. Re-count for real if the tail ever
     // stops being shared — and mind the tqdm double-print noted above.
+    // MPI-1285: Fast Motion at a size up to native skips the upscale + refine, ONE bar;
+    // commandExecutor subtracts it per run (h3FastMotionOnePass), like single-pass above.
     'minimax_h3_r2va.json': Object.freeze({ single: 2, preview: 1, stage2: 1 }),
     // Text-to-image (SDXL family) — single-stage, verified 2 bars (load + sampler).
     // Upscalers/detailers NOT yet counted (UltimateSDUpscale has its own passes).

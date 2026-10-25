@@ -377,7 +377,7 @@
     },
     "class_type": "ModelAttentionBackend",
     "_meta": {
-      "title": "ModelAttentionBackend"
+      "title": "Model Attention Backend"
     }
   },
   "520": {
@@ -652,7 +652,7 @@
       "steps": 10,
       "denoise": 1,
       "model": [
-        "561",
+        "891",
         0
       ]
     },
@@ -684,7 +684,7 @@
   "562": {
     "inputs": {
       "model": [
-        "561",
+        "891",
         0
       ],
       "conditioning": [
@@ -723,7 +723,7 @@
       "steps": 25,
       "denoise": 1,
       "model": [
-        "561",
+        "891",
         0
       ]
     },
@@ -844,24 +844,19 @@
       "title": "Separate AV Latent"
     }
   },
-  "578": {
-    "inputs": {
-      "float": 2
-    },
-    "class_type": "MpiFloat",
-    "_meta": {
-      "title": "Upscale Factor"
-    }
-  },
   "582": {
     "inputs": {
-      "math_expression": "floor(floor(a / 16) * 16 * b / 32 + 0.5) * 32",
+      "math_expression": "b if c < 2 else 2 * a",
       "a": [
         "621",
         0
       ],
       "b": [
-        "578",
+        "623",
+        0
+      ],
+      "c": [
+        "883",
         0
       ]
     },
@@ -872,13 +867,17 @@
   },
   "583": {
     "inputs": {
-      "math_expression": "floor(floor(a / 16) * 16 * b / 32 + 0.5) * 32",
+      "math_expression": "b if c < 2 else 2 * a",
       "a": [
         "620",
         0
       ],
       "b": [
-        "578",
+        "622",
+        0
+      ],
+      "c": [
+        "883",
         0
       ]
     },
@@ -951,7 +950,7 @@
   "588": {
     "inputs": {
       "video_latent": [
-        "585",
+        "888",
         0
       ],
       "audio_latent": [
@@ -1004,7 +1003,7 @@
   "605": {
     "inputs": {
       "samples": [
-        "712",
+        "890",
         0
       ],
       "vae": [
@@ -1020,7 +1019,7 @@
   "606": {
     "inputs": {
       "samples": [
-        "712",
+        "890",
         0
       ],
       "vae": [
@@ -1055,28 +1054,44 @@
   },
   "620": {
     "inputs": {
-      "math_expression": "floor(a / 64) * 32",
+      "math_expression": "floor(a / 64) * 32 if c == 3 else (a if c == 0 else b)",
       "a": [
         "622",
+        0
+      ],
+      "b": [
+        "882",
+        0
+      ],
+      "c": [
+        "883",
         0
       ]
     },
     "class_type": "MpiMath",
     "_meta": {
-      "title": "floor(a/2)"
+      "title": "Stage 1 Height"
     }
   },
   "621": {
     "inputs": {
-      "math_expression": "floor(a / 64) * 32",
+      "math_expression": "floor(a / 64) * 32 if c == 3 else (a if c == 0 else b)",
       "a": [
         "623",
+        0
+      ],
+      "b": [
+        "881",
+        0
+      ],
+      "c": [
+        "883",
         0
       ]
     },
     "class_type": "MpiMath",
     "_meta": {
-      "title": "floor(a/2)"
+      "title": "Stage 1 Width"
     }
   },
   "622": {
@@ -1285,11 +1300,11 @@
         0
       ],
       "width": [
-        "582",
+        "884",
         0
       ],
       "height": [
-        "583",
+        "885",
         0
       ],
       "length": [
@@ -1376,11 +1391,11 @@
     "inputs": {
       "math_expression": "100000 if a * b < 850000 else (243 if a * b < 1100000 else (90 if a * b < 6000000 else 39))",
       "a": [
-        "582",
+        "884",
         0
       ],
       "b": [
-        "583",
+        "885",
         0
       ]
     },
@@ -1476,6 +1491,226 @@
     "class_type": "MpiUnpacker",
     "_meta": {
       "title": "Mpi Unpacker"
+    }
+  },
+  "880": {
+    "inputs": {
+      "boolean": false
+    },
+    "class_type": "MpiSimpleBoolean",
+    "_meta": {
+      "title": "Input_Fast_Motion"
+    }
+  },
+  "881": {
+    "inputs": {
+      "math_expression": "768 if a == b else ((1536 if a > 2.2 * b else 1344) if a > b else 768)",
+      "a": [
+        "623",
+        0
+      ],
+      "b": [
+        "622",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Base Width"
+    }
+  },
+  "882": {
+    "inputs": {
+      "math_expression": "768 if a == b else ((640 if a > 2.2 * b else 768) if a > b else 1344)",
+      "a": [
+        "623",
+        0
+      ],
+      "b": [
+        "622",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Base Height"
+    }
+  },
+  "883": {
+    "inputs": {
+      "math_expression": "(0 if a <= b else (1 if a <= 2 * b else 2)) if c else 3",
+      "a": [
+        "623",
+        0
+      ],
+      "b": [
+        "881",
+        0
+      ],
+      "c": [
+        "880",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Fast Motion Mode"
+    }
+  },
+  "884": {
+    "inputs": {
+      "math_expression": "b if c == 3 else a",
+      "a": [
+        "623",
+        0
+      ],
+      "b": [
+        "582",
+        0
+      ],
+      "c": [
+        "883",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Refine Width"
+    }
+  },
+  "885": {
+    "inputs": {
+      "math_expression": "b if c == 3 else a",
+      "a": [
+        "622",
+        0
+      ],
+      "b": [
+        "583",
+        0
+      ],
+      "c": [
+        "883",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Refine Height"
+    }
+  },
+  "886": {
+    "inputs": {
+      "model_name": "minimax_h3_latent_upscaler_3d_bf16.safetensors",
+      "mode": "target dimensions",
+      "align": 32,
+      "enable_temporal_chunking": true,
+      "force_unload": true,
+      "device": "cuda",
+      "precision": "bf16",
+      "latent": [
+        "585",
+        0
+      ],
+      "mode.width": [
+        "884",
+        0
+      ],
+      "mode.height": [
+        "885",
+        0
+      ]
+    },
+    "class_type": "MinimaxH3LatentUpscaler3D",
+    "_meta": {
+      "title": "Hop 2 Upscaler (Fast Motion 4K)"
+    }
+  },
+  "887": {
+    "inputs": {
+      "math_expression": "a == 2",
+      "a": [
+        "883",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Needs Hop 2"
+    }
+  },
+  "888": {
+    "inputs": {
+      "true": [
+        "886",
+        0
+      ],
+      "false": [
+        "585",
+        0
+      ],
+      "boolean": [
+        "887",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Mpi If Else"
+    }
+  },
+  "889": {
+    "inputs": {
+      "math_expression": "a == 0",
+      "a": [
+        "883",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "One Pass"
+    }
+  },
+  "890": {
+    "inputs": {
+      "true": [
+        "711",
+        0
+      ],
+      "false": [
+        "712",
+        0
+      ],
+      "boolean": [
+        "889",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Mpi If Else"
+    }
+  },
+  "891": {
+    "inputs": {
+      "selection": "sol-attn",
+      "selection.tau": 1.3,
+      "start_percent": 0.2,
+      "end_percent": 1,
+      "dense_blocks": "",
+      "min_tokens": 12288,
+      "extra_tokens": 256,
+      "sink_conditioning": "exact_kv_and_rows",
+      "verbose": false,
+      "model": [
+        "561",
+        0
+      ]
+    },
+    "class_type": "BlockSparseAttention",
+    "_meta": {
+      "title": "sol-attn"
     }
   }
 }

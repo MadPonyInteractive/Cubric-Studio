@@ -66,6 +66,11 @@ export const PROMPT_CONTROL_DEFAULTS = Object.freeze({
     // has to be the good one and speed is the opt-in. Krea2's turbo is a wash on
     // quality, which is why that one defaults ON.
     h3Turbo: false,
+    // MiniMax H3 Reference Fast Motion (Input_Fast_Motion, MPI-1285): off = today's
+    // half-size stage 1 + 2x upscale + refine. On = the scene is drawn at the native size
+    // (fast action survives; the half-size draft smeared it). Off by default: it is a
+    // per-scene call, and Cosmo turns it on for a launch, flight, chase or fight.
+    h3FastMotion: false,
     // No Background (MPI-1049, Qwen-Image 2.1): off, a background is what a picture has
     // unless the user asks otherwise. Stored perModel like the turbos.
     transparentBackground: false,

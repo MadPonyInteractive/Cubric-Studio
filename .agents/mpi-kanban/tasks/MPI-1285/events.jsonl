@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1285", "at": "2026-10-25T09:01:16+00:00", "actor": "H3 Singularity 6", "column": "todo", "title": "H3 Fast Motion control next to Turbo: skip the upscale route"}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1285", "at": "2026-10-25T17:30:25+00:00", "actor": "H3 Singularity 8", "fields": ["description", "title"], "reason": "Fabio: Singularity only under H3 Reference; MiniMax H3 stays (MPI-1135 Phase 1e)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1285", "at": "2026-10-25T19:45:42+00:00", "actor": "H3 Singularity 10", "from": "todo", "to": "doing", "reason": "Plan written; implementation starts (H3 Singularity 10)."}

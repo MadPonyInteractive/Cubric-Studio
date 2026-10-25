@@ -1024,7 +1024,8 @@ export const commands = {
         // IN as a reference chip and has no LTX-style audio switch (PromptBoxControls).
         // refImageSize dropped in MPI-687. h3Turbo: each DiT has its own 8-step distill,
         // the toggle is still shared (capability-gated, so LTX never mounts it).
-        components: ['audioMode', 'useAudio', 'qualityTier', 'duration', 'ratio', 'h3Turbo', 'previewStage'],
+        // h3FastMotion (MPI-1285): H3 Reference only, capability-gated the same way.
+        components: ['audioMode', 'useAudio', 'qualityTier', 'duration', 'ratio', 'h3Turbo', 'h3FastMotion', 'previewStage'],
         isMultiStage: true,
         // Finish-only, same call as the fl2va half: stage 2 resumes from the stage-1
         // latent, so a re-prompted branch could not honour the new prompt anyway.

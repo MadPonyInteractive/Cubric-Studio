@@ -1672,7 +1672,10 @@ const ALL_MODELS = [
         // MpiH3References. LTX's ref2v_ms uses the Ingredients sheet approach and has no
         // video slots and only one audio slot, so those slots are gated on this flag
         // (requiresCapability in ref2v_ms mediaInputs). (MPI-1060)
-        capabilities: { batch: false, multiStage: true, singleFileStages: true, audio: true, negativePrompt: false, h3TurboToggle: true, multiRefMedia: true },
+        // h3FastMotionToggle (MPI-1285): this card ONLY, never fl2va (Fabio). Arms the
+        // `h3FastMotion` button, which injects Input_Fast_Motion; the r2va graph does the
+        // routing (one pass up to the native size, base + upscale above it).
+        capabilities: { batch: false, multiStage: true, singleFileStages: true, audio: true, negativePrompt: false, h3TurboToggle: true, h3FastMotionToggle: true, multiRefMedia: true },
         // ponytail: the fl2va clip, on loan. A ref2va showcase has to wait for a run judged
         // on the CORRECT transformer — every r2va result before the 2026-08-07 re-export
         // came off the fl2va DiT and ignored its references, so no existing clip can be

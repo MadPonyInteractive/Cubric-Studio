@@ -13,7 +13,7 @@ import { MpiVoicePicker } from '../../Compounds/MpiVoicePicker/MpiVoicePicker.js
 import { MpiLoraRack } from '../../Compounds/MpiLoraRack/MpiLoraRack.js';
 import { MpiBoxesPanel } from '../../Compounds/MpiBoxesPanel/MpiBoxesPanel.js';
 import { getModelDepStatus, tierLetterFor } from '../../../data/modelRegistry.js';
-import { usesQualityTier } from '../../../utils/ratios.js';
+import { usesQualityTier, h3FastMotionOnePass } from '../../../utils/ratios.js';
 import { deriveInstalledOps } from '../../../data/modelConstants/resolveModelDeps.js';
 import { getSelectedOp } from '../../../utils/modelHelpers.js';
 import { PROMPT_BOX_CONTROLS, getInjectionParamsFromControls, visibleControlIds } from './PromptBoxControls.js';
@@ -2235,6 +2235,12 @@ export const MpiPromptBox = ComponentFactory.create({
         // MPI-1181: the open Boxes panel follows the ratio (shared) and custom size (model).
         _unsubs.push(Events.on('settings:model:update', _refreshBoxFrame));
         _unsubs.push(Events.on('settings:shared:update', _refreshBoxFrame));
+        // MPI-1285: Preview greys out on a Fast Motion one-pass size. Deferred a microtask:
+        // a tier change persists BEFORE `ratio:quality-change` re-tiers the ratio selector.
+        const _queueFastMotionPreview = () => queueMicrotask(_refreshFastMotionPreview);
+        for (const evt of ['prompt:h3-fast-motion', 'ratio:quality-change', 'settings:model:update', 'settings:shared:update']) {
+            _unsubs.push(Events.on(evt, _queueFastMotionPreview));
+        }
 
         // MPI-1181: the op strip and the media chips ride up on top of an open Boxes panel
         // (MpiPromptBox.css reads --boxes-h). A 0x0 rect is hidden, not resized.
@@ -2487,6 +2493,19 @@ export const MpiPromptBox = ComponentFactory.create({
             _refreshPriceTag();
         }
 
+        // MPI-1285: H3 Reference with Fast Motion on, at a size up to native, samples once
+        // at the target, so there is nothing for Preview to stop after. Same helper the
+        // run's bar count uses (commandExecutor), mirroring the r2va graph's routing.
+        function _fastMotionOnePass() {
+            if (_activeControls.get('h3FastMotion')?.getValue?.() !== true) return false;
+            const dims = _activeControls.get('ratio')?.getInjectionParams?.() || {};
+            return h3FastMotionOnePass(dims.Width, dims.Height);
+        }
+
+        function _refreshFastMotionPreview() {
+            _activeControls.get('previewStage')?._instance?.setDisabled?.(_fastMotionOnePass());
+        }
+
         function _refreshOpSlot() {
             if (!opSlot) return;
             for (const ctrl of new Set([..._activeControls.values(), ..._parkedSize.values()])) {
@@ -2517,6 +2536,7 @@ export const MpiPromptBox = ComponentFactory.create({
             }
             _applyCustomSize();
             _syncBoxes();
+            _refreshFastMotionPreview();
 
             // The wipe above detached the "?" — re-append it LAST so it lands on
             // the final wrapped line of the control row (margin-left:auto pins it
@@ -2986,7 +3006,9 @@ export const MpiPromptBox = ComponentFactory.create({
             if (_guideOnT2i()) injectionParams.Layout_Guide = _boxesGuide;
             const previewCtrl = _activeControls.get('previewStage');
             const historyMode = _context.historyMode === true;
-            const previewOnly = !historyMode && previewCtrl?.getValue?.() === true;
+            // A Fast Motion one-pass size has no stage 1 to preview (MPI-1285): the greyed
+            // button may still hold its saved ON, so the run ignores it here.
+            const previewOnly = !historyMode && previewCtrl?.getValue?.() === true && !_fastMotionOnePass();
             return {
                 operation:  activeOperation,
                 // MPI-677 step 1c — THE APPROVED ENHANCEMENT IS WHAT RUNS, and the box

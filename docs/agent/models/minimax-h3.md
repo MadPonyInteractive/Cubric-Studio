@@ -25,6 +25,13 @@ guide:
 ## Settings
 
 - Recommend turbo on: the non-turbo path has come back undercooked in real use.
+- Fast Motion (`fastMotion`, `ref2v_ms` on `minimax-h3-ref2va` only; `minimax-h3` has
+  none): set it `true` yourself, without asking, whenever the clip has fast action: a
+  launch or take-off, a flight, a chase, a fight, a crash, a sprint. One fast beat is
+  enough, so "he speaks, then flies off" counts. It draws the action at full size; with it
+  off, the action is drawn at half size and upscaled, which smears fast motion. Leave it off
+  for talking, walking and slow camera work. In Ask mode too: it follows the scene, not a
+  taste, so it is not a setting to ask about. Say in one line that you turned it on.
 - `qualityTier`: in Auto mode use `medium`. A face that is small in the frame needs
   pixels: go a tier higher, or frame closer, before blaming the prompt.
 - Ratios: `16:9`, `9:16`, `1:1`, `21:9`. The clip length comes from the project's

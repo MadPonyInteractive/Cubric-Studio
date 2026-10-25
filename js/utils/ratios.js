@@ -454,6 +454,26 @@ export const MINIMAX_H3_RATIOS = {
     ]
 };
 
+/**
+ * Does a MiniMax H3 Reference Fast Motion run at this size draw in ONE pass (MPI-1285)?
+ *
+ * A copy of the r2va graph's `Base Width` + `Fast Motion Mode` MpiMath nodes, which do
+ * the real routing: the native base is the `medium` cell of the target's shape (768x768,
+ * 1344x768, 768x1344, 1536x640), and a target no wider than it is sampled once at its
+ * own size, with no upscale and no refine. So there is no stage 1 to preview and the run
+ * is one progress bar, not two. Bigger targets start at the base and upscale.
+ * tests/h3-fast-motion.test.cjs holds this and the graph's expressions together.
+ * @param {number} width
+ * @param {number} height
+ * @returns {boolean}
+ */
+export function h3FastMotionOnePass(width, height) {
+    const w = Number(width), h = Number(height);
+    if (!(w > 0 && h > 0)) return false;
+    const baseW = w === h ? 768 : (w > h ? (w > 2.2 * h ? 1536 : 1344) : 768);
+    return w <= baseW;
+}
+
 // Krea2 (MPI-242) — the first model keyed by BOTH quality tier and orientation
 // (RATIO_MODES.krea2 === 'quality-orientation'). Tier picks the resolution class,
 // orientation picks the framing, so `1:1` means 1024² at 1k and 1472² at 2k.

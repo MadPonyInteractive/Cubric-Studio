@@ -1455,7 +1455,47 @@ export const PROMPT_BOX_CONTROLS = {
     },
 
     /**
-     * customSize — Custom size button on a source-sized op (`sizeOptIn`, edit) for a model
+     * h3FastMotion — MiniMax H3 Reference Fast Motion (MPI-1285), beside Turbo. Injects
+     * `Input_Fast_Motion`; the r2va graph routes on it (docs/models/h3/ref2va.md § Fast
+     * Motion): up to the native size the scene is drawn once at the target, above it the
+     * native base is upscaled. Emits `prompt:h3-fast-motion` so MpiPromptBox can grey out
+     * Preview on a one-pass size. perModel, like the turbos.
+     */
+    h3FastMotion: {
+        nodeTitle: 'Input_Fast_Motion',
+        scope: 'perModel',
+        defaultValue: PROMPT_CONTROL_DEFAULTS.h3FastMotion,
+        mount(hostEl, opts = {}) {
+            const saved = _readSaved(this, opts);
+            const fallback = _resolveDefault(this, 'h3FastMotion', opts);
+            const initial = typeof saved.h3FastMotion === 'boolean' ? saved.h3FastMotion : !!fallback;
+            this.value = initial;
+
+            this._instance = MpiButton.mount(hostEl, {
+                icon: 'fast_motion_stroke',
+                info: 'Fast Motion — for launches, chases and fights: draws the action at full size instead of upscaling a smaller draft',
+                size: 'sm',
+                variant: 'primary',
+                toggleable: true,
+                active: initial,
+            });
+
+            this._instance.on('click', ({ active }) => {
+                this.value = !!active;
+                _emitUpdate(this, opts, 'h3FastMotion', !!active);
+                Events.emit('prompt:h3-fast-motion', { active: !!active });
+            });
+        },
+        getValue() {
+            return this.value ?? this.defaultValue;
+        },
+        getInjectionParams() {
+            return { Input_Fast_Motion: !!(this.value ?? this.defaultValue) };
+        },
+    },
+
+    /**
+     * customSize —Custom size button on a source-sized op (`sizeOptIn`, edit) for a model
      * naming it in `customSizeOps` (MPI-1181, FLUX.3 Klein). Injects `Input_custom_size`.
      * OFF (default) = the edit follows reference 1's frame; ON = the ratio + tier picker
      * sets it. MpiPromptBox parks those two controls while it is off (hidden AND not
@@ -2299,6 +2339,8 @@ export function visibleControlIds(model, operation, ctx = {}) {
         // in default, in storage key, and in whether they touch the negative prompt.
         // Declared on both H3 cards; every other model leaves it unset and hides it.
         if (id === 'h3Turbo' && model?.capabilities?.h3TurboToggle !== true) return false;
+        // H3 Reference only (MPI-1285): MiniMax H3 shares the op list shape but not this.
+        if (id === 'h3FastMotion' && model?.capabilities?.h3FastMotionToggle !== true) return false;
 
         // Batch picker is model-gated. Defaults TRUE (every model batches
         // unless it opts out), like negativePrompt. Krea2-Turbo opts out:

@@ -145,6 +145,8 @@ export const ICONS = {
     // Stroke-only (fill="none"); fills the 24×24 grid like sibling rail icons
     // (x3 y3 w18 h18) so it doesn't render visually smaller.
     'to_gif_stroke': '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 8h18"/><path d="M7 3v5M17 3v5"/><path d="M10 11l5 3-5 3v-6z"/>',
+    // H3 Reference Fast Motion (MPI-1285): speed lines trailing a forward chevron.
+    'fast_motion_stroke': '<path d="M2 7h7M4 12h8M2 17h7"/><path d="M14 5l7 7-7 7"/>',
 
     // ── Prompt mode (from toolUtils.js) ──────────────────────────────────────
     // 'check' already covers ICON_POSITIVE. Adding negative/prohibited:

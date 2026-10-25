@@ -44,6 +44,7 @@ import { runTileCount } from '../utils/tileCount.js';
 import { generationStore, PHASES } from './generationStore.js';
 import { settleInGraphEnhance } from './llmService.js';
 import { cloudEditPass1, cloudEditPass2, CLOUD_RESULT_TITLE } from '../utils/cloudEditGraph.js';
+import { h3FastMotionOnePass } from '../utils/ratios.js';
 
 // Adapters over the shared js/utils/comfyOutputUrls.js (MPI-176). MPI-74: a
 // force-local run's output lives on LOCAL ComfyUI — build the /view URL against
@@ -2112,8 +2113,17 @@ export function runCommand(payload) {
             _paramIsTrue(params, 'Input_Single_Pass')
             && Object.values(workflow).some((n) => n?._meta?.title === 'Input_Single_Pass')
         ) ? -1 : 0;
+        // H3 Reference Fast Motion at a size up to native samples once and skips the
+        // upscale + refine (MPI-1285): one bar where the table records two. Gated on the
+        // graph carrying the switch, the same way as single-pass above.
+        const _fastMotionBars = (
+            _stageMode === 'single'
+            && _paramIsTrue(params, 'Input_Fast_Motion')
+            && h3FastMotionOnePass(params.Width ?? params.Input_Width, params.Height ?? params.Input_Height)
+            && Object.values(workflow).some((n) => n?._meta?.title === 'Input_Fast_Motion')
+        ) ? -1 : 0;
         const stageProgress = createStageProgress({
-            stages: (await _tileStages(params)) || stagesFor(workflowFile, _stageMode, _enhanceBars + _singlePassBars),
+            stages: (await _tileStages(params)) || stagesFor(workflowFile, _stageMode, _enhanceBars + _singlePassBars + _fastMotionBars),
             postTileBars: postTileBarsFor(workflowFile),
         });
 

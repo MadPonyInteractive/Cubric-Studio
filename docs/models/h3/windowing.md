@@ -34,6 +34,9 @@ titled `Window Frames` that reads the two wires already feeding
 `a` and `b` are the **stage-2 target** dimensions, not `Input_Width`/`Input_Height`, so
 the tier folds in `Upscale Factor` automatically and is orientation-independent (a
 portrait and a landscape 2K are the same token count and get the same plan).
+**r2va since MPI-1285:** it reads `Refine Width/Height`, the refine canvas in every Fast
+Motion mode, and `Upscale Factor` is gone (hop 1 is computed per mode); with the switch off
+the numbers are the ones above ([fast-motion.md](fast-motion.md)).
 
 | stage-2 output | MP | ceiling | 5 s (124f) | 10 s (243f) |
 |---|---|---|---|---|

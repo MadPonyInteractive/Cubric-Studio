@@ -81,6 +81,7 @@ function _settingRows(item) {
     const ratio = inj.Ratio_Label ?? gs.controlState?.shared?.ratioSelector?.selectedRatio;
     if (ratio) rows.push({ label: 'Ratio', value: String(ratio) });
     if (typeof inj.Input_is_Turbo === 'boolean') rows.push({ label: 'Turbo', value: inj.Input_is_Turbo ? 'On' : 'Off' });
+    if (typeof inj.Input_Fast_Motion === 'boolean') rows.push({ label: 'Fast Motion', value: inj.Input_Fast_Motion ? 'On' : 'Off' });
     const styleIdx = inj['Input_Style_Selector.selector'];
     const styleName = getModelById(item.modelId || gs.modelId)?.styleLoraLabels?.[styleIdx];
     if (styleName) {

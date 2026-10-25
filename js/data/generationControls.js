@@ -273,12 +273,21 @@ export function namedParamsFor(model, operation) {
         ...(modelShowsTiles(model, operation) ? { tiles: true, tileSizes: [...TILE_SIZES] } : {}),
         // No Background (MPI-1049): a transparent result, where the model can make one.
         ...(modelShowsTransparent(model, operation) ? { transparent: true } : {}),
+        // Fast Motion (MPI-1285): H3 Reference draws a fast-action scene at full size.
+        ...(modelShowsFastMotion(model, operation) ? { fastMotion: true } : {}),
         // An edit whose size sits behind the Custom size button (`customSizeOps`, MPI-1181/1207): ratio and
         // qualityTier are optional there, and leaving both out keeps reference 1's own frame (resolveNamedParams).
         ...(modelShowsCustomSize(model, operation) ? { customSize: true } : {}),
         // Boxes (MPI-1181): where things go in the frame, the PromptBox Boxes panel's list.
         ...(modelTakesBoxes(model, operation) ? { boxes: true } : {}),
     };
+}
+
+// ── Fast Motion (MPI-1285) ───────────────────────────────────────────────────
+
+/** Does `operation` on `model` carry Fast Motion? The op's control AND the model's flag (H3 Reference only). */
+export function modelShowsFastMotion(model, operation) {
+    return getCommandComponents(operation).includes('h3FastMotion') && model?.capabilities?.h3FastMotionToggle === true;
 }
 
 // ── No Background (MPI-1049) ─────────────────────────────────────────────────
@@ -551,7 +560,7 @@ export function isValidSeed(value) {
  *            provenance:Object<string,{from:'asked'|'defaulted', value:*}>}|{ok:false, code:string, message:string}}
  */
 export function resolveNamedParams(project, model, operation, named = {}) {
-    const { ratio, qualityTier, turbo, styleSelect, stylization, duration: durationWanted, denoise: denoiseWanted, batch, category, language, tiles, tileSize, upscaleFactor, transparent, boxes: askedBoxes } = named;
+    const { ratio, qualityTier, turbo, styleSelect, stylization, duration: durationWanted, denoise: denoiseWanted, batch, category, language, tiles, tileSize, upscaleFactor, transparent, fastMotion, boxes: askedBoxes } = named;
     const injectionParams = {};
     const modelName = model?.name || model?.id || 'this model';
     const provenance = {};
@@ -775,6 +784,19 @@ export function resolveNamedParams(project, model, operation, named = {}) {
         injectionParams.Transparent_Background = transparent
             ?? getModelSettings(project || {}, model?.id).transparentBackground === true;
         _from('transparent', transparent !== undefined, injectionParams.Transparent_Background);
+    }
+
+    // Fast Motion (MPI-1285). Same ladder: asked, else the model's saved value, else off.
+    const showsFastMotion = modelShowsFastMotion(model, operation);
+    if (fastMotion !== undefined && (typeof fastMotion !== 'boolean' || !showsFastMotion)) {
+        return _err('INVALID_FAST_MOTION', showsFastMotion
+            ? 'fastMotion must be a boolean.'
+            : `${modelName} has no Fast Motion on "${operation}".`);
+    }
+    if (showsFastMotion) {
+        injectionParams.Input_Fast_Motion = fastMotion
+            ?? getModelSettings(project || {}, model?.id).h3FastMotion === true;
+        _from('fastMotion', fastMotion !== undefined, injectionParams.Input_Fast_Motion);
     }
 
     // Boxes (MPI-1181), the panel's `{ x, y, w, h, desc, name }` in fractions of the output

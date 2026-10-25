@@ -25,7 +25,8 @@ clips) is a SEPARATE card, `minimax-h3-ref2va` — a different transformer file 
 repo, sharing this card's encoder and both VAEs. It has its own doc:
 [ref2va.md](ref2va.md), which carries the 2026-08-07 judged results, the slot-numbered
 prompt tags, and why a good-looking ref2va clip off the WRONG transformer is not
-evidence of anything.
+evidence of anything. Its Fast Motion switch (ref2va only, MPI-1285) and the sol-attn
+patch: [fast-motion.md](fast-motion.md).
 
 ## Licence — the constraint that outranks the technical work
 

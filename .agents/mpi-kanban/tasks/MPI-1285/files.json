@@ -1,0 +1,32 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "comfy_workflows/raw/minimax_h3_r2va_template.json",
+    "comfy_workflows/scripts/workflow_generation/minimax_h3_r2va_template.json",
+    "comfy_workflows/minimax_h3_r2va.json",
+    "js/data/modelConstants/models.js",
+    "js/components/Organisms/MpiPromptBox/PromptBoxControls.js",
+    "js/components/Organisms/MpiPromptBox/MpiPromptBox.js",
+    "js/data/commandRegistry.js",
+    "js/data/promptControlDefaults.js",
+    "js/data/generationControls.js",
+    "js/data/progressStages.js",
+    "js/data/routineModel.js",
+    "js/utils/icons.js",
+    "js/utils/ratios.js",
+    "js/utils/entryInfo.js",
+    "js/utils/promptReuse.js",
+    "js/services/commandExecutor.js",
+    "js/shell/agentDispatch.js",
+    "routes/connector.js",
+    "routes/mcp.js",
+    "services/agentLoop.mjs",
+    "docs/agent/models/minimax-h3.md",
+    "docs/models/h3/ref2va.md",
+    "docs/models/h3/windowing.md",
+    "tests/h3-fast-motion.test.cjs",
+    "docs/models/h3/fast-motion.md",
+    "docs/models/h3/README.md",
+    "tests/agent-prompt-budget.test.cjs"
+  ]
+}
