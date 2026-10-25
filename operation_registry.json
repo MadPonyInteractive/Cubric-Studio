@@ -187,6 +187,11 @@
     "appVersionIntroduced": "2.1.2",
     "universal": true
   },
+  "flowMultiAngle": {
+    "latestVersion": "1.0",
+    "appVersionIntroduced": "2.1.2",
+    "universal": true
+  },
   "flowCharacterSheet": {
     "latestVersion": "1.0",
     "appVersionIntroduced": "2.0.0",

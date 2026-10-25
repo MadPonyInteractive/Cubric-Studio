@@ -43,6 +43,7 @@ import { MpiButton } from '../components/Primitives/MpiButton/MpiButton.js';
 import { MpiProgressBar } from '../components/Primitives/MpiProgressBar/MpiProgressBar.js';
 import { MpiInput } from '../components/Primitives/MpiInput/MpiInput.js';
 import { MpiDropdown } from '../components/Primitives/MpiDropdown/MpiDropdown.js';
+import { MpiAngleGizmo } from '../components/Compounds/MpiAngleGizmo/MpiAngleGizmo.js';
 import { renderIcon } from './icons.js';
 import { attachMentionPicker } from './mentionPicker.js';
 import { clientLogger } from '../services/clientLogger.js';
@@ -713,7 +714,8 @@ export function buildField(f, cur, onChange, unsubs, opts = {}) {
     // field, so the wrapper forwards a click on the caption into it. A `toggle` is a
     // `<button>`, and a label wrapping a button re-fires the click — the toggle would
     // flip and flip back on one press. That type gets a plain div.
-    const wrap = ce(f.type === 'toggle' ? 'div' : 'label', { className: cls('field') });
+    // `angle` too: a label would forward a click on its preview into the first slider.
+    const wrap = ce(f.type === 'toggle' || f.type === 'angle' ? 'div' : 'label', { className: cls('field') });
     // `inline` lays the caption and the control on ONE row — caption left, control
     // right — instead of stacking them. A `number` is what asks for it: stacked, a
     // three-digit BPM gets a full-width box with room for trillions (Fabio,
@@ -1120,6 +1122,14 @@ export function buildField(f, cur, onChange, unsubs, opts = {}) {
         // what the control displays.
         if (!Array.isArray(cur) && rows.length) onChange(rows);
         wrap.appendChild(list);
+    } else if (f.type === 'angle') {
+        // Multi-angle's camera picker (MPI-1039): a small Cosmo over Turn / Height / Zoom
+        // sliders, ONE value { turn, height, zoom }. A Compound, not a new Primitive: it
+        // composes three MpiProgressBars around a preview picture.
+        const host = ce('div');
+        const inst = MpiAngleGizmo.mount(host, { value: cur, onChange });
+        unsubs.push(() => inst?.el?.destroy?.());
+        wrap.appendChild(host);
     } else {
         clientLogger.warn('declaredFields', `unknown field type "${f.type}" — skipping`);
         return null;

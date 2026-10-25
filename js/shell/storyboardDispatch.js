@@ -28,6 +28,7 @@ import { flowModelIds } from '../data/flowsRegistry.js';
 import { MODELS } from '../data/modelConstants/models.js';
 import { COMMANDS } from '../data/commandRegistry.js';
 import { resolveTurboControlId } from '../data/generationControls.js';
+import { runMultiAngleFlow } from './multiAngleDispatch.js';
 
 /**
  * How many pictures the model's edit takes: the edit op's slots its capabilities open
@@ -193,4 +194,5 @@ async function runStoryboardFlow(flow, inputs) {
 /** Driver id (a FlowDef's `driver`) -> what Generate runs instead of the Flow's op. */
 export const FLOW_DRIVERS = {
     storyboard: runStoryboardFlow,
+    multiAngle: runMultiAngleFlow,
 };

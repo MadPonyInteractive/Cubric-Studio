@@ -12,7 +12,7 @@
  */
 
 import { runMultiAngle } from '../services/multiAngleRunner.js';
-import { MULTI_ANGLE_DESCRIBE_ASK, FLUX3 } from '../data/flowPrompts/multiAngle.js';
+import { MULTI_ANGLE_DESCRIBE_ASK, MULTI_ANGLE_LABELS, FLUX3 } from '../data/flowPrompts/multiAngle.js';
 import { enqueueGeneration } from '../services/generationService.js';
 import { describeImage } from '../services/llmService.js';
 import { clientLogger } from '../services/clientLogger.js';
@@ -21,15 +21,11 @@ import { state } from '../state.js';
 import { buildGeneration, nameCard } from './agentDispatch.js';
 import { landingOpts } from './routineDispatch.js';
 
-const TURN_LABEL = {
-    front: 'front', tq_fl: '3/4 front left', tq_fr: '3/4 front right', pr_l: 'profile left', pr_r: 'profile right',
-    tq_bl: '3/4 back left', tq_br: '3/4 back right', back: 'back',
-};
-const HEIGHT_LABEL = { lo: 'low', hi: 'high' };
-
 /** The card's name: the camera it shows. */
 function _name(pick) {
-    const parts = [TURN_LABEL[pick.turn] || 'front', HEIGHT_LABEL[pick.height], pick.zoom].filter(Boolean);
+    const { turn, height, zoom } = MULTI_ANGLE_LABELS;
+    const parts = [turn[pick.turn] || turn.front, pick.height !== 'level' && height[pick.height],
+        pick.zoom && zoom[pick.zoom]].filter(Boolean);
     return `Multi-angle · ${parts.join(', ')}`;
 }
 
@@ -99,8 +95,9 @@ function _summary(name, out) {
 /**
  * Generate on the Multi-angle Flow.
  * @param {Object} flow - the FlowDef
- * @param {Object} inputs - the frame's inputs: `turn`, `height`, `zoom` (a target rung, or none),
- *   `outfitWords`, `mediaItems` (`inputImage` the person, optional `inputImage2` the outfit picture)
+ * @param {Object} inputs - the frame's inputs: `angle` (the gizmo's { turn, height, zoom: a target rung
+ *   or 'none' }), `outfitWords`, `mediaItems` (`inputImage` the person, optional `inputImage2` the outfit
+ *   picture)
  * @returns {Promise<boolean>} true once the chain has started
  */
 export async function runMultiAngleFlow(flow, inputs) {
@@ -111,7 +108,14 @@ export async function runMultiAngleFlow(flow, inputs) {
     }
     const media = inputs.mediaItems || [];
     const url = role => media.find(m => m?.role === role && m.url && m.mediaType === 'image')?.url;
-    const pick = { turn: inputs.turn, height: inputs.height, zoom: inputs.zoom && inputs.zoom !== 'none' ? inputs.zoom : null };
+    // An untouched gizmo has reported nothing: it SHOWS front, eye level, as in the picture.
+    const angle = inputs.angle || {};
+    const pick = { turn: angle.turn || 'front', height: angle.height || 'level',
+        zoom: angle.zoom && angle.zoom !== 'none' ? angle.zoom : null };
+    if (pick.turn === 'front' && pick.height === 'level' && !pick.zoom) {
+        StatusBar.notify('Pick a new view first: move Turn, Height or Zoom.', 'warning');
+        return false;
+    }
     const outfitWords = String(inputs.outfitWords || '').trim();
     const name = _name(pick);
     const run = await runMultiAngle({ source: url('inputImage'), pick, outfit: { words: outfitWords, url: url('inputImage2') } },

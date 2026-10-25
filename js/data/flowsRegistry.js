@@ -3115,6 +3115,54 @@ const ALL_FLOWS = [
             { id: 'turbo', type: 'toggle', label: 'Turbo', icon: 'bolt', default: true, hiddenWhen: { modelNot: 'flux3-klein' } },
         ],
     },
+    {
+        // MPI-1039: one picture of a person, the same person seen from another camera - turned
+        // round, from low or high, closer or further - in the same place and style. Dev-gated
+        // until it ships. No graph and no op of its own: `driver` hands Generate to
+        // `js/shell/multiAngleDispatch.js`, which describes the picture once and runs 1-3
+        // ordinary edits on ONE card (multiAngleRunner.js), each its own queue row. The words are
+        // the bench's (js/data/flowPrompts/multiAngle.js); the stops are only the benched ones.
+        id: 'multi-angle',
+        devOnly: true,
+        driver: 'multiAngle',
+        title: 'Multi-angle',
+        // No `preview` until phase 5's /mpi-flow-graphics: the tile shows its placeholder.
+        description: 'See the person in a picture from another camera angle: turned round, from low down or from above, closer or further away, in the same place and style. Each new view lands as its own picture, ready to edit like any other. To zoom out from a close-up, add a character sheet of the same person, or say what the rest of their outfit is, so the clothes you cannot see come out right.',
+        // FLUX.3 Klein turns and lifts the front; Qwen-Image 2.1 makes every low and every height
+        // on a turned view (flow-spec.md § Which model runs each stop). Qwen is OPTIONAL: without
+        // it the gizmo offers only the stops FLUX.3 runs alone (`multiAngleChoices`).
+        requiredModels: [
+            { label: 'Turn model', models: ['flux3-klein'] },
+            { label: 'Height model (optional)', models: ['qwen-image-2-1'], optional: true },
+        ],
+        // Never dispatched: it carries the two slots (commandRegistry.js).
+        operation: 'flowMultiAngle',
+        // The new view is a visual pick on the gizmo: Cosmo opens the Flow at Generate for the user.
+        agentOpens: 'run',
+        mediaType: 'image',
+        type: 'edit',
+        inputSchema: {
+            media: [
+                { type: 'image', mode: 'upto', max: 1, roles: ['inputImage'], labels: ['The person'] },
+                { type: 'image', mode: 'upto', max: 1, roles: ['inputImage2'],
+                    labels: ['Whole outfit (optional)\na character sheet or turnaround of the same person'] },
+            ],
+        },
+        fields: [
+            {
+                // The camera picker: a small Cosmo over Turn / Height / Zoom sliders, on the Generate
+                // slide (Fabio, 2026-10-25: no step of its own). Its value is { turn, height, zoom }.
+                id: 'angle', type: 'angle', label: 'New view',
+            },
+            {
+                // Read only by a zoom out from a close-up (rounds 46-47): the rest of the outfit
+                // the picture does not show.
+                id: 'outfitWords', type: 'text', rows: 2, label: 'Rest of the outfit (optional)',
+                placeholder: 'e.g. faded blue jeans and white trainers',
+                info: 'Only used when you zoom out from a close-up: what the picture does not show of their clothes.',
+            },
+        ],
+    },
 ];
 
 /** @type {FlowDef[]} Every Flow a user can see. A `devOnly` entry exists in source runs only. */

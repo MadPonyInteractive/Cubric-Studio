@@ -302,6 +302,31 @@ lowReveal / frontLowReveal / highReveal / turnReveal / details as a sentence or 
 `tests/multi-angle-prompts.test.cjs` rebuilds 57 bench cells word for word from the bench woman's facts (fixture
 `tests/fixtures/multi-angle-bench-prompts.json`, written by `research/accepted_prompts.py`), plus routing, outfit
 inputs, refusals, a 'they' subject. Zoom ladder added to flow-spec.md.
+HANDOFF 2026-10-25 (end of "Flux 3 on flows 27"): FABIO EYE TEST PASSED on the small gizmo ("the UI is fine"). ONE fix
+left: REMOVE the gizmo's note under the sliders (`angleNote` + `__note` in MpiAngleGizmo) - it pops in/out and resizes
+the column (snaps); zoom gets opened up by two-pass benching, so the note goes. Then r50 (zoom ladder on the 6
+untested turned views, Qwen pass after the FLUX.3 turn, ~48 edits ~32 min GPU - ask Fabio first), then widen
+BENCHED_ZOOM + ZOOM_KEPT. SOFT COSMO PREVIEWS (Fabio wants a lit 3D toy look like his FLUX.3 render): research/blender/
+soft_build.py (restyle out/cosmo_previews.blend -> out/cosmo_soft.blend), soft_render.py (CPU default; key light per
+camera), soft_tex.py (flood-fill outline + pink cut-out of the decals -> cosmo_tex/*_soft.png; latest version NOT run
+yet). First render out/cosmo_soft/front.png: right shape, but WASHED OUT - lower world (0.35) and fill, try Standard
+or AgX Punchy, then point the decal materials at *_soft.png. Ship with ship_assets.py once Fabio approves the look.
+FABIO 2026-10-25 (after the first look): NO Angle step - the gizmo goes SMALL on the Generate slide. Done except one
+piece: it is now field type `angle` = `js/components/Compounds/MpiAngleGizmo/` (the Organism/step kind is deleted,
+stepKinds.js back to clean, driver reads `inputs.angle`, agentOpens 'run'). DONE 2026-10-25 (after e7593e3e6): the `else if (f.type === 'angle')`
+branch in `js/utils/declaredFields.js` buildField (wrap as a div like toggle, mount MpiAngleGizmo with { value: cur,
+onChange }, push its destroy into unsubs) - LTX 2.5 model 18 said yes but WAIT for its MPI-1287 commit (it ships the
+whole file; my import must not ride along). Until then the field renders nothing. Fabio also asked: zoom on turned
+views - see validation.md r41-44/r49: two-step (turn on FLUX.3, zoom on Qwen) WORKS (r42 in/out 8/8 on tq fl + tqb r;
+r44 tq fl face 4/4); only tq fl + tqb r were ever run, so the ladder words exist only for front + tqb r. Proposed r50.
+Cosmo re-render by Fabio: cameras in research/blender/out/cosmo_previews.blend, ship via research/blender/ship_assets.py.
+PHASE 4 BUILT, AWAITING FABIO'S EYE TEST (2026-10-25, session "Flux 3 on flows 27", detail in validation.md):
+FlowDef `multi-angle` (devOnly, driver 'multiAngle' in FLOW_DRIVERS), slots-only op `flowMultiAngle`, step kind
+`angle` = `js/components/Organisms/MpiStepAngle/` (Cosmo preview + Turn/Height/Zoom sliders; Turn = full turn,
+front in the middle - Fabio's yes). Stop table + `multiAngleChoices` in multiAngle.js. Tests green, live-checked in an
+isolated app (no GPU run yet). NOT COMMITTED. NEXT: Fabio's eye test -> commit (blob-stage flowsRegistry.js:
+LTX 2.5 model 18 has uncommitted lines there) -> phase 5. Gotcha: an isolated instance caches modules per port, and
+a peer mid-edit can leave the tree unbootable - restart on a new port to see edits.
 PHASE 3 ROUTE TEST + LIVE DESCRIBER DONE (2026-10-25, session "Flux 3 on flows 26", detail in validation.md):
 `tests/multi-angle-ref-route.test.cjs` 3/3, full suite green. Live describer (DeepInfra gemma-4-26B, `/llm/describe`
 with profileId 'deepinfra' + the DEEPINFRA_API_KEY env in the isolated app - no renderer needed; script
@@ -467,7 +492,8 @@ Phases:
 - [ ] Stage 1 (face, 9 runs) + Fabio's eye test
 - [ ] Stage 2 full body, stage 3 rooms
 - [x] Decide: Flow or not - spec APPROVED 2026-10-25
-- [ ] Flow build phases 1-5 above - 1 (refs + previews) and 2 (prompt builder) done 2026-10-25; 3-5 open
+- [ ] Flow build phases 1-5 above - 1-3 done 2026-10-25; 4 built, eye test pending; 5 open
+- [ ] "All angles" (every stop in one press, flow-spec.md) - not built; phase 5 or later
 
 ## Completed
 

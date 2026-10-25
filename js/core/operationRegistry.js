@@ -80,6 +80,8 @@ export const OPERATION_REGISTRY = {
     flowLtxFoley: { latestVersion: '1.0', appVersionIntroduced: '1.4.2' },
     // MPI-1231 Storyboard: slots only, never dispatched (commandRegistry.js); dev-gated.
     flowStoryboard: { latestVersion: '1.0', appVersionIntroduced: '2.1.2' },
+    // MPI-1039 Multi-angle: slots only, never dispatched (commandRegistry.js); dev-gated.
+    flowMultiAngle: { latestVersion: '1.0', appVersionIntroduced: '2.1.2' },
     // MPI-504 — the Character Sheet flow and the text-only prompt enhancer any flow can
     // call. Flows first shipped in 2.0.0, so the flow keys below are stamped 2.0.0.
     flowCharacterSheet: { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },

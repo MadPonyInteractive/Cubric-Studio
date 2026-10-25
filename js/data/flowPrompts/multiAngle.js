@@ -39,6 +39,51 @@ export const BENCHED_ZOOM = {
     tq_br: ['hs'],
 };
 
+/** What the user reads for each stop: the gizmo's readouts and the card's name. */
+export const MULTI_ANGLE_LABELS = {
+    turn: {
+        front: 'Front', tq_fl: '3/4 front left', tq_fr: '3/4 front right', pr_l: 'Profile left', pr_r: 'Profile right',
+        tq_bl: '3/4 back left', tq_br: '3/4 back right', back: 'Back',
+    },
+    height: { level: 'Eye level', lo: 'Low, looking up', hi: 'High, looking down' },
+    zoom: {
+        none: 'As in your picture', eye: 'Eyes', face: 'Face', hs: 'Head and shoulders', waist: 'Waist up',
+        full: 'Whole body', far: 'Far away',
+    },
+};
+
+/**
+ * The gizmo's three sliders, left to right. TURN is a full turn round the person with the front in
+ * the middle (Fabio 2026-10-25: Cosmo turns all the way round), so the back sits at both ends.
+ */
+export const MULTI_ANGLE_SLIDERS = {
+    turn: ['back', 'tq_bl', 'pr_l', 'tq_fl', 'front', 'tq_fr', 'pr_r', 'tq_br', 'back'],
+    height: ['lo', 'level', 'hi'],
+    zoom: ['none', ...MULTI_ANGLE_RUNGS],
+};
+
+/** The Cosmo preview of a turn + height, from the same Blender camera as that stop's doll ref. */
+export function multiAnglePreview(turn, height) {
+    return `assets/flows/multi-angle/previews/${turn}${height && height !== 'level' ? `_${height}` : ''}.webp`;
+}
+
+/**
+ * The heights and zooms a turn can take: only what the bench proved (flow-spec.md § DECISION), and
+ * without Qwen-Image 2.1 only what FLUX.3 runs alone. A low, and a height on a turned view, are Qwen
+ * edits; a zoom pass follows the other model each time, so without Qwen only a one-pass zoom on the
+ * untouched front runs (the face and far rungs can take two passes).
+ * @param {string} turn
+ * @param {string} height
+ * @param {{ qwen?: boolean }} [opts] - whether Qwen-Image 2.1 is installed
+ * @returns {{ heights: string[], zooms: string[] }} - `zooms` always holds 'none'
+ */
+export function multiAngleChoices(turn, height, { qwen = true } = {}) {
+    const heights = MULTI_ANGLE_HEIGHTS.filter(h => h === 'level' || qwen || (turn === 'front' && h === 'hi'));
+    let rungs = height === 'level' ? (BENCHED_ZOOM[turn] || []) : [];
+    if (!qwen) rungs = turn === 'front' ? rungs.filter(r => !['face', 'far'].includes(r)) : [];
+    return { heights, zooms: ['none', ...rungs] };
+}
+
 const SIDE = { tq_fl: 'left', tq_fr: 'right', pr_l: 'left', pr_r: 'right', tq_bl: 'left', tq_br: 'right' };
 const OTHER = { left: 'right', right: 'left' };
 

@@ -1400,6 +1400,20 @@ export const commands = {
         promptRequired: false,
         universal: true,
     },
+    // Multi-angle (MPI-1039). Slots only, like flowStoryboard: the Flow's `driver` runs every pass
+    // as an ordinary FLUX.3 Klein / Qwen-Image 2.1 `edit` (multiAngleDispatch.js), so nothing ever
+    // dispatches this key. The person, and an optional picture of their whole outfit.
+    flowMultiAngle: {
+        label: 'Flow: Multi-angle',
+        mediaType: MEDIA_TYPE.IMAGE,
+        requiresImages: 0,
+        mediaInputs: [
+            { key: 'inputImage', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image', required: false },
+            { key: 'inputImage2', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_2', required: false },
+        ],
+        promptRequired: false,
+        universal: true,
+    },
 
     // MPI-504. Krea2 t2i character reference sheet: three panels in one 8:5 frame — a
     // large 3/4 close-up, full body front and full body back — in the layout that reads
