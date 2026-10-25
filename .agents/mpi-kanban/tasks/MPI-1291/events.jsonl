@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1291", "at": "2026-10-25T20:36:15+00:00", "actor": "e6d47b8f-5efd-4640-921e-b3a7ed30aa5f", "column": "todo", "title": "Set up Google Search Console for cubric.studio"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1291", "at": "2026-10-25T22:27:49+00:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Property verified + sitemap submitted 2026-10-25; waiting ~3 days for first Search Console data"}
