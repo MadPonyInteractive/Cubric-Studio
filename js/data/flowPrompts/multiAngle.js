@@ -69,8 +69,18 @@ export const MULTI_ANGLE_SLIDERS = {
     zoom: ['none', ...MULTI_ANGLE_RUNGS],
 };
 
-/** The Cosmo preview of a turn + height, from the same Blender camera as that stop's doll ref. */
-export function multiAnglePreview(turn, height) {
+/**
+ * Whether the 8 wide `<turn>_far.webp` previews have shipped (rendered by the renders session,
+ * plan.md § SESSION SPLIT). Until then Far away shows the eye-level preview, so nothing 404s.
+ */
+export const MULTI_ANGLE_FAR_PREVIEWS = false;
+
+/**
+ * The Cosmo preview of a turn + height, from the same Blender camera as that stop's doll ref. Far
+ * away is its own wider render (zoom only opens at eye level); the zoom-in rungs are CSS on this one.
+ */
+export function multiAnglePreview(turn, height, zoom) {
+    if (zoom === 'far' && MULTI_ANGLE_FAR_PREVIEWS) return `assets/flows/multi-angle/previews/${turn}_far.webp`;
     return `assets/flows/multi-angle/previews/${turn}${height && height !== 'level' ? `_${height}` : ''}.webp`;
 }
 

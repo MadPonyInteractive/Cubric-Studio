@@ -3,7 +3,7 @@ import { MpiProgressBar } from '../../Primitives/MpiProgressBar/MpiProgressBar.j
 import { qs } from '../../../utils/dom.js';
 import { state } from '../../../state.js';
 import {
-    MULTI_ANGLE_LABELS, MULTI_ANGLE_SLIDERS, MULTI_ANGLE_TURNS, MULTI_ANGLE_HEIGHTS, multiAngleChoices,
+    MULTI_ANGLE_LABELS, MULTI_ANGLE_SLIDERS, MULTI_ANGLE_TURNS, MULTI_ANGLE_HEIGHTS, MULTI_ANGLE_RUNGS, multiAngleChoices,
     multiAnglePreview, QWEN,
 } from '../../../data/flowPrompts/multiAngle.js';
 
@@ -24,6 +24,9 @@ const ROWS = [
     { key: 'height', label: 'Height' },
     { key: 'zoom', label: 'Zoom' },
 ];
+
+/** The rungs the preview shows by zooming into Cosmo (one CSS modifier each); far is its own render. */
+const ZOOM_IN = MULTI_ANGLE_RUNGS.filter(r => r !== 'far');
 
 /**
  * What an untouched or restored value means. A stop this build does not offer falls back to the
@@ -95,12 +98,17 @@ export const MpiAngleGizmo = ComponentFactory.create({
         let _val = fitAngle(normalizeAngle(props.value), opts);
         const previewEl = qs('#angle-gizmo-preview', el);
         // Warm every preview once, so a fast drag never shows the last stop's Cosmo under this one's name.
-        MULTI_ANGLE_TURNS.forEach(t => MULTI_ANGLE_HEIGHTS.forEach((h) => { new Image().src = multiAnglePreview(t, h); }));
+        MULTI_ANGLE_TURNS.forEach((t) => {
+            MULTI_ANGLE_HEIGHTS.forEach((h) => { new Image().src = multiAnglePreview(t, h); });
+            new Image().src = multiAnglePreview(t, 'level', 'far');
+        });
 
         const posOf = key => (key === 'turn' ? _val.turnPos : S[key].indexOf(_val[key]));
 
         const _paint = () => {
-            previewEl.src = multiAnglePreview(_val.turn, _val.height);
+            previewEl.src = multiAnglePreview(_val.turn, _val.height, _val.zoom);
+            // The zoom-in rungs are CSS on the preview; none and far leave it whole.
+            ZOOM_IN.forEach(r => previewEl.classList.toggle(`mpi-angle-gizmo__preview--${r}`, _val.zoom === r));
             previewEl.alt = `Cosmo seen ${MULTI_ANGLE_LABELS.turn[_val.turn].toLowerCase()}, ${MULTI_ANGLE_LABELS.height[_val.height].toLowerCase()}`;
             const { heights } = multiAngleChoices(_val.turn, 'level', opts);
             const { zooms } = multiAngleChoices(_val.turn, _val.height, opts);

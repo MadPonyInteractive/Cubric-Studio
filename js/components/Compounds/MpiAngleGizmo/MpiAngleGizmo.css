@@ -29,6 +29,31 @@
     height: 100%;
     object-fit: cover;
     user-select: none;
+    transition: transform var(--t-base) var(--ease);
+}
+
+/* Zoom-in rungs: scale about the centre, then slide the rung's anchor onto it. Anchors are
+   Cosmo's pink-pixel box in the 960x540 eye-level renders, the same on every turn (head
+   133-144, eyes 196, feet 414-428 of 540, x ~480): eyes 196, face 205, head and shoulders
+   228, waist up 250, body centre 280. translate = 50% - anchor. Far away is its own render. */
+.mpi-angle-gizmo__preview--eye {
+    transform: scale(5) translateY(13.7%);
+}
+
+.mpi-angle-gizmo__preview--face {
+    transform: scale(3) translateY(12%);
+}
+
+.mpi-angle-gizmo__preview--hs {
+    transform: scale(2.3) translateY(7.8%);
+}
+
+.mpi-angle-gizmo__preview--waist {
+    transform: scale(2) translateY(3.7%);
+}
+
+.mpi-angle-gizmo__preview--full {
+    transform: scale(1.6) translateY(-1.9%);
 }
 
 .mpi-angle-gizmo__row--off {

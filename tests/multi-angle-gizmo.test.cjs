@@ -64,13 +64,28 @@ test('the Turn slider is a full turn with the front in the middle', async () => 
 });
 
 test('every turn x height has its Cosmo preview on disk', async () => {
-    const { multiAnglePreview, MULTI_ANGLE_TURNS, MULTI_ANGLE_HEIGHTS } = await prompts();
+    const { multiAnglePreview, MULTI_ANGLE_TURNS, MULTI_ANGLE_HEIGHTS, MULTI_ANGLE_FAR_PREVIEWS } = await prompts();
     for (const turn of MULTI_ANGLE_TURNS) {
         for (const height of MULTI_ANGLE_HEIGHTS) {
             assert.ok(fs.existsSync(path.join(ROOT, multiAnglePreview(turn, height))), `${turn}/${height}`);
         }
+        assert.ok(fs.existsSync(path.join(ROOT, multiAnglePreview(turn, 'level', 'far'))), `${turn}/far`);
     }
     assert.equal(multiAnglePreview('front', 'level'), 'assets/flows/multi-angle/previews/front.webp');
+    // Far away is its own wide render once those ship; until then the eye-level one, never a 404.
+    assert.equal(multiAnglePreview('front', 'level', 'far'), MULTI_ANGLE_FAR_PREVIEWS
+        ? 'assets/flows/multi-angle/previews/front_far.webp'
+        : 'assets/flows/multi-angle/previews/front.webp');
+    // A zoom-in rung keeps the view's own preview: the gizmo zooms it with CSS.
+    assert.equal(multiAnglePreview('front', 'level', 'face'), 'assets/flows/multi-angle/previews/front.webp');
+});
+
+test('every zoom-in rung has its CSS modifier on the preview', async () => {
+    const { MULTI_ANGLE_RUNGS } = await prompts();
+    const css = fs.readFileSync(path.join(ROOT, 'js/components/Compounds/MpiAngleGizmo/MpiAngleGizmo.css'), 'utf8');
+    for (const rung of MULTI_ANGLE_RUNGS.filter(r => r !== 'far')) {
+        assert.match(css, new RegExp(`\\.mpi-angle-gizmo__preview--${rung} \\{\\s*transform: scale\\(`), rung);
+    }
 });
 
 test('normalizeAngle: untouched = front, eye level, as in the picture; the back keeps its end', async () => {

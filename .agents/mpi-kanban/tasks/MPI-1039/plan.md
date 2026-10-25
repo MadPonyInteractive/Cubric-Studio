@@ -347,6 +347,11 @@ the gizmo; round 51 only on his GPU yes) while the main session does the NEW 3D 
 Cosmo previews + the 8 far views). The renders session owns research/blender/* + assets/flows/multi-angle/previews/;
 the zoom session owns MpiAngleGizmo/* + multiAngle.js + tests/multi-angle-*.test.cjs. multiAnglePreview's far
 branch sits in multiAngle.js: the zoom session writes it, the renders session only ships <turn>_far.webp.
+2026-10-25 (zoom session): GIZMO ZOOM BUILT, awaiting Fabio's eye test. Zoom-in rungs = `.mpi-angle-gizmo__preview--<rung>`
+(scale 5/3/2.3/2/1.6 + translateY onto eyes 196 / face 205 / hs 228 / waist 250 / body 280 of 540; pink bbox identical on
+all 8 turns: head 133-144, feet 414-428, x ~480; 280 ms transform transition). Far: multiAnglePreview(turn, height, zoom)
+returns <turn>_far.webp behind `MULTI_ANGLE_FAR_PREVIEWS = false` - flip it to true when the 8 files ship (the gizmo test
+then checks they exist). Live-checked every rung in an isolated app; npm test green.
 PHASE 4 BUILT, AWAITING FABIO'S EYE TEST (2026-10-25, session "Flux 3 on flows 27", detail in validation.md):
 FlowDef `multi-angle` (devOnly, driver 'multiAngle' in FLOW_DRIVERS), slots-only op `flowMultiAngle`, step kind
 `angle` = `js/components/Organisms/MpiStepAngle/` (Cosmo preview + Turn/Height/Zoom sliders; Turn = full turn,
