@@ -264,7 +264,8 @@ function _zoomWords(view, rung, p, facts, { fromClose = false, outfit = {} } = {
  * examples are the bench sources' own words, so a scene answers in the shape the bench proved.
  */
 export const MULTI_ANGLE_DESCRIBE_ASK = 'Look at this picture of one person. Answer in exactly these lines, each '
-    + '"KEY: value", and nothing else. Plain English, lower case, no full stop at the end.\n'
+    + '"KEY: value", and nothing else. Plain English, lower case, no full stop at the end. The examples only show '
+    + 'the form of an answer: name what is in THIS picture.\n'
     + 'SUBJECT: one word for the person: woman, man, girl, boy or person\n'
     + 'PRONOUN: she, he or they\n'
     + 'FRAMING: how much of the person shows: eye (one eye fills the picture), face, hs (head and shoulders), '
@@ -280,14 +281,18 @@ export const MULTI_ANGLE_DESCRIBE_ASK = 'Look at this picture of one person. Ans
     + 'GROUND: what they stand on, starting with "the", like "the street surface" or "the grey studio floor"\n'
     + 'ABOVE: what a camera on the ground looking up past them would see above them, starting with "the", like '
     + '"the open blue sky with the power lines and the shop signs" or "the dark studio ceiling with a softbox light"\n'
-    + 'FROM_ABOVE: a scene\'s ground and the bottoms of things seen from high above, like "the paving with its '
-    + 'painted lines, the kerb, and the bases of the shop fronts"; plain: none\n'
+    + 'FROM_ABOVE: for a scene, always answer: its ground and the bottoms of things as a camera high above would '
+    + 'see them, like "the paving with its painted lines, the kerb, and the bases of the shop fronts"; only a plain '
+    + 'backdrop: none\n'
     + 'SIDES: what lines both sides of a scene, like "the shop fronts"; plain: none\n'
-    + 'LEFT: one or two things at the left edge of the picture, like "the red vending machine and the blue awning"; '
-    + 'plain: none\n'
-    + 'RIGHT: one or two things at the right edge of the picture, the same way; plain: none\n'
-    + 'FAR: what newly shows when the camera moves far back, starting with "with", like "with the full height of the '
-    + 'shop fronts and their signs at both sides and much more of the street in front of her"\n'
+    + 'LEFT: one or two single objects at the left edge of the picture, like "the red vending machine and the blue '
+    + 'awning" - never the SIDES again; plain, or the same thing at both edges: none\n'
+    + 'RIGHT: one or two single objects at the right edge of the picture, the same way, never the same as LEFT; '
+    + 'plain, or the same thing at both edges: none\n'
+    + 'FAR: the rest of the place that newly shows around them when the camera moves far back, starting with '
+    + '"with", like "with the full height of the shop fronts and their signs at both sides and much more of the '
+    + 'street in front of her" for a street, or "with the whole studio around her - the edges of the backdrop, '
+    + 'light stands at both sides, and the bare floor in front of her" for a studio\n'
     + 'ONE_SIDED: things worn on only one side of the body, as "thing | left or right (their own side) | where", '
     + 'separated by ";", like "brown bag | right | hip; wristwatch | left | wrist"; none: none';
 
@@ -341,8 +346,11 @@ export function parseMultiAngleFacts(text) {
     const p = _subject(facts);
     const place = facts.near;
     const above = _none(a.ABOVE);
-    const left = _none(a.LEFT);
-    const right = _none(a.RIGHT);
+    // The ask says the same thing at both edges is 'none'; gemma-4 answers it twice anyway (a fence both sides),
+    // and the turn words would then show and hide the same thing.
+    const same = _none(a.LEFT).toLowerCase() === _none(a.RIGHT).toLowerCase();
+    const left = same ? '' : _none(a.LEFT);
+    const right = same ? '' : _none(a.RIGHT);
     const sides = _none(a.SIDES);
     const scene = /^scene/i.test(a.PLACE || '') && left && right && sides;
     if (scene) {

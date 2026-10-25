@@ -302,6 +302,15 @@ lowReveal / frontLowReveal / highReveal / turnReveal / details as a sentence or 
 `tests/multi-angle-prompts.test.cjs` rebuilds 57 bench cells word for word from the bench woman's facts (fixture
 `tests/fixtures/multi-angle-bench-prompts.json`, written by `research/accepted_prompts.py`), plus routing, outfit
 inputs, refusals, a 'they' subject. Zoom ladder added to flow-spec.md.
+PHASE 3 ROUTE TEST + LIVE DESCRIBER DONE (2026-10-25, session "Flux 3 on flows 26", detail in validation.md):
+`tests/multi-angle-ref-route.test.cjs` 3/3, full suite green. Live describer (DeepInfra gemma-4-26B, `/llm/describe`
+with profileId 'deepinfra' + the DEEPINFRA_API_KEY env in the isolated app - no renderer needed; script
+`describe.mjs` shape: POST { profileId, imagePath, question: MULTI_ANGLE_DESCRIBE_ASK, greedy: true }) answers TRUE on
+both bench pictures. Ask REWORDED over 2 rounds (+ an unrelated rodeo picture: no example copied); the parser now
+reads LEFT = RIGHT as none (gemma ignores that rule). PHASE 3 DONE. Detail + the unbenched word drift (photo FAR
+'with the whole studio around her') in validation.md. NEXT: phase 4 (FlowDef, driver 'multiAngle' registered in
+FLOW_DRIVERS in js/shell/storyboardDispatch.js - the Storyboard card's file, message its owner first; op; gizmo
+sliders + Cosmo previews; Fabio's eye test).
 FLOW BUILD PHASE 3 MOSTLY DONE (2026-10-25, session "Flux 3 on flows 25"): describer ask + parser
 (`MULTI_ANGLE_DESCRIBE_ASK`, `parseMultiAngleFacts` in multiAngle.js - KEY: value lines; a describer answer for each
 bench source rebuilds 53+ bench cells), pure chain `js/services/multiAngleRunner.js` (describe -> plan -> passes on ONE

@@ -973,3 +973,26 @@ user's ratio later; a crop changes the zoom, so the gizmo may need per-ratio-fam
   57 of the 61 accepted bench cells (`research/accepted_prompts.md`) rebuilt word for word from the bench woman's
   facts; the 4 not rebuilt are named in the test (tq fl lo predates r31's head line; rear waist is unbenched). A
   one-word mutation changes the output (checked). Full suite: 3640 tests, 0 fail; eslint clean on both files.
+- 2026-10-25 FLOW BUILD PHASE 3 (session "Flux 3 on flows 26"): route test `tests/multi-angle-ref-route.test.cjs` 3/3
+  (size = source; edge columns repeat the square's edge - doll edges are non-black and vary by row, so a colour pad
+  fails it; file reused; bad input coded, nothing written). eslint clean on the 7 files; full suite 3648 pass, 0 fail.
+  LIVE DESCRIBER (DeepInfra gemma-4-26B-A4B-it, greedy, 2 calls, /llm/describe in an isolated app): both answers TRUE
+  to the pictures (bag right hip, watch left wrist, earrings, sneakers, plain vs scene, anime style). Weak spots:
+  (1) anime FROM_ABOVE = none on a scene (the ask's 'plain: none' read as 'none'; parser falls back to GROUND);
+  (2) anime RIGHT = 'the shop fronts and the pink awning' - repeats SIDES (prompt reads 'the shop fronts on her left,
+  with the shop fronts and ...') and misses the yellow sign board; (3) photo FAR = 'with the full height of the
+  studio and more of the floor' - the anime example's shape, thinner than the benched far words. Copy risk is not
+  testable on the bench pictures (the examples ARE their words) - needs a third, unrelated picture.
+- 2026-10-25 ASK REWORDED (Fabio's yes for 6 more calls; 6 spent, 8 in all): two rounds on the two bench pictures +
+  an unrelated one (`Cowgirl on a Bull/Media/edit_001.png`, comic rodeo). Ask changes: "the examples only show the
+  form: name what is in THIS picture"; FROM_ABOVE "for a scene, always answer"; LEFT/RIGHT "single objects, never
+  the SIDES again, never the same as each other"; FAR always starts "with", with a street AND a studio example.
+  Round 2 result: anime FROM_ABOVE now = the bench words; RIGHT = 'the shop entrance and the pink awning' (no SIDES
+  repeat; the yellow sign board still missed); FAR on all three a full clause ('...seen from head to shoes, with the
+  full height of the wooden fences and much more of the ranch landscape in front of her'). Rodeo: NO example copied
+  (no bag, watch or shop fronts; boots, comic, ranch, orange/yellow sky - true). One rule ignored both rounds: rodeo
+  LEFT = RIGHT = 'the wooden fence'. Fixed in `parseMultiAngleFacts`: the same thing at both edges reads as none, so
+  the place takes the plain branch (no turn words that show and hide the same fence); test added. Drift from the
+  bench words, unbenched: photo FAR now 'with the whole studio around her - ...' (bench: 'and the whole studio now
+  shows around her - ...'); photo ABOVE answered 'the grey studio ceiling' in round 2. Multi-angle tests 16/16, full
+  suite 3649 pass, 0 fail, eslint clean.

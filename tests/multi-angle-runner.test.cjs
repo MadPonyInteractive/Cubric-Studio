@@ -110,6 +110,15 @@ test('the 3/4 back R names each one-sided thing and where it lands; no other sto
     assert.ok(!multiAnglePlan({ turn: 'tq_bl' }, facts).steps[0].prompt.includes('wristwatch'));
 });
 
+test('the same thing at both edges reads as no edge things: no turn shows and hides it', async () => {
+    const { multiAnglePlan, parseMultiAngleFacts } = await builder();
+    const { facts } = parseMultiAngleFacts(ANSWER.anime.replace(/^LEFT: .*$/m, 'LEFT: the wooden fence')
+        .replace(/^RIGHT: .*$/m, 'RIGHT: The wooden fence'));
+    assert.strictEqual(facts.turnReveal, undefined);
+    const turn = multiAnglePlan({ turn: 'tq_fl' }, facts).steps[0].prompt;
+    assert.ok(!turn.includes('wooden fence'), turn);
+});
+
 test('a sloppy answer still reads: bullets, quotes, a trailing stop, odd case, missing lines', async () => {
     const { parseMultiAngleFacts } = await builder();
     const { facts, framing } = parseMultiAngleFacts('- SUBJECT: "Man".\n* PRONOUN: He\nFRAMING: HS\nSTYLE: Photo');
