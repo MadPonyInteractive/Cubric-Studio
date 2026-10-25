@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1287",
+  "title": "Flow reopen puts the first picture into an empty second picture slot",
+  "description": "BREAKS USERS (found by Flux 3 on flows 27 while testing Multi-angle, MPI-1039, 2026-10-25). MpiBaseFlow.js media seeding (~line 357): an item whose role is not in a group's roles falls back to POSITIONAL placement (idx = next), meant only for old role-less snapshots. A Flow with two single-image slot GROUPS (Character Sheet Editor image1 + image2; Multi-angle inputImage + inputImage2) reopened or reused with only slot 1 filled shows slot 1's picture in slot 2 as well, and the run sends it (CSE: the face goes as the full-body reference). Reproduced on Multi-angle in an isolated app: one seeded item {role: inputImage} appeared in both slots. Fix: fall back by position only when the item carries no role (!m.role). File held by LTX 2.5 model 18 (MPI-1231) at the time - coordinate before editing. Add a test that seeds one role-tagged item into a two-group flow.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-25T14:08:41+00:00",
+  "updated_at": "2026-10-25T17:46:04+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

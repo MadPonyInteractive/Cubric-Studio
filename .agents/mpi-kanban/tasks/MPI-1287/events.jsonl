@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1287", "at": "2026-10-25T14:08:41+00:00", "actor": "Flux 3 on flows 27", "column": "todo", "title": "Flow reopen puts the first picture into an empty second picture slot"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1287", "at": "2026-10-25T17:46:04+00:00", "actor": "Flux 3 on flows 27", "from": "todo", "to": "done", "reason": "Fixed in e7593e3e6 by LTX 2.5 model 18; confirmed live."}
