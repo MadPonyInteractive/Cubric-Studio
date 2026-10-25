@@ -50,3 +50,19 @@ sheet: research/models/ (bench.mjs, sheet_flux3_vs_qwen21.jpg). Time: FLUX.3 ~49
   fox, lion); keeps the tiger a tiger.
 - Read: neither model wins clearly; most misses trace to the NOTES (no species), not the model.
   Fabio's verdict pending.
+
+## Describe-first planning, live (2026-10-25, LTX 2.5 model 18, DeepInfra, $0.0006)
+
+Same 3 Tikori pictures, notes and idea as the panel-model bench. Each picture described with the new
+STORYBOARD_PICTURE_ASK on the DeepInfra recommended describer (google/gemma-4-26B-A4B-it, ~$0.00003 a
+picture), planner source built by pictureSentences(notes, looks), one plan on DeepSeek V4 Flash 0731
+(effort low, $0.0005). Script: scratchpad livecheck.mjs; output: research/models/describe_first.json.
+- Looks: "a hairless grey and pink cat with large ears, wrinkled skin, and a stout body" / "a white
+  tiger with brown stripes, a fluffy, muscular body, and a calm expression" / "a purple fox-like
+  creature riding on the back of a large, tan lion with a brown mane". All right, one phrase each.
+- [CAST] copies them word for word + "from image N"; the joint picture is split sensibly (Fox: a purple
+  fox-like creature from image 3 / Lion: a large, tan lion ... from image 3).
+- Panels: no monument, Jubie stays on four paws (lunges, roars), panel 6 is Jubie + Fox + Lion. No looks
+  in any Picture. One slip: panel 2 gives the Sphinx "one paw raised, palm facing out".
+- Parsed panel 1 ends "Fox is a purple fox-like creature from image 3. Lion is a large, tan lion with a
+  brown mane from image 3." Not drawn (no GPU run); not seen in the app frame.

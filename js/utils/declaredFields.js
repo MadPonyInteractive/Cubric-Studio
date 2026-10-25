@@ -147,14 +147,48 @@ export function mapDeclaredValue(f, v) {
  * waitress.", the sentence Storyboard's planner is told to read and `parseStoryboardPlan`
  * turns into Lena's cast line.
  *
+ * With `looks` (Plan with Cosmo's picture step, the planner's input only) each picture also says
+ * what it shows: "Picture 1 is the bad guy. It shows a hairless grey cat." and, with no note,
+ * "Picture 2 shows a white tiger."
+ *
  * @param {Array<string|null>} notes
+ * @param {Array<string|undefined>} [looks]  what each picture shows, by slot
  * @returns {string}
  */
-export function pictureSentences(notes) {
-    return notes.map((n, i) => {
-        const text = String(n || '').trim().replace(/[.\s]+$/, '');
-        return text ? `Picture ${i + 1} is ${text}.` : '';
+export function pictureSentences(notes, looks = []) {
+    return Array.from({ length: Math.max(notes.length, looks.length) }, (_, i) => {
+        const text = String(notes[i] || '').trim().replace(/[.\s]+$/, '');
+        const look = String(looks[i] || '').trim().replace(/[.\s]+$/, '').replace(/^(An?|The)\b/, w => w.toLowerCase());
+        if (!look) return text ? `Picture ${i + 1} is ${text}.` : '';
+        return text ? `Picture ${i + 1} is ${text}. It shows ${look}.` : `Picture ${i + 1} shows ${look}.`;
     }).filter(Boolean).join(' ');
+}
+
+/**
+ * A Flow media group's slots from a saved run's `mediaItems` (the frame's restore on reopen and
+ * Reuse). SPARSE and indexed BY SLOT: each item goes to the slot its OWN role names, so a run with
+ * only the second slot filled comes back that way. An item with no role (an older snapshot) falls
+ * back to positional order. An item with ANOTHER group's role belongs to that group and is never
+ * placed here by position: it put a filled slot 1's picture in an empty slot 2 too, and the run
+ * sent the face as the full-body reference (MPI-1287).
+ *
+ * @param {{type: string, roles: string[], max: number}} group
+ * @param {Object[]} [mediaItems]
+ * @returns {Object[]}
+ */
+export function restoreSlotItems(group, mediaItems) {
+    const items = [];
+    if (!Array.isArray(mediaItems)) return items;
+    let next = 0;
+    for (const m of mediaItems.filter(x => x.mediaType === group.type)) {
+        const byRole = group.roles.indexOf(m.role);
+        if (byRole < 0 && m.role) continue;
+        const idx = byRole >= 0 ? byRole : next;
+        if (idx >= group.max) continue;
+        items[idx] = { ...m, role: group.roles[idx] };
+        next = Math.max(next, idx + 1);
+    }
+    return items;
 }
 
 /**

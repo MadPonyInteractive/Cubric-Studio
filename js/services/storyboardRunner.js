@@ -51,7 +51,8 @@ const _fail = (code, message) => ({ ok: false, code, message });
  */
 export function parseStoryboardPlan(text, idea = '') {
     const plan = String(text || '');
-    const cast = [..._castLines(plan), ..._pictureCast(idea)].reduce((m, c) => m.set(c.name.toLowerCase(), c), new Map());
+    // The plan box's line wins: it carries the picture's description and the user's own edits.
+    const cast = [..._pictureCast(idea), ..._castLines(plan)].reduce((m, c) => m.set(c.name.toLowerCase(), c), new Map());
     return plan.split(/\[\s*PANEL\s*\d*\s*\]/i).slice(1).map((block) => {
         const [picture, intent = ''] = block.split(/\bIntent\s*:/i);
         const prompt = picture.replace(/^\s*Picture\s*:/i, '').trim();
@@ -92,9 +93,10 @@ function _castLines(plan) {
 
 /**
  * The user's "Picture 1 is Bix, a grumpy hairless cat." as Bix's cast line, "the grumpy hairless
- * cat from the first image": the planner cannot see the pictures and invented their looks however
- * it was told (Bix's eyes came back green), and FLUX.3 Klein's edit names its references by
- * ordinal. It wins over the planner's line for the same name.
+ * cat from the first image", for a pictured name the plan's [CAST] lacks (a plan written by hand).
+ * FLUX.3 Klein's edit names its references by ordinal. It used to win over the planner's line,
+ * when the planner could not see the pictures and invented their looks (Bix's eyes came back
+ * green); now every picture is described before planning and the planner's line carries that.
  */
 function _pictureCast(idea) {
     const ord = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'];

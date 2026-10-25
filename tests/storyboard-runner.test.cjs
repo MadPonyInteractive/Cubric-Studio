@@ -177,15 +177,17 @@ test('cast lines glued by the enhancer\'s newline strip still split, and a longe
     assert.strictEqual(p2.prompt, 'A red sky.', 'a lower-case "red" is not the Red Kite');
 });
 
-test('the user\'s "Picture N is NAME, a WHAT." replaces the planner\'s invented line for that name', () => {
-    const plan = '[CAST] Bix: a grumpy hairless cat with green eyes. Lilo: a purple fox in a red scarf. [PANEL 1] Picture: Bix and Lilo sneak past the diner. Intent: x';
+test('the plan\'s cast line wins; the user\'s "Picture N is NAME, a WHAT." fills a pictured name the plan lacks', () => {
+    // The planner's line carries the picture's description and the user's own edits (MPI-1231,
+    // every picture described before planning), so it is the one every panel gets.
+    const plan = '[CAST] Bix: a hairless grey cat with large ears from image 1. Lilo: a purple fox in a red scarf. [PANEL 1] Picture: Bix and Lilo sneak past the diner. Intent: x';
     const idea = 'Picture 1 is Bix, a grumpy hairless cat. Picture 2 is the diner. They sneak around.';
     assert.strictEqual(parseStoryboardPlan(plan, idea)[0].prompt,
-        'Bix and Lilo sneak past the diner. Bix is the grumpy hairless cat from the first image. Lilo is a purple fox in a red scarf. diner is the diner from the second image.');
-    // "The Sphinx" in a note is the planner's "Sphinx": one line, the picture's (Fabio's board, 2026-10-25).
-    const sphinx = parseStoryboardPlan('[CAST] Sphinx: the Sphinx from image 1, the bad guy. [PANEL 1] Picture: The Sphinx bars the path. Intent: x',
+        'Bix and Lilo sneak past the diner. Bix is a hairless grey cat with large ears from image 1. diner is the diner from the second image. Lilo is a purple fox in a red scarf.');
+    // "The Sphinx" in a note is the planner's "Sphinx": one line, the plan's (Fabio's board, 2026-10-25).
+    const sphinx = parseStoryboardPlan('[CAST] Sphinx: a hairless grey cat with wrinkled skin from image 1. [PANEL 1] Picture: The Sphinx bars the path. Intent: x',
         'Picture 1 is The Sphinx, the bad guy.');
-    assert.strictEqual(sphinx[0].prompt, 'The Sphinx bars the path. Sphinx is the bad guy from the first image.');
+    assert.strictEqual(sphinx[0].prompt, 'The Sphinx bars the path. Sphinx is a hairless grey cat with wrinkled skin from image 1.');
     // No cast block at all still gets the pictured names.
     assert.strictEqual(parseStoryboardPlan('[PANEL 1] Bix naps.', idea)[0].prompt, 'Bix naps. Bix is the grumpy hairless cat from the first image.');
 });

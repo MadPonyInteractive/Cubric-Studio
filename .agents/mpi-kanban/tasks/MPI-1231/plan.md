@@ -150,6 +150,28 @@
   description ("Sphinx is the hairless grey cat from the first image") so the word "Sphinx" cannot
   beat the picture. NEXT SESSION builds it: every end visible (describe progress inside the
   "Cosmo is planning..." press), cost per picture stated, a failed describe = a named failure.
+- 2026-10-25 ("LTX 2.5 model 18"): DESCRIBE-FIRST BUILT (uncommitted). Button decl
+  `describePictures: { field: 'pictureNotes', ask: STORYBOARD_PICTURE_ASK }` (one phrase, <= 20
+  words, starts "a/an"); frame `_sourceWithPictures` -> `flowEnhance.describePictures` (one QUEUED
+  `describeImage` per picture on the Remote describe pick, cached per picture+ask, button "Looking at
+  picture N of M…", fail = warning naming the picture, Cosmo not called) -> planner source "Picture 1
+  is NOTE. It shows LOOK." (`pictureSentences(notes, looks)`, planner input only) -> planner prompt
+  copies LOOK into the cast line "Name: LOOK from image N", "an animal stays an animal". Parser
+  precedence FLIPPED: the plan's cast line wins over the note's line (fills only missing names).
+  Info toast after the plan lands: `picturesCostLine` (DeepInfra price per picture / free on
+  ComfyUI / described before). Tests: 3 new in flow-describe, runner precedence test rewritten;
+  lint clean, npm test 3652 pass / 0 fail. NOT RUN LIVE: the describer's phrase and whether
+  DeepSeek copies it verbatim are unverified (needs Fabio's yes: ~3 describes + 1 plan, < $0.002),
+  and the frame path is not seen on screen (isolated copy stops at the 18+ gate).
+  NEXT: the live check, then Fabio's 6-panel Generate.
+- 2026-10-25 LIVE CHECK PASSED ($0.0006, validation.md "Describe-first planning"): describer phrases right,
+  DeepSeek copies them verbatim into [CAST], no monument, tiger stays a tiger. NEXT: Fabio reloads and
+  presses Plan with Cosmo in his app (button text, queue rows, cost toast), then Generates the 6 panels.
+- 2026-10-25 FOLDED IN (peer "Flux 3 on flows 27" found it, card MPI-1287): the frame's media restore put
+  a picture with another group's role into an empty single slot BY POSITION (Character Sheet Editor sent
+  the face as the full-body ref). Restore loop now `restoreSlotItems` (declaredFields.js), skips a
+  foreign role; test in flow-describe (fails without the fix). npm test 3661/0. Uncommitted: when it
+  lands, give the peer the hash so it closes MPI-1287.
 
 ## Phase 0: Panel recipe - `user-ux` (local GPU, Fabio's yes; no money)
 

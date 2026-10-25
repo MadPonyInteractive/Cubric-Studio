@@ -54,16 +54,26 @@ sheet. `devOnly: true` until the LTX 2.5 release (umbrella MPI-1267).
   the plan step's left column shows the first step's pictures as cards with a note box each,
   because a plan saying "picture 2" meant nothing once the user could not see picture 2).
   `mapDeclaredValue` turns the notes into "Picture 1 is Bix, a grumpy hairless cat." sentences,
-  numbered by SLOT; Enhance reads them as a source and the driver appends them to the idea, so
-  Bix's line becomes "the grumpy hairless cat from the first image" (the planner cannot see the
-  pictures and invented their looks). The frame persists the sentences, so a reopen reads them
-  back (`readPictureSentences`); clearing a picture drops its note. The same sentence typed into
-  the idea still works. A picture showing a second animal leaks it into the panels. The note's
-  article is dropped ("The Sphinx" -> `Sphinx`), so it replaces the planner's line of that name.
+  numbered by SLOT; Enhance reads them as a source and the driver appends them to the idea. The
+  frame persists the sentences, so a reopen reads them back (`readPictureSentences`); clearing a
+  picture drops its note. A picture showing a second animal leaks it into the panels.
+- **Every picture is DESCRIBED before Cosmo plans, note or no note** (Fabio 2026-10-25; the note
+  is who it is and its part, never its looks). Blind, the planner drew "Sphinx" as the monument and
+  gave a tiger noted "the protector warrior" arms, on both panel models. The button's
+  `describePictures: { field, ask }` makes the frame (`_sourceWithPictures`) run
+  `flowEnhance.describePictures` first: one queued describe per picture on the Remote describe
+  pick (queue row + Stop), the button reading "Looking at picture N of M…", answers cached per
+  picture + question. The planner gets "Picture 1 is NOTE. It shows LOOK." (`pictureSentences(notes,
+  looks)`, the planner input only; the saved value stays the notes) and copies LOOK into that
+  cast line: "Sphinx: a hairless grey cat ... from image 1". A failed describe is a warning naming
+  the picture, and Cosmo is not called. After the plan lands an info toast says the cost per
+  picture (`picturesCostLine`: DeepInfra's own price, "at no cost" on ComfyUI, or "described before").
+- **The plan's cast line wins** over the note's "Picture N is NAME, a WHAT." line for the same name
+  (it carries the description and the user's edits); the note's line only fills a pictured name
+  the plan lacks (a hand-written plan). The note's article is dropped ("The Sphinx" -> `Sphinx`)
+  so the two share a key.
 - **A Picture never describes a cast member's looks** (planner rule, 2026-10-25): DeepSeek wrote
-  "Fox (a small, bright-orange fox)" for a purple fox in picture 3, fighting the cast line. What a
-  note does not say the planner guesses ("the protector warrior" got arms on a tiger): the note
-  must say what the picture shows.
+  "Fox (a small, bright-orange fox)" for a purple fox in picture 3, fighting the cast line.
 
 ## Agent
 

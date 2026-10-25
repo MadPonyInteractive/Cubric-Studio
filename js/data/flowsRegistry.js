@@ -552,8 +552,9 @@ const SHEET_CLOTHES_CHECKS = ['upper body, the chest and belly', 'lower body, th
 // the cast ONCE in a `[CAST]` block and names the cast in each panel; `parseStoryboardPlan` appends
 // each named cast member's line to the panel, because each panel is a separate generation and the
 // 4B, told to repeat descriptions, wrote "the same waitress" from panel 2 on (a stranger every
-// time). It cannot see the user's pictures and invented their looks however it was told, so the
-// parser also turns the user's own "Picture N is NAME, a WHAT." into that cast line. The enhancer
+// time). It cannot see the user's pictures and invented their looks however it was told, so each
+// picture is described first (`describePictures` on the button) and the planner copies that
+// description into the picture's cast line; the plan box's line is what every panel gets. The enhancer
 // flattens its answer to one line: panels are found by `[PANEL n]` and `Intent:`, never newlines.
 // "Name, never a pronoun" and "speech goes in the Intent" are the bench's two faults: a stranger
 // called "him" got no line and changed clothes, and quoted speech rendered as lettering.
@@ -564,7 +565,7 @@ const STORYBOARD_PLAN_ENHANCE_PARAMS = {
         '<|im_start|>system',
         'You are a storyboard artist planning the still panels of a short video. The user message gives the idea, how many panels to write and the shape of the video. Write the cast once, then exactly that many panels, in story order.',
         '',
-        'First write [CAST] and one line per character or recurring place, in this form: Name: description. Give each a short name (use the user\'s names). When the user says a picture shows it ("Picture 1 is Bix, a cat"), the description is only "the cat from image 1", using the ordinal of that picture and what the user said it is, nothing more: you cannot see the picture. Otherwise describe it fully: species or ethnicity, gender, age range, skin or fur, hair, and clothes with their colours.',
+        'First write [CAST] and one line per character or recurring place, in this form: Name: description. Give each a short name (use the user\'s names). Each picture the user added says what it shows ("Picture 1 is Bix, the villain. It shows a hairless grey cat with large ears."): the user\'s words say who it is and its part in the story, the "It shows" words say what it looks like. A cast member from a picture gets those words copied exactly, then "from image" and its number, nothing more: "Bix: a hairless grey cat with large ears from image 1". It stays what the picture shows whatever its part: an animal stays an animal, never a person. Describe anyone else fully: species or ethnicity, gender, age range, skin or fur, hair, and clothes with their colours.',
         '',
         'Then write every panel in this form: [PANEL n] Picture: the picture prompt. Intent: one sentence.',
         '',
@@ -589,6 +590,10 @@ const STORYBOARD_PLAN_ENHANCE_PARAMS = {
     // cut a 12-panel one.
     'Input_Text_Gen.max_length': 8000,
 };
+
+// What each Storyboard picture is asked before planning (MPI-1231): one short phrase, because the
+// planner copies it into the cast line and the parser adds that line to every panel naming it.
+const STORYBOARD_PICTURE_ASK = 'Say what the main subject of this picture is and how it looks, as one phrase of at most 20 words that starts with "a" or "an": what kind of creature, person, thing or place it is, then its most telling colours, body shape and clothes. For example: a hairless grey cat with large ears and wrinkled skin. Answer with the phrase only.';
 
 const ALL_FLOWS = [
     // head-swap and drama-box LEFT THE APP (MPI-781, umbrella MPI-780 phase 2). They are
@@ -3074,6 +3079,9 @@ const ALL_FLOWS = [
                         id: 'enhance', type: 'button', label: 'Plan with Cosmo', busyLabel: 'Cosmo is planning…',
                         icon: 'sparkle', col: 'right',
                         action: 'enhance', runsOn: 'agent',
+                        // Every picture is described before Cosmo plans, note or no note (Fabio,
+                        // 2026-10-25): a planner that only reads "Sphinx" draws the monument.
+                        describePictures: { field: 'pictureNotes', ask: STORYBOARD_PICTURE_ASK },
                         from: ['positive', 'pictureNotes', 'panelCount', 'ratio'], to: 'plan',
                         injectionParams: STORYBOARD_PLAN_ENHANCE_PARAMS,
                     },

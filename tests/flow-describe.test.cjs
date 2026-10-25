@@ -294,3 +294,66 @@ test('describeFlowRun: a MEASURE entry reads pixels, never the describer, and fi
         assert.deepEqual(res, { ok: true, injectionParams: { sheetCuts: cuts } });
     }
 });
+
+// MPI-1231: Storyboard's Plan with Cosmo describes every picture before it plans.
+test('describePictures: every picture is described in slot order, a cleared slot is skipped, progress is named', async () => {
+    const fe = await esm('js/services/flowEnhance.js');
+    const asked = [], seen = [];
+    const describe = async (a) => {
+        asked.push(a);
+        return { ok: true, via: 'endpoint', model: 'gemma', costUsd: 0.0002, text: `: a look of ${a.imagePath}` };
+    };
+    const step = await fe.describePictures([{ url: 'a' }, null, { url: 'c' }], 'what is it?', {
+        describe, onPicture: (n, total) => seen.push(`${n}/${total}`),
+    });
+    assert.deepEqual(asked, [
+        { imagePath: 'a', question: 'what is it?', queued: true },
+        { imagePath: 'c', question: 'what is it?', queued: true },
+    ], 'each picture is its own queued describe job, so it shows a row and Stop');
+    assert.deepEqual(seen, ['1/2', '2/2']);
+    assert.deepEqual([...step.looks], ['a look of a', undefined, 'a look of c'], 'stray punctuation is trimmed, slots keep their numbers');
+    assert.equal(fe.picturesCostLine(step), 'Described 2 pictures with gemma first, about $0.0002 a picture.');
+});
+
+test('describePictures: a failed or empty describe names the picture, a Stop is quiet, a repeat costs nothing', async () => {
+    const fe = await esm('js/services/flowEnhance.js');
+    const items = [{ url: 'a' }, { url: 'b' }];
+    const failOn = (url, answer) => async a => (a.imagePath === url ? answer : { ok: true, via: 'endpoint', text: 'a cat' });
+    const failed = await fe.describePictures(items, 'q', { describe: failOn('b', { ok: false, via: 'endpoint', error: 'No API key saved for this connection.' }) });
+    assert.deepEqual(failed, { ok: false, message: 'Nothing was planned: picture 2 could not be described. No API key saved for this connection. Check Remote > Language Models.' });
+    const empty = await fe.describePictures(items, 'q', { describe: failOn('a', { ok: true, text: ' . ' }) });
+    assert.match(empty.message, /picture 1 could not be described\. It gave no answer\./);
+    const stopped = await fe.describePictures(items, 'q', { describe: failOn('a', { ok: false, cancelled: true }) });
+    assert.equal(stopped.cancelled, true);
+
+    const cache = new Map();
+    let calls = 0;
+    const describe = async () => { calls++; return { ok: true, via: 'comfy', text: 'a cat' }; };
+    assert.equal(fe.picturesCostLine(await fe.describePictures(items, 'q', { describe, cache })), 'Described 2 pictures on this computer first, at no cost.');
+    const again = await fe.describePictures(items, 'q', { describe, cache });
+    assert.equal(calls, 2, 'the same pictures and question are not described twice');
+    assert.deepEqual(again.looks, ['a cat', 'a cat']);
+    assert.equal(fe.picturesCostLine(again), 'The pictures were described before, so nothing was spent on them.');
+});
+
+test('restoreSlotItems: a picture goes back to its own slot, never into another group by position (MPI-1287)', async () => {
+    const { restoreSlotItems } = await esm('js/utils/declaredFields.js');
+    const face = { type: 'image', roles: ['face'], max: 1 };
+    const body = { type: 'image', roles: ['body'], max: 1 };
+    const saved = [{ mediaType: 'image', role: 'face', url: 'f.png' }];
+    assert.deepEqual([...restoreSlotItems(face, saved)], [{ mediaType: 'image', role: 'face', url: 'f.png' }]);
+    assert.deepEqual(restoreSlotItems(body, saved), [], 'the face is not sent as the full-body reference');
+    const grid = { type: 'image', roles: ['a', 'b', 'c'], max: 3 };
+    assert.deepEqual([...restoreSlotItems(grid, [{ mediaType: 'image', role: 'b', url: '2' }])].map(m => m?.url), [undefined, '2'], 'slot 2 alone stays slot 2');
+    assert.deepEqual(restoreSlotItems(grid, [{ mediaType: 'image', url: '1' }, { mediaType: 'video', url: 'v' }]).map(m => m.role), ['a'], 'a roleless older snapshot fills by position');
+});
+
+test('pictureSentences: the planner reads the note and what the picture shows; the saved notes stay notes', async () => {
+    const { pictureSentences, readPictureSentences } = await esm('js/utils/declaredFields.js');
+    const notes = ['Sphinx, the bad guy', '', 'Fox.'];
+    const looks = ['A hairless grey cat with large ears.', 'a white tiger', undefined];
+    assert.equal(pictureSentences(notes, looks),
+        'Picture 1 is Sphinx, the bad guy. It shows a hairless grey cat with large ears. Picture 2 shows a white tiger. Picture 3 is Fox.');
+    assert.equal(pictureSentences(notes), 'Picture 1 is Sphinx, the bad guy. Picture 3 is Fox.');
+    assert.deepEqual(readPictureSentences(pictureSentences(notes)), ['Sphinx, the bad guy', '', 'Fox']);
+});

@@ -592,6 +592,83 @@ export async function describeFlowRun(flow, config, project, deps = {}) {
     return { ok: true, injectionParams: out };
 }
 
+/**
+ * The picture step of an enhance that plans from the user's pictures (`describePictures` on the
+ * declaration, Storyboard's Plan with Cosmo, MPI-1231). The planner reads words only, so a picture
+ * noted "Sphinx" was drawn as the Egyptian monument and a tiger noted "the protector warrior" got
+ * arms (both panel models, 2026-10-25): every picture is described first, note or no note
+ * (Fabio), and the planner gets what it shows beside the user's note.
+ *
+ * Each picture is its own describe job on the Remote pick (`queued`: a queue row and Stop on
+ * either backend), one at a time, the answer reused for the same picture and question like
+ * `describeFlowRun`'s. A failed or empty describe stops the step, naming the picture.
+ *
+ * @param {Array<?{url: string}>} items  the pictures by slot (a cleared slot is empty)
+ * @param {string} ask  the question each picture is asked
+ * @param {{onPicture?: Function, describe?: Function, cache?: Map}} [deps]  `onPicture(n, total)`
+ *        before each describe that runs; a test stubs the rest
+ * @returns {Promise<{ok: true, looks: string[], costs: number[], reused: number, via?: string, model?: string}
+ *          |{ok: false, cancelled?: boolean, message: string}>}  `looks` and `costs` by slot
+ */
+export async function describePictures(items, ask, deps = {}) {
+    const describe = deps.describe || describeImage;
+    const cache = deps.cache || (deps.describe ? null : DESCRIBED);
+    const slots = (items || []).map((m, i) => (m?.url ? i : -1)).filter(i => i >= 0);
+    const looks = [], costs = [];
+    let reused = 0, via, model;
+    for (const [k, i] of slots.entries()) {
+        const url = items[i].url;
+        const key = JSON.stringify([url, null, '', ask, describeBackendPreference(), describeModelPreference() || '']);
+        if (cache?.has(key)) {
+            looks[i] = cache.get(key);
+            costs[i] = 0;
+            reused++;
+            continue;
+        }
+        deps.onPicture?.(k + 1, slots.length);
+        const started = Date.now();
+        let result;
+        try {
+            result = await describe({ imagePath: url, question: ask, queued: true });
+        } catch (err) {
+            result = { ok: false, error: err?.message };
+        }
+        if (result?.cancelled) return { ok: false, cancelled: true, message: `Stopped while picture ${i + 1} was being described. Nothing was planned.` };
+        const text = String(result?.text || '').replace(/^[^\p{L}\p{N}]+/u, '').trim();
+        if (!result?.ok || !text) {
+            const why = String(result?.error || 'It gave no answer.').trim();
+            clientLogger.warn('flow-describe', `picture ${i + 1} describe failed via ${result?.via || '?'}: ${why}`);
+            const hint = /Remote > Language Models|Model Library/.test(why) ? '' : ' Check Remote > Language Models.';
+            return { ok: false, message: `Nothing was planned: picture ${i + 1} could not be described. ${why}${/[.!?]$/.test(why) ? '' : '.'}${hint}` };
+        }
+        clientLogger.info('flow-describe', `picture ${i + 1} described via ${result.via} (${result.model || 'default model'}), ${Date.now() - started} ms`);
+        cache?.set(key, text);
+        looks[i] = text;
+        costs[i] = Number(result.costUsd) || 0;
+        via = result.via;
+        model = result.model;
+    }
+    return { ok: true, looks, costs, reused, via, model };
+}
+
+/**
+ * What the picture step cost, said once the plan has landed: the price per picture, or that it
+ * ran on this computer, or that every picture was described before.
+ *
+ * @param {{looks: string[], costs: number[], reused: number, via?: string, model?: string}} step
+ * @returns {string}
+ */
+export function picturesCostLine(step) {
+    const described = step.looks.filter(Boolean).length - step.reused;
+    if (!described) return 'The pictures were described before, so nothing was spent on them.';
+    const s = described === 1 ? '' : 's';
+    if (step.via !== 'endpoint') return `Described ${described} picture${s} on this computer first, at no cost.`;
+    const paid = step.costs.filter(c => c > 0);
+    if (!paid.length) return `Described ${described} picture${s} with ${step.model || 'your describe model'} first; it sent no price.`;
+    const each = paid.reduce((a, c) => a + c, 0) / paid.length;
+    return `Described ${described} picture${s} with ${step.model || 'your describe model'} first, about $${each.toFixed(4)} a picture.`;
+}
+
 /** The width a sheet is measured at: a small copy, as MPI-1086's `research/bench/gaps.py` benched. */
 const CUT_W = 448;
 

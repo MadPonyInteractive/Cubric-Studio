@@ -33,7 +33,7 @@ import { enqueueGeneration, findMissingMediaSlot } from '../../../services/gener
 import { getCommand } from '../../../data/commandRegistry.js';
 import {
     flowEnhanceDecls, enhanceTargets, enhanceSources, enhanceSourceText, enhancedWrites,
-    runEnhanceDecl, adoptHiddenTargets,
+    runEnhanceDecl, adoptHiddenTargets, describePictures, picturesCostLine,
 } from '../../../services/flowEnhance.js';
 import { flowModelSlots, flowModelIds, setFlowModel, isCloudCandidate, flowOperation, flowOperations, flowLegs, flowRunLegs, flowToggleLeg, flowMediaCtx } from '../../../data/flowsRegistry.js';
 import { getPlanner } from '../../../utils/flowPasses.js';
@@ -43,7 +43,7 @@ import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
 import { MpiInput } from '../../Primitives/MpiInput/MpiInput.js';
 import { MpiProgressBar } from '../../Primitives/MpiProgressBar/MpiProgressBar.js';
 import { resultTileAxes, repeatFromTiles, edgesFor } from '../../Organisms/MpiStepEdges/MpiStepEdges.js';
-import { buildField, mapDeclaredValue, readPictureSentences, isInjectionParam, disabledFieldIds, hiddenFieldIds, withEnhanceFallback, enhanceEchoTargets } from '../../../utils/declaredFields.js';
+import { buildField, mapDeclaredValue, readPictureSentences, pictureSentences, restoreSlotItems, isInjectionParam, disabledFieldIds, hiddenFieldIds, withEnhanceFallback, enhanceEchoTargets } from '../../../utils/declaredFields.js';
 import { buildLicenceRows } from '../../../utils/flowLicences.js';
 
 /**
@@ -348,24 +348,7 @@ export const MpiBaseFlow = ComponentFactory.create({
          * first). Never pack it: an item's role is its slot's role.
          * @type {Array<{group:Object, items:Array}>}
          */
-        const _mediaGroups = mediaGroupDefs.map((group) => {
-            const items = [];
-            if (Array.isArray(seeded.mediaItems)) {
-                // Restore each item to the slot its OWN role names, so a saved run
-                // with only the second slot filled comes back that way. Falls back to
-                // positional order for older snapshots that carry no role.
-                const forType = seeded.mediaItems.filter(m => m.mediaType === group.type);
-                let next = 0;
-                for (const m of forType) {
-                    const byRole = group.roles.indexOf(m.role);
-                    const idx = byRole >= 0 ? byRole : next;
-                    if (idx >= group.max) continue;
-                    items[idx] = { ...m, role: group.roles[idx] };
-                    next = Math.max(next, idx + 1);
-                }
-            }
-            return { group, items };
-        });
+        const _mediaGroups = mediaGroupDefs.map(group => ({ group, items: restoreSlotItems(group, seeded.mediaItems) }));
 
         /** Reported step values, keyed by the step's media role. @type {Object} */
         const _stepValues = { ...(seeded.stepValues || {}) };
@@ -1217,6 +1200,8 @@ export const MpiBaseFlow = ComponentFactory.create({
 
         /** Field id of the enhance in flight, or null. */
         let _enhancing = null;
+        /** What the button says during its picture step ("Looking at picture 2 of 3…"), or null. */
+        let _enhanceStage = null;
 
         /**
          * Push a value into a mounted text field, so a programmatic write shows.
@@ -1330,7 +1315,7 @@ export const MpiBaseFlow = ComponentFactory.create({
                 btn.classList.toggle('mpi-btn--primary', stale);
                 btn.classList.toggle('mpi-btn--secondary', !stale);
                 btn.setDisabled?.(!!_enhancing);
-                btn.setLabel?.(busy ? (d.busyLabel || 'Enhancing…') : (d.label || 'Enhance'));
+                btn.setLabel?.(busy ? (_enhanceStage || d.busyLabel || 'Enhancing…') : (d.label || 'Enhance'));
             });
         }
 
@@ -1431,19 +1416,59 @@ export const MpiBaseFlow = ComponentFactory.create({
             // Reached through `runEnhanceDecl` (MPI-1002), the ONE Flow-path caller of
             // `enhanceFlow`, which also logs the backend that ran; the agent's run goes
             // through the same function.
-            runEnhanceDecl(d, source, { flowId: flow.id }).then((result) => {
-                if (result.ok && result.text) _writeEnhanced(d, result.text);
-                else if (!result.ok && !result.cancelled) {
+            _sourceWithPictures(d, source).then(async (pictures) => {
+                if (!pictures.ok) {
+                    if (!pictures.cancelled) {
+                        clientLogger.error('MpiBaseFlow', 'picture describe before enhance failed', pictures.message);
+                        if (!silent) Events.emit('ui:warning', { message: pictures.message });
+                    }
+                    return;
+                }
+                _enhanceStage = null;
+                _paintEnhance();
+                const result = await runEnhanceDecl(d, pictures.source, { flowId: flow.id });
+                if (result.ok && result.text) {
+                    _writeEnhanced(d, result.text);
+                    if (pictures.step && !silent) Events.emit('ui:info', { message: picturesCostLine(pictures.step) });
+                } else if (!result.ok && !result.cancelled) {
                     clientLogger.error('MpiBaseFlow', 'prompt enhance failed', result.error);
                     // A Flow that plans with Cosmo and finds no agent set up takes the user there.
                     const action = result.errorCode === 'NO_AGENT' ? { text: 'Open Remote', onClick: _openRemote } : undefined;
                     if (!silent && result.error) Events.emit('ui:warning', { message: result.error, action });
                 }
+            }).finally(() => {
                 _enhancing = null;
+                _enhanceStage = null;
                 _paintEnhance();
                 _settle();
             });
             return settled;
+        }
+
+        /**
+         * A declaration with `describePictures` (Storyboard's Plan with Cosmo, MPI-1231) first has
+         * every picture of the Flow's first image group described, and its notes field reaches the
+         * enhancer as "Picture N is NOTE. It shows LOOK." (`describePictures`, `pictureSentences`).
+         * The button names the picture being described; each describe is also a queue row with Stop.
+         * Any other declaration, or no pictures, sends `source` as it is.
+         *
+         * @returns {Promise<{ok: true, source: string, step?: Object}|{ok: false, cancelled?: boolean, message: string}>}
+         */
+        async function _sourceWithPictures(d, source) {
+            const ask = d.describePictures?.ask;
+            const items = _pictureEntry()?.items || [];
+            if (!ask || !items.some(m => m?.url)) return { ok: true, source };
+            const step = await describePictures(items, ask, {
+                onPicture: (n, total) => {
+                    _enhanceStage = `Looking at picture ${n} of ${total}…`;
+                    _paintEnhance();
+                },
+            });
+            if (!step.ok) return step;
+            const field = d.describePictures.field;
+            const notes = Array.isArray(_fieldValues[field]) ? _fieldValues[field] : readPictureSentences(_fieldValues[field]);
+            const values = { ..._fieldValues, [field]: pictureSentences(notes, step.looks) };
+            return { ok: true, source: enhanceSourceText(d, _allDecls, values, _hiddenNow()), step };
         }
 
         /**

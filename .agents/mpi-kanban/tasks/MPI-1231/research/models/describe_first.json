@@ -1,0 +1,54 @@
+{
+  "describer": "google/gemma-4-26B-A4B-it",
+  "looks": [
+    "a hairless grey and pink cat with large ears, wrinkled skin, and a stout body.",
+    "a white tiger with brown stripes, a fluffy, muscular body, and a calm expression.",
+    "a purple fox-like creature riding on the back of a large, tan lion with a brown mane."
+  ],
+  "costs": [
+    0.00003228,
+    0.000031939999999999996,
+    0.0000317
+  ],
+  "source": "Your idea: A story where the fox and the lion are going on an adventure and then the Sphinx tries to stop them at the entrance of the forest, asking for a toll. Then Jubie, the protector, scares the Sphinx away and becomes friends with the fox and the lion.\nYour pictures: Picture 1 is The Sphinx, the bad guy. It shows a hairless grey and pink cat with large ears, wrinkled skin, and a stout body. Picture 2 is Jubie, the protector warrior. It shows a white tiger with brown stripes, a fluffy, muscular body, and a calm expression. Picture 3 is The Fox and the Lion. It shows a purple fox-like creature riding on the back of a large, tan lion with a brown mane.\nPanels: 6\nVideo shape: 16:9",
+  "usage": {
+    "prompt_tokens": 734,
+    "total_tokens": 3297,
+    "completion_tokens": 2563,
+    "estimated_cost": 0.00050538,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": null
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 1704
+    }
+  },
+  "plan": "Storyboard plan:\n[CAST]\nSphinx: a hairless grey and pink cat with large ears, wrinkled skin, and a stout body from image 1\nJubie: a white tiger with brown stripes, a fluffy, muscular body, and a calm expression from image 2\nFox: a purple fox-like creature from image 3\nLion: a large, tan lion with a brown mane from image 3\n\n[PANEL 1]\nPicture: Full-color cinematic film still, wide establishing shot from a low hill, the entrance of a dense forest with towering trees and a narrow dirt path winding into darkness. The sun sets behind the trees, casting warm golden light and long shadows across the grass. Frame-center, the Fox rides on the back of the Lion as they walk down the path toward the forest edge, their forms silhouetted against the orange sky. Birds fly overhead, and the path curves slightly.\nIntent: Establish the adventure setting and introduce the Fox and Lion as a traveling duo moving toward the unknown forest.\n\n[PANEL 2]\nPicture: Full-color cinematic film still, medium shot from the side, the Sphinx stands blocking the middle of the dirt path at the forest entrance. The Fox and Lion are frame-left, stopped and looking up at the Sphinx, with the Lion's head lowered and the Fox sitting on its back. The forest looms dark behind the Sphinx, with dappled light filtering through leaves. The Sphinx has one paw raised, palm facing out, as if stopping them, and its mouth is slightly open.\nIntent: The Sphinx confronts the travelers, establishing this as a barrier and setting up the toll demand.\n\n[PANEL 3]\nPicture: Full-color cinematic film still, close-up from a low angle on the Sphinx's face and upper body, its nose almost touching the camera. The Fox and Lion are out of focus in the bottom corners, blurred and small. The Sphinx's eyes are narrowed, wrinkled skin folded, and its mouth open as if speaking. The background is a dark wall of leaves with a few beams of light. The Sphinx leans forward, paws resting on the ground.\nIntent: The Sphinx asks for a toll with a menacing tone, creating tension and focusing on its intimidating presence.\n\n[PANEL 4]\nPicture: Full-color cinematic film still, over-the-shoulder shot from behind the Fox and Lion, their backs filling the frame-left. The Sphinx is frame-right, facing them, but its head turns slightly. In the background, frame-right, Jubie emerges from the underbrush, walking slowly forward with a calm expression, muscles rippling under its fur. The forest light catches Jubie's white body, making it stand out against the green. The Sphinx's posture stiffens.\nIntent: Jubie appears unexpectedly, shifting the power dynamic and signaling the protector's intervention.\n\n[PANEL 5]\nPicture: Full-color cinematic film still, wide shot from the side, Jubie lunges forward with its mouth wide open in a roar, front paws planted on the ground, body low and ready to charge. The Sphinx is frame-right, mid-leap away, its tail flailing, clearly fleeing in panic. The Fox and Lion are frame-left, watching with wide eyes. Dust and leaves scatter around Jubie's paws, and the forest entrance is visible behind them.\nIntent: Jubie scares the Sphinx away in a dramatic burst of action, resolving the conflict and showcasing Jubie's protective role.\n\n[PANEL 6]\nPicture: Full-color cinematic film still, medium shot from the front, Jubie stands in the center of the path, now calm and relaxed. The Fox is frame-left, dismounted from the Lion, and the Lion is frame-right, both facing Jubie. The three are close together, with the Fox nodding and the Lion bowing its head slightly. Jubie lowers its head toward them, a gentle expression on its face. The forest entrance behind them is bathed in bright, warm daylight, no longer ominous.\nIntent: Jubie, the Fox, and the Lion become friends, ending the story on a peaceful and positive note.",
+  "panels": [
+    {
+      "prompt": "Full-color cinematic film still, wide establishing shot from a low hill, the entrance of a dense forest with towering trees and a narrow dirt path winding into darkness. The sun sets behind the trees, casting warm golden light and long shadows across the grass. Frame-center, the Fox rides on the back of the Lion as they walk down the path toward the forest edge, their forms silhouetted against the orange sky. Birds fly overhead, and the path curves slightly. Fox is a purple fox-like creature from image 3. Lion is a large, tan lion with a brown mane from image 3.",
+      "intent": "Establish the adventure setting and introduce the Fox and Lion as a traveling duo moving toward the unknown forest."
+    },
+    {
+      "prompt": "Full-color cinematic film still, medium shot from the side, the Sphinx stands blocking the middle of the dirt path at the forest entrance. The Fox and Lion are frame-left, stopped and looking up at the Sphinx, with the Lion's head lowered and the Fox sitting on its back. The forest looms dark behind the Sphinx, with dappled light filtering through leaves. The Sphinx has one paw raised, palm facing out, as if stopping them, and its mouth is slightly open. Sphinx is a hairless grey and pink cat with large ears, wrinkled skin, and a stout body from image 1. Fox is a purple fox-like creature from image 3. Lion is a large, tan lion with a brown mane from image 3.",
+      "intent": "The Sphinx confronts the travelers, establishing this as a barrier and setting up the toll demand."
+    },
+    {
+      "prompt": "Full-color cinematic film still, close-up from a low angle on the Sphinx's face and upper body, its nose almost touching the camera. The Fox and Lion are out of focus in the bottom corners, blurred and small. The Sphinx's eyes are narrowed, wrinkled skin folded, and its mouth open as if speaking. The background is a dark wall of leaves with a few beams of light. The Sphinx leans forward, paws resting on the ground. Sphinx is a hairless grey and pink cat with large ears, wrinkled skin, and a stout body from image 1. Fox is a purple fox-like creature from image 3. Lion is a large, tan lion with a brown mane from image 3.",
+      "intent": "The Sphinx asks for a toll with a menacing tone, creating tension and focusing on its intimidating presence."
+    },
+    {
+      "prompt": "Full-color cinematic film still, over-the-shoulder shot from behind the Fox and Lion, their backs filling the frame-left. The Sphinx is frame-right, facing them, but its head turns slightly. In the background, frame-right, Jubie emerges from the underbrush, walking slowly forward with a calm expression, muscles rippling under its fur. The forest light catches Jubie's white body, making it stand out against the green. The Sphinx's posture stiffens. Sphinx is a hairless grey and pink cat with large ears, wrinkled skin, and a stout body from image 1. Jubie is a white tiger with brown stripes, a fluffy, muscular body, and a calm expression from image 2. Fox is a purple fox-like creature from image 3. Lion is a large, tan lion with a brown mane from image 3.",
+      "intent": "Jubie appears unexpectedly, shifting the power dynamic and signaling the protector's intervention."
+    },
+    {
+      "prompt": "Full-color cinematic film still, wide shot from the side, Jubie lunges forward with its mouth wide open in a roar, front paws planted on the ground, body low and ready to charge. The Sphinx is frame-right, mid-leap away, its tail flailing, clearly fleeing in panic. The Fox and Lion are frame-left, watching with wide eyes. Dust and leaves scatter around Jubie's paws, and the forest entrance is visible behind them. Sphinx is a hairless grey and pink cat with large ears, wrinkled skin, and a stout body from image 1. Jubie is a white tiger with brown stripes, a fluffy, muscular body, and a calm expression from image 2. Fox is a purple fox-like creature from image 3. Lion is a large, tan lion with a brown mane from image 3.",
+      "intent": "Jubie scares the Sphinx away in a dramatic burst of action, resolving the conflict and showcasing Jubie's protective role."
+    },
+    {
+      "prompt": "Full-color cinematic film still, medium shot from the front, Jubie stands in the center of the path, now calm and relaxed. The Fox is frame-left, dismounted from the Lion, and the Lion is frame-right, both facing Jubie. The three are close together, with the Fox nodding and the Lion bowing its head slightly. Jubie lowers its head toward them, a gentle expression on its face. The forest entrance behind them is bathed in bright, warm daylight, no longer ominous. Jubie is a white tiger with brown stripes, a fluffy, muscular body, and a calm expression from image 2. Fox is a purple fox-like creature from image 3. Lion is a large, tan lion with a brown mane from image 3.",
+      "intent": "Jubie, the Fox, and the Lion become friends, ending the story on a peaceful and positive note."
+    }
+  ]
+}
