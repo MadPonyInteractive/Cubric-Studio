@@ -1,0 +1,3 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1290", "at": "2026-10-25T20:33:53+00:00", "actor": "claude", "column": "todo", "title": "Gallery compare labels each side with the card's own name, not the file name"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1290", "at": "2026-10-25T20:34:06+00:00", "actor": "claude", "from": "todo", "to": "doing"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1290", "at": "2026-10-25T20:53:30+00:00", "actor": "claude", "from": "doing", "to": "done"}

@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1290",
+  "title": "Gallery compare labels each side with the card's own name, not the file name",
+  "description": "Comparing two renamed cards from the gallery showed file names; the compare surface only saw history items, never the card's customName.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-25T20:33:53+00:00",
+  "updated_at": "2026-10-25T20:53:30+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

@@ -1,0 +1,3 @@
+- [x] Gallery compare shows each card's user-set name when it has one
+- [x] Unnamed cards keep the existing label (history item name / file name)
+- [x] History-panel compare (two versions of one card) unchanged
