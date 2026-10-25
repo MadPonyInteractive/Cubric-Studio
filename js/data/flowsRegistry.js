@@ -558,8 +558,10 @@ const SHEET_CLOTHES_CHECKS = ['upper body, the chest and belly', 'lower body, th
 // flattens its answer to one line: panels are found by `[PANEL n]` and `Intent:`, never newlines.
 // "Name, never a pronoun" and "speech goes in the Intent" are the bench's two faults: a stranger
 // called "him" got no line and changed clothes, and quoted speech rendered as lettering.
-// Places go in their own `[PLACES]` block: a cast member with no picture that two panels name gets
-// a picture drawn before the panels (`recurringActors`), and a place must not (2026-10-25).
+// Places go in their own `[PLACES]` block, and each panel names its place by that name: a cast
+// member or place with no picture that two panels name gets a picture drawn before the panels
+// (`recurringActors`). Places were never drawn until Fabio's volcano board put three different
+// ledges in three panels, one with no volcano (2026-10-25).
 // It opens on "Storyboard plan:", never on `[CAST]`: DeepInfra's gemma-3-12b answered "[CAST]..."
 // with empty content (the Music Maker note above); the parser starts at `[CAST]`.
 const STORYBOARD_PLAN_ENHANCE_PARAMS = {
@@ -573,7 +575,7 @@ const STORYBOARD_PLAN_ENHANCE_PARAMS = {
         '',
         'The Picture is one frozen instant, as a camera sees it, in 50 to 100 words of prose:',
         '- Open on the medium and style. When the user names none, open on the style the pictures show ("It shows a 3D-animated cartoon fox" opens on "3D-animated cartoon film still, "), the same in every panel; with no pictures, on "Full-color cinematic film still, ".',
-        '- Then the shot size and angle (wide establishing shot, medium shot, close-up, over-the-shoulder shot), the place, the light and the time of day.',
+        '- Then the shot size and angle (wide establishing shot, medium shot, close-up, over-the-shoulder shot), the place by its [PLACES] name every time ("on Volcano\'s Edge"), the light and the time of day.',
         '- Name each cast member in the shot by their cast name every time, even twice in one panel, and say where they are in the frame (frame-left, frame-right, foreground, background) and what they are doing at that instant.',
         '- Never describe a cast member\'s looks in a Picture (no species, size, colours or clothes): the cast line is added to every panel that names them, and a second description fights it.',
         '- Only what can be seen in a single still picture: camera moves, cuts, sounds, speech and feelings go in the Intent.',
@@ -3073,7 +3075,7 @@ const ALL_FLOWS = [
                         empty: 'No pictures. The panels are drawn from your words. To keep a character or place the same in every panel, add its picture on the first step.',
                     },
                     {
-                        id: 'positive', type: 'text', rows: 4, label: 'Your idea', col: 'right',
+                        id: 'positive', type: 'text', rows: 8, label: 'Your idea', col: 'right',
                         placeholder: 'A waitress in a late-night diner meets a stranger who knows her name.',
                     },
                     {

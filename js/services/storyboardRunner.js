@@ -16,7 +16,8 @@
  * Pure orchestration: every touch of the app comes in through `deps`, so the order,
  * landing and failure rules are unit-tested (`tests/storyboard-runner.test.cjs`).
  *
- * @typedef {{prompt: string, intent?: string}} StoryboardPanel
+ * @typedef {{prompt: string, intent?: string, ratio?: string}} StoryboardPanel - `ratio` overrides
+ *   the run's (a place drawn before the panels takes the video's shape, a character a square)
  * @typedef {Object} StoryboardDeps - none of these throw; a failure they cannot recover is logged by them
  * @property {function(): boolean} isLoopArmed - Loop re-fires the last job, so a batch would never end
  * @property {function(StoryboardPanel, number, Object):
@@ -65,26 +66,42 @@ export function parseStoryboardPlan(text, idea = '', actorImages = {}) {
 }
 
 /**
- * The cast members with no picture that two or more panels name, most-named first: each panel
- * is drawn alone, so a dragon described only in words is a different dragon in every panel
- * (Fabio, 2026-10-25). The driver draws each one a picture before the panels, and every panel
- * naming it gets that picture as a reference. Only `[CAST]` lines count, never `[PLACES]`: a
- * place drawn as a reference pastes the same background into every shot. A cast line that
- * already says "from image" is a picture the user gave.
+ * The cast members and places with no picture that two or more panels name: each panel is
+ * drawn alone, so a dragon described only in words is a different dragon in every panel, and a
+ * ledge a different ledge (Fabio, 2026-10-25; his volcano board drew three ledges in three
+ * panels, one with no volcano). The driver draws each one a picture before the panels, and
+ * every panel naming it gets that picture as a reference. Characters come first, places after
+ * (`place: true`), each most-named first: the model's reference slots run out, and a face that
+ * changes reads worse than a background. A line that already says "from image" is a picture
+ * the user gave.
  * @param {string} text - the plan box
  * @param {string} [idea] - as `parseStoryboardPlan`
- * @returns {Array<{name: string, desc: string}>}
+ * @returns {Array<{name: string, desc: string, place: boolean}>}
  */
 export function recurringActors(text, idea = '') {
     const plan = String(text || '');
     const pictured = new Set(_pictureCast(idea).map(c => c.name.toLowerCase()));
     const blocks = _blocks(plan);
     return _castLines(plan)
-        .filter(c => !c.place && !pictured.has(c.name.toLowerCase()) && !/\bfrom\s+(?:the\s+\w+\s+)?image\b/i.test(c.desc))
+        .filter(c => !pictured.has(c.name.toLowerCase()) && !/\bfrom\s+(?:the\s+\w+\s+)?image\b/i.test(c.desc))
         .map((c, order) => ({ ...c, order, count: blocks.filter(b => _mentions(b.prompt, c.name)).length }))
         .filter(c => c.count >= 2)
-        .sort((a, b) => b.count - a.count || a.order - b.order)
-        .map(({ name, desc }) => ({ name, desc }));
+        .sort((a, b) => a.place - b.place || b.count - a.count || a.order - b.order)
+        .map(({ name, desc, place }) => ({ name, desc, place }));
+}
+
+/**
+ * The style every panel opens on ("3D-animated cartoon film still"), or '' when they differ:
+ * the planner opens each panel on the same style, and a picture drawn before the panels needs
+ * it too, or a cartoon board gets a photo of its dragon. The opening is the words before the
+ * first comma, when no full stop comes first; one panel, or a hand-written plan that opens on
+ * a sentence, has none.
+ * @param {StoryboardPanel[]} panels
+ * @returns {string}
+ */
+export function panelStyle(panels) {
+    const heads = panels.map(p => String(p?.prompt || '').match(/^([^.,]+),/)?.[1].trim() || '');
+    return heads.length > 1 && heads[0] && heads.every(h => h === heads[0]) ? heads[0] : '';
 }
 
 /** Every cast and place line by lower-cased name. The plan box's line wins over the note's: it

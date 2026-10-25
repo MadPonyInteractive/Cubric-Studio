@@ -12,7 +12,7 @@
  * that declares `driver` (MpiBaseFlow `_run`).
  */
 
-import { runStoryboard, parseStoryboardPlan, recurringActors } from '../services/storyboardRunner.js';
+import { runStoryboard, parseStoryboardPlan, recurringActors, panelStyle } from '../services/storyboardRunner.js';
 import { enqueueGeneration } from '../services/generationService.js';
 import { addGroup, updateGroup, reorderStack } from '../services/projectService.js';
 import { clientLogger } from '../services/clientLogger.js';
@@ -59,7 +59,7 @@ function _references(mediaItems, roles) {
 /** The selected item of a group as it stands in the open project now. */
 const _liveGroup = (groupId) => (state.currentProject?.itemGroups || []).find(g => g.id === groupId);
 
-function _deps(project, { modelId, idea, references, ratio, qualityTier, turbo }, frame) {
+function _deps(project, { flow, inputs, unit, modelId, idea, references, ratio, qualityTier, turbo }, frame) {
     return {
         isLoopArmed: () => state.loopArmed === true,
 
@@ -70,12 +70,17 @@ function _deps(project, { modelId, idea, references, ratio, qualityTier, turbo }
                 positive: panel.prompt,
                 media: references,
                 turbo,
-                ..._size(ratio, qualityTier),
+                ..._size(panel.ratio || ratio, qualityTier),
             }, project);
             if (!built.ok) return built;
             // The user pressed Generate: their toasts show, and the child-safety gate reads
             // their own idea beside the panel prompt the planner wrote from it.
-            const config = { ...built.config, byAgent: false, userWords: [idea, panel.prompt] };
+            // `flowId` + `flowInputs` ride to the sidecar, so Reuse > Apply to App reopens the
+            // Storyboard with the idea, pictures and plan that drew this panel (Fabio, 2026-10-25).
+            // `flowStep` is the status bar's "panel 5/6", which also hides the graph's bare stage "1".
+            const config = { ...built.config, byAgent: false, userWords: [idea, panel.prompt],
+                flowId: flow.id, flowInputs: inputs,
+                flowStep: landing.batchTotal > 1 ? `${unit} ${index + 1}/${landing.batchTotal}` : null };
             let settle;
             const done = new Promise((resolve) => { settle = resolve; });
             const opts = landingOpts(landing, 'image', built.run.width, built.run.height);
@@ -177,6 +182,9 @@ async function runStoryboardFlow(flow, inputs, frame) {
     const words = String(inputs.positive || '').trim();
     const name = truncateCardName(words ? `Storyboard · ${words}` : 'Storyboard');
     const opts = {
+        flow,
+        inputs,
+        unit: 'panel',
         modelId,
         idea,
         ratio: inputs.ratio,
@@ -184,17 +192,20 @@ async function runStoryboardFlow(flow, inputs, frame) {
         // A model with no turbo switch refuses one (INVALID_TURBO); the hidden toggle keeps its value.
         turbo: resolveTurboControlId(model) ? inputs.turbo !== false : undefined,
     };
-    // A recurring actor with no picture gets one drawn first, so every panel draws the SAME
-    // dragon: as many as the model's free reference slots hold, most-named first.
+    // A recurring actor or place with no picture gets one drawn first, so every panel draws the
+    // SAME dragon on the SAME ledge: as many as the model's free reference slots hold,
+    // characters first. Each is drawn in the panels' own style.
     const wanted = recurringActors(inputs.plan, idea);
     const actors = wanted.slice(0, Math.max(0, max - references.length));
     if (!actors.length) return _drawPanels(panels, name, _deps(project, { ...opts, references }, frame));
 
     // One actor lands as a plain card under its own name; two or more as a Cast stack.
+    const style = panelStyle(panels);
     const castName = truncateCardName(actors.length > 1 ? `${name} · Cast` : actors[0].name);
-    const cast = await runStoryboard(actors.map(a => ({ prompt: _castPrompt(a), intent: `${a.name}: ${a.desc}` })),
+    const cast = await runStoryboard(actors.map(a => ({ prompt: _castPrompt(a, style), intent: `${a.name}: ${a.desc}`,
+        ratio: a.place ? inputs.ratio : '1:1' })),
         { name: castName, sheet: false },
-        _deps(project, { ...opts, references: [], ratio: '1:1' }, frame));
+        _deps(project, { ...opts, unit: 'picture', references: [] }, frame));
     if (!cast.ok) {
         StatusBar.notify(cast.message, 'warning');
         return false;
@@ -219,9 +230,20 @@ async function runStoryboardFlow(flow, inputs, frame) {
     return true;
 }
 
-/** A cast member alone and whole, so the panel model can lift it into any shot. */
-const _castPrompt = ({ name, desc }) =>
-    `Reference picture of ${name}: ${desc}. The whole of it in view and centred, on a plain light grey background, in even studio light. Nothing else in the picture.`;
+/**
+ * A cast member alone and whole, so the panel model can lift it into any shot; a place empty
+ * and wide, so every panel set there shows the same one. The panels' style opens AND closes the
+ * prompt: "Anime film still. Reference picture of ... in even studio light" came back as 3D
+ * product renders of a squirrel and a gold elephant (Fabio's bat-cave board, 2026-10-25), and a
+ * cast drawn in mixed styles mixes every panel drawn from it.
+ */
+function _castPrompt({ name, desc, place }, style) {
+    const what = place
+        ? `the place ${name}: ${desc}. A wide view of the whole place, empty: no people, animals or characters in it.`
+        : `${name}: ${desc}. The whole of it in view and centred, alone on a plain light grey background. Nothing else in the picture.`;
+    if (!style) return `Reference picture of ${what}${place ? '' : ' Even studio light.'}`;
+    return `${style} of ${what} The same style as every panel: ${style.toLowerCase()}.`;
+}
 
 /** Queues the panels; the status bar names the end. */
 async function _drawPanels(panels, name, deps) {

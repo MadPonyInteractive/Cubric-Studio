@@ -13,10 +13,10 @@ const path = require('node:path');
 
 const esm = (p) => import('file:///' + path.join(__dirname, '..', p).replace(/\\/g, '/'));
 
-let runStoryboard, parseStoryboardPlan, recurringActors, applyReorderMembers;
+let runStoryboard, parseStoryboardPlan, recurringActors, panelStyle, applyReorderMembers;
 
 test.before(async () => {
-    ({ runStoryboard, parseStoryboardPlan, recurringActors } = await esm('js/services/storyboardRunner.js'));
+    ({ runStoryboard, parseStoryboardPlan, recurringActors, panelStyle } = await esm('js/services/storyboardRunner.js'));
     ({ applyReorderMembers } = await esm('js/data/stackModel.js'));
 });
 
@@ -211,18 +211,29 @@ test('the plan\'s cast line wins; the user\'s "Picture N is NAME, a WHAT." fills
     assert.strictEqual(parseStoryboardPlan('[PANEL 1] Bix naps.', idea)[0].prompt, 'Bix naps. Bix is the grumpy hairless cat from the first image.');
 });
 
-test('an unpictured cast member two panels name is a recurring actor; a place, a pictured one or a one-panel one is not', () => {
-    // Fabio, 2026-10-25: a dragon in words alone is a different dragon in every panel.
-    const plan = '[CAST] Bix: a hairless grey cat from image 1. Dragon: a huge red dragon with gold horns. Red Truck: a battered red pickup truck. Owl: a small brown owl. [PLACES] Cave: a dark cave mouth. [PANEL 1] Picture: Bix and the Dragon at the Cave. Intent: a [PANEL 2] Picture: The Dragon chases the Red Truck past the Cave. Intent: b [PANEL 3] Picture: Bix hides in the Red Truck as the Owl watches. Intent: c [PANEL 4] Picture: The Dragon lands. Intent: d';
+test('an unpictured cast member or place two panels name recurs, characters first; a pictured one or a one-panel one does not', () => {
+    // Fabio, 2026-10-25: a dragon in words alone is a different dragon in every panel, and a
+    // ledge a different ledge. The Cave is named by two panels, and comes after both characters.
+    const plan = '[CAST] Bix: a hairless grey cat from image 1. Dragon: a huge red dragon with gold horns. Red Truck: a battered red pickup truck. Owl: a small brown owl. [PLACES] Cave: a dark cave mouth. Hill: a grassy hill. [PANEL 1] Picture: Bix and the Dragon at the Cave. Intent: a [PANEL 2] Picture: The Dragon chases the Red Truck past the Cave. Intent: b [PANEL 3] Picture: Bix hides in the Red Truck on the Hill as the Owl watches. Intent: c [PANEL 4] Picture: The Dragon lands. Intent: d';
     assert.deepStrictEqual(recurringActors(plan), [
-        { name: 'Dragon', desc: 'a huge red dragon with gold horns' },
-        { name: 'Red Truck', desc: 'a battered red pickup truck' },
+        { name: 'Dragon', desc: 'a huge red dragon with gold horns', place: false },
+        { name: 'Red Truck', desc: 'a battered red pickup truck', place: false },
+        { name: 'Cave', desc: 'a dark cave mouth', place: true },
     ]);
     // A name from the user's own note is pictured even when the plan's line lacks "from image".
-    assert.deepStrictEqual(recurringActors(plan.replace(' from image 1', ''), 'Picture 1 is Bix, the cat.').map(a => a.name), ['Dragon', 'Red Truck']);
-    // The drawn picture's number lands on the actor's line; the place line still rides along.
-    const [p1] = parseStoryboardPlan(plan, '', { dragon: 2 });
-    assert.strictEqual(p1.prompt, 'Bix and the Dragon at the Cave. Bix is a hairless grey cat from image 1. Dragon is a huge red dragon with gold horns from image 2. Cave is a dark cave mouth.');
+    assert.deepStrictEqual(recurringActors(plan.replace(' from image 1', ''), 'Picture 1 is Bix, the cat.').map(a => a.name), ['Dragon', 'Red Truck', 'Cave']);
+    // The drawn pictures' numbers land on the actor's and the place's lines.
+    const [p1] = parseStoryboardPlan(plan, '', { dragon: 2, cave: 3 });
+    assert.strictEqual(p1.prompt, 'Bix and the Dragon at the Cave. Bix is a hairless grey cat from image 1. Dragon is a huge red dragon with gold horns from image 2. Cave is a dark cave mouth from image 3.');
+});
+
+test('the panels\' shared opening is the style a picture drawn before them takes', () => {
+    const p = s => ({ prompt: s });
+    assert.strictEqual(panelStyle([p('3D-animated cartoon film still, wide shot, the Cave'), p('3D-animated cartoon film still, close-up, Bix')]), '3D-animated cartoon film still');
+    // Openings that differ, one panel, or a plan that opens on a sentence give none.
+    assert.strictEqual(panelStyle([p('Photo, wide'), p('Watercolour, close')]), '');
+    assert.strictEqual(panelStyle([p('3D-animated cartoon film still, wide')]), '');
+    assert.strictEqual(panelStyle([p('Bix naps. Then, he wakes'), p('Bix naps. Then, he eats')]), '');
 });
 
 test('a cast run with sheet off makes no overview, and every landed row carries its item', async () => {

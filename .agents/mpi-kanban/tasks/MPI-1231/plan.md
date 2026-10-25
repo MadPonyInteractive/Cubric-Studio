@@ -255,6 +255,28 @@
   Prompts: research/style-fix/out.json. NOT LOOKED AT yet. Fabio: agent/MCP access to Storyboard
   (buildFlow refuses OPENS_FOR_USER today) is the LAST step, after 2.1.3, since the Flow is dev-gated
   and ships with LTX 2.5.
+- 2026-10-25 ("Storyboard 21", Fabio's GPU yes): "Volcano v2 · 4-6" drawn (edit_016-018). Versus the
+  first board (sheet_002): cartoon style HELD on every panel; forest mostly gone (trees still behind
+  panel 3). New faults: the PLACE drifts (three different ledges in 1-3; panel 2 has no volcano at
+  all) - evidence for drawing a recurring place first; panel 6 BLENDED the two refs (a striped
+  sphynx-tiger on the ledge) when Tiger is the lone close subject and Cat a far lump. Panel 1 (no
+  characters) reads photo-like. Product calls (place first, Reuse reopens Flow, status bar
+  "panel n/N") still waiting on Fabio.
+- 2026-10-25 ("Storyboard 21") Fabio TOOK ALL THREE PICKS, BUILT (uncommitted): (a) `recurringActors`
+  now returns places too (`place: true`, after the characters); a place is drawn at the video's
+  ratio, empty and wide (`_castPrompt`), and its line gets "from image N" like an actor's. The
+  planner now names the place by its [PLACES] name in every panel, else nothing recurs (the volcano
+  plan named it once). Cast and place pictures open on `panelStyle(panels)`, the panels' shared
+  first clause, so a cartoon board gets cartoon references. (b) every Storyboard job carries
+  `flowId` + `flowInputs` (the frame's inputs), so Reuse > Apply to App reopens the Flow. (c)
+  `flowStep` "panel n/N" ("picture n/N" for the cast run) in the status bar, which also hides the
+  graph's bare stage. NOT eye-tested in the app: needs a fresh Plan with Cosmo + Generate (GPU).
+- 2026-10-25 Fabio's bat-cave board (no pictures, "anime style"): status bar "picture n/7" WORKS;
+  7 references drawn first (Squirrel, Rabbit, Bats, Gold Helmet, Gold Elephant, Bat Cave, River),
+  every prompt opened "Anime film still." yet squirrel/helmet/elephant came back 3D renders and the
+  River photo-like: "Reference picture ... even studio light" won. Fixed (uncommitted, NOT re-drawn):
+  `_castPrompt` opens AND closes on the style, no studio light when a style exists. Idea box rows
+  4 -> 8 (Fabio). Open: 7 refs on Qwen (max 8) - does quality fall?; a swarm drawn as a reference.
 
 ## Phase 0: Panel recipe - `user-ux` (local GPU, Fabio's yes; no money)
 
