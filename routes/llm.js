@@ -372,6 +372,25 @@ router.post('/llm/ollama/cloud/add', async (req, res) => {
 });
 
 /**
+ * One `/llm/enhance` reply from an engine's completion. `result.backend` / `result.model`,
+ * not the request's: the engine reports what actually answered.
+ *
+ * AN EMPTY ANSWER IS A FAILURE (MPI-1231): a reasoning model can spend its whole turn
+ * thinking, or hit the token cap first, and come back with nothing. Answered `ok: true`
+ * with empty text, every caller dropped it without a word: Storyboard's Enhance ended
+ * with an empty plan box, no toast and no log line. The finish reason says which.
+ */
+function _enhanceAnswer(result, maxTokens) {
+    const text = String(result.text || '').trim();
+    if (text) return { ok: true, text, backend: result.backend, model: result.model };
+    const why = result.finishReason === 'length'
+        ? ` It stopped at the ${maxTokens ? `${maxTokens}-token ` : ''}limit before writing anything.`
+        : '';
+    logger.warn('system', `llm enhance: ${result.model} on ${result.backend} answered nothing (finish: ${result.finishReason || '?'})`);
+    return { ok: false, error: `${result.model} answered with nothing.${why} Press Enhance again, or pick another model in Remote > Language Models.` };
+}
+
+/**
  * POST /llm/enhance — one completion.
  *
  * body: { prompt, system?, backend, modelId?, maxTokens?, profileId? }
@@ -421,7 +440,7 @@ router.post('/llm/enhance', async (req, res) => {
                 // The Ollama connection goes native, as describe does (MPI-912).
                 const { engine } = chatEngineFor(profileId, key, profile.baseURL, profile);
                 const result = await engine.complete(prompt, { model, system, maxTokens });
-                return res.json({ ok: true, text: String(result.text || '').trim(), backend: result.backend, model: result.model });
+                return res.json(_enhanceAnswer(result, maxTokens));
             } catch (err) {
                 logger.error('system', `llm enhance (endpoint) failed: ${err && err.message}`);
                 return void _connectionError(res, 'ENDPOINT_ERROR', (err && err.message) || 'Endpoint enhance failed.', err && err.status);
@@ -456,14 +475,7 @@ router.post('/llm/enhance', async (req, res) => {
 
         const result = await new OllamaEngine().complete(prompt, { model, system, maxTokens });
 
-        // `result.backend` / `result.model`, not the variables above: the engine
-        // reports what actually answered.
-        res.json({
-            ok: true,
-            text: String(result.text || '').trim(),
-            backend: result.backend,
-            model: result.model,
-        });
+        res.json(_enhanceAnswer(result, maxTokens));
     } catch (err) {
         logger.error('system', `llm enhance failed: ${err && err.message}`);
         res.json({ ok: false, error: (err && err.message) || 'Enhance failed.' });

@@ -700,15 +700,17 @@ export async function runComfyEnhance({ prompt, system, injectionParams, modelId
             },
             {
                 // A text op never fires onComplete — GenerationCallbacks.onText.
-                onText: (text) => resolve({
-                    ok: true,
-                    text: String(text || '').trim(),
-                    backend: 'comfy',
+                onText: (text) => {
                     // The borrowed encoder when there is one, so the provenance line
                     // names the weight that actually wrote the prompt.
-                    model: String(injectionParams?.['Load CLIP.clip_name'] || 'qwen3vl_4b_abliterated')
-                        .replace(/\.safetensors$/, ''),
-                }),
+                    const model = String(injectionParams?.['Load CLIP.clip_name'] || 'qwen3vl_4b_abliterated')
+                        .replace(/\.safetensors$/, '');
+                    const out = String(text || '').trim();
+                    // An empty answer is a failure, as `/llm/enhance` answers it (MPI-1231).
+                    resolve(out
+                        ? { ok: true, text: out, backend: 'comfy', model }
+                        : { ok: false, error: `${model} answered with nothing. Press Enhance again.` });
+                },
                 onError: (err) => resolve({ ok: false, error: (err && err.message) || 'Enhance failed.' }),
                 // `cancelled` so a caller can tell a user's own Stop from a failure and
                 // stay quiet about it. The flows were silent on cancel before this call
@@ -824,7 +826,10 @@ async function _enhanceFlowOn(backend, { prompt, injectionParams, modelId }) {
         maxTokens: params['Input_Text_Gen.max_length'],
         ...(backend === 'endpoint' ? { profileId } : {}),
     });
-    return result.ok ? { ...result, text: postProcessLikeGraph(result.text, params) } : result;
+    if (!result.ok) return result;
+    const text = postProcessLikeGraph(result.text, params);
+    // The graph's scrub patterns can eat a whole reply: that is an empty answer too.
+    return text ? { ...result, text } : { ok: false, error: `The enhancer's answer was emptied by this Flow's clean-up patterns. Press Enhance again.` };
 }
 
 /**

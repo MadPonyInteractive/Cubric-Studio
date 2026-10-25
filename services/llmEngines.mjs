@@ -312,6 +312,8 @@ export class OllamaEngine {
             text: data.message?.content ?? '',
             model: req.model,
             backend: this.backend,
+            // DeepInfraEngine's `finishReason`, in Ollama's spelling.
+            finishReason: data.done_reason ?? null,
             // Additive, exactly as DeepInfraEngine's are: a caller that destructures
             // `{ text }` never sees these, so every enhance and describe call is unchanged.
             ...(fromOllamaToolCalls(data.message?.tool_calls, req.model)
@@ -850,6 +852,8 @@ export class DeepInfraEngine {
         const msg = data.choices?.[0]?.message;
         return {
             text: msg?.content ?? '',
+            // 'length' = the token cap cut it: how /llm/enhance names an empty reply.
+            finishReason: data.choices?.[0]?.finish_reason ?? null,
             // toolCalls: present only when the model called a tool; callers that
             // destructure { text } are unaffected — they never see undefined keys.
             ...(msg?.tool_calls?.length && { toolCalls: msg.tool_calls }),

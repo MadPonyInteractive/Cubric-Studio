@@ -63,6 +63,30 @@
   `ok` with empty text must be a VISIBLE failure (every end visible): fix in `runEnhanceDecl`/
   `enhanceFlow` for every caller, not in the frame. Also: an endpoint enhance shows no progress
   anywhere while it runs (the "every action shows itself" rule).
+- 2026-10-25 ("LTX 2.5 model 15"): DIAGNOSIS CORRECTED. Fabio's backend is `comfy`, not endpoint
+  (his leveldb decoded properly: 000030.ldb `cubric.llm.backend` = comfy; the "endpoint" string was
+  an older table). His words: "nothing at all - no warning, the button looked normal", no queue row,
+  and no ComfyUI "got prompt" 03:09-03:16: the press never reached a dispatch. NOT reproduced: in an
+  isolated copy (backend comfy, typed idea / empty idea / after a reload) the button goes
+  "Enhancing..." and dispatches every time; a throw would be logged (window error hook, factory emit
+  does not swallow), and the queue has no silent self-cancel. Shipped anyway (handoff mandate,
+  every end visible): an EMPTY enhancer answer is now a named failure for every caller -
+  `/llm/enhance` `_enhanceAnswer` (endpoint + ollama, names the model and the token cap from the
+  engines' new `finishReason`), `runComfyEnhance` onText, and `_enhanceFlowOn` when the scrub
+  patterns empty a reply. 2 tests. NEXT: Fabio reloads and retries Enhance, saying whether the
+  button turns to "Enhancing..."; if it still does nothing, it is a click that never reaches
+  `_runEnhance` in HIS frame state (pictures on step 1? a reused frame?) - get his exact steps.
+  Also noticed: Enhance runs with an EMPTY idea (panel count + ratio lines alone make a source).
+- 2026-10-25 ("LTX 2.5 model 15", Fabio's retry 03:49): the fix SHOWED it - toast "google/gemma-3-12b-it
+  answered with nothing", app.log `answered nothing (finish: stop)`. So the backend IS endpoint after
+  all (my leveldb read missed the newest WAL value; the handoff before was right), model = his pick
+  gemma-3-12b-it, and it ends its turn with zero words, no cap hit. His run: 3 pictures with notes
+  (Jasper the Protector / Tiki the villain / Tikori and Mr. Tiger), idea about a villain demanding a fee,
+  6 panels. The planner prompt was only ever benched on the ComfyUI 4B. NEXT: Fabio approved up to 3
+  DeepInfra calls (< $0.01 total) on gemma-3-12b-it with the exact system + user text his press sent
+  (rebuild via enhanceSourceText + unwrapChatMl of STORYBOARD_PLAN_ENHANCE_PARAMS, send with
+  DeepInfraEngine.complete from node); vary one thing per call (input, then system prompt) to find the
+  cause, fix at the root. Suggested workaround meanwhile: enhance model -> gemma-4-26B-A4B-it.
 
 ## Phase 0: Panel recipe - `user-ux` (local GPU, Fabio's yes; no money)
 

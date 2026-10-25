@@ -436,6 +436,26 @@ test('POST /llm/enhance endpoint branch: raw modelId is forwarded (no MODEL_REGI
     }
 });
 
+test('MPI-1231: an EMPTY endpoint answer is a failure that names the model and the token cap, never ok with no text', async () => {
+    const restore = stubUpstream(async () => okJson({
+        choices: [{ message: { content: '', reasoning_content: 'thinking...' }, finish_reason: 'length' }], usage: null,
+    }));
+    try {
+        await withEnvKey('test-key', () => withServer(async (base) => {
+            const res = await fetch(`${base}/llm/enhance`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ backend: 'endpoint', profileId: 'deepinfra', modelId: 'm/x', prompt: 'a cat', maxTokens: 3200 }),
+            });
+            const body = await res.json();
+            assert.equal(body.ok, false, JSON.stringify(body));
+            assert.match(body.error, /^m\/x answered with nothing\. It stopped at the 3200-token limit/);
+        }));
+    } finally {
+        restore();
+    }
+});
+
 test('MPI-912: enhance on the Ollama connection goes native with think off; an empty pick runs the recommended model', async () => {
     let sent = null;
     const restore = stubUpstream(async (url) => { throw new Error(`unexpected upstream ${url}`); });

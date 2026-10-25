@@ -282,6 +282,38 @@ test('runEnhanceDecl warns on a failure, stays quiet on a cancel, and never reje
     }
 });
 
+test('MPI-1231: an answer the Flow\'s clean-up patterns empty is a WARNED failure, not a silent ok', async () => {
+    const fe = await esm('js/services/flowEnhance.js');
+    const svc = await esm('js/services/llmService.js');
+    const { flow } = await song();
+    const d = { ...fe.autoEnhanceDecl(flow), injectionParams: { 'Input_Tidy.regex_pattern': '[\\s\\S]+' } };
+
+    const realFetch = global.fetch;
+    const realWarn = console.warn;
+    console.warn = () => {};
+    const logs = [];
+    global.fetch = (url, init) => {
+        if (String(url).startsWith('/comfy_workflows/')) {
+            const graph = JSON.parse(fs.readFileSync(repo(`comfy_workflows/${String(url).slice('/comfy_workflows/'.length)}`), 'utf8'));
+            return Promise.resolve({ ok: true, json: () => Promise.resolve(graph) });
+        }
+        if (url === '/log') { logs.push(JSON.parse(init.body)); return Promise.resolve({ ok: true, json: () => Promise.resolve({}) }); }
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: true, text: 'all of it', backend: 'ollama', model: 'x' }) });
+    };
+    svc.setBackendPreference('ollama');
+    try {
+        const result = await fe.runEnhanceDecl(d, 'Your song: x', { flowId: flow.id });
+        assert.strictEqual(result.ok, false);
+        assert.match(result.error, /emptied by this Flow's clean-up patterns/);
+        assert.strictEqual(logs.length, 1);
+        assert.strictEqual(logs[0].level, 'warn');
+    } finally {
+        delete _ls['cubric.llm.backend'];
+        global.fetch = realFetch;
+        console.warn = realWarn;
+    }
+});
+
 // ── 2. The agent run: enhanceFlowRun ─────────────────────────────────────────────────────────
 test('enhanceFlowRun: Song is enhanced ONCE, on the hand run\'s own prompt, and the patch carries the blocks', async () => {
     const fe = await esm('js/services/flowEnhance.js');
