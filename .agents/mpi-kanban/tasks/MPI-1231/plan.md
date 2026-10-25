@@ -249,6 +249,12 @@
   drawn (GPU = Fabio's). Also in flowsRegistry: Multi-Angle 31's label line ("good for consistency
   and zooming out"), at its request - commit it with this. npm test 3674/0.
   OPEN product call: draw a recurring place first (overturns "places never drawn").
+- 2026-10-25 PUSHED a9cf62a0a (peeks, latents, lone card, glue fix, style fix, peer label). Drew the
+  re-plan via MCP generate (qwen-image-2-1 edit, 16:9 1k, refs t2i_d919b5be.png cat + t2i_8ef43aa4.png
+  tiger) into Tikori Characters: "Volcano v2 · 1-3" LANDED, 4-6 CANCELLED (GPU wanted by a peer).
+  Prompts: research/style-fix/out.json. NOT LOOKED AT yet. Fabio: agent/MCP access to Storyboard
+  (buildFlow refuses OPENS_FOR_USER today) is the LAST step, after 2.1.3, since the Flow is dev-gated
+  and ships with LTX 2.5.
 
 ## Phase 0: Panel recipe - `user-ux` (local GPU, Fabio's yes; no money)
 
