@@ -68,6 +68,8 @@
 - Stacks can be reordered: in the Stack workspace, hold a picture in the strip and drag it to a new place. The stack's cover in the gallery follows the new first picture (MPI-1268).
 - Right-click a stack and pick Create Sheet to lay its pictures out on one sheet, numbered in stack order. Whole pictures (on by default) keeps every picture uncropped in an even grid, and the sheet's shape is picked from portrait or landscape ratios (MPI-1268).
 - The gallery Filter has a Stacks switch under Only: turn it on to see just your stacks. It appears once the project has a stack (MPI-1282).
+- MiniMax H3 Reference has a Fast Motion button next to Turbo. Turn it on for fast action (a launch, a chase, a fight) and the motion is drawn at full size instead of from a half-size draft, so it smears less. Up to Medium it is one pass, so Preview is off; Cosmo turns it on by itself for fast scenes (MPI-1285).
+- Both MiniMax H3 models run faster: in our tests a 3-second clip took about a quarter less time on MiniMax H3, and about a tenth less on MiniMax H3 Reference (MPI-1285).
 - When an update is ready, the Dev updates panel (the bell) shows an "Update to v…" button at the top, naming the version the posts below talk about (MPI-1242).
 
 ## Fixes
