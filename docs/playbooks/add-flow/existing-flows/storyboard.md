@@ -37,9 +37,15 @@ sheet. `devOnly: true` until the LTX 2.5 release (umbrella MPI-1267).
   descriptions, the 4B wrote "the same waitress" from panel 2 on. The plan opens on `[CAST] Name:
   description ...`; `parseStoryboardPlan(plan, idea)` appends the line of every cast name a panel
   mentions. Editing one cast line changes every panel. A panel that says "him" gets no line.
-- **Pictured characters come from the user's sentence**: "Picture 1 is Bix, a grumpy hairless cat."
-  becomes Bix's line, "the grumpy hairless cat from the first image" (the planner cannot see the
-  pictures and invented their looks). A picture showing a second animal leaks it into the panels.
+- **Pictured characters come from the user's note under each picture** (a `pictureNotes` field:
+  the plan step's left column shows the first step's pictures as cards with a note box each,
+  because a plan saying "picture 2" meant nothing once the user could not see picture 2).
+  `mapDeclaredValue` turns the notes into "Picture 1 is Bix, a grumpy hairless cat." sentences,
+  numbered by SLOT; Enhance reads them as a source and the driver appends them to the idea, so
+  Bix's line becomes "the grumpy hairless cat from the first image" (the planner cannot see the
+  pictures and invented their looks). The frame persists the sentences, so a reopen reads them
+  back (`readPictureSentences`); clearing a picture drops its note. The same sentence typed into
+  the idea still works. A picture showing a second animal leaks it into the panels.
 
 ## Agent
 

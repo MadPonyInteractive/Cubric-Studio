@@ -40,9 +40,10 @@ import { getPlanner } from '../../../utils/flowPasses.js';
 import { disambiguatedName, getModelDependencies } from '../../../data/modelRegistry.js';
 import { downloadService } from '../../../services/downloadService.js';
 import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
+import { MpiInput } from '../../Primitives/MpiInput/MpiInput.js';
 import { MpiProgressBar } from '../../Primitives/MpiProgressBar/MpiProgressBar.js';
 import { resultTileAxes, repeatFromTiles, edgesFor } from '../../Organisms/MpiStepEdges/MpiStepEdges.js';
-import { buildField, mapDeclaredValue, isInjectionParam, disabledFieldIds, hiddenFieldIds, withEnhanceFallback, enhanceEchoTargets } from '../../../utils/declaredFields.js';
+import { buildField, mapDeclaredValue, readPictureSentences, isInjectionParam, disabledFieldIds, hiddenFieldIds, withEnhanceFallback, enhanceEchoTargets } from '../../../utils/declaredFields.js';
 import { buildLicenceRows } from '../../../utils/flowLicences.js';
 
 /**
@@ -398,6 +399,8 @@ export const MpiBaseFlow = ComponentFactory.create({
         function _seedField(f, persisted) {
             if (f.type === 'button') return undefined;  // an action, not a value
             const root = /^input_/i.test(f.id) ? seeded.injectionParams?.[f.id] : seeded[f.id];
+            // Persisted as the sentences the run sends; the cards want one note per picture.
+            if (f.type === 'pictureNotes' && typeof root === 'string') return readPictureSentences(root);
             return persisted ?? root ?? f.default;
         }
 
@@ -769,6 +772,15 @@ export const MpiBaseFlow = ComponentFactory.create({
         /** An image slot's media URL -> its 512 thumbnail's src, for this Flow's life. */
         const _slotThumbs = new Map();
 
+        /** An `<img>` showing a picture's cached 512 thumbnail (see `_buildSlot`). */
+        function _thumbImg(itemUrl, alt) {
+            const still = ce('img', { alt });
+            const url = resolveMediaUrl(itemUrl);
+            if (_slotThumbs.has(url)) still.src = _slotThumbs.get(url);
+            else resolveDisplayImage(url, 512).then(({ src }) => { _slotThumbs.set(url, src); still.src = src; });
+            return still;
+        }
+
         /**
          * Render one media slot. THE SLOT IS A PLACEHOLDER, NOT A CONTAINER:
          * empty = bordered box + icon; FILLED = the image IS the box (width/height
@@ -804,11 +816,7 @@ export const MpiBaseFlow = ComponentFactory.create({
                     // still decode whole and visibly load on every return here, because
                     // the slide is rebuilt each time. The server's cached 512 copy instead
                     // (16K-safe), its URL remembered so a rebuilt slot paints at once.
-                    const still = ce('img', { alt: _slotLabel(group, idx) });
-                    const url = resolveMediaUrl(item.url);
-                    if (_slotThumbs.has(url)) still.src = _slotThumbs.get(url);
-                    else resolveDisplayImage(url, 512).then(({ src }) => { _slotThumbs.set(url, src); still.src = src; });
-                    slot.appendChild(still);
+                    slot.appendChild(_thumbImg(item.url, _slotLabel(group, idx)));
                 } else if (group.type === 'video') {
                     // A filled video slot used to be a FILENAME, so the user could not
                     // see what they had picked. It loops silently instead — the clip is
@@ -1781,12 +1789,78 @@ export const MpiBaseFlow = ComponentFactory.create({
          * @param {Array<Function>} unsubs
          * @returns {HTMLElement}
          */
+        /** The image group a `pictureNotes` field writes about: the Flow's first. */
+        const _pictureEntry = () => _mediaGroups.find(e => e.group.type === 'image') || null;
+
+        /**
+         * Blank the note of every picture no longer there, so a cleared slot's "Lena, a
+         * waitress" never reaches the planner or the cast lines. Called where the media
+         * changes and where the cards render.
+         */
+        function _prunePictureNotes() {
+            const items = _pictureEntry()?.items || [];
+            _allDecls.filter(f => f.type === 'pictureNotes').forEach((f) => {
+                const notes = _fieldValues[f.id];
+                if (!Array.isArray(notes) || notes.every((n, i) => items[i] || !String(n || '').trim())) return;
+                _onFlowField(f, notes.map((n, i) => (items[i] ? n : '')));
+            });
+        }
+
+        /**
+         * A `pictureNotes` field (MPI-1231): the pictures from the first step as a scrolling
+         * column of cards, each with a short note under it ("Lena, a waitress"). A plan that
+         * says "picture 2" meant nothing to a user who could no longer see picture 2 (Fabio,
+         * 2026-10-25). The card's number is its tile's. The value is one note per slot;
+         * `mapDeclaredValue` makes it the "Picture N is ..." sentences.
+         */
+        function _buildPictureNotes(f, unsubs) {
+            _prunePictureNotes();
+            const wrap = ce('div', { className: 'mpi-base-flow__field mpi-base-flow__pictures' });
+            if (f.label) {
+                const lbl = ce('span', { className: 'mpi-base-flow__field-label' });
+                lbl.textContent = f.label;
+                wrap.appendChild(lbl);
+            }
+            const entry = _pictureEntry();
+            const items = entry?.items || [];
+            const list = ce('div', { className: 'mpi-base-flow__pictures-list' });
+            items.forEach((item, i) => {
+                if (!item) return;
+                const card = ce('div', { className: 'mpi-base-flow__picture-card' });
+                const num = ce('span', { className: 'mpi-base-flow__picture-number' });
+                num.textContent = String(i + 1);
+                const frame = ce('div', { className: 'mpi-base-flow__picture-thumb' });
+                frame.append(_thumbImg(item.url, `Picture ${i + 1}`), num);
+                const host = ce('div', { className: 'mpi-base-flow__picture-note' });
+                const inst = MpiInput.mount(host, {
+                    type: 'text',
+                    placeholder: f.placeholder || '',
+                    value: String(_fieldValues[f.id]?.[i] || ''),
+                });
+                inst.on('input', ({ value }) => {
+                    const notes = Array.from({ length: entry.group.max }, (_, k) => _fieldValues[f.id]?.[k] || '');
+                    notes[i] = value;
+                    _onFlowField(f, notes);
+                });
+                unsubs.push(() => inst?.el?.destroy?.());
+                card.append(frame, host);
+                list.appendChild(card);
+            });
+            if (!list.childElementCount) {
+                const none = ce('p', { className: 'mpi-base-flow__pictures-empty' });
+                none.textContent = f.empty || '';
+                list.appendChild(none);
+            }
+            wrap.appendChild(list);
+            return wrap;
+        }
+
         function _buildFlowFields(fields, unsubs) {
             const stack = ce('div', {
                 className: 'mpi-base-flow__fields mpi-base-flow__fields--stacked',
             });
             fields.forEach((f) => {
-                const node = _buildField(
+                const node = f.type === 'pictureNotes' ? _buildPictureNotes(f, unsubs) : _buildField(
                     f,
                     _fieldValues[f.id] ?? f.default,
                     (val) => _onFlowField(f, val),
@@ -1869,6 +1943,7 @@ export const MpiBaseFlow = ComponentFactory.create({
             for (let i = 0; i < Math.min(entry.group.max, last + 2); i++) {
                 tiles.appendChild(_buildSlot(entry, i, () => {
                     _persistInputs();
+                    _prunePictureNotes();
                     _renderSlide();
                 }, unsubs, { tile: true }));
             }
@@ -1899,6 +1974,7 @@ export const MpiBaseFlow = ComponentFactory.create({
                     // navigation is the bug this exists to close (MPI-606 bug 1).
                     left.appendChild(_buildSlot(entry, i, () => {
                         _persistInputs();
+                        _prunePictureNotes();
                         _renderSlide();
                     }, unsubs));
                 }

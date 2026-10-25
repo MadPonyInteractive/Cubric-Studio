@@ -127,6 +127,7 @@ export function mapDeclaredValue(f, v) {
     if (f?.type === 'voices') {
         return serialiseVoices(typeof v === 'string' ? deserialiseVoices(v, f.options || []) : v);
     }
+    if (f?.type === 'pictureNotes') return Array.isArray(v) ? pictureSentences(v) : String(v ?? '');
     if (f?.type === 'number' || f?.type === 'slider') v = fieldNumber(v, f);
     if (!Array.isArray(f?.mapTo) || f.mapTo.length !== 2) return v;
     const n = Number(v);
@@ -136,6 +137,39 @@ export function mapDeclaredValue(f, v) {
     const max = Number(f.max ?? 1);
     const t = max === min ? 0 : Math.min(1, Math.max(0, (n - min) / (max - min)));
     return lo + t * (hi - lo);
+}
+
+/**
+ * A `pictureNotes` field's notes → the sentences the reader of the pictures parses (MPI-1231).
+ *
+ * One note per media SLOT, so clearing one picture leaves the others' notes where they were;
+ * a blank note says nothing. "Lena, a waitress" in slot 1 becomes "Picture 1 is Lena, a
+ * waitress.", the sentence Storyboard's planner is told to read and `parseStoryboardPlan`
+ * turns into Lena's cast line.
+ *
+ * @param {Array<string|null>} notes
+ * @returns {string}
+ */
+export function pictureSentences(notes) {
+    return notes.map((n, i) => {
+        const text = String(n || '').trim().replace(/[.\s]+$/, '');
+        return text ? `Picture ${i + 1} is ${text}.` : '';
+    }).filter(Boolean).join(' ');
+}
+
+/**
+ * The inverse of `pictureSentences`, for the restore paths: the frame persists what
+ * `_collectInputs` sends, which is the sentences, so a reopened Flow gets text back.
+ * @param {string} text
+ * @returns {string[]} one note per slot
+ */
+export function readPictureSentences(text) {
+    const notes = [];
+    const parts = String(text || '').split(/(?:^|\s)Picture (\d+) is /).slice(1);
+    for (let i = 0; i < parts.length; i += 2) {
+        notes[Number(parts[i]) - 1] = parts[i + 1].trim().replace(/\.$/, '');
+    }
+    return Array.from(notes, n => n || '');
 }
 
 /**

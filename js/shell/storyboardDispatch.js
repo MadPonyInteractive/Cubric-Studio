@@ -141,14 +141,17 @@ async function runStoryboardFlow(flow, inputs) {
         StatusBar.notify('Open a project first: the storyboard lands in its gallery.', 'warning');
         return false;
     }
-    const idea = String(inputs.positive || '').trim();
+    // The notes under the pictures arrive as "Picture N is ..." sentences (`pictureNotes`); they
+    // join the idea, which is what the cast lines and the child-safety gate read.
+    const idea = [inputs.positive, inputs.pictureNotes].map(s => String(s || '').trim()).filter(Boolean).join(' ');
     const panels = parseStoryboardPlan(inputs.plan, idea);
     if (!panels.length) {
         StatusBar.notify('Press Enhance to write the plan first, or write it yourself as [PANEL 1] Picture: ... Intent: ...', 'warning');
         return false;
     }
     const roles = flow.inputSchema.media[0].roles;
-    const name = truncateCardName(idea ? `Storyboard · ${idea}` : 'Storyboard');
+    const words = String(inputs.positive || '').trim();
+    const name = truncateCardName(words ? `Storyboard · ${words}` : 'Storyboard');
     const run = await runStoryboard(panels, { name }, _deps(project, {
         idea,
         references: _references(inputs.mediaItems || [], roles),

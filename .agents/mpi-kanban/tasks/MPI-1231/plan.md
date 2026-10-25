@@ -39,6 +39,30 @@
   parser bug, fixed + tested (12 runner tests; npm test 3625 pass / 0 fail). NEXT: commit
   (mpi-handoff), then the Phase 1 live run in Fabio's app (Enhance + Generate, a 6-panel board lands as
   one stack with notes + overview), then Phase 2.
+- 2026-10-25 ("LTX 2.5 model 14", Fabio's asks while his live run waits): (1) plan hint now three
+  lines, incl. "a calm moment reads well in 4 to 6; a fast action scene with many cuts wants 10 to
+  12, one panel per cut" (hint only, planner prompt untouched). (2) NEW field type `pictureNotes`:
+  the plan step's LEFT column = the first step's pictures as cards (scrolling 2-col grid) with a
+  note box each; other fields `col: 'right'`. Notes -> "Picture N is ..." via `mapDeclaredValue`
+  (Enhance source + appended to the idea in storyboardDispatch); persisted as sentences, read back
+  by `readPictureSentences` in `_seedField`; a cleared slot drops its note (`_prunePictureNotes`).
+  Eye-checked in my isolated instance (cards, restore, typing -> enhance source, clear -> prune);
+  tests + lint green. NOT yet seen by Fabio. OPEN: a cleared MIDDLE tile leaves a gap, but
+  `_references` compacts the refs, so tile/note "3" becomes FLUX's second image (pre-existing).
+- 2026-10-25 ("LTX 2.5 model 14") LIVE BLOCKER: Fabio pressed Enhance in his app (after the 03:09
+  reload, idea filled): button pressed a while, released, plan box EMPTY, no toast, no queue row,
+  NOTHING in app.log. His LLM backend = `endpoint` (DeepInfra; leveldb `cubric.llm.backend`), so no
+  queue row by design (server-side `/llm/enhance`, routes/llm.js:405). `runEnhanceDecl`
+  (flowEnhance.js) logs only on `ok && text` or `!ok && !cancelled`, and `_runEnhance` writes only
+  on `ok && text`: so the result was `ok:true` with EMPTY text (routes/llm.js returns
+  `String(result.text||'').trim()`), or `cancelled`. Most likely: the endpoint model spent its turn
+  on reasoning / returned empty content for the 12-panel planner prompt (max_tokens 3200), or
+  `postProcessLikeGraph` emptied it. NEXT: (a) find WHY empty: one endpoint call with the real
+  planner system prompt (costs a DeepInfra call: ask Fabio first) or read the engine
+  (services/llmEngines.mjs `complete`, reasoningEffort, recommendedModel 'enhance'); (b) an
+  `ok` with empty text must be a VISIBLE failure (every end visible): fix in `runEnhanceDecl`/
+  `enhanceFlow` for every caller, not in the frame. Also: an endpoint enhance shows no progress
+  anywhere while it runs (the "every action shows itself" rule).
 
 ## Phase 0: Panel recipe - `user-ux` (local GPU, Fabio's yes; no money)
 

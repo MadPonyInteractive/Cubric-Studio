@@ -3035,23 +3035,34 @@ const ALL_FLOWS = [
                 kind: 'fields',
                 tickerLabel: 'Plan',
                 title: 'Plan the storyboard',
-                hint: 'Enhance writes the cast once, then one block per panel: the picture, then its intent. Edit it freely: whatever is in the plan box is what gets drawn, and a cast line you change changes every panel. Added pictures? Say who each one shows, like "Picture 1 is Lena, a waitress." A picture works best with one character alone in it.',
+                hint: [
+                    'Enhance writes the cast once, then one block per panel: the picture, then its intent. Edit it freely: whatever is in the plan box is what gets drawn, and a cast line you change changes every panel.',
+                    'How many panels: a calm moment reads well in 4 to 6. A fast action scene with many cuts wants 10 to 12, one panel per cut.',
+                    'Added pictures? Under each one, say who or what it shows, like "Lena, a waitress". A picture works best with one character alone in it.',
+                ],
                 fields: [
                     {
-                        id: 'positive', type: 'text', rows: 4, label: 'Your idea',
-                        placeholder: 'A waitress in a late-night diner meets a stranger who knows her name. Picture 1 is Lena, a waitress.',
+                        // The pictures from the first step, a note under each (Fabio, 2026-10-25):
+                        // the notes reach the planner and the cast lines as "Picture N is ...".
+                        id: 'pictureNotes', type: 'pictureNotes', label: 'Your pictures',
+                        placeholder: 'Lena, a waitress',
+                        empty: 'No pictures. The panels are drawn from your words. To keep a character or place the same in every panel, add its picture on the first step.',
                     },
                     {
-                        id: 'panelCount', type: 'slider', label: 'Panels', min: 3, max: 12, step: 1, default: 6,
+                        id: 'positive', type: 'text', rows: 4, label: 'Your idea', col: 'right',
+                        placeholder: 'A waitress in a late-night diner meets a stranger who knows her name.',
                     },
                     {
-                        id: 'enhance', type: 'button', label: 'Enhance', icon: 'enhance',
+                        id: 'panelCount', type: 'slider', label: 'Panels', min: 3, max: 12, step: 1, default: 6, col: 'right',
+                    },
+                    {
+                        id: 'enhance', type: 'button', label: 'Enhance', icon: 'enhance', col: 'right',
                         action: 'enhance',
-                        from: ['positive', 'panelCount', 'ratio'], to: 'plan',
+                        from: ['positive', 'pictureNotes', 'panelCount', 'ratio'], to: 'plan',
                         injectionParams: STORYBOARD_PLAN_ENHANCE_PARAMS,
                     },
                     {
-                        id: 'plan', type: 'text', rows: 12, label: 'The plan',
+                        id: 'plan', type: 'text', rows: 12, label: 'The plan', col: 'right',
                         placeholder: 'Press Enhance, or write it yourself: [CAST] Lena: ... [PANEL 1] Picture: ... Intent: ...',
                     },
                 ],

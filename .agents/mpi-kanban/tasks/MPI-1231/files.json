@@ -23,6 +23,7 @@
   "tests/smoke-flows.test.cjs",
   "js/shell/agentDispatch.js",
   "scripts/smoke-workflows.mjs",
-  "js/components/Blocks/MpiBaseFlow/MpiBaseFlow.css"
+  "js/components/Blocks/MpiBaseFlow/MpiBaseFlow.css",
+  "js/utils/declaredFields.js"
  ]
 }

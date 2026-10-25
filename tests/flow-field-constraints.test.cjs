@@ -336,6 +336,24 @@ test('a voice roster serialises to the caption lines the graph reads', async () 
     assert.equal(mapDeclaredValue({ type: 'text' }, 'hello'), 'hello');
 });
 
+test('picture notes become the "Picture N is ..." sentences, numbered by slot (MPI-1231)', async () => {
+    const { mapDeclaredValue, readPictureSentences } = await esm('js/utils/declaredFields.js');
+    const { parseStoryboardPlan } = await esm('js/services/storyboardRunner.js');
+    const f = { type: 'pictureNotes' };
+    // Slot 2 is blank: slot 3 keeps its own number, the one on its tile.
+    const said = mapDeclaredValue(f, ['Lena, a waitress.', '', ' the diner ', null]);
+    assert.equal(said, 'Picture 1 is Lena, a waitress. Picture 3 is the diner.');
+    // The frame persists the sentences; a reopened Flow reads them back into one note per slot.
+    assert.deepStrictEqual(readPictureSentences(said), ['Lena, a waitress', '', 'the diner']);
+    assert.equal(mapDeclaredValue(f, said), said);
+    assert.deepStrictEqual(readPictureSentences(''), []);
+    assert.equal(mapDeclaredValue(f, []), '');
+    assert.equal(mapDeclaredValue(f, undefined), '');
+    // ...which is the sentence the parser reads as Lena's cast line.
+    const [panel] = parseStoryboardPlan('[PANEL 1] Picture: Lena pours coffee. Intent: She waits.', said);
+    assert.equal(panel.prompt, 'Lena pours coffee. Lena is the waitress from the first image.');
+});
+
 test('a serialised roster parses back into rows — the inverse the restore paths need', async () => {
     const { serialiseVoices, deserialiseVoices } = await esm('js/utils/declaredFields.js');
 

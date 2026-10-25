@@ -338,6 +338,54 @@
 .mpi-base-flow__slot-unit--tile .mpi-base-flow__slot--filled img { max-width: 88px; max-height: 88px; }
 .mpi-base-flow__slot-unit--tile .mpi-base-flow__slot-hint { display: none; }
 .mpi-base-flow__slot-unit--tile .mpi-base-flow__slot-icon .mpi-icon { width: 24px; height: 24px; }
+/* `pictureNotes` (MPI-1231): the first step's pictures again, a note under each, in a column
+   that scrolls on its own so ten pictures never push the plan off the slide. */
+.mpi-base-flow__pictures { gap: var(--s-2); }
+.mpi-base-flow__pictures-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+    gap: var(--s-3);
+    max-height: min(62vh, 640px);
+    overflow-y: auto;
+    padding-right: var(--s-1);
+}
+.mpi-base-flow__picture-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-1);
+    min-width: 0;
+}
+.mpi-base-flow__picture-thumb {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 120px;
+    border: 1px solid var(--line);
+    background: oklch(0.26 0.018 350 / 0.5);
+}
+.mpi-base-flow__picture-thumb img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+.mpi-base-flow__picture-number {
+    position: absolute;
+    top: var(--s-1);
+    left: var(--s-1);
+    min-width: 20px;
+    padding: 0 var(--s-1);
+    font-size: var(--t-sm);
+    text-align: center;
+    color: var(--ink-1);
+    background: var(--surface-bar);
+}
+.mpi-base-flow__pictures-empty {
+    grid-column: 1 / -1;
+    font-size: var(--t-sm);
+    color: var(--ink-3);
+}
 .mpi-base-flow__slot-icon { color: var(--ink-4); line-height: 0; }
 .mpi-base-flow__slot-icon .mpi-icon { width: 34px; height: 34px; }
 .mpi-base-flow__slot-hint {
