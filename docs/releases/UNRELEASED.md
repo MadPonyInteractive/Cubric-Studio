@@ -92,6 +92,7 @@
 - Less noise in the log: the mascot freeze warnings now appear only with speed diagnostics on, and a RunPod connect that stops early no longer logs a false freeze (MPI-1255).
 - Renaming a card in Show info mode: you can see what you type with the mouse still on the card (MPI-1289).
 - Compare labels each side with the card's name, not the file name (MPI-1290).
+- AMD and Intel Arc graphics cards are recognised again on current Windows 11. The check relied on a Windows tool that newer versions no longer include, so these computers were given the NVIDIA engine instead of their own (MPI-1304).
 
 ## Held for the LTX 2.5 release — do NOT fold until its dev gate comes off
 

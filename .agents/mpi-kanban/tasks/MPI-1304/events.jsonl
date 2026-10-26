@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1304", "at": "2026-10-26T23:20:25+00:00", "actor": "claude", "column": "todo", "title": "AMD and Intel Arc cards get the NVIDIA engine on current Windows 11 (wmic is gone)"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1304", "at": "2026-10-26T23:20:59+00:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "fixing wmic GPU probe"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1304", "at": "2026-10-26T23:41:13+00:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on a5e78bad1"}
