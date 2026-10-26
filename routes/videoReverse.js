@@ -26,14 +26,13 @@ const express = require('express');
 const router  = express.Router();
 const fs      = require('fs-extra');
 const path    = require('path');
-const { diskPathOf, projectFileUrlBusted } = require('../services/projectFileUrl');
+const { diskPathOf } = require('../services/projectFileUrl');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
-const { v4: uuidv4 } = require('uuid');
 const logger = require('./logger');
 const { ffmpegPath } = require('../services/ffmpegBinary');
 const { probeVideo } = require('../services/ffprobeVideo');
-const { writeVideoDerivatives } = require('../services/ffmpegThumb');
+const { writeVideoCard } = require('../services/outputCard');
 const { nextSequence } = require('./projects');
 
 // windowsHide on EVERY execFileP call below: the forked server.js owns no console,
@@ -114,54 +113,18 @@ router.post('/api/video/reverse', async (req, res) => {
         logger.info('project', `video-reverse (mode=${mode}) ffmpeg: ${ffmpegPath} ${args.join(' ')}`);
         await execFileP(ffmpegPath, args, { maxBuffer: 8 * 1024 * 1024, windowsHide: true });
 
-        const outMeta = await probeVideo(outputPath) || {};
-
-        const newId = uuidv4();
-        const metaDir = path.join(mediaDir, '.meta');
-        await fs.ensureDir(metaDir);
-        // Cache-bust on mtime so a re-run overwriting a reused name plays fresh bytes.
-        const filePathUrl = projectFileUrlBusted(outputPath);
-        const sidecar = {
-            id:         newId,
-            type:       'video',
-            filePath:   filePathUrl,
-            operation:  'reverse',
-            displayName: finalName.replace(/\.[^.]+$/, ''),
-            prompt:     '',
-            negativePrompt: '',
-            seed:       -1,
-            modelId:    null,
-            createdAt:  new Date().toISOString(),
-            name:       null,
-            uploaded:   false,
-            pixelDimensions: { w: srcMeta.width, h: srcMeta.height },
-            fps:        outMeta.fps        || srcMeta.fps,
-            duration:   outMeta.duration   || 0,
-            frameCount: outMeta.frameCount || 0,
-            hasAudio:   !!outMeta.hasAudio,
-            sourceItemId: itemId  || null,
-            sourceGroupId: groupId || null,
-        };
-        // Poster + 720p hover proxy + trim-bar waveform (MPI-633, MPI-829). The wave is
-        // baked from the REVERSED output, so it reads in the direction it plays.
-        const { thumbPath, thumbPathLg, proxyPath, wavePath } = await writeVideoDerivatives(outputPath, metaDir, newId, { sourceWidth: outMeta.width, sourceHeight: outMeta.height, hasAudio: !!outMeta.hasAudio });
-        if (thumbPath) sidecar.thumbPath = thumbPath;
-        if (thumbPathLg) sidecar.thumbPathLg = thumbPathLg;
-        if (proxyPath) sidecar.proxyPath = proxyPath;
-        if (wavePath) sidecar.wavePath = wavePath;
-
-        await fs.writeJson(path.join(metaDir, `${newId}.json`), sidecar, { spaces: 2 });
-
-        const item  = { ...sidecar };
-        const group = {
-            id:         uuidv4(),
-            type:       'video',
-            operation:  'reverse',
-            createdAt:  new Date().toISOString(),
-            fps:        sidecar.fps,
-            duration:   sidecar.duration,
-            items:      [item],
-        };
+        // The waveform is baked from the REVERSED output, so it reads in the direction it plays.
+        const { item, group } = await writeVideoCard({
+            outputPath,
+            metaDir: path.join(mediaDir, '.meta'),
+            operation: 'reverse',
+            fallback: { fps: srcMeta.fps },
+            fields: {
+                pixelDimensions: { w: srcMeta.width, h: srcMeta.height },
+                sourceItemId: itemId  || null,
+                sourceGroupId: groupId || null,
+            },
+        });
 
         res.json({ success: true, item, group });
     } catch (err) {
