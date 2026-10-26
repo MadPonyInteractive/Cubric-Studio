@@ -39,14 +39,14 @@ const express = require('express');
 const router  = express.Router();
 const fs      = require('fs-extra');
 const path    = require('path');
-const { diskPathOf, projectFileUrlBusted } = require('../services/projectFileUrl');
+const { diskPathOf } = require('../services/projectFileUrl');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('./logger');
 const { ffmpegPath } = require('../services/ffmpegBinary');
 const { probeVideo } = require('../services/ffprobeVideo');
-const { writeVideoDerivatives } = require('../services/ffmpegThumb');
+const { writeVideoCard } = require('../services/outputCard');
 const { nextSequence } = require('./projects');
 const { resolveMaskBufferInput } = require('./gifCutout');
 
@@ -219,44 +219,19 @@ router.post('/video-extract/apply', async (req, res) => {
         await fs.remove(maskDir);
         maskDir = '';
 
-        const outMeta = await probeVideo(outputPath) || {};
-        const newId = uuidv4();
-        const metaDir = path.join(mediaDir, '.meta');
-        await fs.ensureDir(metaDir);
-        const sidecar = {
-            id:         newId,
-            type:       'video',
-            filePath:   projectFileUrlBusted(outputPath),
-            operation:  'extract',
-            displayName: finalName.replace(/\.[^.]+$/, ''),
-            prompt:     '',
-            negativePrompt: '',
-            seed:       -1,
-            modelId:    null,
-            createdAt:  new Date().toISOString(),
-            name:       null,
-            uploaded:   false,
-            pixelDimensions: { w: srcMeta.width, h: srcMeta.height },
-            fps:        outMeta.fps        || srcMeta.fps,
-            duration:   outMeta.duration   || 0,
-            frameCount: outMeta.frameCount || 0,
-            hasAudio:   !!outMeta.hasAudio,
-            extract:    { background },
-            sourceItemId: itemId  || null,
-            sourceGroupId: groupId || null,
-        };
-        const { thumbPath, thumbPathLg, proxyPath, wavePath } = await writeVideoDerivatives(outputPath, metaDir, newId, { sourceWidth: srcMeta.width, sourceHeight: srcMeta.height, hasAudio: !!outMeta.hasAudio });
-        if (thumbPath) sidecar.thumbPath = thumbPath;
-        if (thumbPathLg) sidecar.thumbPathLg = thumbPathLg;
-        if (proxyPath) sidecar.proxyPath = proxyPath;
-        if (wavePath) sidecar.wavePath = wavePath;
-        await fs.writeJson(path.join(metaDir, `${newId}.json`), sidecar, { spaces: 2 });
-
-        const item = { ...sidecar };
-        const group = {
-            id: uuidv4(), type: 'video', operation: 'extract', createdAt: new Date().toISOString(),
-            fps: sidecar.fps, duration: sidecar.duration, items: [item],
-        };
+        const { item, group } = await writeVideoCard({
+            outputPath,
+            metaDir: path.join(mediaDir, '.meta'),
+            operation: 'extract',
+            fallback: { fps: srcMeta.fps },
+            fields: {
+                pixelDimensions: { w: srcMeta.width, h: srcMeta.height },
+                extract:    { background },
+                sourceItemId: itemId  || null,
+                sourceGroupId: groupId || null,
+            },
+            derivativeSize: { w: srcMeta.width, h: srcMeta.height },
+        });
         res.json({ success: true, item, group });
     } catch (err) {
         logger.error('project', 'video-extract apply failed', err);
