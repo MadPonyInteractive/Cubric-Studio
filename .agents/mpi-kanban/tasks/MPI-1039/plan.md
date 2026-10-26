@@ -586,6 +586,9 @@ ROUND 56: "front first" lands the right stops 12/12 (side); rear-left from a fra
 every way tried (direct, via front, via profile-left: 4/16, all anime). NEXT (Fabio): decide the Flow route - (a)
 always run Turn = Front first, then the benched front -> stop pass (no view detection; +1 pass ~32 s; 3/4 lands real),
 or (b) one direct pass (3/4 overshoots to profile from a turned start). Then a rear-left fix round (words or doll).
+DECISION (Fabio 2026-10-26, after round 56): FRONT FIRST. Every touched Turn slider runs Turn = Front (room/front doll)
+first, then the benched front -> stop pass; Turn = Front alone = the front pass only. NEXT: build it in
+multiAnglePlan (js/data/flowPrompts/multiAngle.js) + tests, live run on an own app:isolated, then a rear-left round.
 
 ## Remaining Work
 - [ ] Stage 1 (face, 9 runs) + Fabio's eye test
