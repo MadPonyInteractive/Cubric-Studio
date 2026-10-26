@@ -600,8 +600,11 @@ turns = ONE direct pass (as before); Turn = Front alone = the front pass for ONE
 that pick ran nothing); PEOPLE line in the describe ask (2+ people = no front pass); SUBJECT comma fix.
 TWO PEOPLE (rounds 60, 62): the one-person turn words drop the second person (3/6) or turn them to face each other;
 words that name "both people" keep both 6/6. Round 64 widens them to all seven stops, seeds 111/222.
-NEXT: grade round 64; if the two-person words hold, wire them into multiAnglePlan for facts.people > 1 (a bench-backed
-wording, plus tests). Rear-left from an anime frame-right start stays the weak cell (both methods).
+SHIPPED 22043564a: the two-person turn words (round 64: both kept 28/28, right + rear stops land, anime left 4/4) for
+facts.people > 1, turn pass only. Round 65: naming the person at frame-right does not fix the photo left stops (0/4).
+OPEN: (1) two people on a PHOTO at the left stops - the right-hand person keeps facing frame-right; next lever = a
+two-mannequin doll ref (Blender, CLI-Anything CLI per memory), not words. (2) Rear-left from an anime frame-right start
+(both methods weak). (3) Heights/zooms for groups use one-person words (unbenched). (4) Stage 1 eye test + Flow phase 5.
 
 ## Remaining Work
 - [ ] Stage 1 (face, 9 runs) + Fabio's eye test

@@ -1215,9 +1215,15 @@ user's ratio later; a crop changes the zoom, so the gizmo may need per-ratio-fam
   out/mq_blender64.json, sheets r64_two_people_all_stops.jpg + r64_heads_{photo,anime}.jpg (heads.py). Round 60's two
   sources, seeds 111/222, all seven turn stops; the 3/4 front words now carry the one-person move words. 28 edits.
   BOTH KEPT 28/28. tq_fr + pr_r 8/8 both facing frame-right. Rear stops (tq_bl, tq_br, back) 12/12 both from behind.
-  Left stops: anime 4/4 both facing frame-left; PHOTO 0/4 - the man (right of the source) keeps facing frame-right, so
-  pr_l turns them to face each other and tq_fl faces them apart.
+  Left stops: anime 4/4 both facing frame-left; PHOTO 0/4 - the woman turns left, the man (right of the source) keeps
+  facing frame-right, so the two end up facing APART (round 65's larger crops; a first read said "face each other").
   Read: better than the one-person words on every cell tried with two people (round 60: a person dropped 3/6). WIRED
   into multiAnglePlan for facts.people > 1 (turn pass only; heights and zooms keep their one-person words - unbenched
   for groups); research/r64_check.mjs proves the Flow rebuilds all 14 round 64 prompts word for word. Open: the photo
   left stops with two people; 3+ people (worded "all", unbenched).
+- 2026-10-26 ROUND 65, NAMING THE PERSON AT FRAME-RIGHT (P3) (session "Multi-Angle 36"). research/r65.py,
+  out/mq_blender65*.json, sheet r65_heads.jpg (r64 beside P3). The shipped two-person words + "The person at
+  frame-right faces frame-left too, toward the other one's back, not toward their face." pr_l + tq_fl, seeds 111/222,
+  both sources. 8 edits. PHOTO still 0/4 (the man faces frame-right in every cell, the picture nearly identical to
+  round 64); anime still 4/4. Read: the sentence does nothing - rejected, the shipped words stay. Next idea (not run):
+  the man's own facing is what FLUX.3 keeps from the source; a group doll ref (two mannequins) is the likelier lever.
