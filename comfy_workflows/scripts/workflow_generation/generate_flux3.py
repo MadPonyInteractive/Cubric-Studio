@@ -24,7 +24,8 @@ Node lookup is by `_meta.title` (MPI-116 naming law) — never by node id.
 import json
 from pathlib import Path
 
-from generate_klein import _find_id_by_title, _prune_to_captures, _assert_and_bake_wf_type
+from generate_klein import CAPTURE_TITLES, WF_TYPE_TITLE, WF_TYPE_MISSING
+from graph_utils import bake_int, find_id_by_title, prune_to_captures
 
 SCRIPTS_DIR = Path(__file__).parent
 WORKFLOWS_DIR = SCRIPTS_DIR.parent.parent  # comfy_workflows/
@@ -54,7 +55,7 @@ def _assert_weights(workflow: dict) -> None:
 def _bake_turbo(workflow: dict, on: bool = True) -> None:
     """Default Turbo ON (= the button's default). The app injects it on every op, so this
     only shows when injection fails — and then the fast weight is the safer fallback."""
-    nid = _find_id_by_title(workflow, TURBO_TITLE)
+    nid = find_id_by_title(workflow, TURBO_TITLE)
     if nid is None or isinstance(workflow[nid]["inputs"].get("boolean"), list):
         raise SystemExit(f"[FAIL] {TURBO_TITLE} missing or linked — the Turbo button "
                          f"would inject into nothing and every run would use one weight")
@@ -69,8 +70,8 @@ def _keep_edit_size(workflow: dict) -> None:
     that branch is a latent of picture 1's size, each side rounded to /16, shrunk (aspect kept)
     only past MAX_EDIT_AREA. References stay at 1 MP, as on a Custom size edit. A mask still
     takes the references latent: the inpaint path crops and stitches its own frame."""
-    custom = _find_id_by_title(workflow, "Input_custom_size")
-    image = _find_id_by_title(workflow, "Input_Image")
+    custom = find_id_by_title(workflow, "Input_custom_size")
+    image = find_id_by_title(workflow, "Input_Image")
     cmp = next((k for k, n in workflow.items() if n["class_type"] == "MpiBooleanCompare"
                 and n["inputs"].get("a") == [custom, 0]), None)
     sel = next((k for k, n in workflow.items() if n["class_type"] == "MpiIfElse"
@@ -115,7 +116,7 @@ def _ref_matches_frame(workflow: dict) -> None:
     refs = next((k for k, n in workflow.items() if n["class_type"] == "MpiFlux3References"), None)
     custom_latent = next((k for k, n in workflow.items() if n["class_type"] == "MpiBooleanCompare"
                           and n["inputs"].get("mode") == "a_true_b_false"), None)
-    ids = {t: _find_id_by_title(workflow, t) for t in (
+    ids = {t: find_id_by_title(workflow, t) for t in (
         "Input_Image", "Input_Width", "Input_Height", "Edit size: width /16", "Edit size: height /16")}
     if refs is None or custom_latent is None or None in ids.values():
         raise SystemExit("[FAIL] references / edit-size nodes not found - picture 1 would go "
@@ -179,8 +180,8 @@ def _grade_back(workflow: dict) -> None:
     prompt clause moved it. MpiGradeBack fits a gain + offset over the whole frame without what the
     edit changed and applies it (0.2 s at 1 MP). Off for a reference composition (picture 2 present),
     a Custom size reframe (the pixels no longer line up) and a masked edit (its own composite)."""
-    mask = _find_id_by_title(workflow, "Input_Mask")
-    ids = {t: _find_id_by_title(workflow, t) for t in ("Input_Image", "Input_Image_2", "Edit frame: reframe")}
+    mask = find_id_by_title(workflow, "Input_Mask")
+    ids = {t: find_id_by_title(workflow, t) for t in ("Input_Image", "Input_Image_2", "Edit frame: reframe")}
     sel = next((k for k, n in workflow.items() if n["class_type"] == "MpiIfElse"
                 and n["inputs"].get("boolean") == [mask, 4]
                 and workflow[n["inputs"]["false"][0]]["class_type"] == "VAEDecode"), None)
@@ -205,8 +206,8 @@ def build(source_path: Path, out_dir: Path) -> list[Path]:
         return []
     print(f"Template: {source_path.name}")
     workflow = json.loads(source_path.read_text(encoding="utf-8"))
-    _prune_to_captures(workflow)
-    _assert_and_bake_wf_type(workflow)
+    prune_to_captures(workflow, CAPTURE_TITLES)
+    bake_int(workflow, WF_TYPE_TITLE, 1, "WFTYPE", WF_TYPE_MISSING)
     _bake_turbo(workflow)
     _keep_edit_size(workflow)
     _ref_matches_frame(workflow)

@@ -17,6 +17,7 @@ Node lookup is by `_meta.title` (MPI-116 naming law) — never by node id.
 import json
 import copy
 from pathlib import Path
+from graph_utils import find_by_title
 
 SCRIPTS_DIR = Path(__file__).parent
 WORKFLOWS_DIR = SCRIPTS_DIR.parent.parent  # comfy_workflows/
@@ -32,17 +33,10 @@ OUTPUTS = (
 )
 
 
-def _find_by_title(workflow: dict, title: str) -> dict | None:
-    for node in workflow.values():
-        if isinstance(node, dict) and node.get("_meta", {}).get("title") == title:
-            return node
-    return None
-
-
 def build(source_path: Path, out_dir: Path) -> list[Path]:
     """Orchestrator entry. Stamp the t2v boolean → two runtime files."""
     template = json.loads(source_path.read_text(encoding="utf-8"))
-    gate = _find_by_title(template, T2V_GATE_TITLE)
+    gate = find_by_title(template, T2V_GATE_TITLE)
     if gate is None:
         print(f"  [WARN] No '{T2V_GATE_TITLE}' node in {source_path.name} — nothing to do")
         return []
@@ -51,7 +45,7 @@ def build(source_path: Path, out_dir: Path) -> list[Path]:
     written: list[Path] = []
     for output_name, is_t2v in OUTPUTS:
         wf = copy.deepcopy(template)
-        _find_by_title(wf, T2V_GATE_TITLE)["inputs"]["boolean"] = is_t2v
+        find_by_title(wf, T2V_GATE_TITLE)["inputs"]["boolean"] = is_t2v
         out_path = out_dir / output_name
         out_path.write_text(json.dumps(wf, indent=2), encoding="utf-8")
         print(f"  [OK]   {output_name} ({T2V_GATE_TITLE}={is_t2v})")

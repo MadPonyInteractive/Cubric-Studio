@@ -38,6 +38,7 @@ Node lookup is by `_meta.title` (MPI-116 naming law) — never by node id.
 
 import json
 from pathlib import Path
+from graph_utils import find_id_by_title, prune_to_captures
 
 SCRIPTS_DIR = Path(__file__).parent
 WORKFLOWS_DIR = SCRIPTS_DIR.parent.parent  # comfy_workflows/
@@ -142,7 +143,7 @@ CAPTURE_TITLES = ("Output_Video", "Output_Preview", STAGE_TITLE)
 # title -> baked value. The authoring graph holds whatever the user was last testing;
 # every one of these ships as the FALLBACK the graph runs when injection fails, which is
 # exactly when a wrong value is hardest to spot. Same reasoning as
-# generate_klein.py::_assert_and_bake_wf_type.
+# graph_utils.bake_int.
 # (title, widget key, shipped value). A LIST, not a dict keyed by title, because
 # MpiStageLatents carries FOUR baked widgets on one node — a title-keyed dict could
 # only hold the last of them.
@@ -217,43 +218,6 @@ SHARED_WEIGHTS = {
 WEIGHT_INPUT_KEYS = ("unet_name", "clip_name", "vae_name")
 
 
-def _find_id_by_title(workflow: dict, title: str) -> str | None:
-    for nid, node in workflow.items():
-        if isinstance(node, dict) and node.get("_meta", {}).get("title") == title:
-            return nid
-    return None
-
-
-def _prune_to_captures(workflow: dict) -> None:
-    """Drop every node not upstream of one of CAPTURE_TITLES.
-
-    Same job as the Klein handler's: the authoring bench leaves orphans that ComfyUI
-    never validates (it only walks nodes reachable from an output) but that make
-    `missing-required` checks noisy, which trains people to ignore them."""
-    caps = [nid for t in CAPTURE_TITLES if (nid := _find_id_by_title(workflow, t))]
-    if not caps:
-        raise SystemExit(f"[FAIL] none of {CAPTURE_TITLES} present — nothing to capture, "
-                         f"the app would receive no output from this graph")
-    keep: set[str] = set()
-
-    def walk(nid: str) -> None:
-        if nid in keep or nid not in workflow:
-            return
-        keep.add(nid)
-        for v in workflow[nid]["inputs"].values():
-            if isinstance(v, list) and len(v) == 2 and isinstance(v[0], str):
-                walk(v[0])
-
-    for nid in caps:
-        walk(nid)
-    dropped = [nid for nid in workflow if nid not in keep]
-    for nid in dropped:
-        del workflow[nid]
-    if dropped:
-        print(f"  [PRUNE] dropped {len(dropped)} bench node(s) not upstream of "
-              f"{'/'.join(CAPTURE_TITLES)}")
-
-
 def _bake_widgets(workflow: dict, spec: dict) -> None:
     """Force every baked widget to its shipped fallback.
 
@@ -265,7 +229,7 @@ def _bake_widgets(workflow: dict, spec: dict) -> None:
     # back with `Input_Image = inpaint_007.png`).
     media = [(t, "string", "") for t in spec["media_titles"]]
     for title, key, want in [*media, *BAKED_WIDGETS, *spec["extra_widgets"]]:
-        nid = _find_id_by_title(workflow, title)
+        nid = find_id_by_title(workflow, title)
         if nid is None:
             raise SystemExit(f"[FAIL] no node titled {title!r} — the app injects into it "
                              f"by title, and injection SILENTLY SKIPS a title that matches "
@@ -283,7 +247,7 @@ def _bake_widgets(workflow: dict, spec: dict) -> None:
 def _bake_transformer(workflow: dict, weight: str) -> None:
     """Bake the runtime file's transformer into the UNETLoader — the one field that
     tells H3 Reference's and Singularity H3's files apart."""
-    nid = _find_id_by_title(workflow, UNET_LOADER_TITLE)
+    nid = find_id_by_title(workflow, UNET_LOADER_TITLE)
     if nid is None:
         raise SystemExit(f"[FAIL] no UNETLoader titled {UNET_LOADER_TITLE!r} — graph changed?")
     before = workflow[nid]["inputs"].get("unet_name")
@@ -395,7 +359,7 @@ def build(source_path: Path, out_dir: Path) -> list[Path]:
     for output_name, transformer in outputs.items():
         workflow = json.loads(source_path.read_text(encoding="utf-8"))
 
-        _prune_to_captures(workflow)
+        prune_to_captures(workflow, CAPTURE_TITLES)
         _bake_widgets(workflow, spec)
         _bake_transformer(workflow, transformer)
         _assert_weights(workflow, transformer)

@@ -13,9 +13,10 @@ Standalone:  python generate_moss.py
 import json
 from pathlib import Path
 
-from generate_klein import _prune_to_captures, _assert_and_bake_wf_type
+from generate_klein import CAPTURE_TITLES, WF_TYPE_TITLE, WF_TYPE_MISSING
 from generate_flux3 import _bake_turbo
 from generate_krea2 import _assert_style_rack
+from graph_utils import bake_int, prune_to_captures
 
 SCRIPTS_DIR = Path(__file__).parent
 WORKFLOWS_DIR = SCRIPTS_DIR.parent.parent  # comfy_workflows/
@@ -46,8 +47,8 @@ def build(source_path: Path, out_dir: Path) -> list[Path]:
         return []
     print(f"Template: {source_path.name}")
     workflow = json.loads(source_path.read_text(encoding="utf-8"))
-    _prune_to_captures(workflow)
-    _assert_and_bake_wf_type(workflow)
+    prune_to_captures(workflow, CAPTURE_TITLES)
+    bake_int(workflow, WF_TYPE_TITLE, 1, "WFTYPE", WF_TYPE_MISSING)
     _bake_turbo(workflow)
     _assert_weights(workflow)
     n_styles = _assert_style_rack(workflow)

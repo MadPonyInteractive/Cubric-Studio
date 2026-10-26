@@ -17,7 +17,7 @@
 > cached by Klein; the OpenPose body/hand/face ones are new).
 >
 > Two traps. The authoring template bakes `Input_wf_type: 3`, so a missing/failed
-> injection runs **pose** for every op — `generate_qwen.py::_bake_wf_type` rebakes it to 1
+> injection runs **pose** for every op — `generate_qwen.py` (via `graph_utils.bake_int`) rebakes it to 1
 > and raises if the node did not survive the prune. And Qwen has **no prompt enhancer**
 > (no `TextGenerate` node, no `Input_enhance_prompt`) — deliberate, confirmed 2026-08-02;
 > `capabilities.promptEnhance` stays false. Klein and Krea2 both have one; Qwen does not.

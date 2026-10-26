@@ -25,6 +25,7 @@ Authoring contract (you, once per workflow, in the ComfyUI graph):
 
 import json
 from pathlib import Path
+from graph_utils import find_id_by_title
 
 # The node that owns the two-stage handshake. The title is load-bearing:
 # commandExecutor.js injects `Input_Video_Latent.is_continue` / `.is_preview` /
@@ -62,13 +63,6 @@ REQUIRED_TITLES = [
 ]
 
 
-def _find_node_id_by_title(wf: dict, title: str) -> str | None:
-    for nid, node in wf.items():
-        if isinstance(node, dict) and node.get("_meta", {}).get("title") == title:
-            return nid
-    return None
-
-
 def _assert_stage_node(wf: dict) -> None:
     """Exactly one stage node, correctly titled, with no leftovers of the old pair."""
     stage = [(nid, n) for nid, n in wf.items()
@@ -104,7 +98,7 @@ def _bake_widgets(wf: dict) -> None:
     these by title, so an input driven by a wire makes the injection land on a value
     nothing reads and the graph runs whatever the upstream happens to produce."""
     for title, key, want in BAKED_WIDGETS:
-        nid = _find_node_id_by_title(wf, title)
+        nid = find_id_by_title(wf, title)
         if nid is None:
             raise SystemExit(
                 f"[FAIL] no node titled {title!r} — the app injects into it by title, "
@@ -112,7 +106,7 @@ def _bake_widgets(wf: dict) -> None:
         _bake_one(wf, nid, title, key, want)
 
     for title, key, want in OPTIONAL_BAKED:
-        nid = _find_node_id_by_title(wf, title)
+        nid = find_id_by_title(wf, title)
         if nid is not None:
             _bake_one(wf, nid, title, key, want)
 

@@ -92,7 +92,7 @@ after the push — an assertion on the EXPRESSION being present, not on the grap
 
 ### 🔴 A TERMINAL sink node never reaches the runtime — the prune keeps only what is UPSTREAM
 
-Found 2026-09-06 (MPI-704). Every `generate_*.py` handler runs `_prune_to_captures`, which
+Found 2026-09-06 (MPI-704). Every `generate_*.py` handler runs `graph_utils.prune_to_captures`, which
 walks the input links backwards from the capture titles (`Output_Video`, `Output_Preview`,
 `Input_Video_Latent` on H3) and deletes everything it did not reach. A node hung off the
 END of a branch is downstream by construction, so it is deleted from every baked runtime —

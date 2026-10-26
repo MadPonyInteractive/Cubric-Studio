@@ -85,18 +85,16 @@ OUTPUTS = (                          # (runtime filename, Input_Tier value)
     ("<Model>_edit_high.json",     3),
 )
 
-def _find_by_title(wf, title):
-    return next((n for n in wf.values()
-                 if isinstance(n, dict) and n.get("_meta", {}).get("title") == title), None)
+from graph_utils import find_by_title   # shared title lookup / prune / bake (AUDIT D6)
 
 def build(source_path: Path, out_dir: Path) -> list[Path]:
     template = json.loads(source_path.read_text(encoding="utf-8"))
-    if _find_by_title(template, TIER_TITLE) is None:
+    if find_by_title(template, TIER_TITLE) is None:
         print(f"  [WARN] no '{TIER_TITLE}' in {source_path.name}"); return []
     written = []
     for name, tier in OUTPUTS:
         wf = copy.deepcopy(template)
-        _find_by_title(wf, TIER_TITLE)["inputs"]["int"] = tier   # MpiInt widget key = 'int'
+        find_by_title(wf, TIER_TITLE)["inputs"]["int"] = tier   # MpiInt widget key = 'int'
         out = out_dir / name
         out.write_text(json.dumps(wf, indent=2), encoding="utf-8")
         print(f"  [OK]   {name} ({TIER_TITLE}={tier})"); written.append(out)
@@ -134,7 +132,7 @@ list — `Input_Positive`/`Input_Negative` → `string` `''`, `Input_Seed` → `
 `Input_Image`/`Input_Mask` → `string` `''` (self-gate),
 `Input_Style_Selector` → `selector` `0`, mode flags
 (`Input_Is_Edit`/`Input_Is_i2i`/…) → `boolean` `false`. Call it in the per-variant build loop,
-alongside the weight/tier/bypass bakes. `_find_by_title` no-ops on absent nodes, so one list
+alongside the weight/tier/bypass bakes. `find_by_title` no-ops on absent nodes, so one list
 covers every template. (`generate_krea2.py` is the reference.) Injected WEIGHTS
 (tier/weight/bypass/LoRAs) are baked by their own forced helpers, not scrubbed here.
 
@@ -162,7 +160,7 @@ is exactly why it goes unnoticed.
 > injects it. A **weight** bake is the opposite case. Do not pattern-match off the
 > tier examples.
 
-**3. Two nodes of the same class with default titles make `_find_by_title` a coin
+**3. Two nodes of the same class with default titles make `find_by_title` a coin
 flip.** It returns whichever comes first in iteration order, and node order changes on
 every re-export. The PiD template carries two `VAELoader`s — the architecture VAE and a
 shared `pixel_space` one — so an untitled pair would have stamped `ae.safetensors` onto

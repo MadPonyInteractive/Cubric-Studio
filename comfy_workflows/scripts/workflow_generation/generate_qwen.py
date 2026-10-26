@@ -30,6 +30,7 @@ Node lookup is by `_meta.title` — never by node id (ids change on every re-exp
 import json
 import copy
 from pathlib import Path
+from graph_utils import bake_int, find_id_by_title, prune_to_captures
 
 # template filename → runtime output name
 MODEL_VARIANTS = {
@@ -38,84 +39,25 @@ MODEL_VARIANTS = {
 
 CAPTURE_TITLE = "Output_Image"
 # MPI-365: the branch selector (1 edit / 2 depth / 3 pose). Fatal if absent — see
-# _bake_wf_type.
+# graph_utils.bake_int.
 WF_TYPE_TITLE = "Input_wf_type"
 SCRIPTS_DIR = Path(__file__).parent
 WORKFLOWS_DIR = SCRIPTS_DIR.parent.parent  # comfy_workflows/
 
 
-def _find_id_by_title(workflow: dict, title: str) -> str | None:
-    for nid, node in workflow.items():
-        if isinstance(node, dict) and node.get("_meta", {}).get("title") == title:
-            return nid
-    return None
-
-
-def _prune_to_capture(workflow: dict) -> None:
-    """Drop every node NOT upstream of Output_Image. The authoring bench carries A/B
-    compare widgets (rgthree comparers, per-tier PreviewImage taps, bypassed
-    pose/depth-reference scaffolding) that are dead in a shipped run but ComfyUI still
-    validates their class at prompt time — keeping them would force extra node-pack deps
-    for nodes the app never renders. All three tier LoRA paths remain (they feed the
-    MpiAnySwitch → Output_Image)."""
-    cap = _find_id_by_title(workflow, CAPTURE_TITLE)
-    if cap is None:
-        return
-    keep: set[str] = set()
-
-    def walk(nid: str) -> None:
-        if nid in keep or nid not in workflow:
-            return
-        keep.add(nid)
-        for v in workflow[nid]["inputs"].values():
-            if isinstance(v, list) and len(v) == 2 and isinstance(v[0], str):
-                walk(v[0])
-
-    walk(cap)
-    dropped = [nid for nid in workflow if nid not in keep]
-    for nid in dropped:
-        del workflow[nid]
-    if dropped:
-        print(f"  [PRUNE] dropped {len(dropped)} bench node(s) not upstream of {CAPTURE_TITLE}")
-
-
-def _bake_wf_type(workflow: dict, wf_type: int = 1) -> None:
-    """Bake Input_wf_type.int to 1 (edit) as a SAFE DEFAULT, and FAIL LOUDLY if the node
-    is missing (MPI-365).
-
-    Qwen's three ops — 1 edit / 2 depth / 3 pose — are branches of this ONE graph, chosen
-    by the app's `opInject`. Injection fails SILENTLY on a title mismatch, and a silent
-    failure here does not error: it runs a DIFFERENT OPERATION and returns a plausible
-    wrong image.
-
-    Two specifics make the assert load-bearing rather than decorative:
-      * the authoring graph bakes 3 (pose), so an un-baked export would make a broken
-        injection run POSE for every op — the least obvious of the three to spot.
-      * this runs AFTER _prune_to_capture, so it doubles as proof the selector is
-        genuinely upstream of Output_Image and did not get pruned away as bench scaffolding.
-    """
-    nid = _find_id_by_title(workflow, WF_TYPE_TITLE)
-    if nid is None:
-        raise SystemExit(
-            f"[FAIL] No node titled '{WF_TYPE_TITLE}' survived the prune — this template "
-            f"drives EVERY op off it (1 edit / 2 depth / 3 pose). Without it the app "
-            f"cannot select a branch and every op runs the graph's baked default."
-        )
-    before = workflow[nid]["inputs"].get("int")
-    workflow[nid]["inputs"]["int"] = wf_type
-    if before != wf_type:
-        print(f"  [WFTYPE] {WF_TYPE_TITLE}.int: {before!r} -> {wf_type}")
-
-
 def _generate_one(template_path: Path, output_name: str, out_dir: Path) -> Path | None:
     workflow = copy.deepcopy(json.loads(template_path.read_text(encoding="utf-8")))
 
-    if _find_id_by_title(workflow, CAPTURE_TITLE) is None:
+    if find_id_by_title(workflow, CAPTURE_TITLE) is None:
         print(f"  [WARN] No '{CAPTURE_TITLE}' node in {template_path.name} — skipping {output_name}")
         return None
 
-    _prune_to_capture(workflow)
-    _bake_wf_type(workflow)
+    prune_to_captures(workflow, (CAPTURE_TITLE,))
+    # After the prune, so the bake also proves the selector is upstream of the output.
+    # The authoring graph bakes 3 (pose), the least obvious wrong branch to spot.
+    bake_int(workflow, WF_TYPE_TITLE, 1, "WFTYPE",
+             "it drives every op (1 edit / 2 depth / 3 pose); without it every op "
+             "runs the baked default")
 
     out_path = out_dir / output_name
     out_path.write_text(json.dumps(workflow, indent=2), encoding="utf-8")

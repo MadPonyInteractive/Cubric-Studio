@@ -172,7 +172,7 @@ REPLACES rather than merges when a model declares `opInject`:
 | 7 | `upscale` |
 
 A missing `opInject` entry does **not** error: it runs the baked default (1 = t2i) and
-returns a plausible image from the wrong operation. `generate_krea2.py::_bake_wf_type`
+returns a plausible image from the wrong operation. `generate_krea2.py` (via `graph_utils.bake_int`)
 raises if the node is absent, `commandExecutor` warns on a gap, and
 `tests/inject-params-titles.test.cjs` pins the node's presence in both runtime files.
 

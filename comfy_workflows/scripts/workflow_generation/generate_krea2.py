@@ -53,6 +53,7 @@ Node lookup is by `_meta.title` (MPI-116 naming law) — never by node id.
 
 import json
 from pathlib import Path
+from graph_utils import bake_int, find_by_title
 
 SCRIPTS_DIR = Path(__file__).parent
 WORKFLOWS_DIR = SCRIPTS_DIR.parent.parent  # comfy_workflows/
@@ -61,6 +62,10 @@ UNET_LOADER_TITLE = "Load Diffusion Model"
 # MPI-365: the branch selector. Its absence is FATAL — every op would fall through to
 # the graph's default branch and return a plausible image from the wrong operation.
 WF_TYPE_TITLE = "Input_wf_type"
+# Every op runs off this one node (1 t2i / 2 i2i / 3 depth / 4 edit / 5 inpaint /
+# 6 detail / 7 upscale); baking 1 makes a failed injection read as "ran t2i".
+WF_TYPE_MISSING = ("without it the app cannot select a branch and every op "
+                   "returns t2i")
 # MPI-365: replaced the old 1-indexed `Input_Tier` int when the master template dropped
 # the High/Balanced sampler chains. Boolean now.
 TURBO_TITLE = "Input_is_Turbo"
@@ -73,7 +78,7 @@ TURBO_TITLE = "Input_is_Turbo"
 # Each file bakes FOUR things:
 #
 #   1. UNETLoader weight   — the content-variant Raw diffusion weight
-#   2. Input_wf_type.int   — baked to 1 (t2i) as a SAFE DEFAULT only; see _bake_wf_type
+#   2. Input_wf_type.int   — baked to 1 (t2i) as a SAFE DEFAULT only; see graph_utils.bake_int
 #   3. Input_is_Turbo      — baked False (quality) as a SAFE DEFAULT; see _bake_turbo
 #   4. Input_Bypass_Filter_Lora.strength_model — SFW 1.0 / NSFW 0.0 (content-filter bypass)
 #
@@ -114,17 +119,10 @@ STYLE_SELECTOR_TITLE = "Input_Style_Selector"
 STYLE_BANK_SLOTS = 5   # MpiStyleLoras exposes lora_1..lora_5
 
 
-def _find_by_title(workflow: dict, title: str) -> dict | None:
-    for node in workflow.values():
-        if isinstance(node, dict) and node.get("_meta", {}).get("title") == title:
-            return node
-    return None
-
-
 def _bake_weight(workflow: dict, weight: str) -> None:
     """Bake the variant's diffusion weight into the UNETLoader. This is the single field
     that distinguishes the SFW and NSFW runtime files."""
-    node = _find_by_title(workflow, UNET_LOADER_TITLE)
+    node = find_by_title(workflow, UNET_LOADER_TITLE)
     if node is None:
         raise SystemExit(f"[FAIL] No UNETLoader titled '{UNET_LOADER_TITLE}' — graph changed?")
     before = node["inputs"].get("unet_name")
@@ -138,7 +136,7 @@ def _bake_bypass_strength(workflow: dict, strength: float) -> None:
     NSFW 0.0). Present on t2i only — a graph without the node (detailer/upscaler) just
     has no filter to bypass, so this is a no-op there. Forced, never trusted from the
     exported template (same rule as the diffusion weight)."""
-    node = _find_by_title(workflow, BYPASS_LORA_TITLE)
+    node = find_by_title(workflow, BYPASS_LORA_TITLE)
     if node is None:
         return
     before = node["inputs"].get("strength_model")
@@ -177,7 +175,7 @@ def _sanitize_injected_inputs(workflow: dict) -> None:
     (baked seed, local image path, Style 10, Is_Edit true) ships in the runtime file.
     Injected weights (Tier/weight/bypass/LoRAs) are baked by their own helpers, not here."""
     for title, key, safe in _INJECTED_INPUT_DEFAULTS:
-        node = _find_by_title(workflow, title)
+        node = find_by_title(workflow, title)
         if node is None:
             continue
         before = node["inputs"].get(key)
@@ -186,37 +184,11 @@ def _sanitize_injected_inputs(workflow: dict) -> None:
             print(f"  [SCRUB]  {title}.{key}: {before!r} -> {safe!r}")
 
 
-def _bake_wf_type(workflow: dict, wf_type: int = 1) -> None:
-    """Bake Input_wf_type.int to 1 (t2i) as a SAFE DEFAULT, and FAIL LOUDLY if the node
-    is gone (MPI-365).
-
-    This is the single most dangerous node in the master template. The app's `opInject`
-    is the real authority and sends the branch per run, but injection fails SILENTLY when
-    a title stops matching — and a silent failure here does not error, it runs a DIFFERENT
-    OPERATION and returns a plausible wrong image. Baking 1 degrades that to "ran t2i",
-    which a user notices immediately; shipping whatever branch the user last exported with
-    would not be noticed at all.
-
-    The raise is the other half: no node means every op in the model is broken, so the
-    build must stop rather than emit six runtime files that all do the same thing."""
-    node = _find_by_title(workflow, WF_TYPE_TITLE)
-    if node is None:
-        raise SystemExit(
-            f"[FAIL] No MpiInt titled '{WF_TYPE_TITLE}' — this template drives EVERY op "
-            f"off that node (1 t2i / 2 i2i / 3 depth / 4 edit / 5 inpaint / 6 detail / 7 upscale). "
-            f"Without it the app cannot select a branch and every op returns t2i."
-        )
-    before = node["inputs"].get("int")
-    node["inputs"]["int"] = wf_type
-    if before != wf_type:
-        print(f"  [WFTYPE] {WF_TYPE_TITLE}.int: {before!r} -> {wf_type}")
-
-
 def _bake_turbo(workflow: dict, turbo: bool = False) -> None:
     """Bake Input_is_Turbo to False (quality) as a safe default. The krea2Turbo toggle
     injects the real value per run; a baked False means a broken injection degrades to the
     slower-but-correct path rather than silently shipping the distilled one."""
-    node = _find_by_title(workflow, TURBO_TITLE)
+    node = find_by_title(workflow, TURBO_TITLE)
     if node is None:
         raise SystemExit(f"[FAIL] No node titled '{TURBO_TITLE}' — graph changed? "
                          f"(MPI-365 replaced the old Input_Tier int with this boolean.)")
@@ -328,7 +300,7 @@ def build(source_path: Path, out_dir: Path) -> list[Path]:
         # node exists" guard was there for the rack-less detailer/upscaler templates,
         # which no longer exist. Restoring that guard would turn a missing branch
         # selector back into a silent wrong-op bug.
-        _bake_wf_type(workflow)
+        bake_int(workflow, WF_TYPE_TITLE, 1, "WFTYPE", WF_TYPE_MISSING)
         _bake_turbo(workflow)
         _bake_bypass_strength(workflow, spec["bypass"])
         _sanitize_injected_inputs(workflow)

@@ -40,6 +40,7 @@ from pathlib import Path
 # The style rack is the NODE PACK's contract (MpiStyleSelector + MpiStyleLoras banks of
 # five), shared with Krea2 and Klein — reuse the assert rather than fork it.
 from generate_krea2 import _assert_style_rack
+from graph_utils import bake_int, prune_to_captures
 
 SCRIPTS_DIR = Path(__file__).parent
 WORKFLOWS_DIR = SCRIPTS_DIR.parent.parent  # comfy_workflows/
@@ -68,72 +69,6 @@ MODEL_LOADER_CLASS = "ClownModelLoader"
 MODEL_NAME_INPUT = "model_name"
 
 
-def _find_id_by_title(workflow: dict, title: str) -> str | None:
-    for nid, node in workflow.items():
-        if isinstance(node, dict) and node.get("_meta", {}).get("title") == title:
-            return nid
-    return None
-
-
-def _prune_to_captures(workflow: dict) -> None:
-    """Drop every node not upstream of one of CAPTURE_TITLES.
-
-    The authoring bench leaves orphans behind — dead Set channels with no matching Get,
-    per-branch preview taps, A/B comparers. They are harmless on the bench because ComfyUI
-    only validates nodes reachable from an output, but they are dead weight in a shipped
-    graph and they make `missing-required` checks noisy, which trains people to ignore
-    them. All seven op branches survive: they all feed the MpiAnySwitch10 -> Output_Image.
-    """
-    caps = [nid for t in CAPTURE_TITLES if (nid := _find_id_by_title(workflow, t))]
-    if not caps:
-        raise SystemExit(f"[FAIL] none of {CAPTURE_TITLES} present — nothing to capture, "
-                         f"the app would receive no output from this graph")
-    keep: set[str] = set()
-
-    def walk(nid: str) -> None:
-        if nid in keep or nid not in workflow:
-            return
-        keep.add(nid)
-        for v in workflow[nid]["inputs"].values():
-            if isinstance(v, list) and len(v) == 2 and isinstance(v[0], str):
-                walk(v[0])
-
-    for nid in caps:
-        walk(nid)
-    dropped = [nid for nid in workflow if nid not in keep]
-    for nid in dropped:
-        del workflow[nid]
-    if dropped:
-        print(f"  [PRUNE] dropped {len(dropped)} bench node(s) not upstream of "
-              f"{'/'.join(CAPTURE_TITLES)}")
-
-
-def _assert_and_bake_int(workflow: dict, title: str, value: int, label: str) -> None:
-    """A titled MpiInt the app injects into must be a PLAIN WIDGET, never a link — then
-    bake it to `value`.
-
-    This is the one-file template's central footgun. If the node is driven by a link, the
-    injection lands on a value nothing reads and the graph runs whatever branch the
-    upstream happens to produce: a plausible image from the WRONG op or the WRONG tier,
-    which reads as a model quality problem rather than a wiring bug.
-
-    The bake matters because the AUTHORING graph holds whatever the user was last testing
-    (this template exported with tier 3 / wf_type 1 selected). An un-baked template ships
-    that as the fallback, and it only shows through when injection fails — exactly when a
-    wrong branch is hardest to spot.
-    """
-    nid = _find_id_by_title(workflow, title)
-    if nid is None:
-        raise SystemExit(f"[FAIL] no node titled {title!r} — {label}")
-    if isinstance(workflow[nid]["inputs"].get("int"), list):
-        raise SystemExit(f"[FAIL] {title}.int is linked, not a widget — the app injects "
-                         f"into it, so a link makes the injection a silent no-op")
-    before = workflow[nid]["inputs"].get("int")
-    workflow[nid]["inputs"]["int"] = value
-    if before != value:
-        print(f"  [{label.upper()}] {title}.int: {before!r} -> {value}")
-
-
 def _assert_and_bake_model(workflow: dict, model_name: str) -> None:
     """Bake this tier's diffusion weight into the loader.
 
@@ -159,9 +94,9 @@ def _generate_one(template_path: Path, output_name: str, tier: int,
                   model_name: str, out_dir: Path) -> Path:
     workflow = copy.deepcopy(json.loads(template_path.read_text(encoding="utf-8")))
 
-    _prune_to_captures(workflow)
-    _assert_and_bake_int(workflow, WF_TYPE_TITLE, 1, "wftype")
-    _assert_and_bake_int(workflow, TIER_TITLE, tier, "tier")
+    prune_to_captures(workflow, CAPTURE_TITLES)
+    bake_int(workflow, WF_TYPE_TITLE, 1, "WFTYPE", "every op selects its branch through it")
+    bake_int(workflow, TIER_TITLE, tier, "TIER", "every tier selects its branch through it")
     _assert_and_bake_model(workflow, model_name)
     n_styles = _assert_style_rack(workflow)
 

@@ -28,10 +28,12 @@ the 142 violations they had let through). The finding sections below are left as
 - Phase 1a: **B4** (one `js/utils/uninstallOutcome.js` count for both uninstall toasts),
   **B6** (History toasts go through `StatusBar.notify`). **H3 dropped:** the `D:\tmp` stage dir
   is deliberate (Fabio's PC, C: is short on space); CI passes its own `--stage-dir`.
+- Phase 1b: **D6** (`graph_utils.py`: one title lookup, prune and switch bake for every
+  handler; all 24 generated workflows byte-identical before and after).
 
 **Still open, suggested batches:**
-- Low risk, GPU-free: **D8**, **D6**, **X4** (ask Fabio before trimming routes the skill docs
-  list), **T1/T2**.
+- Low risk, GPU-free: **D8**, **X4** (ask Fabio before trimming routes the skill docs list),
+  **T1/T2**.
 - Then **D1** (PromptBox slider ×17), **D3/D10** route by route, **P2/P14/P7/P12/P13**.
 - Needs the desktop suite or Fabio watching: **P1**, **P3**, **D7**, **D9**.
 - Needs a local profile or a Pod: **P4–P6**, **P9–P11**.
