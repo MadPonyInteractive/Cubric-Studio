@@ -48,8 +48,9 @@ rented GPUs are optional and billed to your own account.
 - **Sound and speech**: sound effects, instruments and instrumental music at the
   length you ask for, and text read aloud in a voice you record or pick, in 23
   languages. Dictate a prompt with the mic instead of typing.
-- **Flows**: a whole job in one place, from drawing into a photo to extending a
-  video or splitting a song into stems. [More below](#flows).
+- **Flows**: a whole job in one place, from drawing into a photo or building a
+  character sheet to extending a video or splitting a song into stems.
+  [More below](#flows).
 - **An agent inside the app**: ask for what you want in plain words and it
   picks the models, runs the generations and looks at the results.
   [More below](#the-agent).
@@ -91,12 +92,19 @@ rented GPUs are optional and billed to your own account.
 
 A Flow is a whole job in one place: it asks for what it needs a step at a time,
 installs its own models and hands you a finished result. Open the Flow Library
-with the **Flows** button or TAB. Eleven come with the app: Draw It In,
-Scribble, Object Stamp, Character Sheet, Outpaint, Extend Video, Add Foley,
-Upscale Video, Voice Changer, Song and Stems. Head Swap and DramaBox are sold
-separately as Flow packages; drop a package on the library to install it.
+with the **Flows** button or TAB. Seventeen come with the app:
 
-![Flow Library](.github/readme/flows.webp)
+- **Image**: Draw It In, Scribble, Character Sheet, Character Sheet from Images,
+  Character Sheet Editor, Outpaint, Make Seamless, Object Stamp and 360 Panorama.
+- **Video**: Extend Video, Add Foley, Upscale Video and Video Edit.
+- **Audio**: Voice Changer, Stems, Transcribe and Song.
+
+Head Swap and DramaBox are sold separately as Flow packages; drop a package on
+the library to install it.
+
+![Flow Library, image Flows](.github/readme/flows-image.webp)
+
+![Flow Library, video and audio Flows](.github/readme/flows-video-audio.webp)
 
 ## The agent
 
@@ -106,7 +114,7 @@ anything costs money. Ask it to save a chain of steps as a routine ("square it,
 upscale it, white background") and run that routine on any cards later. The
 agent runs on your own DeepInfra, OpenRouter or OpenAI key, or free on Ollama.
 
-![Agent panel extending a video](.github/readme/agent.webp)
+![Cosmo, the built-in agent, open beside a gallery of images, video and character sheets, asking before it downloads a model](.github/readme/agent.webp)
 
 ### Use it from your AI agent
 
