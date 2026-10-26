@@ -15,3 +15,4 @@
 - [x] Video Edit recommends H3 Reference, Singularity second (Fabio 2026-10-26) — already the slot's order
 - [ ] Fabio's 7 s Video Edit run on Singularity (length looks like the problem)
 - [ ] ~~After Video Edit passes~~ NO LONGER: the old weight is H3 Reference's again and stays. Only the MPI-1036 project is left to recycle: old weight `minimax_h3_ref2va_pruned_int8_convrot.safetensors` and the MPI-1036 Video Edit in-app project -> Recycle Bin
+- [x] Close-out 2026-10-26: Fast Motion route verified at 960 on both weights (no OOM, 13 min); Singularity does not copy the moves at 960, so the Flow description warns and H3 Reference stays recommended (7fad81faf). Fabio app-tested the model split: fine. The open Fabio items above are settled by these runs. The MPI-1036 project is KEPT (Fabio wants some of its items), not recycled. Retiring the old weight is off the table for now.

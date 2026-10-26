@@ -9,7 +9,7 @@
 | | |
 |---|---|
 | id / title | `video-edit` / **Video Edit** |
-| requiredModels | `[{ label: 'Model', models: ['minimax-h3-ref2va', 'minimax-h3-singularity'], loras: true }]` (the user's LoRA rack) — one graph, `modelParams` swap the transformer on `Input_Base_Model` (MPI-1284): the original ref2va weight (recommended; the swap LoRAs were trained on it) or Singularity H3 v2 (Fabio's runs: one fail, one pass). Plus its 8-step turbo LoRA, `taeh3` |
+| requiredModels | `[{ label: 'Model', models: ['minimax-h3-ref2va', 'minimax-h3-singularity'], loras: true }]` (the user's LoRA rack) — one graph, `modelParams` swap the transformer on `Input_Base_Model` (MPI-1284): the original ref2va weight (recommended; the swap LoRAs were trained on it) or Singularity H3 v2 (Fabio's runs: one fail, one pass, then a 960p swap that did not copy the source's moves while the original's did, flowVideoEdit_023 vs _024; the description warns the user). Plus its 8-step turbo LoRA, `taeh3` |
 | requiredDeps | `['minimax-h3-character-swap-lora', 'minimax-h3-faceswap-lora']` (akatz-ai, UntMods; `loraDeps.js`). `flow:video-edit` is gated by `MINIMAX_H3` in `licences.js`, so an H3 receipt covers both |
 | operation | `flowVideoEdit` (new, `appVersionIntroduced` 2.0.1) |
 | workflow | `flow_video_edit.json`, one H3 r2v turbo graph for both routes, H3 Reference's Fast Motion route always on (below). Authoring: `tasks/MPI-1036/research/bench/flow_graph.py` (inputs, templates, routes), exported by `export_raw.py`; `flow_graph_ours.py` is the two-stage attempt, research only |
