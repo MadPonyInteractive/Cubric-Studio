@@ -7,4 +7,5 @@
   then swapped to vision's peek and slid it up the same way. Wrapper opacity stayed 1.
 - `tests/desktop/prompt-box-peek.spec.js` passes. It now polls for live, since the window
   goes live once the clip is playing, not when play() is called.
-- Remaining: Fabio's eye-test.
+- **Fabio's eye-test (2026-10-26):** "it slides in and out properly."
+- Follow-up 002aaede4: the parked clip is hidden once its slide-down ends, so its box no longer lands on the video transport bar (flow-audio-player.spec.js:526).
