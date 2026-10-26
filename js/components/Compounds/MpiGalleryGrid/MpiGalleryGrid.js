@@ -7,6 +7,7 @@ import { ce, qs, qsa, on } from '../../../utils/dom.js';
 import { renderIcon } from '../../../utils/icons.js';
 import { kindOfItem, PANEL_KINDS, canConvertToPano, canConvertToPanoVideo } from '../../../utils/assetKinds.js';
 import { mascotLoop } from '../../../utils/mascotLoop.js';
+import { formatClock } from '../../../utils/elapsedTicker.js';
 import { matchesGallerySort, kindItemOf, isGalleryFiltered, byGalleryOrder, markOf, markIcon, DEFAULT_GALLERY_SORT } from '../../../utils/galleryFilter.js';
 import { wireCardMark, closeCardMarkMenu } from './cardMarkMenu.js';
 import { mountSelectionBar } from './selectionBar.js';
@@ -38,6 +39,11 @@ const PROMOTE_MARGIN_PX = 200;
 // the gap between the two is hysteresis, not slack. Anything scrolled further than
 // this is unreachable by hover, and re-promotes on the way back.
 const DEMOTE_MARGIN_PX = 600;
+
+/** An audio card's length, rounded to the nearest whole second: 59.6 -> "1:00", never "0:60". */
+function _clipLength(seconds) {
+    return formatClock(Math.round(Math.max(0, seconds)) * 1000);
+}
 
 // One-card-at-a-time: stop every OTHER playing media element in the gallery —
 // audio cards (<audio data-src>) AND unmuted hover videos — so a hover/click
@@ -1028,10 +1034,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
             }
 
             function _setAudioLength(seconds) {
-                const s = Math.max(0, Math.round(seconds));
-                const mm = Math.floor(s / 60);
-                const ss = String(s % 60).padStart(2, '0');
-                subEl.textContent = `${mm}:${ss}`;
+                subEl.textContent = _clipLength(seconds);
             }
 
             function _swapThumbToEmpty() {
@@ -1517,7 +1520,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 if (_shownType(group) === 'audio') {
                     const aDur = Number(selected?.duration);
                     subEl.textContent = (Number.isFinite(aDur) && aDur > 0)
-                        ? `${Math.floor(aDur / 60)}:${String(Math.round(aDur % 60)).padStart(2, '0')}`
+                        ? _clipLength(aDur)
                         : '';
                 } else {
                     subEl.textContent = stack ? '' : [dimStr, timeStr].filter(Boolean).join(' · ');
