@@ -1150,6 +1150,9 @@ app.on('ready', () => {
   ipcMain.on('float-latent:frame', (_e, { lane, genId, dataUrl, seq } = {}) => {
     if (lane) floatLatent.frame(lane, genId, dataUrl, seq);
   });
+  ipcMain.on('float-latent:progress', (_e, { lane, genId, value, indeterminate } = {}) => {
+    if (lane) floatLatent.progress(lane, genId, value, indeterminate);
+  });
   ipcMain.on('float-latent:finalize', (_e, { lane, genId, dataUrl } = {}) => {
     if (lane) floatLatent.finalize(lane, genId, dataUrl);
   });

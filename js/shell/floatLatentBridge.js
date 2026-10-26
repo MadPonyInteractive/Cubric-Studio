@@ -61,6 +61,19 @@ const _players = new Map();    // lane -> PreviewClipPlayer
 // freeze the tile on frame 1 and reproduce the exact bug being fixed.
 const _outSeq = new Map();     // lane -> monotonic seq sent to the float window
 
+// The tile footer's progress fill (MPI-1296). Same id-tagged tool:progress /
+// tool:indeterminate the status bar reads, kept per gen even while the window is
+// closed so a tile opened mid-run starts at the real percent, not at zero.
+const _progress = new Map();   // genId -> { pct, indeterminate }
+
+function sendProgress(genId) {
+  const p = _progress.get(genId);
+  if (!windowOpen || !p) return;
+  ipcRenderer.send('float-latent:progress', {
+    lane: laneFor(genId), genId, value: p.pct / 100, indeterminate: p.indeterminate,
+  });
+}
+
 function playerFor(lane) {
   let player = _players.get(lane);
   if (player) return player;
@@ -167,6 +180,7 @@ async function openTiles() {
       _outSeq.set(lane, seq);
       if (dataUrl) ipcRenderer.send('float-latent:frame', { lane, dataUrl, seq });
     }
+    sendProgress(entry.id);
   }
 }
 
@@ -217,6 +231,24 @@ export function initFloatLatentBridge() {
     playerFor(lane).push(url, genId ? activeGenerations.getPreviewClip(genId) : null);
   });
 
+  // Footer fill. Forwarded only when the whole percent moves — the aggregator ticks
+  // per node and per sampler step, and the tile has no use for sub-percent noise.
+  // eslint-disable-next-line mpi/require-destroy-on-events
+  Events.on('tool:progress', ({ tool, id = null, value }) => {
+    if (tool !== 'groupHistory' || id === null) return;
+    const pct = Math.round(Math.min(1, Math.max(0, Number(value) || 0)) * 100);
+    const p = _progress.get(id);
+    if (p && p.pct === pct) return;
+    _progress.set(id, { pct, indeterminate: p?.indeterminate === true });
+    sendProgress(id);
+  });
+  // eslint-disable-next-line mpi/require-destroy-on-events
+  Events.on('tool:indeterminate', ({ tool, id = null, active }) => {
+    if (tool !== 'groupHistory' || id === null) return;
+    _progress.set(id, { pct: _progress.get(id)?.pct ?? 0, indeterminate: active === true });
+    sendProgress(id);
+  });
+
   // NOTE: no add-tile on generation:started. The lane can't be resolved reliably
   // there (store job not yet registered), so the first preview:frame — which
   // carries the authoritative engine tag — creates and labels the tile instead.
@@ -242,6 +274,7 @@ export function initFloatLatentBridge() {
     const lane = laneFor(id);
     stopLane(lane); // loop + throttle/encode maps are all lane-keyed
     _laneOf.delete(id);
+    _progress.delete(id);
     if (!windowOpen) return;
     // PER-LANE completion: the mascot "Done" cue fires when THIS lane's batch is
     // empty — independent of the other lane. Local finishing while remote runs must
@@ -269,6 +302,7 @@ export function initFloatLatentBridge() {
     const lane = laneFor(id);
     stopLane(lane);
     _laneOf.delete(id);
+    _progress.delete(id);
     if (windowOpen) ipcRenderer.send('float-latent:tile-remove', { lane, genId: id });
   };
   /* eslint-disable mpi/require-destroy-on-events */

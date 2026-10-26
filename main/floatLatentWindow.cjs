@@ -151,6 +151,13 @@ function frame(lane, genId, dataUrl, seq) {
   win.webContents.send('float-latent:frame', { lane, genId, dataUrl, seq });
 }
 
+/** Fill a lane's footer with its run's progress (0–1), or sweep when the node
+ *  reports no percent. genId guards ownership like every other per-tile send. */
+function progress(lane, genId, value, indeterminate) {
+  if (!win || win.isDestroyed()) return;
+  win.webContents.send('float-latent:progress', { lane, genId, value, indeterminate });
+}
+
 /** Lane's final gen done → freeze on its result + Done cue. Tile stays until the
  *  user acts (click/X/restore). */
 function finalize(lane, genId, dataUrl) {
@@ -178,4 +185,4 @@ function close() {
   tiles = [];
 }
 
-module.exports = { addTile, frame, finalize, spendTile, removeTile, close, isOpen };
+module.exports = { addTile, frame, progress, finalize, spendTile, removeTile, close, isOpen };
