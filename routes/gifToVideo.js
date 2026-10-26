@@ -47,18 +47,15 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs-extra');
 const path = require('path');
-const { projectFileUrlBusted } = require('../services/projectFileUrl');
 const os = require('os');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
-const { v4: uuidv4 } = require('uuid');
 const sharp = require('sharp');
 const logger = require('./logger');
 const { frameAbsPath, frameExists } = require('../services/gifFrames');
 const { parseFill } = require('../services/imageCrop');
 const { ffmpegPath } = require('../services/ffmpegBinary');
-const { probeVideo } = require('../services/ffprobeVideo');
-const { writeVideoDerivatives } = require('../services/ffmpegThumb');
+const { writeVideoCard } = require('../services/outputCard');
 const { nextSequence } = require('./projects');
 
 const execFileP = promisify(execFile);
@@ -191,54 +188,26 @@ router.post('/gif/to-video', async (req, res) => {
             outputPath,
         ], { cwd: tmpDir, windowsHide: true, maxBuffer: 16 * 1024 * 1024 });
 
-        const outMeta = await probeVideo(outputPath) || {};
-        const newId = uuidv4();
-        const metaDir = path.join(mediaDir, '.meta');
-        await fs.ensureDir(metaDir);
-        const filePathUrl = projectFileUrlBusted(outputPath);
-
-        const sidecar = {
-            id: newId,
-            type: 'video',
-            filePath: filePathUrl,
+        // No trim-bar waveform (MPI-829): a GIF has no audio stream, which is why
+        // `hasAudio` is hard-false, and that keeps the card writer from spending an
+        // ffmpeg run to discover it.
+        const { item, group } = await writeVideoCard({
+            outputPath,
+            metaDir: path.join(mediaDir, '.meta'),
             operation: 'gifToVideo',
-            displayName: finalName.replace(/\.[^.]+$/, ''),
-            prompt: '',
-            negativePrompt: '',
-            seed: -1,
-            modelId: null,
-            createdAt: new Date().toISOString(),
-            name: null,
-            uploaded: false,
-            pixelDimensions: { w: evenW, h: evenH },
-            fps: outMeta.fps || OUTPUT_FPS,
-            duration: outMeta.duration || Number((listLines.length / OUTPUT_FPS).toFixed(3)),
-            frameCount: outMeta.frameCount || listLines.length,
-            hasAudio: false,
-            sourceItemId: itemId || null,
-            sourceGroupId: groupId || null,
-        };
-        // Poster + 720p hover proxy (MPI-633 precedent, routes/videoReverse.js). No
-        // trim-bar waveform (MPI-829) and no `wavePath` to destructure: a GIF has no audio
-        // stream, which is why `hasAudio` is hard-false above, and passing it keeps this
-        // route from spending an ffmpeg run to discover that.
-        const { thumbPath, thumbPathLg, proxyPath } = await writeVideoDerivatives(outputPath, metaDir, newId, { sourceWidth: evenW, sourceHeight: evenH, hasAudio: false });
-        if (thumbPath) sidecar.thumbPath = thumbPath;
-        if (thumbPathLg) sidecar.thumbPathLg = thumbPathLg;
-        if (proxyPath) sidecar.proxyPath = proxyPath;
-
-        await fs.writeJson(path.join(metaDir, `${newId}.json`), sidecar, { spaces: 2 });
-
-        const item = { ...sidecar };
-        const group = {
-            id: uuidv4(),
-            type: 'video',
-            operation: 'gifToVideo',
-            createdAt: new Date().toISOString(),
-            fps: sidecar.fps,
-            duration: sidecar.duration,
-            items: [item],
-        };
+            fallback: {
+                fps: OUTPUT_FPS,
+                duration: Number((listLines.length / OUTPUT_FPS).toFixed(3)),
+                frameCount: listLines.length,
+            },
+            fields: {
+                pixelDimensions: { w: evenW, h: evenH },
+                hasAudio: false,
+                sourceItemId: itemId || null,
+                sourceGroupId: groupId || null,
+            },
+            derivativeSize: { w: evenW, h: evenH },
+        });
         res.json({ success: true, item, group });
     } catch (err) {
         logger.error('project', 'gif-to-video failed', err);
