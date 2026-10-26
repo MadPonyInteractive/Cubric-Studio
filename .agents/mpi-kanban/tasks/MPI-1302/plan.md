@@ -17,7 +17,10 @@
 
 ## Completed
 
-- [ ] Nothing yet.
+- [x] Phase 1a (8c05c2c8e): B4 `js/utils/uninstallOutcome.js`, B6 History toasts via `ui:*` →
+  StatusBar.notify, comfy-vanished-prompt queue assertion. H3 dropped (see Plan Drift).
+- [x] D6 (90e79b465): `comfy_workflows/scripts/workflow_generation/graph_utils.py` used by 11
+  handlers; all 24 workflows byte-identical (rebuilt in a throwaway worktree, `orchestrate.py --all`).
 
 ## Remaining Work
 
@@ -81,7 +84,16 @@ touches the same code.
 
 ## Plan Drift
 
-- None yet.
+- H3 dropped: `build:portable:*` point at `D:\tmp` on purpose (Fabio's PC, C: short on space;
+  CI passes its own `--stage-dir`).
+- Of the three #12 test counters only comfy-vanished-prompt had lost a check; agent-loop and
+  thumb-strip counters were never used.
+- `tests/toast-truth.test.cjs` source-reads the MPI-1076 `gone` rule; it now reads
+  `uninstallOutcome.js`.
+- Commits go through a private-index script (HEAD + this card's files + only MPI-1302 lines of
+  `board.json` / root `events.jsonl`): peers leave uncommitted board edits in the tree. Compare
+  event lines with `\r` stripped, or committed lines get re-appended (happened once, fixed
+  before push).
 
 ## Verification
 
