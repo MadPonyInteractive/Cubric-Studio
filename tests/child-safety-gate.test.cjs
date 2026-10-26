@@ -616,47 +616,49 @@ test('a Clothes reference that is underwear or swimwear is refused on a minor, a
     assert.ok(queued(dressed.queueJobId), 'ordinary clothes on a child');
 });
 
-// ── A controller, not the subject (Fabio 2026-10-19): "the model should see what Qwen is fed" ──
-// An 18-year-old who looks younger poses for a character. Her photo read "could be under 18", so
-// Depth and Pose on Qwen-Image 2.1 with "Naked anime 20-year-old woman" were refused.
+// ── A control run's source (Fabio 2026-10-19 for Pose; 2026-10-26 for the rest, MPI-1297) ──
+// Pose: an 18-year-old who looks younger poses for a character; a skeleton carries no age, so
+// the words decide. Depth / Canny / Scribble: the map was asked instead of the photo, a faceless
+// silhouette, and a plain adult woman in a dress was refused "a woman" beside nudity.
 
 const control = (positive, net, extra = {}) => config(positive, {
     operation: 'control', model: { id: 'qwen-image-2.1', mediaType: 'image' },
     mediaItems: [{ url: PHOTO, mediaType: 'image', role: 'inputImage' }],
     injectionParams: net ? { Input_Control_Net: net } : {}, ...extra,
 });
-const mapJobs = () => peekCueQueue().filter((j) => j.config.operation === 'controlMapDescribe');
 
 test('Pose: a skeleton carries no age, so her photo is never looked at and the words decide', async () => {
     describeAnswer = { ok: true, text: 'YES' };
     const before = describeBodies.length;
-    const maps = mapJobs().length;
     const r = enqueueGeneration(control('Naked anime 20-year-old woman', 1), {});
     assert.ok(queued(r?.queueJobId), 'queued at once');
     assert.strictEqual(describeBodies.length, before, 'the photo is not described');
-    assert.strictEqual(mapJobs().length, maps, 'no map is made');
     assert.strictEqual(enqueueGeneration(control('a naked 10-year-old girl', 1), {}), null, 'words naming a child still refuse');
 });
 
-test('Depth, Canny, Scribble: the map the model gets is looked at, never the photo; a child-shaped map refuses', async () => {
+test('Depth, Canny, Scribble: the input photo is looked at like any picture; an adult passes on her age guess, a child refuses', async () => {
     describeAnswer = { ok: true, text: 'YES' };
-    // No picker (Klein, Krea 2, Chroma) = depth, the only map those graphs make.
-    for (const [net, mapSays, passes] of [[2, 'NO', true], [4, 'NO', true], [3, 'YES', false], [undefined, 'YES', false], [2, 'Maybe', false]]) {
+    try {
+        // No picker (Klein, Krea 2, Chroma) = depth.
+        for (const [net, years, passes] of [[2, '25', true], [4, '25', true], [3, '25', true], [undefined, '25', true], [2, '10', false], [4, '17', false]]) {
+            yearsAnswer = years;
+            const before = describeBodies.length;
+            const { seen, off, callbacks } = capture();
+            const r = enqueueGeneration(control('a naked woman', net), callbacks);
+            await until(() => queued(r.queueJobId) || seen.errors.length > 0);
+            off();
+            assert.strictEqual(queued(r.queueJobId), passes, `${net} ${years}`);
+            assert.ok(describeBodies.slice(before).every((b) => b.imagePath === PHOTO), 'the photo itself is described');
+            assert.ok(describeBodies.slice(before).some((b) => /How old is the youngest person/.test(b.question)), 'with the age guess');
+            if (!passes) assert.strictEqual(seen.errors[0]?.code, 'CHILD_SAFETY');
+        }
+        // An innocent control run is not looked at.
         const before = describeBodies.length;
-        const maps = mapJobs().length;
-        const { seen, off, callbacks } = capture();
-        const r = enqueueGeneration(control('Naked anime 20-year-old woman', net), callbacks);
-        await until(() => mapJobs().length > maps);
-        const job = mapJobs().at(-1);
-        assert.strictEqual(job.config.mediaItems[0].url, PHOTO);
-        assert.strictEqual(job.config.injectionParams.Input_Control_Net, net ?? 2, 'the run\'s own annotator');
-        assert.match(job.config.injectionParams.Input_Describe_Prompt, /could be, under 18\?/);
-        job.callbacks.onText(mapSays);
-        await until(() => queued(r.queueJobId) || seen.errors.length > 0);
-        off();
-        assert.strictEqual(queued(r.queueJobId), passes, `${net} ${mapSays}`);
-        assert.strictEqual(describeBodies.length, before, 'the photo is never described');
-        if (!passes) assert.strictEqual(seen.errors[0]?.code, 'CHILD_SAFETY');
+        const r = enqueueGeneration(control('a woman in a red dress', 2), {});
+        assert.ok(queued(r?.queueJobId), 'queued at once');
+        assert.strictEqual(describeBodies.length, before);
+    } finally {
+        yearsAnswer = '10';
     }
 });
 

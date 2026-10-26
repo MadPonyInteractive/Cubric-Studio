@@ -1200,21 +1200,6 @@ export const commands = {
         outputKind: 'text',
         universal: true,
     },
-    // The child-safety gate's look at a control run's map (MPI-1156): the describer asked about
-    // the depth / scribble / canny map the `control` op makes of its first picture, made here by
-    // the same annotator (`Input_Control_Net`, CONTROL_TYPES.index). Never in the op strip.
-    controlMapDescribe: {
-        label: 'Check a control map',
-        progressLabel: 'Checking',
-        mediaType: MEDIA_TYPE.IMAGE,
-        requiresImages: 1,
-        mediaInputs: [
-            { key: 'inputImage', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image', required: true },
-        ],
-        promptRequired: false,
-        outputKind: 'text',
-        universal: true,
-    },
     // MPI-1071 — dictation on ComfyUI: the recording in, the words out via Output_prompt.
     // Never in the op strip (no `short`); dictation.js enqueues it.
     speechTranscribe: {

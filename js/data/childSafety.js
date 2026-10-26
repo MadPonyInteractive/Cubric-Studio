@@ -572,7 +572,7 @@ export async function lookWanted(texts, ask = null) {
  * `'video'` every clip (a v2v source, Video Edit's input), which the caller turns into a still.
  */
 export function picturesOf(config, mediaType = 'image') {
-    const source = _controlSource(config);
+    const source = _poseSource(config);
     const motion = config?.motionRefs || [];
     const urls = (config?.mediaItems || [])
         // MPI-1171: `drawn` = hand strokes on a blank canvas (MpiBaseFlow `_deriveRunMedia`).
@@ -580,36 +580,29 @@ export function picturesOf(config, mediaType = 'image') {
         // refused; the words carry the subject and are still checked. Set only there: an
         // upload, a Reuse or an agent's media never carries it.
         .filter((m) => m && !m.drawn && m.mediaType === mediaType && typeof m.url === 'string' && m.url)
-        // The model never sees these: a control run's map source (`controlMapOf`) and a clip that
-        // only moves someone else (`motionRefs`, Video Edit's Swap the person).
+        // The model never sees these: a Pose run's source (`_poseSource`) and a clip that only
+        // moves someone else (`motionRefs`, Video Edit's Swap the person).
         .filter((m) => m !== source && !motion.includes(m.url))
         .map((m) => m.url);
     return [...new Set(urls)];
 }
 
-// ── A control run's map (MPI-1156, Fabio 2026-10-19: "the model should see what Qwen is fed") ──
+// ── A control run's source picture (MPI-1156, MPI-1297) ──
 
 /** CONTROL_TYPES.pose.index: a skeleton carries no age (every adult bench picture, a 70-year-old
  *  included, read "could be under 18"), so the typed words decide, as for a doodle. */
 const CONTROL_POSE = 1;
 
-/** The picture a `control` run turns into its map: its `inputImage` slot, else its first image. */
-function _controlSource(config) {
-    if (config?.operation !== 'control') return null;
+/**
+ * The picture a Pose run turns into its skeleton (its `inputImage` slot, else its first image):
+ * never looked at. Depth / Canny / Scribble sources are looked at like any picture (MPI-1297,
+ * Fabio 2026-10-26: "it should look at the input image"): asked of the map instead, a faceless
+ * silhouette, a plain adult woman read "could be under 18" and adult nudity refused.
+ */
+function _poseSource(config) {
+    if (config?.operation !== 'control' || Number(config.injectionParams?.Input_Control_Net) !== CONTROL_POSE) return null;
     const images = (config.mediaItems || []).filter((m) => m && !m.drawn && m.mediaType === 'image' && m.url);
     return images.find((m) => m.role === 'inputImage') || images[0] || null;
-}
-
-/**
- * The map the gate looks at instead of a control run's first picture: `{ url, net }`, `net` the
- * CONTROL_TYPES index the run injects (no picker = depth, the only type Klein / Krea 2 / Chroma
- * run). Null for Pose, and for any other op. A depth, scribble or canny map keeps the body's
- * shape, so a child's still refuses beside nudity; the face does not come through.
- */
-export function controlMapOf(config) {
-    const source = _controlSource(config);
-    const net = Number(config?.injectionParams?.Input_Control_Net) || 2;
-    return source && net !== CONTROL_POSE ? { url: source.url, net } : null;
 }
 
 /**

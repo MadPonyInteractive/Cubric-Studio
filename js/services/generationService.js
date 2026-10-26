@@ -37,7 +37,7 @@ import { orderVersions, shownVersion } from '../utils/outputVersions.js';
 import { MpiToast } from '../components/Primitives/MpiToast/MpiToast.js';
 import { ce } from '../utils/dom.js';
 import { collapseQueueBatches } from './generationBatch.js';
-import { checkChildSafety, childSafetyGate, gateWords, configContext, CHILD_SAFETY_CODE, needsPictureCheck, picturesOf, controlMapOf, AGE_QUESTION, EXPOSED_QUESTION, CLOTHES_QUESTION, SKETCH_QUESTION, PICTURE_AGE_KEY, CLIP_AGE_KEY, parseAgeAnswer, parseSketchAnswer, YEARS_QUESTION, ADULT_YEARS, parseYears, refusal, lookWanted, NUDITY_SYSTEM } from '../data/childSafety.js';
+import { checkChildSafety, childSafetyGate, gateWords, configContext, CHILD_SAFETY_CODE, needsPictureCheck, picturesOf, AGE_QUESTION, EXPOSED_QUESTION, CLOTHES_QUESTION, SKETCH_QUESTION, PICTURE_AGE_KEY, CLIP_AGE_KEY, parseAgeAnswer, parseSketchAnswer, YEARS_QUESTION, ADULT_YEARS, parseYears, refusal, lookWanted, NUDITY_SYSTEM } from '../data/childSafety.js';
 import { cachedVerdicts } from './mediaVerdicts.js';
 import { wantsTileNames, nameTiles } from './tileDescribe.js';
 
@@ -670,11 +670,9 @@ function _gateThenQueue(config, callbacks, opts) {
         const look = needsPictureCheck(texts) || ctx.video || config.clothesRefs?.length > 0;
         const pictures = look ? picturesOf(config) : [];
         const clips = look ? picturesOf(config, 'video') : [];
-        // A control run's first picture is judged by the map the model gets of it (Pose: not at all).
-        const map = look ? controlMapOf(config) : null;
-        if (safety.verdict === 'judge' || pictures.length || clips.length || map) {
+        if (safety.verdict === 'judge' || pictures.length || clips.length) {
             const queueJobId = opts.queueJobId || crypto.randomUUID();
-            _holdUntilQueued(queueJobId, opts.stackId, () => _judgeThenQueue(config, callbacks, { ...opts, queueJobId }, pictures, clips, map));
+            _holdUntilQueued(queueJobId, opts.stackId, () => _judgeThenQueue(config, callbacks, { ...opts, queueJobId }, pictures, clips));
             return { queueJobId };
         }
     }
@@ -719,7 +717,7 @@ export function enqueueMaskTrack({ operation, videoPath, textPrompt = '', object
  * ponytail: the run sits in no queue while they answer, so Stop cannot reach it in that window
  * (seconds on Remote, behind a running job on ComfyUI). Hold a placeholder if that bites.
  */
-async function _judgeThenQueue(config, callbacks, opts, pictures = [], clips = [], map = null) {
+async function _judgeThenQueue(config, callbacks, opts, pictures = [], clips = []) {
     let llm = null;
     try {
         llm = await import('./llmService.js');
@@ -738,9 +736,9 @@ async function _judgeThenQueue(config, callbacks, opts, pictures = [], clips = [
     const refs = (config.clothesRefs || []).filter((u) => pictures.includes(u));
     // No judge = looked at (`lookWanted` looks unless the nudity question answers a bare NO). A clip
     // made of a picture, or a Clothes reference, is looked at whatever the words say (MPI-1156).
-    if ((pictures.length || clips.length || map)
+    if ((pictures.length || clips.length)
         && (ctx.video || refs.length || await lookWanted(words, judge && ((text) => judge(text, NUDITY_SYSTEM))))) {
-        const seen = await _pictureVerdicts(config, llm, pictures.filter((u) => !refs.includes(u)), clips, refs, ctx.video, map);
+        const seen = await _pictureVerdicts(config, llm, pictures.filter((u) => !refs.includes(u)), clips, refs, ctx.video);
         if (!seen.ok) return _refuseChildSafety(seen, config, callbacks);
         Object.assign(ctx, seen.ctx);
     }
@@ -759,12 +757,12 @@ async function _judgeThenQueue(config, callbacks, opts, pictures = [], clips = [
  *
  * @returns {Promise<{ ok: true, ctx: { pictureMinor: boolean, pictureExposed?: boolean, revealingRef?: boolean } } | object>}
  */
-async function _pictureVerdicts(config, llm, pictures, clips, refs, video, map = null) {
+async function _pictureVerdicts(config, llm, pictures, clips, refs, video) {
     const project = config._originProject;
     // The first reason a look could not run, carried into the refusal (MPI-1273).
     let failed = null;
-    const describe = async (url, question, run = (u) => llm.describeImage({ imagePath: u, question })) => {
-        const r = llm ? await run(url) : null;
+    const describe = async (url, question) => {
+        const r = llm ? await llm.describeImage({ imagePath: url, question }) : null;
         if (!r?.ok) {
             failed ??= r?.error || 'the language models did not load';
             return null;
@@ -815,17 +813,12 @@ async function _pictureVerdicts(config, llm, pictures, clips, refs, video, map =
         }
         return !(await guessedAdult(url));
     };
-    // A control map, kept per picture and type: the age question asked of what the model gets.
-    // Benched (ComfyUI Qwen3-VL 4B, 12 pictures x 3 maps x 3): every child's map YES (12/12),
-    // adults' 15/24 NO; a body-shape wording passed one more adult and missed a child's canny.
-    const mapAsk = (url) => describe(url, AGE_QUESTION, (u) => _describeControlMap(llm, u, map.net));
-    const [picAge, clipAge, mapAge] = await Promise.all([
+    const [picAge, clipAge] = await Promise.all([
         cachedVerdicts(pictures, { key: 'ageVerdict', question: PICTURE_AGE_KEY, project, ask: pictureAge }),
         cachedVerdicts(clips, { key: 'ageVerdict', question: CLIP_AGE_KEY, project, ask: atFrames(frameAge) }),
-        map ? cachedVerdicts([map.url], { key: `mapVerdict${map.net}`, question: AGE_QUESTION, project, ask: mapAsk }) : [],
     ]);
-    if ([...picAge, ...clipAge, ...mapAge].includes(null)) return refusal('pictureUnchecked', failed);
-    const ctx = { pictureMinor: [...picAge, ...clipAge, ...mapAge].includes(true) };
+    if ([...picAge, ...clipAge].includes(null)) return refusal('pictureUnchecked', failed);
+    const ctx = { pictureMinor: [...picAge, ...clipAge].includes(true) };
     if (video && ctx.pictureMinor) {
         const exposed = (await ask({ pictures: pictures.filter((_, i) => picAge[i]), clips: clips.filter((_, i) => clipAge[i]) },
             'exposedVerdict', EXPOSED_QUESTION)).flat();
@@ -835,28 +828,6 @@ async function _pictureVerdicts(config, llm, pictures, clips, refs, video, map =
     // No answer reads as YES: it refuses only next to a minor.
     if (refs.length) ctx.revealingRef = (await ask({ pictures: refs, clips: [] }, 'clothesVerdict', CLOTHES_QUESTION)).flat().some((a) => a !== false);
     return { ok: true, ctx };
-}
-
-/**
- * The describer asked about a control run's map (`controlMapDescribe`): the picture goes through
- * the run's own annotator first, so the answer is about what the model gets, never the face.
- * Always the ComfyUI describer: the control run needs the engine anyway. Shaped like
- * `llmService.describeImage`'s answer.
- */
-function _describeControlMap(llm, url, net) {
-    return new Promise((resolve) => {
-        const fail = (err) => resolve({ ok: false, error: err?.message || 'The control map check failed.' });
-        const queued = enqueueGeneration({
-            operation: 'controlMapDescribe',
-            model: { id: null, mediaType: 'image' },
-            positive: '',
-            negative: '',
-            mediaItems: [{ url, mediaType: 'image', source: 'gallery' }],
-            injectionParams: { ...llm.buildDescribeInjectionParams(AGE_QUESTION), Input_Control_Net: net },
-        }, { onText: (text) => resolve({ ok: true, text: String(text || '').trim() }), onError: fail, onCancel: fail },
-        { scope: 'gallery' });
-        if (!queued) fail();
-    });
 }
 
 /**

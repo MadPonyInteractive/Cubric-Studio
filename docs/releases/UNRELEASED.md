@@ -72,6 +72,7 @@
 - Both MiniMax H3 models run faster: in our tests a 3-second clip took about a quarter less time on MiniMax H3, and about a tenth less on MiniMax H3 Reference (MPI-1285).
 - New model: Singularity H3, a fine-tune of MiniMax H3 Reference by WarmBloodAban that tears less and handles fast action better. It takes the same references and prompts, and is its own 19.5 GB download. MiniMax H3 Reference stays as it was. The Video Edit Flow can run on either; H3 Reference is the recommended pick (MPI-1284).
 - When an update is ready, the Dev updates panel (the bell) shows an "Update to v…" button at the top, naming the version the posts below talk about (MPI-1242).
+- When the app is minimised during a generation, the floating Latents window fills the bar under each picture with the run's progress, the same percent as the status bar (MPI-1296).
 
 ## Fixes
 
@@ -87,6 +88,7 @@
 - Less noise in the log: the mascot freeze warnings now appear only with speed diagnostics on, and a RunPod connect that stops early no longer logs a false freeze (MPI-1255).
 - Renaming a card in Show info mode: you can see what you type with the mouse still on the card (MPI-1289).
 - Compare labels each side with the card's name, not the file name (MPI-1290).
+- Control with Depth, Canny or Scribble no longer refuses adult nudity from a photo of an adult. The child-safety check now looks at the picture you gave it, face included, instead of the grey map made from it, where an adult's outline could pass for a child's (MPI-1297).
 
 ## Held for the LTX 2.5 release — do NOT fold until its dev gate comes off
 

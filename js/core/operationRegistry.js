@@ -61,7 +61,6 @@ export const OPERATION_REGISTRY = {
     ltxVideoUpscale: { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
     removeBackground: { latestVersion: '1.0', appVersionIntroduced: '1.1.0' },
     imageDescribe: { latestVersion: '1.0', appVersionIntroduced: '1.1.0' },
-    controlMapDescribe: { latestVersion: '1.0', appVersionIntroduced: '2.1.0' },
     speechTranscribe: { latestVersion: '1.0', appVersionIntroduced: '2.1.0' },
     autoMaskImg:  { latestVersion: '1.0', appVersionIntroduced: '0.0.1' },
     gifCutoutSam3: { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
