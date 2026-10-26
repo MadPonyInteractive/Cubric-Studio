@@ -1695,11 +1695,12 @@ const ALL_MODELS = [
         // FLAT dependencies: one transformer, one op. The encoder and both VAEs are the
         // SAME dep ids fl2va uses, so installing this on top of fl2va downloads only the
         // 20.97GB transformer. The TRANSFORMER is not on R2 — see
-        // minimax-h3-ref2va-transformer in modelDeps.js for the licence reasoning; the
+        // minimax-h3-singularity-ref2va-transformer in modelDeps.js for the licence reasoning; the
         // int8 video VAE (MPI-517) and the text encoder (MPI-653/MPI-698) are the two
         // exceptions, each argued on its own dep in assetDeps.js.
         dependencies: [
-            'minimax-h3-ref2va-transformer',
+            // Singularity H3 v2 since MPI-1284 (the name on the card did not change).
+            'minimax-h3-singularity-ref2va-transformer',
             // int8_convrot Heretic — see the fl2va card above for why the MPI-698 nvfp4
             // swap was reverted, and what it costs on a 54GB Pod.
             'h3-qwen3vl-32b-clip',

@@ -8,6 +8,12 @@ there governs this card too (same `MODEL_LICENCES` descriptor, so no second dial
 Installing it on top of fl2va downloads only the 20.97GB transformer — the Qwen3-VL
 encoder and both VAEs are the same dep ids.
 
+**Since MPI-1284 (2.1.3) that transformer is Singularity H3 v2** (dep
+`minimax-h3-singularity-ref2va-transformer`, WarmBloodAban's ref2va fine-tune, picked in
+MPI-1135). The original Comfy-Org weight (`minimax-h3-ref2va-transformer`) stays a live dep:
+the Video Edit Flow loads it, because its swap LoRAs were trained on it and LoRAs on
+Singularity lost the source. Results judged below this line predate the swap.
+
 ## Judged 2026-08-07 — on the correct transformer
 
 Read § "Why a plausible result was not evidence" before treating any EARLIER ref2va

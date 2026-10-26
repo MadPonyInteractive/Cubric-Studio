@@ -932,7 +932,9 @@ const ALL_FLOWS = [
         requiredModels: [{ label: 'Model', models: ['minimax-h3-ref2va'], loras: true }],
         // The swap and Faceswap LoRAs belong to this Flow, not to the model (01-descriptor-and-ops.md
         // § requiredDeps). SAM3 is an engineAsset, so it is not listed.
-        requiredDeps: ['minimax-h3-character-swap-lora', 'minimax-h3-faceswap-lora'],
+        // The ORIGINAL ref2va transformer too: H3 Reference moved to Singularity v2 (MPI-1284),
+        // but this graph stays on the weight its swap LoRAs were trained on.
+        requiredDeps: ['minimax-h3-ref2va-transformer', 'minimax-h3-character-swap-lora', 'minimax-h3-faceswap-lora'],
         operation: 'flowVideoEdit',
         workflow: 'flow_video_edit.json',
         mediaType: 'video',

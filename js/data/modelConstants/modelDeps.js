@@ -646,6 +646,27 @@ export const modelDeps = {
             url: 'https://huggingface.co/MiniMaxAI/MiniMax-H3',
         },
     },
+    // MPI-1284: the H3 Reference model's base since 2.1.3 — WarmBloodAban's Singularity v2,
+    // a fine-tune of the ref2va DiT that won MPI-1135 (less tearing, better fast motion).
+    // The entry above is NOT deprecated: the Video Edit Flow still loads it, because its
+    // swap LoRAs were trained on it and every LoRA tried on Singularity lost the source.
+    // The repo tags apache-2.0 but its base_model is MiniMax-H3, so it is treated as bound
+    // by the H3 licence: same gate (MINIMAX_H3, keyed by licence id), publisher URL, never R2.
+    'minimax-h3-singularity-ref2va-transformer': {
+        id: 'minimax-h3-singularity-ref2va-transformer',
+        name: 'MiniMax H3 Singularity v2 ref2va Transformer (pruned, int8)',
+        origin: 'WarmBloodAban/Minimax-h3_Singularity (fine-tune of MiniMax-H3 ref2va)',
+        filename: 'diffusion_models/Minimax-h3_Singularity_ref2va_v2_pruned_int8.safetensors',
+        url: 'https://huggingface.co/WarmBloodAban/Minimax-h3_Singularity/resolve/main/Minimax-h3_Singularity_ref2va_v2_pruned_int8.safetensors',
+        size: '19.53GB',
+        bytes: 20967647456,
+        sha256: 'd7637c2c35cd30facd9e93778c491f6d82f91c4a441aecbdb4c384a62a5f3d9f',
+        credit: {
+            author: 'WarmBloodAban, on MiniMax-H3 by MiniMax',
+            work: 'Minimax-h3_Singularity v2',
+            url: 'https://huggingface.co/WarmBloodAban/Minimax-h3_Singularity',
+        },
+    },
     // MPI-623 (3D Scene, P2): Wan 2.1 I2V 14B 720P as Q4_K_M GGUF (ComfyUI-GGUF's loader), the
     // model under the Matrix-3D 360 LoRA that renders a camera path. Q4 measured as good as fp8
     // at filling holes (MPI-623 amendment 32) at 11.3 GB against 16.4. Owned by the `scene-path`
