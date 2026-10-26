@@ -313,6 +313,9 @@
   flow-lora-rack (mutation-checked). Playbook + /mpi-add-flow: EVERY new Flow declares `loras: true`
   on each model slot. NOT SEEN on screen. Other Flows still without a rack: Multi-angle (peer card
   MPI-1039), Pano 360, Make Seamless (Foley + Outpaint by Fabio's call). NEXT: Phase 2.
+- 2026-10-26 Fabio: Make Seamless / Pano 360 need no LoRAs; the playbook + /mpi-add-flow now ASK him
+  whether a new Flow takes LoRAs when its workflow is made (5d5467fd0). Master went red on a peer's
+  peek (MPI-1295), fixed by that peer in 002aaede4, CI green. HANDOFF: next = Phase 2.
 
 ## Phase 0: Panel recipe - `user-ux` (local GPU, Fabio's yes; no money)
 
