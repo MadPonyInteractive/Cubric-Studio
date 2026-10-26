@@ -1196,4 +1196,28 @@ user's ratio later; a crop changes the zoom, so the gizmo may need per-ratio-fam
   direct vs 4/16 front first; a Qwen front loses the place). KEPT: Turn = Front with nothing else moved = the front pass
   for ONE person (FLUX.3 front from any view 13/13 - rounds 54, 57, 59; before, that pick did nothing); with two or more
   people it still does nothing. The PEOPLE line stays in the describe ask. Rear-left from a frame-right start stays
-  weak on the direct pass (round 55 D 2/4) - the one stop front first did fix.
+  weak on the direct pass (round 55 D 2/4) - the one stop front first did fix. Shipped 6458c94a5 (tests 30/30, pre-push
+  lint + unit tests green).
+- 2026-10-26 ROUND 62, TWO-PERSON TURN WORDS (P2) (session "Multi-Angle 36"). research/r62.py, out/mq_blender62.json,
+  sheet r62_two_people_words.jpg. Round 60's sources, seed 111, pr_l / tq_fl / tq_br, words naming "both people", each
+  one's facing, "neither turns toward the other", and "the reference shows one figure, the picture keeps BOTH". 6 edits.
+  BOTH PEOPLE KEPT 6/6 (round 60: 3/6). tq_br 2/2 rear 3/4 with both. Photo pr_l both in profile facing frame-left
+  (round 60: facing each other); anime pr_l both turned left but only to 3/4. Photo tq_fl UNDERSHOOTS (barely turned);
+  anime tq_fl girl 3/4 left, boy less. Read: naming both people fixes the drop and the face-each-other; the side views
+  need the one-person move words. -> round 64 = all seven stops, seeds 111/222.
+- 2026-10-26 ROUND 63, REAR-LEFT ONLY: FRONT FIRST vs DIRECT (session "Multi-Angle 36"). research/r63.py,
+  out/mq_blender63.json, sheet r63_rear_left_heads.jpg (heads.py). Four frame-right inputs, seeds 444/555. 24 edits.
+  Photos: FF 4/4 rear-left, D 4/4 (D nearer profile-from-behind). Anime: both weak - FF lands a straight back or
+  rear-right (anime tq_fr 555 rear-right), D rear-right on anime tq_fr both seeds, anime pr_r ambiguous on crops.
+  Read: no clear win for a front pass on tq_bl alone - the decision stands (one direct pass). Rear-left from an anime
+  frame-right start stays the weak cell on either method.
+- 2026-10-26 ROUND 64, TWO-PERSON WORDS ON EVERY TURN STOP (session "Multi-Angle 36"). research/r64.py,
+  out/mq_blender64.json, sheets r64_two_people_all_stops.jpg + r64_heads_{photo,anime}.jpg (heads.py). Round 60's two
+  sources, seeds 111/222, all seven turn stops; the 3/4 front words now carry the one-person move words. 28 edits.
+  BOTH KEPT 28/28. tq_fr + pr_r 8/8 both facing frame-right. Rear stops (tq_bl, tq_br, back) 12/12 both from behind.
+  Left stops: anime 4/4 both facing frame-left; PHOTO 0/4 - the man (right of the source) keeps facing frame-right, so
+  pr_l turns them to face each other and tq_fl faces them apart.
+  Read: better than the one-person words on every cell tried with two people (round 60: a person dropped 3/6). WIRED
+  into multiAnglePlan for facts.people > 1 (turn pass only; heights and zooms keep their one-person words - unbenched
+  for groups); research/r64_check.mjs proves the Flow rebuilds all 14 round 64 prompts word for word. Open: the photo
+  left stops with two people; 3+ people (worded "all", unbenched).

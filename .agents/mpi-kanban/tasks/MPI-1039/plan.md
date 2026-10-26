@@ -591,6 +591,17 @@ first, then the benched front -> stop pass; Turn = Front alone = the front pass 
 more people a front pass would turn everyone to the camera, so they keep one direct pass (Fabio: two characters in
 profile landed where asked that way). Count = a new PEOPLE line in MULTI_ANGLE_DESCRIBE_ASK. NEXT: build it in
 multiAnglePlan (js/data/flowPrompts/multiAngle.js) + tests, live run on an own app:isolated, then a rear-left round.
+ROUNDS 57-64 (2026-10-26 overnight, session "Multi-Angle 36", validation.md): front first was BUILT, live-run, and
+REVERTED for the turn stops under Fabio's "a regression = revert, try the other option" rule. Seed 111 (round 57)
+looked perfect on photos, but seeds 222/333 (round 59) froze the second FLUX.3 pass on FLUX.3's own front or kept
+the input's side: front-left stops 4/16 front first vs 12/16 direct. The other option, a Qwen front then the FLUX.3
+turn (round 61), loses the place. A rear-left-only front pass shows no clear win (round 63). SHIPPED 6458c94a5:
+turns = ONE direct pass (as before); Turn = Front alone = the front pass for ONE person (13/13 from any view; before,
+that pick ran nothing); PEOPLE line in the describe ask (2+ people = no front pass); SUBJECT comma fix.
+TWO PEOPLE (rounds 60, 62): the one-person turn words drop the second person (3/6) or turn them to face each other;
+words that name "both people" keep both 6/6. Round 64 widens them to all seven stops, seeds 111/222.
+NEXT: grade round 64; if the two-person words hold, wire them into multiAnglePlan for facts.people > 1 (a bench-backed
+wording, plus tests). Rear-left from an anime frame-right start stays the weak cell (both methods).
 
 ## Remaining Work
 - [ ] Stage 1 (face, 9 runs) + Fabio's eye test
@@ -602,3 +613,5 @@ multiAnglePlan (js/data/flowPrompts/multiAngle.js) + tests, live run on an own a
 ## Completed
 
 ## Plan Drift
+- 2026-10-26: Fabio's "front first" decision (after round 56) was built and reverted for the turn stops the same night
+  on rounds 57-61 evidence (one lucky seed in round 57); only Turn = Front alone keeps the front pass.

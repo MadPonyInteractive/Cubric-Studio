@@ -160,6 +160,26 @@ test('two or more people get no front pass; turns are one pass as for one person
     assert.strictEqual(multiAnglePlan({ turn: 'pr_l' }, { ...FACTS.photo, people: 3 }).steps.length, 1);
 });
 
+test('a turn of two people names both and keeps both, as round 64 ran', async () => {
+    const { multiAnglePlan, MULTI_ANGLE_TURNS } = await builder();
+    const turn = (t, facts) => multiAnglePlan({ turn: t }, facts).steps[0].prompt;
+    assert.strictEqual(turn('tq_br', { ...FACTS.photo, people: 2 }), 'Shift the viewpoint of the first image around the '
+        + 'two people to match the mannequin reference in the second image: a three-quarter rear view from behind both '
+        + 'people and 45 degrees to their right. Both face away at an angle toward frame-right, their backs and right '
+        + 'shoulders nearer the view, the backs of their heads and only the edge of each cheek showing. Both people stay '
+        + 'in the picture. The place around them is seen from that angle. Take only the viewing angle from the mannequin '
+        + 'reference; it shows one figure, the picture keeps BOTH people. They are still the same two real people from '
+        + 'the first image, each with their own head and hair, hands, clothes and shoes; keep both identities, their '
+        + 'poses, the place, the light and the image style of the first image unchanged.');
+    for (const t of MULTI_ANGLE_TURNS.filter(x => x !== 'front')) {
+        const anime = turn(t, { ...FACTS.anime, people: 2 });
+        assert.ok(anime.includes('the same two drawn anime characters') && !/\b(she|her|subject)\b/.test(anime), anime);
+        assert.ok(!anime.includes('vending machine'), 'no one-person reveal or detail');
+        const three = turn(t, { ...FACTS.photo, people: 3 });
+        assert.ok(three.includes('the 3 people') && three.includes('ALL people') && !/\bboth\b/i.test(three), three);
+    }
+});
+
 test('a zoom-out from a close-up makes up the outfit from the user\'s words or second picture', async () => {
     const { multiAnglePlan } = await builder();
     const words = 'Below her turtleneck she wears dark blue straight jeans and white sneakers.';

@@ -251,7 +251,50 @@ function _keepIt(p, things, where) {
     return ` It is still the ${who} from the first image, with ${p.poss} own ${_list(things)}, in ${where} and ${style}`;
 }
 
+/**
+ * A turn for two or more people (rounds 60-64): one-person words drop a person (3/6) or turn them to face
+ * each other; naming the group keeps everyone (28/28). Right and rear stops land; on a photo the left
+ * stops still do not (0/4).
+ */
+function _groupTurnWords(turn, p, n) {
+    const all = n === 2 ? 'both' : 'all';
+    const side = SIDE[turn];
+    const neither = n === 2 ? 'Neither turns toward the other' : 'No one turns toward another';
+    const head = `Shift the viewpoint of the first image around the ${n === 2 ? 'two' : n} people to match the mannequin `
+        + 'reference in the second image: ';
+    let words;
+    if (turn === 'tq_fl' || turn === 'tq_fr') {
+        words = `the camera has moved a long way round to their ${side}, so ${all} people are now seen from their ${side} `
+            + `side, each body turned well away from the view, almost side-on, ${all} facing frame-${side}: each one's `
+            + `${side} shoulder, ${side} arm and ${side} leg are nearest the view, each ${OTHER[side]} shoulder is hidden `
+            + `behind the chest, their feet point toward frame-${side}, and each face is seen in three-quarter profile `
+            + `with the far eye barely showing. ${neither}; ${all} look the same way.`;
+    } else if (turn === 'pr_l' || turn === 'pr_r') {
+        words = `the camera has moved a quarter of the way round to their ${side}, so ${all} people are now seen exactly `
+            + `side-on from their ${side}, each in full profile facing frame-${side}: each face is a clean profile, one `
+            + `eye, the nose and the lips seen in outline. ${neither}; ${all} look the same way, toward `
+            + `frame-${side}.`;
+    } else if (turn === 'tq_bl' || turn === 'tq_br') {
+        words = `a three-quarter rear view from behind ${all} people and 45 degrees to their ${side}. ${_cap(all)} face `
+            + `away at an angle toward frame-${side}, their backs and ${side} shoulders nearer the view, the backs of their `
+            + `heads and only the edge of each cheek showing. ${_cap(all)} people stay in the picture.`;
+    } else {
+        words = `a view from directly behind ${all} people at the same height and distance. ${_cap(all)} now face away; `
+            + 'the backs of their heads, their backs and the backs of their legs are in the frame, side by side, and the '
+            + `place around them is seen from the opposite side. ${_cap(all)} people stay in the picture.`;
+    }
+    const d = p.drawing;
+    const who = d ? `the same ${n === 2 ? 'two' : n} drawn ${d.noun} characters` : `the same ${n === 2 ? 'two' : n} real people`;
+    const keep = d ? `the place and the ${d.style} of the first image - ${d.marks} - unchanged. It stays a drawing, not a `
+        + 'photo.' : 'the place, the light and the image style of the first image unchanged.';
+    return head + words + (turn === 'back' ? '' : ' The place around them is seen from that angle.')
+        + ` Take only the viewing angle from the mannequin reference; it shows one figure, the picture keeps ${all.toUpperCase()} `
+        + `people. They are still ${who} from the first image, each with their own head and hair, hands, clothes and `
+        + `shoes; keep ${all === 'both' ? 'both' : 'all their'} identities, their poses, ${keep}`;
+}
+
 function _turnWords(turn, p, facts) {
+    if (facts.people > 1) return _groupTurnWords(turn, p, facts.people);
     const head = 'Shift the viewpoint of the first image around the subject to match the mannequin reference in the '
         + 'second image: ';
     const side = SIDE[turn];
