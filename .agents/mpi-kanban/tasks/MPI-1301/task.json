@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1301",
+  "title": "Multi-angle: camera-orbit mode (Qwen Edit 2511 + angle LoRA) - research + RunPod bench",
+  "description": "Linked to MPI-1039 (Multi-angle Flow). Fabio 2026-10-26: a switch in the Flow - Qwen Edit + a multi-angle LoRA moves the CAMERA round the whole scene; the current recipe (FLUX.3 / Qwen-Image 2.1 + Blender doll refs) turns the CHARACTER inside the scene. Research, candidate LoRAs, licences, reuse and a ready bench plan (incl. a hi-res fix pass) in research/qwen-orbit.md. Runs on a rented RunPod GPU only after Fabio's yes on price; no code yet.",
+  "column": "todo",
+  "maturity": "research",
+  "status": "active",
+  "created_at": "2026-10-26T18:31:20+00:00",
+  "updated_at": "2026-10-26T18:31:20+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
