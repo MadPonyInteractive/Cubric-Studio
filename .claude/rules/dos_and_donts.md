@@ -16,7 +16,7 @@
 - **Never open a new `EventSource`, and never poll on a timer without an in-flight guard.** The app has six sockets to its server; join the one shared stream (`js/services/eventStream.js` `onStream`) and skip a poll tick while the last request is out. Full rule: § "Connections to the app server".
 - **Never `:has()` on a bare tag, and never an infinite animation under an `opacity: 0`-only hide.** Both restyle the whole page; use a modifier class. Full rule: § "Two patterns that restyle the whole page".
 - **For image surfaces: prefer CSS `transform` on a stack element over `ctx.translate/scale`.** CSS transform uses the GPU compositor — no re-rasterize per frame. `ctx` transforms belong only to screen-UI overlays drawn in container px.
-- **Check `js/utils/` before writing any generic logic** — `async.js`, `file.js`, `images.js`, `video.js`, `mediaDimensions.js`, `string.js`, `ratios.js`, `markdown.js` may already do what you need.
+- **Check `js/utils/` before writing any generic logic** — `file.js`, `video.js`, `mediaDimensions.js`, `string.js`, `ratios.js`, `markdown.js` may already do what you need.
 - **Never hand-roll markdown.** `js/utils/markdown.js` is the ONE renderer (`marked` parses, `DOMPurify` sanitizes): `renderMarkdown(src)` for a document, `renderInlineMarkdown(src)` for a single line with no `<p>` wrapper, `renderMarkdownInto(el, src)` + `wireMarkdownLinks(el)` for a live pane. Never `innerHTML` markdown output that did not go through it — notes arrive inside project folders the user may not have written. Style the result with the shared `.mpi-md` block in `styles/markdown.css`; do not restyle headings/tables per component.
 - **Every action shows itself — start, during, end.** Over ~1 s shows progress; GPU/engine work goes through `enqueueGeneration` (queue + status bar, never a direct engine call); non-GPU work (download, upload, CPU) is a queue-panel row with a progress bar, never the status bar; no real % = the moving sweep (`tool:indeterminate` / `mpi-progress--loading`), never a still bar; a failure is a `ui:warning` toast with a plain reason. Before calling it done, name what the user SEES at start, during, end — any "nothing" = not done. Full rule: § "Every action shows itself".
 - **Frontend logging:** `import { clientLogger } from '../services/clientLogger.js'` — never use bare `console.log/error`.
@@ -45,9 +45,7 @@ Whenever you need generic functionality, ALWAYS check the `js/utils/` directory 
    - The absolute source of truth for all image/canvas aspect ratios. 
 
 **Other available utilities you should check before writing code:**
-- `async.js`
 - `file.js`
-- `images.js`
 - `video.js`
 - `mediaDimensions.js` — measure pixel dimensions (`{w,h}`) from `File`/`Blob`/URL for images or videos. Use before uploads that populate sidecar `pixelDimensions`.
 - `string.js`

@@ -17,24 +17,6 @@
   font-style: normal;
 }
 @font-face {
-  font-family: 'Fira Code';
-  src: url('../assets/fonts/FiraCode-Regular.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-}
-@font-face {
-  font-family: 'Fira Code';
-  src: url('../assets/fonts/FiraCode-Bold.woff2') format('woff2');
-  font-weight: 700;
-  font-style: normal;
-}
-@font-face {
-  font-family: 'VT323';
-  src: url('../assets/fonts/VT323.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-}
-@font-face {
   font-family: 'Russo One';
   src: url('../assets/fonts/RussoOne-Regular.woff2') format('woff2');
   font-weight: 400;
