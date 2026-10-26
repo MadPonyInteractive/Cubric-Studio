@@ -87,6 +87,7 @@ import { installFlow, flowDownloadGb } from '../services/flowInstall.js';
 import { flowInstallKeys } from '../utils/flowLicences.js';
 import { getModelLicence, hasAcceptedLicence } from '../data/modelConstants/licences.js';
 import { state } from '../state.js';
+import { Storage } from '../core/storage.js';
 import { Events } from '../events.js';
 import { runGifJob, GIF_HANDLERS } from './gifJobs.js';
 import { ROUTINE_HANDLERS } from './routineDispatch.js';
@@ -1695,6 +1696,17 @@ function _currentProject(jobId) {
 }
 
 /**
+ * Run one `agent.prefs` job (MPI-1300): the connection, model and mode this window's chat
+ * sends with, so the phone companion talks to Cosmo exactly as the PC does. They live in
+ * this window's localStorage, which a phone's browser can never read.
+ */
+function _agentPrefs(jobId) {
+    const { model, mode } = Storage.getAgentPrefs();
+    const { profileId } = Storage.getLlmConnection();
+    return _report(jobId, { ok: true, output: { profileId, model, mode } });
+}
+
+/**
  * Run one `card.rename` job (MPI-776). Through this renderer and never a write to
  * `project.json`: while a project is open the renderer owns its `itemGroups`, and the
  * next save writes the whole array back over any edit made on disk.
@@ -2272,6 +2284,7 @@ const _HANDLERS = {
     'prompt.open': openPrompt,
     'project.open': _openProject,
     'project.current': _currentProject,
+    'agent.prefs': _agentPrefs,
     'card.rename': _renameCard,
     'card.mark': _markCard,
     'media.import': _importMedia,

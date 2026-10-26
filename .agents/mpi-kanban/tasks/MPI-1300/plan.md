@@ -8,9 +8,11 @@ phone feature reaches a user (brief § Rollout).
 
 ## Current State
 
-2026-10-26: Phase 1 DONE and eye-tested by Fabio (nothing committed yet).
-Next action: Phase 2 (Chat + Gallery) — read `docs/agent-chat.md` routes + SSE first. Gotcha: run every `playwright-cli`
-call from one working directory (its session lives in `./.playwright-cli/`).
+2026-10-26: Phase 1 committed (6137c0e29), eye-tested. Phase 2 BUILT, uncommitted, waiting on
+Fabio's eye-test (incl. one real Cosmo turn: the live card, Stop and the result card could not be
+driven without billing his key). Next action after his "1": tick checklist, `mpi-handoff` or Phase 3.
+Gotchas: run every `playwright-cli` call from one working directory; an isolated instance shares
+the real projects folder and the running engine, so browse read-only.
 
 Facts the plan rests on (checked 2026-10-26):
 - `server.js` serves the repo root with `express.static(__dirname)` behind `localOnly(port)`
@@ -55,13 +57,13 @@ screenshots each tab, and the console shows no errors. Then Fabio's eye-test in 
 
 ## Phase 2: Chat and Gallery screens
 
-- [ ] Cosmo screen over the existing `/agent/*` routes and `/events/stream` SSE (`docs/agent-chat.md`):
-  messages, composer, camera/upload button (dataUrl attachments for now — Phase 5 replaces it),
-  live generation card with a static "running" state + Stop (`/connector` cancel); latents come in Phase 4.
-- [ ] Result card actions: Save (download), Share (`navigator.share` when present), Again.
-- [ ] Gallery screen: project grid (All / Images / Video filter, card count), project switch / create
-  from the top-bar name, full-screen Viewer with swipe between cards and versions, Save / Share /
-  To Cosmo (opens chat with the card attached).
+- [x] Cosmo screen (`MpiPhoneChat`) over `/agent/*` + the stream: messages, composer, photo button
+  (dataUrl), install/batch/spend Yes-No cards, live card (sweep + Stop via new `agent:job`).
+- [x] Result card actions: Save, Share (only when `navigator.share` exists), Again.
+- [x] Gallery (`MpiPhoneGallery`, `GET /phone/cards`, server-side kind filter, Load more), project
+  switch / create sheet in the shell, Viewer (`MpiPhoneViewer`: swipe, versions, Save / Share / To Cosmo).
+- [x] `GET /phone/agent-prefs` relay (`agent.prefs`); tests in `tests/phone-route.test.cjs` (6).
+- [ ] Fabio's eye-test, incl. one real Cosmo turn (bills his LLM key).
 
 **Verify:** unit tests for any new route; isolated app + DevTools emulation: send a prompt, see the
 card land in both the phone gallery and the desktop gallery. Eye-test.
@@ -119,6 +121,15 @@ desktop gallery at once.
 - 2026-10-26: fixed `MpiButton` `labelPosition: 'left'` (no other user) — it rendered the icon
   first because the template AND the CSS both reversed the order. `'top'` has the same double
   flip but every ratio picker is drawn on it; left alone (brief § Noticed).
+- 2026-10-26 (P2): the phone could not read the agent's connection/model/mode (desktop localStorage)
+  → `agent.prefs` relay + `GET /phone/agent-prefs`. Stop had no handle (`agent:tool` ids are not
+  requestIds) → `AgentLoop` emits `agent:job { toolCallId }` (docs/agent-chat.md SSE table).
+- 2026-10-26 (P2): the PC's CHOICE cards (lyrics, voice, model, tiles) say "answer on your PC" on the
+  phone — sharing MpiAgentChat's `CHOICE_CARDS` table is Phase 3 work. REDESIGN-DEVIATION marked.
+- 2026-10-26 (P2): stacks show as their member cards (the phone has no stack view); the viewer's
+  To Cosmo is a filled primary, not the mockup's cream label (consumer may not recolour a button).
+- 2026-10-26 (P2): a message sent from the phone shows on the PC's chat only after it reloads
+  (the server sends no `agent:user` for a sender's own turn). Not fixed; note for Phase 3.
 - 2026-10-26: `electron-builder.yml` ships `**/*`, so `phone.html` reaches builds — the 404 gate
   is what keeps it from users. No packaging step needed in Phase 7.
 

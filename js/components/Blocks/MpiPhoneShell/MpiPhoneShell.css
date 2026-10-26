@@ -60,9 +60,12 @@
 .mpi-phone-shell__screen {
     flex: 1;
     min-height: 0;
-    overflow: auto;
+    overflow: hidden;                       /* each screen scrolls its own list */
     display: flex;
 }
+
+.mpi-phone-shell__pane { flex: 1; min-width: 0; min-height: 0; display: flex; }
+.mpi-phone-shell__pane[hidden] { display: none; }
 
 .mpi-phone-shell__soon {
     margin: auto;
@@ -104,3 +107,54 @@
     background: var(--accent-heat);
     z-index: 1;
 }
+
+/* ── Project switcher (the project name opens it) ────────────────────────── */
+.mpi-phone-shell { position: relative; }
+.mpi-phone-shell__sheet {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+    background: var(--surface-1);
+}
+.mpi-phone-shell__sheet[hidden] { display: none; }
+.mpi-phone-shell__sheet-head {
+    flex: none;
+    min-height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--s-2) 0 var(--s-3);
+    border-bottom: 1px solid var(--line);
+    font-size: var(--t-md);
+}
+.mpi-phone-shell__sheet-close .mpi-btn { min-width: var(--phone-tap); min-height: var(--phone-tap); }
+.mpi-phone-shell__sheet-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    padding: var(--s-2) 0;
+}
+.mpi-phone-shell__sheet-list .mpi-btn {
+    width: 100%;
+    min-height: var(--phone-tap);
+    justify-content: flex-start;
+    padding-inline: var(--s-3);
+    text-transform: none;
+}
+.mpi-phone-shell__sheet-new {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    padding: var(--s-2) var(--s-3);
+    border-top: 1px solid var(--line);
+}
+.mpi-phone-shell__sheet-name { flex: 1; min-width: 0; }
+.mpi-phone-shell__sheet-name input { font-size: 16px; }     /* 16px: iOS zooms into smaller fields */
+.mpi-phone-shell__sheet-create .mpi-btn { min-height: var(--phone-tap); }
+.mpi-phone-shell__error { margin: var(--s-2) var(--s-3); color: var(--accent-err); }

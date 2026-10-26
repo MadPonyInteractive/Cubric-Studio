@@ -1,0 +1,148 @@
+/* MpiPhoneChat — Cosmo on the phone (MPI-1300). Tokens only; buttons and the field keep
+   their own chrome, this file sizes and places them. Spec: mockups/phone.html screens 01-02. */
+
+.mpi-phone-chat {
+    --accent-heat: var(--hub-accent);      /* the agent is Studio cream, as on the PC */
+    --phone-tap: 44px;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.mpi-phone-chat__log {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: var(--s-3);
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-3);
+}
+.mpi-phone-chat__log > :first-child { margin-top: auto; }   /* short chats sit at the bottom */
+
+/* ── Rows ───────────────────────────────────────────────────────────────── */
+.mpi-phone-chat__row--me {
+    align-self: flex-end;
+    max-width: 84%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--s-1);
+}
+.mpi-phone-chat__bubble {
+    padding: var(--s-2) var(--s-3);
+    border-radius: var(--r-3);
+    background: var(--accent-heat);
+    color: var(--ink-on-accent);
+    line-height: 1.45;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+.mpi-phone-chat__photo-sent {
+    width: 96px;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+    display: block;
+    border: 1px solid var(--line);
+}
+
+.mpi-phone-chat__row--cosmo { display: flex; gap: var(--s-2); align-items: flex-start; }
+.mpi-phone-chat__head { width: 30px; flex: none; margin-top: 2px; }
+.mpi-phone-chat__body {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-2);
+}
+.mpi-phone-chat__text { color: var(--ink-1); overflow-wrap: anywhere; }
+.mpi-phone-chat__thinking { color: var(--ink-3); font-style: italic; }
+.mpi-phone-chat__error { color: var(--accent-err); }
+
+.mpi-phone-chat__tool {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    font-size: var(--t-xs);
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.mpi-phone-chat__dot {
+    width: 7px;
+    height: 7px;
+    flex: none;
+    border-radius: var(--r-pill);
+    background: var(--accent-ok);
+}
+.mpi-phone-chat__tool[data-status="started"] .mpi-phone-chat__dot { background: var(--accent-frost); }
+.mpi-phone-chat__tool[data-status="failed"] .mpi-phone-chat__dot { background: var(--accent-err); }
+
+/* ── The running job ────────────────────────────────────────────────────── */
+.mpi-phone-chat__live {
+    width: 100%;
+    max-width: 272px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-2);
+    padding: var(--s-3);
+    background: var(--surface-viewer);
+    outline: 1px solid var(--accent-frost);
+    outline-offset: -1px;
+}
+.mpi-phone-chat__live-label { color: var(--ink-2); font-size: var(--t-xs); overflow-wrap: anywhere; }
+.mpi-phone-chat__live .mpi-btn { min-height: var(--phone-tap); width: 100%; }
+
+/* ── A result ───────────────────────────────────────────────────────────── */
+.mpi-phone-chat__result { width: 100%; max-width: 272px; display: flex; flex-direction: column; }
+.mpi-phone-chat__media {
+    width: 100%;
+    display: block;
+    outline: 2px solid var(--accent-heat);
+    outline-offset: -2px;
+}
+
+.mpi-phone-chat__actions {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 1px;
+    background: var(--line);
+}
+.mpi-phone-chat__actions .mpi-btn { min-height: 48px; width: 100%; border-radius: 0; }
+
+.mpi-phone-chat__confirm {
+    max-width: 272px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-2);
+    padding: var(--s-3);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+}
+.mpi-phone-chat__confirm-title { color: var(--ink-1); font-weight: 600; }
+.mpi-phone-chat__confirm-sub { color: var(--ink-3); font-size: var(--t-xs); }
+
+/* ── Composer ───────────────────────────────────────────────────────────── */
+.mpi-phone-chat__attachments { display: none; gap: var(--s-2); padding: var(--s-2) var(--s-2) 0; overflow-x: auto; background: var(--surface-2); }
+.mpi-phone-chat--attached .mpi-phone-chat__attachments { display: flex; }
+.mpi-phone-chat__chip { position: relative; flex: none; }
+.mpi-phone-chat__chip img { width: 56px; height: 56px; object-fit: cover; display: block; border: 1px solid var(--line); }
+.mpi-phone-chat__chip .mpi-btn { position: absolute; top: 0; right: 0; }   /* remove, inside the corner: the strip scrolls, so it clips */
+
+.mpi-phone-chat__composer {
+    flex: none;
+    display: flex;
+    align-items: flex-end;
+    gap: var(--s-1);
+    padding: var(--s-2);
+    background: var(--surface-2);
+    border-top: 1px solid var(--line);
+}
+.mpi-phone-chat__field { flex: 1; min-width: 0; }
+.mpi-phone-chat__field textarea { max-height: 30dvh; font-size: 16px; }   /* 16px: iOS zooms into smaller fields */
+.mpi-phone-chat__photo, .mpi-phone-chat__send { flex: none; display: flex; }
+.mpi-phone-chat__photo .mpi-btn,
+.mpi-phone-chat__send .mpi-btn { min-width: var(--phone-tap); min-height: var(--phone-tap); }

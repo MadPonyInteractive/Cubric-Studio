@@ -227,6 +227,7 @@ Every event but `agent:session` also carries `session`, the key of its conversat
 | `agent:message` | `{ turnId, id, text }` | one whole reply per model turn (D3); a start line (MPI-1280, § Loop rules) is one too |
 | `agent:tool` | `{ turnId, id, tool, status, label }`, status `started` / `done` / `failed` | status line; `label` is plain copy, never the prompt |
 | `agent:confirm` | `{ turnId, confirmId, kind: 'install', modelId, modelName, downloadGb, flowId?, licence? }` | Yes / No card; `flowId` = a Flow (MPI-1127), `licence` adds the licence-screen line |
+| `agent:job` | `{ turnId, toolCallId, label }` | a single `generate` was submitted (not a batch): `toolCallId` is its `requestId` for `POST /connector/cancel`, and its `agent:result` ends it. The phone's live card (MPI-1300) |
 | `agent:result` | `{ toolCallId, ok, output?: { itemId, groupId, type, filePath }, error? }` | result card, opens the card; `filePath` is the renderer item's, already a `/project-file?path=` url |
 | `agent:compacting` | `{ turnId, on: boolean }` | "compacting" line + mascot |
 | `agent:error` | `{ turnId, code, message, fallback? }` | error line. Codes: `ENDPOINT_ERROR`, `NO_KEY`, `TOOLS_UNSUPPORTED`, `STEP_LIMIT`. `fallback` (MPI-1277): the host stalled (timeout, 429, 5xx, never a key or balance) and `agentFallbackModel` (`llmEngines.mjs`) named the best other model on the agent model's tests; the chat adds a card whose Switch makes it the agent model and sends "Continue." Live only |

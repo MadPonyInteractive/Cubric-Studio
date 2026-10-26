@@ -40,6 +40,9 @@ export const PRELOAD_COMPONENT_STYLES = [
   // Compounds
   'js/components/Compounds/MpiThumbStrip/MpiThumbStrip.css',
   'js/components/Compounds/MpiAgentChat/MpiAgentChat.css',
+  'js/components/Compounds/MpiPhoneChat/MpiPhoneChat.css',
+  'js/components/Compounds/MpiPhoneGallery/MpiPhoneGallery.css',
+  'js/components/Compounds/MpiPhoneViewer/MpiPhoneViewer.css',
   'js/components/Compounds/MpiContextMenu/MpiContextMenu.css',
   'js/components/Compounds/MpiOptionSelector/MpiOptionSelector.css',
   'js/components/Compounds/MpiOkCancel/MpiOkCancel.css',

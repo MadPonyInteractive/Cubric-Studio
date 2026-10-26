@@ -1,0 +1,118 @@
+/* MpiPhoneGallery — the project's cards on the phone (MPI-1300). Tokens only.
+   Spec: mockups/phone.html screen 03. */
+
+.mpi-phone-gallery {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface-bar);
+}
+
+.mpi-phone-gallery__filters {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: var(--s-1);
+    padding: var(--s-2) var(--s-3) var(--s-2) var(--s-1);
+}
+.mpi-phone-gallery__filter { position: relative; display: flex; }
+.mpi-phone-gallery__filter .mpi-btn { min-height: var(--phone-tap, 44px); }
+/* The open filter: the mockup's heat dot, beside the button rather than inside its chrome. */
+.mpi-phone-gallery__filter--active::after {
+    content: "";
+    position: absolute;
+    right: 2px;
+    top: 50%;
+    width: 5px;
+    height: 5px;
+    margin-top: -2px;
+    border-radius: var(--r-pill);
+    background: var(--accent-heat);
+}
+.mpi-phone-gallery__count {
+    margin-left: auto;
+    font-size: var(--t-xs);
+    letter-spacing: 0.04em;
+    color: var(--ink-3);
+    text-transform: uppercase;
+}
+
+.mpi-phone-gallery__scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-bottom: var(--s-3);
+}
+
+.mpi-phone-gallery__grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    grid-auto-rows: 62px;
+    grid-auto-flow: dense;
+    gap: 2px;
+    padding: 0 2px;
+}
+
+.mpi-phone-gallery__frame {
+    position: relative;
+    overflow: hidden;
+    background: var(--surface-canvas);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+.mpi-phone-gallery__frame:focus-visible { outline: 2px solid var(--accent-heat); outline-offset: -2px; }
+.mpi-phone-gallery__frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.mpi-phone-gallery__frame--hero  { grid-column: span 6; grid-row: span 4; }
+.mpi-phone-gallery__frame--half  { grid-column: span 3; grid-row: span 3; }
+.mpi-phone-gallery__frame--third { grid-column: span 2; grid-row: span 2; }
+.mpi-phone-gallery__frame--wide  { grid-column: span 4; grid-row: span 2; }
+
+.mpi-phone-gallery__kind {
+    position: absolute;
+    left: var(--s-2);
+    bottom: var(--s-2);
+    padding: 2px 7px;
+    background: color-mix(in oklch, var(--surface-viewer) 72%, transparent);
+    font-size: var(--t-2xs);
+    letter-spacing: 0.12em;
+    color: var(--ink-1);
+    text-transform: uppercase;
+}
+
+.mpi-phone-gallery__name {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: var(--s-5) var(--s-3) var(--s-2);
+    background: linear-gradient(to top, color-mix(in oklch, var(--surface-viewer) 85%, transparent), transparent);
+    font-size: var(--t-xs);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: var(--s-2);
+    color: var(--ink-1);
+    text-align: left;
+}
+.mpi-phone-gallery__name b {
+    font-weight: 600;
+    font-size: var(--t-sm);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mpi-phone-gallery__empty:empty { display: none; }
+.mpi-phone-gallery__empty { margin: var(--s-6) var(--s-4); color: var(--ink-3); text-align: center; }
+
+.mpi-phone-gallery__more { display: flex; justify-content: center; padding: var(--s-3); }
+.mpi-phone-gallery__more:empty { display: none; }
+.mpi-phone-gallery__more .mpi-btn { min-height: var(--phone-tap, 44px); }

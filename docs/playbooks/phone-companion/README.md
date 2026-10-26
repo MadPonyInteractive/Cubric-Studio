@@ -48,3 +48,28 @@ mockups: `.agents/mpi-kanban/tasks/MPI-1300/` (`brief.md`, `research/mockups/pho
 
 The plan is `.agents/mpi-kanban/tasks/MPI-1300/plan.md`. Each phase adds its own section here
 (routes it exposes, how to test it). Phase 1 — the page on the PC browser — is everything above.
+
+### Phase 2 — Cosmo, Gallery, Viewer
+
+| What | Where |
+|---|---|
+| Chat | `Compounds/MpiPhoneChat` — NOT `MpiAgentChat` (desktop-shell bound). Same `/agent/*` routes and `agent:*` stream events (`docs/agent-chat.md`) |
+| Gallery / Viewer | `Compounds/MpiPhoneGallery`, `Compounds/MpiPhoneViewer`; the shell wires them (Compounds may not import each other) |
+| Browser-only file doors | `js/phone/phoneMedia.js` — photo picker, data URL, Save (download link), Share (`navigator.share`, localhost/HTTPS only) |
+
+Routes (all dev-gated in `routes/phone.js`):
+- `GET /phone/agent-prefs` — the PC chat's `{ profileId, model, mode }`, relayed from the window
+  (`agent.prefs` in `js/shell/agentDispatch.js`). They live in the PC window's localStorage, which a
+  phone can never read; without them `/agent/message` answers `NO_PROFILE`.
+- `GET /phone/cards?folderPath=&kind=&offset=&limit=` — every version of each card, newest first;
+  `kind` filters BEFORE paging. Stack shells are dropped and their members shown as cards.
+- Stop on the live card: `agent:job { toolCallId }` (emitted by `AgentLoop` when a single `generate`
+  is submitted) → `POST /connector/cancel { requestId: toolCallId }`. `agent:tool` ids are NOT requestIds.
+
+The phone keeps its OWN project (starts on the PC's open one, never moves the PC's view).
+
+Testing traps:
+- An isolated instance reads the SAME projects folder and attaches to an engine already serving:
+  browse read-only. Sending to Cosmo bills the user's LLM key — ask first.
+- A `routes/*.js` change needs the instance restarted; a `js/` change only `?v=<n>`.
+

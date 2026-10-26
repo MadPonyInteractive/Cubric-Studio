@@ -1,0 +1,116 @@
+/* MpiPhoneViewer — one card full screen on the phone (MPI-1300). Tokens only.
+   Spec: mockups/phone.html screen 04. */
+
+.mpi-phone-viewer {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+    background: var(--surface-viewer);
+    color: var(--ink-1);
+}
+
+.mpi-phone-viewer__top {
+    flex: none;
+    min-height: 56px;
+    display: flex;
+    align-items: center;
+    gap: var(--s-1);
+    padding: 0 var(--s-2);
+}
+.mpi-phone-viewer__back .mpi-btn,
+.mpi-phone-viewer__details .mpi-btn { min-width: var(--phone-tap, 44px); min-height: var(--phone-tap, 44px); }
+.mpi-phone-viewer__title { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.mpi-phone-viewer__title b {
+    font-size: var(--t-md);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.mpi-phone-viewer__title span { font-size: var(--t-xs); color: var(--ink-3); }
+
+.mpi-phone-viewer__stage {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+    display: grid;
+    place-items: center;
+    touch-action: pan-y;               /* sideways drags are ours (swipe), vertical stays the page's */
+}
+.mpi-phone-viewer__media { display: contents; }
+.mpi-phone-viewer__media img,
+.mpi-phone-viewer__media video {
+    max-width: 100%;
+    max-height: 100%;
+    display: block;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+.mpi-phone-viewer__media audio { width: calc(100% - 2 * var(--s-4)); }
+
+.mpi-phone-viewer__pager {
+    position: absolute;
+    bottom: var(--s-2);
+    left: 50%;
+    translate: -50% 0;
+    display: flex;
+    gap: 6px;
+}
+.mpi-phone-viewer__pager i { width: 6px; height: 6px; border-radius: var(--r-pill); background: var(--ink-4); }
+.mpi-phone-viewer__pager i.is-on { background: var(--ink-1); }
+
+.mpi-phone-viewer__meta {
+    flex: none;
+    padding: var(--s-3) var(--s-3) var(--s-2);
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-2);
+}
+.mpi-phone-viewer__versions {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    overflow-x: auto;
+    font-size: var(--t-xs);
+    color: var(--ink-3);
+    letter-spacing: 0.04em;
+}
+.mpi-phone-viewer__versions img {
+    width: 40px;
+    height: 48px;
+    flex: none;
+    object-fit: cover;
+    opacity: 0.6;
+    border: 1px solid var(--line);
+    cursor: pointer;
+}
+.mpi-phone-viewer__versions img.is-on { opacity: 1; border-color: var(--accent-heat); }
+.mpi-phone-viewer__versions span { white-space: nowrap; }
+
+.mpi-phone-viewer__prompt {
+    color: var(--ink-2);
+    font-size: var(--t-xs);
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+.mpi-phone-viewer__prompt:empty { display: none; }
+.mpi-phone-viewer--details .mpi-phone-viewer__prompt { display: block; max-height: 30dvh; overflow-y: auto; }
+
+.mpi-phone-viewer__actions {
+    flex: none;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    border-top: 1px solid var(--line);
+}
+.mpi-phone-viewer__actions .mpi-btn { width: 100%; min-height: 58px; gap: 3px; }
+.mpi-phone-viewer__actions .mpi-ibtn__label {
+    font-size: var(--t-2xs);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}

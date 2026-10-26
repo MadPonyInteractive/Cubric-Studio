@@ -2654,6 +2654,9 @@ ${knowledgeIndex}`.trim();
                 }
                 this._inflight.set(toolCallId, (args.cardName || String(args.prompt || args.flowId || '').slice(0, 60) || _opLabel(args))
                     + (quoted?.tiles ? `, up to ${quoted.tiles} tiles` : quoted?.tiles === null ? ', in tiles the status bar counts' : ''));
+                // MPI-1300: the job's one handle, sent the moment it exists. The phone's live card
+                // stops it with `/connector/cancel { requestId: toolCallId }`; `agent:result` ends it.
+                if (!opts.batch) this._emit('agent:job', { turnId, toolCallId, label: this._inflight.get(toolCallId) });
                 // MPI-913: a billed model runs in the cloud and a Pod on RunPod; anything else is
                 // a ComfyUI job on this PC's card, which a local agent model must not sit on.
                 if (!(opts.batch ? opts.batch.billed : spend !== null) && this._tools.engineIsLocal?.() === true) {

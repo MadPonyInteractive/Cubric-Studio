@@ -2104,8 +2104,35 @@
  * No props. The phone companion's frame, mounted by js/phone/init.js (phone.html, GET /phone,
  * dev-gated): top bar (logo, project name from /connector/current-project, pod pill from
  * /remote/mode, settings), one screen slot, and the Cosmo / Gallery / Queue tab bar.
- * Phase 1: the screens are placeholders and the top-bar taps do nothing yet.
+ * Phase 2 mounts MpiPhoneChat and MpiPhoneGallery into the slot (MpiPhoneViewer over them) and
+ * the project name opens a project switcher; the phone keeps its own project and never moves
+ * the PC's. Queue, pod pill and settings land in Phase 3.
  * `el.dataset.tab` holds the open tab id. Emits: (none)
+ */
+
+/**
+ * @typedef {Object} MpiPhoneChatProps (Compound — js/components/Compounds/MpiPhoneChat, MPI-1300)
+ * No props. Cosmo on the phone over `/agent/*` and the `agent:*` stream events; not
+ * MpiAgentChat (desktop-shell bound). `el.setProject({ folderPath, name } | null)` reloads the
+ * conversation; `el.attachCard({ name, url, mediaType, itemId, groupId })` queues a card for
+ * the next message. A live job (`agent:job`) shows a sweep + Stop (`/connector/cancel`).
+ * Emits: (none)
+ */
+
+/**
+ * @typedef {Object} MpiPhoneGalleryProps (Compound — js/components/Compounds/MpiPhoneGallery, MPI-1300)
+ * No props. A project's cards from `GET /phone/cards`, newest full width, All / Images / Video.
+ * `el.setProject(project | null)`, `el.refresh()`.
+ * Emits: 'open' { cards, index, total }
+ */
+
+/**
+ * @typedef {Object} MpiPhoneViewerProps (Compound — js/components/Compounds/MpiPhoneViewer, MPI-1300)
+ * @property {Array}  cards - `/phone/cards` rows, in the gallery's order
+ * @property {number} index - the card to open on
+ * @property {number} [total] - the project's count under the gallery's filter
+ * Full screen; swipe between cards, tap a version; Save / Share / To Cosmo.
+ * Emits: 'close' {}, 'to-cosmo' { name, url, mediaType, itemId, groupId }
  */
 
 /**
