@@ -1073,3 +1073,68 @@ user's ratio later; a crop changes the zoom, so the gizmo may need per-ratio-fam
   NEXT (GPU, ask Fabio): round 53 = Qwen turn with PLAIN eye-level dolls (render 8 plain level refs) to keep the photo
   place, plus a stronger 3/4 (not profile) wording; and a NON-FLUX input (a real photo) on FLUX.3 to see if the freeze is
   only FLUX-on-FLUX.
+- 2026-10-26 ROUND 53, PLAIN EYE-LEVEL DOLLS ON QWEN, STRONGER 3/4 WORDS, A NON-FLUX INPUT ON FLUX.3 (session
+  "Multi-Angle 35", Fabio approved 44 edits). research/r53.py, results out/mq_blender53.json, sheets
+  r53_{anime,photo}_plain_doll.jpg (round 52 Qwen beside round 53 per target) + r53_nonflux_on_flux3.jpg. NEW ASSETS
+  (uncommitted): the 8 eye-level PLAIN dolls in assets/flows/multi-angle/refs/plain/{front,tq_fl,tq_fr,pr_l,pr_r,tq_bl,
+  tq_br,back}.png - 7 copied from blender/out/doll_plain (already rendered in round 30), front rendered with
+  front_eye.py on doll_plain.blend, flattened onto white. r53.py has its own ref() (r52.ref puts room/ in front).
+  P = Qwen, round 52's B words, plain doll (32). VIEW unchanged from round 52: front 7/8 (photo pr l -> the DOLL itself
+  pasted on white), tq_fl still lands as PROFILE left 8/8, pr_r 7/8 (tq fr stays near 3/4), tq_br 8/8. PLACE: the
+  white swaps one leak for another - photo non-front place kept 9/12 (round 52: 2/12), but the white backdrop now
+  leaks: anime tq_br 0/4 street (all on white), anime pr_r 2/4 (2 washed white), photo pr l -> tq_fl/tq_br on white.
+  Anime place kept 6/12 non-front (round 52: 15/16 overall). Read: Qwen copies WHATEVER is behind the doll - grey room
+  into photos, white into anime streets. Neither ref background is neutral.
+  S = Qwen, plain doll, tq_fl with "three-quarter ... about 45 degrees, not side-on, not in profile, both eyes show"
+  (8). ANIME 3/4 landed 3/4 on 3/4 (tq fr, tqb l, back; street kept), pr l froze. PHOTO 0/4: three outputs
+  ARE the doll on white, one a small person on white. So the 3/4 words fix the overshoot on anime, but on a plain
+  studio photo Qwen hands back the reference.
+  NF = FLUX.3 Turbo, room doll, the Flow's words, input = Qwen's round 52 photo (non-FLUX, near profile right, studio)
+  (4). It TURNS: front clean, tq_br clean rear 3/4, tq_fl -> profile left (turned, overshoots like Qwen), pr_r ~ the
+  input (already near pr_r). Studio kept 4/4, identity kept. Read: round 52's freeze is FLUX.3-on-FLUX.3; a user's own
+  (non-FLUX) picture likely turns on FLUX.3, keeping the place - FLUX.3 may stay the turn model. One input only.
+  NEXT (ask Fabio): widen NF (more non-FLUX inputs, views, anime) before choosing the turn model; the 3/4 overshoot is
+  in the WORDS on both models ("almost side-on") - test the stronger 3/4 words on FLUX.3; for Qwen, a doll ref whose
+  backdrop is the input's own (doll composited onto a blurred copy of the input) is the idea that stops the paste.
+- 2026-10-26 ROUND 54, FLUX.3 ON NON-FLUX INPUTS, WIDENED (session "Multi-Angle 35", Fabio approved ~20 edits; own app
+  on :49877, profile cubric-agent-ma35). research/r54.py, out/mq_blender54.json, sheet r54_nonflux_on_flux3.jpg.
+  Inputs = six clean Qwen-made pictures from rounds 52/53: photo front, photo pr_r, photo tq_br, anime tq_fl (a 3/4
+  front-left), anime pr_r, photo tq_fr (round 53's). FLUX.3 Turbo, room doll, the Flow's words (A), tq_fl also with
+  round 53's stronger words (S); a target equal to the input's view skipped. 20 edits ~32 s.
+  SIDES (dolls at full size): front faces the camera; tq_fl, pr_l face frame-LEFT; pr_r faces frame-RIGHT; tq_br is the
+  back, head toward frame-right (tq_bl: toward frame-left). GRADE SIDES ON research/heads.py CROPS, NEVER ON A SHEET
+  THUMBNAIL: a first read off ~150 px cells called every tq_fl "frame-right" and was wrong (pixel-identical round 55
+  repeats proved it); that bad "correction" was written here, then reverted the same night.
+  FRONT 5/5 clean, place kept 5/5. PR_R 3/3. TQ_BR 4/4 rear 3/4. TQ_FL A: left side 4/4 - from the front a real 3/4,
+  from the turned starts (photo pr_r, photo tq_br, anime pr_r) PROFILE left, the round 52/53 overshoot. TQ_FL S (the
+  stronger 3/4 words): anime pr_r -> a true 3/4 left; the four photos UNDERSHOOT to near-front, a slight turn. Place +
+  identity kept 20/20.
+  Read: FLUX.3 turns non-FLUX pictures - front, rear 3/4, profile all land - so round 52's blanket freeze is
+  FLUX.3-on-FLUX.3, and FLUX.3 can stay the turn model. The 3/4 overshoot is real on both models.
+- 2026-10-26 ROUND 55, CROSSING TO THE LEFT STOPS FROM A FRAME-RIGHT START (session "Multi-Angle 35", Fabio's yes
+  + overnight go-ahead). research/r55.py + r55_prompts.mjs, out/mq_blender55.json, sheet r55_side_crossing.jpg, side
+  grade on heads.py crops. Four non-FLUX inputs facing frame-right (photo pr_r, anime pr_r, photo tq_fr, anime tq_fr =
+  round 54's "anime tq_fl" cell - it faces frame-right), stops tq_fl / pr_l / tq_bl, FLUX.3 Turbo + room doll + the
+  Flow's words. D = direct; T = from round 54's front of the same picture (two passes); F = the mirror right stop
+  (same side), the result flipped (flips in <project>/.flow-refs/r55_flip/). 26 edits (2 F edits; the rest of F reuses
+  pictures already at the right stop).
+  TQ_FL: D left side 4/4 (3 profile overshoot, 1 true 3/4); T true 3/4 left 3/4, anime tq_fr's front did not move (0).
+  PR_L: D 4/4 left (anime tq_fr undershoots to 3/4); T 3/4 (the same anime front did not move).
+  TQ_BL: D 2/4 (anime only), T 0/4 - they land as REAR-RIGHT (tq_br) or a straight back.
+  F: 12/12 the left side, but everything is mirrored (shop signs read backwards, a bag on the other shoulder) - not
+  usable as is.
+  Read: crossing sides is NOT the problem. The overshoot is: from a turned start a 3/4 lands as profile; through the
+  front (two passes) it lands a real 3/4. The rear-left stop is the weak one from a frame-right start - rear-right
+  wins. Every T start is a FLUX.3 output (round 54's front), so T is FLUX-on-FLUX: 3 of 4 still turned and one anime
+  front froze on all three stops - the round 52 freeze is partial, not total.
+  Flow idea from this: Turn = Front lands from ANY view (5/5 round 54), so "front first, then the benched front -> stop
+  pass" needs no view detection; it costs one extra pass and risks the partial FLUX-on-FLUX freeze. Fabio's call.
+- 2026-10-26 ROUND 56, REAR-LEFT THROUGH PROFILE-LEFT, AND "FRONT FIRST" FOR THE RIGHT STOPS (session "Multi-Angle 35",
+  overnight go-ahead). research/r56.py, out/mq_blender56.json, sheet r56_rear_left_and_front_first.jpg, heads.py crops.
+  Same four frame-right inputs, FLUX.3 Turbo + room doll + the Flow's words. 16 edits.
+  L = round 55's direct pr_l result -> tq_bl: 2/4 - the two anime land rear-left; both photos stay in PROFILE left.
+  R = round 54/53's FLUX.3-made front -> tq_fr / pr_r / tq_br: side 12/12, the view 10/12 (anime pr_r tq_fr ->
+  profile, anime tq_fr tq_fr -> rear-ish: one stop too far). The anime front that froze on every LEFT stop in round 55
+  turned on every RIGHT stop - the FLUX-on-FLUX freeze is per picture AND direction, not total.
+  "Front first" so far: right stops 12/12 side; tq_fl 3/4, pr_l 3/4; tq_bl 0/4 (round 55 T). Rear-left from a
+  frame-right start fails every way tried on photos (direct, via front, via profile-left): 4/16 overall, all anime.

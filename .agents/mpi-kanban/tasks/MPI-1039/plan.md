@@ -569,6 +569,24 @@ doll's grey room into photos (10/12). The app had no eye-level front doll - rend
 Turn = Front must become a real pass. NEXT: round 53 (plain eye-level dolls for Qwen, 3/4 wording, a non-FLUX input on
 FLUX.3) - GPU, ask Fabio. Then the Flow: every touched slider is a pass from ANY input view (no 'front = nothing').
 
+ROUND 53 (2026-10-26, session "Multi-Angle 35", validation.md): 44 edits. The 8 PLAIN eye-level dolls now sit in
+refs/plain/ (uncommitted, with room/front.png). Qwen copies whatever is behind the doll: plain white keeps photo place
+9/12 but whitewashes anime streets (anime place 6/12). Stronger 3/4 words land 3/4 on anime 3/4, but on photos Qwen
+returns the doll itself 3/4. FLUX.3 TURNS a non-FLUX input (front, tq_br clean, tq_fl overshoots to profile, studio
+kept) - round 52's freeze is FLUX-on-FLUX, so FLUX.3 may stay the turn model. NEXT (GPU, ask Fabio): widen the
+non-FLUX FLUX.3 test (more inputs/views + the 3/4 words) before picking the turn model.
+
+ROUND 54-55 (2026-10-26, session "Multi-Angle 35", validation.md): FLUX.3 turns NON-FLUX pictures (front 5/5, pr_r,
+tq_br, profile all land, place kept) - round 52's freeze is FLUX-on-FLUX, so FLUX.3 can stay the turn model. Both
+models reach the LEFT stops from a frame-right start (a mid-night "they never cross sides" read was a thumbnail misread,
+reverted - grade sides on research/heads.py crops). Real problems: (1) from a turned start a 3/4 lands as PROFILE;
+through the front (two passes) it lands a real 3/4, but a FLUX.3-made front can freeze on the second pass; (2) the
+rear-left stop from a frame-right start lands rear-RIGHT (2/8). Stronger 3/4 words: anime OK, photos undershoot.
+ROUND 56: "front first" lands the right stops 12/12 (side); rear-left from a frame-right start still fails on photos
+every way tried (direct, via front, via profile-left: 4/16, all anime). NEXT (Fabio): decide the Flow route - (a)
+always run Turn = Front first, then the benched front -> stop pass (no view detection; +1 pass ~32 s; 3/4 lands real),
+or (b) one direct pass (3/4 overshoots to profile from a turned start). Then a rear-left fix round (words or doll).
+
 ## Remaining Work
 - [ ] Stage 1 (face, 9 runs) + Fabio's eye test
 - [ ] Stage 2 full body, stage 3 rooms
