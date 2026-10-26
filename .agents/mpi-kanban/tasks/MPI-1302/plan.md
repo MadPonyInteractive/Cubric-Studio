@@ -2,9 +2,11 @@
 
 ## Current State
 
-- **Where it stands (2026-10-26):** Phases 1a-1d, D1 and D3 done and pushed. Next: **D10** piece
-  by piece (GIF card tail first: it is D3's twin and can build on `services/outputCard.js`), one
-  commit each, then P2/P14/P7/P12/P13.
+- **Where it stands (2026-10-27):** Phases 1a-1d, D1, D3 and D10's GIF card tail done and pushed.
+  Next: the rest of **D10** piece by piece (scratch sweeps, ffmpeg plumbing, remote proxy, EXIF
+  swap, lazy imports, `_fail`), one commit each, then P2/P14/P7/P12/P13. GIF routes have their
+  own snapshot script (`d10snap.cjs`, scratchpad): `/gif/preview` must run before an update
+  (`/gif/entry` update sweeps unreferenced frames).
 - Backend route refactors are proven with a throwaway script that mounts the routers on a temp
   project, drives each route on real ffmpeg output and dumps sidecar + response (D3's is
   `d3snap.cjs` in the session scratchpad): normalise ids/dates/mtime busts, diff key-order-blind. `npm run lint` now ends with the
@@ -48,6 +50,8 @@
 - [x] D3: `services/outputCard.js` — `outputSidecar`, `writeVideoCard` (5 video routes),
   `writeImageCard` (sheet + 4 projects.js still routes), `writeImageRenditions` moved there.
   12-case route snapshot identical bar the sheet's new `flowId`/`flowInputs: null`.
+- [x] D10 GIF: `writeGifCard`/`writeGifThumb` (outputCard.js), `gifEntryFrom` (gifFrames.js);
+  gif.js, gifMake, gifMaker, gifCutout, gifTransform. 9-case route snapshot identical.
 
 ## Remaining Work
 
@@ -126,6 +130,10 @@ touches the same code.
 - D3: the audit's "~15 routes" are 10 (5 video, 5 still); the GIF card routes are D10's. Noticed,
   not changed: `/project/crop-media` writes no gallery renditions (every other still route does),
   so a big crop decodes full-res in the grid; `writeImageCard({ renditions: false })` keeps it.
+- D10 GIF: the frame-hash 400 checks stay in the routes (a 400 before any work; `buildGif`'s own
+  check would be a 500). Two small fixes fell out: a failed GIF thumb now leaves `thumbPath`
+  unset instead of naming a missing file (MPI-627), and `/gif/crop`+`/gif/resize` now remove a
+  half-built `.gif` when the build throws (their outputPath was only known after success).
 
 - H3 dropped: `build:portable:*` point at `D:\tmp` on purpose (Fabio's PC, C: short on space;
   CI passes its own `--stage-dir`).

@@ -97,6 +97,12 @@
     "routes/gifToVideo.js",
     "routes/imageSheet.js",
     "routes/projects.js",
-    "docs/gallery.md"
+    "docs/gallery.md",
+    "services/gifFrames.js",
+    "routes/gif.js",
+    "routes/gifMake.js",
+    "routes/gifMaker.js",
+    "routes/gifCutout.js",
+    "routes/gifTransform.js"
   ]
 }
