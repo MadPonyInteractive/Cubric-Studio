@@ -88,7 +88,7 @@ VARIANT_SPECS = {
         # A SEPARATE DiT from fl2va's, ~21 GB of its own. Pointing this at the fl2va
         # transformer does not error — it produces a perfectly good video that ignored
         # the references, which is the single most expensive way to be wrong here.
-        "transformer": "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+        "transformer": "Minimax-h3_Singularity_ref2va_v2_pruned_int8.safetensors",
         "media_titles": _REF_SLOT_TITLES,
         "branch_class": "MpiH3References",
         # ONE node takes all 18 slots and filters internally — branching per combination
