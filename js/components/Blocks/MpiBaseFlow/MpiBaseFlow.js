@@ -4088,7 +4088,7 @@ export const MpiBaseFlow = ComponentFactory.create({
                 Promise.resolve(started && started.finished).then((out) => {
                     const stopped = run.handle.cancelled || out?.cancelled;
                     const failed = !stopped && !!out && (!out.ok || !!out.error);
-                    _settle(run, !out ? '' : stopped ? 'Cancelled.' : failed ? 'Generation failed.' : 'Done — saved to your gallery.', { failed });
+                    _settle(run, stopped ? 'Cancelled.' : !out ? '' : failed ? 'Generation failed.' : 'Done — saved to your gallery.', { failed });
                     _setGauge(_runs.size || !out?.ok || stopped ? 0 : 100);
                     // Each job painted its own result; a run that did not finish drops the last latent.
                     if (stopped || failed) _dropLatentPreview();
