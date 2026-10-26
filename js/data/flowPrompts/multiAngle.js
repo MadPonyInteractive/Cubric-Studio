@@ -7,11 +7,13 @@
  * Flow's describer writes from the source (flow-spec.md § The prompt recipe): who the subject is, photo
  * or drawing, the place each new view reveals, and the details worn on one side.
  *
- * A stop is 1-3 passes, each its own edit: TURN (FLUX.3, the doll in its room as image 2), HEIGHT
+ * A stop is 1-3 passes, each its own edit: TURN or FRONT (FLUX.3, the doll in its room as image 2), HEIGHT
  * (front high on FLUX.3; front low and every height on a turned picture on Qwen, the doll on white as
  * image 2), ZOOM (words only, a rung of the framing ladder). Never the same model twice in a row
  * (round 44: two Qwen passes = gritty HDR texture; rounds 31-32 and 41: FLUX.3 returns its own result
- * unchanged).
+ * unchanged). So a turn is ONE pass from the picture as it is, whatever way it faces: front first (a front
+ * pass, then the turn on FLUX.3's own front) froze or kept the input's side on the 3/4 and profile stops,
+ * 4/16 against 12/16 direct; a Qwen front loses the place (rounds 57-61).
  *
  * Pure: no app imports, so the tests import it as it ships.
  */
@@ -283,6 +285,14 @@ function _turnWords(turn, p, facts) {
     return words + (details ? ` ${details}` : '') + KEEP_REF + _keep(p);
 }
 
+/** The front pass: the end view only, from whatever view the picture is (rounds 52-56, "B"; 5/5 front). */
+function _frontWords(p) {
+    return 'Shift the viewpoint of the first image around the subject to match the mannequin reference in the second '
+        + `image: ${p.subj} ${p.verb('is')} seen straight from the front at eye level, facing the camera: ${p.poss} whole `
+        + `face with both eyes, ${p.poss} chest and both shoulders face the view, and ${p.poss} feet point toward the `
+        + `camera. The place around ${p.obj} is seen from that angle.` + KEEP_REF + _keep(p);
+}
+
 function _heightWords(turn, height, p, facts) {
     const ground = facts.ground || 'the ground';
     if (turn === 'front' && height === 'hi') {
@@ -389,9 +399,10 @@ function _zoomWordsHeight(view, height, rung, p, facts) {
  * The describer's question: one `KEY: value` line per fact, read off the source before any pass. The
  * examples are the bench sources' own words, so a scene answers in the shape the bench proved.
  */
-export const MULTI_ANGLE_DESCRIBE_ASK = 'Look at this picture of one person. Answer in exactly these lines, each '
+export const MULTI_ANGLE_DESCRIBE_ASK = 'Look at this picture of a person. Answer in exactly these lines, each '
     + '"KEY: value", and nothing else. Plain English, lower case, no full stop at the end. The examples only show '
     + 'the form of an answer: name what is in THIS picture.\n'
+    + 'PEOPLE: how many people the picture shows, as a number, like 1 or 2\n'
     + 'SUBJECT: one word for the person: woman, man, girl, boy or person\n'
     + 'PRONOUN: she, he or they\n'
     + 'FRAMING: how much of the person shows: eye (one eye fills the picture), face, hs (head and shoulders), '
@@ -463,8 +474,11 @@ export function parseMultiAngleFacts(text) {
     }
     const pronoun = PRONOUNS[String(a.PRONOUN).toLowerCase()] ? String(a.PRONOUN).toLowerCase() : 'they';
     const style = String(a.STYLE || 'photo').toLowerCase();
+    // Unreadable = one: one person is what the bench proved, and only two or more skip the front pass.
+    const people = parseInt(a.PEOPLE, 10);
     const facts = {
-        subject: (_none(a.SUBJECT) || 'person').toLowerCase().split(/\s+/)[0],
+        people: people > 1 ? people : 1,
+        subject: (_none(a.SUBJECT) || 'person').toLowerCase().split(/[\s,;/]+/)[0],
         pronoun,
         feet: _none(a.FEET) || 'feet',
         frontLowLegs: _none(a.LEGS) || undefined,
@@ -550,7 +564,10 @@ export function zoomRungs(from, to) {
  * The passes one pick runs, each with its model, its image 2 and its prompt.
  * @param {Object} pick - { turn, height, zoom?: { from, to }, outfit?: { words, ref } }; `zoom.from` is the
  *   input's framing (a rung), read from the source.
- * @param {Object} facts - from the source: { subject, pronoun, drawing?: { noun, style, marks }, feet,
+ * Turn = Front with nothing else moved is the front pass for one person - the picture may face any way
+ * (front from any view 13/13, rounds 54, 57, 59). Two or more people get nothing for it: a front pass
+ * would turn everyone to the camera (Fabio 2026-10-26).
+ * @param {Object} facts - from the source: { people, subject, pronoun, drawing?: { noun, style, marks }, feet,
  *   frontLowLegs, ground, lowReveal, frontLowReveal, highReveal, turnReveal, details, near, far, farLow, farHigh,
  *   wears };
  *   a place slot is a sentence, or a map turn -> sentence.
@@ -567,6 +584,10 @@ export function multiAnglePlan(pick = {}, facts = {}) {
     const p = _subject(facts);
     const steps = [];
     const last = () => steps[steps.length - 1]?.model;
+    const alone = turn === 'front' && height === 'level' && !(pick.zoom?.to && pick.zoom.to !== pick.zoom.from);
+    if (alone && !(facts.people > 1)) {
+        steps.push({ kind: 'front', model: FLUX3, ref: 'room/front', prompt: _frontWords(p) });
+    }
     if (turn !== 'front') {
         steps.push({ kind: 'turn', model: FLUX3, ref: `room/${turn}`, prompt: _turnWords(turn, p, facts) });
     }

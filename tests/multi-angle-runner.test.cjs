@@ -114,19 +114,19 @@ test('a describer answer for each bench source rebuilds the bench prompts', asyn
 test('the 3/4 back R names each one-sided thing and where it lands; no other stop does', async () => {
     const { multiAnglePlan, parseMultiAngleFacts } = await builder();
     const { facts } = parseMultiAngleFacts(ANSWER.photo);
-    const back = multiAnglePlan({ turn: 'tq_br' }, facts).steps[0].prompt;
+    const turnOf = t => multiAnglePlan({ turn: t }, facts).steps.find(s => s.kind === 'turn').prompt;
+    const back = turnOf('tq_br');
     assert.ok(back.includes('Her right side is the one nearest the view: the brown bag at her right hip shows at '
         + 'frame-right beside her near right arm. The wristwatch stays on her LEFT wrist, on the far side, hidden '
         + 'behind her body.'), back);
-    assert.ok(!multiAnglePlan({ turn: 'tq_bl' }, facts).steps[0].prompt.includes('wristwatch'));
-});
+    assert.ok(!turnOf('tq_bl').includes('wristwatch'));});
 
 test('the same thing at both edges reads as no edge things: no turn shows and hides it', async () => {
     const { multiAnglePlan, parseMultiAngleFacts } = await builder();
     const { facts } = parseMultiAngleFacts(ANSWER.anime.replace(/^LEFT: .*$/m, 'LEFT: the wooden fence')
         .replace(/^RIGHT: .*$/m, 'RIGHT: The wooden fence'));
     assert.strictEqual(facts.turnReveal, undefined);
-    const turn = multiAnglePlan({ turn: 'tq_fl' }, facts).steps[0].prompt;
+    const turn = multiAnglePlan({ turn: 'tq_fl' }, facts).steps.find(s => s.kind === 'turn').prompt;
     assert.ok(!turn.includes('wooden fence'), turn);
 });
 
@@ -139,6 +139,18 @@ test('a sloppy answer still reads: bullets, quotes, a trailing stop, odd case, m
     assert.strictEqual(facts.drawing, undefined);
     assert.strictEqual(parseMultiAngleFacts('').framing, 'full');
     assert.strictEqual(parseMultiAngleFacts('').facts.pronoun, 'they');
+});
+
+test('the people count reads off the PEOPLE line; unreadable is one', async () => {
+    const { parseMultiAngleFacts } = await builder();
+    const people = t => parseMultiAngleFacts(t).facts.people;
+    assert.strictEqual(people(ANSWER.photo), 1);
+    assert.strictEqual(people(`PEOPLE: 2\n${ANSWER.photo}`), 2);
+    assert.strictEqual(people('PEOPLE: 3 people'), 3);
+    assert.strictEqual(people('PEOPLE: two'), 1);
+    assert.strictEqual(people('PEOPLE: 0'), 1);
+    // Two people answer the one-person lines for both (round 60): the first word, never its comma.
+    assert.strictEqual(parseMultiAngleFacts('PEOPLE: 2\nSUBJECT: girl, boy\nPRONOUN: she, he').facts.subject, 'girl');
 });
 
 /** A fake app: records every call; `fail` = { at: pass index, code } ends that pass. */
@@ -177,6 +189,17 @@ test('a turn + height pick chains two passes on one card', async () => {
     ]);
 });
 
+test('Turn = Front alone turns one person to the front; two people get nothing to do', async () => {
+    const { runMultiAngle } = await runner();
+    const deps = _deps();
+    const out = await (await runMultiAngle({ source: 'src.png', pick: { turn: 'front' } }, deps)).finished;
+    assert.strictEqual(out.total, 1);
+    assert.deepStrictEqual(deps.calls[2],
+        ['submit', 'front', 'flux3-klein', ['inputImage=src.png', 'inputImage2=padded:room/front:src.png'], 'new']);
+    const two = await runMultiAngle({ source: 'src.png', pick: { turn: 'front' } }, _deps({ answer: `PEOPLE: 2\n${ANSWER.photo}` }));
+    assert.strictEqual(two.code, 'NOTHING_TO_DO');
+});
+
 test('a zoom-out from the read framing sends the outfit picture as image 2 of the first pass only', async () => {
     const { runMultiAngle } = await runner();
     const deps = _deps({ answer: ANSWER.photo.replace('FRAMING: full', 'FRAMING: hs') });
@@ -206,7 +229,8 @@ test('nothing starts for Loop, no picture, an unbenched pick or no move', async 
     assert.strictEqual(await code({ source: 's', pick: { turn: 'back' } }, _deps({ loop: true })), 'LOOP_ARMED');
     assert.strictEqual(await code({ pick: { turn: 'back' } }), 'NO_SOURCE');
     assert.strictEqual(await code({ source: 's', pick: { turn: 'tq_bl', zoom: 'hs' } }), 'NOT_BENCHED');
-    assert.strictEqual(await code({ source: 's', pick: { turn: 'front' } }), 'NOTHING_TO_DO');
+    assert.strictEqual(await code({ source: 's', pick: { turn: 'front' } },
+        _deps({ answer: `PEOPLE: 2\n${ANSWER.photo}` })), 'NOTHING_TO_DO');
     const deps = _deps();
     deps.describe = async () => ({ ok: false, message: 'no describer set up' });
     assert.strictEqual(await code({ source: 's', pick: { turn: 'back' } }, deps), 'DESCRIBE_FAILED');

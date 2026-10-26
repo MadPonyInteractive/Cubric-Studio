@@ -120,10 +120,22 @@ test('every accepted bench cell rebuilds its prompt word for word', async () => 
     assert.ok(checked >= 55, `only ${checked} cells checked`);
 });
 
+test('the front pass rebuilds the round 52-56 front words', async () => {
+    const { multiAnglePlan } = await builder();
+    const [front] = multiAnglePlan({ turn: 'front' }, FACTS.photo).steps;
+    assert.strictEqual(front.prompt, 'Shift the viewpoint of the first image around the subject to match the mannequin '
+        + 'reference in the second image: she is seen straight from the front at eye level, facing the camera: her '
+        + 'whole face with both eyes, her chest and both shoulders face the view, and her feet point toward the camera. '
+        + 'The place around her is seen from that angle. Take only the viewing angle from the mannequin reference. The '
+        + 'subject is still the real person from the first image, with their own head and hair, hands, clothes and '
+        + 'shoes; keep their identity, pose, the place, the light and the image style of the first image unchanged.');
+});
+
 test('each pick runs the proven passes on the proven models', async () => {
     const { multiAnglePlan, FLUX3, QWEN } = await builder();
     const run = (pick) => multiAnglePlan(pick, FACTS.photo).steps.map(s => `${s.kind}:${s.model}:${s.ref}`);
-    assert.deepStrictEqual(run({ turn: 'front' }), []);
+    const FRONT = `front:${FLUX3}:room/front`;
+    assert.deepStrictEqual(run({ turn: 'front' }), [FRONT]);
     assert.deepStrictEqual(run({ turn: 'front', height: 'hi' }), [`height:${FLUX3}:room/front_hi`]);
     assert.deepStrictEqual(run({ turn: 'front', height: 'lo' }), [`height:${QWEN}:plain/front_lo`]);
     assert.deepStrictEqual(run({ turn: 'pr_l' }), [`turn:${FLUX3}:room/pr_l`]);
@@ -133,8 +145,19 @@ test('each pick runs the proven passes on the proven models', async () => {
         [`zoom:${FLUX3}:null`, `zoom:${QWEN}:null`]);
     assert.deepStrictEqual(run({ turn: 'front', zoom: { from: 'face', to: 'far' } }),
         [`zoom:${FLUX3}:null`, `zoom:${QWEN}:null`]);
+    assert.deepStrictEqual(run({ turn: 'front', zoom: { from: 'full', to: 'full' } }), [FRONT], 'no zoom move');
     assert.deepStrictEqual(run({ turn: 'tq_br', zoom: { from: 'full', to: 'hs' } }),
         [`turn:${FLUX3}:room/tq_br`, `zoom:${QWEN}:null`]);
+});
+
+test('two or more people get no front pass; turns are one pass as for one person', async () => {
+    const { multiAnglePlan, FLUX3, QWEN } = await builder();
+    const run = (pick) => multiAnglePlan(pick, { ...FACTS.photo, people: 2 }).steps.map(s => `${s.kind}:${s.model}:${s.ref}`);
+    assert.deepStrictEqual(run({ turn: 'front' }), []);
+    assert.deepStrictEqual(run({ turn: 'pr_l' }), [`turn:${FLUX3}:room/pr_l`]);
+    assert.deepStrictEqual(run({ turn: 'tq_br', height: 'hi' }),
+        [`turn:${FLUX3}:room/tq_br`, `height:${QWEN}:plain/tq_br_hi`]);
+    assert.strictEqual(multiAnglePlan({ turn: 'pr_l' }, { ...FACTS.photo, people: 3 }).steps.length, 1);
 });
 
 test('a zoom-out from a close-up makes up the outfit from the user\'s words or second picture', async () => {

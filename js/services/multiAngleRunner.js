@@ -3,7 +3,7 @@
  *
  * The source is described once (`MULTI_ANGLE_DESCRIBE_ASK`); the answer becomes the prompt
  * builder's facts and the source's framing, and `multiAnglePlan` turns the pick into 1-3 passes
- * (turn, height, zoom). Each pass is its own job and its own queue row, and takes the previous
+ * (turn or front, height, zoom). Each pass is its own job and its own queue row, and takes the previous
  * pass's result as its first image: pass 1 lands a new card, every later pass lands in that card's
  * history, so the card shows the final view and keeps each step under it. A pass that carries a doll
  * ref gets it padded to its own input's size first (round 20: the ref matches image 1's frame).

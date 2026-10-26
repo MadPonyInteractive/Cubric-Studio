@@ -1138,3 +1138,62 @@ user's ratio later; a crop changes the zoom, so the gizmo may need per-ratio-fam
   turned on every RIGHT stop - the FLUX-on-FLUX freeze is per picture AND direction, not total.
   "Front first" so far: right stops 12/12 side; tq_fl 3/4, pr_l 3/4; tq_bl 0/4 (round 55 T). Rear-left from a
   frame-right start fails every way tried on photos (direct, via front, via profile-left): 4/16 overall, all anime.
+- 2026-10-26 ROUND 57, FRONT FIRST AS BUILT IN THE FLOW (session "Multi-Angle 36", Fabio's overnight go-ahead; own app
+  :60716, profile cubric-agent-ma35). multiAnglePlan now emits front pass (room/front) + the benched turn pass for one
+  person. research/r57.py + r57_plan.mjs, out/mq_blender57{,_describe,_plans}.json, sheets r57_front_first.jpg,
+  r57_heads_{0..3}.jpg (heads.py), r57_anime_zoom.jpg (full-size). Round 55's four frame-right inputs, the app's own
+  describer with the NEW ask (PEOPLE line), every turn stop, FLUX.3 Turbo seed 111; the front pass runs once per input
+  (identical for every stop). 4 describes + 32 edits ~33 s.
+  DESCRIBE: PEOPLE: 1 on 4/4. Two answers also wrote a stray "KEY: 1" / "KEY: people" first line (the ask's own
+  '"KEY: value"' echoed) - harmless, the parser ignores unknown keys.
+  FRONT 4/4 clean, place kept. PHOTOS (photo pr_r, photo tq_fr): 16/16 every stop on its view and side - tq_fl a real
+  3/4 (round 55 D overshot to profile), tq_bl rear-LEFT 2/2 (round 55 T 0/2 on photos), tq_fr 3/4, pr_l/pr_r profile,
+  tq_br, back. ANIME (street scenes), on heads.py crops (r57_anime_heads.jpg): front, pr_r, tq_bl, tq_br, back 10/10
+  (rear-LEFT 2/2); the FRONT-LEFT stops land on the input's RIGHT side or freeze - anime pr_r: tq_fl -> profile right,
+  pr_l -> profile right; anime tq_fr: tq_fl = the front unchanged, pr_l -> 3/4 front-right (0/4); tq_fr overshoots
+  to near-rear right 0/2. (A first read off a 300 px zoom sheet called the anime tq_bl "rear-right" - wrong, the crops
+  show the cheek at frame-left. Crops only.)
+  Read: front first fixes the photos and the rear-left stop everywhere (round 55-56: 4/16), and fails the anime
+  front-left stops, where round 55's direct pass reached the left side (tq_fl 4/4 side, pr_l 4/4). Guess, unproven:
+  the front pass keeps the street as the original camera saw it (from her right), so the turn keeps her on that side.
+  One seed -> round 59 = seeds 222/333, front first vs direct, before any revert.
+- 2026-10-26 ROUND 58, REAR-LEFT CANDIDATES FROM ROUND 57'S FRONTS (session "Multi-Angle 36"). research/r58.py +
+  r58_prompts.mjs, out/mq_blender58.json, sheets r58_rear_left.jpg + r58_heads.jpg. 8 edits. W = stronger tq_bl words
+  (the camera's move named, near/far parts named); M = the front flipped, the Flow's tq_br words from the mirrored
+  describe text, flipped back. heads.py: round 57's own tq_bl 4/4 rear-left, W 4/4, M 4/4 (M more side-on, nearer
+  profile-left from behind). Read: front first already lands rear-left; W and M buy nothing. The rear-left item is
+  closed by front first - no wording change.
+- 2026-10-26 ROUND 59, SEED SPREAD: FRONT FIRST (FF) vs ONE DIRECT PASS (D) (session "Multi-Angle 36"). research/r59.py,
+  out/mq_blender59.json, sheets r59_seed_spread.jpg + r59_heads_all_{a,b,c}.jpg (heads.py). Seeds 222/333, stops
+  tq_fl/tq_fr/pr_l/tq_bl; anime inputs FF and D, photos FF at 222. 46 edits.
+  FF: the second FLUX.3 pass FREEZES on FLUX.3's own front again - anime pr_r 222 tq_fl + pr_l = the front unchanged;
+  photo pr_r 222 tq_fl/pr_l barely turned; photo tq_fr 222 tq_fl, tq_fr, pr_l all = the front. Where it turns, anime
+  front-left stops land on the input's RIGHT side (anime pr_r 333, anime tq_fr 222/333). tq_bl: photos 2/2 rear-left.
+  D: anime pr_r left stops on the left side 4/4 both seeds (tq_fl overshoots toward rear); anime tq_fr stays on the right
+  (the input's side) on tq_fl/pr_l both seeds; tq_fr 4/4.
+  TALLY front-left stops (tq_fl + pr_l) on the right side, rounds 55/57/59: FF 4/16 (the seed-111 photos), D 12/16.
+  Read: front first with both passes on FLUX.3 is a REGRESSION on the 3/4 and profile stops - round 57's 16/16 photos
+  were one lucky seed. It wins only rear-left. The freeze is the known FLUX-on-FLUX one (rounds 31-32, 41, 52).
+  NEXT: round 61 = the front pass on QWEN, then the FLUX.3 turn (never the same model twice; round 54: FLUX.3 turns
+  Qwen-made pictures). If that fails too, revert the Flow to one direct pass.
+- 2026-10-26 ROUND 60, TWO PEOPLE (session "Multi-Angle 36"). research/r60.py, out/mq_blender60*.json, sheet
+  r60_two_people.jpg. Two Qwen t2i sources (photo: woman + man on a grey backdrop; anime: girl + boy in a street), both
+  facing the camera; the app's describer + the Flow's plan; FLUX.3 Turbo seed 111, pr_l / tq_fl / tq_br. 2 t2i + 6 edits.
+  DESCRIBE: PEOPLE: 2 on 2/2, and the plan sends ONE turn pass, no front pass - the branch works. The answer gives the
+  one-person lines for both ("SUBJECT: girl, boy", "PRONOUN: she, he"): the parser kept "girl," with its comma - FIXED
+  (first word only, test added); the pronoun falls back to they. These runs still carry "girl,".
+  PICTURES: anime pr_l both in profile facing frame-left (white washes half the street); photo pr_l + tq_fl the two turn
+  to FACE EACH OTHER; tq_br (photo + anime) and anime tq_fl DROP the second person (3/6). The turn words name one
+  "subject": two-person words that keep everyone ("both people ... each seen from ...") are their own bench job.
+- 2026-10-26 ROUND 61, THE FRONT PASS ON QWEN, THEN THE FLUX.3 TURN (session "Multi-Angle 36"). research/r61.py,
+  out/mq_blender61.json, sheets r61_heads_{111,222}.jpg. QWEN29 edit + room/front doll + the same front words, then the
+  Flow's FLUX.3 turn; seeds 111 + 222 (333 stopped - the answer was already clear). ~45 edits.
+  Seed 111: Qwen's front covers both photo backdrops in a grainy grey-noise texture and leaves 2 of 4 inputs UNTURNED
+  (anime pr_r and photo tq_fr stay in profile). Seed 222: all four turn to the front, but the PLACE is lost - grey
+  backdrops, the anime street gone; the FLUX.3 turn then invents a new, semi-real street. Rejected.
+- 2026-10-26 DECISION (Multi-Angle 36, Fabio's standing rule "a regression = revert, try the other option"): front first
+  is REVERTED for the turn stops - a turn is ONE direct pass again, for any number of people (front-left stops 12/16
+  direct vs 4/16 front first; a Qwen front loses the place). KEPT: Turn = Front with nothing else moved = the front pass
+  for ONE person (FLUX.3 front from any view 13/13 - rounds 54, 57, 59; before, that pick did nothing); with two or more
+  people it still does nothing. The PEOPLE line stays in the describe ask. Rear-left from a frame-right start stays
+  weak on the direct pass (round 55 D 2/4) - the one stop front first did fix.
