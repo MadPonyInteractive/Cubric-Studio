@@ -26,8 +26,9 @@ The fill hides on Done and starts over from empty when the next queued item take
 - `npm test`: 3684 pass, 0 fail (first cut).
 - Fabio: the fill "looks good, exactly what I asked for" (harness look, 2026-10-26).
 
-## Not checked
+- Fabio, after a restart, one minimised run: "the footer follows the status bar" (2026-10-26).
 
-Real progress in a running app. The float window reloads its HTML each time it opens, but
-the feed lives in `main.js` + the renderer bridge, which load only at app start — every app
-Fabio had running started before the change. Needs his restart; then one minimised run.
+## Note for whoever touches this next
+
+The float window reloads its HTML each time it opens, but the feed lives in `main.js` + the
+renderer bridge, which load only at app start — test changes here on a freshly started app.
