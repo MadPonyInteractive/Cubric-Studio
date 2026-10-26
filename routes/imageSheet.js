@@ -34,11 +34,12 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs-extra');
 const path = require('path');
-const { diskPathOf, projectFileUrlBusted } = require('../services/projectFileUrl');
+const { diskPathOf } = require('../services/projectFileUrl');
 const { v4: uuidv4 } = require('uuid');
 const sharp = require('sharp');
 const logger = require('./logger');
-const { nextSequence, writeImageRenditions } = require('./projects');
+const { nextSequence } = require('./projects');
+const { writeImageCard } = require('../services/outputCard');
 const { isEligibleStillImage } = require('./gifMake');
 const {
     SHEET_SIZES, isValidTree, packSheet, sheetPixelSize, sheetGutter, placeSheet, frameRect, autoRatio, sheetBadge,
@@ -172,25 +173,9 @@ router.post('/combine-images', async (req, res) => {
         outputPath = path.join(mediaDir, finalName);
         await (ext === 'png' ? sheet.png() : sheet.jpeg({ quality: 95 })).toFile(outputPath);
 
-        const id = uuidv4();
-        const meta = {
-            id,
-            type: 'image',
-            filePath: projectFileUrlBusted(outputPath),
-            operation: 'combine-images',
-            displayName: finalName.replace(/\.[^.]+$/, ''),
-            prompt: '',
-            negativePrompt: '',
-            seed: -1,
-            modelId: null,
-            createdAt: new Date().toISOString(),
-            name: null,
-            uploaded: false,
-            pixelDimensions: { w: width, h: height },
-            generationMs: null,
-        };
-        await writeImageRenditions(outputPath, metaDir, id, meta, width);
-        await fs.writeJson(path.join(metaDir, `${id}.json`), meta, { spaces: 2 });
+        const meta = await writeImageCard({
+            outputPath, metaDir, id: uuidv4(), operation: 'combine-images', width, height,
+        });
         res.json({ success: true, item: { ...meta } });
     } catch (err) {
         logger.error('project', 'combine-images failed', err);

@@ -42,6 +42,7 @@ const { getComfyPath, getEngineRoot } = require('./platformEngine');
 const { projectFileUrl, projectFileUrlBusted, projectFilePath, diskPathOf } = require('../services/projectFileUrl');
 const { probeVideo, probeAudio } = require('../services/ffprobeVideo');
 const { extractImageThumb, extractVideoThumb, extractVideoProxy, extractAudioWaveform, extractVideoWaveform, writeVideoDerivatives, imageThumbPath, videoProxyPath, IMAGE_RENDITION_PX, VIDEO_PROXY_HEIGHT } = require('../services/ffmpegThumb');
+const { writeImageRenditions, writeImageCard } = require('../services/outputCard');
 const { ffmpegPath, ffprobePath, quote } = require('../services/ffmpegBinary');
 const { muxAudioIntoVideo, mixAudioFiles } = require('../services/ffmpegMux');
 const { extractFramesFromGif, copyGifFrames, holdFrames, sweepGifFrames } = require('../services/gifFrames');
@@ -120,29 +121,6 @@ function removeItemThumbs(metaDir, id) {
         try { fs.removeSync(path.join(metaDir, f)); }
         catch (e) { logger.warn('project', 'thumb remove failed', e.message); }
     }
-}
-
-/**
- * Write an image's gallery renditions and stamp the sidecar (MPI-319 + MPI-633).
- *
- * Five routes had grown the same three lines around `extractImageThumb`; the second
- * rendition would have made that five copies of six. `sourceWidth` is the clamp the
- * ladder needs: a "1280" rendition of an image that is already 1280 or narrower is
- * the ORIGINAL, so it is never written and the card mounts `filePath` for that tier.
- * Unknown width (0/undefined) writes it — ffmpeg's `min(w,iw)` can only ever
- * downscale, so the worst case is a same-size WebP, never an upscaled derivative.
- *
- * Uses the path each call RETURNS, never the one it was passed (MPI-627).
- */
-async function writeImageRenditions(inputPath, metaDir, id, metaContent, sourceWidth) {
-    const base = path.join(metaDir, `${id}.thumb.jpg`);
-    const small = await extractImageThumb(inputPath, base);
-    if (small) metaContent.thumbPath = `/project-file?path=${encodeURIComponent(small)}`;
-    if (!(sourceWidth > 0) || sourceWidth > IMAGE_RENDITION_PX.large) {
-        const large = await extractImageThumb(inputPath, base, { width: IMAGE_RENDITION_PX.large });
-        if (large) metaContent.thumbPathLg = `/project-file?path=${encodeURIComponent(large)}`;
-    }
-    return metaContent;
 }
 
 /**
@@ -3041,27 +3019,12 @@ router.post('/project/crop-media', async (req, res) => {
         const written = await cropExtended(inputPath, filePath, { x, y, w, h, fill, outW, outH });
 
         // Write UUID-keyed sidecar to .meta/<uuid>.json (single source of truth)
-        const metaContent = {
-            id,
-            type: 'image',
-            filePath: projectFileUrlBusted(filePath),
-            operation: 'crop',
-            displayName: filename.replace(/\.[^.]+$/, ''),
-            prompt: '',
-            negativePrompt: '',
-            seed: -1,
-            modelId: null,
-            createdAt: new Date().toISOString(),
-            name: null,
-            uploaded: false,
-            flowId: null,   // Flow provenance parity (MPI-256) — crops are never Flow gens
-            flowInputs: null,
-            pixelDimensions: { w: written.width, h: written.height },
-            generationMs: null,
-            cropRect: { x, y, w, h },
-            sourceFile: inputPath,
-        };
-        await fs.writeJson(path.join(metaDir, `${id}.json`), metaContent, { spaces: 2 });
+        const metaContent = await writeImageCard({
+            outputPath: filePath, metaDir, id, operation: 'crop',
+            width: written.width, height: written.height,
+            fields: { cropRect: { x, y, w, h }, sourceFile: inputPath },
+            renditions: false,
+        });
 
         res.json({
             success: true,
@@ -3141,31 +3104,12 @@ router.post('/project/composite-media', async (req, res) => {
             fillHoles,
         });
 
-        const metaContent = {
-            id,
-            type: 'image',
-            filePath: projectFileUrlBusted(filePath),
-            operation: 'composite',
-            displayName: filename.replace(/\.[^.]+$/, ''),
-            prompt: '',
-            negativePrompt: '',
-            seed: -1,
-            modelId: null,
-            createdAt: new Date().toISOString(),
-            name: null,
-            uploaded: false,
-            flowId: null,   // Flow provenance parity (MPI-256) — composites are never Flow gens
-            flowInputs: null,
-            pixelDimensions: { w: width, h: height },
-            generationMs: null,
-            sourceFile: baseAbs,
-        };
-
         // Gallery renditions (MPI-319) — crop-media predates them, but a composite
         // of a 4K upscale is exactly the card that made full-res decode the scroll cost.
-        await writeImageRenditions(filePath, metaDir, id, metaContent, width);
-
-        await fs.writeJson(path.join(metaDir, `${id}.json`), metaContent, { spaces: 2 });
+        const metaContent = await writeImageCard({
+            outputPath: filePath, metaDir, id, operation: 'composite', width, height,
+            fields: { sourceFile: baseAbs },
+        });
 
         res.json({
             success: true,
@@ -3249,29 +3193,10 @@ router.post('/project/apply-paint', async (req, res) => {
             opacity: Number.isFinite(Number(opacity)) ? Number(opacity) : 1,
         });
 
-        const metaContent = {
-            id,
-            type: 'image',
-            filePath: projectFileUrlBusted(filePath),
-            operation: op,
-            displayName: filename.replace(/\.[^.]+$/, ''),
-            prompt: '',
-            negativePrompt: '',
-            seed: -1,
-            modelId: null,
-            createdAt: new Date().toISOString(),
-            name: null,
-            uploaded: false,
-            flowId: null,   // Flow provenance parity (MPI-256) — neither flatten is a Flow gen
-            flowInputs: null,
-            pixelDimensions: { w: width, h: height },
-            generationMs: null,
-            sourceFile: baseAbs,
-        };
-
-        await writeImageRenditions(filePath, metaDir, id, metaContent, width);
-
-        await fs.writeJson(path.join(metaDir, `${id}.json`), metaContent, { spaces: 2 });
+        const metaContent = await writeImageCard({
+            outputPath: filePath, metaDir, id, operation: op, width, height,
+            fields: { sourceFile: baseAbs },
+        });
 
         res.json({
             success: true,
@@ -3336,28 +3261,10 @@ router.post('/project/extract-media', async (req, res) => {
             basePath: baseAbs, maskBuffer, outPath: filePath, background: background || null,
         });
 
-        const metaContent = {
-            id,
-            type: 'image',
-            filePath: projectFileUrlBusted(filePath),
-            operation: 'extract',
-            displayName: filename.replace(/\.[^.]+$/, ''),
-            prompt: '',
-            negativePrompt: '',
-            seed: -1,
-            modelId: null,
-            createdAt: new Date().toISOString(),
-            name: null,
-            uploaded: false,
-            flowId: null,   // Flow provenance parity (MPI-256) — an extract is never a Flow gen
-            flowInputs: null,
-            pixelDimensions: { w: width, h: height },
-            generationMs: null,
-            sourceFile: baseAbs,
-        };
-
-        await writeImageRenditions(filePath, metaDir, id, metaContent, width);
-        await fs.writeJson(path.join(metaDir, `${id}.json`), metaContent, { spaces: 2 });
+        const metaContent = await writeImageCard({
+            outputPath: filePath, metaDir, id, operation: 'extract', width, height,
+            fields: { sourceFile: baseAbs },
+        });
 
         res.json({
             success: true,
@@ -3705,6 +3612,5 @@ module.exports.itemsInFlight = itemsInFlight;
 module.exports.resolveDisplayImage = resolveDisplayImage;
 module.exports.projectThumbFor = projectThumbFor;
 module.exports.cleanupRebuildableAssets = cleanupRebuildableAssets;
-module.exports.writeImageRenditions = writeImageRenditions;
 // MPI-1205: a test must not put real entries in the developer's Recycle Bin.
 module.exports._setTrashFnForTests = (fn) => { _trashFn = fn; };
