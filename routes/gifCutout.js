@@ -75,7 +75,6 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs-extra');
 const path = require('path');
-const { projectFileUrl, projectFileUrlBusted } = require('../services/projectFileUrl');
 const os = require('os');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
@@ -85,13 +84,12 @@ const logger = require('./logger');
 const {
     frameAbsPath,
     frameExists,
-    builtGifDimensions,
     holdFrames,
     writeFrame,
-    buildGif,
+    gifEntryFrom,
 } = require('../services/gifFrames');
 const { fillMaskHoles } = require('../services/imageComposite');
-const { extractImageThumb, imageThumbPath, IMAGE_RENDITION_PX } = require('../services/ffmpegThumb');
+const { writeGifCard } = require('../services/outputCard');
 const { ffmpegPath } = require('../services/ffmpegBinary');
 const { nextSequence } = require('./projects');
 
@@ -367,56 +365,21 @@ router.post('/gif-cutout/apply', async (req, res) => {
             newFrames.push({ hash, delay: Number(frames[i].delay) || 10 });
         }
 
-        const gifEntry = {
-            frames: newFrames,
-            loop: Number.isFinite(Number(loop)) ? Number(loop) : 0,
-            output: {
-                maxEdge: Number(output?.maxEdge) > 0 ? Number(output.maxEdge) : 1024,
-                colours: Number(output?.colours) > 0 ? Math.round(Number(output.colours)) : 256,
-                // A cut-out is transparent by definition (MPI-771, Decision 15). The
-                // source entry's output is usually opaque, which flattened every cut
-                // pixel onto black. Black matches the GIF output tool's default edge.
-                edgeColour: output?.edgeColour || '#000000',
-            },
-        };
+        // A cut-out is transparent by definition (MPI-771, Decision 15). The source
+        // entry's output is usually opaque, which flattened every cut pixel onto
+        // black. Black matches the GIF output tool's default edge.
+        const gifEntry = gifEntryFrom(newFrames, loop, output, { edgeColour: '#000000' });
 
         const finalName = await nextSequence(folderPath, mediaDir, 'gif', 'gif');
         outputPath = path.join(mediaDir, finalName);
-        await buildGif(gifEntry, mediaDir, outputPath);
-
-        const id = uuidv4();
-        const meta = {
-            id,
-            type: 'image',
-            filePath: projectFileUrlBusted(outputPath),
-            operation: 'gifCutout',
-            displayName: finalName.replace(/\.[^.]+$/, ''),
-            prompt: '',
-            negativePrompt: '',
-            seed: -1,
-            modelId: null,
-            createdAt: new Date().toISOString(),
-            name: null,
-            uploaded: false,
-            pixelDimensions: await builtGifDimensions(outputPath),
-            generationMs: null,
-            gif: gifEntry,
-            cutout: cutoutRecord(settings, adjust, invert),
-            sourceItemId: sourceItemId || null,
-            sourceGroupId: sourceGroupId || null,
-        };
-        await extractImageThumb(outputPath, path.join(metaDir, `${id}.thumb.jpg`), { width: IMAGE_RENDITION_PX.small });
-        meta.thumbPath = projectFileUrl(imageThumbPath(path.join(metaDir, `${id}.thumb.jpg`), { width: IMAGE_RENDITION_PX.small }));
-        await fs.writeJson(path.join(metaDir, `${id}.json`), meta, { spaces: 2 });
-
-        const item = { ...meta };
-        const group = {
-            id: uuidv4(),
-            type: 'image',
-            operation: 'gifCutout',
-            createdAt: new Date().toISOString(),
-            items: [item],
-        };
+        const { item, group } = await writeGifCard({
+            outputPath, mediaDir, metaDir, gifEntry, operation: 'gifCutout',
+            fields: {
+                cutout: cutoutRecord(settings, adjust, invert),
+                sourceItemId: sourceItemId || null,
+                sourceGroupId: sourceGroupId || null,
+            },
+        });
         res.json({ success: true, item, group });
     } catch (err) {
         logger.error('project', 'gif cutout apply failed', err);
