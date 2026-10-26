@@ -30,7 +30,7 @@ import { MpiPromptBox } from '../../Organisms/MpiPromptBox/MpiPromptBox.js';
 import { state } from '../../../state.js';
 import { Events } from '../../../events.js';
 import { openFlowFromReuse } from '../../../services/flowService.js';
-import { qs, gid } from '../../../utils/dom.js';
+import { qs, gid, on } from '../../../utils/dom.js';
 import { navigate, PAGE_LANDING, PAGE_GROUP_HISTORY, PAGE_SCENE } from '../../../router.js';
 import { extractFilenameFromPath, extractAbsPath, downloadMediaFiles, resolveMediaUrl } from '../../../utils/mediaActions.js';
 import { describeItem } from '../../../utils/describeAction.js';
@@ -258,15 +258,15 @@ export const MpiGalleryBlock = ComponentFactory.create({
         };
         const _onDragOver = (e) => { if (_isFileDrag(e)) e.preventDefault(); };
 
-        window.addEventListener('dragenter', _onDragEnter);
-        window.addEventListener('dragleave', _onDragLeave);
-        window.addEventListener('dragover',  _onDragOver);
+        on(window, 'dragenter', _onDragEnter);
+        on(window, 'dragleave', _onDragLeave);
+        on(window, 'dragover',  _onDragOver);
         // CAPTURE (MPI-532). Every drop overlay — this one, and the Flow Library's, which
         // can sit over the gallery — calls stopPropagation() so the file is handled once.
         // On the bubble phase this reset therefore never ran for a drop that landed ON an
         // overlay, `_dragCounter` stayed above zero, and the next drag left the overlay
         // stuck visible over the gallery with no way to dismiss it but leaving the project.
-        window.addEventListener('drop',      _onDrop, { capture: true });
+        on(window, 'drop',      _onDrop, { capture: true });
 
         // ── Navigate to group history ───────────────────────────────────────────
         // Audio-only groups are not click-through (like preview cards) — they are

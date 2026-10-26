@@ -32,7 +32,7 @@
  */
 
 import { ComponentFactory } from '../../factory.js';
-import { qs, ce } from '../../../utils/dom.js';
+import { qs, ce, on } from '../../../utils/dom.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { Events } from '../../../events.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
@@ -196,11 +196,11 @@ export const MpiHistoryList = ComponentFactory.create({
                 reuseWrap.style.display = 'none';
             }
 
-            card.addEventListener('mousedown', (e) => {
+            on(card, 'mousedown', (e) => {
                 if (e.shiftKey) e.preventDefault();
             });
 
-            card.addEventListener('click', (e) => {
+            on(card, 'click', (e) => {
                 if (e.shiftKey) {
                     // First shift-click without prior selection anchors at the
                     // currently-active entry, not at the stale _anchor (which
@@ -223,7 +223,7 @@ export const MpiHistoryList = ComponentFactory.create({
                 }
             });
 
-            card.addEventListener('contextmenu', async (e) => {
+            on(card, 'contextmenu', async (e) => {
                 e.preventDefault();
 
                 // Use existing selection if right-clicked card is part of it;

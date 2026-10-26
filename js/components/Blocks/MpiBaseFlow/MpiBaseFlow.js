@@ -1025,8 +1025,8 @@ export const MpiBaseFlow = ComponentFactory.create({
             // onDirty rebuilds the slide, which destroys this slide's listeners —
             // the picker portals to document.body so it survives that, and tears
             // itself down on hide rather than riding the slide's unsubs.
-            picker.el.addEventListener('pick', () => picker.el.destroy?.());
-            picker.el.addEventListener('cancel', () => picker.el.destroy?.());
+            on(picker.el, 'pick', () => picker.el.destroy?.());
+            on(picker.el, 'cancel', () => picker.el.destroy?.());
             picker.el.show();
         }
 

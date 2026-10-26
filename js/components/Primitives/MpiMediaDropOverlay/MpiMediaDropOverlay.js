@@ -17,6 +17,7 @@
 import { ComponentFactory } from '../../factory.js';
 import { Events } from '../../../events.js';
 import { renderIcon } from '../../../utils/icons.js';
+import { on } from '../../../utils/dom.js';
 
 export const MpiMediaDropOverlay = ComponentFactory.create({
     name: 'MpiMediaDropOverlay',
@@ -37,12 +38,12 @@ export const MpiMediaDropOverlay = ComponentFactory.create({
         el.show = () => el.classList.add('mpi-media-drop-overlay--visible');
         el.hide = () => el.classList.remove('mpi-media-drop-overlay--visible');
 
-        el.addEventListener('dragover', (e) => {
+        on(el, 'dragover', (e) => {
             e.preventDefault();
             if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
         });
 
-        el.addEventListener('drop', (e) => {
+        on(el, 'drop', (e) => {
             e.preventDefault();
             e.stopPropagation();
             el.hide();

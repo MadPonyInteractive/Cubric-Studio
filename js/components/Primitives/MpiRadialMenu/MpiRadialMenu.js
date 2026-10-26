@@ -213,7 +213,7 @@ export const MpiRadialMenu = ComponentFactory.create({
                     <span class="mpi-radial__item-label">${item.label}</span>
                 `;
 
-                btn.addEventListener('mouseenter', () => {
+                on(btn, 'mouseenter', () => {
                     el.dispatchEvent(new CustomEvent('mpiinfo', {
                         detail: item.label, bubbles: true
                     }));

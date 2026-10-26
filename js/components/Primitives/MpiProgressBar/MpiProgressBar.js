@@ -1,5 +1,5 @@
 import { ComponentFactory } from '../../factory.js';
-import { qs } from '../../../utils/dom.js';
+import { qs, on } from '../../../utils/dom.js';
 
 /**
  * MpiProgressBar — Interactive range input or static progress bar.
@@ -140,11 +140,11 @@ export const MpiProgressBar = ComponentFactory.create({
                 input.dispatchEvent(new Event('change'));
             };
 
-            el.addEventListener('wheel', handleWheel, { passive: false });
-            input.addEventListener('wheel', handleWheel, { passive: false });
+            on(el, 'wheel', handleWheel, { passive: false });
+            on(input, 'wheel', handleWheel, { passive: false });
         } else {
-            el.addEventListener('wheel', (e) => { e.preventDefault(); e.stopPropagation(); }, { passive: false });
-            input.addEventListener('wheel', (e) => { e.preventDefault(); e.stopPropagation(); }, { passive: false });
+            on(el, 'wheel', (e) => { e.preventDefault(); e.stopPropagation(); }, { passive: false });
+            on(input, 'wheel', (e) => { e.preventDefault(); e.stopPropagation(); }, { passive: false });
         }
     }
 });

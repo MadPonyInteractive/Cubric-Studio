@@ -592,7 +592,7 @@ async function _importView(view) {
             return { mount: (container, params) => blockFor(params?.groupId).mount(container, params) };
         }
         default:
-            console.warn(`[navigation] Unknown view: "${view}"`);
+            clientLogger.warn('navigation', `Unknown view: "${view}"`);
             return null;
     }
 }

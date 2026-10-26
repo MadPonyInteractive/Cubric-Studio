@@ -193,7 +193,7 @@ export const MpiCanvasViewer = ComponentFactory.create({
                 // layers were written at; the server fits it to a big photo (MPI-971).
                 return out.toDataURL('image/png');
             } catch (err) {
-                console.warn('[MpiCanvasViewer] composite build failed:', err);
+                clientLogger.warn('canvasViewer', 'composite build failed', err);
                 return null;
             }
         }
@@ -219,7 +219,7 @@ export const MpiCanvasViewer = ComponentFactory.create({
                 for (const img of imgs) ctx.drawImage(img, 0, 0, w, h);
                 return tmp.toDataURL('image/png');
             } catch (err) {
-                console.warn('[MpiCanvasViewer] merge manual+auto failed:', err);
+                clientLogger.warn('canvasViewer', 'merge manual+auto failed', err);
                 return manualUrl || null;
             }
         }
@@ -300,7 +300,7 @@ export const MpiCanvasViewer = ComponentFactory.create({
             try {
                 await canvas.loadImage(_resolveUrl(item.filePath));
             } catch (err) {
-                console.warn('[MpiCanvasViewer] Failed to load image into canvas:', err);
+                clientLogger.warn('canvasViewer', 'Failed to load image into canvas', err);
             }
         }
 
@@ -320,7 +320,7 @@ export const MpiCanvasViewer = ComponentFactory.create({
                 // After comparison is fully loaded, emit the final mode-changed event
                 emit('mode-changed', { mode: _currentMode });
             } catch (err) {
-                console.warn('[MpiCanvasViewer] Failed to load compare images:', err);
+                clientLogger.warn('canvasViewer', 'Failed to load compare images', err);
             } finally {
                 _loadingComparison = false;
             }
@@ -884,7 +884,7 @@ export const MpiCanvasViewer = ComponentFactory.create({
                 canvas.setSelectedAutoPicks(_autoMaskPicks);
                 _hasMask = true;
             } catch (err) {
-                console.warn('[MpiCanvasViewer] auto-pick restore failed:', err);
+                clientLogger.warn('canvasViewer', 'auto-pick restore failed', err);
                 _resetAutoPickStateWithToast();
             }
         }
@@ -1067,7 +1067,7 @@ export const MpiCanvasViewer = ComponentFactory.create({
                 emit('crop-applied', { item: newItem });
                 StatusBar.progress.complete('Crop saved!');
             } catch (err) {
-                console.error('[MpiCanvasViewer] Crop failed:', err);
+                clientLogger.error('canvasViewer', 'Crop failed', err);
                 StatusBar.progress.cancel();
             }
         }
@@ -1137,7 +1137,7 @@ export const MpiCanvasViewer = ComponentFactory.create({
             // the empty fresh canvas and delete the session-temp mask.
             if (!_previewInst && _currentItem && !sameEntry) {
                 try { await _persistLayers(_currentItem); }
-                catch (err) { console.warn('[MpiCanvasViewer] persist layers failed:', err); }
+                catch (err) { clientLogger.warn('canvasViewer', 'persist layers failed', err); }
                 await _persistCurrentAutoPicks();
             }
             // Only AFTER the outgoing entry persisted under its own card's key.
@@ -1158,7 +1158,7 @@ export const MpiCanvasViewer = ComponentFactory.create({
                         try {
                             await _previewInst.el.loadImage(_resolveUrl(item.filePath));
                         } catch (err) {
-                            console.warn('[MpiCanvasViewer] Failed to load image into preview:', err);
+                            clientLogger.warn('canvasViewer', 'Failed to load image into preview', err);
                         }
                     }
                     const composite = await _buildCompositeFromTemp(item);
@@ -2082,7 +2082,7 @@ export const MpiCanvasViewer = ComponentFactory.create({
 
                 if (_currentItem) {
                     try { await _persistLayers(_currentItem); }
-                    catch (err) { console.warn('[MpiCanvasViewer] persist on swapToPreview failed:', err); }
+                    catch (err) { clientLogger.warn('canvasViewer', 'persist on swapToPreview failed', err); }
                     await _persistCurrentAutoPicks();
                     if (!held) {
                         held = await _buildCompositeFromTemp(_currentItem);
@@ -2199,7 +2199,7 @@ export const MpiCanvasViewer = ComponentFactory.create({
             _showEntry({ filePath: _initialUrl }).then(async () => {
                 if (initialItem) {
                     try { await _restoreLayers(initialItem); }
-                    catch (err) { console.warn('[MpiCanvasViewer] initial restore failed:', err); }
+                    catch (err) { clientLogger.warn('canvasViewer', 'initial restore failed', err); }
                     try {
                         await _hydrateThumbsForItem(initialItem);
                         await _restoreAutoPickMasks();

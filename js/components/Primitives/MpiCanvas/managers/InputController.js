@@ -6,6 +6,7 @@
 import { CropManager } from './CropManager.js';
 import { ShapeManager } from './ShapeManager.js';
 import { Hotkeys } from '../../../../managers/hotkeyManager.js';
+import { off, on } from '../../../../utils/dom.js';
 
 /**
  * @typedef {Object} Managers
@@ -56,12 +57,12 @@ export class InputController {
     }
 
     destroy() {
-        this.container.removeEventListener('wheel', this._boundHandlers.wheel);
-        this.container.removeEventListener('mousedown', this._boundHandlers.mousedown);
-        this.container.removeEventListener('contextmenu', this._boundHandlers.contextmenu);
-        this.container.removeEventListener('dblclick', this._boundHandlers.dblclick);
-        window.removeEventListener('mousemove', this._boundHandlers.mousemove);
-        window.removeEventListener('mouseup', this._boundHandlers.mouseup);
+        off(this.container, 'wheel', this._boundHandlers.wheel);
+        off(this.container, 'mousedown', this._boundHandlers.mousedown);
+        off(this.container, 'contextmenu', this._boundHandlers.contextmenu);
+        off(this.container, 'dblclick', this._boundHandlers.dblclick);
+        off(window, 'mousemove', this._boundHandlers.mousemove);
+        off(window, 'mouseup', this._boundHandlers.mouseup);
         this._boundHandlers.keydownUnsub?.();
         this._boundHandlers.brushKeyUnsub?.();
         this._boundHandlers.eraserKeyUnsub?.();
@@ -169,7 +170,7 @@ export class InputController {
                 this.options.onViewDraw();
             }
         };
-        this.container.addEventListener('wheel', this._boundHandlers.wheel, { passive: false });
+        on(this.container, 'wheel', this._boundHandlers.wheel, { passive: false });
 
         // MouseDown: Pan, Mask, Points, Crop, or Slider
         this._boundHandlers.mousedown = (e) => {
@@ -263,7 +264,7 @@ export class InputController {
             this.updateCursor();
             this.options.onDraw();
         };
-        this.container.addEventListener('mousedown', this._boundHandlers.mousedown);
+        on(this.container, 'mousedown', this._boundHandlers.mousedown);
 
         // Right-click places a negative point, so the browser menu has to go —
         // but only while points mode owns the right button. stopPropagation is
@@ -274,7 +275,7 @@ export class InputController {
             e.preventDefault();
             e.stopPropagation();
         };
-        this.container.addEventListener('contextmenu', this._boundHandlers.contextmenu);
+        on(this.container, 'contextmenu', this._boundHandlers.contextmenu);
 
         // MouseMove: Global listener
         this._boundHandlers.mousemove = (e) => {
@@ -329,7 +330,7 @@ export class InputController {
             else if (viewOnly) this.options.onViewDraw();
             else this.options.onDraw();
         };
-        window.addEventListener('mousemove', this._boundHandlers.mousemove);
+        on(window, 'mousemove', this._boundHandlers.mousemove);
 
         // MouseUp: Global listener
         this._boundHandlers.mouseup = () => {
@@ -346,7 +347,7 @@ export class InputController {
             // catch up on the next mouse move.
             this.options.onDraw();
         };
-        window.addEventListener('mouseup', this._boundHandlers.mouseup);
+        on(window, 'mouseup', this._boundHandlers.mouseup);
 
         // KeyDown: Space and Hotkeys
         this._boundHandlers.keydownUnsub = Hotkeys.bind('canvas.pan.start', () => {
@@ -428,7 +429,7 @@ export class InputController {
                 this.options.onResetView();
             }
         };
-        this.container.addEventListener('dblclick', this._boundHandlers.dblclick);
+        on(this.container, 'dblclick', this._boundHandlers.dblclick);
     }
 
     /** Cursor in container px (CSS). Used by slider hit-test + brush indicator. */

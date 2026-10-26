@@ -994,7 +994,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 // when a click lands in the last few pixels, which is a seek to
                 // an end that arrives immediately. Leaving the card still resets.
                 on(audio, 'ended', () => _waveform?.el.setProgress(1));
-                audio.addEventListener('error', () => {
+                on(audio, 'error', () => {
                     cardEl.classList.add('mpi-group-card--missing');
                     emit('media-missing', { group: _faceOf(group) ?? group, itemId: selected?.id });
                 });
@@ -1166,8 +1166,8 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 if (_videoHoverBound) return;
                 _videoHoverBound = true;
                 cardEl._hoverPlay = _videoHoverPlay;
-                cardEl.addEventListener('mouseenter', _onCardEnter);
-                cardEl.addEventListener('mouseleave', _onCardLeave);
+                on(cardEl, 'mouseenter', _onCardEnter);
+                on(cardEl, 'mouseleave', _onCardLeave);
             }
 
             function _onCardEnter() {
@@ -1254,11 +1254,11 @@ export const MpiGalleryGrid = ComponentFactory.create({
                     img.className = 'mpi-group-card__thumb mpi-group-card__thumb--hover-video mpi-group-card__thumb--gif';
                     img.alt = '';
                     img.draggable = false;
-                    img.addEventListener('load', () => {
+                    on(img, 'load', () => {
                         cardEl.classList.remove('mpi-group-card--missing');
                         img.classList.add('mpi-group-card__thumb--hover-video-ready');
                     });
-                    img.addEventListener('error', () => {
+                    on(img, 'error', () => {
                         cardEl.classList.add('mpi-group-card--missing');
                         const s = _shownItem(group);
                         emit('media-missing', { group: _faceOf(group) ?? group, itemId: s?.id });
@@ -1275,7 +1275,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 // A hover plays the clip ONCE, then shows its first frame again (Fabio,
                 // MPI-1142): a play that misses its mouseleave can no longer loop forever.
                 v.loop = false;
-                v.addEventListener('ended', _rewind);
+                on(v, 'ended', _rewind);
                 v.playsInline = true;
                 // 'metadata', not 'auto' (MPI-1142): the first frame still paints and hover
                 // still plays, but a paused 'auto' card kept its load open ~15 s. Chromium
@@ -1283,12 +1283,12 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 // video cards queued every picture and mascot clip behind them.
                 v.preload = 'metadata';
                 v.draggable = false;
-                v.addEventListener('loadeddata', () => {
+                on(v, 'loadeddata', () => {
                     cardEl.classList.remove('mpi-group-card--missing');
                     try { v.currentTime = 0; } catch (_) {}
                     v.classList.add('mpi-group-card__thumb--hover-video-ready');
                 });
-                v.addEventListener('error', () => {
+                on(v, 'error', () => {
                     cardEl.classList.add('mpi-group-card--missing');
                     const s = _shownItem(group);
                     emit('media-missing', { group: _faceOf(group) ?? group, itemId: s?.id });
@@ -1303,7 +1303,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 // Re-checked when the data lands: a fast pointer has often left by then,
                 // and its mouseleave already ran, so nothing would stop this play (MPI-1142).
                 if (cardEl.matches(':hover') && !_isScrolling && !_overlayOpen) {
-                    v.addEventListener('loadeddata', () => {
+                    on(v, 'loadeddata', () => {
                         if (cardEl.matches(':hover') && !_isScrolling && !_overlayOpen) v.play().catch(() => {});
                     }, { once: true });
                 }
@@ -1357,21 +1357,21 @@ export const MpiGalleryGrid = ComponentFactory.create({
                     v.className = 'mpi-group-card__thumb mpi-group-card__thumb--video';
                     v.muted = true;
                     v.loop = false; // hover plays once (MPI-1142)
-                    v.addEventListener('ended', _rewind);
+                    on(v, 'ended', _rewind);
                     v.playsInline = true;
                     v.preload = 'metadata';
                     v.draggable = true;
-                    v.addEventListener('loadeddata', () => {
+                    on(v, 'loadeddata', () => {
                         cardEl.classList.remove('mpi-group-card--missing');
                         _requestStabilizingRender(v);
                     });
-                    v.addEventListener('error', () => {
+                    on(v, 'error', () => {
                         cardEl.classList.add('mpi-group-card--missing');
                         const s = _shownItem(group);
                         emit('media-missing', { group: _faceOf(group) ?? group, itemId: s?.id });
                     });
                     v.dataset.mpiDragBound = '1';
-                    v.addEventListener('dragstart', (e) => {
+                    on(v, 'dragstart', (e) => {
                         if (_tryNativeDragOut(e, group)) return;
                         e.dataTransfer.setData('application/mpi-media', _dragPayload(group));
                         _addDownloadUrl(e, _shownItem(group));
@@ -1528,7 +1528,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
 
                 if (!thumb.dataset.mpiDragBound) {
                     thumb.dataset.mpiDragBound = '1';
-                    thumb.addEventListener('dragstart', (e) => {
+                    on(thumb, 'dragstart', (e) => {
                         if (_tryNativeDragOut(e, group)) return;
                         e.dataTransfer.setData('application/mpi-media', _dragPayload(group));
                         _addDownloadUrl(e, _shownItem(group));
@@ -1581,7 +1581,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
             };
 
             // ── Click handling ───────────────────────────────────────────────
-            cardEl.addEventListener('click', (e) => {
+            on(cardEl, 'click', (e) => {
                 if (_generating) return;
                 if (favWrap.contains(e.target)) return;
                 if (notesWrap.contains(e.target)) return;
@@ -1670,7 +1670,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
             }
 
             // ── Right-click context menu ─────────────────────────────────────
-            cardEl.addEventListener('contextmenu', (e) => {
+            on(cardEl, 'contextmenu', (e) => {
                 e.preventDefault();
 
                 // Use existing selection if right-clicked card is part of it;

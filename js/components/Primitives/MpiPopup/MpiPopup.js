@@ -1,5 +1,6 @@
 import { ComponentFactory } from '../../factory.js';
 import { Events } from '../../../events.js';
+import { on } from '../../../utils/dom.js';
 
 /**
  * MpiPopup — Floating container primitive
@@ -145,11 +146,11 @@ export const MpiPopup = ComponentFactory.create({
         if (props.active) positionPopup();
 
         // Core interaction handling
-        el.addEventListener('mouseenter', (e) => emit('mouseenter', e));
-        el.addEventListener('mouseleave', (e) => emit('mouseleave', e));
+        on(el, 'mouseenter', (e) => emit('mouseenter', e));
+        on(el, 'mouseleave', (e) => emit('mouseleave', e));
 
         // Item click handling
-        el.addEventListener('click', (e) => {
+        on(el, 'click', (e) => {
             const item = e.target.closest('.mpi-popup__item');
             if (item) emit('select', { id: item.getAttribute('data-id'), el: item });
             emit('click', e);

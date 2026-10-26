@@ -1,5 +1,5 @@
 import { ComponentFactory } from '../../factory.js';
-import { ce } from '../../../utils/dom.js';
+import { ce, on } from '../../../utils/dom.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 
 /**
@@ -74,7 +74,7 @@ export const MpiProjectName = ComponentFactory.create({
             textContent: (props.backLabel || '').toUpperCase(),
         });
         backBtn.replaceChildren(backArrow, backLabelEl);
-        backBtn.addEventListener('click', () => emit('up', {}));
+        on(backBtn, 'click', () => emit('up', {}));
 
         // ── Text block ──────────────────────────────────────────────────────────
 
@@ -98,7 +98,7 @@ export const MpiProjectName = ComponentFactory.create({
             variant: 'ghost',
             extraClasses: 'mpi-project-name__segment mpi-project-name__segment--link',
         });
-        galleryEl.addEventListener('click', () => emit('gallery', {}));
+        on(galleryEl, 'click', () => emit('gallery', {}));
 
         const sepEl = ce('span', {
             className: 'mpi-project-name__separator',
@@ -144,14 +144,14 @@ export const MpiProjectName = ComponentFactory.create({
             // `agentMode.toggle` in `hotkeyRegistry.js:93` (Fabio, 2026-09-20).
             info: '(A) Talk to the agent about this project',
         });
-        agentBtn.addEventListener('click', () => emit('agent', {}));
+        on(agentBtn, 'click', () => emit('agent', {}));
 
         const flowsBtn = _mountButton({
             icon: 'layers', label: 'Flows', size: 'sm', variant: 'ghost',
             extraClasses: 'mpi-project-name__flows',
             info: 'Open the Flow Library',
         });
-        flowsBtn.addEventListener('click', () => emit('flows', {}));
+        on(flowsBtn, 'click', () => emit('flows', {}));
 
         // Gallery-only, gated by the shell via `setRecordVisible` (MPI-678). That gate
         // was load-bearing until MPI-723 moved the ItemGroup build out of
@@ -162,7 +162,7 @@ export const MpiProjectName = ComponentFactory.create({
             extraClasses: 'mpi-project-name__record',
             info: 'Record a clip from your microphone into this project',
         });
-        recordBtn.addEventListener('click', () => emit('record', {}));
+        on(recordBtn, 'click', () => emit('record', {}));
 
         centreGroup.append(agentBtn, flowsBtn, recordBtn);
 

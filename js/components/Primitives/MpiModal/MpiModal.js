@@ -2,6 +2,7 @@ import { ComponentFactory } from '../../factory.js';
 import { Overlays } from '../../../managers/overlayManager.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
 import { Events } from '../../../events.js';
+import { on } from '../../../utils/dom.js';
 
 /**
  * MpiModal — Blocking Modal Shell (Primitive)
@@ -57,7 +58,7 @@ export const MpiModal = ComponentFactory.create({
             _backdrop = document.createElement('div');
             _backdrop.className = 'mpi-modal-backdrop';
             if (props.backdropClose !== false) {
-                _backdrop.addEventListener('click', () => el.hide());
+                on(_backdrop, 'click', () => el.hide());
             }
             if (_zIndex !== null) _backdrop.style.zIndex = _zIndex - 1;
             document.body.appendChild(_backdrop);

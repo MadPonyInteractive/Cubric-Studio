@@ -8,6 +8,7 @@
  */
 
 import { Hotkeys } from '../managers/hotkeyManager.js';
+import { clientLogger } from '../services/clientLogger.js';
 
 /**
  * Triggers memory release and updates the monitor UI.
@@ -40,7 +41,7 @@ export async function triggerMemoryRelease(isDeep = false, monitorEl) {
       monitorEl.showStatus(isDeep ? 'Deep Clean ✓' : 'VRAM Released ✓');
     }
   } catch (err) {
-    console.error('[shell/memoryOps] Global unload failed:', err);
+    clientLogger.error('memory', 'Global unload failed', err);
     if (monitorEl?.showStatus) {
       monitorEl.showStatus('Unload Failed');
     }
