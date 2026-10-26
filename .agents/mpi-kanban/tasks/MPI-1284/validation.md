@@ -13,6 +13,8 @@
 
 - 2026-10-26 Singularity H3 Video Edit, 7 s, Swap the person + picture, keep room (flowVideoEdit_021 in "MPI-1036 Video Edit in-app", 576x1024, 158 frames at 24 fps, 1005 s): IN SYNC (Fabio by ear; whole-frame lag search vs the source resampled to 24 fps stays 0..+2 frames, the long +10 ramps are held poses). The 5 s fail is no longer in the project, not measured. FAULT: from ~6.2 s she turns her back while the source faces the camera, fists up = the V6o back-turn primer. Template 1 clause dropped (picture + no-picture), raw 6a6b49107, API regenerated, builder == API 107/107 nodes 0 diffs, inject-params-titles + user-flows + workflow-media-slots 64/64. NOT re-run yet (Fabio).
 
+- 2026-10-26 Re-run after f9f659076, the 5 s Singularity H3 Video Edit clip: PASSES Fabio's eye at 50% of the steps (motion settled in the live latents): she does NOT turn her back. Final file and its lag check still to come.
+
 ## Not yet seen
 
 - A real H3 Reference clip on Singularity. Needs an app restart to pick up the new dep list. Fabio's eye-test.
