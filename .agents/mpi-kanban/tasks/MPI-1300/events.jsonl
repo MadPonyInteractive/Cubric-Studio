@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1300", "at": "2026-10-26T14:49:51+00:00", "actor": "claude", "column": "todo", "title": "Phone companion: Cosmo chat, gallery, queue and live latents on the phone"}

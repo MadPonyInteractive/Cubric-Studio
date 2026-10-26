@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phone Companion Mockups</title>
+<style>
+@font-face { font-family: 'JetBrains Mono'; src: url('{{R}}assets/fonts/JetBrainsMono-Regular.woff2') format('woff2'); font-weight: 400; }
+@font-face { font-family: 'JetBrains Mono'; src: url('{{R}}assets/fonts/JetBrainsMono-Bold.woff2') format('woff2'); font-weight: 600 700; }
+@font-face { font-family: 'Russo One'; src: url('{{R}}assets/fonts/RussoOne-Regular.woff2') format('woff2'); }
+
+/* Tokens: copied verbatim from styles/01_base.css (Stage). */
+:root {
+  --surface-0: oklch(0.50 0.022 350);
+  --surface-1: oklch(0.46 0.022 350);
+  --surface-2: oklch(0.42 0.022 350);
+  --surface-3: oklch(0.55 0.024 350);
+  --surface-bar: oklch(0.34 0.022 350);
+  --surface-canvas: oklch(0.28 0.020 350);
+  --surface-viewer: oklch(0.20 0.020 350);
+  --ink-1: oklch(0.98 0.008 80);
+  --ink-2: oklch(0.85 0.012 80);
+  --ink-3: oklch(0.66 0.014 80);
+  --ink-4: oklch(0.50 0.018 80);
+  --line: oklch(0.72 0.018 350 / 0.16);
+  --line-soft: oklch(0.72 0.015 350 / 0.08);
+  --hub-accent: oklch(0.78 0.028 80);
+  --vision-accent: oklch(0.76 0.17 355);
+  --video-accent: oklch(0.78 0.15 48);
+  --accent-heat: var(--hub-accent);
+  --accent-heat-hi: oklch(from var(--accent-heat) calc(l + 0.02) calc(c + 0.03) h);
+  --accent-frost: oklch(0.82 0.13 220);
+  --accent-ok: oklch(0.78 0.13 150);
+  --accent-warn: oklch(0.78 0.14 60);
+  --accent-err: oklch(0.70 0.19 27);
+  --ink-on-accent: oklch(0.16 0.02 0);
+  --t-2xs: 10px; --t-xs: 11px; --t-sm: 13px; --t-md: 15px; --t-lg: 19px; --t-xl: 32px;
+  --s-1: 4px; --s-2: 8px; --s-3: 14px; --s-4: 22px; --s-5: 32px; --s-6: 48px;
+  --r-2: 4px; --r-3: 12px; --r-pill: 999px;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --t-fast: 200ms; --t-base: 280ms;
+  --font-wordmark: 'Russo One', 'JetBrains Mono', sans-serif;
+  --tap: 44px;
+  /* z scale */
+  --z-bar: 10; --z-sheet-scrim: 20; --z-sheet: 30;
+}
+[data-accent="vision"] { --accent-heat: var(--vision-accent); --accent-heat-hi: oklch(from var(--vision-accent) calc(l + 0.02) calc(c + 0.03) h); }
+[data-accent="video"]  { --accent-heat: var(--video-accent);  --accent-heat-hi: oklch(from var(--video-accent) calc(l + 0.02) calc(c + 0.03) h); }
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--surface-canvas);
+  color: var(--ink-1);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: var(--t-sm);
+  line-height: 1.5;
+}
+.i { width: 20px; height: 20px; flex: none; display: block; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* Stand-in for "the edit": the mock has no real after-image. */
+.warm { filter: sepia(0.32) saturate(1.1) brightness(1.02) !important; }
+
+/* ── Board page ─────────────────────────────────────────────── */
+.board { max-width: 1760px; margin: 0 auto; padding: var(--s-6) var(--s-5) var(--s-6); }
+.board__head { display: flex; align-items: center; gap: var(--s-3); margin-bottom: var(--s-2); }
+.board__head img { height: 30px; }
+.wordmark { font-family: var(--font-wordmark); font-size: var(--t-xl); letter-spacing: 0.02em; line-height: 1; }
+.wordmark__suffix { color: var(--accent-heat); }
+.board__lede { max-width: 70ch; color: var(--ink-2); margin: var(--s-3) 0 var(--s-6); font-size: var(--t-md); text-wrap: pretty; }
+.board__lede b { color: var(--ink-1); font-weight: 600; }
+.board__row { display: flex; flex-wrap: wrap; gap: var(--s-6) var(--s-5); align-items: flex-start; }
+.shot { width: 390px; }
+.shot--wide { width: 460px; }
+.shot__cap { margin-top: var(--s-3); }
+.shot__title { font-size: var(--t-md); font-weight: 600; display: flex; gap: var(--s-2); align-items: baseline; }
+.shot__n { color: var(--accent-heat); font-size: var(--t-xs); letter-spacing: 0.16em; }
+.shot__note { color: var(--ink-2); margin: var(--s-1) 0 0; text-wrap: pretty; }
+.tagline { display: inline-block; margin-top: var(--s-2); font-size: var(--t-2xs); letter-spacing: 0.16em; text-transform: uppercase; padding: 2px var(--s-2); border: 1px solid var(--line); color: var(--ink-3); }
+.tagline--new { color: var(--accent-heat); border-color: var(--accent-heat); }
+
+/* ── Device ─────────────────────────────────────────────────── */
+.phone {
+  position: relative;
+  width: 390px; height: 844px;
+  border-radius: 46px;
+  padding: 10px;
+  background: oklch(0.16 0.01 350);
+  box-shadow: 0 0 0 1px oklch(0.40 0.02 350), 0 6px 8px oklch(0.10 0.01 350 / 0.5);
+}
+.screen {
+  position: relative; width: 100%; height: 100%;
+  border-radius: 36px; overflow: hidden;
+  background: var(--surface-1);
+  display: flex; flex-direction: column;
+}
+.status-os { height: 44px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 28px; font-size: var(--t-sm); font-weight: 600; background: var(--surface-bar); }
+.status-os__isl { width: 110px; height: 30px; border-radius: var(--r-pill); background: oklch(0.12 0.01 350); }
+
+/* ── App top bar ────────────────────────────────────────────── */
+.top {
+  flex: none; height: 56px; display: flex; align-items: center; gap: var(--s-2);
+  padding: 0 var(--s-2) 0 var(--s-3);
+  background: var(--surface-bar); border-bottom: 1px solid var(--line);
+  position: relative; z-index: var(--z-bar);
+}
+.top__logo { height: 20px; }
+.top__project { flex: 1; min-width: 0; height: var(--tap); display: flex; align-items: center; gap: 2px; text-align: left; }
+.top__project-name { font-size: var(--t-md); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.01em; }
+.top__project .i { width: 18px; color: var(--ink-3); }
+.pod {
+  height: 32px; display: flex; align-items: center; gap: 6px; padding: 0 10px;
+  border-radius: var(--r-pill); border: 1px solid var(--line);
+  font-size: var(--t-xs); letter-spacing: 0.06em; color: var(--ink-2);
+}
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); flex: none; }
+.dot--ok { background: var(--accent-ok); }
+.dot--live { background: var(--accent-frost); animation: pulse 1.6s var(--ease) infinite; }
+@keyframes pulse { 50% { opacity: 0.35; } }
+.ibtn { width: var(--tap); height: var(--tap); display: grid; place-items: center; color: var(--ink-2); border-radius: var(--r-2); }
+.ibtn:active { background: var(--surface-3); }
+
+/* ── Tab bar ────────────────────────────────────────────────── */
+.tabs { flex: none; display: grid; grid-template-columns: repeat(3, 1fr); background: var(--surface-bar); border-top: 1px solid var(--line); padding-bottom: 18px; }
+.tab { position: relative; height: 58px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: var(--ink-3); font-size: var(--t-2xs); letter-spacing: 0.16em; text-transform: uppercase; }
+.tab[aria-current="page"] { color: var(--ink-1); }
+.tab[aria-current="page"]::before { content: ""; position: absolute; top: -1px; left: 30%; right: 30%; height: 2px; background: var(--accent-heat); }
+.tab__badge { position: absolute; top: 7px; left: calc(50% + 6px); min-width: 17px; height: 17px; padding: 0 4px; border-radius: var(--r-pill); background: var(--accent-frost); color: var(--ink-on-accent); font-size: var(--t-2xs); font-weight: 700; letter-spacing: 0; display: grid; place-items: center; }
+
+/* ── Chat ───────────────────────────────────────────────────── */
+.chat { --accent-heat: var(--hub-accent); flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+.chat__log { flex: 1; min-height: 0; overflow: hidden; padding: var(--s-3); display: flex; flex-direction: column; gap: var(--s-3); justify-content: flex-end; }
+.day { align-self: center; font-size: var(--t-2xs); letter-spacing: 0.16em; color: var(--ink-3); text-transform: uppercase; }
+.me { align-self: flex-end; max-width: 84%; display: flex; flex-direction: column; align-items: flex-end; gap: var(--s-1); }
+.me__photo { width: 96px; aspect-ratio: 1100 / 1354; object-fit: cover; display: block; border: 1px solid var(--line); }
+.bubble { padding: var(--s-2) var(--s-3); border-radius: var(--r-3); background: var(--accent-heat); color: var(--ink-on-accent); font-size: var(--t-sm); line-height: 1.45; }
+.cosmo { display: flex; gap: var(--s-2); align-items: flex-start; }
+.cosmo__head { width: 30px; flex: none; margin-top: 2px; }
+.cosmo__body { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: var(--s-2); }
+.cosmo__text { margin: 0; color: var(--ink-1); font-size: var(--t-sm); text-wrap: pretty; }
+.tool { display: flex; align-items: center; gap: var(--s-2); font-size: var(--t-xs); color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.04em; }
+.tool .dot--ok { background: var(--accent-ok); }
+
+/* Live card: the reason this exists — see the latents, stop early */
+.live { position: relative; width: 100%; max-width: 212px; aspect-ratio: 1100 / 1354; overflow: hidden; background: var(--surface-viewer); outline: 1px solid var(--accent-frost); }
+.live__latent { position: absolute; inset: -12px; width: calc(100% + 24px); height: calc(100% + 24px); object-fit: cover; filter: blur(7px) saturate(1.5) contrast(0.92) brightness(0.95); }
+.live__chip { position: absolute; top: var(--s-2); left: var(--s-2); display: flex; align-items: center; gap: 6px; padding: 3px 8px; background: oklch(0.20 0.02 350 / 0.72); font-size: var(--t-2xs); letter-spacing: 0.16em; color: var(--ink-1); }
+.live__foot { position: absolute; left: 0; right: 0; bottom: 0; padding: var(--s-5) var(--s-3) var(--s-3); background: linear-gradient(to top, oklch(0.16 0.02 350 / 0.92), transparent); display: flex; flex-direction: column; gap: var(--s-2); }
+.live__meta { display: flex; justify-content: space-between; font-size: var(--t-xs); letter-spacing: 0.06em; color: var(--ink-1); }
+.gauge { height: 1px; background: var(--line); position: relative; }
+.gauge > span { position: absolute; inset: 0 auto 0 0; background: var(--accent-frost); }
+.gauge--heat > span { background: var(--accent-heat); }
+.stop {
+  height: 50px; display: flex; align-items: center; justify-content: center; gap: var(--s-2);
+  background: var(--accent-err); color: var(--ink-on-accent);
+  font-size: var(--t-sm); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  width: 100%; max-width: 212px;
+}
+.stop:active { background: var(--accent-err-hi, var(--accent-err)); }
+.stop .i { width: 18px; }
+
+.result { width: 100%; max-width: 272px; display: flex; flex-direction: column; }
+.result img { width: 100%; display: block; outline: 2px solid var(--accent-heat); outline-offset: -2px; }
+.actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); }
+.act { height: 48px; display: flex; align-items: center; justify-content: center; gap: 6px; background: var(--surface-2); color: var(--ink-1); font-size: var(--t-xs); letter-spacing: 0.08em; text-transform: uppercase; }
+.act .i { width: 18px; color: var(--ink-2); }
+.act--primary { background: var(--accent-heat); color: var(--ink-on-accent); }
+.act--primary .i { color: var(--ink-on-accent); }
+.cost { font-size: var(--t-xs); color: var(--ink-3); letter-spacing: 0.04em; }
+
+.composer { flex: none; display: flex; align-items: center; gap: var(--s-1); padding: var(--s-2); background: var(--surface-2); border-top: 1px solid var(--line); }
+.composer__field { flex: 1; min-width: 0; height: var(--tap); display: flex; align-items: center; gap: var(--s-2); padding: 0 var(--s-2); color: var(--ink-3); font-size: var(--t-sm); white-space: nowrap; overflow: hidden; }
+.composer__field::before { content: ">"; color: var(--accent-heat); font-weight: 700; }
+.send { width: var(--tap); height: var(--tap); display: grid; place-items: center; background: var(--accent-heat); color: var(--ink-on-accent); }
+
+/* ── Gallery ────────────────────────────────────────────────── */
+.gal { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-bar); }
+.filters { flex: none; display: flex; gap: var(--s-4); padding: var(--s-3) var(--s-3) var(--s-2); font-size: var(--t-xs); letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3); }
+.filters [aria-selected="true"] { color: var(--ink-1); }
+.filters [aria-selected="true"]::after { content: " ●"; color: var(--accent-heat); }
+.filters__count { margin-left: auto; letter-spacing: 0.04em; }
+.grid { display: grid; grid-template-columns: repeat(6, 1fr); grid-auto-rows: 62px; gap: 2px; padding: 0 2px; }
+.frame { position: relative; overflow: hidden; background: var(--surface-canvas); }
+.frame img { width: 100%; height: 100%; object-fit: cover; display: block; filter: saturate(0.92) brightness(0.92); }
+.frame--hero { grid-column: span 6; grid-row: span 4; }
+.frame--half { grid-column: span 3; grid-row: span 3; }
+.frame--third { grid-column: span 2; grid-row: span 2; }
+.frame--wide { grid-column: span 4; grid-row: span 2; }
+.frame__kind { position: absolute; left: var(--s-2); bottom: var(--s-2); display: flex; align-items: center; gap: 5px; padding: 2px 7px; background: oklch(0.20 0.02 350 / 0.72); font-size: var(--t-2xs); letter-spacing: 0.12em; color: var(--ink-1); text-transform: uppercase; }
+.frame__kind .dot { background: var(--accent-heat); }
+.frame__name { position: absolute; left: 0; right: 0; bottom: 0; padding: var(--s-5) var(--s-3) var(--s-2); background: linear-gradient(to top, oklch(0.16 0.02 350 / 0.85), transparent); font-size: var(--t-xs); display: flex; justify-content: space-between; align-items: flex-end; gap: var(--s-2); }
+.frame__name b { font-weight: 600; font-size: var(--t-sm); }
+.frame--live { outline: 1px solid var(--accent-frost); outline-offset: -1px; }
+.frame--live img { filter: blur(6px) saturate(1.4); transform: scale(1.1); }
+.frame--new::after { content: "NEW"; position: absolute; top: var(--s-2); right: var(--s-2); padding: 2px 6px; background: var(--accent-heat); color: var(--ink-on-accent); font-size: var(--t-2xs); font-weight: 700; letter-spacing: 0.12em; }
+
+/* ── Viewer ─────────────────────────────────────────────────── */
+.viewer { flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--surface-viewer); }
+.viewer__top { flex: none; height: 56px; display: flex; align-items: center; gap: var(--s-1); padding: 0 var(--s-2); }
+.viewer__title { flex: 1; min-width: 0; }
+.viewer__title b { display: block; font-size: var(--t-md); font-weight: 600; letter-spacing: -0.01em; }
+.viewer__title span { font-size: var(--t-xs); color: var(--ink-3); }
+.viewer__stage { flex: 1; min-height: 0; display: grid; place-items: center; position: relative; }
+.viewer__stage img { max-width: 100%; max-height: 100%; display: block; }
+.viewer__pager { position: absolute; bottom: var(--s-2); left: 50%; translate: -50% 0; display: flex; gap: 6px; }
+.viewer__pager i { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-4); }
+.viewer__pager i.on { background: var(--ink-1); }
+.viewer__meta { flex: none; padding: var(--s-3) var(--s-3) var(--s-2); display: flex; flex-direction: column; gap: var(--s-2); }
+.versions { display: flex; align-items: center; gap: var(--s-2); font-size: var(--t-xs); color: var(--ink-3); letter-spacing: 0.04em; }
+.versions img { width: 40px; height: 48px; object-fit: cover; opacity: 0.6; border: 1px solid var(--line); }
+.versions img.on { opacity: 1; border-color: var(--accent-heat); }
+.prompt { color: var(--ink-2); font-size: var(--t-xs); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.viewer .actions { padding-bottom: 18px; background: var(--surface-viewer); gap: 0; border-top: 1px solid var(--line); }
+.viewer .act { height: 58px; flex-direction: column; gap: 3px; background: none; font-size: var(--t-2xs); letter-spacing: 0.12em; }
+.viewer .act .i { width: 22px; height: 22px; color: var(--ink-1); }
+.viewer .act--primary, .viewer .act--primary .i { color: var(--hub-accent); }
+
+/* ── Queue (the desktop MpiQueuePanel, at phone width) ──────── */
+.queue { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-1); }
+.queue__head { flex: none; display: flex; align-items: center; gap: var(--s-2); padding: var(--s-3); border-bottom: 1px solid var(--line-soft); }
+.queue__title { font-size: var(--t-xs); letter-spacing: 0.32em; text-transform: uppercase; color: var(--ink-2); }
+.queue__count { font-size: var(--t-xs); color: var(--ink-3); }
+.queue__count b { color: var(--ink-1); font-weight: 600; }
+.ghost-err { margin-left: auto; height: 36px; padding: 0 var(--s-3); border: 1px solid var(--accent-err); color: var(--accent-err); font-size: var(--t-xs); letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; }
+.qrow { display: grid; grid-template-columns: 88px 1fr var(--tap); gap: var(--s-3); align-items: center; padding: var(--s-3); border-bottom: 1px solid var(--line-soft); }
+.qrow--running { background: var(--surface-2); }
+.qthumb { width: 88px; height: 88px; position: relative; overflow: hidden; background: var(--surface-3); border: 1px solid var(--line-soft); }
+.qthumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.qthumb--live { border-color: var(--accent-frost); }
+.qthumb--live img { filter: blur(5px) saturate(1.4); transform: scale(1.15); }
+.qthumb--wait { display: grid; place-items: center; color: var(--ink-4); }
+.qbody { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.qname { font-size: var(--t-sm); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qstat { font-size: var(--t-xs); color: var(--ink-3); letter-spacing: 0.04em; display: flex; align-items: center; gap: 6px; text-transform: uppercase; }
+.qstat--run { color: var(--accent-frost); }
+.qstop { width: var(--tap); height: var(--tap); display: grid; place-items: center; border: 1px solid var(--line); color: var(--accent-err); }
+.qstop--quiet { color: var(--ink-3); }
+.qsection { padding: var(--s-3) var(--s-3) var(--s-2); font-size: var(--t-2xs); letter-spacing: 0.32em; text-transform: uppercase; color: var(--ink-3); }
+
+/* ── Slide-over (the desktop MpiSlideOver: min(460px, 100vw - 48px)) ── */
+.under { position: absolute; inset: 0; display: flex; flex-direction: column; }
+.scrim { position: absolute; inset: 0; background: oklch(0.14 0.02 350 / 0.6); z-index: var(--z-sheet-scrim); }
+.sheet {
+  position: absolute; top: 0; bottom: 0; right: 0; width: calc(100% - 48px);
+  background: var(--surface-1); border-left: 1px solid var(--line);
+  z-index: var(--z-sheet); display: flex; flex-direction: column;
+}
+.sheet__head { flex: none; height: 100px; padding: 44px var(--s-2) 0 var(--s-3); display: flex; align-items: center; gap: var(--s-2); border-bottom: 1px solid var(--line); background: var(--surface-bar); }
+.sheet__title { flex: 1; font-size: var(--t-lg); font-weight: 600; letter-spacing: -0.01em; }
+.sheet__body { flex: 1; min-height: 0; overflow: hidden; padding: var(--s-3); display: flex; flex-direction: column; gap: var(--s-4); }
+.kicker { display: flex; align-items: center; gap: var(--s-2); font-size: var(--t-xs); letter-spacing: 0.32em; text-transform: uppercase; color: var(--ink-3); }
+.kicker::before { content: ""; width: 28px; height: 1px; background: var(--accent-heat); }
+.podstate { display: flex; align-items: center; gap: var(--s-2); font-size: var(--t-sm); color: var(--ink-2); }
+.podstate b { color: var(--ink-1); font-weight: 600; }
+.bignum { font-size: var(--t-xl); font-weight: 600; letter-spacing: -0.02em; line-height: 1; }
+.bignum small { font-size: var(--t-sm); font-weight: 400; color: var(--ink-3); letter-spacing: 0; }
+.meters { display: flex; flex-direction: column; gap: var(--s-3); }
+.meter { display: grid; grid-template-columns: 48px 1fr auto; gap: var(--s-3); align-items: center; font-size: var(--t-xs); color: var(--ink-3); letter-spacing: 0.08em; }
+.meter b { color: var(--ink-1); font-weight: 400; letter-spacing: 0; }
+.btn { height: 50px; display: flex; align-items: center; justify-content: center; gap: var(--s-2); border: 1px solid var(--ink-1); font-size: var(--t-sm); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; width: 100%; }
+.btn--err { background: var(--accent-err); border-color: var(--accent-err); color: var(--ink-on-accent); }
+.note { font-size: var(--t-xs); color: var(--ink-3); margin: 0; text-wrap: pretty; }
+
+.setrow { display: flex; align-items: center; gap: var(--s-3); min-height: 56px; border-bottom: 1px solid var(--line-soft); }
+.setrow__label { flex: 1; min-width: 0; }
+.setrow__label b { display: block; font-weight: 600; font-size: var(--t-sm); }
+.setrow__label span { font-size: var(--t-xs); color: var(--ink-3); }
+.setrow__val { display: flex; align-items: center; gap: 2px; color: var(--ink-2); font-size: var(--t-xs); }
+.setrow__val .i { width: 18px; color: var(--ink-3); }
+.setrow--pc .setrow__label b { color: var(--ink-2); font-weight: 400; }
+.onpc { display: flex; align-items: center; gap: 6px; color: var(--ink-3); font-size: var(--t-2xs); letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap; }
+.onpc .i { width: 16px; }
+.toggle { width: 44px; height: 26px; border-radius: var(--r-pill); background: var(--accent-heat); position: relative; flex: none; }
+.toggle::after { content: ""; position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--ink-on-accent); }
+.section { display: flex; flex-direction: column; }
+.section .kicker { margin-bottom: var(--s-1); }
+
+/* ── Desktop pairing panel ──────────────────────────────────── */
+.desk { width: 460px; background: var(--surface-1); border: 1px solid var(--line); }
+.desk__head { height: 52px; display: flex; align-items: center; padding: 0 var(--s-3); gap: var(--s-2); background: var(--surface-bar); border-bottom: 1px solid var(--line); }
+.desk__head b { flex: 1; font-size: var(--t-md); font-weight: 600; }
+.desk__body { padding: var(--s-4) var(--s-3); display: flex; flex-direction: column; gap: var(--s-4); }
+.pair { display: grid; grid-template-columns: 168px 1fr; gap: var(--s-4); align-items: start; }
+.qr { width: 168px; height: 168px; background: var(--ink-1); padding: 10px; }
+.qr canvas, .qr img, .qr svg { width: 100%; height: 100%; display: block; }
+.pair ol { margin: 0; padding-left: 3ch; color: var(--ink-2); display: flex; flex-direction: column; gap: var(--s-2); }
+.pair ol b { color: var(--ink-1); font-weight: 600; }
+.code { font-size: var(--t-xs); color: var(--ink-3); letter-spacing: 0.16em; }
+.code b { color: var(--ink-1); letter-spacing: 0.24em; font-weight: 600; }
+.device { display: flex; align-items: center; gap: var(--s-3); min-height: 52px; border-bottom: 1px solid var(--line-soft); }
+.device .i { color: var(--ink-3); }
+.device__name { flex: 1; }
+.device__name b { display: block; font-weight: 600; }
+.device__name span { font-size: var(--t-xs); color: var(--ink-3); }
+.linkbtn { height: 36px; padding: 0 var(--s-3); border: 1px solid var(--line); font-size: var(--t-xs); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); }
+.away { display: flex; gap: var(--s-3); padding: var(--s-3); background: var(--surface-2); align-items: flex-start; }
+.away .i { color: var(--accent-frost); margin-top: 2px; }
+.away p { margin: 0; color: var(--ink-2); font-size: var(--t-xs); }
+.away b { color: var(--ink-1); }
+
+@media (max-width: 480px) {
+  .board { padding: var(--s-5) 16px; }
+  .shot, .shot--wide, .desk { width: 100%; }
+  .phone { width: 100%; height: auto; aspect-ratio: 390 / 844; }
+  .pair { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { .dot--live { animation: none; } }
+</style>
+</head>
+<body>
+<main class="board">
+  <div class="board__head">
+    <img src="{{R}}assets/mascot/studio/logo.webp" alt="">
+    <span class="wordmark">Cubric<span class="wordmark__suffix">Studio</span></span>
+  </div>
+  <p class="board__lede"><b>Phone companion, MPI-1300.</b> Cosmo is the main screen. The gallery is for looking and sending. The queue, Remote and Settings are the desktop's own panels shown at phone width. Every running job shows its latents with a Stop button, so a bad generation dies at step 3, not step 20.</p>
+
+  <div class="board__row">
+
+    <!-- 1 · Chat, live -->
+    <figure class="shot" style="margin:0">
+      <div class="phone"><div class="screen">
+        <div class="status-os"><span class="num">21:47</span><span class="status-os__isl"></span><span>5G</span></div>
+        <div class="top">
+          <img class="top__logo" src="{{R}}assets/mascot/studio/logo.webp" alt="">
+          <button class="top__project"><span class="top__project-name">Night Market</span>{{i:chevronDown}}</button>
+          <span class="pod"><span class="dot dot--ok"></span><span class="num">POD $0.79/h</span></span>
+          <button class="ibtn" aria-label="Settings">{{i:settings}}</button>
+        </div>
+        <div class="chat">
+          <div class="chat__log">
+            <div class="day">Today · 21:45</div>
+            <div class="me">
+              <img class="me__photo" src="{{R}}comfy_workflows/display/sdxl-real-01.webp" alt="">
+              <div class="bubble">Just shot this. Warm the skin, kill the blue cast, keep the goggles sharp.</div>
+            </div>
+            <div class="cosmo">
+              <img class="cosmo__head" src="{{R}}assets/mascot/studio/logo.webp" alt="Cosmo">
+              <div class="cosmo__body">
+                <div class="tool"><span class="dot dot--ok"></span>Added to project · card 14</div>
+                <div class="tool"><span class="dot dot--ok"></span>Looked at the photo</div>
+                <p class="cosmo__text">Running Klein Edit on your pod. If the first steps look wrong, stop it.</p>
+                <div class="live">
+                  <img class="live__latent" src="{{R}}comfy_workflows/display/sdxl-real-01.webp" alt="">
+                  <span class="live__chip"><span class="dot dot--live"></span>LIVE</span>
+                  <div class="live__foot">
+                    <div class="live__meta num"><span>STEP 6 / 20</span><span>0:14 LEFT</span></div>
+                    <div class="gauge"><span style="width:30%"></span></div>
+                  </div>
+                </div>
+                <button class="stop">{{i:stop}}Stop</button>
+              </div>
+            </div>
+          </div>
+          <div class="composer">
+            <button class="ibtn" aria-label="Take or pick a photo">{{i:camera}}</button>
+            <div class="composer__field">Tell Cosmo what to do</div>
+            <button class="send" aria-label="Send">{{i:generate}}</button>
+          </div>
+        </div>
+        <nav class="tabs">
+          <button class="tab" aria-current="page">{{i:chat}}Cosmo</button>
+          <button class="tab">{{i:grid}}Gallery</button>
+          <button class="tab"><span class="tab__badge num">2</span>{{i:layers}}Queue</button>
+        </nav>
+      </div></div>
+      <figcaption class="shot__cap">
+        <div class="shot__title"><span class="shot__n">01</span>Chat, while it runs</div>
+        <p class="shot__note">The photo from the camera roll becomes a card the moment it arrives. The live card shows latents as they come in, and Stop sits right under it.</p>
+        <span class="tagline tagline--new">New screen</span>
+      </figcaption>
+    </figure>
+
+    <!-- 2 · Chat, done -->
+    <figure class="shot" style="margin:0">
+      <div class="phone"><div class="screen">
+        <div class="status-os"><span class="num">21:48</span><span class="status-os__isl"></span><span>5G</span></div>
+        <div class="top">
+          <img class="top__logo" src="{{R}}assets/mascot/studio/logo.webp" alt="">
+          <button class="top__project"><span class="top__project-name">Night Market</span>{{i:chevronDown}}</button>
+          <span class="pod"><span class="dot dot--ok"></span><span class="num">POD $0.79/h</span></span>
+          <button class="ibtn" aria-label="Settings">{{i:settings}}</button>
+        </div>
+        <div class="chat">
+          <div class="chat__log">
+            <div class="cosmo">
+              <img class="cosmo__head" src="{{R}}assets/mascot/studio/logo.webp" alt="Cosmo">
+              <div class="cosmo__body">
+                <div class="tool"><span class="dot dot--ok"></span>Klein Edit · done in 0:31</div>
+                <div class="result">
+                  <img class="warm" src="{{R}}comfy_workflows/display/sdxl-real-01.webp" alt="Result">
+                  <div class="actions">
+                    <button class="act">{{i:download}}Save</button>
+                    <button class="act">{{i:upload}}Share</button>
+                    <button class="act">{{i:refresh}}Again</button>
+                  </div>
+                </div>
+                <p class="cosmo__text">Skin warmed, blue cast gone, goggles untouched. It's version 2 on card 14.</p>
+                <span class="cost num">Pod time this edit: $0.01</span>
+              </div>
+            </div>
+            <div class="me">
+              <div class="bubble">Perfect. Same look on the next three I send.</div>
+            </div>
+          </div>
+          <div class="composer">
+            <button class="ibtn" aria-label="Take or pick a photo">{{i:camera}}</button>
+            <div class="composer__field">Tell Cosmo what to do</div>
+            <button class="send" aria-label="Send">{{i:generate}}</button>
+          </div>
+        </div>
+        <nav class="tabs">
+          <button class="tab" aria-current="page">{{i:chat}}Cosmo</button>
+          <button class="tab">{{i:grid}}Gallery</button>
+          <button class="tab">{{i:layers}}Queue</button>
+        </nav>
+      </div></div>
+      <figcaption class="shot__cap">
+        <div class="shot__title"><span class="shot__n">02</span>Chat, done</div>
+        <p class="shot__note">The live card turns into the result. Save and Share go straight to the phone, so the client gets it on the spot.</p>
+        <span class="tagline tagline--new">New screen</span>
+      </figcaption>
+    </figure>
+
+    <!-- 3 · Gallery -->
+    <figure class="shot" style="margin:0">
+      <div class="phone"><div class="screen">
+        <div class="status-os"><span class="num">21:52</span><span class="status-os__isl"></span><span>5G</span></div>
+        <div class="top">
+          <img class="top__logo" src="{{R}}assets/mascot/studio/logo.webp" alt="">
+          <button class="top__project"><span class="top__project-name">Night Market</span>{{i:chevronDown}}</button>
+          <span class="pod"><span class="dot dot--ok"></span><span class="num">POD $0.79/h</span></span>
+          <button class="ibtn" aria-label="Settings">{{i:settings}}</button>
+        </div>
+        <div class="gal">
+          <div class="filters">
+            <span aria-selected="true">All</span><span>Images</span><span>Video</span>
+            <span class="filters__count num">18 cards</span>
+          </div>
+          <div class="grid">
+            <div class="frame frame--hero frame--new" data-accent="vision">
+              <img class="warm" src="{{R}}comfy_workflows/display/sdxl-real-01.webp" alt="" style="object-position: 50% 30%">
+              <div class="frame__name"><b>Goggles, warm</b><span class="num">v2</span></div>
+            </div>
+            <div class="frame frame--half frame--live" data-accent="vision">
+              <img src="{{R}}comfy_workflows/display/chroma-style-none.webp" alt="">
+              <span class="live__chip"><span class="dot dot--live"></span>STEP 4/20</span>
+            </div>
+            <div class="frame frame--half" data-accent="video">
+              <img src="{{R}}comfy_workflows/display/veo-31-cloud.webp" alt="">
+              <span class="frame__kind"><span class="dot"></span>Video · 0:05</span>
+            </div>
+            <div class="frame frame--third" data-accent="vision"><img src="{{R}}comfy_workflows/display/flux2-pro-cloud.webp" alt=""></div>
+            <div class="frame frame--third" data-accent="vision"><img src="{{R}}comfy_workflows/display/qwen-image-21-style-canon.webp" alt=""></div>
+            <div class="frame frame--third" data-accent="vision"><img src="{{R}}comfy_workflows/display/klein-9b.webp" alt=""></div>
+            <div class="frame frame--wide" data-accent="vision"><img src="{{R}}comfy_workflows/display/krea2-style-sunsetblur.webp" alt=""></div>
+            <div class="frame frame--third" data-accent="vision"><img src="{{R}}comfy_workflows/display/qwen-image-21-style-grainscape.webp" alt=""></div>
+          </div>
+        </div>
+        <nav class="tabs">
+          <button class="tab">{{i:chat}}Cosmo</button>
+          <button class="tab" aria-current="page">{{i:grid}}Gallery</button>
+          <button class="tab"><span class="tab__badge num">1</span>{{i:layers}}Queue</button>
+        </nav>
+      </div></div>
+      <figcaption class="shot__cap">
+        <div class="shot__title"><span class="shot__n">03</span>Gallery</div>
+        <p class="shot__note">The newest card gets the full width. A card that's still generating shows its latents in place. Tap the project name to switch or create a project.</p>
+        <span class="tagline tagline--new">New screen</span>
+      </figcaption>
+    </figure>
+
+    <!-- 4 · Viewer -->
+    <figure class="shot" style="margin:0">
+      <div class="phone"><div class="screen" style="background: var(--surface-viewer)">
+        <div class="status-os" style="background: var(--surface-viewer)"><span class="num">21:53</span><span class="status-os__isl"></span><span>5G</span></div>
+        <div class="viewer" data-accent="vision">
+          <div class="viewer__top">
+            <button class="ibtn" aria-label="Back">{{i:back}}</button>
+            <div class="viewer__title"><b>Goggles, warm</b><span class="num">Card 14 · 1 of 18</span></div>
+            <button class="ibtn" aria-label="Details">{{i:info}}</button>
+          </div>
+          <div class="viewer__stage">
+            <img class="warm" src="{{R}}comfy_workflows/display/sdxl-real-01.webp" alt="">
+            <div class="viewer__pager"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="viewer__meta">
+            <div class="versions num">
+              <img src="{{R}}comfy_workflows/display/sdxl-real-01.webp" alt="">
+              <img class="on warm" src="{{R}}comfy_workflows/display/sdxl-real-01.webp" alt="">
+              <span>v2 of 2 · Klein Edit · 1100×1354</span>
+            </div>
+            <div class="prompt">Warm the skin tones, remove the blue color cast, keep the goggles and the reflections in them sharp.</div>
+          </div>
+          <div class="actions">
+            <button class="act">{{i:download}}Save</button>
+            <button class="act">{{i:upload}}Share</button>
+            <button class="act act--primary">{{i:chat}}To Cosmo</button>
+          </div>
+        </div>
+      </div></div>
+      <figcaption class="shot__cap">
+        <div class="shot__title"><span class="shot__n">04</span>Viewer</div>
+        <p class="shot__note">Swipe between cards and tap a version. "To Cosmo" opens the chat with this card attached. Nothing here edits by hand.</p>
+        <span class="tagline tagline--new">New screen</span>
+      </figcaption>
+    </figure>
+
+    <!-- 5 · Queue -->
+    <figure class="shot" style="margin:0">
+      <div class="phone"><div class="screen">
+        <div class="status-os"><span class="num">21:55</span><span class="status-os__isl"></span><span>5G</span></div>
+        <div class="top">
+          <img class="top__logo" src="{{R}}assets/mascot/studio/logo.webp" alt="">
+          <button class="top__project"><span class="top__project-name">Night Market</span>{{i:chevronDown}}</button>
+          <span class="pod"><span class="dot dot--ok"></span><span class="num">POD $0.79/h</span></span>
+          <button class="ibtn" aria-label="Settings">{{i:settings}}</button>
+        </div>
+        <div class="queue">
+          <div class="queue__head">
+            <span class="queue__title">Queue</span>
+            <span class="queue__count num"><b>2</b> running · <b>1</b> waiting</span>
+            <button class="ghost-err">Stop all</button>
+          </div>
+          <div class="qrow qrow--running">
+            <div class="qthumb qthumb--live"><img src="{{R}}comfy_workflows/display/chroma-style-none.webp" alt=""></div>
+            <div class="qbody">
+              <span class="qname">Klein Edit · card 15</span>
+              <span class="qstat qstat--run num"><span class="dot dot--live"></span>Step 4/20 · 0:19</span>
+              <div class="gauge"><span style="width:20%"></span></div>
+            </div>
+            <button class="qstop" aria-label="Stop">{{i:stop}}</button>
+          </div>
+          <div class="qrow qrow--running" data-accent="video">
+            <div class="qthumb qthumb--live"><img src="{{R}}comfy_workflows/display/veo-31-cloud.webp" alt=""></div>
+            <div class="qbody">
+              <span class="qname">LTX 2.5 · animate card 12</span>
+              <span class="qstat qstat--run num"><span class="dot dot--live"></span>Step 2/8 · 1:52</span>
+              <div class="gauge"><span style="width:25%"></span></div>
+            </div>
+            <button class="qstop" aria-label="Stop">{{i:stop}}</button>
+          </div>
+          <div class="qrow">
+            <div class="qthumb"><img src="{{R}}comfy_workflows/display/flux2-pro-cloud.webp" alt="" style="opacity:.55"></div>
+            <div class="qbody">
+              <span class="qname">Upscale ×2 · card 9</span>
+              <span class="qstat">Waiting · next</span>
+            </div>
+            <button class="qstop qstop--quiet" aria-label="Remove">{{i:close}}</button>
+          </div>
+          <div class="qsection">Finished</div>
+          <div class="qrow">
+            <div class="qthumb"><img src="{{R}}comfy_workflows/display/sdxl-real-01.webp" alt=""></div>
+            <div class="qbody">
+              <span class="qname">Klein Edit · card 14</span>
+              <span class="qstat num"><span class="dot dot--ok"></span>Done · 0:31</span>
+            </div>
+            <span></span>
+          </div>
+        </div>
+        <nav class="tabs">
+          <button class="tab">{{i:chat}}Cosmo</button>
+          <button class="tab">{{i:grid}}Gallery</button>
+          <button class="tab" aria-current="page"><span class="tab__badge num">2</span>{{i:layers}}Queue</button>
+        </nav>
+      </div></div>
+      <figcaption class="shot__cap">
+        <div class="shot__title"><span class="shot__n">05</span>Queue</div>
+        <p class="shot__note">The desktop's queue panel at phone width. Every running row shows its latents and has its own Stop. The Stop buttons are 44px so a thumb can hit them.</p>
+        <span class="tagline">Reused · MpiQueuePanel</span>
+      </figcaption>
+    </figure>
+
+    <!-- 6 · Remote -->
+    <figure class="shot" style="margin:0">
+      <div class="phone"><div class="screen">
+        <div class="under">
+          <div class="status-os"><span class="num">21:56</span><span class="status-os__isl"></span><span>5G</span></div>
+          <div class="top">
+            <img class="top__logo" src="{{R}}assets/mascot/studio/logo.webp" alt="">
+            <button class="top__project"><span class="top__project-name">Night Market</span>{{i:chevronDown}}</button>
+          </div>
+          <div class="gal" style="flex:1"><div class="grid" style="padding-top:2px">
+            <div class="frame frame--hero"><img src="{{R}}comfy_workflows/display/sdxl-real-01.webp" alt=""></div>
+            <div class="frame frame--half"><img src="{{R}}comfy_workflows/display/chroma-style-none.webp" alt=""></div>
+            <div class="frame frame--half"><img src="{{R}}comfy_workflows/display/veo-31-cloud.webp" alt=""></div>
+          </div></div>
+        </div>
+        <div class="scrim"></div>
+        <aside class="sheet">
+          <div class="sheet__head"><span class="sheet__title">Remote GPU</span><button class="ibtn" aria-label="Close">{{i:close}}</button></div>
+          <div class="sheet__body">
+            <div class="podstate"><span class="dot dot--ok"></span><b>Running</b> · RTX 5090 · 32 GB</div>
+            <div>
+              <div class="bignum num">$1.84 <small>this session</small></div>
+              <div class="note num" style="margin-top:6px">$0.79 per hour · up 2 h 20 min</div>
+            </div>
+            <div class="meters num">
+              <div class="meter">VRAM<div class="gauge gauge--heat"><span style="width:62%"></span></div><b>20 / 32 GB</b></div>
+              <div class="meter">RAM<div class="gauge gauge--heat"><span style="width:41%"></span></div><b>51 / 125 GB</b></div>
+              <div class="meter">DISK<div class="gauge gauge--heat"><span style="width:78%"></span></div><b>156 / 200 GB</b></div>
+            </div>
+            <button class="btn">{{i:unload}}Free VRAM</button>
+            <button class="btn btn--err">{{i:stop}}Stop pod</button>
+            <p class="note">A pod costs money while it's on. Stopping it keeps your models on its disk.</p>
+          </div>
+        </aside>
+      </div></div>
+      <figcaption class="shot__cap">
+        <div class="shot__title"><span class="shot__n">06</span>Remote, from the pod pill</div>
+        <p class="shot__note">Tap the pod pill in the top bar to open the desktop's Remote slide-over. It already fits a phone, since its width is min(460px, 100vw − 48px).</p>
+        <span class="tagline">Reused · MpiRemote</span>
+      </figcaption>
+    </figure>
+
+    <!-- 7 · Settings, gated -->
+    <figure class="shot" style="margin:0">
+      <div class="phone"><div class="screen">
+        <div class="under">
+          <div class="status-os"><span class="num">21:57</span><span class="status-os__isl"></span><span>5G</span></div>
+          <div class="top"><img class="top__logo" src="{{R}}assets/mascot/studio/logo.webp" alt=""></div>
+          <div class="chat"></div>
+        </div>
+        <div class="scrim"></div>
+        <aside class="sheet">
+          <div class="sheet__head"><span class="sheet__title">Settings</span><button class="ibtn" aria-label="Close">{{i:close}}</button></div>
+          <div class="sheet__body" style="gap: var(--s-4)">
+            <div class="section">
+              <span class="kicker">Cosmo</span>
+              <div class="setrow"><div class="setrow__label"><b>Model</b><span>What Cosmo thinks with</span></div><span class="setrow__val">Sonnet 5.5{{i:chevronRight}}</span></div>
+              <div class="setrow setrow--pc"><div class="setrow__label"><b>API keys</b></div><span class="onpc">{{i:laptop}}On your PC</span></div>
+            </div>
+            <div class="section">
+              <span class="kicker">Remote GPU</span>
+              <div class="setrow"><div class="setrow__label"><b>GPU</b><span>Used next time the pod starts</span></div><span class="setrow__val">RTX 5090{{i:chevronRight}}</span></div>
+              <div class="setrow"><div class="setrow__label"><b>Auto-stop when idle</b></div><span class="setrow__val">20 min{{i:chevronRight}}</span></div>
+            </div>
+            <div class="section">
+              <span class="kicker">Models &amp; engine</span>
+              <div class="setrow setrow--pc"><div class="setrow__label"><b>Install models</b></div><span class="onpc">{{i:laptop}}On your PC</span></div>
+              <div class="setrow setrow--pc"><div class="setrow__label"><b>Model folders</b></div><span class="onpc">{{i:laptop}}On your PC</span></div>
+            </div>
+            <div class="section">
+              <span class="kicker">This phone</span>
+              <div class="setrow"><div class="setrow__label"><b>Pixel 8</b><span>Paired today · via Tailscale</span></div><button class="linkbtn">Unpair</button></div>
+            </div>
+          </div>
+        </aside>
+      </div></div>
+      <figcaption class="shot__cap">
+        <div class="shot__title"><span class="shot__n">07</span>Settings, gated</div>
+        <p class="shot__note">The same Settings panel. Anything that writes to disk, downloads gigabytes or touches keys says "On your PC" instead of being missing. The server refuses those routes from the same list.</p>
+        <span class="tagline">Reused · MpiSettings, gated</span>
+      </figcaption>
+    </figure>
+
+    <!-- 8 · Pairing, on the desktop -->
+    <figure class="shot shot--wide" style="margin:0">
+      <div class="desk">
+        <div class="desk__head">{{i:laptop}}<b>Phone access</b><span class="toggle" role="switch" aria-checked="true"></span></div>
+        <div class="desk__body">
+          <div class="pair">
+            <div class="qr" id="qr"></div>
+            <ol>
+              <li>Open your <b>phone camera</b> and point it at the code.</li>
+              <li>Tap the link, then <b>Add to Home Screen</b>.</li>
+              <li>That's it. The code works once and expires in <b class="num">4:52</b>.</li>
+            </ol>
+          </div>
+          <div class="code num">Or type <b>K7Q-2MX</b> on the phone</div>
+          <div class="section">
+            <span class="kicker">Paired phones</span>
+            <div class="device">{{i:camera}}<div class="device__name"><b>Pixel 8</b><span class="num">Last seen 2 min ago</span></div><button class="linkbtn">Remove</button></div>
+          </div>
+          <div class="away">{{i:cloud}}<p><b>Away from home?</b> Install Tailscale on this PC and on your phone, and sign in to the same account on both. The phone then reaches Cubric from anywhere, with no ports opened.</p></div>
+        </div>
+      </div>
+      <figcaption class="shot__cap">
+        <div class="shot__title"><span class="shot__n">08</span>Pairing, on the desktop</div>
+        <p class="shot__note">Off by default. Turning it on shows a one-time code. Every paired phone is listed and can be removed. The phone screens above are what the code opens.</p>
+        <span class="tagline tagline--new">New · desktop Settings section</span>
+      </figcaption>
+    </figure>
+
+  </div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script>
+  try {
+    const q = qrcode(0, 'M'); q.addData('cubric-studio://pair?code=K7Q2MX'); q.make();
+    document.getElementById('qr').innerHTML = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
+  } catch (_) { /* offline: the white square stands in */ }
+</script>
+</body>
+</html>
