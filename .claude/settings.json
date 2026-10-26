@@ -19,15 +19,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python c:/AI/Mpi/Cubric-Vision/.claude/hooks/bump-rebuild-reminder.py"
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/bump-rebuild-reminder.py\""
           },
           {
             "type": "command",
-            "command": "python c:/AI/Mpi/Cubric-Vision/.claude/hooks/handoff-index-drift.py"
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/handoff-index-drift.py\""
           },
           {
             "type": "command",
-            "command": "python c:/AI/Mpi/Cubric-Vision/.claude/hooks/kanban-event-schema.py"
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/kanban-event-schema.py\""
           }
         ]
       }
@@ -38,11 +38,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python c:/AI/Mpi/Cubric-Vision/.claude/hooks/guard-runpod-create.py"
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard-runpod-create.py\""
           },
           {
             "type": "command",
-            "command": "python c:/AI/Mpi/Cubric-Vision/.claude/hooks/guard-shell-backticks.py"
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard-shell-backticks.py\""
           }
         ]
       }
