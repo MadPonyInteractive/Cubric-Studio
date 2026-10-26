@@ -28,6 +28,7 @@ import { getModelRatios, usesQualityTier } from '../../../utils/ratios.js';
 import { durationRangeFor } from '../../../data/modelConstants/deepinfraSizing.js';
 import { tileCount, overlapFor } from '../../../utils/tileCount.js';
 import { imageSize } from '../../../utils/upscaleLimit.js';
+import { clamp } from '../../../utils/math.js';
 import { fixedDurationFor } from '../../../data/modelConstants/deepinfraPricing.js';
 // MPI-547 — the qualityTier resolve (per-model bucket wins, legacy shared
 // fallback, else the model's cheapest tier) and the op→model→global default
@@ -148,6 +149,74 @@ function _emitUpdate(ctrl, opts, key, value) {
         mediaType: _mediaTypeOf(opts),
         key,
         value,
+    });
+}
+
+// ── Shared control layout ────────────────────────────────────────────────────
+
+/** A 0..1 strength from raw slider input; anything non-numeric reads as 0. */
+const _clamp01 = (v) => clamp(Number(v) || 0, 0, 1);
+
+/**
+ * Lays out a control host: the `slider-control` column and its "name … value" label
+ * row. Every control in this registry starts this way; the caller appends its own
+ * body (slider track, radio row, dropdown) below.
+ * @param {HTMLElement} hostEl
+ * @param {string|null} name - label text; null when the mount writes it later
+ * @param {{value?: string, display?: string}} [o] - `value` adds the value span
+ * @returns {{nameEl: HTMLElement, valEl: HTMLElement|null}}
+ */
+function _controlHost(hostEl, name, { value, display = 'flex' } = {}) {
+    hostEl.className = 'mpi-prompt-box__slider-control';
+    hostEl.style.display = display;
+    const lblRow = document.createElement('div');
+    lblRow.className = 'mpi-prompt-box__slider-lbl';
+    const nameEl = document.createElement('span');
+    nameEl.className = 'mpi-prompt-box__slider-name';
+    if (name !== null) nameEl.textContent = name;
+    lblRow.appendChild(nameEl);
+    let valEl = null;
+    if (value !== undefined) {
+        valEl = document.createElement('span');
+        valEl.className = 'mpi-prompt-box__slider-val';
+        valEl.textContent = value;
+        lblRow.appendChild(valEl);
+    }
+    hostEl.appendChild(lblRow);
+    return { nameEl, valEl };
+}
+
+/**
+ * Mounts the PromptBox slider track under a `_controlHost` and keeps its value label in
+ * step. `input` only relabels; `change` stores the clamped value on the control and
+ * persists it under `key` through the control's own `scope`. Sets `ctrl._instance`.
+ * @param {object} ctrl - the registry entry
+ * @param {HTMLElement} hostEl
+ * @param {HTMLElement} valEl - the value span `_controlHost` returned
+ * @param {{key: string, opts: object, min: number, max: number, step: number, value: number,
+ *          info: string, clamp: (v: number) => number, fmt: (v: number) => string,
+ *          isEnabled?: () => boolean}} cfg - `isEnabled` false ignores the bar's events
+ */
+function _mountSlider(ctrl, hostEl, valEl, { key, opts, min, max, step, value, info, clamp: clampFn, fmt, isEnabled = () => true }) {
+    const barHost = document.createElement('div');
+    barHost.className = 'mpi-prompt-box__slider-track';
+    hostEl.appendChild(barHost);
+    ctrl._instance = MpiProgressBar.mount(barHost, {
+        min, max, step, value, info,
+        interactive: true,
+        wheel: true,
+        handle: true,
+        variant: 'primary',
+    });
+    ctrl._instance.on('input', ({ value: v }) => {
+        if (isEnabled()) valEl.textContent = fmt(clampFn(v));
+    });
+    ctrl._instance.on('change', ({ value: v }) => {
+        if (!isEnabled()) return;
+        const c = clampFn(v);
+        ctrl.value = c;
+        valEl.textContent = fmt(c);
+        _emitUpdate(ctrl, opts, key, c);
     });
 }
 
@@ -425,16 +494,7 @@ export const PROMPT_BOX_CONTROLS = {
             this.value = initial;
             this._audioPresent = false;
 
-            hostEl.className = 'mpi-prompt-box__slider-control';
-            hostEl.style.display = 'flex';
-
-            const lblRow = document.createElement('div');
-            lblRow.className = 'mpi-prompt-box__slider-lbl';
-            const nameEl = document.createElement('span');
-            nameEl.className = 'mpi-prompt-box__slider-name';
-            nameEl.textContent = 'Audio';
-            lblRow.appendChild(nameEl);
-            hostEl.appendChild(lblRow);
+            _controlHost(hostEl, 'Audio');
 
             const radioHost = document.createElement('div');
             hostEl.appendChild(radioHost);
@@ -632,52 +692,15 @@ export const PROMPT_BOX_CONTROLS = {
             const initial = _clamp(Number.isFinite(savedNum) ? savedNum : this.defaultValue);
             this.value = initial;
 
-            hostEl.className = 'mpi-prompt-box__slider-control';
-            hostEl.style.display = 'flex';
-
-            const lblRow = document.createElement('div');
-            lblRow.className = 'mpi-prompt-box__slider-lbl';
-            const nameEl = document.createElement('span');
-            nameEl.className = 'mpi-prompt-box__slider-name';
-            nameEl.textContent = 'Duration';
-            const valEl = document.createElement('span');
-            valEl.className = 'mpi-prompt-box__slider-val';
-            valEl.textContent = `${initial} s`;
-            lblRow.appendChild(nameEl);
-            lblRow.appendChild(valEl);
-            hostEl.appendChild(lblRow);
+            const { valEl } = _controlHost(hostEl, 'Duration', { value: `${initial} s` });
 
             // Fixed length — the line above IS the control. Nothing to mount and nothing
             // to listen to; `initial` is the model's one length, clamped to it above.
             if (bounds.min === bounds.max) return;
 
-            const barHost = document.createElement('div');
-            barHost.className = 'mpi-prompt-box__slider-track';
-            hostEl.appendChild(barHost);
-
-            this._instance = MpiProgressBar.mount(barHost, {
-                min: bounds.min,
-                max: bounds.max,
-                step: 1,
-                value: initial,
-                interactive: true,
-                wheel: true,
-                handle: true,
-                variant: 'primary',
-                info: 'Video length in seconds',
-            });
-
-            const _renderLabel = (v) => { valEl.textContent = `${v} s`; };
-
-            this._instance.on('input', ({ value }) => {
-                _renderLabel(_clamp(value));
-            });
-
-            this._instance.on('change', ({ value }) => {
-                const v = _clamp(value);
-                this.value = v;
-                _renderLabel(v);
-                _emitUpdate(this, opts, 'duration', v);
+            _mountSlider(this, hostEl, valEl, {
+                key: 'duration', opts, min: bounds.min, max: bounds.max, step: 1, value: initial,
+                info: 'Video length in seconds', clamp: _clamp, fmt: (v) => `${v} s`,
             });
         },
         getValue() {
@@ -708,50 +731,12 @@ export const PROMPT_BOX_CONTROLS = {
             const initial = Number.isFinite(savedNum) ? Math.min(1, Math.max(0, savedNum)) : this.defaultValue;
             this.value = initial;
 
-            hostEl.className = 'mpi-prompt-box__slider-control';
-            hostEl.style.display = 'flex';
-
             const _fmt = (v) => Number(v).toFixed(2);
+            const { valEl } = _controlHost(hostEl, 'Motion', { value: _fmt(initial) });
 
-            const lblRow = document.createElement('div');
-            lblRow.className = 'mpi-prompt-box__slider-lbl';
-            const nameEl = document.createElement('span');
-            nameEl.className = 'mpi-prompt-box__slider-name';
-            nameEl.textContent = 'Motion';
-            const valEl = document.createElement('span');
-            valEl.className = 'mpi-prompt-box__slider-val';
-            valEl.textContent = _fmt(initial);
-            lblRow.appendChild(nameEl);
-            lblRow.appendChild(valEl);
-            hostEl.appendChild(lblRow);
-
-            const barHost = document.createElement('div');
-            barHost.className = 'mpi-prompt-box__slider-track';
-            hostEl.appendChild(barHost);
-
-            this._instance = MpiProgressBar.mount(barHost, {
-                min: 0,
-                max: 1,
-                step: 0.01,
-                value: initial,
-                interactive: true,
-                wheel: true,
-                handle: true,
-                variant: 'primary',
-                info: 'Motion strength (0 = default, 1 = extra motion)',
-            });
-
-            const _renderLabel = (v) => { valEl.textContent = _fmt(v); };
-
-            this._instance.on('input', ({ value }) => {
-                _renderLabel(Math.min(1, Math.max(0, Number(value) || 0)));
-            });
-
-            this._instance.on('change', ({ value }) => {
-                const v = Math.min(1, Math.max(0, Number(value) || 0));
-                this.value = v;
-                _renderLabel(v);
-                _emitUpdate(this, opts, 'motionIntensity', v);
+            _mountSlider(this, hostEl, valEl, {
+                key: 'motionIntensity', opts, min: 0, max: 1, step: 0.01, value: initial,
+                info: 'Motion strength (0 = default, 1 = extra motion)', clamp: _clamp01, fmt: _fmt,
             });
         },
         getValue() {
@@ -822,15 +807,7 @@ export const PROMPT_BOX_CONTROLS = {
             const tilesOn = opts.model?.capabilities?.tileUpscale === true && _readSaved({ scope: 'shared' }, opts).useTiles === true;
             this.value = Number(saved.tileSize) || PROMPT_CONTROL_DEFAULTS.tileSize;
 
-            hostEl.className = 'mpi-prompt-box__slider-control';
-            hostEl.style.display = tilesOn ? '' : 'none';
-
-            const lblRow = document.createElement('div');
-            lblRow.className = 'mpi-prompt-box__slider-lbl';
-            const nameEl = document.createElement('span');
-            nameEl.className = 'mpi-prompt-box__slider-name';
-            lblRow.appendChild(nameEl);
-            hostEl.appendChild(lblRow);
+            const { nameEl } = _controlHost(hostEl, null, { display: tilesOn ? '' : 'none' });
 
             const radioHost = document.createElement('div');
             hostEl.appendChild(radioHost);
@@ -947,15 +924,7 @@ export const PROMPT_BOX_CONTROLS = {
             this.value = allowed().includes(savedNum) ? savedNum : fallback;
             this._size = null;
 
-            hostEl.className = 'mpi-prompt-box__slider-control';
-            hostEl.style.display = 'flex';
-
-            const lblRow = document.createElement('div');
-            lblRow.className = 'mpi-prompt-box__slider-lbl';
-            const nameEl = document.createElement('span');
-            nameEl.className = 'mpi-prompt-box__slider-name';
-            lblRow.appendChild(nameEl);
-            hostEl.appendChild(lblRow);
+            const { nameEl } = _controlHost(hostEl, null);
 
             const radioHost = document.createElement('div');
             hostEl.appendChild(radioHost);
@@ -1053,50 +1022,12 @@ export const PROMPT_BOX_CONTROLS = {
             const initial = Number.isFinite(savedNum) ? Math.min(1, Math.max(0, savedNum)) : fallback;
             this.value = initial;
 
-            hostEl.className = 'mpi-prompt-box__slider-control';
-            hostEl.style.display = 'flex';
-
             const _fmt = (v) => Number(v).toFixed(2);
+            const { valEl } = _controlHost(hostEl, 'Denoise', { value: _fmt(initial) });
 
-            const lblRow = document.createElement('div');
-            lblRow.className = 'mpi-prompt-box__slider-lbl';
-            const nameEl = document.createElement('span');
-            nameEl.className = 'mpi-prompt-box__slider-name';
-            nameEl.textContent = 'Denoise';
-            const valEl = document.createElement('span');
-            valEl.className = 'mpi-prompt-box__slider-val';
-            valEl.textContent = _fmt(initial);
-            lblRow.appendChild(nameEl);
-            lblRow.appendChild(valEl);
-            hostEl.appendChild(lblRow);
-
-            const barHost = document.createElement('div');
-            barHost.className = 'mpi-prompt-box__slider-track';
-            hostEl.appendChild(barHost);
-
-            this._instance = MpiProgressBar.mount(barHost, {
-                min: 0,
-                max: 1,
-                step: 0.01,
-                value: initial,
-                interactive: true,
-                wheel: true,
-                handle: true,
-                variant: 'primary',
-                info: 'Denoise strength (0 = preserve, 1 = full re-render)',
-            });
-
-            const _renderLabel = (v) => { valEl.textContent = _fmt(v); };
-
-            this._instance.on('input', ({ value }) => {
-                _renderLabel(Math.min(1, Math.max(0, Number(value) || 0)));
-            });
-
-            this._instance.on('change', ({ value }) => {
-                const v = Math.min(1, Math.max(0, Number(value) || 0));
-                this.value = v;
-                _renderLabel(v);
-                _emitUpdate(this, opts, 'denoise', v);
+            _mountSlider(this, hostEl, valEl, {
+                key: 'denoise', opts, min: 0, max: 1, step: 0.01, value: initial,
+                info: 'Denoise strength (0 = preserve, 1 = full re-render)', clamp: _clamp01, fmt: _fmt,
             });
 
             // MPI-1232: when tiles flips and no denoise is saved, move slider to the
@@ -1109,7 +1040,7 @@ export const PROMPT_BOX_CONTROLS = {
                 const newDefault = denoiseDefaultFor(opts.opName, !!active);
                 this.value = newDefault;
                 this._instance.el?.setValueQuiet(newDefault);
-                _renderLabel(newDefault);
+                valEl.textContent = _fmt(newDefault);
             });
         },
         getValue() {
@@ -1145,16 +1076,7 @@ export const PROMPT_BOX_CONTROLS = {
             const initial = allowed.includes(savedNum) ? savedNum : fallback;
             this.value = initial;
 
-            hostEl.className = 'mpi-prompt-box__slider-control';
-            hostEl.style.display = 'flex';
-
-            const lblRow = document.createElement('div');
-            lblRow.className = 'mpi-prompt-box__slider-lbl';
-            const nameEl = document.createElement('span');
-            nameEl.className = 'mpi-prompt-box__slider-name';
-            nameEl.textContent = 'Model';
-            lblRow.appendChild(nameEl);
-            hostEl.appendChild(lblRow);
+            _controlHost(hostEl, 'Model');
 
             const radioHost = document.createElement('div');
             hostEl.appendChild(radioHost);
@@ -1216,16 +1138,7 @@ export const PROMPT_BOX_CONTROLS = {
             const initial = allowed.includes(savedNum) ? savedNum : fallback;
             this.value = initial;
 
-            hostEl.className = 'mpi-prompt-box__slider-control';
-            hostEl.style.display = 'flex';
-
-            const lblRow = document.createElement('div');
-            lblRow.className = 'mpi-prompt-box__slider-lbl';
-            const nameEl = document.createElement('span');
-            nameEl.className = 'mpi-prompt-box__slider-name';
-            nameEl.textContent = 'Output';
-            lblRow.appendChild(nameEl);
-            hostEl.appendChild(lblRow);
+            _controlHost(hostEl, 'Output');
 
             const radioHost = document.createElement('div');
             hostEl.appendChild(radioHost);
@@ -1283,16 +1196,7 @@ export const PROMPT_BOX_CONTROLS = {
             const initial = allowed.includes(savedNum) ? savedNum : fallback;
             this.value = initial;
 
-            hostEl.className = 'mpi-prompt-box__slider-control';
-            hostEl.style.display = 'flex';
-
-            const lblRow = document.createElement('div');
-            lblRow.className = 'mpi-prompt-box__slider-lbl';
-            const nameEl = document.createElement('span');
-            nameEl.className = 'mpi-prompt-box__slider-name';
-            nameEl.textContent = 'Tier';
-            lblRow.appendChild(nameEl);
-            hostEl.appendChild(lblRow);
+            _controlHost(hostEl, 'Tier');
 
             const radioHost = document.createElement('div');
             hostEl.appendChild(radioHost);
@@ -1677,16 +1581,7 @@ export const PROMPT_BOX_CONTROLS = {
                 : this.defaultValue;
             this.value = initial;
 
-            hostEl.className = 'mpi-prompt-box__slider-control';
-            hostEl.style.display = 'flex';
-
-            const lblRow = document.createElement('div');
-            lblRow.className = 'mpi-prompt-box__slider-lbl';
-            const nameEl = document.createElement('span');
-            nameEl.className = 'mpi-prompt-box__slider-name';
-            nameEl.textContent = 'Style';
-            lblRow.appendChild(nameEl);
-            hostEl.appendChild(lblRow);
+            _controlHost(hostEl, 'Style');
 
             const pickerHost = document.createElement('div');
             hostEl.appendChild(pickerHost);
@@ -1743,37 +1638,13 @@ export const PROMPT_BOX_CONTROLS = {
 
             const styleIdx = Number(saved.styleSelect ?? PROMPT_CONTROL_DEFAULTS.styleSelect) || 0;
 
-            hostEl.className = 'mpi-prompt-box__slider-control';
-            hostEl.style.display = 'flex';
-
             const _fmt = (v) => Number(v).toFixed(2);
+            const { valEl } = _controlHost(hostEl, 'Stylization', { value: _fmt(initial) });
 
-            const lblRow = document.createElement('div');
-            lblRow.className = 'mpi-prompt-box__slider-lbl';
-            const nameEl = document.createElement('span');
-            nameEl.className = 'mpi-prompt-box__slider-name';
-            nameEl.textContent = 'Stylization';
-            const valEl = document.createElement('span');
-            valEl.className = 'mpi-prompt-box__slider-val';
-            valEl.textContent = _fmt(initial);
-            lblRow.appendChild(nameEl);
-            lblRow.appendChild(valEl);
-            hostEl.appendChild(lblRow);
-
-            const barHost = document.createElement('div');
-            barHost.className = 'mpi-prompt-box__slider-track';
-            hostEl.appendChild(barHost);
-
-            this._instance = MpiProgressBar.mount(barHost, {
-                min: 0,
-                max: 1,
-                step: 0.01,
-                value: initial,
-                interactive: true,
-                wheel: true,
-                handle: true,
-                variant: 'primary',
+            _mountSlider(this, hostEl, valEl, {
+                key: 'stylization', opts, min: 0, max: 1, step: 0.01, value: initial,
                 info: 'Stylization — how strongly the selected style is applied',
+                clamp: _clamp01, fmt: _fmt, isEnabled: () => this._enabled,
             });
 
             this._enabled = styleIdx !== 0;
@@ -1784,21 +1655,6 @@ export const PROMPT_BOX_CONTROLS = {
                 hostEl.style.pointerEvents = on ? '' : 'none';
             };
             _applyEnabled(this._enabled);
-
-            const _renderLabel = (v) => { valEl.textContent = _fmt(v); };
-
-            this._instance.on('input', ({ value }) => {
-                if (!this._enabled) return;
-                _renderLabel(Math.min(1, Math.max(0, Number(value) || 0)));
-            });
-
-            this._instance.on('change', ({ value }) => {
-                if (!this._enabled) return;
-                const v = Math.min(1, Math.max(0, Number(value) || 0));
-                this.value = v;
-                _renderLabel(v);
-                _emitUpdate(this, opts, 'stylization', v);
-            });
 
             this._unsubStyle = Events.on('promptbox:style-change', ({ index }) => {
                 _applyEnabled(index !== 0);
@@ -1852,16 +1708,7 @@ export const PROMPT_BOX_CONTROLS = {
             const initial = ids.includes(wanted) ? wanted : ids[0];
             this.value = initial;
 
-            hostEl.className = 'mpi-prompt-box__slider-control';
-            hostEl.style.display = 'flex';
-
-            const lblRow = document.createElement('div');
-            lblRow.className = 'mpi-prompt-box__slider-lbl';
-            const nameEl = document.createElement('span');
-            nameEl.className = 'mpi-prompt-box__slider-name';
-            nameEl.textContent = 'Control Type';
-            lblRow.appendChild(nameEl);
-            hostEl.appendChild(lblRow);
+            _controlHost(hostEl, 'Control Type');
 
             const radioHost = document.createElement('div');
             hostEl.appendChild(radioHost);
@@ -1919,53 +1766,19 @@ export const PROMPT_BOX_CONTROLS = {
         scope: 'perOp',
         defaultValue: PROMPT_CONTROL_DEFAULTS.controlStrength,
         mount(hostEl, opts = {}) {
-            const clamp = (v) => Math.min(1, Math.max(0, Number(v) || 0));
             const saved = _readSaved(this, opts);
             const fallback = _resolveDefault(this, 'controlStrength', opts);
             const savedNum = Number(saved.controlStrength ?? fallback);
-            const initial = Number.isFinite(savedNum) ? clamp(savedNum) : fallback;
+            const initial = Number.isFinite(savedNum) ? _clamp01(savedNum) : fallback;
             this.value = initial;
 
-            hostEl.className = 'mpi-prompt-box__slider-control';
-            hostEl.style.display = 'flex';
-
             const _fmt = (v) => Number(v).toFixed(2);
+            const { valEl } = _controlHost(hostEl, 'Control Strength', { value: _fmt(initial) });
 
-            const lblRow = document.createElement('div');
-            lblRow.className = 'mpi-prompt-box__slider-lbl';
-            const nameEl = document.createElement('span');
-            nameEl.className = 'mpi-prompt-box__slider-name';
-            nameEl.textContent = 'Control Strength';
-            const valEl = document.createElement('span');
-            valEl.className = 'mpi-prompt-box__slider-val';
-            valEl.textContent = _fmt(initial);
-            lblRow.appendChild(nameEl);
-            lblRow.appendChild(valEl);
-            hostEl.appendChild(lblRow);
-
-            const barHost = document.createElement('div');
-            barHost.className = 'mpi-prompt-box__slider-track';
-            hostEl.appendChild(barHost);
-
-            this._instance = MpiProgressBar.mount(barHost, {
-                min: 0,
-                max: 1,
-                step: 0.05,
-                value: initial,
-                interactive: true,
-                wheel: true,
-                handle: true,
-                variant: 'primary',
+            _mountSlider(this, hostEl, valEl, {
+                key: 'controlStrength', opts, min: 0, max: 1, step: 0.05, value: initial,
                 info: 'Control strength — how strictly the output follows the control map. 1.00 is full; 0 turns the control off.',
-            });
-
-            this._instance.on('input', ({ value }) => { valEl.textContent = _fmt(clamp(value)); });
-
-            this._instance.on('change', ({ value }) => {
-                const v = clamp(value);
-                this.value = v;
-                valEl.textContent = _fmt(v);
-                _emitUpdate(this, opts, 'controlStrength', v);
+                clamp: _clamp01, fmt: _fmt,
             });
         },
         getValue() {
@@ -1993,15 +1806,7 @@ export const PROMPT_BOX_CONTROLS = {
             const initial = allowed.includes(saved) ? saved : _resolveDefault(this, 'audioCategory', opts);
             this.value = initial;
 
-            hostEl.className = 'mpi-prompt-box__slider-control';
-            hostEl.style.display = 'flex';
-            const lblRow = document.createElement('div');
-            lblRow.className = 'mpi-prompt-box__slider-lbl';
-            const nameEl = document.createElement('span');
-            nameEl.className = 'mpi-prompt-box__slider-name';
-            nameEl.textContent = 'What is it';
-            lblRow.appendChild(nameEl);
-            hostEl.appendChild(lblRow);
+            _controlHost(hostEl, 'What is it');
 
             const radioHost = document.createElement('div');
             hostEl.appendChild(radioHost);
@@ -2047,40 +1852,11 @@ export const PROMPT_BOX_CONTROLS = {
             const initial = _clamp(Number.isFinite(savedNum) ? savedNum : this.defaultValue);
             this.value = initial;
 
-            hostEl.className = 'mpi-prompt-box__slider-control';
-            hostEl.style.display = 'flex';
-            const lblRow = document.createElement('div');
-            lblRow.className = 'mpi-prompt-box__slider-lbl';
-            const nameEl = document.createElement('span');
-            nameEl.className = 'mpi-prompt-box__slider-name';
-            nameEl.textContent = 'Length';
-            const valEl = document.createElement('span');
-            valEl.className = 'mpi-prompt-box__slider-val';
-            valEl.textContent = `${initial} s`;
-            lblRow.appendChild(nameEl);
-            lblRow.appendChild(valEl);
-            hostEl.appendChild(lblRow);
+            const { valEl } = _controlHost(hostEl, 'Length', { value: `${initial} s` });
 
-            const barHost = document.createElement('div');
-            barHost.className = 'mpi-prompt-box__slider-track';
-            hostEl.appendChild(barHost);
-            this._instance = MpiProgressBar.mount(barHost, {
-                min: AUDIO_LENGTH.min,
-                max: AUDIO_LENGTH.max,
-                step: 1,
-                value: initial,
-                interactive: true,
-                wheel: true,
-                handle: true,
-                variant: 'primary',
-                info: 'Length of the sound in seconds — exact, not a cap',
-            });
-            this._instance.on('input', ({ value }) => { valEl.textContent = `${_clamp(value)} s`; });
-            this._instance.on('change', ({ value }) => {
-                const v = _clamp(value);
-                this.value = v;
-                valEl.textContent = `${v} s`;
-                _emitUpdate(this, opts, 'audioLength', v);
+            _mountSlider(this, hostEl, valEl, {
+                key: 'audioLength', opts, min: AUDIO_LENGTH.min, max: AUDIO_LENGTH.max, step: 1, value: initial,
+                info: 'Length of the sound in seconds — exact, not a cap', clamp: _clamp, fmt: (v) => `${v} s`,
             });
         },
         getValue() {
@@ -2106,15 +1882,7 @@ export const PROMPT_BOX_CONTROLS = {
                 ?? _resolveDefault(this, 'ttsLanguage', opts);
             this.value = initial;
 
-            hostEl.className = 'mpi-prompt-box__slider-control';
-            hostEl.style.display = 'flex';
-            const lblRow = document.createElement('div');
-            lblRow.className = 'mpi-prompt-box__slider-lbl';
-            const nameEl = document.createElement('span');
-            nameEl.className = 'mpi-prompt-box__slider-name';
-            nameEl.textContent = 'Language';
-            lblRow.appendChild(nameEl);
-            hostEl.appendChild(lblRow);
+            _controlHost(hostEl, 'Language');
 
             const ddHost = document.createElement('div');
             hostEl.appendChild(ddHost);
@@ -2163,40 +1931,10 @@ function _ttsKnob(key, label, info) {
             const initial = _clamp(Number.isFinite(savedNum) ? savedNum : this.defaultValue);
             this.value = initial;
 
-            hostEl.className = 'mpi-prompt-box__slider-control';
-            hostEl.style.display = 'flex';
-            const lblRow = document.createElement('div');
-            lblRow.className = 'mpi-prompt-box__slider-lbl';
-            const nameEl = document.createElement('span');
-            nameEl.className = 'mpi-prompt-box__slider-name';
-            nameEl.textContent = label;
-            const valEl = document.createElement('span');
-            valEl.className = 'mpi-prompt-box__slider-val';
-            valEl.textContent = _fmt(initial);
-            lblRow.appendChild(nameEl);
-            lblRow.appendChild(valEl);
-            hostEl.appendChild(lblRow);
+            const { valEl } = _controlHost(hostEl, label, { value: _fmt(initial) });
 
-            const barHost = document.createElement('div');
-            barHost.className = 'mpi-prompt-box__slider-track';
-            hostEl.appendChild(barHost);
-            this._instance = MpiProgressBar.mount(barHost, {
-                min: k.min,
-                max: k.max,
-                step: k.step,
-                value: initial,
-                interactive: true,
-                wheel: true,
-                handle: true,
-                variant: 'primary',
-                info,
-            });
-            this._instance.on('input', ({ value }) => { valEl.textContent = _fmt(value); });
-            this._instance.on('change', ({ value }) => {
-                const v = _clamp(value);
-                this.value = v;
-                valEl.textContent = _fmt(v);
-                _emitUpdate(this, opts, key, v);
+            _mountSlider(this, hostEl, valEl, {
+                key, opts, min: k.min, max: k.max, step: k.step, value: initial, info, clamp: _clamp, fmt: _fmt,
             });
         },
         getValue() {

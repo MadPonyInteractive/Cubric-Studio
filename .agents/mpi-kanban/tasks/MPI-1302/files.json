@@ -86,6 +86,7 @@
     "services/resizeOps.js",
     "services/imageComposite.js",
     "routes/platformEngine.js",
-    "js/utils/icons.js"
+    "js/utils/icons.js",
+    "js/components/Organisms/MpiPromptBox/PromptBoxControls.js"
   ]
 }

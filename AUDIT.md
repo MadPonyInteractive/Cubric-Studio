@@ -64,8 +64,14 @@ the 142 violations they had let through). The finding sections below are left as
   `ensureCuratedPythonDeps`, `getDefaultModelsRoot` and the extra-folders cluster). Left: the
   audit's "smaller gaps" (projectStatsService, devUpdatesService, commandExecutor).
 
+- Phase 2: **D1** (`PromptBoxControls.js`: `_controlHost` lays out the label row all 17 controls
+  shared, `_mountSlider` the track + input/change/persist the 7 real sliders shared; only 7 of
+  the 17 were sliders, the rest are radio rows, a dropdown and the style picker). 262 lines
+  fewer. Proof: 198 control x model cases (DOM, value, injection params, a drag and its
+  settings event) identical before and after in the desktop app.
+
 **Still open, suggested batches:**
-- Next: **D1** (PromptBox slider ×17), **D3/D10** route by route, **P2/P14/P7/P12/P13**.
+- Next: **D3/D10** route by route, **P2/P14/P7/P12/P13**.
 - Needs the desktop suite or Fabio watching: **P1**, **P3**, **D7**, **D9**.
 - Needs a local profile or a Pod: **P4–P6**, **P9–P11**.
 

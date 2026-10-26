@@ -2,9 +2,12 @@
 
 ## Current State
 
-- **Where it stands (2026-10-26):** Phases 1a-1d done and pushed. Next: Phase 2, starting with
-  **D1** (PromptBox slider x17). `npm run lint` now ends with the type-check; a new file under
-  `js/utils/` must start with `// @ts-check` and pass it.
+- **Where it stands (2026-10-26):** Phases 1a-1d and D1 done and pushed. Next: **D3/D10** route
+  by route, one commit each, then P2/P14/P7/P12/P13. `npm run lint` now ends with the
+  type-check; a new file under `js/utils/` must start with `// @ts-check` and pass it.
+- A behaviour-preserving frontend refactor is proven with a throwaway desktop spec that
+  snapshots DOM + values + emitted events before and after (D1's lives in the session
+  scratchpad, never committed); `tests/desktop/launch.js` runs on its own port, never :3000.
 - `AUDIT.md` (repo root) is the investigation. Its **Status** section lists what PR #12
   (MadPonyInteractive/Cubric-Studio#12, merged 2026-10-26) already fixed: H1, H2, X3, B1, B5, D2,
   B2, D4, B3, D5, X1, X2. Every ID below has a detail section there; read it before the step.
@@ -36,6 +39,8 @@
   pre-push gate run it with no workflow edit. Marked: all `js/utils/*.js`, `commandRegistry.js`,
   `resolveModelDeps.js`. Widen by adding the pragma to more files.
 - [x] T2: JSDoc on `promptReuse.js`, `projectService.js`, `routes/shared.js`.
+- [x] D1: `_controlHost` + `_mountSlider` in `PromptBoxControls.js` (-262 lines); 198-case desktop
+  snapshot identical before/after.
 
 ## Remaining Work
 
@@ -99,6 +104,12 @@ touches the same code.
 
 ## Plan Drift
 
+- D1: only 7 of the audit's 17 copies are sliders (duration, motionIntensity, denoise,
+  stylization, controlStrength, audioLength, the `_ttsKnob` pair); the other 10 share just the
+  label row. So two helpers (`_controlHost`, `_mountSlider`) instead of one `_sliderControl`
+  factory: each slider keeps its own initial-value and `getInjectionParams` logic, which differ.
+  Noticed, not changed: duration, motionIntensity and controlStrength have no `destroy()`, and
+  stylization's does not destroy its bar (the factory `destroy()` also removes the element).
 - T1: no `tests.yml` step. The check is chained into `npm run lint`, which CI and the pre-push
   gate already run; a separate CI step would have let a red reach master past the local gate.
   TypeScript 6 defaults `strict` on (5,000+ implicit-any errors); the config turns it off.
