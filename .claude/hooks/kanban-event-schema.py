@@ -23,8 +23,11 @@ import json
 import os
 import subprocess
 import sys
+from pathlib import Path
 
-REPO = "c:/AI/Mpi/Cubric-Vision"
+# This file lives at <repo>/.claude/hooks/, so the repo is two levels up. A hard-coded
+# path checked nothing on any other checkout (the repo was renamed, and cloud runs are Linux).
+REPO = Path(__file__).resolve().parents[2].as_posix()
 KANBAN = ".agents/mpi-kanban"
 REQUIRED = ("schema", "id", "type", "at")
 SCHEMA = "mpi-kanban/event/v1"

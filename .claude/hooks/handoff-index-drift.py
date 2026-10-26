@@ -23,8 +23,11 @@ Run self-check:  python handoff-index-drift.py --selftest
 import json
 import os
 import sys
+from pathlib import Path
 
-REPO = "c:/AI/Mpi/Cubric-Vision"
+# This file lives at <repo>/.claude/hooks/, so the repo is two levels up. A hard-coded
+# path checked nothing on any other checkout (the repo was renamed, and cloud runs are Linux).
+REPO = Path(__file__).resolve().parents[2].as_posix()
 STATE = REPO + "/.agents/mpi-kanban/state"
 # index.json lists only these; anything else must not appear in active_handoffs.
 ACTIVE_STATUSES = ("open", "accepted")

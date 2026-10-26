@@ -14,9 +14,12 @@ import json
 import re
 import subprocess
 import sys
+from pathlib import Path
 
-REPO = "c:/AI/Mpi/Cubric-Vision"
-MPINODES = "c:/AI/Mpi/ComfyUi-MpiNodes"  # first-party node pack — a SEPARATE repo
+# This file lives at <repo>/.claude/hooks/, so the repo is two levels up. A hard-coded
+# path checked nothing on any other checkout (the repo was renamed, and cloud runs are Linux).
+REPO = Path(__file__).resolve().parents[2].as_posix()
+MPINODES = Path(REPO).parent.joinpath("ComfyUi-MpiNodes").as_posix()  # first-party node pack — a SEPARATE sibling repo
 
 # Paths whose change historically needs a bump and/or image rebuild (Deliverable A).
 # Substring match against `git diff --name-only` output (forward-slash paths).
