@@ -26,6 +26,7 @@ const express = require('express');
 const router  = express.Router();
 const fs      = require('fs-extra');
 const path    = require('path');
+const { diskPathOf, projectFileUrlBusted } = require('../services/projectFileUrl');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
 const { v4: uuidv4 } = require('uuid');
@@ -41,16 +42,6 @@ const { nextSequence } = require('./projects');
 // rendition, so a project open popped ~20 of them (MPI-651, the tail of MPI-637).
 const execFileP = promisify(execFile);
 
-function _resolveInput(raw) {
-    if (!raw) return '';
-    if (raw.includes('project-file?path=')) {
-        try {
-            const u = new URL(raw, 'http://localhost');
-            return decodeURIComponent(u.searchParams.get('path') || '');
-        } catch { return ''; }
-    }
-    return raw;
-}
 
 router.post('/api/video/reverse', async (req, res) => {
     let outputPath = '';
@@ -62,7 +53,7 @@ router.post('/api/video/reverse', async (req, res) => {
         // 'both' (video+audio, default/back-compat) | 'video' (video only) | 'audio' (audio only)
         const mode = ['both', 'video', 'audio'].includes(req.body?.mode) ? req.body.mode : 'both';
 
-        const inputPath = _resolveInput(sourcePath);
+        const inputPath = diskPathOf(sourcePath) || '';
         if (!(await fs.pathExists(inputPath))) {
             return res.status(404).json({ success: false, error: 'source file not found: ' + inputPath });
         }
@@ -129,8 +120,7 @@ router.post('/api/video/reverse', async (req, res) => {
         const metaDir = path.join(mediaDir, '.meta');
         await fs.ensureDir(metaDir);
         // Cache-bust on mtime so a re-run overwriting a reused name plays fresh bytes.
-        const _mtime = (await fs.stat(outputPath).catch(() => null))?.mtimeMs || 0;
-        const filePathUrl = `/project-file?path=${encodeURIComponent(outputPath)}&v=${Math.round(_mtime)}`;
+        const filePathUrl = projectFileUrlBusted(outputPath);
         const sidecar = {
             id:         newId,
             type:       'video',

@@ -63,6 +63,7 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs-extra');
 const path = require('path');
+const { diskPathOf, projectFileUrlBusted } = require('../services/projectFileUrl');
 const os = require('os');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
@@ -93,18 +94,6 @@ const VALID_SIZE_PRESETS = new Set(['original', ...Object.keys(SIZE_PRESET_FIXED
 const MIN_FPS = 1;
 const MAX_FPS = 60; // matches MpiToolOptionsGif's fps MpiInput bound
 const MAX_LOOP = 999; // matches MpiToolOptionsGif's loop MpiInput bound
-
-function _resolveSourcePath(raw) {
-    const str = String(raw || '');
-    if (!str) return '';
-    if (str.includes('project-file?path=')) {
-        try {
-            const u = new URL(str, 'http://localhost');
-            return decodeURIComponent(u.searchParams.get('path') || '');
-        } catch { return ''; }
-    }
-    return str;
-}
 
 /**
  * `buildGif()` only takes one longest-edge box (`output.maxEdge`), but a
@@ -209,7 +198,7 @@ router.post('/gif/maker', async (req, res) => {
             trim = { in: tIn, out: tOut };
         }
 
-        const inputPath = _resolveSourcePath(sourcePath);
+        const inputPath = diskPathOf(sourcePath) || '';
         if (!inputPath || !(await fs.pathExists(inputPath))) {
             return res.status(404).json({ success: false, error: `source video not found: ${inputPath || sourcePath}` });
         }
@@ -233,8 +222,7 @@ router.post('/gif/maker', async (req, res) => {
         await buildGif(gifEntry, mediaDir, outputPath);
 
         const id = uuidv4();
-        const _mtime = (await fs.stat(outputPath).catch(() => null))?.mtimeMs || 0;
-        const filePathUrl = `/project-file?path=${encodeURIComponent(outputPath)}&v=${Math.round(_mtime)}`;
+        const filePathUrl = projectFileUrlBusted(outputPath);
         const meta = {
             id,
             type: 'image',

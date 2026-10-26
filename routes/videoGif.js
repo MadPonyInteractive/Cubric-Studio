@@ -27,6 +27,7 @@ const express = require('express');
 const router  = express.Router();
 const fs      = require('fs-extra');
 const path    = require('path');
+const { diskPathOf } = require('../services/projectFileUrl');
 const os      = require('os');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
@@ -50,16 +51,6 @@ const SCALE_FILTERS = {
     'autox320': 'scale=-2:320:flags=lanczos',
 };
 
-function _resolveInput(raw) {
-    if (!raw) return '';
-    if (raw.includes('project-file?path=')) {
-        try {
-            const u = new URL(raw, 'http://localhost');
-            return decodeURIComponent(u.searchParams.get('path') || '');
-        } catch { return ''; }
-    }
-    return raw;
-}
 
 router.post('/api/video/gif', async (req, res) => {
     let outputPath = '';
@@ -69,7 +60,7 @@ router.post('/api/video/gif', async (req, res) => {
             return res.status(400).json({ success: false, error: 'sourcePath required' });
         }
 
-        const inputPath = _resolveInput(sourcePath);
+        const inputPath = diskPathOf(sourcePath) || '';
         if (!(await fs.pathExists(inputPath))) {
             return res.status(404).json({ success: false, error: 'source file not found: ' + inputPath });
         }

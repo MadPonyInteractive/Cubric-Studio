@@ -41,6 +41,7 @@ const logger = require('./logger');
 const { v4: uuidv4 } = require('uuid');
 const { getProjectsRoot, streamDownload, stripImageMetadata, readProjectPathsRegistry, addProjectPathToRegistry, removeProjectPathFromRegistry, readHiddenProjects, setProjectHidden, readFavouriteProjects, setProjectFavourite } = require('./shared');
 const { getComfyPath, getEngineRoot } = require('./platformEngine');
+const { projectFileUrl, projectFileUrlBusted, projectFilePath, diskPathOf } = require('../services/projectFileUrl');
 const { probeVideo, probeAudio } = require('../services/ffprobeVideo');
 const { extractImageThumb, extractVideoThumb, extractVideoProxy, extractAudioWaveform, extractVideoWaveform, writeVideoDerivatives, imageThumbPath, videoProxyPath, IMAGE_RENDITION_PX, VIDEO_PROXY_HEIGHT } = require('../services/ffmpegThumb');
 const { ffmpegPath, ffprobePath, quote } = require('../services/ffmpegBinary');
@@ -89,14 +90,6 @@ function updateProjectJson(jsonPath, updater) {
 
     projectJsonQueues.set(key, next);
     return next;
-}
-
-function pathFromProjectFileUrl(value) {
-    const raw = String(value || '');
-    if (!raw) return null;
-    const match = raw.match(/[?&]path=([^&]+)/);
-    if (match) return decodeURIComponent(match[1]);
-    return path.isAbsolute(raw) ? raw : null;
 }
 
 /**
@@ -213,7 +206,7 @@ async function _sidecarIdFor(metaDir, filePath) {
     const want = _normPath(filePath);
     const owns = async (id) => {
         const meta = await fs.readJson(path.join(metaDir, `${id}.json`)).catch(() => null);
-        const p = pathFromProjectFileUrl(meta?.filePath);
+        const p = diskPathOf(meta?.filePath);
         return !!p && _normPath(p) === want;
     };
     const known = _displayIds.get(want);
@@ -289,7 +282,7 @@ async function projectThumbFor(filePath) {
     const metaDir = path.join(path.dirname(filePath), '.meta');
     const id = await _sidecarIdFor(metaDir, filePath);
     const meta = id ? await fs.readJson(path.join(metaDir, `${id}.json`)).catch(() => null) : null;
-    const thumb = pathFromProjectFileUrl(meta?.thumbPath);
+    const thumb = diskPathOf(meta?.thumbPath);
     return thumb && await fs.pathExists(thumb) ? thumb : filePath;
 }
 
@@ -316,9 +309,9 @@ async function findRecentProjectThumbnail(mediaDir) {
             try {
                 const meta = await fs.readJson(path.join(metaDir, metaFile));
                 if (RECENT_THUMBNAIL_EXCLUDED_OPERATIONS.has(String(meta.operation || ''))) return null;
-                let absPath = pathFromProjectFileUrl(meta.filePath);
+                let absPath = diskPathOf(meta.filePath);
                 if (!absPath) return null;
-                let thumb = meta.thumbPath ? pathFromProjectFileUrl(meta.thumbPath) : null;
+                let thumb = meta.thumbPath ? diskPathOf(meta.thumbPath) : null;
                 if (!(await fs.pathExists(absPath))) {
                     // A moved project's sidecars name its OLD folder until it is opened and
                     // the MPI-898 heal rewrites them. Resolve by the same rule, read-only:
@@ -451,21 +444,6 @@ async function nextSequence(folderPath, mediaDir, prefix, ext = 'mp4') {
     return `${prefix}_${seq}.${ext}`;
 }
 
-function projectFileUrl(filePath) {
-    return `/project-file?path=${encodeURIComponent(filePath)}`;
-}
-
-// Cache-busted variant for FRESHLY-WRITTEN output files. A run that overwrites a
-// reused sequenced name (crop_001, combined_001, etc.) at the same path would
-// otherwise share the previous run's cached bytes in Chromium's <video>/<img>
-// cache. Appending the output's mtime gives each write a fresh URL. Read-side
-// callers (reconciler, thumbnails, latents) keep plain projectFileUrl.
-function projectFileUrlBusted(filePath) {
-    let mtime = 0;
-    try { mtime = Math.round(fs.statSync(filePath).mtimeMs); } catch (_) { /* file just written; best-effort */ }
-    return `/project-file?path=${encodeURIComponent(filePath)}&v=${mtime}`;
-}
-
 function relativeProjectPath(projectRoot, filePath) {
     return path.relative(projectRoot, filePath).replace(/\\/g, '/');
 }
@@ -477,21 +455,6 @@ function safeJoinInside(baseDir, ...parts) {
         throw new Error('Resolved path escapes allowed directory');
     }
     return resolved;
-}
-
-function decodeProjectFilePath(value) {
-    if (!value || typeof value !== 'string') return null;
-    try {
-        const url = new URL(value, 'http://127.0.0.1');
-        if (url.pathname.endsWith('/project-file') || url.pathname === '/project-file') {
-            const raw = url.searchParams.get('path');
-            return raw ? path.normalize(raw) : null;
-        }
-    } catch (_) {
-        const match = value.match(/[?&]path=([^&]+)/);
-        if (match) return path.normalize(decodeURIComponent(match[1]));
-    }
-    return null;
 }
 
 async function copySnapshotSource(sourceUrl, targetPath) {
@@ -506,7 +469,7 @@ async function copySnapshotSource(sourceUrl, targetPath) {
         return;
     }
 
-    const projectPath = decodeProjectFilePath(sourceUrl);
+    const projectPath = projectFilePath(sourceUrl);
     if (projectPath) {
         if (!(await fs.pathExists(projectPath))) throw new Error(`Snapshot source missing: ${projectPath}`);
         // Cold-fallback Continue replays the preview from its own previously
@@ -642,7 +605,7 @@ async function migratePreviewAssetsStore(folderPath) {
     // 3. Rewrite sidecar refs. A ref string is a /project-file?path= URL (or abs path)
     //    pointing at an old per-item file → swap in the flat SHA path.
     function rewriteRef(value) {
-        const abs = decodeProjectFilePath(value) || (path.isAbsolute(String(value || '')) ? String(value) : null);
+        const abs = diskPathOf(value);
         if (!abs) return null;
         const hit = remap.get(_normAbs(abs));
         return hit ? projectFileUrl(hit) : null;
@@ -661,7 +624,7 @@ async function migratePreviewAssetsStore(folderPath) {
                     for (const snap of (meta?.previewAssets?.snapshots || [])) {
                         const next = rewriteRef(snap.filePath) || rewriteRef(snap.relativePath && path.join(folderPath, snap.relativePath));
                         if (next) {
-                            const abs = decodeProjectFilePath(next);
+                            const abs = projectFilePath(next);
                             snap.filePath = next;
                             snap.relativePath = relativeProjectPath(folderPath, abs);
                             snap.filename = path.basename(abs);
@@ -1374,7 +1337,7 @@ router.delete('/project-media/:projectId/:filename', async (req, res) => {
         // when it points elsewhere, skip the file unlink and only clean meta.
         let ownsFile = true;
         if (itemId && sidecarFilePath) {
-            const owned = pathFromProjectFileUrl(sidecarFilePath);
+            const owned = diskPathOf(sidecarFilePath);
             if (owned && path.normalize(owned) !== path.normalize(filePath)) {
                 ownsFile = false;
                 logger.warn('project', `delete: itemId ${itemId} sidecar points at ${path.basename(owned)}, not ${filename} — skipping file unlink to avoid orphaning another entry`);
@@ -1443,7 +1406,7 @@ router.get('/project-media/:projectId/validate-preview-assets', async (req, res)
             }
             const candidates = [];
             if (latentInfo.filePath) {
-                const decoded = decodeProjectFilePath(latentInfo.filePath);
+                const decoded = projectFilePath(latentInfo.filePath);
                 if (decoded) candidates.push(decoded);
             }
             if (latentInfo.relativePath) {
@@ -1473,7 +1436,7 @@ router.get('/project-media/:projectId/validate-preview-assets', async (req, res)
             let diskPath = null;
             const candidates = [];
             if (snap.filePath) {
-                const decoded = decodeProjectFilePath(snap.filePath);
+                const decoded = projectFilePath(snap.filePath);
                 if (decoded) candidates.push(decoded);
             }
             // MPI-821: a snapshot is a REFERENCE to the source card now, so `url` is
@@ -1482,7 +1445,7 @@ router.get('/project-media/:projectId/validate-preview-assets', async (req, res)
             // everything it needs. `filePath`/`relativePath`/`filename` above stay for
             // sidecars written while the copy store was live.
             if (snap.url) {
-                const decoded = decodeProjectFilePath(snap.url);
+                const decoded = projectFilePath(snap.url);
                 if (decoded) candidates.push(decoded);
             }
             if (snap.relativePath) {
@@ -1849,14 +1812,7 @@ router.post('/project-media/:projectId/probe-videos', async (req, res) => {
             if (meta.fps && meta.duration) continue;
 
             // Resolve media file path from stored filePath URL
-            let inputPath = '';
-            try {
-                const raw = meta.filePath || '';
-                if (raw.includes('project-file?path=')) {
-                    const u = new URL(raw, 'http://localhost');
-                    inputPath = decodeURIComponent(u.searchParams.get('path') || '');
-                }
-            } catch { continue; }
+            const inputPath = projectFilePath(meta.filePath);
             if (!inputPath || !(await fs.pathExists(inputPath))) continue;
 
             const v = await probeVideo(inputPath);
@@ -1928,7 +1884,7 @@ router.post('/backfill-media-derivatives', async (req, res) => {
             try { meta = await fs.readJson(p); } catch { continue; }
             if (meta.type !== 'image' && meta.type !== 'video' && meta.type !== 'audio') continue;
 
-            const inputPath = pathFromProjectFileUrl(meta.filePath);
+            const inputPath = diskPathOf(meta.filePath);
             if (!inputPath || !(await fs.pathExists(inputPath))) continue;
 
             const id = meta.id || f.replace(/\.json$/, '');
@@ -2388,13 +2344,7 @@ router.post('/project-media/:projectId/extract', async (req, res) => {
         if (!folderPath) return res.status(400).json({ success: false, error: 'folderPath required' });
 
         // Resolve local path from URL or absolute path
-        let inputPath = '';
-        if (sourceUrl.includes('project-file?path=')) {
-            const urlObj = new URL(sourceUrl, 'http://localhost');
-            inputPath = decodeURIComponent(urlObj.searchParams.get('path'));
-        } else {
-            inputPath = sourceUrl;
-        }
+        const inputPath = projectFilePath(sourceUrl) || sourceUrl;
 
         if (!(await fs.pathExists(inputPath))) {
             return res.status(400).json({ success: false, error: 'Source file not found: ' + inputPath });
@@ -2521,8 +2471,8 @@ router.post('/project/save-generation', async (req, res) => {
                     const prev = await fs.readJson(prevMetaPath);
                     // MPI-750: stops at `&` — a greedy parse kept the `&v=<mtime>` cache-bust,
                     // the path never existed, and the replaced media file leaked on disk.
-                    _replacePrevMediaPath = pathFromProjectFileUrl(prev?.filePath);
-                    _replacePrevThumbPath = pathFromProjectFileUrl(prev?.thumbPath);
+                    _replacePrevMediaPath = diskPathOf(prev?.filePath);
+                    _replacePrevThumbPath = diskPathOf(prev?.thumbPath);
                     if (Number.isFinite(prev?.generationMs)) {
                         _replacePrevGenerationMs = prev.generationMs;
                     }
@@ -2807,14 +2757,14 @@ router.post('/project/save-generation', async (req, res) => {
                 let mediaPath = null;
 
                 // Try to read the meta file to get the actual media file path.
-                // Use pathFromProjectFileUrl (stops at `&`) NOT a greedy
+                // Use diskPathOf (stops at `&`) NOT a greedy
                 // `path=(.+)$`: freshly-written outputs carry a `&v=<mtime>`
                 // cache-bust suffix, and the greedy match folded that into the
                 // path → pathExists() false → the GC wrongly deleted a live
                 // sidecar (missing sidecar → gallery 404, card vanishes on reload).
                 try {
                     const metaContent = await fs.readJson(metaFilePath);
-                    if (metaContent.filePath) mediaPath = pathFromProjectFileUrl(metaContent.filePath);
+                    if (metaContent.filePath) mediaPath = diskPathOf(metaContent.filePath);
                 } catch (_) {
                     // Unreadable is NOT orphaned (MPI-977): every writer truncates, then
                     // writes, so this is usually a sidecar caught mid-write by another
@@ -2892,7 +2842,7 @@ router.post('/project/save-generation', async (req, res) => {
  *          source media is missing on disk.
  */
 async function copyItemIntoProject({ item, mediaDir, metaDir, type, name }) {
-    const srcMedia = pathFromProjectFileUrl(item?.filePath);
+    const srcMedia = diskPathOf(item?.filePath);
     if (!srcMedia || !(await fs.pathExists(srcMedia))) return null;
 
     const id = uuidv4();
@@ -2905,7 +2855,7 @@ async function copyItemIntoProject({ item, mediaDir, metaDir, type, name }) {
 
     // Clone the source sidecar when present so metadata survives; else
     // synthesize a minimal one from the item fields the client sent.
-    const srcMetaCandidate = pathFromProjectFileUrl(item?.filePath)
+    const srcMetaCandidate = diskPathOf(item?.filePath)
         ? path.join(path.dirname(srcMedia), '.meta', `${item.id}.json`)
         : null;
     let meta = {};
@@ -2921,7 +2871,7 @@ async function copyItemIntoProject({ item, mediaDir, metaDir, type, name }) {
     // Copy companion renditions if the source had them. The large one keeps
     // its own `.1280.webp` tail so the copy lands on the same names the
     // ladder and the GC both look for (MPI-633).
-    const srcThumb = pathFromProjectFileUrl(item?.thumbPath) || pathFromProjectFileUrl(meta.thumbPath);
+    const srcThumb = diskPathOf(item?.thumbPath) || diskPathOf(meta.thumbPath);
     if (srcThumb && await fs.pathExists(srcThumb)) {
         const destThumb = path.join(metaDir, `${id}.thumb${path.extname(srcThumb)}`);
         await fs.copy(srcThumb, destThumb);
@@ -2929,7 +2879,7 @@ async function copyItemIntoProject({ item, mediaDir, metaDir, type, name }) {
     } else {
         delete meta.thumbPath;
     }
-    const srcLarge = pathFromProjectFileUrl(item?.thumbPathLg) || pathFromProjectFileUrl(meta.thumbPathLg);
+    const srcLarge = diskPathOf(item?.thumbPathLg) || diskPathOf(meta.thumbPathLg);
     if (srcLarge && await fs.pathExists(srcLarge)) {
         const destLarge = imageThumbPath(path.join(metaDir, `${id}.thumb.jpg`), { width: IMAGE_RENDITION_PX.large });
         await fs.copy(srcLarge, destLarge);
@@ -2937,7 +2887,7 @@ async function copyItemIntoProject({ item, mediaDir, metaDir, type, name }) {
     } else {
         delete meta.thumbPathLg;
     }
-    const srcProxy = pathFromProjectFileUrl(item?.proxyPath) || pathFromProjectFileUrl(meta.proxyPath);
+    const srcProxy = diskPathOf(item?.proxyPath) || diskPathOf(meta.proxyPath);
     if (srcProxy && await fs.pathExists(srcProxy)) {
         const destProxy = videoProxyPath(path.join(metaDir, `${id}.thumb.jpg`));
         await fs.copy(srcProxy, destProxy);
@@ -2950,7 +2900,7 @@ async function copyItemIntoProject({ item, mediaDir, metaDir, type, name }) {
     // `splatPath` pointing back into the SOURCE project — a card that looks
     // fine until it is opened, or until the source project is deleted.
     // Hundreds of MB, so `fs.copy` is the slow step of copying a Scene card.
-    const srcSplat = pathFromProjectFileUrl(item?.splatPath) || pathFromProjectFileUrl(meta.splatPath);
+    const srcSplat = diskPathOf(item?.splatPath) || diskPathOf(meta.splatPath);
     if (srcSplat && await fs.pathExists(srcSplat)) {
         const destSplat = path.join(metaDir, `${id}.splat${path.extname(srcSplat)}`);
         await fs.copy(srcSplat, destSplat);
@@ -2962,7 +2912,7 @@ async function copyItemIntoProject({ item, mediaDir, metaDir, type, name }) {
     // manifest `scenePath` names) plus its `<id>.scene.*` siblings. The manifest names them
     // by suffix, never by id, so the whole set copies under the new id unedited. Dropped,
     // like a dead splat, when the manifest is gone.
-    const srcScene = pathFromProjectFileUrl(item?.scenePath) || pathFromProjectFileUrl(meta.scenePath);
+    const srcScene = diskPathOf(item?.scenePath) || diskPathOf(meta.scenePath);
     if (srcScene && await fs.pathExists(srcScene)) {
         const srcPrefix = path.basename(srcScene).replace(/json$/, '');
         for (const f of await fs.readdir(path.dirname(srcScene))) {
@@ -3245,11 +3195,7 @@ router.post('/project/crop-media', async (req, res) => {
         const id = itemId || uuidv4();
 
         // Resolve the source path (may come as a /project-file?path=... URL)
-        let inputPath = sourceFilePath;
-        if (sourceFilePath.includes('project-file?path=')) {
-            const urlObj = new URL(sourceFilePath, 'http://localhost');
-            inputPath = decodeURIComponent(urlObj.searchParams.get('path'));
-        }
+        const inputPath = projectFilePath(sourceFilePath) || sourceFilePath;
 
         if (!(await fs.pathExists(inputPath))) {
             return res.status(400).json({ success: false, error: 'Source file not found: ' + inputPath });
@@ -3349,8 +3295,8 @@ router.post('/project/composite-media', async (req, res) => {
         if (!maskDataUrl) return res.status(400).json({ success: false, error: 'maskDataUrl required' });
 
         const id = itemId || uuidv4();
-        const baseAbs    = decodeProjectFilePath(basePath)    || basePath;
-        const overlayAbs = decodeProjectFilePath(overlayPath) || overlayPath;
+        const baseAbs    = projectFilePath(basePath)    || basePath;
+        const overlayAbs = projectFilePath(overlayPath) || overlayPath;
 
         for (const p of [baseAbs, overlayAbs]) {
             if (!(await fs.pathExists(p))) {
@@ -3462,7 +3408,7 @@ router.post('/project/apply-paint', async (req, res) => {
         const op = ['paint', 'composite'].includes(operation) ? operation : 'paint';
 
         const id = itemId || uuidv4();
-        const baseAbs = decodeProjectFilePath(sourceFilePath) || sourceFilePath;
+        const baseAbs = projectFilePath(sourceFilePath) || sourceFilePath;
 
         if (!(await fs.pathExists(baseAbs))) {
             return res.status(400).json({ success: false, error: 'Source file not found: ' + baseAbs });
@@ -3554,7 +3500,7 @@ router.post('/project/extract-media', async (req, res) => {
         }
 
         const id = itemId || uuidv4();
-        const baseAbs = decodeProjectFilePath(sourceFilePath) || sourceFilePath;
+        const baseAbs = projectFilePath(sourceFilePath) || sourceFilePath;
         if (!(await fs.pathExists(baseAbs))) {
             return res.status(400).json({ success: false, error: 'Source file not found: ' + baseAbs });
         }
@@ -3690,7 +3636,7 @@ async function healRelocatedMeta(metaPath, mediaPath, projectRoot) {
 
     const walk = (v) => {
         if (typeof v === 'string') {
-            const abs = decodeProjectFilePath(v);
+            const abs = projectFilePath(v);
             const moved = abs && rebase(abs);
             if (!moved) return v;
             return v.replace(/([?&]path=)[^&]*/, (_, key) => key + encodeURIComponent(moved));
@@ -3740,7 +3686,7 @@ router.post('/load-meta-batch', async (req, res) => {
                 items[id] = { meta: null, exists: false };
                 return;
             }
-            const mediaPath = pathFromProjectFileUrl(meta.filePath);
+            const mediaPath = diskPathOf(meta.filePath);
             let exists = !!mediaPath && await fs.pathExists(mediaPath);
             if (!exists && mediaPath) {
                 const healed = await healRelocatedMeta(path.join(metaDir, `${id}.json`), mediaPath, path.normalize(folderPath));
@@ -3994,7 +3940,7 @@ router.get('/project-stats/:projectId', async (req, res) => {
                 let meta;
                 try { meta = await fs.readJson(metaPath); } catch { continue; }
                 // MPI-750: stops at `&` — a greedy parse kept the `&v=<mtime>` cache-bust.
-                const mediaPath = pathFromProjectFileUrl(meta.filePath);
+                const mediaPath = diskPathOf(meta.filePath);
                 if (!mediaPath || !(await fs.pathExists(mediaPath))) continue;
                 const stat = await fs.stat(mediaPath);
                 if (!stat.isFile()) continue;

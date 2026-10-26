@@ -49,6 +49,7 @@
 
 const express = require('express');
 const path = require('path');
+const { diskPathOf } = require('../services/projectFileUrl');
 const fs = require('fs');
 const router = express.Router();
 const logger = require('./logger');
@@ -585,10 +586,9 @@ router.post('/llm/zoom-crop', async (req, res) => {
         || c.x < 0 || c.y < 0 || c.x + c.w > 1.0001 || c.y + c.h > 1.0001) {
         return res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST', message: 'imagePath and crop {x,y,w,h} as fractions of the picture are required.' } });
     }
-    const pathMatch = imagePath.match(/[?&]path=([^&]+)/);
-    const srcPath = pathMatch ? decodeURIComponent(pathMatch[1]) : imagePath;
-    if (!path.isAbsolute(srcPath) || !fs.existsSync(srcPath)) {
-        return res.json({ ok: false, error: { code: 'BAD_IMAGE', message: `File not found: ${srcPath}` } });
+    const srcPath = diskPathOf(imagePath);
+    if (!srcPath || !fs.existsSync(srcPath)) {
+        return res.json({ ok: false, error: { code: 'BAD_IMAGE', message: `File not found: ${srcPath || imagePath}` } });
     }
     try {
         await fs.promises.mkdir(ZOOM_DIR, { recursive: true });
@@ -658,12 +658,9 @@ router.post('/llm/describe', async (req, res) => {
     // ── Read and pre-process the image ───────────────────────────────────────
     // The gallery right-click sends an item's `/project-file?path=` URL; the agent's
     // `look` sends an absolute path. Anything else (a relative path) is refused.
-    // ponytail: same decode as routes/projects.js pathFromProjectFileUrl (not exported;
-    // gif.js and gifMake.js carry copies too) - one shared helper if a fifth appears.
-    const pathMatch = imagePath.match(/[?&]path=([^&]+)/);
-    const srcPath = pathMatch ? decodeURIComponent(pathMatch[1]) : imagePath;
-    if (!path.isAbsolute(srcPath) || !fs.existsSync(srcPath)) {
-        return res.json({ ok: false, error: { code: 'BAD_IMAGE', message: `File not found: ${srcPath}` } });
+    const srcPath = diskPathOf(imagePath);
+    if (!srcPath || !fs.existsSync(srcPath)) {
+        return res.json({ ok: false, error: { code: 'BAD_IMAGE', message: `File not found: ${srcPath || imagePath}` } });
     }
 
     let imgBuffer;

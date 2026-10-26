@@ -19,6 +19,7 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs-extra');
 const path = require('path');
+const { diskPathOf } = require('../services/projectFileUrl');
 const sharp = require('sharp');
 const logger = require('./logger');
 const { resizeImage } = require('../services/resizeOps');
@@ -28,22 +29,15 @@ const REF_NAME = /^(room|plain)\/[a-z]+(?:_[a-z]+)*$/;
 
 const _fail = (res, code, message, status = 200) => res.status(status).json({ ok: false, error: { code, message } });
 
-/** A `/project-file?path=` URL or a disk path -> the disk path. */
-function _diskPath(p) {
-    const s = String(p || '');
-    const m = s.match(/[?&]path=([^&]+)/);
-    return m ? decodeURIComponent(m[1]) : s;
-}
-
 router.post('/flows/multi-angle/ref', async (req, res) => {
     const { ref, imagePath, folderPath } = req.body || {};
     if (typeof ref !== 'string' || !REF_NAME.test(ref)) return _fail(res, 'BAD_REQUEST', `Not a doll ref: ${ref}`, 400);
     if (typeof folderPath !== 'string' || !path.isAbsolute(folderPath)) {
         return _fail(res, 'BAD_REQUEST', 'folderPath must be an absolute path', 400);
     }
-    const source = _diskPath(imagePath);
+    const source = diskPathOf(imagePath);
     const asset = path.join(REFS, `${ref}.png`);
-    if (!path.isAbsolute(source) || !await fs.pathExists(source)) return _fail(res, 'NOT_FOUND', 'The picture is gone.', 404);
+    if (!source || !await fs.pathExists(source)) return _fail(res, 'NOT_FOUND', 'The picture is gone.', 404);
     if (!await fs.pathExists(asset)) return _fail(res, 'NOT_FOUND', `The app is missing its ${ref} reference.`, 404);
     try {
         const meta = await sharp(source, { limitInputPixels: false, autoOrient: true }).metadata();

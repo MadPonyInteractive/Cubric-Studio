@@ -25,6 +25,7 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs-extra');
 const path = require('path');
+const { projectFileUrl, projectFileUrlBusted, diskPathOf } = require('../services/projectFileUrl');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('./logger');
 const {
@@ -39,24 +40,6 @@ const {
 } = require('../services/gifFrames');
 const { extractImageThumb, imageThumbPath, IMAGE_RENDITION_PX } = require('../services/ffmpegThumb');
 const { nextSequence, itemsInFlight } = require('./projects');
-
-function projectFileUrl(filePath) {
-    return `/project-file?path=${encodeURIComponent(filePath)}`;
-}
-
-function projectFileUrlBusted(filePath) {
-    let mtime = 0;
-    try { mtime = Math.round(fs.statSync(filePath).mtimeMs); } catch (_) { /* best-effort */ }
-    return `/project-file?path=${encodeURIComponent(filePath)}&v=${mtime}`;
-}
-
-function pathFromProjectFileUrl(value) {
-    const raw = String(value || '');
-    if (!raw) return null;
-    const match = raw.match(/[?&]path=([^&]+)/);
-    if (match) return decodeURIComponent(match[1]);
-    return path.isAbsolute(raw) ? raw : null;
-}
 
 /** Attach `url` / `thumbUrl` to every frame entry for the response only. */
 function withFrameUrls(mediaDir, gifField) {
@@ -97,7 +80,7 @@ router.post('/gif/ensure-frames', async (req, res) => {
             return res.json({ success: true, gif: withFrameUrls(mediaDir, meta.gif) });
         }
 
-        const gifAbsPath = pathFromProjectFileUrl(meta.filePath);
+        const gifAbsPath = diskPathOf(meta.filePath);
         if (!gifAbsPath || !(await fs.pathExists(gifAbsPath))) {
             return res.status(404).json({ success: false, error: `gif media file not found for ${itemId}` });
         }
@@ -181,7 +164,7 @@ router.post('/gif/entry', async (req, res) => {
                 return res.status(404).json({ success: false, error: `sidecar not found: ${itemId}` });
             }
             const meta = await fs.readJson(metaPath);
-            const prevAbsPath = pathFromProjectFileUrl(meta.filePath);
+            const prevAbsPath = diskPathOf(meta.filePath);
 
             const finalName = await nextSequence(folderPath, mediaDir, 'gif', 'gif');
             outputPath = path.join(mediaDir, finalName);
