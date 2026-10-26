@@ -1280,30 +1280,27 @@
     overflow: hidden;
     pointer-events: none;
     z-index: 10;
-    opacity: 0;
-    transition: opacity var(--t-fast) var(--ease);
 }
 
-.mpi-base-flow__peek--live {
-    opacity: 1;
-}
-
+/* MPI-1294: every clip, `peek` included, waits below the edge and slides up while live,
+   then back down once it ends. No fade: every peek.webm opens and closes with the head
+   already up, so a fade popped it in, and hid the slide-down before it could be seen. */
 .mpi-base-flow__peek-clip {
     position: absolute;
     left: 0;
     bottom: 0;
     width: 100%;
+    transform: translateY(100%);
+    transition: transform var(--t-slow) var(--ease);
 }
 
-/* A standing clip, hung by its head row (187/620) with the same headroom as the agent
-   chat's ledge, slides up from below the edge; `peek` makes its own rise. */
+.mpi-base-flow__peek--live .mpi-base-flow__peek-clip {
+    transform: none;
+}
+
+/* A standing clip hangs by its head row (187/620) with the same headroom as the agent
+   chat's ledge. */
 .mpi-base-flow__peek-clip--standing {
     bottom: auto;
     top: calc(var(--peek-w) * -187 / 620 + var(--peek-w) * 10 / 182);
-    transform: translateY(100%);
-    transition: transform var(--t-base) var(--ease);
-}
-
-.mpi-base-flow__peek--live .mpi-base-flow__peek-clip--standing {
-    transform: none;
 }

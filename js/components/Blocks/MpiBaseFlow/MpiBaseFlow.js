@@ -1445,18 +1445,28 @@ export const MpiBaseFlow = ComponentFactory.create({
                 _peekLast = null;
             } else if (!_peekWrap.classList.contains(_PEEK_LIVE)) {
                 clearTimeout(_peekTimer);
-                _peekOnce();
+                // Mid slide-down, a new src would blank the clip on screen: its transitionend starts the next peek.
+                if (_peekGone()) _peekOnce();
             }
         }
-        // Shown once it plays, not when its src is set: a fresh src is blank until it decodes,
-        // and the standing slide needs its start pose painted before the live class lands.
+        /** @returns {boolean} the clip sits fully below the edge (its slide-down, if any, is over). */
+        function _peekGone() {
+            return new DOMMatrixReadOnly(getComputedStyle(_peekClip).transform).m42 >= _peekClip.offsetHeight - 1;
+        }
+        // Slides up once it plays, not when its src is set: a fresh src is blank until it decodes,
+        // and the slide needs its start pose painted before the live class lands.
         _unsubs.push(on(_peekClip, 'playing', () => {
             if (_peekCastNow.length) _peekWrap.classList.add(_PEEK_LIVE);
         }));
-        _unsubs.push(on(_peekClip, 'ended', () => {
-            _peekWrap.classList.remove(_PEEK_LIVE);
-            if (_peekCastNow.length) _peekTimer = setTimeout(_peekOnce, 700 + Math.random() * 1500);
-        }));
+        // Ended: slide down on its last frame; the next peek starts once it is out of sight.
+        _unsubs.push(on(_peekClip, 'ended', () => _peekWrap.classList.remove(_PEEK_LIVE)));
+        const _peekSlidOut = () => {
+            if (_peekWrap.classList.contains(_PEEK_LIVE) || !_peekCastNow.length) return;
+            clearTimeout(_peekTimer);
+            _peekTimer = setTimeout(_peekOnce, 700 + Math.random() * 1500);
+        };
+        _unsubs.push(on(_peekClip, 'transitionend', _peekSlidOut));
+        _unsubs.push(on(_peekClip, 'transitioncancel', _peekSlidOut));
         _unsubs.push(() => {
             _peekCastNow = [];
             clearTimeout(_peekTimer);
