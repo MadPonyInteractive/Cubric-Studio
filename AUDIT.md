@@ -7,6 +7,34 @@ ComfyUI workflow JSON, the Pod runtime (`wrapper.py`).
 
 **No files other than this one were edited.**
 
+## Status (updated 2026-10-26, after PR #12)
+
+**Done in MadPonyInteractive/Cubric-Studio#12:** H1, H2, X3, B1, B5, D2, B2, D4, B3, D5, X1, X2.
+That PR also fixed the smoke script's fallback-GPU record, made the Stop hooks find the repo from
+their own path, and made `mpi/no-raw-event-listener` + `mpi/no-raw-console` work on Windows (with
+the 142 violations they had let through). The finding sections below are left as written.
+
+**Left alone on purpose in #12:**
+- `MpiProjectName` / `MpiQueuePanel` keep local byte formatters (already decimal; merging them
+  changes spacing and precision on screen — a visual call for Fabio).
+- `connector.js`, `mcp.js`, `agentLoop.mjs` already decode `/project-file` URLs once; ~30 plain
+  inline URL builders in `projects.js` / `ffmpegThumb.js` are correct as written.
+- Three tests filled counters they never asserted (agent-loop `generateCalledAt`/`turnReturnedAt`,
+  comfy-vanished-prompt `queueCallCount`, thumb-strip `selBefore`); the counters were removed.
+  Possibly a missing assertion each — worth a look.
+
+**Still open, suggested batches:**
+- Low risk, GPU-free: **B4**, **B6**, **D8**, **D6**, **H3**, **X4** (ask Fabio before trimming
+  routes the skill docs list), **T1/T2**.
+- Then **D1** (PromptBox slider ×17), **D3/D10** route by route, **P2/P14/P7/P12/P13**.
+- Needs the desktop suite or Fabio watching: **P1**, **P3**, **D7**, **D9**.
+- Needs a local profile or a Pod: **P4–P6**, **P9–P11**.
+
+**Notes for whoever picks it up:** lint now runs with `--max-warnings=0` and the two path rules
+fire on Windows CI, so any new warning fails it. In a Linux cloud container `npm test` has ~16
+environmental failures (RunPod, agent installers, `sh` scripts, `wmic`): compare failing test
+NAMES before and after, not the exit code. Cloud setup: `ELECTRON_SKIP_BINARY_DOWNLOAD=1 npm ci`.
+
 ## How this was produced, and what it cannot claim
 
 - **Nothing was executed.** Every shell call in this container is refused by the repo's own
