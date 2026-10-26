@@ -61,16 +61,15 @@ const _players = new Map();    // lane -> PreviewClipPlayer
 // freeze the tile on frame 1 and reproduce the exact bug being fixed.
 const _outSeq = new Map();     // lane -> monotonic seq sent to the float window
 
-// The tile footer's progress fill (MPI-1296). Same id-tagged tool:progress /
-// tool:indeterminate the status bar reads, kept per gen even while the window is
-// closed so a tile opened mid-run starts at the real percent, not at zero.
-const _progress = new Map();   // genId -> { pct, indeterminate }
+// The tile footer's progress fill (MPI-1296). Same id-tagged tool:progress the
+// status bar reads, kept per gen even while the window is closed so a tile opened
+// mid-run starts at the real percent, not at zero.
+const _progress = new Map();   // genId -> whole percent
 
 function sendProgress(genId) {
-  const p = _progress.get(genId);
-  if (!windowOpen || !p) return;
+  if (!windowOpen || !_progress.has(genId)) return;
   ipcRenderer.send('float-latent:progress', {
-    lane: laneFor(genId), genId, value: p.pct / 100, indeterminate: p.indeterminate,
+    lane: laneFor(genId), genId, value: _progress.get(genId) / 100,
   });
 }
 
@@ -237,15 +236,8 @@ export function initFloatLatentBridge() {
   Events.on('tool:progress', ({ tool, id = null, value }) => {
     if (tool !== 'groupHistory' || id === null) return;
     const pct = Math.round(Math.min(1, Math.max(0, Number(value) || 0)) * 100);
-    const p = _progress.get(id);
-    if (p && p.pct === pct) return;
-    _progress.set(id, { pct, indeterminate: p?.indeterminate === true });
-    sendProgress(id);
-  });
-  // eslint-disable-next-line mpi/require-destroy-on-events
-  Events.on('tool:indeterminate', ({ tool, id = null, active }) => {
-    if (tool !== 'groupHistory' || id === null) return;
-    _progress.set(id, { pct: _progress.get(id)?.pct ?? 0, indeterminate: active === true });
+    if (_progress.get(id) === pct) return;
+    _progress.set(id, pct);
     sendProgress(id);
   });
 

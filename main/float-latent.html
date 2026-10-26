@@ -61,19 +61,14 @@
     position: relative; display: block; /* above the fill */
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  /* Run progress behind the caption (MPI-1296), the status bar's fill in miniature.
+  /* Run progress behind the caption (MPI-1296), the status bar's percent in miniature.
      Vision rose = --vision-accent (styles/01_base.css), copied literally like the
-     surfaces above. No real percent yet, or a node that reports none: the band
-     sweeps instead, so the footer never sits still while work runs. */
+     surfaces above. Real percent only — no sweep (Fabio's call). */
   .tile .cap .fill {
     position: absolute; top: 0; bottom: 0; left: 0; pointer-events: none;
     width: calc(var(--p, 0) * 1%); background: oklch(0.76 0.17 355); opacity: .45;
     transition: width 200ms ease-out;
   }
-  .tile .cap .fill.sweep {
-    width: 35%; transition: none; animation: capSweep 1.4s ease-in-out infinite;
-  }
-  @keyframes capSweep { from { left: -35%; } to { left: 100%; } }
   .tile.done .cap .fill { display: none; }
   .tile .empty {
     flex: 1 1 auto; display: flex; align-items: center; justify-content: center;
@@ -102,7 +97,7 @@
     const cap = document.createElement('div');
     cap.className = 'cap';
     const fill = document.createElement('div');
-    fill.className = 'fill sweep'; // sweeps until the first real percent lands
+    fill.className = 'fill';
     const txt = document.createElement('span');
     txt.className = 'txt';
     txt.textContent = title || '';
@@ -115,8 +110,7 @@
     tiles.set(lane, { el, img: null, empty, cap, txt, fill, seq: -1, done: false, overlay: null, owner: genId });
   }
 
-  function setProgress(t, value, indeterminate) {
-    t.fill.classList.toggle('sweep', indeterminate === true);
+  function setProgress(t, value) {
     t.fill.style.setProperty('--p', String(Math.round(Math.min(1, Math.max(0, value || 0)) * 100)));
   }
 
@@ -138,7 +132,7 @@
       t.el.insertBefore(empty, t.cap);
       t.empty = empty;
     }
-    setProgress(t, 0, true);
+    setProgress(t, 0);
     if (title) t.txt.textContent = title;
   }
 
@@ -152,11 +146,11 @@
     else if (title && t.txt.textContent !== title) t.txt.textContent = title;
   });
 
-  ipcRenderer.on('float-latent:progress', (_e, { lane, genId, value, indeterminate }) => {
+  ipcRenderer.on('float-latent:progress', (_e, { lane, genId, value }) => {
     const t = tiles.get(lane);
     if (!t || t.done) return;
     if (genId && t.owner && genId !== t.owner) return; // previous item's late tick
-    setProgress(t, value, indeterminate);
+    setProgress(t, value);
   });
 
   // ponytail: still one <img> swap per frame, and it stays that way. Clip pacing
