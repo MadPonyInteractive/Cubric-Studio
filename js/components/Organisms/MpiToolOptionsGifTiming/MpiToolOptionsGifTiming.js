@@ -56,6 +56,7 @@ import { state } from '../../../state.js';
 import { Events } from '../../../events.js';
 import { getToolSettings } from '../../../data/projectModel.js';
 import { qs } from '../../../utils/dom.js';
+import { formatBytes } from '../../../utils/formatBytes.js';
 import {
     MIN_FPS, MAX_FPS, MAX_LOOP, MIN_EDGE, MAX_EDGE, MIN_COLOURS, MAX_COLOURS,
     OUTPUT_DEFAULTS, clampNumber, fpsToDelay, delayToFps, rangeBounds, uniformFps,
@@ -65,14 +66,6 @@ const DESC = 'Saves the frames between the trim handles as a new GIF. The frames
 
 /** Only the build settings persist; rate and loop come from the GIF on screen. */
 const DEFAULTS = Object.freeze({ ...OUTPUT_DEFAULTS });
-
-/** Byte badge on the preview — same rounding as MpiToolOptionsGif's. */
-function formatBytes(n) {
-    if (!Number.isFinite(n) || n <= 0) return '';
-    if (n < 1024) return `${n} B`;
-    if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KiB`;
-    return `${(n / (1024 * 1024)).toFixed(1)} MiB`;
-}
 
 function coerceSettings(raw) {
     return {
@@ -316,7 +309,7 @@ export const MpiToolOptionsGifTiming = ComponentFactory.create({
                     img.src = result.url;
                     img.hidden = false;
                     empty.hidden = true;
-                    badge.textContent = formatBytes(result.byteSize);
+                    badge.textContent = result.byteSize ? formatBytes(result.byteSize) : '';
                     badge.hidden = !result.byteSize;
                     badge.classList.remove('mpi-tool-options-gif-timing__badge--stale');
                     _lastKey = key;

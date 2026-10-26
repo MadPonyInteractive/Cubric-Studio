@@ -25,6 +25,7 @@ const { buildExtraModelPathsYaml } = require('./yamlHelper');
 const { setRoots, getModelRootsPath } = require('./modelRoots');
 
 const _require = createRequire(__filename);
+const { formatSpeed: _formatSpeed } = _require('../js/utils/formatBytes.js');
 
 const ENGINE_ROOT = getEngineRoot();
 const EXTRA_MODEL_FOLDER_KEYS = Object.freeze(['loras', 'upscale_models']);
@@ -525,17 +526,6 @@ async function stripImageMetadata(localPath) {
         await fs.writeFile(localPath, Buffer.concat(keep));
     } catch (err) {
         logger.warn('project', `metadata strip failed for ${localPath}: ${err.message}`);
-    }
-}
-
-// Format bytes/second to human-readable speed (e.g., "2.5 MB/s")
-function _formatSpeed(bytesPerSec) {
-    if (bytesPerSec < 1024) {
-        return `${Math.round(bytesPerSec)} B/s`;
-    } else if (bytesPerSec < 1024 * 1024) {
-        return `${(bytesPerSec / 1024).toFixed(1)} KB/s`;
-    } else {
-        return `${(bytesPerSec / (1024 * 1024)).toFixed(1)} MB/s`;
     }
 }
 

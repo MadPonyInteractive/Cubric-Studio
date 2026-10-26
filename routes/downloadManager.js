@@ -93,6 +93,7 @@ const { createReconciler } = require('./install/reconciler');
 const { scanUserFlows } = require('../services/userFlows');  // MPI-532
 
 const _require = createRequire(__filename);
+const { formatSpeed: _formatSpeed } = _require('../js/utils/formatBytes.js');
 let _extractZip = null;
 
 // Extract a custom-node archive (GitHub /archive/ or Comfy Registry zip).
@@ -1490,12 +1491,6 @@ function _describeTransportError(err, url) {
         + 'on a VPN for the whole download (Cloudflare WARP is free), then retry. Changing your '
         + 'DNS alone is often not enough. A phone hotspot will confirm whether your network is '
         + 'the cause.';
-}
-
-function _formatSpeed(bytesPerSec) {
-    if (bytesPerSec >= 1024 * 1024) return `${(bytesPerSec / 1024 / 1024).toFixed(1)} MB/s`;
-    if (bytesPerSec >= 1024) return `${(bytesPerSec / 1024).toFixed(0)} KB/s`;
-    return `${bytesPerSec.toFixed(0)} B/s`;
 }
 
 function _modelSpeedLabel(modelJob) {

@@ -33,6 +33,7 @@ import { Events } from '../../../events.js';
 import { getToolSettings } from '../../../data/projectModel.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { qs } from '../../../utils/dom.js';
+import { formatBytes } from '../../../utils/formatBytes.js';
 
 const SIZE_OPTIONS = [
     { value: 'original', label: 'Original' },
@@ -57,13 +58,6 @@ function coerceSettings(raw) {
         sizePreset: SIZE_VALUES.has(raw.sizePreset) ? raw.sizePreset : DEFAULTS.sizePreset,
         loop: clampInt(raw.loop, DEFAULTS.loop, 0, 999),
     };
-}
-
-function formatBytes(n) {
-    if (!Number.isFinite(n) || n <= 0) return '';
-    if (n < 1024) return `${n} B`;
-    if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KiB`;
-    return `${(n / (1024 * 1024)).toFixed(1)} MiB`;
 }
 
 export const MpiToolOptionsGif = ComponentFactory.create({
@@ -199,7 +193,7 @@ export const MpiToolOptionsGif = ComponentFactory.create({
                 _img.src = result.url;
                 _img.hidden = false;
                 _empty.hidden = true;
-                _badge.textContent = formatBytes(result.byteSize);
+                _badge.textContent = result.byteSize ? formatBytes(result.byteSize) : '';
                 _badge.hidden = !result.byteSize;
                 _badge.classList.remove('mpi-tool-options-gif__badge--stale');
                 _lastEncodeKey = key;
