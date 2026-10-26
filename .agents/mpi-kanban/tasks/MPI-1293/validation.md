@@ -15,7 +15,10 @@
 
 ## Live (Fabio's GPU)
 - 2026-10-26 Storyboard: PASSED. Fabio: one Stop press cancelled the whole run.
-- Multi-angle (pass-2 latents, Stop between passes) and a stacked graph Flow: not yet checked.
+- Multi-angle (pass-2 latents, Stop between passes) and a stacked graph Flow: not checked. Fabio
+  closed the card on 2026-10-26 without them; he opens a session if something is off.
+- CI: tests.yml green on 29fd6ce14 (carries b788846dc).
+- Claim audit 2026-10-26: 0 FALSE, 31 proven; two overstatements fixed or handed on (brief.md § Noticed).
 
 Steps:
 Not run by an agent: a Stop from an isolated app interrupts Fabio's own render (ComfyUI /interrupt

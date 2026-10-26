@@ -28,7 +28,8 @@ which is why Multi-angle's pass 2 showed no latents before this card.
   `frame?.onJob?.(queued.queueJobId, done)`; return `{ finished }` so the frame stays busy, with
   Stop live, from the press to the last job. Between two jobs nothing is queued, so the check is
   the only thing that stops the NEXT one — [../README.md](../README.md) § Driver Flows.
-  `tests/flow-drivers-report-jobs.test.cjs` pins all three.
+  `tests/flow-drivers-report-jobs.test.cjs` checks all three are present (a Stop check per enqueue,
+  no `opts.tempId` report, a `{ finished }` return), not where the check sits: put it last yourself.
 
 ## Not covered
 
