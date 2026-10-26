@@ -643,6 +643,22 @@ edit") - TURN and HEIGHT from a non-level start are the point. GO for ROUND 70 (
 starts, turns staying at the start height, low->high, back to eye level, each with and without his eye-level
 reference picture (the Whole Outfit slot) as an extra image; his case = edit_006 (low 3/4 back R) + the front
 eye-level input in project "Draw it in improvements", plus the six r67 part-B inputs, seeds 111/222.
+ROUND 70 PART-RUN (session "Multi-Angle 40", 2026-10-26): `research/r70.py` + `r70_plan.mjs`; eye-level pictures for the
+six r67 starts = same prompt, same seed, front (`r70.py sources`). Seed 111 DONE for all 7 inputs (sheet `r70_111.jpg`);
+seed 222 = 44 cells left (38 FLUX.3, 6 Qwen), stopped by Fabio to free the local GPU - `python r70.py <port>` resumes
+(skips done keys). First read (thumbnails, seed 111): turns that STAY at a low/high start land on nearly every cell;
++pic keeps the outfit (Fabio's front without it invents a swimsuit); back to eye level +pic is cleaner on front starts
+but PULLS the reference's own view (Fabio rear 3/4 -> front, anime back -> front, photo side -> toward front).
+POD: an isolated app instance must NOT connect to Fabio's pod - the orphan sweep reaps it (runpod-remote-engine.md).
+ROUND 70 DONE (seed 222 on Fabio's pod through his app, his OK) - read in validation.md. BUILT (Fabio "yes", uncommitted,
+awaiting his re-test on his low picture): from a low/high start `multiAngleChoices` offers every turn at the start's
+height (not tq_br->tq_fl / tq_bl->tq_fr), and on the start's turn eye level, lo->hi, hi->lo except from front hi, or a
+zoom; `_fromHeightPlan` = one pass with the exact round-70 words (`research/r70_check.mjs`: 52/52 identical); the
+Whole Outfit picture goes as image 3 after the doll (runner), not on eye level from a turned start; gizmo `fitAngle`
+keeps a turned pick at the start height. Tests 38/38, npm test green, lint clean. NEXT: Fabio's re-test, then commit.
+SIDE STUDY PARKED (Fabio 2026-10-26): Qwen Edit 2511 + fal angle LoRA as a camera-orbit mode, card MPI-1301 - the scene
+swings with the camera (12/18) but Qwen image quality is the blocker and a FLUX.3 detail pass made it worse; this
+card's FLUX.3 route stays.
 ## Remaining Work
 - [ ] Stage 1 (face, 9 runs) + Fabio's eye test
 - [ ] Stage 2 full body, stage 3 rooms

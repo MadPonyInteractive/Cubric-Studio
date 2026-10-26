@@ -66,7 +66,9 @@ export function fitAngle(v, opts) {
     const turn = turnOk ? v.turn : start.turn;
     const turnPos = turnOk ? v.turnPos : MULTI_ANGLE_SLIDERS.turn.indexOf(turn);
     const { heights } = multiAngleChoices(turn, 'level', opts);
-    const fallback = heights.includes(start.height) && turn === start.turn ? start.height : 'level';
+    // A turn from a low or high start keeps that height (round 70): eye level is not offered there.
+    const fallback = heights.includes(start.height) && (turn === start.turn || !heights.includes('level'))
+        ? start.height : 'level';
     const height = heights.includes(v.height) ? v.height : fallback;
     const { zooms } = multiAngleChoices(turn, height, opts);
     const zoom = v.zoom === multiAngleMatchedZoom(start.zoom) ? 'none' : v.zoom;

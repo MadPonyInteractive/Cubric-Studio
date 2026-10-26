@@ -76,10 +76,17 @@ test('from every matched start, every choice offered is a pick the planner runs'
     }
 });
 
-test('choices from a matched start: a low or high start zooms only; Front from a turned start is alone', async () => {
-    const { multiAngleChoices } = await prompts();
+test('choices from a matched start: a low or high start turns at its height; Front from a turned start is alone', async () => {
+    const { multiAngleChoices, MULTI_ANGLE_TURNS } = await prompts();
     const hi = { from: { turn: 'pr_r', height: 'hi' } };
-    assert.deepEqual(multiAngleChoices('pr_r', 'hi', hi), { turns: ['pr_r'], heights: ['hi'], zooms: ['none', 'hs', 'far'] });
+    assert.deepEqual(multiAngleChoices('pr_r', 'hi', hi), { turns: MULTI_ANGLE_TURNS, heights: ['level', 'lo', 'hi'],
+        zooms: ['none', 'hs', 'far'] });
+    assert.deepEqual(multiAngleChoices('front', 'hi', hi), { turns: MULTI_ANGLE_TURNS, heights: ['hi'], zooms: ['none'] });
+    // Round 70: no low from a front high; a rear start does not cross to the other front 3/4.
+    assert.deepEqual(multiAngleChoices('front', 'hi', { from: { turn: 'front', height: 'hi' } }).heights, ['level', 'hi']);
+    assert.ok(!multiAngleChoices('tq_br', 'lo', { from: { turn: 'tq_br', height: 'lo' } }).turns.includes('tq_fl'));
+    assert.deepEqual(multiAngleChoices('back', 'hi', { qwen: false, from: { turn: 'back', height: 'hi' } }).heights,
+        ['level', 'hi'], 'a low from a turned view is Qwen');
     assert.deepEqual(multiAngleChoices('front', 'lo', { from: { turn: 'front', height: 'lo' } }).zooms, ['none', 'far']);
     assert.deepEqual(multiAngleChoices('front', 'level', { from: { turn: 'tq_bl' } }), {
         turns: multiAngleChoices('front', 'level').turns, heights: ['level'], zooms: ['none'] });
@@ -91,7 +98,10 @@ test('fitAngle from a matched start: what the start cannot reach goes back to it
     const { fitAngle, normalizeAngle } = await gizmo();
     const from = normalizeAngle({ turn: 'pr_r', height: 'hi' });
     const v = fitAngle(normalizeAngle({ turn: 'front', height: 'lo', zoom: 'far' }), { qwen: true, from });
-    assert.deepEqual([v.turn, v.turnPos, v.height, v.zoom], ['pr_r', 6, 'hi', 'far']);
+    assert.deepEqual([v.turn, v.turnPos, v.height, v.zoom], ['front', 4, 'hi', 'none'], 'a turn keeps the start height');
+    const low = normalizeAngle({ turn: 'tq_br', height: 'lo' });
+    const w = fitAngle(normalizeAngle({ turn: 'tq_fl', height: 'lo' }), { qwen: true, from: low });
+    assert.deepEqual([w.turn, w.height], ['tq_br', 'lo'], 'the other front 3/4 goes back to the start');
 });
 
 test('the Turn slider is a full turn with the front in the middle', async () => {

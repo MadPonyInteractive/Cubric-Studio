@@ -69,9 +69,8 @@ export async function runMultiAngle({ source, pick = {}, outfit = {} }, deps) {
                 const ref = await deps.ref(step.ref, input);
                 if (!ref.ok) return ended(i, group, { code: 'REF_FAILED', message: ref.message });
                 media.push({ role: 'inputImage2', url: ref.url });
-            } else if (step.outfitRef) {
-                media.push({ role: 'inputImage2', url: outfit.url });
             }
+            if (step.outfitRef) media.push({ role: `inputImage${media.length + 1}`, url: outfit.url });
             const sub = await deps.submit(step, media, group ? { existingGroup: group } : {}, { index: i + 1, total });
             const res = sub.ok ? await sub.done : sub;
             if (!res.ok) return ended(i, group, { code: res.code, message: res.message }, res.code === 'CANCELLED');

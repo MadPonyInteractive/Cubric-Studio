@@ -247,6 +247,22 @@ test('a zoom-out from the read framing sends the outfit picture as image 2 of th
     assert.ok(run.steps[0].prompt.includes('The second image shows the same woman in her whole outfit'));
 });
 
+test('from a low start the outfit picture goes in as image 3 after the doll (round 70)', async () => {
+    const { runMultiAngle } = await runner();
+    const deps = _deps();
+    const from = { turn: 'tq_br', height: 'lo' };
+    const run = await runMultiAngle({ source: 'src.png', pick: { turn: 'front', height: 'lo', from },
+        outfit: { url: 'eye.png' } }, deps);
+    await run.finished;
+    assert.deepStrictEqual(deps.calls.find(c => c[0] === 'submit')[3],
+        ['inputImage=src.png', 'inputImage2=padded:plain/front_lo:src.png', 'inputImage3=eye.png']);
+    assert.ok(run.steps[0].prompt.includes('The third image shows the same woman from another view'));
+    // Back to eye level from a TURNED start leaves it out: it copies the picture's own view (6/6).
+    const level = await runMultiAngle({ source: 'src.png', pick: { turn: 'tq_br', height: 'level', from },
+        outfit: { url: 'eye.png' } }, _deps());
+    assert.strictEqual(level.steps[0].outfitRef, false);
+});
+
 test('a pass that fails or is stopped ends the chain and keeps what landed', async () => {
     const { runMultiAngle } = await runner();
     const failed = await (await runMultiAngle({ source: 's', pick: { turn: 'back', height: 'lo' } },

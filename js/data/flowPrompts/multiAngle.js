@@ -110,13 +110,21 @@ export function multiAnglePreview(turn, height, zoom) {
 /** The view the user matched to their picture in step 2 (Fabio 2026-10-26); untouched = front, eye level. */
 const _start = from => ({ turn: from?.turn || 'front', height: from?.height || 'level' });
 
+/** Round 70: from a low or high rear 3/4 the front 3/4 of the other side stays on the start's side (0/4). */
+const _crossesFront = (from, to) => (from === 'tq_br' && to === 'tq_fl') || (from === 'tq_bl' && to === 'tq_fr');
+
+/** Round 70: the other height from a low or high start lands, except a low from a front high (head cut 2/2). */
+const _otherHeightOk = start => start.height === 'lo' || start.turn !== 'front';
+
 /**
  * The turns, heights and zooms a pick can take from the matched start: only what the bench proved
  * (flow-spec.md § DECISION), and without Qwen-Image 2.1 only what FLUX.3 runs alone. Only a moved slider
  * runs a pass (Fabio 2026-10-26), so the start decides what is left:
  * - an eye-level start: any turn (one direct pass from any view, rounds 52-56); on the start's own turn its
  *   heights with no turn pass (round 66, 46/46). Front from a turned start is the front pass alone.
- * - a low or high start: zoom only (rounds 67-68: 16/16; back to eye level and the other height do not land).
+ * - a low or high start (round 70): any turn at the start's height, except a rear start crossing to the front
+ *   3/4 of the other side (0/4); on the start's own turn back to eye level, low -> high, high -> low on a
+ *   side or back view (front high -> low cuts the head), or a zoom at its height (rounds 67-68: 16/16).
  * A low, and a height on a turned view, are Qwen edits; a zoom pass follows the other model each time, so
  * without Qwen only a one-pass zoom with no pass before it runs (the face and far rungs can take two passes).
  * @param {string} turn
@@ -128,8 +136,12 @@ const _start = from => ({ turn: from?.turn || 'front', height: from?.height || '
 export function multiAngleChoices(turn, height, { qwen = true, from } = {}) {
     const start = _start(from);
     if (start.height !== 'level') {
-        return { turns: [start.turn], heights: [start.height],
-            zooms: ['none', ...(qwen ? _benched(start.turn, start.height) : [])] };
+        const turns = MULTI_ANGLE_TURNS.filter(t => !_crossesFront(start.turn, t));
+        if (turn !== start.turn) return { turns, heights: [start.height], zooms: ['none'] };
+        const heights = MULTI_ANGLE_HEIGHTS.filter(h => h === start.height || h === 'level'
+            || (_otherHeightOk(start) && (qwen || (start.turn === 'front' && h === 'hi'))));
+        return { turns, heights,
+            zooms: ['none', ...(qwen && height === start.height ? _benched(start.turn, start.height) : [])] };
     }
     const turns = MULTI_ANGLE_TURNS;
     if (turn === 'front' && start.turn !== 'front') return { turns, heights: ['level'], zooms: ['none'] };
@@ -363,6 +375,80 @@ function _frontWords(p) {
         + `image: ${p.subj} ${p.verb('is')} seen straight from the front at eye level, facing the camera: ${p.poss} whole `
         + `face with both eyes, ${p.poss} chest and both shoulders face the view, and ${p.poss} feet point toward the `
         + `camera. The place around ${p.obj} is seen from that angle.` + KEEP_REF + _keep(p);
+}
+
+/** Round 70: a turn from a low or high start keeps the start's height. */
+const STAY = {
+    lo: p => ` The camera stays as low as in the first image, just above the ground, looking steeply up at ${p.obj}: `
+        + `${p.poss} ${p.feet} and legs are large at the bottom of the frame, ${p.poss} body rises and narrows toward `
+        + `the top and ${p.poss} whole head is small near the top of the frame, still inside it.`,
+    hi: p => ` The camera stays as high as in the first image, looking steeply down at ${p.obj}: the top of ${p.poss} `
+        + `head and ${p.poss} shoulders are large near the top of the frame, ${p.poss} body narrows downward, `
+        + `${p.poss} ${p.feet} are small near the bottom edge and the ground fills the background.`,
+};
+
+/**
+ * Round 70: the user's other picture (the Whole Outfit slot) as image 3, after the doll. Without it a turn
+ * from a low start makes up clothes the picture never shows (2/2); with it back to eye level from a TURNED
+ * start copies that picture's own view (6/6), so the eye-level pass takes it only from a front start.
+ */
+const THIRD = {
+    view: p => ` The third image shows the same ${p.subject} from another view: use it only for who ${p.subj} `
+        + `${p.verb('is')} - ${p.poss} face, hair, body and clothes; the view, pose and place come from the first `
+        + 'image, the viewpoint from the mannequin reference.',
+    level: p => ` The third image shows the same ${p.subject} at eye level: use it for ${p.poss} face, hair, body and `
+        + 'clothes and for how the place looks at eye level; the viewpoint comes from the mannequin reference and '
+        + 'these words.',
+};
+
+/** Words put in before the keep tail (KEEP_REF onward). */
+const _beforeKeep = (prompt, words) => {
+    const at = prompt.indexOf(KEEP_REF);
+    return prompt.slice(0, at) + words + prompt.slice(at);
+};
+
+/** Back to eye level from a low or high start (rounds 67-68 words, FLUX.3 + the room doll; round 70). */
+function _levelWords(start, p) {
+    const view = start.turn === 'front' ? `keep ${p.obj} seen straight from the front, as in the first image`
+        : `keep the same ${VIEW_NAME[start.turn]} view of the ${p.subject} as in the first image`;
+    const move = start.height === 'lo' ? 'rises from just above the ground' : 'comes down from high above';
+    const was = start.height === 'lo' ? 'no longer a view up into the sky' : 'no longer a view down onto the ground';
+    return 'Shift the viewpoint of the first image to match the mannequin reference in the second image: '
+        + `${view}, but the view ${move} to ${p.poss} eye level. The camera now looks straight at ${p.obj}, level - not `
+        + `up and not down: ${p.poss} whole body from head to toe stands upright at its natural proportions, ${p.poss} `
+        + `head near the top of the frame and ${p.poss} ${p.feet} near the bottom, and the place behind ${p.obj} is seen `
+        + `straight on at eye level, its horizon level behind ${p.poss} chest, ${was}.` + KEEP_REF + _keep(p);
+}
+
+/**
+ * A pick from a low or high start that moves the turn or the height (round 70, one person): a turn at the
+ * start's height, or on the start's own turn back to eye level or the other height. One pass, never with a zoom.
+ */
+function _fromHeightPlan(turn, height, start, pick, p, facts, zoomMoved) {
+    const no = reason => ({ ok: false, reason });
+    const where = start.height === 'lo' ? 'low' : 'high';
+    if (facts.people > 1) return no(`From a ${where} view only one person is benched.`);
+    if (zoomMoved) return no(`From a ${where} view the zoom runs alone.`);
+    const picture = !!pick.outfit?.ref;
+    if (turn !== start.turn) {
+        if (height !== start.height) return no(`From a ${where} view a turn keeps that height.`);
+        if (_crossesFront(start.turn, turn)) return no(`Turning to ${turn} from a ${where} ${start.turn} is not benched.`);
+        const words = turn === 'front' ? _frontWords(p).replace(' at eye level', '') : _turnWords(turn, p, facts);
+        return { ok: true, steps: [{ kind: turn === 'front' ? 'front' : 'turn', model: FLUX3,
+            ref: turn === 'front' && start.height === 'hi' ? 'room/front_hi' : `plain/${turn}_${start.height}`,
+            outfitRef: picture, prompt: _beforeKeep(words, STAY[start.height](p) + (picture ? THIRD.view(p) : '')) }] };
+    }
+    if (height === 'level') {
+        const third = picture && start.turn === 'front';
+        const words = _levelWords(start, p);
+        return { ok: true, steps: [{ kind: 'height', model: FLUX3, ref: `room/${start.turn}`, outfitRef: third,
+            prompt: third ? _beforeKeep(words, THIRD.level(p)) : words }] };
+    }
+    if (!_otherHeightOk(start)) return no('A low from a high front view is not benched.');
+    const model = turn === 'front' && height === 'hi' ? FLUX3 : QWEN;
+    const words = _heightWords(turn, height, p, facts);
+    return { ok: true, steps: [{ kind: 'height', model, ref: `${model === FLUX3 ? 'room' : 'plain'}/${turn}_${height}`,
+        outfitRef: picture, prompt: picture ? _beforeKeep(words, THIRD.view(p)) : words }] };
 }
 
 function _heightWords(turn, height, p, facts) {
@@ -715,14 +801,16 @@ export function zoomRungs(from, to) {
  * pass when the height moved (round 66: none on an unturned view keeps it 46/46), a zoom pass when the zoom
  * moved. Turning a turned picture to the Front is the front pass for one person, alone (front from any view
  * 13/13, rounds 54, 57, 59); two or more people do not get it, as a front pass turns everyone to the camera.
- * A low or high start takes a zoom only (rounds 67-68).
+ * A low or high start: one pass - a turn at its height, back to eye level, the other height, or a zoom
+ * (rounds 67-70, `_fromHeightPlan`).
  * @param {Object} facts - from the source: { people, subject, pronoun, drawing?: { noun, style, marks }, feet,
  *   frontLowLegs, ground, lowReveal, frontLowReveal, highReveal, turnReveal, details, near, far, farLow, farHigh,
  *   wears };
  *   a place slot is a sentence, or a map turn -> sentence.
  * @returns {{ ok: true, steps: Array<{ kind, model, ref, outfitRef?, prompt }> } | { ok: false, reason: string }}
  *   `ref` = the doll render under assets/flows/multi-angle/refs/ (image 2), null for a zoom pass;
- *   `outfitRef` = the user's outfit picture goes as image 2 of that zoom pass.
+ *   `outfitRef` = the user's outfit picture goes in after the doll: image 3 of a pass with a `ref` (round 70),
+ *   image 2 of a zoom pass.
  */
 export function multiAnglePlan(pick = {}, facts = {}) {
     const turn = pick.turn || 'front';
@@ -739,7 +827,7 @@ export function multiAnglePlan(pick = {}, facts = {}) {
     const last = () => steps[steps.length - 1]?.model;
     const zoomMoved = !!(pick.zoom?.to && pick.zoom.to !== pick.zoom.from);
     if (start.height !== 'level' && (turn !== start.turn || height !== start.height)) {
-        return { ok: false, reason: `From a ${start.height === 'lo' ? 'low' : 'high'} view only the zoom is benched.` };
+        return _fromHeightPlan(turn, height, start, pick, p, facts, zoomMoved);
     }
     if (turn !== start.turn && turn === 'front') {
         if (facts.people > 1) return { ok: false, reason: 'Turning two or more people to the front is not benched.' };

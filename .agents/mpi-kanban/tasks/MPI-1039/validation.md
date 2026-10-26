@@ -1281,3 +1281,23 @@ user's ratio later; a crop changes the zoom, so the gizmo may need per-ratio-fam
   accepted_prompts.md take the new words for the four pr lo cells (tests 36/36). The other turned lows keep theirs.
   Also learned: opening my own app:isolated instance in the browser pane made that tab a second renderer, and the
   connector's jobs went to it and failed ("Failed to fetch", 3 times) until the tab was closed.
+
+## Round 70 (2026-10-26, session "Multi-Angle 40") - what a LOW or HIGH start can take besides a zoom
+- research/r70.py + r70_plan.mjs, out/mq_blender70.json, sheets r70_111.jpg / r70_222.jpg / r70_fabio.jpg. 92 edits;
+  seed 111 on the local GPU, seed 222 on Fabio's RunPod (RTX PRO 4000) through his app. Inputs: Fabio's case (edit_006 =
+  tq_br lo, his front eye-level picture) + the six r67 part-B starts; their eye-level pictures = same prompt + seed,
+  front (r70_sources.jpg). Each cell without / with the eye-level picture as image 3 (identity + clothes only).
+- TURN STAYING AT THE START HEIGHT (FLUX.3 + plain doll <turn>_<height>, room/front_hi): lands on the six 48/48
+  (thumbnail read: pr_r, tq_br from front lo/hi; front + back from a side hi; front + pr_l from an anime back hi), place
+  kept, height kept. Fabio's case: front 4/4, pr_r 4/4, tq_fl 0/4 (stays a right-side view - the known
+  cross-sides miss from a rear-right start). WITHOUT the picture the front view INVENTS clothes Fabio's picture does
+  not show (bodysuit, bra 2/2); WITH it the outfit is right 2/2. Anime back -> front: no picture = face zoomed in.
+- BACK TO EYE LEVEL (FLUX.3 + room doll, toLevel words): WITH the picture, front starts land a clean eye level 8/8,
+  but TURNED starts copy the picture's own view - Fabio tq_br, photo side, anime back all come back FRONT 6/6. WITHOUT
+  it Fabio's tq_br lands rear 3/4 at eye level, room kept, 2/2 (r68 levelF on the six: partial).
+- OTHER HEIGHT +pic (shipped height words): lo -> hi lands (anime 222 thins the street); photo side hi -> lo and anime
+  back hi -> lo land with the head; FRONT hi -> lo still cuts the photo head 2/2 and loses the anime street 2/2, picture
+  or not. Fabio lo -> hi = a steep top-down on the carpet (room gone, plausible for that height) 4/4.
+- Read: offer every turn at the start's height (picture strongly advised), eye level from a front start with the
+  picture and from a turned start without it, lo -> hi, hi -> lo only on side/back views. Not offered: crossing to the
+  other front side from a rear start, front hi -> lo.

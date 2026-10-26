@@ -164,10 +164,26 @@ test('only what moved from the matched start runs a pass (step 2, rounds 66-68)'
     // A high start takes the zoom at its own height, no height pass (round 67, 16/16)...
     assert.deepStrictEqual(run({ turn: 'pr_r', height: 'hi', from: { turn: 'pr_r', height: 'hi' },
         zoom: { from: 'full', to: 'hs' } }), [`zoom:${FLUX3}:null`]);
-    // ...and nothing else: back to eye level, the other height and a turn are not benched (rounds 67-68).
-    for (const pick of [{ turn: 'front' }, { turn: 'front', height: 'lo' }, { turn: 'pr_r', height: 'hi' }]) {
-        assert.strictEqual(plan({ ...pick, from: { turn: 'front', height: 'hi' } }).ok, false, JSON.stringify(pick));
+    // Round 70: a turn at the start's height, back to eye level, or the other height - one pass each.
+    const hi = { turn: 'front', height: 'hi' };
+    assert.deepStrictEqual(run({ turn: 'pr_r', height: 'hi', from: hi }), [`turn:${FLUX3}:plain/pr_r_hi`]);
+    assert.deepStrictEqual(run({ turn: 'front', height: 'hi', from: { turn: 'pr_r', height: 'hi' } }),
+        [`front:${FLUX3}:room/front_hi`]);
+    assert.deepStrictEqual(run({ turn: 'front', height: 'level', from: hi }), [`height:${FLUX3}:room/front`]);
+    assert.deepStrictEqual(run({ turn: 'front', height: 'hi', from: { turn: 'front', height: 'lo' } }),
+        [`height:${FLUX3}:room/front_hi`]);
+    assert.deepStrictEqual(run({ turn: 'back', height: 'lo', from: { turn: 'back', height: 'hi' } }),
+        [`height:${QWEN}:plain/back_lo`]);
+    const turned = plan({ turn: 'front', height: 'lo', from: { turn: 'tq_br', height: 'lo' } }).steps[0].prompt;
+    assert.ok(turned.includes('The camera stays as low as in the first image') && !turned.includes('at eye level'));
+    // ...not: a front high -> low (head cut), a rear start crossing to the other front 3/4, a turn that also
+    // changes the height, a turn with a zoom, two people.
+    for (const pick of [{ turn: 'front', height: 'lo' }, { turn: 'pr_r' }, { turn: 'pr_r', height: 'hi',
+        zoom: { from: 'full', to: 'far' } }]) {
+        assert.strictEqual(plan({ ...pick, from: hi }).ok, false, JSON.stringify(pick));
     }
+    assert.strictEqual(plan({ turn: 'tq_fl', height: 'lo', from: { turn: 'tq_br', height: 'lo' } }).ok, false);
+    assert.strictEqual(multiAnglePlan({ turn: 'pr_r', height: 'hi', from: hi }, { ...FACTS.photo, people: 2 }).ok, false);
     // The front pass from a turned start runs alone.
     assert.strictEqual(plan({ turn: 'front', height: 'lo', from: { turn: 'pr_l' } }).ok, false);
     assert.strictEqual(plan({ turn: 'front', from: { turn: 'pr_l' }, zoom: { from: 'full', to: 'hs' } }).ok, false);
