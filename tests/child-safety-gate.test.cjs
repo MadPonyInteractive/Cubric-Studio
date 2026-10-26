@@ -84,8 +84,10 @@ globalThis.fetch = (url, init) => {
         return Promise.resolve({ json: async () => ({ ok: true, text: factAnswer, backend: 'ollama', model: 'stub' }) });
     }
     judgeCalls += 1;
-    return Promise.resolve({ json: async () => ({ ok: true, text: judgeAnswer, backend: 'ollama', model: 'stub' }) });
+    return (judgeHold || Promise.resolve()).then(() => ({ json: async () => ({ ok: true, text: judgeAnswer, backend: 'ollama', model: 'stub' }) }));
 };
+// A judge that has not answered yet: set to a promise, the judge's reply waits on it.
+let judgeHold = null;
 globalThis.localStorage = {
     getItem: (k) => ({ 'cubric.llm.backend': 'ollama', 'cubric.llm.describeBackend': 'endpoint' })[k] ?? null,
     setItem() {}, removeItem() {},
@@ -171,6 +173,35 @@ test('a borderline flag waits for the judge: queued on ALLOW', async () => {
     await until(() => queued(r.queueJobId));
     assert.strictEqual(queued(r.queueJobId), true);
     assert.strictEqual(judgeCalls, calls + 1, 'one judge call');
+});
+
+test('a run the judge holds keeps its result stack filling: it is in no queue yet, but it is coming', async () => {
+    // MPI-1231, a live Storyboard: panel 5 ("arms and legs spread") waited for the judge while
+    // panel 6 ran and landed, the stack settled at 5 of 6 with "1 of 6 did not finish", and
+    // panel 5 landed after it. Here the stack's only job is held, and a queue change asks to settle.
+    const [{ state }, { createItemGroup }, { STACK_TYPE, resultStackFields }] = await Promise.all([
+        import(mod('js', 'state.js')), import(mod('js', 'data', 'projectModel.js')), import(mod('js', 'data', 'stackModel.js'))]);
+    const stack = { ...createItemGroup(STACK_TYPE, resultStackFields({ kind: 'image', name: 'Board', expected: 1 })), id: 'held-stack' };
+    state.currentProject = { id: 'p-held', folderPath: 'C:/proj', itemGroups: [stack] };
+    let release;
+    judgeHold = new Promise((r) => { release = r; });
+    judgeAnswer = 'ALLOW';
+    try {
+        const r = enqueueGeneration(config('a mother in a bikini and her kids at the beach'), {}, { stackId: stack.id });
+        assert.ok(r?.queueJobId);
+        Events.emit('generation-queue:changed');
+        await new Promise((res) => setTimeout(res, 30));
+        assert.strictEqual(queued(r.queueJobId), false, 'still with the judge');
+        assert.strictEqual(state.currentProject.itemGroups.find(g => g.id === stack.id)?.expected, 1, 'the stack still waits for it');
+        release();
+        await until(() => queued(r.queueJobId));
+        Events.emit('generation-queue:changed');
+        await new Promise((res) => setTimeout(res, 30));
+        assert.strictEqual(state.currentProject.itemGroups.find(g => g.id === stack.id)?.expected, 1, 'queued: still live');
+    } finally {
+        judgeHold = null;
+        state.currentProject = null;
+    }
 });
 
 test('the Enhancer: a refused request is never sent, and a reply that unclothes a child is refused', async () => {

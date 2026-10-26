@@ -277,6 +277,24 @@
   River photo-like: "Reference picture ... even studio light" won. Fixed (uncommitted, NOT re-drawn):
   `_castPrompt` opens AND closes on the style, no studio light when a style exists. Idea box rows
   4 -> 8 (Fabio). Open: 7 refs on Qwen (max 8) - does quality fall?; a swarm drawn as a reference.
+- 2026-10-25 ("Storyboard 22") FIXES 3+4 COMMITTED 06328dd08 (not pushed; MPI-1293's three driver
+  edits ride in it at that session's request - it pushes both together). Planner: [CAST] = characters
+  and creatures only, a crowd/swarm/flock "is never a cast line: say it in words", new [OBJECTS] block.
+  `recurringActors` returns `kind` (character/place/object), ordered character > place > object;
+  `MAX_DRAWN_FIRST` = 4 caps the cast in runStoryboardFlow (min with free slots; toast says which).
+  ONE re-plan of his bat-cave idea on DeepSeek V4 Flash ($0.0006, research/crowd-cap/out.json): no
+  Bats in [CAST], helmet + elephant in [OBJECTS]. It exposed two PARSER faults, fixed + tested: a
+  name may hold "the"/"of" ("Cliff Over the River" read as "River"), and another name is no
+  mention ("Bat Cave Interior" counted as "Bat Cave Entrance", "Gold Helmet" as "Gold Elephant").
+  Reparse: drawn first Squirrel, Rabbit, Bat Cave Interior, River; Gold Helmet stays words. npm
+  test 3681/0, lint clean. Doc line storyboard.md:76 still says "never [PLACES]" - stale, fix when
+  MPI-1293 releases docs/playbooks/add-flow/. GPU run: see next entry.
+- 2026-10-26 ("Storyboard 22") THE ONE GPU RUN (validation.md "Crowd + 4-picture cap"): passes on cast
+  consistency, style, crowd and cap. Fixed from it: result stack settled early when a panel waited for
+  the child-safety judge (generationService `_holdUntilQueued`, all callers) and the Cast stack lost
+  " · Cast" to truncation. npm test 3682/0. NEXT: Fabio's eye on research/crowd-cap/gpu/sheet.jpg +
+  refs.jpg (photo-like river; panel 1 inside not at the entrance - should a place picture ride only
+  the panels that name it? today every drawn picture rides every panel), then Phase 2.
 
 ## Phase 0: Panel recipe - `user-ux` (local GPU, Fabio's yes; no money)
 

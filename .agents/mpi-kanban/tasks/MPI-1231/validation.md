@@ -66,3 +66,23 @@ picture), planner source built by pictureSentences(notes, looks), one plan on De
   in any Picture. One slip: panel 2 gives the Sphinx "one paw raised, palm facing out".
 - Parsed panel 1 ends "Fox is a purple fox-like creature from image 3. Lion is a large, tan lion with a
   brown mane from image 3." Not drawn (no GPU run); not seen in the app frame.
+
+## Crowd + 4-picture cap, live (2026-10-26, Storyboard 22, DeepInfra $0.0006 + ONE local GPU run)
+
+Fabio's bat-cave idea (his sidecar's flowInputs), no pictures, 6 panels, 16:9, FLUX.3 Klein, turbo.
+Re-plan on DeepSeek V4 Flash 0731 (research/crowd-cap/out.json): Bats NOT in [CAST] (a swarm in words
+per panel), Gold Helmet + Gold Elephant in [OBJECTS]. The real driver (FLOW_DRIVERS.storyboard) run in
+MY Electron instance (own profile, port, APP_DOCUMENTS; engine 48188 shared, GPU lease), 7m42s, no
+Stop (research/crowd-cap/gpu/: run.cjs, result.json, refs.jpg, sheet.jpg).
+- Drawn first: Squirrel, Rabbit, Bat Cave Interior, River (4 = MAX_DRAWN_FIRST); toast "Gold Helmet
+  stays in words: at most 4 pictures are drawn first." Then 6 panels, reordered, numbered sheet.
+- Read: the same squirrel (blue backpack) and rabbit (green hat) in all 6 panels, anime style held;
+  bats as red eyes / a swarm (no lone bat on grey); the helmet drawn from words, consistent 2-3.
+- Weak: the River reference came back photo-like and panels 5-6 water reads photoreal; panel 1 is
+  INSIDE the cave though the plan says the entrance (the interior picture rides every panel).
+  Rabbit's default face reads cross. For Fabio's eye.
+- FOUND + FIXED: "1 of 6 did not finish" while all 6 landed. Panel 5 ("arms and legs spread") waited
+  for the child-safety judge outside every queue; panel 6 ran and landed, the stack settled at 5 of 6,
+  panel 5 landed after. generationService _holdUntilQueued counts a judge/tile-describer hold as
+  live (test in child-safety-gate, fails without it). Also: the Cast stack took the panels' name
+  (truncation cut " · Cast"), fixed. Neither re-run on the GPU (one run approved).

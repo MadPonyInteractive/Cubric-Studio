@@ -614,7 +614,7 @@ export function enqueueGeneration(config, callbacks = {}, opts = {}) {
     // own params, so the child-safety gate below reads them like any other words.
     if (wantsTileNames(config)) {
         const queueJobId = opts.queueJobId || crypto.randomUUID();
-        _nameTilesThenQueue(config, callbacks, { ...opts, queueJobId });
+        _holdUntilQueued(queueJobId, opts.stackId, () => _nameTilesThenQueue(config, callbacks, { ...opts, queueJobId }));
         return { queueJobId };
     }
     return _gateThenQueue(config, callbacks, opts);
@@ -674,7 +674,7 @@ function _gateThenQueue(config, callbacks, opts) {
         const map = look ? controlMapOf(config) : null;
         if (safety.verdict === 'judge' || pictures.length || clips.length || map) {
             const queueJobId = opts.queueJobId || crypto.randomUUID();
-            _judgeThenQueue(config, callbacks, { ...opts, queueJobId }, pictures, clips, map);
+            _holdUntilQueued(queueJobId, opts.stackId, () => _judgeThenQueue(config, callbacks, { ...opts, queueJobId }, pictures, clips, map));
             return { queueJobId };
         }
     }
@@ -1079,8 +1079,28 @@ export function cancelRunningOnLane(lane) {
 // result can never be beaten by its own settle.
 const _resultStackOfJob = new Map(); // queueJobId → result stackId
 
+// A run the child-safety judge or the tile describer holds BEFORE it queues is pending in no
+// queue, yet its card is coming. A Storyboard's panel 5 ("arms and legs spread") waited for the
+// judge while panel 6 ran and landed, so the stack settled at 5 of 6, "1 of 6 did not finish",
+// and panel 5 landed after it (MPI-1231, 2026-10-26). Counted per run: the tile describer hands
+// its run to the gate, which may hold it again.
+const _heldJobs = new Map(); // queueJobId → holds
+
+/** Runs `work` (the hold) with the run counted live, and asks for a settle once it lets go. */
+function _holdUntilQueued(queueJobId, stackId, work) {
+    if (stackId) _resultStackOfJob.set(queueJobId, stackId);
+    _heldJobs.set(queueJobId, (_heldJobs.get(queueJobId) || 0) + 1);
+    work().finally(() => {
+        const left = _heldJobs.get(queueJobId) - 1;
+        if (left > 0) _heldJobs.set(queueJobId, left);
+        else _heldJobs.delete(queueJobId);
+        _scheduleResultStackSettle();
+    });
+}
+
 function _liveResultStackIds() {
     const live = new Set([
+        ..._heldJobs.keys(),
         ..._cueQueue.map(job => job.queueJobId),
         ...LANE_ORDER.map(lane => _lanes[lane].active?.queueJobId),
         ...activeGenerations.list().map(entry => entry.queueJobId),

@@ -184,7 +184,8 @@ async function runStoryboardFlow(flow, inputs, frame) {
         return false;
     }
     const words = String(inputs.positive || '').trim();
-    const name = truncateCardName(words ? `Storyboard · ${words}` : 'Storyboard');
+    const title = words ? `Storyboard · ${words}` : 'Storyboard';
+    const name = truncateCardName(title);
     const opts = {
         flow,
         inputs,
@@ -204,9 +205,11 @@ async function runStoryboardFlow(flow, inputs, frame) {
     const actors = wanted.slice(0, Math.max(0, Math.min(MAX_DRAWN_FIRST, free)));
     if (!actors.length) return _drawPanels(panels, name, _deps(project, { ...opts, references }, frame));
 
-    // One actor lands as a plain card under its own name; two or more as a Cast stack.
+    // One actor lands as a plain card under its own name; two or more as a Cast stack. The
+    // title is cut BEFORE " · Cast" goes on: cut after, a long idea lost it and the Cast stack
+    // took the panels' name (the bat-cave run, 2026-10-26).
     const style = panelStyle(panels);
-    const castName = truncateCardName(actors.length > 1 ? `${name} · Cast` : actors[0].name);
+    const castName = actors.length > 1 ? `${truncateCardName(title, 28 - ' · Cast'.length)} · Cast` : truncateCardName(actors[0].name);
     const cast = await runStoryboard(actors.map(a => ({ prompt: _castPrompt(a, style), intent: `${a.name}: ${a.desc}`,
         ratio: a.kind === 'place' ? inputs.ratio : '1:1' })),
         { name: castName, sheet: false },

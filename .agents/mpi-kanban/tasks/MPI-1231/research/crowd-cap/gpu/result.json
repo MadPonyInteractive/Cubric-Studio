@@ -1,0 +1,49 @@
+{
+  "model": "flux3-klein",
+  "started": true,
+  "jobs": 10,
+  "toasts": [
+    "[info] Storyboard · A squirrel and…: drawing Squirrel, Rabbit, Bat Cave Interior, River first, so every panel shows the same one. The panels follow. Gold Helmet stays in words: at most 4 pictures are drawn first.",
+    "[warning] Storyboard · A squirrel and…: 1 of 6 did not finish.",
+    "[success] 10 generations finished.",
+    "[success] Storyboard · A squirrel and… is ready: 6 panels in the stack, and a numbered sheet."
+  ],
+  "out": {
+    "ok": true,
+    "cancelled": false,
+    "reordered": true,
+    "overview": true,
+    "panels": [
+      {
+        "index": 0,
+        "ok": true,
+        "file": "/project-file?path=C%3A%5CUsers%5CFabio%5CAppData%5CLocal%5CTemp%5Cclaude%5CC--AI-Mpi-Cubric-Vision%5C7de41d27-b1b4-4c1c-b729-4782b0e8ecb7%5Cscratchpad%5Csbrun%5Cproject%5CMedia%5Cedit_001.png"
+      },
+      {
+        "index": 1,
+        "ok": true,
+        "file": "/project-file?path=C%3A%5CUsers%5CFabio%5CAppData%5CLocal%5CTemp%5Cclaude%5CC--AI-Mpi-Cubric-Vision%5C7de41d27-b1b4-4c1c-b729-4782b0e8ecb7%5Cscratchpad%5Csbrun%5Cproject%5CMedia%5Cedit_002.png"
+      },
+      {
+        "index": 2,
+        "ok": true,
+        "file": "/project-file?path=C%3A%5CUsers%5CFabio%5CAppData%5CLocal%5CTemp%5Cclaude%5CC--AI-Mpi-Cubric-Vision%5C7de41d27-b1b4-4c1c-b729-4782b0e8ecb7%5Cscratchpad%5Csbrun%5Cproject%5CMedia%5Cedit_003.png"
+      },
+      {
+        "index": 3,
+        "ok": true,
+        "file": "/project-file?path=C%3A%5CUsers%5CFabio%5CAppData%5CLocal%5CTemp%5Cclaude%5CC--AI-Mpi-Cubric-Vision%5C7de41d27-b1b4-4c1c-b729-4782b0e8ecb7%5Cscratchpad%5Csbrun%5Cproject%5CMedia%5Cedit_004.png"
+      },
+      {
+        "index": 4,
+        "ok": true,
+        "file": "/project-file?path=C%3A%5CUsers%5CFabio%5CAppData%5CLocal%5CTemp%5Cclaude%5CC--AI-Mpi-Cubric-Vision%5C7de41d27-b1b4-4c1c-b729-4782b0e8ecb7%5Cscratchpad%5Csbrun%5Cproject%5CMedia%5Cedit_006.png"
+      },
+      {
+        "index": 5,
+        "ok": true,
+        "file": "/project-file?path=C%3A%5CUsers%5CFabio%5CAppData%5CLocal%5CTemp%5Cclaude%5CC--AI-Mpi-Cubric-Vision%5C7de41d27-b1b4-4c1c-b729-4782b0e8ecb7%5Cscratchpad%5Csbrun%5Cproject%5CMedia%5Cedit_005.png"
+      }
+    ]
+  }
+}
