@@ -677,5 +677,12 @@ card's FLUX.3 route stays.
   the SAME latent (shared Wan21 latent + qwen_image VAE, MPI-242 research `image-conditioning-and-controlnet.md`
   §5b: hand-off works; July's locality loss predates Krea2's edit patch). Bench: `research/split1.py`
   (stage `qwen` -> `krea` -> `sheet`) on Fabio's G:\ComfyUi bench :8188, NOT RUN YET.
+- 2026-10-26 (Multi-Angle 42): split1 RUN, one target (`pr_r lo rel`, seed 111), findings in validation.md. Best so
+  far = Qwen 8-step Lightning (hand-off after step 4, sigma 0.714) -> Krea2 Raw cfg 2.0 25 steps (two refs) ->
+  shipped skin pass (Turbo LoRA, beta, 2 steps @ 0.30): `split1.py raw "pr_r lo rel"`. Dead: Turbo finish
+  (re-textures everything), latent-upscaling the NOISY hand-off (confetti), 2K Raw with refs + cfg 2 (133 s/step on
+  16 GB). Untested: light 2K pass (no refs, cfg 1, 6 steps @ 0.35: `raw ... 25 2.0 2 0.30 0.35 6`). Fabio's way of
+  working: ONE generation at a time, look, show him a full-size pair (original | result) or a close-up crop, never
+  a thumbnail grid.
 - 2026-10-26: Fabio's "front first" decision (after round 56) was built and reverted for the turn stops the same night
   on rounds 57-61 evidence (one lucky seed in round 57); only Turn = Front alone keeps the front pass.

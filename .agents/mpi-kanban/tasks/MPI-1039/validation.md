@@ -1311,3 +1311,13 @@ user's ratio later; a crop changes the zoom, so the gizmo may need per-ratio-fam
 - ROOT CAUSE of the eye-level miss: NOT app drift - the app sent round 70's exact words + the room/tq_br doll, no
   image 3. Round 70's "rear 3/4 at eye level 2/2" was a thumbnail OVER-READ: edit_2491 (111) and edit_2538 (222) put
   the camera at hip height too, same as edit_009. The toLevel words lift the camera only partway from a turned low start.
+
+## 2026-10-26 split1 (Multi-Angle 42)
+- Qwen-only (angle LoRA 0.9, Lightning 4-step) from edit_006 tq_br lo: only `pr_r lo rel` lands (right profile, still low). The "front view" words turn her to face the camera (tq_br level rel/abs); front lo abs / pr_r lo abs barely move; height words never raise the camera.
+- Krea2 finish at k2 (sigma 0.714), two refs: euler 6 steps holds the Qwen view exactly and is clearly sharper (face, skin, carpet, handles). dpmpp_2m 8 steps over-sharpens (grainy carpet and legs).
+- Fabio's ask: judge on full-size pairs (original | result), never on thumbnail grids. One generation at a time, look, then the next setting. Pair: research/sheets/split1_pair_pr_r.jpg (uncommitted, his pictures).
+- Qwen 8-step Lightning (hand-off after step 4, sigma 0.714) fixed the 3-leg seed-111 failure of the 4-step run; view still pr_r lo.
+- Turbo 2K pass (pixel upscale + Krea Turbo from 0.45) = sharp but Fabio: Turbo re-textures everything (walls, ceiling, skin) on close-up.
+- Hi-res fix by upscaling the NOISY hand-off latent (LatentUpscaleBy bislerp 2x -> Krea at 2K) = pure confetti noise. Dead; only a finished latent can be upscaled.
+- Krea2 Raw, no Turbo, cfg 2.0, 18 steps from 0.714: no mottling, clean ceiling, softer skin (docs: Raw alone goes plastic, the shipped quality tier adds a short low-denoise pass).
+- Shipped quality-tier recipe on the hand-off: Raw 25 steps cfg 2.0 from 0.714 + skin pass (Turbo LoRA, beta, 2 steps, denoise 0.30, refs kept) = best so far: hair strands, skin grain, no Turbo mottling, view + 2 legs held. Awaiting Fabio's eye test; 2K hi-res fix (finished latent) not yet tried. Script: split1.py raw <target>.
