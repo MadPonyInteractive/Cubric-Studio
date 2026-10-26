@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1303",
+  "title": "Model picker: Local / Cloud filter that persists",
+  "description": "The Model overlay (MpiModelPicker) gets the shared MpiFilterBar row the Model and Flow Libraries use, with a Source group (Local / Cloud) remembered across opens and restarts.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-26T20:39:53+00:00",
+  "updated_at": "2026-10-26T20:45:35+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
