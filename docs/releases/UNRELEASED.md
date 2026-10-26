@@ -77,7 +77,7 @@
 ## Fixes
 
 - The Model picker now lists featured models first, the same order as the Model Library, and MOSS-Image is featured (MPI-1245).
-- The child-safety check reads more wording: plural body words and clothing "pulled aside" now get the picture looked at (MPI-1241).
+- The child-safety check reads more wording: plural body words and clothing "pulled aside" now get the picture looked at (MPI-1241). It also no longer refuses adult nudity on Control with Depth, Canny or Scribble from a photo of an adult: it looks at the picture you gave it, face included, instead of the grey map made from it, where an adult's outline could pass for a child's (MPI-1297).
 - Cosmo now tells you how many tiles a Use Tiles upscale runs, up to the number the status bar counts (MPI-1237).
 - Video Edit's Swap the person no longer turns the new person's back to the camera at the end of a clip when the person in the video never turns away (MPI-1284).
 - Cosmo makes FLUX.3 Klein pictures on Turbo, the fast setting, and switches to the slower base model only when you ask for more quality or more natural skin (MPI-1278).
@@ -88,7 +88,6 @@
 - Less noise in the log: the mascot freeze warnings now appear only with speed diagnostics on, and a RunPod connect that stops early no longer logs a false freeze (MPI-1255).
 - Renaming a card in Show info mode: you can see what you type with the mouse still on the card (MPI-1289).
 - Compare labels each side with the card's name, not the file name (MPI-1290).
-- Control with Depth, Canny or Scribble no longer refuses adult nudity from a photo of an adult. The child-safety check now looks at the picture you gave it, face included, instead of the grey map made from it, where an adult's outline could pass for a child's (MPI-1297).
 
 ## Held for the LTX 2.5 release — do NOT fold until its dev gate comes off
 
