@@ -23,13 +23,11 @@ const express = require('express');
 const router  = express.Router();
 const fs      = require('fs-extra');
 const path    = require('path');
-const { diskPathOf, projectFileUrlBusted } = require('../services/projectFileUrl');
-const { v4: uuidv4 } = require('uuid');
+const { diskPathOf } = require('../services/projectFileUrl');
 const logger = require('./logger');
 const { serveChannel } = require('./eventStream');
 const { concatVideos } = require('../services/videoConcat');
-const { probeVideo }   = require('../services/ffprobeVideo');
-const { writeVideoDerivatives } = require('../services/ffmpegThumb');
+const { writeVideoCard } = require('../services/outputCard');
 const { nextSequence } = require('./projects');
 
 // ── SSE channel ──────────────────────────────────────────────────────────────
@@ -79,45 +77,6 @@ function _makeProgressEmitter(jobId) {
         last = ratio;
         _broadcast('concat:progress', { jobId, ratio });
     };
-}
-
-async function _writeOutputSidecar({ mediaDir, metaDir, outputPath, finalName, operation, extraFields = {} }) {
-    const outMeta = await probeVideo(outputPath) || {};
-    const newId   = uuidv4();
-    // Cache-bust on the output's mtime: a re-run that overwrites a reused
-    // filename (e.g. combined_001.mp4 after an in-app delete) gets a fresh URL,
-    // so Chromium can't replay stale cached bytes for the same /project-file path.
-    const filePathUrl = projectFileUrlBusted(outputPath);
-    const sidecar = {
-        id:         newId,
-        type:       'video',
-        filePath:   filePathUrl,
-        operation,
-        displayName: finalName.replace(/\.[^.]+$/, ''),
-        prompt:     '',
-        negativePrompt: '',
-        seed:       -1,
-        modelId:    null,
-        createdAt:  new Date().toISOString(),
-        name:       null,
-        uploaded:   false,
-        pixelDimensions: { w: outMeta.width || 0, h: outMeta.height || 0 },
-        fps:        outMeta.fps        || 0,
-        duration:   outMeta.duration   || 0,
-        frameCount: outMeta.frameCount || 0,
-        hasAudio:   !!outMeta.hasAudio,
-        ...extraFields,
-    };
-    // Poster + 720p hover proxy + trim-bar waveform (MPI-633, MPI-829). Null proxyPath
-    // just means the output is already at or under 720p, in which case the master IS the
-    // proxy. The wave spans the JOINED clip, which is the whole point on a concat.
-    const { thumbPath, thumbPathLg, proxyPath, wavePath } = await writeVideoDerivatives(outputPath, metaDir, newId, { sourceWidth: outMeta.width, sourceHeight: outMeta.height, hasAudio: !!outMeta.hasAudio });
-    if (thumbPath) sidecar.thumbPath = thumbPath;
-    if (thumbPathLg) sidecar.thumbPathLg = thumbPathLg;
-    if (proxyPath) sidecar.proxyPath = proxyPath;
-    if (wavePath) sidecar.wavePath = wavePath;
-    await fs.writeJson(path.join(metaDir, `${newId}.json`), sidecar, { spaces: 2 });
-    return sidecar;
 }
 
 // ── POST /combine-videos ─────────────────────────────────────────────────────
@@ -171,20 +130,8 @@ router.post('/combine-videos', async (req, res) => {
         // Re-encode via the filter path for guaranteed CFR output.
         const result = await concatVideos(inputs, outputPath, { onProgress, forceReencode: true });
 
-        const sidecar = await _writeOutputSidecar({
-            mediaDir, metaDir, outputPath, finalName, operation: 'combine',
-        });
-
-        const item = { ...sidecar };
-        const group = {
-            id:         uuidv4(),
-            type:       'video',
-            operation:  'combine',
-            createdAt:  new Date().toISOString(),
-            fps:        sidecar.fps,
-            duration:   sidecar.duration,
-            items:      [item],
-        };
+        // The waveform spans the JOINED clip, which is the whole point on a concat.
+        const { item, group } = await writeVideoCard({ outputPath, metaDir, operation: 'combine' });
 
         _broadcast('concat:done', { jobId, item, group, method: result.method });
         res.json({ success: true, item, group, method: result.method, jobId });
