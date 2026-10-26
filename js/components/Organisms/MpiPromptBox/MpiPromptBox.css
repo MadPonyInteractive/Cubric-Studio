@@ -51,22 +51,28 @@
 
 /* MPI-1295: the clip waits below the rule and slides up while live, then back down once
    it ends. No fade: every peek.webm opens and closes with the head already up, so a fade
-   popped it in and out (the Flows had the same, MPI-1294). */
+   popped it in and out (the Flows had the same, MPI-1294). Parked, it is also hidden once
+   the slide-down ends: its box hangs below the clipped window, over whatever sits under the
+   prompt box (the video transport bar), and box probes do not see the clipping. */
 .mpi-prompt-box__peek-clip {
     position: absolute;
     left: 0;
     bottom: 0;
     width: 100%;
     transform: translateY(100%);
-    transition: transform var(--t-slow) var(--ease);
+    visibility: hidden;
+    transition: transform var(--t-slow) var(--ease), visibility 0s linear var(--t-slow);
 }
 
 .mpi-prompt-box__peek--live .mpi-prompt-box__peek-clip {
     transform: none;
+    visibility: visible;
+    transition: transform var(--t-slow) var(--ease), visibility 0s;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .mpi-prompt-box__peek-clip {
+    .mpi-prompt-box__peek-clip,
+    .mpi-prompt-box__peek--live .mpi-prompt-box__peek-clip {
         transition: none;
     }
 }
