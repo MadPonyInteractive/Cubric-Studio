@@ -61,20 +61,17 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs-extra');
 const path = require('path');
-const { projectFileUrl, projectFileUrlBusted } = require('../services/projectFileUrl');
 const sharp = require('sharp');
-const { v4: uuidv4 } = require('uuid');
 const logger = require('./logger');
 const {
     frameAbsPath,
     frameExists,
     holdFrames,
     writeFrame,
-    buildGif,
-    builtGifDimensions,
+    gifEntryFrom,
 } = require('../services/gifFrames');
 const { planExtendedCrop, cropPipeline } = require('../services/imageCrop');
-const { extractImageThumb, imageThumbPath, IMAGE_RENDITION_PX } = require('../services/ffmpegThumb');
+const { writeGifCard } = require('../services/outputCard');
 const { nextSequence } = require('./projects');
 
 /**
@@ -121,63 +118,19 @@ async function _transformFrames(mediaDir, frames, transformOne, hold) {
 }
 
 /**
- * Build the .gif, write its sidecar and thumb, and shape the `{item, group}`
- * response — the part `POST /gif/crop` and `POST /gif/resize` share, mirrors
- * `routes/gifCutout.js`'s `/gif-cutout/apply` tail exactly (same precedent).
- *
- * `pixelDimensions` is NOT a parameter: it is measured off the built file here
- * (MPI-844). Both callers knew the size they were transforming TO, and that is
- * the frame canvas, not the `.gif` — `buildGif` still caps it at `maxEdge` and
- * rounds the free edge even.
+ * The part `POST /gif/crop` and `POST /gif/resize` share: the floored entry and the
+ * card. `outputPath` is set before the build so the route's catch removes a
+ * half-written `.gif`.
  */
-async function _writeNewGifCard({ folderPath, mediaDir, metaDir, newFrames, loop, output, operation, sourceItemId, sourceGroupId }) {
-    const gifEntry = {
-        frames: newFrames,
-        loop: Number.isFinite(Number(loop)) ? Number(loop) : 0,
-        output: {
-            maxEdge: Math.max(Number(output?.maxEdge) > 0 ? Number(output.maxEdge) : 0, TRANSFORM_MIN_MAX_EDGE),
-            colours: Number(output?.colours) > 0 ? Math.round(Number(output.colours)) : 256,
-            edgeColour: output?.edgeColour || null,
-        },
-    };
-
+async function _writeNewGifCard({ folderPath, mediaDir, metaDir, newFrames, loop, output, operation, sourceItemId, sourceGroupId }, onOutputPath) {
     const finalName = await nextSequence(folderPath, mediaDir, 'gif', 'gif');
     const outputPath = path.join(mediaDir, finalName);
-    await buildGif(gifEntry, mediaDir, outputPath);
-
-    const id = uuidv4();
-    const meta = {
-        id,
-        type: 'image',
-        filePath: projectFileUrlBusted(outputPath),
-        operation,
-        displayName: finalName.replace(/\.[^.]+$/, ''),
-        prompt: '',
-        negativePrompt: '',
-        seed: -1,
-        modelId: null,
-        createdAt: new Date().toISOString(),
-        name: null,
-        uploaded: false,
-        pixelDimensions: await builtGifDimensions(outputPath),
-        generationMs: null,
-        gif: gifEntry,
-        sourceItemId: sourceItemId || null,
-        sourceGroupId: sourceGroupId || null,
-    };
-    await extractImageThumb(outputPath, path.join(metaDir, `${id}.thumb.jpg`), { width: IMAGE_RENDITION_PX.small });
-    meta.thumbPath = projectFileUrl(imageThumbPath(path.join(metaDir, `${id}.thumb.jpg`), { width: IMAGE_RENDITION_PX.small }));
-    await fs.writeJson(path.join(metaDir, `${id}.json`), meta, { spaces: 2 });
-
-    const item = { ...meta };
-    const group = {
-        id: uuidv4(),
-        type: 'image',
-        operation,
-        createdAt: new Date().toISOString(),
-        items: [item],
-    };
-    return { item, group, outputPath };
+    onOutputPath(outputPath);
+    return writeGifCard({
+        outputPath, mediaDir, metaDir, operation,
+        gifEntry: gifEntryFrom(newFrames, loop, output, { maxEdgeFloor: TRANSFORM_MIN_MAX_EDGE }),
+        fields: { sourceItemId: sourceItemId || null, sourceGroupId: sourceGroupId || null },
+    });
 }
 
 router.post('/gif/crop', async (req, res) => {
@@ -225,8 +178,7 @@ router.post('/gif/crop', async (req, res) => {
             folderPath, mediaDir, metaDir, newFrames, loop, output,
             operation: 'gifCrop',
             sourceItemId, sourceGroupId,
-        });
-        outputPath = result.outputPath;
+        }, p => { outputPath = p; });
         res.json({ success: true, item: result.item, group: result.group });
     } catch (err) {
         logger.error('project', 'gif crop failed', err);
@@ -271,8 +223,7 @@ router.post('/gif/resize', async (req, res) => {
             folderPath, mediaDir, metaDir, newFrames, loop, output,
             operation: 'gifResize',
             sourceItemId, sourceGroupId,
-        });
-        outputPath = result.outputPath;
+        }, p => { outputPath = p; });
         res.json({ success: true, item: result.item, group: result.group });
     } catch (err) {
         logger.error('project', 'gif resize failed', err);
