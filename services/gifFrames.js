@@ -340,6 +340,28 @@ async function builtGifDimensions(absPath) {
 }
 
 /**
+ * The GIF entry a route stores, from what the client sent (MPI-1302, AUDIT D10): frame
+ * delays default to 10, loop to forever, output to `DEFAULT_MAX_EDGE` and 256 colours.
+ * `edgeColour` is the default edge when the client sent none (a cut-out passes black);
+ * `maxEdgeFloor` raises a too-small box and never lowers one (Crop/Resize).
+ * @param {{ hash: string, delay?: number|string }[]} frames
+ * @param {unknown} loop
+ * @param {{ maxEdge?: number, colours?: number, edgeColour?: string|null }} [output]
+ * @param {{ edgeColour?: string|null, maxEdgeFloor?: number }} [defaults]
+ */
+function gifEntryFrom(frames, loop, output, { edgeColour = null, maxEdgeFloor = 0 } = {}) {
+    return {
+        frames: frames.map(f => ({ hash: f.hash, delay: Number(f.delay) || 10 })),
+        loop: Number.isFinite(Number(loop)) ? Number(loop) : 0,
+        output: {
+            maxEdge: Math.max(Number(output?.maxEdge) > 0 ? Number(output.maxEdge) : DEFAULT_MAX_EDGE, maxEdgeFloor),
+            colours: Number(output?.colours) > 0 ? Math.round(Number(output.colours)) : 256,
+            edgeColour: output?.edgeColour || edgeColour,
+        },
+    };
+}
+
+/**
  * Build a `.gif` from a frame list: two-pass palette (as `routes/videoGif.js`),
  * one GIF frame per list entry at a constant rate, then patch every delay.
  *
@@ -517,6 +539,7 @@ module.exports = {
     holdFrames,
     writeFrame,
     extractFramesFromGif,
+    gifEntryFrom,
     buildGif,
     patchGifDelays,
     blendEdgeColour,

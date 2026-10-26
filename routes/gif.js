@@ -26,10 +26,10 @@ const router = express.Router();
 const fs = require('fs-extra');
 const path = require('path');
 const { projectFileUrl, projectFileUrlBusted, diskPathOf } = require('../services/projectFileUrl');
-const { v4: uuidv4 } = require('uuid');
 const logger = require('./logger');
 const {
     extractFramesFromGif,
+    gifEntryFrom,
     buildGif,
     frameExists,
     builtGifDimensions,
@@ -38,7 +38,7 @@ const {
     holdFrames,
     sweepGifFrames,
 } = require('../services/gifFrames');
-const { extractImageThumb, imageThumbPath, IMAGE_RENDITION_PX } = require('../services/ffmpegThumb');
+const { writeGifThumb, writeGifCard } = require('../services/outputCard');
 const { nextSequence, itemsInFlight } = require('./projects');
 
 /** Attach `url` / `thumbUrl` to every frame entry for the response only. */
@@ -145,15 +145,7 @@ router.post('/gif/entry', async (req, res) => {
             }
         }
 
-        const gifEntry = {
-            frames: frames.map(f => ({ hash: f.hash, delay: Number(f.delay) || 10 })),
-            loop: Number.isFinite(Number(loop)) ? Number(loop) : 0,
-            output: {
-                maxEdge: Number(output?.maxEdge) > 0 ? Number(output.maxEdge) : 1024,
-                colours: Number(output?.colours) > 0 ? Math.round(Number(output.colours)) : 256,
-                edgeColour: output?.edgeColour || null,
-            },
-        };
+        const gifEntry = gifEntryFrom(frames, loop, output);
 
         if (mode === 'update') {
             if (!itemId) return res.status(400).json({ success: false, error: 'itemId required for update' });
@@ -174,8 +166,7 @@ router.post('/gif/entry', async (req, res) => {
             meta.displayName = finalName.replace(/\.[^.]+$/, '');
             meta.pixelDimensions = await builtGifDimensions(outputPath);
             meta.gif = gifEntry;
-            await extractImageThumb(outputPath, path.join(metaDir, `${itemId}.thumb.jpg`), { width: IMAGE_RENDITION_PX.small });
-            meta.thumbPath = projectFileUrl(imageThumbPath(path.join(metaDir, `${itemId}.thumb.jpg`), { width: IMAGE_RENDITION_PX.small }));
+            meta.thumbPath = await writeGifThumb(outputPath, metaDir, itemId);
             await fs.writeJson(metaPath, meta, { spaces: 2 });
 
             // E5 — never leave the previous `.gif` under the old URL on disk.
@@ -190,40 +181,10 @@ router.post('/gif/entry', async (req, res) => {
         // mode === 'new'
         const finalName = await nextSequence(folderPath, mediaDir, 'gif', 'gif');
         outputPath = path.join(mediaDir, finalName);
-        await buildGif(gifEntry, mediaDir, outputPath);
-
-        const id = uuidv4();
-        const meta = {
-            id,
-            type: 'image',
-            filePath: projectFileUrlBusted(outputPath),
-            operation: 'gif',
-            displayName: finalName.replace(/\.[^.]+$/, ''),
-            prompt: '',
-            negativePrompt: '',
-            seed: -1,
-            modelId: null,
-            createdAt: new Date().toISOString(),
-            name: null,
-            uploaded: false,
-            pixelDimensions: await builtGifDimensions(outputPath),
-            generationMs: null,
-            gif: gifEntry,
-            sourceItemId: sourceItemId || null,
-            sourceGroupId: sourceGroupId || null,
-        };
-        await extractImageThumb(outputPath, path.join(metaDir, `${id}.thumb.jpg`), { width: IMAGE_RENDITION_PX.small });
-        meta.thumbPath = projectFileUrl(imageThumbPath(path.join(metaDir, `${id}.thumb.jpg`), { width: IMAGE_RENDITION_PX.small }));
-        await fs.writeJson(path.join(metaDir, `${id}.json`), meta, { spaces: 2 });
-
-        const item = { ...meta };
-        const group = {
-            id: uuidv4(),
-            type: 'image',
-            operation: 'gif',
-            createdAt: new Date().toISOString(),
-            items: [item],
-        };
+        const { item, group } = await writeGifCard({
+            outputPath, mediaDir, metaDir, gifEntry, operation: 'gif',
+            fields: { sourceItemId: sourceItemId || null, sourceGroupId: sourceGroupId || null },
+        });
         res.json({ success: true, item, group });
     } catch (err) {
         logger.error('project', 'gif entry failed', err);
@@ -271,15 +232,7 @@ router.post('/gif/preview', async (req, res) => {
             }
         }
 
-        const gifEntry = {
-            frames: frames.map(f => ({ hash: f.hash, delay: Number(f.delay) || 10 })),
-            loop: Number.isFinite(Number(loop)) ? Number(loop) : 0,
-            output: {
-                maxEdge: Number(output?.maxEdge) > 0 ? Number(output.maxEdge) : 1024,
-                colours: Number(output?.colours) > 0 ? Math.round(Number(output.colours)) : 256,
-                edgeColour: output?.edgeColour || null,
-            },
-        };
+        const gifEntry = gifEntryFrom(frames, loop, output);
 
         const previewPath = path.join(mediaDir, '.gif-preview', 'preview.gif');
         await fs.ensureDir(path.dirname(previewPath));

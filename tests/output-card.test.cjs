@@ -14,7 +14,8 @@ const { execFile } = require('node:child_process');
 const { promisify } = require('node:util');
 const { scratchDir } = require('./helpers/scratch.cjs');
 const { ffmpegPath } = require('../services/ffmpegBinary');
-const { writeImageCard, writeVideoCard } = require('../services/outputCard');
+const { writeImageCard, writeVideoCard, writeGifCard } = require('../services/outputCard');
+const { gifEntryFrom, writeFrame } = require('../services/gifFrames');
 
 const BASE_KEYS = ['id', 'type', 'filePath', 'operation', 'displayName', 'prompt', 'negativePrompt',
     'seed', 'modelId', 'createdAt', 'name', 'uploaded'];
@@ -71,4 +72,39 @@ test('writeVideoCard probes the output, lets route fields win, and returns item 
     assert.equal(group.fps, 10);
     assert.deepEqual(group.items, [item]);
     assert.notEqual(group.id, item.id);
+});
+
+test('gifEntryFrom fills the defaults, keeps a bigger box and floors a smaller one', () => {
+    const e = gifEntryFrom([{ hash: 'a', delay: '0' }, { hash: 'b', delay: 7 }], 'x', { colours: 64.4 });
+    assert.deepEqual(e, {
+        frames: [{ hash: 'a', delay: 10 }, { hash: 'b', delay: 7 }],
+        loop: 0,
+        output: { maxEdge: 1024, colours: 64, edgeColour: null },
+    });
+    assert.equal(gifEntryFrom([], 3, {}, { edgeColour: '#000000' }).output.edgeColour, '#000000');
+    assert.equal(gifEntryFrom([], 3, { edgeColour: '#ff0000' }, { edgeColour: '#000000' }).output.edgeColour, '#ff0000');
+    assert.equal(gifEntryFrom([], 0, { maxEdge: 800 }, { maxEdgeFloor: 2048 }).output.maxEdge, 2048);
+    assert.equal(gifEntryFrom([], 0, { maxEdge: 4096 }, { maxEdgeFloor: 2048 }).output.maxEdge, 4096);
+});
+
+test('writeGifCard builds the gif, measures it, and names a thumb that exists', async () => {
+    const dir = await scratchDir('output-card-gif-');
+    const mediaDir = path.join(dir, 'Media');
+    const metaDir = path.join(mediaDir, '.meta');
+    await fs.ensureDir(metaDir);
+    const frames = [];
+    for (const colour of ['#ff0000', '#00ff00']) {
+        const buf = await sharp({ create: { width: 40, height: 30, channels: 4, background: colour } }).png().toBuffer();
+        frames.push({ hash: (await writeFrame(mediaDir, buf, null)).hash, delay: 20 });
+    }
+    const outputPath = path.join(mediaDir, 'gif_001.gif');
+    const gifEntry = gifEntryFrom(frames, 0, {});
+    const { item, group } = await writeGifCard({ outputPath, mediaDir, metaDir, gifEntry, operation: 'gif', fields: { sourceItemId: 's' } });
+    assert.deepEqual(await fs.readJson(path.join(metaDir, `${item.id}.json`)), item);
+    assert.deepEqual(item.pixelDimensions, { w: 40, h: 30 });
+    assert.deepEqual(item.gif, gifEntry);
+    assert.equal(item.sourceItemId, 's');
+    assert.ok(await fs.pathExists(decodeURIComponent(item.thumbPath.split('path=')[1])), 'thumbPath names a real file (MPI-627)');
+    assert.deepEqual(group.items, [item]);
+    assert.equal(group.fps, undefined);
 });

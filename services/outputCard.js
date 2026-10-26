@@ -1,8 +1,8 @@
 'use strict';
 
 /**
- * The card an edit or tool output lands as (MPI-1302, AUDIT D3): crop, reverse,
- * combine, extract, GIF-to-video, sheets, composites, paint.
+ * The card an edit or tool output lands as (MPI-1302, AUDIT D3/D10): crop, reverse,
+ * combine, extract, GIF-to-video, sheets, composites, paint, and every new GIF card.
  *
  * Every one of those routes wrote the same sidecar literal by hand, so a field the
  * reconciler or Reuse came to need had to be added in ten places, and a site that
@@ -19,6 +19,7 @@ const { v4: uuidv4 } = require('uuid');
 const { projectFileUrlBusted } = require('./projectFileUrl');
 const { probeVideo } = require('./ffprobeVideo');
 const { extractImageThumb, writeVideoDerivatives, IMAGE_RENDITION_PX } = require('./ffmpegThumb');
+const { buildGif, builtGifDimensions } = require('./gifFrames');
 
 /**
  * The fields every output sidecar starts with. `filePath` is cache-busted on the
@@ -86,6 +87,49 @@ async function writeImageCard({ outputPath, metaDir, id, operation, width, heigh
 }
 
 /**
+ * A GIF card's one thumb (the small tier only: a GIF is at most a few hundred px a side
+ * in the grid). The URL of the file `extractImageThumb` RETURNS, or null when none was
+ * written — never a recomputed path that may not exist (MPI-627).
+ */
+async function writeGifThumb(gifPath, metaDir, id) {
+    const thumb = await extractImageThumb(gifPath, path.join(metaDir, `${id}.thumb.jpg`), { width: IMAGE_RENDITION_PX.small });
+    return thumb ? `/project-file?path=${encodeURIComponent(thumb)}` : null;
+}
+
+/**
+ * Build `gifEntry` into `outputPath` (the caller picks the sequenced name, and removes
+ * it if this throws), write the card's sidecar + thumb, and return `{ item, group }`.
+ * `pixelDimensions` is measured off the built file (MPI-844): `buildGif` caps the
+ * frames at `maxEdge`, so the frame canvas is not the GIF's size.
+ * @param {{ outputPath: string, mediaDir: string, metaDir: string, gifEntry: object,
+ *           operation: string, fields?: object }} o
+ */
+async function writeGifCard({ outputPath, mediaDir, metaDir, gifEntry, operation, fields = {} }) {
+    await buildGif(gifEntry, mediaDir, outputPath);
+    const id = uuidv4();
+    const sidecar = {
+        ...outputSidecar({ id, type: 'image', outputPath, operation }),
+        pixelDimensions: await builtGifDimensions(outputPath),
+        generationMs: null,
+        gif: gifEntry,
+        ...fields,
+    };
+    const thumbPath = await writeGifThumb(outputPath, metaDir, id);
+    if (thumbPath) sidecar.thumbPath = thumbPath;
+    await fs.writeJson(path.join(metaDir, `${id}.json`), sidecar, { spaces: 2 });
+
+    const item = { ...sidecar };
+    const group = {
+        id: uuidv4(),
+        type: 'image',
+        operation,
+        createdAt: new Date().toISOString(),
+        items: [item],
+    };
+    return { item, group };
+}
+
+/**
  * Probe a finished video, write its sidecar + poster, 720p hover proxy and trim-bar
  * waveform (MPI-633, MPI-829), and return the `{ item, group }` the renderer's
  * `addGroup()` takes.
@@ -133,4 +177,4 @@ async function writeVideoCard({ outputPath, metaDir, operation, fallback = {}, f
     return { item, group };
 }
 
-module.exports = { outputSidecar, writeImageRenditions, writeImageCard, writeVideoCard };
+module.exports = { outputSidecar, writeImageRenditions, writeImageCard, writeGifThumb, writeGifCard, writeVideoCard };
