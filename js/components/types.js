@@ -2100,6 +2100,15 @@
  */
 
 /**
+ * @typedef {Object} MpiPhoneShellProps (Block — js/components/Blocks/MpiPhoneShell, MPI-1300)
+ * No props. The phone companion's frame, mounted by js/phone/init.js (phone.html, GET /phone,
+ * dev-gated): top bar (logo, project name from /connector/current-project, pod pill from
+ * /remote/mode, settings), one screen slot, and the Cosmo / Gallery / Queue tab bar.
+ * Phase 1: the screens are placeholders and the top-bar taps do nothing yet.
+ * `el.dataset.tab` holds the open tab id. Emits: (none)
+ */
+
+/**
  * @typedef {Object} MpiPanoVideoBlockProps (Block — js/components/Blocks/MpiPanoVideoBlock)
  * @property {string} groupId - ID of a path video card (from router params, PAGE_SCENE). Mounted
  *   instead of MpiSceneBlock when the card has `getPathVideoItem(group)`
