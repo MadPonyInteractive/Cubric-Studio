@@ -192,7 +192,7 @@ function classSetOf(file) {
 const TIER_RANK = { low: 0, balanced: 1, high: 2 };
 
 function resolveSmokeSet(reg, only) {
-    const { MODELS, DEPS, resolveDeps, resolveWorkflowFile, sizeToGb } = reg;
+    const { MODELS, DEPS, resolveDeps, sizeToGb } = reg;
     const depsOf = (m, ops) => resolveDeps(m, ops || null, null, ENGINE, { arch: ARCH });
     const gbOf = (ids) => [...ids].reduce((g, i) => g + (isWeight(DEPS[i]) ? sizeToGb(DEPS[i].size) : 0), 0);
 

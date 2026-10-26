@@ -236,7 +236,7 @@ export const MpiToolOptionsResize = ComponentFactory.create({
     `,
 
     setup: (el, props, emit) => {
-        const { viewer, kind = 'image', stackMode = false } = props;
+        const { viewer, stackMode = false } = props;
         let currentItem = props.currentItem ?? null;
 
         let settings = coerceSettings(

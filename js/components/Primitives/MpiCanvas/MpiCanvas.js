@@ -95,8 +95,6 @@ import { InputController }   from './managers/InputController.js';
 import { accentHeat, on }    from '../../../utils/dom.js';
 import { resolveDisplayImage, displayMaxEdge } from '../../../utils/displayImage.js';
 
-const getCSSColor = (varName) => getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
-
 /** True if value is a valid first arg for CanvasRenderingContext2D.drawImage(). */
 function _isDrawable(src) {
     if (!src) return false;

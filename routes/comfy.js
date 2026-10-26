@@ -21,7 +21,7 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs-extra');
 const path = require('path');
-const { exec, spawn } = require('child_process');
+const { spawn } = require('child_process');
 const logger = require('./logger');
 const { cleanEngineScratch } = require('./engineScratch');
 const { isDepInstalledOnDisk, getPartialBytes } = require('./downloadCompletion');
@@ -30,7 +30,6 @@ const {
     processState,
     stopComfyUI,
     resolveComfyPath,
-    cleanEmptyDirs,
     getCustomRoot,
     getDefaultModelsRoot,
     getSearchedModelsRoots,

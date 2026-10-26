@@ -59,7 +59,6 @@ import { clientLogger } from '../../../services/clientLogger.js';
 import { hasNoEngine } from '../../../services/engineGate.js';
 import { qs, gid } from '../../../utils/dom.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
-import { loadAll as loadAssets } from '../../../services/assetService.js';
 import { extractFilenameFromPath, extractAbsPath, resolveMediaUrl, downloadMediaFiles } from '../../../utils/mediaActions.js';
 import { describeItem } from '../../../utils/describeAction.js';
 import { resolveActiveModel, setSelectedModelId, getSelectedOp, setSelectedOp } from '../../../utils/modelHelpers.js';

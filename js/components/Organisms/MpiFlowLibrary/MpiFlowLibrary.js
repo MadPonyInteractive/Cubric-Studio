@@ -788,7 +788,7 @@ export const MpiFlowLibrary = ComponentFactory.create({
             if (flow.paid) { _openPaidDetail(flow); return; }
             _destroyDetailBtns();
             _activeDetail = flow;
-            const { available, missing, reason } = flowAvailability(flow);
+            const { available, reason } = flowAvailability(flow);
 
             // MPI-532 — a Flow package that failed validation: the reason, and no footer.
             // Its strings passed userFlowService's markup filter, so they interpolate safely.

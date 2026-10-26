@@ -24,7 +24,7 @@ import { Events } from '../events.js';
 import { refreshProject as refreshProjectStats, refreshGroup as refreshGroupStats } from '../services/projectStatsService.js';
 import { APP_CONFIG } from '../../dev_configs/app_config.js';
 import { gid, qs } from '../utils/dom.js';
-import { navigate, back, clearHistory, PAGE_LANDING, PAGE_GALLERY, PAGE_GROUP_HISTORY, PAGE_SCENE } from '../router.js';
+import { navigate, clearHistory, PAGE_LANDING, PAGE_GALLERY, PAGE_GROUP_HISTORY, PAGE_SCENE } from '../router.js';
 import { MpiRadialMenu } from '../components/Primitives/MpiRadialMenu/MpiRadialMenu.js';
 import { resolveFlipTarget } from '../data/projectModel.js';
 import { getPathVideoItem } from '../utils/assetKinds.js';

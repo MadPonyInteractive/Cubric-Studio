@@ -19,8 +19,8 @@ const { isCompleteOnDisk, isNodeInstalledOnDisk } = require('./downloadCompletio
 const https = require('https');
 const http = require('http');
 const { pipeline } = require('stream/promises');
-const { exec, spawn } = require('child_process');
-const { COMFY_DIR, getPythonBin, getComfyPath, getEngineRoot } = require('./platformEngine');
+const { spawn } = require('child_process');
+const { getPythonBin, getComfyPath, getEngineRoot } = require('./platformEngine');
 const { buildExtraModelPathsYaml } = require('./yamlHelper');
 const { setRoots, getModelRootsPath } = require('./modelRoots');
 

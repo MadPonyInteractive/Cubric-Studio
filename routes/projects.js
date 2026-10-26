@@ -39,7 +39,7 @@ const sharp = require('sharp');
 const { execFile } = require('child_process');
 const logger = require('./logger');
 const { v4: uuidv4 } = require('uuid');
-const { getProjectsRoot, COMFYUI_PORT, streamDownload, stripImageMetadata, readProjectPathsRegistry, addProjectPathToRegistry, removeProjectPathFromRegistry, readHiddenProjects, setProjectHidden, readFavouriteProjects, setProjectFavourite } = require('./shared');
+const { getProjectsRoot, streamDownload, stripImageMetadata, readProjectPathsRegistry, addProjectPathToRegistry, removeProjectPathFromRegistry, readHiddenProjects, setProjectHidden, readFavouriteProjects, setProjectFavourite } = require('./shared');
 const { getComfyPath, getEngineRoot } = require('./platformEngine');
 const { probeVideo, probeAudio } = require('../services/ffprobeVideo');
 const { extractImageThumb, extractVideoThumb, extractVideoProxy, extractAudioWaveform, extractVideoWaveform, writeVideoDerivatives, imageThumbPath, videoProxyPath, IMAGE_RENDITION_PX, VIDEO_PROXY_HEIGHT } = require('../services/ffmpegThumb');
@@ -492,15 +492,6 @@ function decodeProjectFilePath(value) {
         if (match) return path.normalize(decodeURIComponent(match[1]));
     }
     return null;
-}
-
-function extFromDataUrl(dataUrl) {
-    const match = String(dataUrl || '').match(/^data:image\/([a-zA-Z0-9.+-]+);/);
-    if (!match) return '.png';
-    const kind = match[1].toLowerCase();
-    if (kind === 'jpeg') return '.jpg';
-    if (/^[a-z0-9]+$/.test(kind)) return `.${kind}`;
-    return '.png';
 }
 
 async function copySnapshotSource(sourceUrl, targetPath) {

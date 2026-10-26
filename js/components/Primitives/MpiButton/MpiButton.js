@@ -40,7 +40,6 @@ export const MpiButton = ComponentFactory.create({
             // ── Plain text button ──────────────────────────────────────────────
             const variant = props.variant || 'primary';
             const size = props.size || 'md';
-            const type = props.type || 'button';
             const isDisabled = props.disabled || props.loading ? 'disabled' : '';
             const isLoading = props.loading ? 'mpi-btn--loading' : '';
             const shapeClass = props.shape === 'pill' ? 'mpi-btn--pill' : '';

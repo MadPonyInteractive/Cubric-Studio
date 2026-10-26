@@ -142,7 +142,7 @@ export async function handleSnapshot(e, video, cropRect, callbacks = {}, options
     const finalRect = cropRect || { x: 0.25, y: 0.25, width: 0.5, height: 0.5 };
 
     try {
-        const frameUrl = await captureFrame(video, finalRect);
+        await captureFrame(video, finalRect);
     } catch (err) {
         console.error("Snapshot failed:", err);
     }

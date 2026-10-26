@@ -44,7 +44,6 @@ test('Flow Library filters, search and count compose, persist, and tear down', a
       bar.addEventListener('mpifilterbar:change', onChange);
 
       const tiles = () => [...root.querySelectorAll('.mpi-tile')].map(t => t.textContent);
-      const has = (list, title) => list.some(t => t.includes(title));
       const tag = (group, value) =>
         root.querySelector(`.mpi-filter-bar__tag[data-group="${group}"][data-value="${value}"]`);
       const input = root.querySelector('.mpi-filter-bar__search-input');

@@ -16,7 +16,7 @@
 
 const { Readable } = require('stream');
 const logger = require('./logger');
-const { getWrapperToken, proxyUrl } = require('./remoteEngine');
+const { getWrapperToken } = require('./remoteEngine');
 const { buildAuthHeaders } = require('./remoteHeaders');
 
 // --- remote-mode state (backend-owned; Settings/boot gate flips it) ----------

@@ -184,10 +184,8 @@ test('already settled by a live event between the awaits → no double-reject', 
     const { ctx, seen } = makeCtx();
     // After queue read but before history re-read, a live terminal settles the promise.
     // Simulate this by clearing the resolver map inside the queue fetch call.
-    let queueCallCount = 0;
     const fetch = async (url) => {
         if (String(url).includes('/queue')) {
-            queueCallCount++;
             // Simulate live terminal settling the prompt while we awaited queue
             ctx._promptResolvers.clear();
             ctx._promptRejectors.clear();

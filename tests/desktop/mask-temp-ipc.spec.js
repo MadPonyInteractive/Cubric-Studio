@@ -169,7 +169,7 @@ test('mask-temp: stale cubric-<uuid> dirs pruned at boot, siblings kept', async 
 
   const app = await electron.launch({ args: ['.'], env });
   try {
-    const window = await shellWindow(app);
+    await shellWindow(app);
 
     // Confirm stale dir gone post-boot, and the sibling untouched.
     expect(fs.existsSync(stalePath)).toBe(false);

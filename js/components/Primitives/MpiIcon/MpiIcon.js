@@ -1,5 +1,5 @@
 import { ComponentFactory } from '../../factory.js';
-import { ICONS, renderIcon } from '../../../utils/icons.js';
+import { renderIcon } from '../../../utils/icons.js';
 /**
  * MpiIcon — Atomic SVG Icon Primitive
  *

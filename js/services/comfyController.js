@@ -1689,7 +1689,7 @@ function createEngine({ engine, alwaysLocal }) {
             if (targetsPathNode) mediaParamKinds[key] = 'imagepath';
         }
 
-        for (const [paramKey, mediaKind] of Object.entries(mediaParamKinds)) {
+        for (const paramKey of Object.keys(mediaParamKinds)) {
             let val = params[paramKey];
             if (!val || typeof val !== 'string') continue;
 

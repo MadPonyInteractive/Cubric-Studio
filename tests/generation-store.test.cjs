@@ -44,49 +44,6 @@ function registerJob(store, { engine = 'remote', scope = 'gallery', interruptCb 
     return jobId;
 }
 
-/** Walk a job through legal forward transitions to a terminal or intermediate state. */
-function walkTo(store, jobId, targetPhase) {
-    const sequence = [
-        PHASES.QUEUED, PHASES.PREFLIGHT, PHASES.SUBMITTING, PHASES.ACCEPTED,
-        PHASES.LOADING, PHASES.SAMPLING, PHASES.FINALIZING, PHASES.DONE,
-    ];
-    const terminals = new Set([PHASES.DONE, PHASES.CANCELLED, PHASES.ERROR]);
-    if (terminals.has(targetPhase)) {
-        // Walk to finalizing then to target, or directly if accepted→done is legal
-        // Use the minimal path to reach the target terminal
-        const pathToFinalizing = sequence.slice(sequence.indexOf(PHASES.ACCEPTED), sequence.indexOf(PHASES.FINALIZING) + 1);
-        const current = store.byId(jobId)?.phase;
-        const startIdx = sequence.indexOf(current ?? PHASES.QUEUED);
-        // Advance from current to finalizing, then to target
-        const target = targetPhase === PHASES.DONE ? sequence : sequence;
-        // Simplest: walk from current+1 to one step before target, then apply target
-        const endPath = targetPhase === PHASES.DONE
-            ? [PHASES.PREFLIGHT, PHASES.ACCEPTED, PHASES.FINALIZING, PHASES.DONE]
-            : [PHASES.PREFLIGHT, PHASES.ACCEPTED, targetPhase];
-        for (const ph of endPath) {
-            const cur = store.byId(jobId)?.phase;
-            if (cur !== ph) store.advance(jobId, ph);
-        }
-    } else {
-        const startIdx = sequence.indexOf(store.byId(jobId)?.phase ?? PHASES.QUEUED);
-        const endIdx   = sequence.indexOf(targetPhase);
-        for (let i = startIdx + 1; i <= endIdx; i++) {
-            store.advance(jobId, sequence[i]);
-        }
-    }
-}
-
-/** Advance to a terminal via a valid sequence. */
-function completeTo(store, jobId, terminal = PHASES.DONE) {
-    if (terminal === PHASES.DONE) {
-        walkTo(store, jobId, PHASES.DONE);
-    } else {
-        // For cancelled/error: go to accepted first, then terminal
-        store.advance(jobId, PHASES.ACCEPTED);
-        store.advance(jobId, terminal);
-    }
-}
-
 // ── Tests ──────────────────────────────────────────────────────────────────────
 
 /**
@@ -374,7 +331,7 @@ function testSnapshotApi() {
     assert.strictEqual(store.queueDepth(), 0, 'empty depth');
 
     const j1 = registerJob(store, { engine: 'remote', scope: 'gallery' });
-    const j2 = registerJob(store, { engine: 'local',  scope: 'groupHistory' });
+    registerJob(store, { engine: 'local',  scope: 'groupHistory' });
 
     assert.strictEqual(store.list().length, 2, 'list returns all jobs');
     assert.strictEqual(store.byId(j1).jobId, j1, 'byId finds job');

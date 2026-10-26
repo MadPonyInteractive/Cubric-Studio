@@ -10,7 +10,6 @@ import { mascotLoop } from '../../../utils/mascotLoop.js';
 import { matchesGallerySort, kindItemOf, isGalleryFiltered, byGalleryOrder, markOf, markIcon, DEFAULT_GALLERY_SORT } from '../../../utils/galleryFilter.js';
 import { wireCardMark, closeCardMarkMenu } from './cardMarkMenu.js';
 import { mountSelectionBar } from './selectionBar.js';
-import { removeHistoryEntry } from '../../../data/projectModel.js';
 import { getModelById, tierLetterFor } from '../../../data/modelRegistry.js';
 import { getCommand, getCommandAccent, commandAllowsBranchingContinue } from '../../../data/commandRegistry.js';
 import { isStack, expandStacks, stackCreateBlockReason, STACK_BLOCK_INFO } from '../../../data/stackModel.js';

@@ -14,7 +14,6 @@
 // (routes/remoteModels.js) and widening it would hide this instance while leaving a
 // genuinely-down wrapper misclassified the same way.
 const assert = require('assert');
-const Module = require('module');
 
 // Stub the two modules remoteModels resolves its Pod identity + token from, so the real
 // remoteInstallDep runs with no app, no port and no Pod.

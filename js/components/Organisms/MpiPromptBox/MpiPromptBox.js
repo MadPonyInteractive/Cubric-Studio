@@ -6,14 +6,14 @@ import { MpiPopup } from '../../Primitives/MpiPopup/MpiPopup.js';
 import { MpiToast } from '../../Primitives/MpiToast/MpiToast.js';
 import { Events } from '../../../events.js';
 import { renderIcon } from '../../../utils/icons.js';
-import { commands, getAvailableCommands, getCommandComponents, getCommandMediaInputs, filterMediaInputsForModel, matchRefTagQuery, refTagHandle, stripOrdinalMediaRoles, modelShowsStyleRack, modelShowsRatio, modelShowsBatch, modelControlTypes, getOpHelp, isTextOnlyOp, pickTextOnlyOp, opAllowsEnhance, selectCueAllTargets } from '../../../data/commandRegistry.js';
+import { commands, getAvailableCommands, getCommandMediaInputs, filterMediaInputsForModel, matchRefTagQuery, refTagHandle, stripOrdinalMediaRoles, getOpHelp, isTextOnlyOp, pickTextOnlyOp, opAllowsEnhance, selectCueAllTargets } from '../../../data/commandRegistry.js';
 import { MpiOpHelpDialog } from '../../Compounds/MpiOpHelpDialog/MpiOpHelpDialog.js';
 import { MpiMediaPicker } from '../../Compounds/MpiMediaPicker/MpiMediaPicker.js';
 import { MpiVoicePicker } from '../../Compounds/MpiVoicePicker/MpiVoicePicker.js';
 import { MpiLoraRack } from '../../Compounds/MpiLoraRack/MpiLoraRack.js';
 import { MpiBoxesPanel } from '../../Compounds/MpiBoxesPanel/MpiBoxesPanel.js';
 import { getModelDepStatus, tierLetterFor } from '../../../data/modelRegistry.js';
-import { usesQualityTier, h3FastMotionOnePass } from '../../../utils/ratios.js';
+import { h3FastMotionOnePass } from '../../../utils/ratios.js';
 import { deriveInstalledOps } from '../../../data/modelConstants/resolveModelDeps.js';
 import { getSelectedOp } from '../../../utils/modelHelpers.js';
 import { PROMPT_BOX_CONTROLS, getInjectionParamsFromControls, visibleControlIds } from './PromptBoxControls.js';
@@ -792,7 +792,6 @@ export const MpiPromptBox = ComponentFactory.create({
             const maxCount = _maxMediaForCurrentOperation(mediaType);
             if (maxCount <= 0) { _showIncompatibleToast(); return; }
 
-            const sameType = _mediaItems.filter(m => m.mediaType === mediaType);
             // Role-aware replacement: if the new item carries an explicit role,
             // displace any existing item already tagged with that role first
             // (so "Set as end frame" overwrites a prior end-frame chip

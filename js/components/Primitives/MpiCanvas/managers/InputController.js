@@ -129,7 +129,7 @@ export class InputController {
     }
 
     _initEvents() {
-        const { view, mask, comparison } = this.managers;
+        const { view, mask } = this.managers;
 
         // Wheel: Zoom or Brush Size
         this._boundHandlers.wheel = (e) => {

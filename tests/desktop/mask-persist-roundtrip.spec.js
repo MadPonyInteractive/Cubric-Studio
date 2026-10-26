@@ -253,7 +253,7 @@ test('navigation: history load restores active session-temp mask in prompt previ
   try {
     const result = await window.evaluate(async (imgUrl) => {
       const { state } = await import('/js/state.js');
-      const { navigate, PAGE_GALLERY, PAGE_GROUP_HISTORY } = await import('/js/router.js');
+      const { navigate, PAGE_GROUP_HISTORY } = await import('/js/router.js');
       const { maskTempStore } = await import('/js/services/maskTempStore.js');
       const reg = await import('/js/data/modelRegistry.js');
       const cmds = await import('/js/data/commandRegistry.js');

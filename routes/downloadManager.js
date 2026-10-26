@@ -78,7 +78,6 @@ const { getComfyPath, getEngineRoot } = require('./platformEngine');
 const { isNodeTickPending } = require('./install/computeProgress');
 const { engineJobRunning } = require('./engineJobs');
 const {
-    isCompleteOnDisk,
     isNodeInstalledOnDisk,
     isDepInstalledOnDisk,
     markDownloadInProgress,
@@ -2536,7 +2535,6 @@ function _failOutstandingRemoteDeps(reason) {
 // remoteModelsCheck (/wrapper/models/status) — no new wrapper endpoint.
 async function _reconcileOutstandingRemoteDeps() {
     if (_remoteDepIds.size === 0) return;
-    const { MODELS } = _require('../js/data/modelConstants/models.js');
     const { DEPS } = _require('../js/data/modelConstants/dependencies.js');
     // Build a one-model check carrying every outstanding dep so the wrapper
     // reports each dep's real installed state on the volume.
