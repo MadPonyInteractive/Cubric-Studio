@@ -2,7 +2,7 @@
   "schema": "mpi-kanban/handoff/v1",
   "id": "09f7c84f-4256-4d1f-958d-3ef70ab3bd1b",
   "generated_at": "2026-10-26T22:53:21Z",
-  "status": "open",
+  "status": "resolved",
   "from_session": ".agents/mpi-kanban/state/sessions/d6921471-3eba-4fb2-b8fb-8a93e1ef0584.json",
   "session": {
     "name": "Cubric Studio improvements 2: MPI-1302 X4 tail + T1/T2",
@@ -59,5 +59,7 @@
       "AUDIT.md"
     ]
   },
-  "resume_prompt": "Read .agents/mpi-kanban/state/handoffs/09f7c84f-4256-4d1f-958d-3ef70ab3bd1b.json and continue card MPI-1302 (in doing) with mpi-continue. Phases 1a-1d of AUDIT.md are pushed (last commit c360f775d). Start Phase 2 with D1 (PromptBox slider x17), then D3/D10 route by route, per the card's plan.md. Commit with the card's research/commit_mine.py so peers' uncommitted edits stay out, claim every file before editing, and keep js/utils passing npm run typecheck."
+  "resume_prompt": "Read .agents/mpi-kanban/state/handoffs/09f7c84f-4256-4d1f-958d-3ef70ab3bd1b.json and continue card MPI-1302 (in doing) with mpi-continue. Phases 1a-1d of AUDIT.md are pushed (last commit c360f775d). Start Phase 2 with D1 (PromptBox slider x17), then D3/D10 route by route, per the card's plan.md. Commit with the card's research/commit_mine.py so peers' uncommitted edits stay out, claim every file before editing, and keep js/utils passing npm run typecheck.",
+  "resolved_by": ".agents/mpi-kanban/state/handoffs/9e631357-186e-4f68-8ebe-2b67b77a1981.json",
+  "resolved_at": "2026-10-26T23:15:41Z"
 }

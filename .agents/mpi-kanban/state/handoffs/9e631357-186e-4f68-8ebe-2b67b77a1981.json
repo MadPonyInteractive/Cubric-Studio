@@ -1,0 +1,63 @@
+{
+  "schema": "mpi-kanban/handoff/v1",
+  "id": "9e631357-186e-4f68-8ebe-2b67b77a1981",
+  "generated_at": "2026-10-26T23:15:41Z",
+  "status": "open",
+  "from_session": ".agents/mpi-kanban/state/sessions/1ab602ab-2ec1-42d7-a3e0-16a09872989a.json",
+  "session": {
+    "name": "Cubric Studio improvements 3: MPI-1302 D1",
+    "branch": "master"
+  },
+  "goal": {
+    "original": "Work through the rest of AUDIT.md (repo root) phase by phase on card MPI-1302, handing off between phases when context gets high.",
+    "status": "in_progress",
+    "summary": "Phases 1a-1d and Phase 2's D1 are done and pushed (last code commit 606e652c8: _controlHost + _mountSlider in PromptBoxControls.js). Next is D3/D10, route by route."
+  },
+  "plan": {
+    "file": ".agents/mpi-kanban/tasks/MPI-1302/plan.md",
+    "completed": [
+      "Phase 1a: B4, B6, comfy-vanished-prompt assertion (8c05c2c8e); H3 dropped",
+      "D6 graph_utils.py (90e79b465), D8 shared small utilities (37ea2d46c)",
+      "X4 unused routes/exports (f1d97c07b, c360f775d)",
+      "T1 type-check inside npm run lint, T2 JSDoc (c360f775d)",
+      "D1 PromptBox label row + slider mount shared, -262 lines, 198-case desktop snapshot identical (606e652c8)"
+    ],
+    "pending": [
+      "Phase 2: D3/D10 route by route (one commit each), then P2, P14, P7, P12, P13 - each with the audit's GPU-free check",
+      "Phase 3 (user-ux): P1, P3, D7, D9",
+      "Phase 4 (user-ux): P4-P6, P9-P11"
+    ]
+  },
+  "task_card": {
+    "id": "MPI-1302",
+    "title": "AUDIT follow-up: the cleanup, duplication and speed findings PR #12 left open",
+    "column": "doing",
+    "workspace": ".agents/mpi-kanban/tasks/MPI-1302/",
+    "links": {
+      "plan": "plan.md",
+      "checklist": "checklist.md",
+      "validation": "validation.md"
+    }
+  },
+  "next_action": {
+    "description": "Start D3/D10 (AUDIT.md sections D3 and D10): re-check the locations first (line numbers drift), then go route by route - claim the files, extract the shared helper, verify with the audit's GPU-free check + npm run lint + npm test, commit each route with research/commit_mine.py, push, update AUDIT.md Status + checklist. Then P2, P14, P7, P12, P13.",
+    "command": "mpi-continue"
+  },
+  "context": {
+    "key_decisions": [
+      "Fabio wants MPI-1302 done in sequence, one session at a time, no parallel batch; hand off between phases.",
+      ".claude/rules/ files are never edited without Fabio's explicit OK.",
+      "Audit counts can overstate: D1's '17 slider copies' were 7 sliders + 10 shared label rows. Re-count before designing the helper."
+    ],
+    "constraints": [
+      "Shared tree: commit with python .agents/mpi-kanban/tasks/MPI-1302/research/commit_mine.py . <msgfile> MPI-1302 <files...>, then git push origin <sha>:refs/heads/master.",
+      "Claim files before editing: write state/files/<sid8>-mpi1302-<item>.json with status \"claimed\" (not \"active\" - guard-claim rejects it) and add it to active_file_claims in state/index.json. guard-claim cannot read shell variables in paths: use the Edit tool or literal paths.",
+      "Behaviour-preserving refactors: snapshot before/after with a throwaway script or desktop spec (tests/desktop/launch.js runs its own port, never :3000) and diff; never commit the scratch spec."
+    ],
+    "files_to_read_first": [
+      ".agents/mpi-kanban/tasks/MPI-1302/plan.md",
+      "AUDIT.md"
+    ]
+  },
+  "resume_prompt": "Read .agents/mpi-kanban/state/handoffs/9e631357-186e-4f68-8ebe-2b67b77a1981.json and continue card MPI-1302 (in doing) with mpi-continue. Phases 1a-1d and D1 of AUDIT.md are pushed (last code commit 606e652c8). Next is D3/D10 route by route, one commit each, then P2/P14/P7/P12/P13, per the card's plan.md. Commit with the card's research/commit_mine.py so peers' uncommitted edits stay out, claim every file before editing, and keep js/utils passing npm run typecheck."
+}
