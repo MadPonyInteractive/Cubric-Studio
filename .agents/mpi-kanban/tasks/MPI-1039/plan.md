@@ -684,5 +684,18 @@ card's FLUX.3 route stays.
   16 GB). Untested: light 2K pass (no refs, cfg 1, 6 steps @ 0.35: `raw ... 25 2.0 2 0.30 0.35 6`). Fabio's way of
   working: ONE generation at a time, look, show him a full-size pair (original | result) or a close-up crop, never
   a thumbnail grid.
+- 2026-10-26 (Multi-Angle 43): Raw 18 + skin = 408 s vs Raw 25 + skin 534 s, close-up near-identical (validation.md).
+  Fabio APPROVED: 18 is the finish default. Light 2K latent pass FAILED (smear, face changes). Fabio: face detail =
+  the app's own Krea2 Turbo upscale, one pass, no tiles, back to input size: +32 s, sharper face, same identity
+  (validation.md) - Fabio APPROVED, the upscale phase stays. Locked recipe = Qwen 8-step hand-off -> Raw 18 + skin
+  pass -> Turbo upscale. 2nd target `front lo abs` FAILED the view (Qwen barely turns her; Krea's input ref pulls it
+  back) - validation.md. Finish quality is solved; the CAMERA MOVE is the open problem.
+  FABIO RULE (2026-10-26): ALWAYS consider multiple camera moves when needed - a target the camera cannot reach in
+  one move (low in front = inside the bed) goes in hops: eye level first, then rotate. `split1.py hop` chains them.
+  Hops 1-2 landed a front view indoors; hop 3 broke (raw Qwen chained 3x). Step-4 peek = enough to judge the landing
+  -> Fabio's design: Qwen 4 steps, LLM checks the x0 guess, hop again or hand the latent to Krea. The LoRA's view
+  words name the END view (outdoor test). Open: she turns in place (no orbit), height words weak. Fabio: test more
+  images first; later the Flow tells users its limits (indoors / confined spaces are harder).
+  Recipe: `split1.py raw "pr_r lo rel" 18 2.0 2 0.30 0 16 4 1.5 0.2`.
 - 2026-10-26: Fabio's "front first" decision (after round 56) was built and reverted for the turn stops the same night
   on rounds 57-61 evidence (one lucky seed in round 57); only Turn = Front alone keeps the front pass.

@@ -77,7 +77,9 @@ def files(outputs, kind):
             for o in outputs.values() for f in o.get(kind, [])]
 
 
-def qwen_graph(prompt, tag, steps=4, cuts=(2, 3)):
+def qwen_graph(prompt, tag, steps=4, cuts=(2, 3), image='mpi1039_split_person.png', peek=None):
+    # peek = (latent file, cut): one Euler jump from the hand-off sigma straight to 0 = the model's x0 guess at that
+    # step (what a live preview shows) - can a short run already tell where the camera landed?
     sig = q_sigmas(steps)
     g = {
         '1': ('UNETLoader', {'unet_name': 'qwen_image_edit_2511_int8_convrot.safetensors', 'weight_dtype': 'default'}),
@@ -89,7 +91,7 @@ def qwen_graph(prompt, tag, steps=4, cuts=(2, 3)):
         '5': ('CFGNorm', {'model': ['4', 0], 'strength': 1.0}),
         '6': ('CLIPLoader', {'clip_name': 'qwen_2.5_vl_7b_fp8_scaled.safetensors', 'type': 'qwen_image', 'device': 'default'}),
         '7': ('VAELoader', {'vae_name': 'qwen_image_vae.safetensors'}),
-        '8': ('LoadImage', {'image': 'mpi1039_split_person.png'}),
+        '8': ('LoadImage', {'image': image}),
         '9': ('TextEncodeQwenImageEditPlus', {'clip': ['6', 0], 'vae': ['7', 0], 'image1': ['8', 0], 'prompt': prompt}),
         '10': ('TextEncodeQwenImageEditPlus', {'clip': ['6', 0], 'vae': ['7', 0], 'image1': ['8', 0], 'prompt': ''}),
         '11': ('VAEEncode', {'pixels': ['8', 0], 'vae': ['7', 0]}),
@@ -98,6 +100,14 @@ def qwen_graph(prompt, tag, steps=4, cuts=(2, 3)):
         '14': ('RandomNoise', {'noise_seed': SEED}),
         '15': ('DisableNoise', {}),
     }
+    if peek:
+        g['11'] = ('LoadLatent', {'latent': peek[0]})
+        g['20'] = ('ManualSigmas', {'sigmas': f'{sig[peek[1]]}, 0.0'})
+        g['30'] = ('SamplerCustomAdvanced', {'noise': ['15', 0], 'guider': ['12', 0], 'sampler': ['13', 0],
+                                             'sigmas': ['20', 0], 'latent_image': ['11', 0]})
+        g['50'] = ('VAEDecode', {'samples': ['30', 0], 'vae': ['7', 0]})
+        g['51'] = ('SaveImage', {'images': ['50', 0], 'filename_prefix': f'mpi1039_split/{tag}_peek{peek[1]}'})
+        return {k: {'class_type': c, 'inputs': i} for k, (c, i) in g.items()}
     bounds = [0, *cuts, steps]
     prev, chunks = ['11', 0], list(zip(bounds, bounds[1:]))
     for i, (lo, hi) in enumerate(chunks):
@@ -114,7 +124,10 @@ def qwen_graph(prompt, tag, steps=4, cuts=(2, 3)):
 
 
 def krea_graph(latent_file, k, mode, tag, sampler='euler', steps=None, shift=1.15, start=None, up=None, lup=None,
-               cfg=None, refine=None, hires=None):
+               cfg=None, refine=None, hires=None, usdu=None):
+    # usdu = (factor, denoise, turbo): the app's shipped one-pass Krea2 upscale (krea2_t2i template branch 7):
+    # Siax 4x -> UltimateSDUpscale one tile, euler/beta; turbo = Turbo LoRA 1.0, 3 steps, cfg 1.0, else base model,
+    # 15 steps, cfg 1.5. Then resized back to the user's input picture size (Fabio: output = input size)
     # hires = (start, steps): hi-res fix on the FINISHED 1K latent - upscale 2x, re-noise to `start`, Raw again at 2K,
     # then the same skin pass (needs refine)
     # refine = (steps, denoise): the shipped quality tier's skin pass on the result (Turbo LoRA, beta, cfg 1)
@@ -196,12 +209,36 @@ def krea_graph(latent_file, k, mode, tag, sampler='euler', steps=None, shift=1.1
                                              'sigmas': ['85', 0], 'latent_image': ['73', 0]})
         out = ['74', 0]
     g['50'] = ('VAEDecode', {'samples': out, 'vae': ['7', 0]})
-    g['51'] = ('SaveImage', {'images': ['50', 0],
+    img = ['50', 0]
+    if usdu:
+        side = round(1024 * usdu[0] / 16) * 16
+        g['90'] = ('UpscaleModelLoader', {'model_name': '4x_NMKD-Siax_200k.pth'})
+        g['91'] = ('ResizeImageMaskNode', {'resize_type': 'scale to multiple', 'resize_type.multiple': 16,
+                                           'scale_method': 'lanczos', 'input': img})
+        g['92'] = ('CLIPTextEncode', {'clip': ['6', 0], 'text': TEXT_PROMPT})
+        g['93'] = ('CLIPTextEncode', {'clip': ['6', 0], 'text': ''})
+        g['95'] = ('LoraLoaderModelOnly', {'model': ['1', 0], 'strength_model': 1.0,
+                                           'lora_name': 'krea-2\\extra\\krea2_turbo_distill_r128.safetensors'})
+        turbo = usdu[2]
+        g['94'] = ('UltimateSDUpscale', {
+            'image': ['91', 0], 'model': ['95' if turbo else '1', 0], 'positive': ['92', 0], 'negative': ['93', 0],
+            'vae': ['7', 0], 'upscale_model': ['90', 0], 'upscale_by': usdu[0], 'seed': SEED + 3,
+            'steps': 3 if turbo else 15, 'cfg': 1.0 if turbo else 1.5,
+            'sampler_name': 'euler', 'scheduler': 'beta', 'denoise': usdu[1], 'mode_type': 'Linear',
+            'tile_width': side, 'tile_height': side, 'mask_blur': 8, 'tile_padding': 32, 'seam_fix_mode': 'None',
+            'seam_fix_denoise': 0.6, 'seam_fix_width': 64, 'seam_fix_mask_blur': 8, 'seam_fix_padding': 16,
+            'force_uniform_tiles': False, 'tiled_decode': False, 'batch_size': 1})
+        g['96'] = ('GetImageSize', {'image': ['8', 0]})
+        g['97'] = ('ImageScale', {'image': ['94', 0], 'upscale_method': 'lanczos', 'width': ['96', 0],
+                                  'height': ['96', 1], 'crop': 'disabled'})
+        img = ['97', 0]
+    g['51'] = ('SaveImage', {'images': img,
                              'filename_prefix': f'mpi1039_split/{tag}_k{k}_{mode}_{sampler}_n{len(sig) - 1}_s{shift}'
                                                 f'{"_2k" if up else ""}{f"_lup_{lup}" if lup else ""}'
                                                 f'{f"_raw_cfg{cfg}" if cfg else ""}'
                                                 f'{f"_ref{refine[0]}x{refine[1]}" if refine else ""}'
-                                                f'{f"_hires{hires[0]}x{hires[1]}" if hires else ""}'})
+                                                f'{f"_hires{hires[0]}x{hires[1]}" if hires else ""}'
+                                                f'{f"_usdu{usdu[0]}x{usdu[1]}{"t" if usdu[2] else ""}" if usdu else ""}'})
     return {k_: {'class_type': c, 'inputs': i} for k_, (c, i) in g.items()}
 
 
@@ -245,11 +282,33 @@ def main(stage):
         print('qwen', files(outs, 'images')[0], flush=True)
         name = f'mpi1039_split_{tag}_k{cut}.latent'
         shutil.copyfile(files(outs, 'latents')[0], os.path.join(COMFY, 'input', name))
+        if up_start == 0:  # hand-off only: the locked finish is `raw`
+            return
         k1 = files(submit(krea_graph(name, cut, 'two', tag, steps=6, start=q_sigmas(8)[cut])), 'images')[0]
         print('krea1k', k1, flush=True)
         shutil.copyfile(k1, os.path.join(COMFY, 'input', 'mpi1039_split_up.png'))
         print('krea2k', files(submit(krea_graph(None, cut, 'two', tag, steps=6, start=up_start,
                                                 up='mpi1039_split_up.png')), 'images')[0])
+        return
+    elif stage == 'hop':  # hop <tag> <in_image> <cut|0> <words>: one Qwen 8-step camera hop from any input picture.
+        # cut 0 = full picture, copied to input/mpi1039_split_<tag>.png for the next hop; else the hand-off latent
+        # for `raw <tag-target>` (Fabio: an impossible camera spot, e.g. low in front behind a bed, fails - go to
+        # eye level first, then rotate)
+        tag, image, cut, words = sys.argv[2], sys.argv[3], int(sys.argv[4]), sys.argv[5]
+        outs = submit(qwen_graph(words, tag, 8, (cut,) if cut else (), image))
+        img = files(outs, 'images')[0]
+        print('qwen', img, flush=True)
+        if cut:
+            shutil.copyfile(files(outs, 'latents')[0], os.path.join(COMFY, 'input', f'mpi1039_split_{tag}_k{cut}.latent'))
+        else:
+            shutil.copyfile(img, os.path.join(COMFY, 'input', f'mpi1039_split_{tag}.png'))
+        return
+    elif stage == 'peek':  # peek <target> [cut]: x0 guess from the saved q8 hand-off of a TARGETS entry
+        t = sys.argv[2]
+        cut = int(sys.argv[3]) if len(sys.argv) > 3 else 4
+        tag = slug(t) + '_q8'
+        print(files(submit(qwen_graph(TARGETS[t], tag, 8, image='mpi1039_split_person.png',
+                                      peek=(f'mpi1039_split_{tag}_k{cut}.latent', cut))), 'images')[0])
         return
     elif stage == 'lup':  # lup <target> <method> [steps] [cut]: hi-res fix on the q8 hand-off latent
         t, method = sys.argv[2], sys.argv[3]
@@ -269,11 +328,14 @@ def main(stage):
         hires_start = float(sys.argv[7]) if len(sys.argv) > 7 else 0  # 0 = stay at 1K
         hires_steps = int(sys.argv[8]) if len(sys.argv) > 8 else 16
         cut = int(sys.argv[9]) if len(sys.argv) > 9 else 4
+        usdu = ((float(sys.argv[10]), float(sys.argv[11]), sys.argv[12] != 'q' if len(sys.argv) > 12 else True)
+                if len(sys.argv) > 11 else None)  # factor denoise [q = quality tier, default turbo]
         tag = slug(t) + '_q8'
         name = f'mpi1039_split_{tag}_k{cut}.latent'
         print(files(submit(krea_graph(name, cut, 'two', tag, steps=steps, start=q_sigmas(8)[cut], cfg=cfg,
                                       refine=(ref_steps, ref_denoise) if ref_steps else None,
-                                      hires=(hires_start, hires_steps) if hires_start else None)), 'images')[0])
+                                      hires=(hires_start, hires_steps) if hires_start else None, usdu=usdu)),
+                    'images')[0])
         return
     elif stage == 'krea':
         only = sys.argv[2].split(',') if len(sys.argv) > 2 else list(TARGETS)
