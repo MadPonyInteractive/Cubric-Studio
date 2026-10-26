@@ -1,0 +1,3 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1297", "at": "2026-10-26T04:47:02+00:00", "actor": "claude", "column": "todo", "title": "Child-safety gate: Depth/Canny/Scribble judge the input photo, not the map"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1297", "at": "2026-10-26T04:48:05+00:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio: control runs judge the input photo, not the ControlNet map"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1297", "at": "2026-10-26T04:54:14+00:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Control runs judge the input photo; tests green"}

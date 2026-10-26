@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1297",
+  "title": "Child-safety gate: Depth/Canny/Scribble judge the input photo, not the map",
+  "description": "A control map has no face, so adults read 'could be under 18' and adult nudity refused; look at the input photo with the age guess instead.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-26T04:47:02+00:00",
+  "updated_at": "2026-10-26T04:54:14+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
