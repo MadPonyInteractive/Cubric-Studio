@@ -11,6 +11,9 @@
     "routes/multiAngle.js",
     "server.js",
     "tests/multi-angle-runner.test.cjs",
-    "tests/multi-angle-ref-route.test.cjs"
+    "tests/multi-angle-ref-route.test.cjs",
+    "js/components/Compounds/MpiAngleGizmo/",
+    "js/components/Primitives/MpiProgressBar/",
+    "tests/multi-angle-gizmo.test.cjs"
   ]
 }

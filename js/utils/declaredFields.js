@@ -1126,8 +1126,14 @@ export function buildField(f, cur, onChange, unsubs, opts = {}) {
         // Multi-angle's camera picker (MPI-1039): a small Cosmo over Turn / Height / Zoom
         // sliders, ONE value { turn, height, zoom }. A Compound, not a new Primitive: it
         // composes three MpiProgressBars around a preview picture.
+        // `mode: 'match'` is step 2's (the user's picture over a big Cosmo); a pick names the
+        // matched field in `startField`, and offers only what the bench proved from there.
         const host = ce('div');
-        const inst = MpiAngleGizmo.mount(host, { value: cur, onChange });
+        const inst = MpiAngleGizmo.mount(host, {
+            value: cur, onChange, mode: f.mode,
+            from: f.startField ? opts.readField?.(f.startField) : null,
+            picture: f.pictureRole ? opts.mediaUrl?.(f.pictureRole) : null,
+        });
         unsubs.push(() => inst?.el?.destroy?.());
         wrap.appendChild(host);
     } else {

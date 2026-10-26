@@ -57,6 +57,8 @@ app.use(bodyParser.json({ limit: '100mb' }));
 const { workflowStatic } = require('./routes/workflowStatic');
 app.use(workflowStatic);
 
+// Before express.static, so the dev gate covers /phone.html too (MPI-1300).
+app.use(require('./routes/phone'));
 app.use(express.static(__dirname));
 
 // ── Route Modules ──────────────────────────────────────────────────────────────

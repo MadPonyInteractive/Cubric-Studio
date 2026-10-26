@@ -122,7 +122,7 @@ test('every accepted bench cell rebuilds its prompt word for word', async () => 
 
 test('the front pass rebuilds the round 52-56 front words', async () => {
     const { multiAnglePlan } = await builder();
-    const [front] = multiAnglePlan({ turn: 'front' }, FACTS.photo).steps;
+    const [front] = multiAnglePlan({ turn: 'front', from: { turn: 'pr_l' } }, FACTS.photo).steps;
     assert.strictEqual(front.prompt, 'Shift the viewpoint of the first image around the subject to match the mannequin '
         + 'reference in the second image: she is seen straight from the front at eye level, facing the camera: her '
         + 'whole face with both eyes, her chest and both shoulders face the view, and her feet point toward the camera. '
@@ -135,7 +135,8 @@ test('each pick runs the proven passes on the proven models', async () => {
     const { multiAnglePlan, FLUX3, QWEN } = await builder();
     const run = (pick) => multiAnglePlan(pick, FACTS.photo).steps.map(s => `${s.kind}:${s.model}:${s.ref}`);
     const FRONT = `front:${FLUX3}:room/front`;
-    assert.deepStrictEqual(run({ turn: 'front' }), [FRONT]);
+    assert.deepStrictEqual(run({ turn: 'front', from: { turn: 'tq_br' } }), [FRONT]);
+    assert.deepStrictEqual(run({ turn: 'front' }), [], 'the start is already the front');
     assert.deepStrictEqual(run({ turn: 'front', height: 'hi' }), [`height:${FLUX3}:room/front_hi`]);
     assert.deepStrictEqual(run({ turn: 'front', height: 'lo' }), [`height:${QWEN}:plain/front_lo`]);
     assert.deepStrictEqual(run({ turn: 'pr_l' }), [`turn:${FLUX3}:room/pr_l`]);
@@ -145,15 +146,48 @@ test('each pick runs the proven passes on the proven models', async () => {
         [`zoom:${FLUX3}:null`, `zoom:${QWEN}:null`]);
     assert.deepStrictEqual(run({ turn: 'front', zoom: { from: 'face', to: 'far' } }),
         [`zoom:${FLUX3}:null`, `zoom:${QWEN}:null`]);
-    assert.deepStrictEqual(run({ turn: 'front', zoom: { from: 'full', to: 'full' } }), [FRONT], 'no zoom move');
+    assert.deepStrictEqual(run({ turn: 'front', zoom: { from: 'full', to: 'full' } }), [], 'no zoom move');
     assert.deepStrictEqual(run({ turn: 'tq_br', zoom: { from: 'full', to: 'hs' } }),
         [`turn:${FLUX3}:room/tq_br`, `zoom:${QWEN}:null`]);
+});
+
+test('only what moved from the matched start runs a pass (step 2, rounds 66-68)', async () => {
+    const { multiAnglePlan, FLUX3, QWEN } = await builder();
+    const plan = pick => multiAnglePlan(pick, FACTS.photo);
+    const run = pick => plan(pick).steps.map(s => `${s.kind}:${s.model}:${s.ref}`);
+    // An unturned side view: the height pass alone on its own words and doll (round 66, 46/46).
+    assert.deepStrictEqual(run({ turn: 'pr_r', height: 'lo', from: { turn: 'pr_r' } }), [`height:${QWEN}:plain/pr_r_lo`]);
+    assert.deepStrictEqual(run({ turn: 'back', from: { turn: 'back' }, zoom: { from: 'full', to: 'far' } }),
+        [`zoom:${FLUX3}:null`], 'a zoom with no pass before it is FLUX.3');
+    assert.deepStrictEqual(run({ turn: 'tq_fl', from: { turn: 'pr_r' } }), [`turn:${FLUX3}:room/tq_fl`]);
+    assert.deepStrictEqual(run({ turn: 'pr_r', from: { turn: 'pr_r' } }), []);
+    // A high start takes the zoom at its own height, no height pass (round 67, 16/16)...
+    assert.deepStrictEqual(run({ turn: 'pr_r', height: 'hi', from: { turn: 'pr_r', height: 'hi' },
+        zoom: { from: 'full', to: 'hs' } }), [`zoom:${FLUX3}:null`]);
+    // ...and nothing else: back to eye level, the other height and a turn are not benched (rounds 67-68).
+    for (const pick of [{ turn: 'front' }, { turn: 'front', height: 'lo' }, { turn: 'pr_r', height: 'hi' }]) {
+        assert.strictEqual(plan({ ...pick, from: { turn: 'front', height: 'hi' } }).ok, false, JSON.stringify(pick));
+    }
+    // The front pass from a turned start runs alone.
+    assert.strictEqual(plan({ turn: 'front', height: 'lo', from: { turn: 'pr_l' } }).ok, false);
+    assert.strictEqual(plan({ turn: 'front', from: { turn: 'pr_l' }, zoom: { from: 'full', to: 'hs' } }).ok, false);
+});
+
+test('a profile low keeps the head with the round 67 headroom words; other lows keep theirs', async () => {
+    const { multiAnglePlan } = await builder();
+    const low = turn => multiAnglePlan({ turn, height: 'lo', from: { turn } }, FACTS.photo).steps[0].prompt;
+    for (const t of ['pr_l', 'pr_r']) {
+        assert.ok(low(t).includes('with a clear gap above it: her whole head and hair are inside the frame, below the top '
+            + 'edge') && low(t).includes('The whole woman fits in the frame from her sneakers to the top of her head.'), t);
+    }
+    for (const t of ['tq_fl', 'tq_br', 'back']) assert.ok(low(t).includes('with her whole head still in frame'), t);
 });
 
 test('two or more people get no front pass; turns are one pass as for one person', async () => {
     const { multiAnglePlan, FLUX3, QWEN } = await builder();
     const run = (pick) => multiAnglePlan(pick, { ...FACTS.photo, people: 2 }).steps.map(s => `${s.kind}:${s.model}:${s.ref}`);
     assert.deepStrictEqual(run({ turn: 'front' }), []);
+    assert.strictEqual(multiAnglePlan({ turn: 'front', from: { turn: 'pr_l' } }, { ...FACTS.photo, people: 2 }).ok, false);
     assert.deepStrictEqual(run({ turn: 'pr_l' }), [`turn:${FLUX3}:room/pr_l`]);
     assert.deepStrictEqual(run({ turn: 'tq_br', height: 'hi' }),
         [`turn:${FLUX3}:room/tq_br`, `height:${QWEN}:plain/tq_br_hi`]);

@@ -36,7 +36,7 @@
    Cosmo's pink-pixel box in the 960x540 eye-level renders, the same on every turn (head
    133-144, eyes 196, feet 414-428 of 540, x ~480): the frame-left eye (450, 196) - the
    prompt's one-eye close-up, half the face; face screen 202 (head top and chin cut); head and
-   shoulders 228; waist up 250; body centre 280. translate = 50% - anchor. Eye and face run on
+   shoulders 228; waist up 250. Whole body is the render as it is. translate = 50% - anchor. Eye and face run on
    the front only, so their anchors are the front's. Far away is its own render. */
 .mpi-angle-gizmo__preview--eye {
     transform: scale(10) translate(3.1%, 13.7%);
@@ -60,8 +60,38 @@
     transform: scale(2) translateY(3.7%);
 }
 
-.mpi-angle-gizmo__preview--full {
-    transform: scale(1.6) translateY(-1.9%);
+/* Step 2, "match your picture": the user's picture on top, Cosmo big under it (Fabio 2026-10-26).
+   Both stages share one width so the eye goes straight down from picture to Cosmo. */
+.mpi-angle-gizmo--match {
+    gap: var(--s-2);
+    max-width: 560px;
+    margin: 0 auto;
+}
+
+.mpi-angle-gizmo__picture {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 36vh;
+    border: 1px solid var(--line);
+    background: var(--surface-canvas);
+}
+
+.mpi-angle-gizmo__picture-img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    user-select: none;
+}
+
+.mpi-angle-gizmo__picture-empty {
+    color: var(--ink-3);
+    font-size: var(--t-xs);
+}
+
+.mpi-angle-gizmo__match {
+    display: flex;
+    justify-content: center;
 }
 
 .mpi-angle-gizmo__row--off {

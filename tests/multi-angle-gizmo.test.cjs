@@ -58,6 +58,42 @@ test('every choice the gizmo offers is a pick the planner runs', async () => {
     }
 });
 
+test('from every matched start, every choice offered is a pick the planner runs', async () => {
+    const { multiAngleChoices, multiAnglePlan, MULTI_ANGLE_TURNS, MULTI_ANGLE_HEIGHTS } = await prompts();
+    for (const st of MULTI_ANGLE_TURNS) {
+        for (const sh of MULTI_ANGLE_HEIGHTS) {
+            const from = { turn: st, height: sh };
+            for (const turn of multiAngleChoices(st, sh, { from }).turns) {
+                for (const height of multiAngleChoices(turn, 'level', { from }).heights) {
+                    for (const zoom of multiAngleChoices(turn, height, { from }).zooms) {
+                        const pick = { turn, height, from, ...(zoom === 'none' ? {} : { zoom: { from: 'full', to: zoom } }) };
+                        const plan = multiAnglePlan(pick, { subject: 'woman', pronoun: 'she' });
+                        assert.ok(plan.ok, `${st}/${sh} -> ${turn}/${height}/${zoom}: ${plan.reason}`);
+                    }
+                }
+            }
+        }
+    }
+});
+
+test('choices from a matched start: a low or high start zooms only; Front from a turned start is alone', async () => {
+    const { multiAngleChoices } = await prompts();
+    const hi = { from: { turn: 'pr_r', height: 'hi' } };
+    assert.deepEqual(multiAngleChoices('pr_r', 'hi', hi), { turns: ['pr_r'], heights: ['hi'], zooms: ['none', 'hs', 'far'] });
+    assert.deepEqual(multiAngleChoices('front', 'lo', { from: { turn: 'front', height: 'lo' } }).zooms, ['none', 'far']);
+    assert.deepEqual(multiAngleChoices('front', 'level', { from: { turn: 'tq_bl' } }), {
+        turns: multiAngleChoices('front', 'level').turns, heights: ['level'], zooms: ['none'] });
+    // Without Qwen a zoom with no pass before it is FLUX.3, on any matched view.
+    assert.deepEqual(multiAngleChoices('pr_l', 'level', { qwen: false, from: { turn: 'pr_l' } }).zooms, ['none', 'hs']);
+});
+
+test('fitAngle from a matched start: what the start cannot reach goes back to it', async () => {
+    const { fitAngle, normalizeAngle } = await gizmo();
+    const from = normalizeAngle({ turn: 'pr_r', height: 'hi' });
+    const v = fitAngle(normalizeAngle({ turn: 'front', height: 'lo', zoom: 'far' }), { qwen: true, from });
+    assert.deepEqual([v.turn, v.turnPos, v.height, v.zoom], ['pr_r', 6, 'hi', 'far']);
+});
+
 test('the Turn slider is a full turn with the front in the middle', async () => {
     const { MULTI_ANGLE_SLIDERS, MULTI_ANGLE_TURNS } = await prompts();
     const t = MULTI_ANGLE_SLIDERS.turn;
@@ -67,12 +103,20 @@ test('the Turn slider is a full turn with the front in the middle', async () => 
     assert.deepEqual([...new Set(t)].sort(), [...MULTI_ANGLE_TURNS].sort());
 });
 
-test('the Zoom slider starts in the middle: out to the left, in to the right', async () => {
-    const { MULTI_ANGLE_SLIDERS, MULTI_ANGLE_RUNGS } = await prompts();
-    const z = MULTI_ANGLE_SLIDERS.zoom;
-    assert.equal(z[Math.floor(z.length / 2)], 'none');
+test('the Zoom slider: left always zooms out, right always zooms in', async () => {
+    const { MULTI_ANGLE_SLIDERS, MULTI_ANGLE_RUNGS, multiAngleZoomSlider } = await prompts();
     // The ladder is closest first, so the slider reads it widest first.
-    assert.deepEqual(z.filter(r => r !== 'none'), [...MULTI_ANGLE_RUNGS].reverse());
+    assert.deepEqual(MULTI_ANGLE_SLIDERS.zoom, [...MULTI_ANGLE_RUNGS].reverse());
+    // The pick puts "as in your picture" on the matched framing (untouched = whole body).
+    assert.deepEqual(multiAngleZoomSlider(), ['far', 'none', 'waist', 'hs', 'face', 'eye']);
+    assert.deepEqual(multiAngleZoomSlider('hs'), ['far', 'full', 'waist', 'none', 'face', 'eye']);
+});
+
+test('fitAngle: the matched framing itself is "as in your picture"', async () => {
+    const { fitAngle, normalizeAngle } = await gizmo();
+    const from = normalizeAngle({ turn: 'front', zoom: 'hs' });
+    assert.equal(fitAngle(normalizeAngle({ zoom: 'hs' }), { qwen: true, from }).zoom, 'none');
+    assert.equal(fitAngle(normalizeAngle({ zoom: 'face' }), { qwen: true, from }).zoom, 'face');
 });
 
 test('every turn x height has its Cosmo preview on disk', async () => {
@@ -96,7 +140,8 @@ test('every turn x height has its Cosmo preview on disk', async () => {
 test('every zoom-in rung has its CSS modifier on the preview', async () => {
     const { MULTI_ANGLE_RUNGS } = await prompts();
     const css = fs.readFileSync(path.join(ROOT, 'js/components/Compounds/MpiAngleGizmo/MpiAngleGizmo.css'), 'utf8');
-    for (const rung of MULTI_ANGLE_RUNGS.filter(r => r !== 'far')) {
+    // Whole body is the render as it is; far its own render.
+    for (const rung of MULTI_ANGLE_RUNGS.filter(r => r !== 'far' && r !== 'full')) {
         assert.match(css, new RegExp(`\\.mpi-angle-gizmo__preview--${rung} \\{\\s*transform: scale\\(`), rung);
     }
 });
@@ -123,7 +168,7 @@ test('fitAngle: a stop the view cannot take falls back', async () => {
 
 test('FlowDef: driver, gizmo field and the slots-only op are all registered', async () => {
     const src = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
-    assert.match(src('js/data/flowsRegistry.js'), /id: 'multi-angle',[\s\S]*?driver: 'multiAngle',[\s\S]*?operation: 'flowMultiAngle',[\s\S]*?id: 'angle', type: 'angle'/);
+    assert.match(src('js/data/flowsRegistry.js'), /id: 'multi-angle',[\s\S]*?driver: 'multiAngle',[\s\S]*?operation: 'flowMultiAngle',[\s\S]*?title: 'Match your picture',[\s\S]*?id: 'start', type: 'angle', mode: 'match', pictureRole: 'inputImage'[\s\S]*?id: 'angle', type: 'angle', label: 'New view', startField: 'start'/);
     assert.match(src('js/shell/storyboardDispatch.js'), /multiAngle: runMultiAngleFlow,/);
     assert.ok(require(path.join(ROOT, 'operation_registry.json')).flowMultiAngle);
     assert.match(src('js/core/operationRegistry.js'), /flowMultiAngle: \{/);

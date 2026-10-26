@@ -618,7 +618,31 @@ ROUND 66 DONE (session "Multi-Angle 37", validation.md): height/zoom ALONE on un
 Illustrious, view matched by eye) keep the view 46/46; hs 12/12, far 10/10; lo cuts the head on side views 4/4; anime hi
 loses the street 2/6 (+1 from the parser bug). FIXED: lower-case describe keys were dropped (multi-angle-runner tests
 11/11). NEXT: (a) side-view low head crop, (b) a non-eye-level start (unbenched), (c) build step 2 + per-slider bypass.
+ROUNDS 67-69 (session "Multi-Angle 38", validation.md): (a) a profile low keeps the head with a headroom line (v1,
+8/8 unturned; round 69 re-runs the accepted turned profile lows with it). (b) a low/high start: ZOOM at its height
+16/16; back to eye level fails (Qwen 0/12, FLUX.3 + room doll partial) and the other height cuts the head (photo
+front lo) or the street (anime hi) - so a non-level start offers zoom only. (c) STEP 2 BUILT (uncommitted, pending
+round 69 + Fabio's eye test): multiAnglePlan/multiAngleChoices take `from` (the matched start) and run only what moved;
+`MULTI_ANGLE_VIEW_ASK` + `parseMultiAngleView` (Try to Match, the view read's round-3 rules: group 114/115, height
+90/115 on the stored answers); MpiAngleGizmo `mode: 'match'` (picture on top, big Cosmo, Try to Match) and pick mode
+reading `startField`; FlowDef step 'Match your picture'; declaredFields passes mode/from/picture, MpiBaseFlow passes
+`mediaUrl`; dispatch sends `pick.from`. Round 69 accepted the profile-low words (fixture updated): tests 36/36, npm
+test 3697 green, lint clean. Render check on own instance: step 2 (picture slot, big Cosmo, 3 sliders, Try to Match,
+hint) and the Generate gizmo render; NOT yet run with a picture. NEXT: Fabio's eye test, then a live run.
 
+2026-10-26 (Multi-Angle 39): Fabio eye-tested step 2. Try to Match "did a good job". Live run: a pick of 3/4 back R +
+low from a front picture = 2 passes (FLUX.3 turn, Qwen low), zoom untouched = no zoom pass, head kept (edit_005/006 in
+"Draw it in improvements"). Fixed after his notes (uncommitted until his look): Zoom is the ladder widest first on
+both steps (left always out); step 2 sets the picture's framing (untouched = whole body = the plain render, the 1.6x
+"full" CSS is gone); the pick puts "as in your picture" ON the matched rung and its preview shows that framing;
+sliders fill from where they started (MpiProgressBar `origin`). OPEN: from a low start only Far away is offered
+(round 51: a low hs lands at the waist) - Fabio finds that limiting; a zoom-in-from-low bench round is the way to
+offer more.
+2026-10-26 Fabio: zoom-only from a low/high start makes the flow useless for him ("I can zoom out with a simple
+edit") - TURN and HEIGHT from a non-level start are the point. GO for ROUND 70 (next session): from low (and high)
+starts, turns staying at the start height, low->high, back to eye level, each with and without his eye-level
+reference picture (the Whole Outfit slot) as an extra image; his case = edit_006 (low 3/4 back R) + the front
+eye-level input in project "Draw it in improvements", plus the six r67 part-B inputs, seeds 111/222.
 ## Remaining Work
 - [ ] Stage 1 (face, 9 runs) + Fabio's eye test
 - [ ] Stage 2 full body, stage 3 rooms

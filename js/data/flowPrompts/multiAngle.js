@@ -75,14 +75,28 @@ export const MULTI_ANGLE_LABELS = {
 /**
  * The gizmo's three sliders, left to right. TURN is a full turn round the person with the front in
  * the middle (Fabio 2026-10-25: Cosmo turns all the way round), so the back sits at both ends.
- * ZOOM starts in the middle on the picture as it is: zoom out to the left, zoom in to the right
- * (Fabio 2026-10-25).
+ * ZOOM is the ladder widest first: left always zooms out, right always zooms in (Fabio 2026-10-26).
+ * Step 2 sets the picture's own framing on it; the Generate slide's copy is multiAngleZoomSlider.
  */
 export const MULTI_ANGLE_SLIDERS = {
     turn: ['back', 'tq_bl', 'pr_l', 'tq_fl', 'front', 'tq_fr', 'pr_r', 'tq_br', 'back'],
     height: ['lo', 'level', 'hi'],
-    zoom: ['far', 'full', 'waist', 'none', 'hs', 'face', 'eye'],
+    zoom: [...MULTI_ANGLE_RUNGS].reverse(),
 };
+
+/** The framing matched in step 2; untouched = whole body, what the untouched Cosmo shows. */
+export const multiAngleMatchedZoom = z => (MULTI_ANGLE_RUNGS.includes(z) ? z : 'full');
+
+/**
+ * The Generate slide's Zoom slider: the same ladder with the matched framing as 'none' (as in your
+ * picture), so every rung left of it is wider and every rung right of it closer.
+ * @param {string} [matched] - the zoom matched in step 2
+ * @returns {string[]}
+ */
+export function multiAngleZoomSlider(matched) {
+    const m = multiAngleMatchedZoom(matched);
+    return MULTI_ANGLE_SLIDERS.zoom.map(r => (r === m ? 'none' : r));
+}
 
 /**
  * The Cosmo preview of a turn + height, from the same Blender camera as that stop's doll ref. Far
@@ -93,22 +107,37 @@ export function multiAnglePreview(turn, height, zoom) {
     return `assets/flows/multi-angle/previews/${turn}${h}${zoom === 'far' ? '_far' : ''}.webp`;
 }
 
+/** The view the user matched to their picture in step 2 (Fabio 2026-10-26); untouched = front, eye level. */
+const _start = from => ({ turn: from?.turn || 'front', height: from?.height || 'level' });
+
 /**
- * The heights and zooms a turn can take: only what the bench proved (flow-spec.md § DECISION), and
- * without Qwen-Image 2.1 only what FLUX.3 runs alone. A low, and a height on a turned view, are Qwen
- * edits; a zoom pass follows the other model each time, so without Qwen only a one-pass zoom on the
- * untouched front runs (the face and far rungs can take two passes).
+ * The turns, heights and zooms a pick can take from the matched start: only what the bench proved
+ * (flow-spec.md § DECISION), and without Qwen-Image 2.1 only what FLUX.3 runs alone. Only a moved slider
+ * runs a pass (Fabio 2026-10-26), so the start decides what is left:
+ * - an eye-level start: any turn (one direct pass from any view, rounds 52-56); on the start's own turn its
+ *   heights with no turn pass (round 66, 46/46). Front from a turned start is the front pass alone.
+ * - a low or high start: zoom only (rounds 67-68: 16/16; back to eye level and the other height do not land).
+ * A low, and a height on a turned view, are Qwen edits; a zoom pass follows the other model each time, so
+ * without Qwen only a one-pass zoom with no pass before it runs (the face and far rungs can take two passes).
  * @param {string} turn
  * @param {string} height
- * @param {{ qwen?: boolean }} [opts] - whether Qwen-Image 2.1 is installed
- * @returns {{ heights: string[], zooms: string[] }} - `zooms` always holds 'none'
+ * @param {{ qwen?: boolean, from?: { turn: string, height: string } }} [opts] - whether Qwen-Image 2.1 is
+ *   installed; the matched start
+ * @returns {{ turns: string[], heights: string[], zooms: string[] }} - `zooms` always holds 'none'
  */
-export function multiAngleChoices(turn, height, { qwen = true } = {}) {
+export function multiAngleChoices(turn, height, { qwen = true, from } = {}) {
+    const start = _start(from);
+    if (start.height !== 'level') {
+        return { turns: [start.turn], heights: [start.height],
+            zooms: ['none', ...(qwen ? _benched(start.turn, start.height) : [])] };
+    }
+    const turns = MULTI_ANGLE_TURNS;
+    if (turn === 'front' && start.turn !== 'front') return { turns, heights: ['level'], zooms: ['none'] };
     const heights = MULTI_ANGLE_HEIGHTS.filter(h => h === 'level' || qwen || (turn === 'front' && h === 'hi'));
     let rungs = _benched(turn, height);
-    // Without Qwen: a one-pass zoom on the eye-level front only (a front high's zoom pass is Qwen).
-    if (!qwen) rungs = turn === 'front' && height === 'level' ? rungs.filter(r => !['face', 'far'].includes(r)) : [];
-    return { heights, zooms: ['none', ...rungs] };
+    // Without Qwen: a one-pass zoom with no pass before it (after a FLUX.3 turn or front high, the zoom is Qwen).
+    if (!qwen) rungs = turn === start.turn && height === 'level' ? rungs.filter(r => !['face', 'far'].includes(r)) : [];
+    return { turns, heights, zooms: ['none', ...rungs] };
 }
 
 const SIDE = { tq_fl: 'left', tq_fr: 'right', pr_l: 'left', pr_r: 'right', tq_bl: 'left', tq_br: 'right' };
@@ -356,11 +385,16 @@ function _heightWords(turn, height, p, facts) {
     const kept = `keep the same ${VIEW_NAME[turn]} view of the ${p.subject} as in the first image`;
     if (height === 'lo') {
         const reveal = _pick(facts.lowReveal, turn);
+        // Round 67: on a profile the old words cut the head off the top 5/8; the headroom words keep it 8/8.
+        const profile = turn === 'pr_l' || turn === 'pr_r';
+        const head = profile ? `is small near the top of the frame with a clear gap above it: ${p.poss} whole head and `
+            + 'hair are inside the frame, below the top edge' : `is small near the top edge with ${p.poss} whole head still in frame`;
         return 'Shift the viewpoint of the first image down to match the mannequin reference in the second image: '
             + `${kept}, but the view drops to just above ${ground}, looking steeply up at ${p.obj}. ${p.Poss} ${p.feet} `
             + `and legs are now large at the bottom of the frame, ${p.poss} body rises and narrows toward the top, `
-            + `${HEAD_LOW[turn](p)} is small near the top edge with ${p.poss} whole head still in frame`
-            + `${reveal ? `, and ${reveal}` : ''}.` + KEEP_REF + _keep(p);
+            + `${HEAD_LOW[turn](p)} ${head}${reveal ? `, and ${reveal}` : ''}.`
+            + (profile ? ` The whole ${p.subject} fits in the frame from ${p.poss} ${p.feet} to the top of ${p.poss} head.` : '')
+            + KEEP_REF + _keep(p);
     }
     const reveal = _pick(facts.highReveal, turn);
     return 'Shift the viewpoint of the first image up to match the mannequin reference in the second image: '
@@ -484,7 +518,75 @@ export const MULTI_ANGLE_DESCRIBE_ASK = 'Look at this picture of a person. Answe
     + 'ONE_SIDED: things worn on only one side of the body, as "thing | left or right (their own side) | where", '
     + 'separated by ";", like "brown bag | right | hip; wristwatch | left | wrist"; none: none';
 
-const _none = v => (!v || /^(none|n\/a|-|no)$/i.test(v) ? '' : v);
+/**
+ * Try to Match (step 2): the describe ask plus the view-read lines, VERBATIM as the view read ran them
+ * (validation.md "VIEW READ", rounds 1 + 3, gemma-4 on 115 pictures of known view): front / turned / rear
+ * 114/115, the side 74/75, rear 3/4 vs back 37/42, height 90/115. It cannot tell a 3/4 front from a
+ * profile (it reads a profile) or always see a high camera, so it is a guess the user corrects.
+ */
+export const MULTI_ANGLE_VIEW_ASK = MULTI_ANGLE_DESCRIBE_ASK
+    + '\nFACING: which way the person faces in the picture, said in picture directions (frame-left = the left '
+    + 'edge of the picture as you look at it): front (facing the camera), front-left (turned partly toward '
+    + 'frame-left, most of the face still showing), left (exactly side-on, facing frame-left, a clean profile), '
+    + 'back-left (turned away, facing partly toward frame-left, mostly the back of the head showing), back '
+    + '(the back turned to the camera), front-right, right, back-right (the same, toward frame-right)\n'
+    + 'CAMERA: where the camera is: level (at their eye level), low (near the ground looking up at them), high '
+    + '(above them looking down)'
+    + '\nNOSE: which side of the IMAGE the tip of the person\'s nose points toward, as you look at the image: camera '
+    + '(straight at you), image-left, image-right, hidden (the face is turned away)\n'
+    + 'FAR_CHEEK: beyond the nose, can you see the cheek on the FAR side of the face (the side turned away from the '
+    + 'camera): yes (some far cheek shows past the nose), no (the nose is the edge of the face), hidden (face turned away)\n'
+    + 'NOSE_OUTLINE: is the tip of the nose drawn against the background, sticking out past the edge of the face: yes or no\n'
+    + 'MOUTH_CORNERS: how many corners of the mouth you can see: two, one, none\n'
+    + 'EARS: how many of the person\'s ears you can see: two, one, none (covered by hair counts as seen if you can tell '
+    + 'where it is)\n'
+    + 'CHEEK_EDGE: if the back of the head faces the camera, does an edge of a cheek, eyelashes or the tip of the nose '
+    + 'show past the outline of the head, and on which side of the IMAGE: none, image-left, image-right; '
+    + 'face-visible if the face itself shows\n'
+    + 'FLOOR_BEHIND: does the floor or ground fill the background behind the person, seen from above (no horizon, '
+    + 'no sky or ceiling behind their head): yes or no\n'
+    + 'HEAD_BIG: does the camera look down on them so their head and shoulders look large and their body shrinks '
+    + 'toward their feet: yes or no';
+
+const _IMAGE_SIDE = { 'image-left': 'l', 'image-right': 'r' };
+const _FACING_SIDE = { 'front-left': 'l', left: 'l', 'back-left': 'l', 'front-right': 'r', right: 'r', 'back-right': 'r' };
+
+/**
+ * The view an answer to MULTI_ANGLE_VIEW_ASK shows, by the rules round 3 was rescored with (validation.md
+ * "VIEW READ"): the FACING group; a side view's side from the nose; a rear 3/4 = a far cheek, one ear, a cheek
+ * edge or FACING back-left/right, its side from the cheek edge, else FACING; low from CAMERA; high = CAMERA high
+ * or the floor filling the background.
+ * @param {string} text
+ * @returns {{ turn: string, height: string, zoom: string }} - `zoom` = the read framing, or 'none'
+ */
+export function parseMultiAngleView(text) {
+    const a = {};
+    for (const line of String(text || '').split(/\r?\n/)) {
+        const m = line.match(/^\s*[-*]?\s*([A-Za-z_]+)\s*:\s*(.*?)\s*$/);
+        if (m) a[m[1].toUpperCase()] = m[2].replace(/^["']|["'.]+$/g, '').trim().toLowerCase();
+    }
+    const v = k => a[k] || '';
+    const facing = v('FACING');
+    let turn = 'front';
+    if (facing.startsWith('back')) {
+        const lr = _IMAGE_SIDE[v('CHEEK_EDGE')] || _FACING_SIDE[facing];
+        const threeQ = v('FAR_CHEEK').startsWith('yes') || v('EARS') === 'one' || !!_IMAGE_SIDE[v('CHEEK_EDGE')] || !!lr;
+        turn = threeQ && lr ? `tq_b${lr}` : 'back';
+    } else if (facing && facing !== 'front') {
+        const lr = _IMAGE_SIDE[v('NOSE')] || _FACING_SIDE[facing] || 'l';
+        turn = v('FAR_CHEEK').startsWith('yes') ? `tq_f${lr}` : `pr_${lr}`;
+    }
+    const cam = v('CAMERA');
+    const high = cam === 'high' || v('FLOOR_BEHIND').startsWith('yes');
+    const framing = v('FRAMING');
+    return {
+        turn,
+        height: cam === 'low' ? 'lo' : high ? 'hi' : 'level',
+        zoom: MULTI_ANGLE_RUNGS.includes(framing) ? framing : 'none',
+    };
+}
+
+const _none =v => (!v || /^(none|n\/a|-|no)$/i.test(v) ? '' : v);
 const _are = list => (/ and |, /.test(list) ? 'are' : 'is');
 
 /** The rear 3/4 one-sided details (round 38-39's shape): which side is near, where each thing lands. */
@@ -606,11 +708,14 @@ export function zoomRungs(from, to) {
 
 /**
  * The passes one pick runs, each with its model, its image 2 and its prompt.
- * @param {Object} pick - { turn, height, zoom?: { from, to }, outfit?: { words, ref } }; `zoom.from` is the
- *   input's framing (a rung), read from the source.
- * Turn = Front with nothing else moved is the front pass for one person - the picture may face any way
- * (front from any view 13/13, rounds 54, 57, 59). Two or more people get nothing for it: a front pass
- * would turn everyone to the camera (Fabio 2026-10-26).
+ * @param {Object} pick - { turn, height, from?: { turn, height }, zoom?: { from, to }, outfit?: { words, ref } };
+ *   `from` = the view the user matched to the picture in step 2 (untouched = front, eye level); `zoom.from` is
+ *   the input's framing (a rung), matched in step 2 or read from the source.
+ * Only what moved from the start runs a pass (Fabio 2026-10-26): a turn pass when the turn moved, a height
+ * pass when the height moved (round 66: none on an unturned view keeps it 46/46), a zoom pass when the zoom
+ * moved. Turning a turned picture to the Front is the front pass for one person, alone (front from any view
+ * 13/13, rounds 54, 57, 59); two or more people do not get it, as a front pass turns everyone to the camera.
+ * A low or high start takes a zoom only (rounds 67-68).
  * @param {Object} facts - from the source: { people, subject, pronoun, drawing?: { noun, style, marks }, feet,
  *   frontLowLegs, ground, lowReveal, frontLowReveal, highReveal, turnReveal, details, near, far, farLow, farHigh,
  *   wears };
@@ -625,17 +730,25 @@ export function multiAnglePlan(pick = {}, facts = {}) {
     if (!MULTI_ANGLE_TURNS.includes(turn) || !MULTI_ANGLE_HEIGHTS.includes(height)) {
         return { ok: false, reason: `Unknown stop ${turn} / ${height}.` };
     }
+    const start = _start(pick.from);
+    if (!MULTI_ANGLE_TURNS.includes(start.turn) || !MULTI_ANGLE_HEIGHTS.includes(start.height)) {
+        return { ok: false, reason: `Unknown start ${start.turn} / ${start.height}.` };
+    }
     const p = _subject(facts);
     const steps = [];
     const last = () => steps[steps.length - 1]?.model;
-    const alone = turn === 'front' && height === 'level' && !(pick.zoom?.to && pick.zoom.to !== pick.zoom.from);
-    if (alone && !(facts.people > 1)) {
-        steps.push({ kind: 'front', model: FLUX3, ref: 'room/front', prompt: _frontWords(p) });
+    const zoomMoved = !!(pick.zoom?.to && pick.zoom.to !== pick.zoom.from);
+    if (start.height !== 'level' && (turn !== start.turn || height !== start.height)) {
+        return { ok: false, reason: `From a ${start.height === 'lo' ? 'low' : 'high'} view only the zoom is benched.` };
     }
-    if (turn !== 'front') {
+    if (turn !== start.turn && turn === 'front') {
+        if (facts.people > 1) return { ok: false, reason: 'Turning two or more people to the front is not benched.' };
+        if (height !== 'level' || zoomMoved) return { ok: false, reason: 'The front pass from a turned view runs alone.' };
+        steps.push({ kind: 'front', model: FLUX3, ref: 'room/front', prompt: _frontWords(p) });
+    } else if (turn !== start.turn) {
         steps.push({ kind: 'turn', model: FLUX3, ref: `room/${turn}`, prompt: _turnWords(turn, p, facts) });
     }
-    if (height !== 'level') {
+    if (height !== start.height) {
         const stop = `${turn}_${height}`;
         const model = turn === 'front' && height === 'hi' ? FLUX3 : QWEN;
         steps.push({ kind: 'height', model, ref: `${model === FLUX3 ? 'room' : 'plain'}/${stop}`,

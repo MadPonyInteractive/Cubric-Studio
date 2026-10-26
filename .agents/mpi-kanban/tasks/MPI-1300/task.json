@@ -1,0 +1,22 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1300",
+  "title": "Phone companion: Cosmo chat, gallery, queue and live latents on the phone",
+  "description": "A paired phone page served by the app over Tailscale: Cosmo chat with upload, view-only gallery, queue with live latents + Stop, Remote and gated Settings slide-overs. Brief: brief.md.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-26T14:49:51+00:00",
+  "updated_at": "2026-10-26T15:10:06+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  },
+  "activeSessionTitle": "Phone companion 2"
+}

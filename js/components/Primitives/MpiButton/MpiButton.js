@@ -97,7 +97,10 @@ export const MpiButton = ComponentFactory.create({
 
         let innerHtml = isLoading
             ? `<span class="mpi-ibtn__spinner" aria-hidden="true"></span>`
-            : (labelPosition === 'left' || labelPosition === 'top')
+            // 'left' is NOT here: .mpi-ibtn--label-left is row-reverse, which already puts the
+            // label first — writing it first too put the icon back on the left (MPI-1300).
+            // 'top' has the same double flip, but every ratio picker is drawn on it; leave it.
+            : labelPosition === 'top'
                 ? `${labelHtml}${iconContainer}`
                 : `${iconContainer}${labelHtml}`;
 

@@ -1,0 +1,106 @@
+/* MpiPhoneShell — the phone companion's frame (MPI-1300). Tokens only; the buttons'
+   own chrome is MpiButton's, this file sizes and places them. */
+
+.mpi-phone-shell {
+    --phone-tap: 44px;                     /* thumb-sized hit target */
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface-canvas);
+    color: var(--ink-1);
+    font-size: var(--t-sm);
+}
+
+/* ── Top bar ─────────────────────────────────────────────────────────────── */
+.mpi-phone-shell__top {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    min-height: 56px;
+    padding: env(safe-area-inset-top) var(--s-2) 0 var(--s-3);
+    background: var(--surface-bar);
+    border-bottom: 1px solid var(--line);
+}
+
+.mpi-phone-shell__logo { height: 20px; flex: none; }
+
+.mpi-phone-shell__project { flex: 1; min-width: 0; display: flex; }
+.mpi-phone-shell__project .mpi-btn {
+    min-height: var(--phone-tap);
+    max-width: 100%;
+    justify-content: flex-start;
+    gap: 2px;
+    padding-left: 0;
+    padding-right: 0;
+}
+.mpi-phone-shell__project .mpi-ibtn__label {
+    font-size: var(--t-md);
+    font-weight: 600;
+    text-transform: none;                   /* a project's name reads as typed */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mpi-phone-shell__pod, .mpi-phone-shell__settings { flex: none; display: flex; }
+.mpi-phone-shell__pod .mpi-btn { gap: var(--s-1); padding-inline: var(--s-2); }
+.mpi-phone-shell__settings .mpi-btn { min-width: var(--phone-tap); min-height: var(--phone-tap); }
+
+.mpi-phone-shell__dot {
+    order: -1;
+    width: 7px;
+    height: 7px;
+    border-radius: var(--r-pill);
+    background: var(--ink-3);
+}
+.mpi-phone-shell__pod-btn--on .mpi-phone-shell__dot { background: var(--accent-ok); }
+
+/* ── Screen ──────────────────────────────────────────────────────────────── */
+.mpi-phone-shell__screen {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    display: flex;
+}
+
+.mpi-phone-shell__soon {
+    margin: auto;
+    padding: var(--s-4);
+    color: var(--ink-3);
+    text-align: center;
+}
+
+/* ── Tab bar ─────────────────────────────────────────────────────────────── */
+.mpi-phone-shell__tabs {
+    flex: none;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    padding-bottom: env(safe-area-inset-bottom);
+    background: var(--surface-bar);
+    border-top: 1px solid var(--line);
+}
+
+.mpi-phone-shell__tab { position: relative; display: flex; }
+.mpi-phone-shell__tab .mpi-btn {
+    flex: 1;
+    min-height: 58px;
+    gap: 3px;
+}
+.mpi-phone-shell__tab .mpi-ibtn__label {
+    font-size: var(--t-2xs);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+/* The heat underline marks the open tab (mockup: top edge, middle 40%). */
+.mpi-phone-shell__tab--active::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: 30%;
+    right: 30%;
+    height: 2px;
+    background: var(--accent-heat);
+    z-index: 1;
+}

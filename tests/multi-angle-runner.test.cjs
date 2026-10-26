@@ -159,6 +159,26 @@ test('the people count reads off the PEOPLE line; unreadable is one', async () =
     assert.strictEqual(parseMultiAngleFacts('PEOPLE: 2\nSUBJECT: girl, boy\nPRONOUN: she, he').facts.subject, 'girl');
 });
 
+test('Try to Match reads the view as the view read scored it (round 3 rules)', async () => {
+    const { parseMultiAngleView, MULTI_ANGLE_VIEW_ASK, MULTI_ANGLE_DESCRIBE_ASK } = await builder();
+    assert.ok(MULTI_ANGLE_VIEW_ASK.startsWith(MULTI_ANGLE_DESCRIBE_ASK) && MULTI_ANGLE_VIEW_ASK.includes('\nFLOOR_BEHIND:'));
+    const view = t => parseMultiAngleView(t);
+    assert.deepStrictEqual(view('FACING: front\nCAMERA: level\nFRAMING: hs'), { turn: 'front', height: 'level', zoom: 'hs' });
+    // A side view: the side from the nose in image terms, a 3/4 only with the far cheek showing.
+    assert.strictEqual(view('FACING: left\nNOSE: image-right\nFAR_CHEEK: no').turn, 'pr_r');
+    assert.strictEqual(view('FACING: front-left\nNOSE: image-left\nFAR_CHEEK: yes').turn, 'tq_fl');
+    // A rear view: a cheek edge or one ear = a rear 3/4, its side from the cheek edge; nothing = the back.
+    assert.strictEqual(view('FACING: back\nCHEEK_EDGE: image-right\nEARS: none').turn, 'tq_br');
+    assert.strictEqual(view('FACING: back-left\nCHEEK_EDGE: none\nEARS: none').turn, 'tq_bl');
+    assert.strictEqual(view('FACING: back\nCHEEK_EDGE: none\nEARS: none').turn, 'back');
+    // Low from the camera line; high from it or a floor filling the background.
+    assert.strictEqual(view('FACING: front\nCAMERA: low').height, 'lo');
+    assert.strictEqual(view('FACING: front\nCAMERA: level\nFLOOR_BEHIND: yes').height, 'hi');
+    // Lower-case keys, quotes, a trailing stop; and nothing read = the gizmo's own start.
+    assert.deepStrictEqual(view('facing: "right".\nnose: image-right\nframing: far'), { turn: 'pr_r', height: 'level', zoom: 'far' });
+    assert.deepStrictEqual(view(''), { turn: 'front', height: 'level', zoom: 'none' });
+});
+
 /** A fake app: records every call; `fail` = { at: pass index, code } ends that pass. */
 function _deps({ answer = ANSWER.photo, fail = null, loop = false } = {}) {
     const calls = [];
@@ -195,15 +215,26 @@ test('a turn + height pick chains two passes on one card', async () => {
     ]);
 });
 
-test('Turn = Front alone turns one person to the front; two people get nothing to do', async () => {
+test('Turn = Front from a turned start turns one person to the front; two people are refused', async () => {
     const { runMultiAngle } = await runner();
     const deps = _deps();
-    const out = await (await runMultiAngle({ source: 'src.png', pick: { turn: 'front' } }, deps)).finished;
+    const pick = { turn: 'front', from: { turn: 'pr_l' } };
+    const out = await (await runMultiAngle({ source: 'src.png', pick }, deps)).finished;
     assert.strictEqual(out.total, 1);
     assert.deepStrictEqual(deps.calls[2],
         ['submit', 'front', 'flux3-klein', ['inputImage=src.png', 'inputImage2=padded:room/front:src.png'], 'new']);
-    const two = await runMultiAngle({ source: 'src.png', pick: { turn: 'front' } }, _deps({ answer: `PEOPLE: 2\n${ANSWER.photo}` }));
-    assert.strictEqual(two.code, 'NOTHING_TO_DO');
+    const two = await runMultiAngle({ source: 'src.png', pick }, _deps({ answer: `PEOPLE: 2\n${ANSWER.photo}` }));
+    assert.strictEqual(two.code, 'NOT_BENCHED');
+    const same = await runMultiAngle({ source: 'src.png', pick: { turn: 'front' } }, _deps());
+    assert.strictEqual(same.code, 'NOTHING_TO_DO');
+});
+
+test('the matched start zoom replaces the read framing; "as is" keeps the read one', async () => {
+    const { runMultiAngle } = await runner();
+    const read = await runMultiAngle({ source: 's', pick: { zoom: 'far', from: { zoom: 'none' } } }, _deps());
+    assert.strictEqual(read.steps.length, 1, 'full (read) -> far is one pass');
+    const matched = await runMultiAngle({ source: 's', pick: { zoom: 'far', from: { zoom: 'hs' } } }, _deps());
+    assert.strictEqual(matched.steps.length, 2, 'hs (matched) -> far goes through the whole body');
 });
 
 test('a zoom-out from the read framing sends the outfit picture as image 2 of the first pass only', async () => {

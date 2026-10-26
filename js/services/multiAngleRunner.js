@@ -29,7 +29,9 @@ import { multiAnglePlan, parseMultiAngleFacts } from '../data/flowPrompts/multiA
 const _fail = (code, message) => ({ ok: false, code, message });
 
 /**
- * @param {Object} run - { source: url, pick: { turn, height, zoom? (target rung) }, outfit?: { words, url } }
+ * @param {Object} run - { source: url, pick: { turn, height, zoom? (target rung), from?: { turn, height, zoom? } },
+ *   outfit?: { words, url } }; `from` = the view the user matched to the picture in step 2, its zoom a rung or
+ *   'none' (= the framing the describer reads)
  * @param {MultiAngleDeps} deps
  * @returns {Promise<{ok: false, code: string, message: string}|{ok: true, steps: Object[],
  *   finished: Promise<{ok: boolean, cancelled: boolean, done: number, total: number, group: Object|null,
@@ -44,10 +46,12 @@ export async function runMultiAngle({ source, pick = {}, outfit = {} }, deps) {
         return _fail(described.code || 'DESCRIBE_FAILED', `The picture could not be read: ${described.message}`);
     }
     const { facts, framing } = parseMultiAngleFacts(described.text);
+    const from = pick.from || {};
     const plan = multiAnglePlan({
         turn: pick.turn,
         height: pick.height,
-        zoom: pick.zoom ? { from: framing, to: pick.zoom } : undefined,
+        from: { turn: from.turn, height: from.height },
+        zoom: pick.zoom ? { from: from.zoom && from.zoom !== 'none' ? from.zoom : framing, to: pick.zoom } : undefined,
         outfit: { words: outfit.words, ref: !!outfit.url },
     }, facts);
     if (!plan.ok) return _fail('NOT_BENCHED', plan.reason);
