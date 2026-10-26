@@ -1116,12 +1116,12 @@
   },
   "100": {
     "inputs": {
-      "unet_name": "Minimax-h3_Singularity_ref2va_v2_pruned_int8.safetensors",
+      "unet_name": "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
       "weight_dtype": "default"
     },
     "class_type": "UNETLoader",
     "_meta": {
-      "title": "Load Diffusion Model"
+      "title": "Input_Base_Model"
     }
   },
   "101": {

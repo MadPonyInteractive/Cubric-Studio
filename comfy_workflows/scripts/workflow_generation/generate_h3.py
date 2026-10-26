@@ -51,10 +51,24 @@ WORKFLOWS_DIR = SCRIPTS_DIR.parent.parent  # comfy_workflows/
 # Everything below the spec (prune, bake, weight + stage asserts) is shared because the
 # failure modes are identical. Only these four things differ per variant, so they live
 # here rather than in a forked copy of this file that would drift.
+#
+# template -> {runtime file: the transformer baked into it}. r2va writes TWO (MPI-1284):
+# MiniMax H3 Reference on the original ref2va weight, and Singularity H3, WarmBloodAban's
+# fine-tune of it, as its own model card. Same graph, one UNETLoader apart — the krea2
+# sfw/nsfw shape (generate_krea2.py::_bake_weight).
 MODEL_VARIANTS = {
-    "minimax_h3_fl2va_template.json": "minimax_h3_fl2va.json",
-    "minimax_h3_r2va_template.json": "minimax_h3_r2va.json",
+    "minimax_h3_fl2va_template.json": {
+        "minimax_h3_fl2va.json": "minimax_h3_fl2va_pruned_int8_convrot.safetensors",
+    },
+    "minimax_h3_r2va_template.json": {
+        # A SEPARATE DiT from fl2va's, ~21 GB of its own. Pointing this at the fl2va
+        # transformer does not error — it produces a perfectly good video that ignored
+        # the references, which is the single most expensive way to be wrong here.
+        "minimax_h3_r2va.json": "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+        "minimax_h3_r2va_singularity.json": "Minimax-h3_Singularity_ref2va_v2_pruned_int8.safetensors",
+    },
 }
+UNET_LOADER_TITLE = "Load Diffusion Model"
 
 # The nine image / three video / three audio reference slots ref2va exposes. Each is an
 # Mpi loader whose `string` MUST ship empty: the node drops a slot by recognising the
@@ -68,7 +82,6 @@ _REF_SLOT_TITLES = (
 
 VARIANT_SPECS = {
     "minimax_h3_fl2va_template.json": {
-        "transformer": "minimax_h3_fl2va_pruned_int8_convrot.safetensors",
         # The two frame slots (MpiLoadImage); their `string` ships empty.
         "media_titles": ("Input_Start_Frame", "Input_End_Frame"),
         # MPI-687 replaced the four-copy lattice of core's MiniMaxH3ImageToVideo with one
@@ -85,10 +98,6 @@ VARIANT_SPECS = {
         "extra_widgets": (),
     },
     "minimax_h3_r2va_template.json": {
-        # A SEPARATE DiT from fl2va's, ~21 GB of its own. Pointing this at the fl2va
-        # transformer does not error — it produces a perfectly good video that ignored
-        # the references, which is the single most expensive way to be wrong here.
-        "transformer": "Minimax-h3_Singularity_ref2va_v2_pruned_int8.safetensors",
         "media_titles": _REF_SLOT_TITLES,
         "branch_class": "MpiH3References",
         # ONE node takes all 18 slots and filters internally — branching per combination
@@ -189,7 +198,7 @@ BAKED_WIDGETS = [
 # the `filename` tail of the matching dep in modelDeps.js/assetDeps.js — a mismatch is
 # invisible until a user installs, because the app downloads the dep it declares and
 # ComfyUI then cannot find the name baked in the graph.
-# Shared by both variants; the transformer comes from the variant spec.
+# Shared by both variants; the transformer comes from MODEL_VARIANTS, per runtime file.
 SHARED_WEIGHTS = {
     # int8_convrot Heretic build. MPI-698 swapped this to nvfp4_awq for its smaller
     # resident footprint and it was REVERTED the same day on output quality — see the
@@ -271,13 +280,25 @@ def _bake_widgets(workflow: dict, spec: dict) -> None:
             print(f"  [BAKE] {title}.{key}: {got!r} -> {want!r}")
 
 
-def _assert_weights(workflow: dict, spec: dict) -> None:
+def _bake_transformer(workflow: dict, weight: str) -> None:
+    """Bake the runtime file's transformer into the UNETLoader — the one field that
+    tells H3 Reference's and Singularity H3's files apart."""
+    nid = _find_id_by_title(workflow, UNET_LOADER_TITLE)
+    if nid is None:
+        raise SystemExit(f"[FAIL] no UNETLoader titled {UNET_LOADER_TITLE!r} — graph changed?")
+    before = workflow[nid]["inputs"].get("unet_name")
+    workflow[nid]["inputs"]["unet_name"] = weight
+    if before != weight:
+        print(f"  [WEIGHT] {before!r} -> {weight!r}")
+
+
+def _assert_weights(workflow: dict, transformer: str) -> None:
     """Every loader must name a weight the app actually declares as a dep.
 
     The transformer is per-variant and is the one worth being loud about: fl2va and
     ref2va are separate DiTs, and loading the wrong one does NOT error. It samples fine
     and returns a good-looking video that simply ignored the references."""
-    expected = SHARED_WEIGHTS | {spec["transformer"]}
+    expected = SHARED_WEIGHTS | {transformer}
     found = {
         v
         for node in workflow.values()
@@ -362,27 +383,31 @@ def _assert_branches(workflow: dict, spec: dict) -> int:
 
 
 def build(source_path: Path, out_dir: Path) -> list[Path]:
-    """Orchestrator entry. Emit the ONE runtime file for the master template."""
-    output_name = MODEL_VARIANTS.get(source_path.name)
-    if output_name is None:
+    """Orchestrator entry. Emit every runtime file for the master template."""
+    outputs = MODEL_VARIANTS.get(source_path.name)
+    if outputs is None:
         print(f"  [WARN] {source_path.name} not in MODEL_VARIANTS — nothing to do")
         return []
 
     spec = VARIANT_SPECS[source_path.name]
     print(f"Template: {source_path.name}")
-    workflow = json.loads(source_path.read_text(encoding="utf-8"))
+    out_paths: list[Path] = []
+    for output_name, transformer in outputs.items():
+        workflow = json.loads(source_path.read_text(encoding="utf-8"))
 
-    _prune_to_captures(workflow)
-    _bake_widgets(workflow, spec)
-    _assert_weights(workflow, spec)
-    _assert_latent_titles(workflow)
-    n_branches = _assert_branches(workflow, spec)
+        _prune_to_captures(workflow)
+        _bake_widgets(workflow, spec)
+        _bake_transformer(workflow, transformer)
+        _assert_weights(workflow, transformer)
+        _assert_latent_titles(workflow)
+        n_branches = _assert_branches(workflow, spec)
 
-    out_path = out_dir / output_name
-    out_path.write_text(json.dumps(workflow, indent=2), encoding="utf-8")
-    print(f"  [OK]   {output_name} ({len(workflow)} nodes, "
-          f"{n_branches} {spec['branch_class']})")
-    return [out_path]
+        out_path = out_dir / output_name
+        out_path.write_text(json.dumps(workflow, indent=2), encoding="utf-8")
+        print(f"  [OK]   {output_name} ({len(workflow)} nodes, "
+              f"{n_branches} {spec['branch_class']})")
+        out_paths.append(out_path)
+    return out_paths
 
 
 def main() -> None:

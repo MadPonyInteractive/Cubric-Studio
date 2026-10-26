@@ -625,6 +625,7 @@ const NVIDIA_PID = {
 export const MODEL_LICENCES = {
     'minimax-h3':        MINIMAX_H3,   // first/last-frame to video+audio
     'minimax-h3-ref2va': MINIMAX_H3,   // reference to video+audio — different weights, same agreement
+    'minimax-h3-singularity': MINIMAX_H3,   // a fine-tune of ref2va: base_model MiniMax-H3, so bound by it (MPI-1284)
     // No ModelDef yet — MPI-357 ships the GATE, not the model (`klein-9b` is the id the
     // 9B entry will take beside the existing `klein-4b`). Until it lands the lookup
     // simply misses, exactly as it does for every ungated model.

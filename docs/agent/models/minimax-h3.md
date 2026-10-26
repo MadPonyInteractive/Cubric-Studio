@@ -1,7 +1,7 @@
 # MiniMax H3: how to prompt it
 
 H3 makes video with its own sound: 24 fps picture and stereo audio generated together, so
-ambience, footsteps, hooves, speech and score all come from the prompt. Two cards use this
+ambience, footsteps, hooves, speech and score all come from the prompt. Three cards use this
 guide:
 
 - `minimax-h3`: `t2v_ms` (text to video) and `i2v_ms` (image to video).
@@ -9,6 +9,10 @@ guide:
   3 audio clips steer who and what appears; a clip given as `<Video 1>` and asked for the
   same motion and sound with one change comes back edited, its own soundtrack kept, speech
   included. Keeping the picture and changing the sound is the Add Foley Flow instead).
+- `minimax-h3-singularity` (Singularity H3): `ref2v_ms` exactly as `minimax-h3-ref2va`, the
+  same references, settings and prompts, on a community fine-tune of its weights with less
+  tearing on fast action. `minimax-h3-ref2va` stays the default; take this one when the user
+  names it, or offer it when a fast-action clip from H3 Reference tore.
 
 ## Pick it when
 
@@ -25,8 +29,8 @@ guide:
 ## Settings
 
 - Recommend turbo on: the non-turbo path has come back undercooked in real use.
-- Fast Motion (`fastMotion`, `ref2v_ms` on `minimax-h3-ref2va` only; `minimax-h3` has
-  none): set it `true` yourself, without asking, whenever the clip has fast action: a
+- Fast Motion (`fastMotion`, `ref2v_ms` on `minimax-h3-ref2va` and `minimax-h3-singularity`
+  only; `minimax-h3` has none): set it `true` yourself, without asking, whenever the clip has fast action: a
   launch or take-off, a flight, a chase, a fight, a crash, a sprint. One fast beat is
   enough, so "he speaks, then flies off" counts. It draws the action at full size; with it
   off, the action is drawn at half size and upscaled, which smears fast motion. Leave it off

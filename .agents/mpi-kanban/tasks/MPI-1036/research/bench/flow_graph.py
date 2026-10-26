@@ -444,7 +444,8 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
         prompt = ['173', 0]
 
     # ---- H3 r2v, turbo 8 steps (+ the swap LoRA where it holds the timing)
-    g['100'] = node('UNETLoader', 'Load Diffusion Model', unet_name=H3_UNET, weight_dtype='default')
+    # Input_Base_Model (MPI-1284): the Flow's modelParams swap in Singularity H3's weight.
+    g['100'] = node('UNETLoader', 'Input_Base_Model', unet_name=H3_UNET, weight_dtype='default')
     g['101'] = node('CLIPLoader', 'Load CLIP', clip_name=H3_CLIP, type='minimax', device='default')
     g['102'] = node('VAELoader', 'Load VAE', vae_name=H3_VAE)
     g['103'] = node('VAELoader', 'Load Audio VAE', vae_name=H3_AVAE)

@@ -1,7 +1,8 @@
 # H3 Reference Fast Motion — one switch, four routes
 
 > Part of [MiniMax H3](README.md). MPI-1285, built 2026-10-25 on the MPI-1135 bench verdicts.
-> **MiniMax H3 Reference (`minimax-h3-ref2va`) only.** MiniMax H3 (fl2va) never gets it
+> **MiniMax H3 Reference (`minimax-h3-ref2va`) only**, and Singularity H3
+> (`minimax-h3-singularity`, the same graph on a fine-tuned weight). MiniMax H3 (fl2va) never gets it
 > (Fabio, MPI-1135 Phase 1e).
 
 ## Why it exists

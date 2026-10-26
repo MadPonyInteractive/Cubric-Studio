@@ -79,6 +79,8 @@ export const PROGRESS_STAGES = Object.freeze({
     // MPI-1285: Fast Motion at a size up to native skips the upscale + refine, ONE bar;
     // commandExecutor subtracts it per run (h3FastMotionOnePass), like single-pass above.
     'minimax_h3_r2va.json': Object.freeze({ single: 2, preview: 1, stage2: 1 }),
+    // MPI-1284: Singularity H3 — the r2va graph byte for byte but its UNETLoader, same bars.
+    'minimax_h3_r2va_singularity.json': Object.freeze({ single: 2, preview: 1, stage2: 1 }),
     // Text-to-image (SDXL family) — single-stage, verified 2 bars (load + sampler).
     // Upscalers/detailers NOT yet counted (UltimateSDUpscale has its own passes).
     't2i_ill_anime.json':        Object.freeze({ single: 2 }),

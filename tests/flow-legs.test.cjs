@@ -478,7 +478,8 @@ const BEFORE = {
         op: 'flowVideoEdit', chain: [],
         none: { ids: ['minimax-h3-ref2va'], graph: 'flow_video_edit.json', chainGraph: [], available: false, missing: ['minimax-h3-ref2va'] },
         all: { ids: ['minimax-h3-ref2va'], graph: 'flow_video_edit.json', chainGraph: [], available: false, missing: [] },
-        last: { ids: ['minimax-h3-ref2va'], graph: 'flow_video_edit.json', chainGraph: [], available: false, missing: [] },
+        // MPI-1284: Singularity H3 joined the slot (same graph, modelParams swap the weight).
+        last: { ids: ['minimax-h3-singularity'], graph: 'flow_video_edit.json', chainGraph: [], available: false, missing: [] },
     },
     'scribble-object': {
         op: 'flowScribObj', chain: [],

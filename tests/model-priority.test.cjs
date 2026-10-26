@@ -27,7 +27,7 @@ const RANKED = [
     ['t2i', [['krea2', 't2i'], ['klein-9b', 't2i'], ['chroma-flash', 't2i'], ['chroma-hyper', 't2i'],
         ['klein-4b', 't2i'], ['sdxl-realistic', 't2i']]],
     // MPI-1060: LTX added at rank 2 (H3 stays rank 1); the High tier at 3 retired with its card (MPI-1095).
-    ['ref2v', [['minimax-h3-ref2va', 'ref2v_ms'], ['ltx-25', 'ref2v_ms'], ['ltx-23-balanced', 'ref2v_ms']]],
+    ['ref2v', [['minimax-h3-ref2va', 'ref2v_ms'], ['minimax-h3-singularity', 'ref2v_ms'], ['ltx-25', 'ref2v_ms'], ['ltx-23-balanced', 'ref2v_ms']]],
 ];
 
 test('every ranked pair is a model that exists and an op it really supports', () => {
@@ -237,9 +237,10 @@ test('a character sheet is steered to the reference op, and a re-run away from i
 });
 
 // MPI-1060: LTX ref2v_ms ranking and notes.
-test('LTX appears at ranks 2 (2.5) and 3 (2.3) in ref2v; notes say sheet-based and mention audio', () => {
-    assert.equal(opPriority('ltx-25', 'ref2v_ms').rank, 2);
-    assert.equal(opPriority('ltx-23-balanced', 'ref2v_ms').rank, 3);
+// MPI-1284: Singularity H3 (H3 Reference's fine-tune) took rank 2, so LTX moved down one.
+test('LTX appears at ranks 3 (2.5) and 4 (2.3) in ref2v; notes say sheet-based and mention audio', () => {
+    assert.equal(opPriority('ltx-25', 'ref2v_ms').rank, 3);
+    assert.equal(opPriority('ltx-23-balanced', 'ref2v_ms').rank, 4);
     assert.equal(opPriority('ltx-23-balanced', 'ref2v_ms').task, 'ref2v');
     // Note should mention the sheet-based approach and audio
     assert.match(opPriority('ltx-23-balanced', 'ref2v_ms').note, /sheet/);

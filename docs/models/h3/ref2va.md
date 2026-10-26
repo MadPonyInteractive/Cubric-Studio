@@ -8,11 +8,15 @@ there governs this card too (same `MODEL_LICENCES` descriptor, so no second dial
 Installing it on top of fl2va downloads only the 20.97GB transformer — the Qwen3-VL
 encoder and both VAEs are the same dep ids.
 
-**Since MPI-1284 (2.1.3) that transformer is Singularity H3 v2** (dep
-`minimax-h3-singularity-ref2va-transformer`, WarmBloodAban's ref2va fine-tune, picked in
-MPI-1135). The Video Edit Flow moved with it. The original Comfy-Org weight
-(`minimax-h3-ref2va-transformer`) is DEPRECATED: nothing loads it, and its dep entry stays only
-so the orphan sweep can reclaim it. Results judged below this line predate the swap.
+**Singularity H3 is a second card on this graph (MPI-1284, 2.1.3):** `minimax-h3-singularity`,
+WarmBloodAban's Singularity v2 fine-tune of the ref2va DiT (dep
+`minimax-h3-singularity-ref2va-transformer`), which won MPI-1135 on tearing and fast motion.
+H3 Reference keeps the original Comfy-Org weight (`minimax-h3-ref2va-transformer`).
+`generate_h3.py` writes both runtime files from the one template, `minimax_h3_r2va.json` and
+`minimax_h3_r2va_singularity.json`, one UNETLoader apart. It ships beside the original, not
+instead of it: Fabio's Video Edit runs on Singularity went one fail, one pass (the swap LoRAs
+were trained on the original), so the Video Edit Flow offers both, the original first. Results
+judged below this line are on the original weight.
 
 ## Judged 2026-08-07 — on the correct transformer
 

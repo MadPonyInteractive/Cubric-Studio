@@ -93,6 +93,8 @@ const I2V = [
 // LTX-balanced at rank 2 (faster, sheet-based, good consistency). LTX-high retired (MPI-1095).
 const REF2V = [
     ['minimax-h3-ref2va', 'ref2v_ms'],
+    // MPI-1284: the Singularity fine-tune of the same DiT, below the original (Fabio's runs).
+    ['minimax-h3-singularity', 'ref2v_ms'],
     ['ltx-25', 'ref2v_ms'],
     ['ltx-23-balanced', 'ref2v_ms'],
 ];
@@ -134,6 +136,8 @@ const NOTES = {
     // free model that animates this picture was missing, and offered installs and paid clips.
     // The clip edit is measured (MPI-1033 bench): soundtrack back at 0.96, speech and hoofbeats.
     'minimax-h3-ref2va:ref2v_ms': 'free and local: with no i2v op installed, or when the user names it, it is the route for "animate this picture", not an install. It also edits a clip: given it as <Video 1> and asked for the same motion and sound with one change, the clip comes back changed with its own soundtrack, speech included. Keeping the picture and changing the sound is not this op: that is the Add Foley Flow, sound effects only',
+    // MPI-1284: same references, same graph as H3 Reference, a community fine-tune of its DiT.
+    'minimax-h3-singularity:ref2v_ms': 'a fine-tune of MiniMax H3 Reference: the same references and prompts, with less tearing on fast action. H3 Reference stays the default; take this one when the user names it, or when a fast-action clip from H3 Reference tore',
     // MPI-1060: LTX uses the Ingredients IC-LoRA sheet approach. One line per picture in
     // the prompt (Picture n + a description), then the scene; the app composes the sheet.
     // No video references, one optional audio clip. Start frame optional.

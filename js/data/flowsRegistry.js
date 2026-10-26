@@ -929,7 +929,14 @@ const ALL_FLOWS = [
         video: 'flow-video-edit.mp4',
         description: 'Swap the person, head or outfit in a video, change its background, or make any edit you describe. Add a picture of the new character, outfit or place, or describe it in words. List what to change under “Only change” and just that part is masked and re-rendered, faster, with the rest kept exactly as filmed. The soundtrack comes through untouched. Short clips first: a 5-second clip can take 20 minutes, and longer ones drift.',
         // The slot takes the user's own H3 LoRAs (Input_Lora_Phase1_1..6, loader -> the Flow's own LoRAs).
-        requiredModels: [{ label: 'Model', models: ['minimax-h3-ref2va'], loras: true }],
+        // MPI-1284: Singularity H3 is the same DiT fine-tuned, so ONE graph and `modelParams` swaps
+        // the transformer (Input_Base_Model). The original first: the swap and Faceswap LoRAs were
+        // trained on it, and Fabio's Singularity runs went one fail, one pass.
+        requiredModels: [{ label: 'Model', models: ['minimax-h3-ref2va', 'minimax-h3-singularity'], loras: true }],
+        modelParams: {
+            'minimax-h3-ref2va': { 'Input_Base_Model': 'minimax_h3_ref2va_pruned_int8_convrot.safetensors' },
+            'minimax-h3-singularity': { 'Input_Base_Model': 'Minimax-h3_Singularity_ref2va_v2_pruned_int8.safetensors' },
+        },
         // The swap and Faceswap LoRAs belong to this Flow, not to the model (01-descriptor-and-ops.md
         // § requiredDeps). SAM3 is an engineAsset, so it is not listed.
         requiredDeps: ['minimax-h3-character-swap-lora', 'minimax-h3-faceswap-lora'],

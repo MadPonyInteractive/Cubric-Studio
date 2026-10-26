@@ -1695,12 +1695,12 @@ const ALL_MODELS = [
         // FLAT dependencies: one transformer, one op. The encoder and both VAEs are the
         // SAME dep ids fl2va uses, so installing this on top of fl2va downloads only the
         // 20.97GB transformer. The TRANSFORMER is not on R2 — see
-        // minimax-h3-singularity-ref2va-transformer in modelDeps.js for the licence reasoning; the
+        // minimax-h3-ref2va-transformer in modelDeps.js for the licence reasoning; the
         // int8 video VAE (MPI-517) and the text encoder (MPI-653/MPI-698) are the two
         // exceptions, each argued on its own dep in assetDeps.js.
         dependencies: [
-            // Singularity H3 v2 since MPI-1284 (the name on the card did not change).
-            'minimax-h3-singularity-ref2va-transformer',
+            // The original ref2va weight. Singularity v2 is the next card (MPI-1284).
+            'minimax-h3-ref2va-transformer',
             // int8_convrot Heretic — see the fl2va card above for why the MPI-698 nvfp4
             // swap was reverted, and what it costs on a 54GB Pod.
             'h3-qwen3vl-32b-clip',
@@ -1720,6 +1720,42 @@ const ALL_MODELS = [
             'Comfyui_Minimax_h3_latent_Upscaler',
             'minimax-h3-latent-upscaler',
             // Same preview decoder as fl2va (MPI-508) — shared, one download.
+            'taeh3-decoder',
+            'ComfyUI-MpiNodes',
+        ],
+    },
+    {
+        // MPI-1284: WarmBloodAban's Singularity v2, a fine-tune of H3 Reference's DiT, as its
+        // OWN card on the SAME graph (generate_h3.py bakes the one UNETLoader apart). It won
+        // MPI-1135 on tearing and fast motion, but Fabio's Video Edit runs went one fail, one
+        // pass (the swap LoRAs were trained on the original), so it ships BESIDE H3 Reference,
+        // not instead of it. Everything but the transformer is the card above: read its
+        // comments for capabilities and deps. Same MINIMAX_H3 licence (licences.js).
+        // NO modelFamily: that field drives the H/B/L tier letter, and this is not a tier.
+        id: 'minimax-h3-singularity',
+        sizeTier: 'balanced',
+        name: 'Singularity H3',
+        minVramGb: 12,
+        dropdownMeta: 'VIDEO',
+        mediaType: 'video',
+        capabilities: { batch: false, multiStage: true, singleFileStages: true, audio: true, negativePrompt: false, h3TurboToggle: true, h3FastMotionToggle: true, multiRefMedia: true },
+        video: 'minimax_h3_preview.mp4',
+        type: 'h3',
+        loraStrengths: ['model', 'clip'],
+        supportedOps: ['ref2v_ms'],
+        gen_speed: 'slow',
+        description: 'A community fine-tune of MiniMax H3 Reference: less tearing and better fast motion. Same references (up to 9 images, 3 videos, 3 audio), video with synchronized audio. Try it when H3 Reference tears on fast action.',
+        workflows: {
+            ref2v_ms: 'minimax_h3_r2va_singularity.json',
+        },
+        dependencies: [
+            'minimax-h3-singularity-ref2va-transformer',   // the ONLY difference from H3 Reference's deps
+            'h3-qwen3vl-32b-clip',
+            'vae-minimax-h3-video-int8',
+            'vae-minimax-h3-audio',
+            'minimax-h3-ref2va-turbo-8step',
+            'Comfyui_Minimax_h3_latent_Upscaler',
+            'minimax-h3-latent-upscaler',
             'taeh3-decoder',
             'ComfyUI-MpiNodes',
         ],
