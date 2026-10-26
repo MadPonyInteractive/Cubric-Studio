@@ -14,8 +14,9 @@ WarmBloodAban's Singularity v2 fine-tune of the ref2va DiT (dep
 H3 Reference keeps the original Comfy-Org weight (`minimax-h3-ref2va-transformer`).
 `generate_h3.py` writes both runtime files from the one template, `minimax_h3_r2va.json` and
 `minimax_h3_r2va_singularity.json`, one UNETLoader apart. It ships beside the original, not
-instead of it: Fabio's Video Edit runs on Singularity went one fail, one pass (the swap LoRAs
-were trained on the original), so the Video Edit Flow offers both, the original first. Results
+instead of it: Fabio's Video Edit runs on Singularity went one fail, one pass, then a 960p swap
+that did not copy the source's moves while the original's did (the swap LoRAs were trained on the
+original), so the Video Edit Flow offers both, the original first, and its description says so. Results
 judged below this line are on the original weight.
 
 ## Judged 2026-08-07 — on the correct transformer

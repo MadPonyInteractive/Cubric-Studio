@@ -35,6 +35,8 @@ pass as before; bigger draws the base, latent-upscales to the render (two hops p
 `MpiWindowedSampler` refine on the non-turbo chain with its own references. Video Edit renders any shape, so the base
 is an area, not r2va's four medium cells (9:16 and 16:9 land on the same size); a masked square crop is one pass up
 to ~1016. 576p and 768p are one pass, unchanged. No bar total is recorded for this graph (progressStages.js).
+First run above the base (2026-10-26, 4060 Ti 16 GB, 1.6 s swap at 960 -> 960x1696): base 8 steps ~5 min, refine
+3 steps ~5.5 min (~2 min a step), 13 min total, no OOM, same on both weights; motion in sync on the original.
 
 - **The clip must have the render's SHAPE.** Core H3 stretches a reference video onto its own /32
   canvas (`nodes_minimax_h3.py`, crop "disabled") and the result follows it, so 0.75 rounded per axis
