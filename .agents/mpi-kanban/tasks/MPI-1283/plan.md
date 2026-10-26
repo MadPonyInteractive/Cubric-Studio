@@ -31,12 +31,14 @@ enhancer's own prompt unchanged below (the MPI-1135 Shot Cs shape).
 
 - 2026-10-26: live enhance passed on DeepInfra Gemma 4 26B (validation.md); leading "wearing" fix.
 
+- 2026-10-26: code commit 9d45bfe47 pushed, CI green; card closed.
+
 ## Remaining Work
-- Close-out (commit by pathspec, push) so it rides along with 2.1.3 (MPI-1286).
-- Not checked, as in the bench: whether the sections help FACE identity.
+- Not checked, as in the bench: whether the sections help FACE identity; an H3 render with the
+  app-written sections.
 
 ## Current State
-Done and verified, nothing committed. Next: mpi-end-session.
+Done. Ships with 2.1.3 (MPI-1286) if it lands before the cut.
 
 ## Plan Drift
 - 2026-10-26: live check moved from the local describer to DeepInfra (Fabio: the GPU was busy).
