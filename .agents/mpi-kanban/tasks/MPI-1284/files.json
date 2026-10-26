@@ -11,6 +11,10 @@
     "js/data/progressStages.js",
     "docs/models/h3/ref2va.md",
     "docs/models/h3/README.md",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "comfy_workflows/raw/flow_video_edit.json",
+    "comfy_workflows/flow_video_edit.json",
+    "js/data/modelConstants/loraDeps.js",
+    "docs/releases/UNRELEASED.md"
   ]
 }

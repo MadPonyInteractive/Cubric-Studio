@@ -10,9 +10,9 @@ encoder and both VAEs are the same dep ids.
 
 **Since MPI-1284 (2.1.3) that transformer is Singularity H3 v2** (dep
 `minimax-h3-singularity-ref2va-transformer`, WarmBloodAban's ref2va fine-tune, picked in
-MPI-1135). The original Comfy-Org weight (`minimax-h3-ref2va-transformer`) stays a live dep:
-the Video Edit Flow loads it, because its swap LoRAs were trained on it and LoRAs on
-Singularity lost the source. Results judged below this line predate the swap.
+MPI-1135). The Video Edit Flow moved with it. The original Comfy-Org weight
+(`minimax-h3-ref2va-transformer`) is DEPRECATED: nothing loads it, and its dep entry stays only
+so the orphan sweep can reclaim it. Results judged below this line predate the swap.
 
 ## Judged 2026-08-07 — on the correct transformer
 

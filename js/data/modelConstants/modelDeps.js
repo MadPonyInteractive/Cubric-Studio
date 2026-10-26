@@ -626,6 +626,9 @@ export const modelDeps = {
     // Same licence position as fl2va — publisher URL, never R2. Receipts are keyed by
     // LICENCE id ('minimax-h3-cla-2026-08-02'), not model id, so a user who accepted
     // during an fl2va install is NOT asked again here. That silence is the design.
+    // ── DEPRECATED (MPI-1284): nothing loads it since H3 Reference and the Video Edit Flow
+    // moved to Singularity v2 (below). The entry stays so the orphan sweep can reclaim the
+    // 19.53GB from users who already downloaded it.
     'minimax-h3-ref2va-transformer': {
         id: 'minimax-h3-ref2va-transformer',
         name: 'MiniMax H3 ref2va Transformer (pruned, int8_convrot)',
@@ -648,8 +651,7 @@ export const modelDeps = {
     },
     // MPI-1284: the H3 Reference model's base since 2.1.3 — WarmBloodAban's Singularity v2,
     // a fine-tune of the ref2va DiT that won MPI-1135 (less tearing, better fast motion).
-    // The entry above is NOT deprecated: the Video Edit Flow still loads it, because its
-    // swap LoRAs were trained on it and every LoRA tried on Singularity lost the source.
+    // The Video Edit Flow loads it too (through requiredModels 'minimax-h3-ref2va').
     // The repo tags apache-2.0 but its base_model is MiniMax-H3, so it is treated as bound
     // by the H3 licence: same gate (MINIMAX_H3, keyed by licence id), publisher URL, never R2.
     'minimax-h3-singularity-ref2va-transformer': {

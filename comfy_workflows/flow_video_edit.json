@@ -366,8 +366,8 @@
     }
   },
   "36": {
-    "class_type": "MpiMath",
     "inputs": {
+      "math_expression": "17 * a * (1 - b)",
       "a": [
         "27",
         0
@@ -375,42 +375,41 @@
       "b": [
         "24",
         0
-      ],
-      "math_expression": "17 * a * (1 - b)"
+      ]
     },
+    "class_type": "MpiMath",
     "_meta": {
       "title": "Lead-in frames (template 6, whole frame)"
     }
   },
   "37": {
-    "class_type": "ImageFromBatch",
     "inputs": {
+      "batch_index": 0,
+      "length": 1,
       "image": [
         "31",
         0
-      ],
-      "batch_index": 0,
-      "length": 1
+      ]
     },
+    "class_type": "ImageFromBatch",
     "_meta": {
       "title": "Clip frame 0"
     }
   },
   "38": {
-    "class_type": "RepeatImageBatch",
     "inputs": {
+      "amount": 17,
       "image": [
         "37",
         0
-      ],
-      "amount": 17
+      ]
     },
+    "class_type": "RepeatImageBatch",
     "_meta": {
       "title": "Frame 0, held 17 frames"
     }
   },
   "39": {
-    "class_type": "ImageBatch",
     "inputs": {
       "image1": [
         "38",
@@ -421,6 +420,7 @@
         0
       ]
     },
+    "class_type": "ImageBatch",
     "_meta": {
       "title": "Still lead-in + clip"
     }
@@ -532,20 +532,19 @@
     }
   },
   "45": {
-    "class_type": "MpiMath",
     "inputs": {
+      "math_expression": "a > 0",
       "a": [
         "36",
         0
-      ],
-      "math_expression": "a > 0"
+      ]
     },
+    "class_type": "MpiMath",
     "_meta": {
       "title": "Lead-in?"
     }
   },
   "46": {
-    "class_type": "MpiIfElse",
     "inputs": {
       "boolean": [
         "45",
@@ -560,13 +559,14 @@
         0
       ]
     },
+    "class_type": "MpiIfElse",
     "_meta": {
       "title": "lead-in ? padded clip : clip"
     }
   },
   "47": {
-    "class_type": "MpiMath",
     "inputs": {
+      "math_expression": "a + b",
       "a": [
         "30",
         0
@@ -574,9 +574,9 @@
       "b": [
         "36",
         0
-      ],
-      "math_expression": "a + b"
+      ]
     },
+    "class_type": "MpiMath",
     "_meta": {
       "title": "H3 length (clip + lead-in)"
     }
@@ -1116,7 +1116,7 @@
   },
   "100": {
     "inputs": {
-      "unet_name": "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+      "unet_name": "Minimax-h3_Singularity_ref2va_v2_pruned_int8.safetensors",
       "weight_dtype": "default"
     },
     "class_type": "UNETLoader",
@@ -1438,12 +1438,7 @@
     }
   },
   "123": {
-    "class_type": "GetImageRangeFromBatch",
     "inputs": {
-      "images": [
-        "122",
-        0
-      ],
       "start_index": [
         "36",
         0
@@ -1451,8 +1446,13 @@
       "num_frames": [
         "30",
         0
+      ],
+      "images": [
+        "122",
+        0
       ]
     },
+    "class_type": "GetImageRangeFromBatch",
     "_meta": {
       "title": "Drop the lead-in"
     }

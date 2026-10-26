@@ -70,7 +70,7 @@
 - The gallery Filter has a Stacks switch under Only: turn it on to see just your stacks. It appears once the project has a stack (MPI-1282).
 - MiniMax H3 Reference has a Fast Motion button next to Turbo. Turn it on for fast action (a launch, a chase, a fight) and the motion is drawn at full size instead of from a half-size draft, so it smears less. Up to Medium it is one pass, so Preview is off; Cosmo turns it on by itself for fast scenes (MPI-1285).
 - Both MiniMax H3 models run faster: in our tests a 3-second clip took about a quarter less time on MiniMax H3, and about a tenth less on MiniMax H3 Reference (MPI-1285).
-- MiniMax H3 Reference now runs on Singularity H3 v2, a fine-tune by WarmBloodAban that tears less and handles fast action better. It is a new 19.5 GB download; the Video Edit Flow keeps the original H3 Reference weights (MPI-1284).
+- MiniMax H3 Reference now runs on Singularity H3 v2, a fine-tune by WarmBloodAban that tears less and handles fast action better. It is a new 19.5 GB download, and the Video Edit Flow uses it too (MPI-1284).
 - When an update is ready, the Dev updates panel (the bell) shows an "Update to v…" button at the top, naming the version the posts below talk about (MPI-1242).
 
 ## Fixes

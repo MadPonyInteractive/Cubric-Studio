@@ -9,7 +9,7 @@
 | | |
 |---|---|
 | id / title | `video-edit` / **Video Edit** |
-| requiredModels | `[{ label: 'Model', models: ['minimax-h3-ref2va'], loras: true }]` (the user's LoRA rack) — the graph loads the ref2va transformer, its 8-step turbo LoRA, `taeh3` |
+| requiredModels | `[{ label: 'Model', models: ['minimax-h3-ref2va'], loras: true }]` (the user's LoRA rack) — the graph loads the ref2va transformer (Singularity H3 v2 since MPI-1284; the swap LoRAs were trained on the original, untested on Singularity until that card), its 8-step turbo LoRA, `taeh3` |
 | requiredDeps | `['minimax-h3-character-swap-lora', 'minimax-h3-faceswap-lora']` (akatz-ai, UntMods; `loraDeps.js`). `flow:video-edit` is gated by `MINIMAX_H3` in `licences.js`, so an H3 receipt covers both |
 | operation | `flowVideoEdit` (new, `appVersionIntroduced` 2.0.1) |
 | workflow | `flow_video_edit.json`, one single-pass H3 r2v turbo graph for both routes. Authoring: `tasks/MPI-1036/research/bench/flow_graph.py` (inputs, templates, routes), exported by `export_raw.py`; `flow_graph_ours.py` is the two-stage attempt, research only |
