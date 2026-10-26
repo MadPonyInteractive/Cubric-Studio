@@ -62,3 +62,10 @@ phase lands. Then it is announced and shipped in one go. No partial phone featur
   `http://127.0.0.1:<isolated port>/<phone route>` on the desktop too, not only over the network listener.
 - **A playbook for agents** working on the phone companion (where the phone routes live, the allowlist,
   how to test with DevTools emulation) — `docs/playbooks/`.
+
+## Noticed
+
+- 2026-10-26: `MpiButton` `labelPosition: 'top'` draws the label BELOW the icon (template and
+  `column-reverse` both flip). Every ratio picker relies on that look, so it was left; the name misleads.
+- 2026-10-26: `routes/remotePodLifecycle.js` keeps its own copy of the dev_mode derivation;
+  `routes/devMode.js` could replace it.
