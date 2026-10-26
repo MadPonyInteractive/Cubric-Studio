@@ -86,3 +86,12 @@ Stop (research/crowd-cap/gpu/: run.cjs, result.json, refs.jpg, sheet.jpg).
   panel 5 landed after. generationService _holdUntilQueued counts a judge/tile-describer hold as
   live (test in child-safety-gate, fails without it). Also: the Cast stack took the panels' name
   (truncation cut " · Cast"), fixed. Neither re-run on the GPU (one run approved).
+
+## Phase 2 launch kit (2026-10-26, "Storyboard 24")
+
+- Tile + hero (`flow-storyboard.webp` 214 KB, `.mp4` 469 KB 7.96 s) from the bat-cave run, 34fc4af04.
+  Both 200 + exact bytes from an isolated instance; hero decodes, autoplays muted and loops in the
+  Browser pane. Fabio: "They look right", then "this is verified" after seeing the hero in the Flow.
+- Agent: `does` = "Turn an idea into a storyboard of numbered panels for a video"; handover test
+  green. Cosmo + MCP running it moved to MPI-1267 as a release check (Fabio).
+- Release note held in UNRELEASED.md; lint clean, npm test 3684/0, pre-push green.

@@ -14,6 +14,8 @@ none of them removes a gate. Decision record: memory `project_keyframes_storyboa
   can run beside either. Nothing built yet.
 - 2026-10-24 (later, Fabio): PiD 1.5 (MPI-1185) joined from MPI-1179: an upgrade to the shipped PiD
   upscaler, benched old vs new, replaces it if it wins.
+- 2026-10-26 ("Storyboard 24"): MPI-1231 Storyboard DONE (dev-gated; tile + hero shipped, release note
+  held in UNRELEASED.md). Its last item, Cosmo + MCP running it, moved HERE as a release check below.
 
 ## Members
 
@@ -39,6 +41,17 @@ keeps its decided design and research and sits under MPI-1134 (Story). MPI-1266'
 3. **Release:** every member done; Storyboard Flow graphics; UNRELEASED entries (LTX 2.5 model,
    Storyboard, stack reorder + Create Sheet, PiD 1.5 if it replaced the old one); then ALL gates
    come off in one change.
+
+## Release checks (each must pass before the gates come off)
+
+- **Cosmo and MCP can run the Storyboard Flow** (Fabio, 2026-10-26). Today `agentOpens: 'run'` and
+  `buildFlow` refuses it with `OPENS_FOR_USER` (agent, connector, routines), so neither can. Build it,
+  then the live ask in words from Cosmo AND from an outside agent over MCP ("make me a storyboard
+  of ..."): it picks Storyboard, plans, and a board lands as one stack. Then add its paragraph to
+  `docs/agent/flows.md` (playbook 07; that file is at its 200-line cap) and a recipe in
+  `.claude/skills/cubric-vision-flows/SKILL.md` if MCP needs a calling convention.
+- **Fold the held release note**: `docs/releases/UNRELEASED.md` § "Held for the LTX 2.5 release"
+  goes into the notes of the release that takes the gates off, never earlier.
 
 ## Not in this umbrella
 

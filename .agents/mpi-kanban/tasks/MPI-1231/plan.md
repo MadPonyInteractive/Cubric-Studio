@@ -328,8 +328,8 @@
   is at its 200-line cap). Release note: UNRELEASED.md § "Held for the LTX 2.5 release" (roster
   line + entry) and /mpi-version-bump now leaves a Held section in place. Lint clean, npm test
   3684/0. Fabio's eye PASSED the tile + slide-over ("They look right"); committed. Hero inside the
-  open Flow not yet confirmed by him. NEXT: the LoRA cogwheel on screen, then (after 2.1.3) Cosmo +
-  MCP run the Flow, and at the gate-off bump: flows.md paragraph + fold the Held release note.
+  open Flow then verified by him too. CARD CLOSED. Cosmo + MCP running the Flow, its flows.md
+  paragraph and folding the Held release note are MPI-1267 § Release checks (Fabio).
 
 ## Phase 0: Panel recipe - `user-ux` (local GPU, Fabio's yes; no money)
 
