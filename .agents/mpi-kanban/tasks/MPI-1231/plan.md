@@ -295,6 +295,12 @@
   " · Cast" to truncation. npm test 3682/0. NEXT: Fabio's eye on research/crowd-cap/gpu/sheet.jpg +
   refs.jpg (photo-like river; panel 1 inside not at the entrance - should a place picture ride only
   the panels that name it? today every drawn picture rides every panel), then Phase 2.
+- 2026-10-26 Fabio DECIDED: a drawn PLACE picture goes only to the panels that name that place
+  (characters/objects still ride every panel). Build it, NO GPU run. Design (not started): a pure
+  runner fn (e.g. `panelsWithDrawn(plan, idea, drawn, firstImageNo)`) giving each panel its picks =
+  drawn non-places + drawn places it `_mentions` (pass `names`), numbering "from image N" per panel
+  from those picks (factor parseStoryboardPlan's per-block body out); the dispatch cast-path passes
+  each panel its own `references` and `submit` uses `panel.references ?? references` (t2i when empty).
 
 ## Phase 0: Panel recipe - `user-ux` (local GPU, Fabio's yes; no money)
 
