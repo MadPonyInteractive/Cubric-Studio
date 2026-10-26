@@ -587,7 +587,9 @@ every way tried (direct, via front, via profile-left: 4/16, all anime). NEXT (Fa
 always run Turn = Front first, then the benched front -> stop pass (no view detection; +1 pass ~32 s; 3/4 lands real),
 or (b) one direct pass (3/4 overshoots to profile from a turned start). Then a rear-left fix round (words or doll).
 DECISION (Fabio 2026-10-26, after round 56): FRONT FIRST. Every touched Turn slider runs Turn = Front (room/front doll)
-first, then the benched front -> stop pass; Turn = Front alone = the front pass only. NEXT: build it in
+first, then the benched front -> stop pass; Turn = Front alone = the front pass only. ONE PERSON ONLY: with two or
+more people a front pass would turn everyone to the camera, so they keep one direct pass (Fabio: two characters in
+profile landed where asked that way). Count = a new PEOPLE line in MULTI_ANGLE_DESCRIBE_ASK. NEXT: build it in
 multiAnglePlan (js/data/flowPrompts/multiAngle.js) + tests, live run on an own app:isolated, then a rear-left round.
 
 ## Remaining Work
