@@ -73,10 +73,14 @@ sheet. `devOnly: true` until the LTX 2.5 release (umbrella MPI-1267).
   the plan lacks (a hand-written plan). The note's article is dropped ("The Sphinx" -> `Sphinx`)
   so the two share a key.
 - **A recurring actor with no picture gets one drawn first** (Fabio 2026-10-25: a dragon in words is
-  a new dragon every panel). `recurringActors(plan, idea)` = `[CAST]` lines (never `[PLACES]`: a
-  drawn place pastes one background into every shot) with no picture that 2+ panels name, most-named
-  first, capped at the model's free reference slots (the rest stay words, the status line says so).
-  The driver draws them (`t2i`, 1:1, plain grey background) into their OWN stack "<name> · Cast"
+  a new dragon every panel; a ledge a new ledge). `recurringActors(plan, idea)` = `[CAST]`, `[PLACES]`
+  and `[OBJECTS]` lines with no picture that 2+ panels name, as `kind` character > place > object,
+  most-named first, capped at `MAX_DRAWN_FIRST` (4) or the model's free reference slots, whichever is
+  fewer (the rest stay words, the status line says which limit). A crowd or swarm is never cast (the
+  planner keeps it in words: "Bats" drawn alone on grey, 2026-10-25). Another name is no mention
+  ("Bat Cave Interior" is not "Bat Cave Entrance"), and a name may hold "the" ("Cliff Over the River").
+  The driver draws them (`t2i`; a character or object 1:1 on plain grey, a place empty at the video's
+  ratio, both in the panels' style, `panelStyle`) into their OWN stack "<name> · Cast"
   (`sheet: false`, no overview), then queues the panels as `edit` with those pictures after the
   user's; `parseStoryboardPlan(plan, idea, actorImages)` ends that cast line "from image N". A failed
   actor picture is a warning and the panels describe it in words; Stop during the cast draws no panel.
