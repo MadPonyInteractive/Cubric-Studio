@@ -33,6 +33,7 @@ const {
     selectSystemPrompt,
     validateRecipe,
     withPictureLines,
+    withSubjectSections,
     withFrameLooks,
 } = require('../js/data/recipes/registry.js');
 const { renderRecipeBrief, renderAllBriefs } = require('../js/data/recipes/brief.js');
@@ -255,6 +256,31 @@ function testAppWritesThePictureLines() {
     assert.strictEqual(withPictureLines(reply, [{ tag: '<Picture 1>', text: 'x' }]), reply, 'nothing known = their reply untouched');
 }
 
+/** MPI-1283: the app opens every H3 reference prompt with MiniMax's two sections, visible traits only. */
+function testAppWritesTheSubjectSections() {
+    const mode = getRecipe('minimax-h3').modes.r2v;
+    assert.ok(mode.seesPictures && mode.subjectSections, 'H3 r2v sees the pictures and gets the sections');
+    assert.ok(!getRecipe('ltx-2.3').modes.r2v.subjectSections, 'LTX keeps its picture lines');
+
+    const reply = 'subject_definitions:\n<Subject 1> is a guess.\nA beach look.\nUse <Picture 1> as the woman and <Picture 2> as the man.\n'
+        + '[Shot 1] The woman from <Picture 1> runs into the sea.\n[Shot 2] At 00:02.000, the shot cuts to the man of <Picture 2> and the woman of <Picture 1>.\nN/A';
+    const out = withSubjectSections(reply, [
+        { tag: '<Picture 1>', kind: 'person', traits: 'the woman, with a pink bob, a light-skinned complexion, wearing brown eyes and a black bikini' },
+        { tag: '<Picture 2>', kind: 'object', traits: 'brown leather, a long strap' },     // no "with": all traits
+        { tag: '<Picture 3>', kind: 'place', traits: 'a beach' },                          // a place gets no subject
+        { tag: '<Picture 4>', kind: 'person' },                                             // never described: none
+    ]);
+    assert.strictEqual(out, 'subject_definitions:\n'
+        + '<Subject 1> is the woman in <Picture 1>, with a pink bob, brown eyes and a black bikini.\n'
+        + '<Subject 2> is the object in <Picture 2>, with brown leather, a long strap.\n'
+        + 'retention_analysis:\n'
+        + '<Subject 1> (appears in [Shot 1], [Shot 2]): fully_preserved - the face, a pink bob, brown eyes and a black bikini are retained.\n'
+        + '<Subject 2> (appears in [Shot 2]): fully_preserved - brown leather, a long strap are retained.\n'
+        + 'A beach look.\nUse <Picture 1> as the woman and <Picture 2> as the man.\n'
+        + '[Shot 1] The woman from <Picture 1> runs into the sea.\n[Shot 2] At 00:02.000, the shot cuts to the man of <Picture 2> and the woman of <Picture 1>.\nN/A');
+    assert.strictEqual(withSubjectSections('[Shot 1] x', [{ tag: '<Picture 1>', kind: 'person', traits: 'an Asian man' }]), '[Shot 1] x', 'nothing visible left = no sections');
+}
+
 // MPI-1095: LTX 2.5 has its own recipe; its i2v mode is told what the start/end frame shows.
 function testLtx25OwnRecipeAndFrames() {
     const card = MODELS.find((m) => m.id === 'ltx-25');
@@ -272,6 +298,7 @@ function testLtx25OwnRecipeAndFrames() {
 
 const tests = {
     testAppWritesThePictureLines,
+    testAppWritesTheSubjectSections,
     testLtx25OwnRecipeAndFrames,
     testEveryRecipeValidates,
     testValidatorActuallyBites,

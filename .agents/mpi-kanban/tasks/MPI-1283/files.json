@@ -1,0 +1,1 @@
+{"schema":"mpi-kanban/task-files/v1","files":["js/services/llmService.js","js/data/recipes/registry.js","js/data/recipes/minimax-h3.recipe.js","js/data/recipes/ltx-2.3.recipe.js","js/data/recipes/ltx-2.5.recipe.js","tests/recipe-registry.test.cjs"]}

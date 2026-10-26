@@ -29,6 +29,11 @@
  *    `retention_analysis`, …) are NOT adopted here. Fabio's production reached
  *    the same conclusion independently and adopted the guide SURGICALLY: the
  *    `[Shot N]` cut syntax and the two sound fields, nothing else.
+ *    CHANGED 2026-10-26 (MPI-1283): two of the six, `subject_definitions` and
+ *    `retention_analysis`, now open every r2v prompt. MPI-1135's bench (Shot Cs
+ *    vs Cb vs C) kept props and wardrobe only with them. The APP writes them
+ *    from the describer's looks-only answer; the enhancer's text is unchanged
+ *    below them, and the other four sections stay unadopted.
  *
  * So: `t2v` / `i2v` follow `base-en.txt` §2.2's three named fields. `r2v`
  * follows the shape Fabio actually shot ~100 clips with, which is the ComfyUI
@@ -446,7 +451,7 @@ export const minimaxH3 = {
   displayName: 'MiniMax H3',
   status: 'draft',
   notes:
-    'Open-weight audio-visual video model with native sound; official ComfyUI templates ship t2v, i2v and r2v. REWRITTEN 2026-08-17 to MiniMax\'s own documented notation after their official prompt-writing skill was found (MiniMax-AI/MiniMax-H3, .claude/skills/h3-prompt-writing/) and after Fabio\'s ~100-clip cowboy film shot on this model contradicted the shipped recipe in four places. Shots are [Shot 1] with no timestamp, then [Shot N] At MM:SS.mmm — a cut INSTANT, never a [0s-3s] span; the span notation was inherited from seedance-2.0 and appears in no MiniMax document. ONE shot is the normal answer in every mode (the base guide: use multiple shots only when explicitly specified), which is why r2v no longer mandates CUT 1 / TRANSITION / CUT 2. Sound is two named fields, overall_soundscape and non_diegetic_music, where N/A is a legal value and measurably kills an invented ambient drone. There is NO prompt-length wall: the text encoder is Qwen3-VL-32B with model_max_length 262144, and MiniMax ask for 350-500 words in one section of a reference prompt, so the old 230-word ceiling was fiction that made a customer route around this feature. The six-section ref-en rewrite format (subject_definitions, retention_analysis...) is still NOT adopted: that guide describes a rewriter OUTPUT, and Fabio adopted the cut syntax and the sound fields surgically on top of the shape that shot the film. Clip length has no 4s floor and no 15s ceiling (node: min=5 frames, 17k+5 grid at 24fps); 4-15s is the TRAINED range. On-screen text is first class and camera motion has a fixed vocabulary written as natural English action, not stacked labels. Reachable from Vision since 2026-08-10 via the h3 alias; the card actually in production is minimax-h3-ref2va, so r2v is the mode with real users. IMPORTANT: the film is r2v ONLY, so t2v and i2v carry vendor evidence but no field evidence. Stage 1 green is INVALID until all three modes re-sweep twice.',
+    'Open-weight audio-visual video model with native sound; official ComfyUI templates ship t2v, i2v and r2v. REWRITTEN 2026-08-17 to MiniMax\'s own documented notation after their official prompt-writing skill was found (MiniMax-AI/MiniMax-H3, .claude/skills/h3-prompt-writing/) and after Fabio\'s ~100-clip cowboy film shot on this model contradicted the shipped recipe in four places. Shots are [Shot 1] with no timestamp, then [Shot N] At MM:SS.mmm — a cut INSTANT, never a [0s-3s] span; the span notation was inherited from seedance-2.0 and appears in no MiniMax document. ONE shot is the normal answer in every mode (the base guide: use multiple shots only when explicitly specified), which is why r2v no longer mandates CUT 1 / TRANSITION / CUT 2. Sound is two named fields, overall_soundscape and non_diegetic_music, where N/A is a legal value and measurably kills an invented ambient drone. There is NO prompt-length wall: the text encoder is Qwen3-VL-32B with model_max_length 262144, and MiniMax ask for 350-500 words in one section of a reference prompt, so the old 230-word ceiling was fiction that made a customer route around this feature. The six-section ref-en rewrite format is still NOT adopted whole: that guide describes a rewriter OUTPUT, and Fabio adopted the cut syntax and the sound fields surgically on top of the shape that shot the film. Since 2026-10-26 (MPI-1283, from the MPI-1135 bench) two of its sections, subject_definitions and retention_analysis, open every r2v prompt, written by the app from the describer\'s looks-only answer (never ethnicity or origin), not by the enhancer. Clip length has no 4s floor and no 15s ceiling (node: min=5 frames, 17k+5 grid at 24fps); 4-15s is the TRAINED range. On-screen text is first class and camera motion has a fixed vocabulary written as natural English action, not stacked labels. Reachable from Vision since 2026-08-10 via the h3 alias; the card actually in production is minimax-h3-ref2va, so r2v is the mode with real users. IMPORTANT: the film is r2v ONLY, so t2v and i2v carry vendor evidence but no field evidence. Stage 1 green is INVALID until all three modes re-sweep twice.',
   modes: {
     /* ── t2v — base-en.txt §2.2/§4.2: [Shot 1] unstamped, later shots cut in ── */
     t2v: {
@@ -761,6 +766,12 @@ ${CLOSING('the look line', 'shot list above', 'Every shot opens with its own [Sh
      * in the exact mode under discussion. Everything else here rests on the
      * vendor guide alone, because the film touched neither t2v nor i2v. ── */
     r2v: {
+      // MPI-1283 (Fabio 2026-10-26, from MPI-1135 Shot Cs): every prompt opens with MiniMax's
+      // subject_definitions + retention_analysis, written by the APP from what the describer saw
+      // (llmService `pictureCaptions`, registry `withSubjectSections`), never by the enhancer.
+      // Seeing the pictures also tells the enhancer what each one is, so it stops guessing roles.
+      seesPictures: true,
+      subjectSections: true,
       outputFormat: 'structured-tags',
       lengthNorm:
         '200–600 words; look line, reference line, one shot per action the request asks for (usually ONE), then camera, the two sound fields and the constraint line. MiniMax target 350–500 words for the description alone in this mode, so a reference-heavy prompt is expected to be long',

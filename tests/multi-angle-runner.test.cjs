@@ -141,6 +141,12 @@ test('a sloppy answer still reads: bullets, quotes, a trailing stop, odd case, m
     assert.strictEqual(parseMultiAngleFacts('').facts.pronoun, 'they');
 });
 
+test('an answer with lower-case keys reads the same as upper case (round 66)', async () => {
+    const { parseMultiAngleFacts } = await builder();
+    assert.deepStrictEqual(parseMultiAngleFacts(ANSWER.anime.replace(/^[A-Z_]+:/gm, k => k.toLowerCase())),
+        parseMultiAngleFacts(ANSWER.anime));
+});
+
 test('the people count reads off the PEOPLE line; unreadable is one', async () => {
     const { parseMultiAngleFacts } = await builder();
     const people = t => parseMultiAngleFacts(t).facts.people;
