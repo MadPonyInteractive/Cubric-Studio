@@ -8,7 +8,7 @@ import { describeImage } from '../../../services/llmService.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import {
     MULTI_ANGLE_LABELS, MULTI_ANGLE_SLIDERS, MULTI_ANGLE_TURNS, MULTI_ANGLE_HEIGHTS, MULTI_ANGLE_RUNGS, MULTI_ANGLE_VIEW_ASK,
-    multiAngleChoices, multiAnglePreview, parseMultiAngleView, QWEN,
+    multiAngleChoices, multiAnglePreview, multiAngleMatchedZoom, multiAngleZoomSlider, parseMultiAngleView, QWEN,
 } from '../../../data/flowPrompts/multiAngle.js';
 
 /**
@@ -29,12 +29,13 @@ const ROWS = [
     { key: 'zoom', label: 'Zoom' },
 ];
 
-/** The rungs the preview shows by zooming into Cosmo (one CSS modifier each); far is its own render. */
-const ZOOM_IN = MULTI_ANGLE_RUNGS.filter(r => r !== 'far');
+/** The rungs the preview shows by zooming into Cosmo (one CSS modifier each); whole body is the render as
+ * it is, far its own wider render. */
+const ZOOM_IN = MULTI_ANGLE_RUNGS.filter(r => r !== 'far' && r !== 'full');
 
 /**
  * What an untouched or restored value means. A stop this build does not offer falls back to the
- * front, eye level, as in the picture.
+ * front, eye level, as in the picture (a match reads that as whole body).
  * @param {Partial<AngleValue>|null|undefined} v
  * @returns {AngleValue}
  */
@@ -46,14 +47,14 @@ export function normalizeAngle(v) {
         turn,
         turnPos: pos,
         height: S.height.includes(v?.height) ? v.height : 'level',
-        zoom: S.zoom.includes(v?.zoom) ? v.zoom : 'none',
+        zoom: S.zoom.includes(v?.zoom) ? v.zoom : 'none', // 'none' = as in the picture
     };
 }
 
 /**
  * The value with every stop the start cannot reach put back to the closest one it can: a turn the bench
  * never ran from there goes to the start's turn, a height to the start's (eye level on a turned pick), a
- * zoom to none.
+ * zoom to none, and so does the matched framing itself.
  * @param {AngleValue} v
  * @param {{ qwen: boolean, from?: AngleValue }} opts - `from` = the view matched in step 2
  * @returns {AngleValue}
@@ -68,7 +69,8 @@ export function fitAngle(v, opts) {
     const fallback = heights.includes(start.height) && turn === start.turn ? start.height : 'level';
     const height = heights.includes(v.height) ? v.height : fallback;
     const { zooms } = multiAngleChoices(turn, height, opts);
-    return { ...v, turn, turnPos, height, zoom: zooms.includes(v.zoom) ? v.zoom : 'none' };
+    const zoom = v.zoom === multiAngleMatchedZoom(start.zoom) ? 'none' : v.zoom;
+    return { ...v, turn, turnPos, height, zoom: zooms.includes(zoom) ? zoom : 'none' };
 }
 
 /** Step 2 matches the picture: every stop is offered, nothing here is a pass. */
@@ -82,8 +84,8 @@ const MATCH_OFFERS = { turn: MULTI_ANGLE_SLIDERS.turn, height: MULTI_ANGLE_SLIDE
  * is the view the edit is asked for. Two modes (Fabio 2026-10-26):
  *
  * - `match` (step 2, big): the user's picture on top, Cosmo under it; the user moves the sliders until
- *   Cosmo shows the picture's view EXACTLY. Every stop is offered. It starts at front / eye level / as
- *   in the picture, never guessed; "Try to Match" asks the describer for its guess on demand (a queue
+ *   Cosmo shows the picture's view EXACTLY. Every stop is offered. It starts at front / eye level / whole
+ *   body, never guessed; "Try to Match" asks the describer for its guess on demand (a queue
  *   row) and moves the sliders, which the user then corrects.
  * - `pick` (the Generate slide, small): the new view. It starts on the matched view, and only the stops
  *   the bench proved FROM that view are offered: a thumb dragged onto one it cannot take stays on the
@@ -122,12 +124,16 @@ export const MpiAngleGizmo = ComponentFactory.create({
     },
 
     setup: (el, props) => {
-        const S = MULTI_ANGLE_SLIDERS;
         const match = props.mode === 'match';
         const from = match ? null : normalizeAngle(props.from);
+        // The pick's Zoom puts "as in your picture" on the matched framing: wider to its left, closer to its right.
+        const S = match ? MULTI_ANGLE_SLIDERS : { ...MULTI_ANGLE_SLIDERS, zoom: multiAngleZoomSlider(from.zoom) };
         const opts = { qwen: (state.s_installedModelIds || []).includes(QWEN), from };
         // A pick nobody has moved yet starts on the matched view: nothing moved = no pass.
         let _val = match ? normalizeAngle(props.value) : fitAngle(normalizeAngle(props.value || from), opts);
+        if (match) _val.zoom = multiAngleMatchedZoom(_val.zoom);
+        // Each fill runs from where the slider started to its thumb: in a pick, the distance a pass moves.
+        const _origin = match ? { ...normalizeAngle(null), zoom: multiAngleMatchedZoom() } : { ...from, zoom: 'none' };
         const previewEl = qs('#angle-gizmo-preview', el);
         // Warm every preview once, so a fast drag never shows the last stop's Cosmo under this one's name.
         MULTI_ANGLE_TURNS.forEach((t) => {
@@ -137,21 +143,23 @@ export const MpiAngleGizmo = ComponentFactory.create({
             });
         });
 
-        const posOf = key => (key === 'turn' ? _val.turnPos : S[key].indexOf(_val[key]));
+        const posOf = (key, v = _val) => (key === 'turn' ? v.turnPos : S[key].indexOf(v[key]));
 
         const _offers = () => {
             if (match) return MATCH_OFFERS;
             const { turns } = multiAngleChoices(_val.turn, 'level', opts);
             const { heights } = multiAngleChoices(_val.turn, 'level', opts);
             const { zooms } = multiAngleChoices(_val.turn, _val.height, opts);
-            return { turn: S.turn.filter(t => turns.includes(t)), height: heights, zoom: zooms };
+            return { turn: S.turn.filter(t => turns.includes(t)), height: heights, zoom: zooms.filter(z => S.zoom.includes(z)) };
         };
 
         const _paint = () => {
-            previewEl.src = multiAnglePreview(_val.turn, _val.height, _val.zoom);
+            // "As in your picture" shows the framing matched in step 2, so a step left is always wider.
+            const zoom = _val.zoom === 'none' && from ? multiAngleMatchedZoom(from.zoom) : _val.zoom;
+            previewEl.src = multiAnglePreview(_val.turn, _val.height, zoom);
             // The zoom-in rungs are CSS on the preview; none and far leave it whole. A high hs has its own anchor.
-            const hsHi = _val.zoom === 'hs' && _val.height === 'hi';
-            ZOOM_IN.forEach(r => previewEl.classList.toggle(`mpi-angle-gizmo__preview--${r}`, _val.zoom === r && !hsHi));
+            const hsHi = zoom === 'hs' && _val.height === 'hi';
+            ZOOM_IN.forEach(r => previewEl.classList.toggle(`mpi-angle-gizmo__preview--${r}`, zoom === r && !hsHi));
             previewEl.classList.toggle('mpi-angle-gizmo__preview--hs-hi', hsHi);
             previewEl.alt = `Cosmo seen ${MULTI_ANGLE_LABELS.turn[_val.turn].toLowerCase()}, ${MULTI_ANGLE_LABELS.height[_val.height].toLowerCase()}`;
             const offers = _offers();
@@ -188,7 +196,7 @@ export const MpiAngleGizmo = ComponentFactory.create({
         const _bars = {};
         ROWS.forEach(({ key }) => {
             const bar = MpiProgressBar.mount(qs(`#angle-gizmo-slot-${key}`, el), {
-                min: 0, max: S[key].length - 1, step: 1, value: posOf(key),
+                min: 0, max: S[key].length - 1, step: 1, value: posOf(key), origin: posOf(key, _origin),
                 interactive: true, handle: true, wheel: true,
                 // The readout above already names the stop; a number in the status bar says nothing.
                 info: '',
@@ -221,7 +229,8 @@ export const MpiAngleGizmo = ComponentFactory.create({
                 }
                 const guess = parseMultiAngleView(r.text);
                 clientLogger.info('multi-angle', `try to match: ${JSON.stringify(guess)}`);
-                _set({ ...guess, turnPos: S.turn.indexOf(guess.turn) });
+                // A framing it could not read keeps the slider where the user left it.
+                _set({ ...guess, turnPos: S.turn.indexOf(guess.turn), zoom: S.zoom.includes(guess.zoom) ? guess.zoom : _val.zoom });
                 Events.emit('ui:info', { message: 'Cosmo matched what it could see. Check each slider against your picture.' });
             });
         }

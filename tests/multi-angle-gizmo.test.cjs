@@ -103,12 +103,20 @@ test('the Turn slider is a full turn with the front in the middle', async () => 
     assert.deepEqual([...new Set(t)].sort(), [...MULTI_ANGLE_TURNS].sort());
 });
 
-test('the Zoom slider starts in the middle: out to the left, in to the right', async () => {
-    const { MULTI_ANGLE_SLIDERS, MULTI_ANGLE_RUNGS } = await prompts();
-    const z = MULTI_ANGLE_SLIDERS.zoom;
-    assert.equal(z[Math.floor(z.length / 2)], 'none');
+test('the Zoom slider: left always zooms out, right always zooms in', async () => {
+    const { MULTI_ANGLE_SLIDERS, MULTI_ANGLE_RUNGS, multiAngleZoomSlider } = await prompts();
     // The ladder is closest first, so the slider reads it widest first.
-    assert.deepEqual(z.filter(r => r !== 'none'), [...MULTI_ANGLE_RUNGS].reverse());
+    assert.deepEqual(MULTI_ANGLE_SLIDERS.zoom, [...MULTI_ANGLE_RUNGS].reverse());
+    // The pick puts "as in your picture" on the matched framing (untouched = whole body).
+    assert.deepEqual(multiAngleZoomSlider(), ['far', 'none', 'waist', 'hs', 'face', 'eye']);
+    assert.deepEqual(multiAngleZoomSlider('hs'), ['far', 'full', 'waist', 'none', 'face', 'eye']);
+});
+
+test('fitAngle: the matched framing itself is "as in your picture"', async () => {
+    const { fitAngle, normalizeAngle } = await gizmo();
+    const from = normalizeAngle({ turn: 'front', zoom: 'hs' });
+    assert.equal(fitAngle(normalizeAngle({ zoom: 'hs' }), { qwen: true, from }).zoom, 'none');
+    assert.equal(fitAngle(normalizeAngle({ zoom: 'face' }), { qwen: true, from }).zoom, 'face');
 });
 
 test('every turn x height has its Cosmo preview on disk', async () => {
@@ -132,7 +140,8 @@ test('every turn x height has its Cosmo preview on disk', async () => {
 test('every zoom-in rung has its CSS modifier on the preview', async () => {
     const { MULTI_ANGLE_RUNGS } = await prompts();
     const css = fs.readFileSync(path.join(ROOT, 'js/components/Compounds/MpiAngleGizmo/MpiAngleGizmo.css'), 'utf8');
-    for (const rung of MULTI_ANGLE_RUNGS.filter(r => r !== 'far')) {
+    // Whole body is the render as it is; far its own render.
+    for (const rung of MULTI_ANGLE_RUNGS.filter(r => r !== 'far' && r !== 'full')) {
         assert.match(css, new RegExp(`\\.mpi-angle-gizmo__preview--${rung} \\{\\s*transform: scale\\(`), rung);
     }
 });

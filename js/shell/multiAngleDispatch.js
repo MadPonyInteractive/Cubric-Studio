@@ -12,7 +12,7 @@
  */
 
 import { runMultiAngle } from '../services/multiAngleRunner.js';
-import { MULTI_ANGLE_DESCRIBE_ASK, MULTI_ANGLE_LABELS, FLUX3 } from '../data/flowPrompts/multiAngle.js';
+import { MULTI_ANGLE_DESCRIBE_ASK, MULTI_ANGLE_LABELS, FLUX3, multiAngleMatchedZoom } from '../data/flowPrompts/multiAngle.js';
 import { enqueueGeneration } from '../services/generationService.js';
 import { describeImage } from '../services/llmService.js';
 import { clientLogger } from '../services/clientLogger.js';
@@ -122,10 +122,10 @@ export async function runMultiAngleFlow(flow, inputs, frame) {
     }
     const media = inputs.mediaItems || [];
     const url = role => media.find(m => m?.role === role && m.url && m.mediaType === 'image')?.url;
-    // Step 2's match: an untouched one SHOWS front, eye level, as in the picture. An untouched
+    // Step 2's match: an untouched one SHOWS front, eye level, whole body. An untouched
     // Generate gizmo has reported nothing: it SHOWS the matched view, so nothing moved.
     const start = { turn: inputs.start?.turn || 'front', height: inputs.start?.height || 'level',
-        zoom: inputs.start?.zoom || 'none' };
+        zoom: multiAngleMatchedZoom(inputs.start?.zoom) };
     const angle = inputs.angle || start;
     const pick = { turn: angle.turn || start.turn, height: angle.height || start.height,
         zoom: angle.zoom && angle.zoom !== 'none' && angle.zoom !== start.zoom ? angle.zoom : null, from: start };

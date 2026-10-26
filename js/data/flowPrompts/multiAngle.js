@@ -75,14 +75,28 @@ export const MULTI_ANGLE_LABELS = {
 /**
  * The gizmo's three sliders, left to right. TURN is a full turn round the person with the front in
  * the middle (Fabio 2026-10-25: Cosmo turns all the way round), so the back sits at both ends.
- * ZOOM starts in the middle on the picture as it is: zoom out to the left, zoom in to the right
- * (Fabio 2026-10-25).
+ * ZOOM is the ladder widest first: left always zooms out, right always zooms in (Fabio 2026-10-26).
+ * Step 2 sets the picture's own framing on it; the Generate slide's copy is multiAngleZoomSlider.
  */
 export const MULTI_ANGLE_SLIDERS = {
     turn: ['back', 'tq_bl', 'pr_l', 'tq_fl', 'front', 'tq_fr', 'pr_r', 'tq_br', 'back'],
     height: ['lo', 'level', 'hi'],
-    zoom: ['far', 'full', 'waist', 'none', 'hs', 'face', 'eye'],
+    zoom: [...MULTI_ANGLE_RUNGS].reverse(),
 };
+
+/** The framing matched in step 2; untouched = whole body, what the untouched Cosmo shows. */
+export const multiAngleMatchedZoom = z => (MULTI_ANGLE_RUNGS.includes(z) ? z : 'full');
+
+/**
+ * The Generate slide's Zoom slider: the same ladder with the matched framing as 'none' (as in your
+ * picture), so every rung left of it is wider and every rung right of it closer.
+ * @param {string} [matched] - the zoom matched in step 2
+ * @returns {string[]}
+ */
+export function multiAngleZoomSlider(matched) {
+    const m = multiAngleMatchedZoom(matched);
+    return MULTI_ANGLE_SLIDERS.zoom.map(r => (r === m ? 'none' : r));
+}
 
 /**
  * The Cosmo preview of a turn + height, from the same Blender camera as that stop's doll ref. Far

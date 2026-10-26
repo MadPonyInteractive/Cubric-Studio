@@ -16,6 +16,8 @@ import { qs } from '../../../utils/dom.js';
  * @param {boolean} [interactive=false] - false = static progress bar, true = draggable slider
  * @param {boolean} [wheel=false]    - Enable mouse wheel to adjust value (slider mode only)
  * @param {boolean} [handle=false]   - Show a circular thumb handle on the fill position
+ * @param {number}  [origin]         - Horizontal only: the value the fill grows from instead of min, so it
+ *   runs left or right of that point to the thumb (MPI-1039: a camera slider whose start is mid-track)
  * @param {'primary'|'secondary'|'success'|'danger'} [variant='primary']
  * @param {'horizontal'|'vertical'} [orientation='horizontal'] - Travel direction. Vertical
  *   fills from the BOTTOM and is what a hover-out volume flyout mounts (MPI-731); the
@@ -24,6 +26,15 @@ import { qs } from '../../../utils/dom.js';
  *   fill: each painted in its variant's colour, or left as track while null (MPI-941: a benchmark's
  *   tests, green for a pass, red for a fail). Every other prop is ignored.
  */
+/** The horizontal fill: from min, or from `origin` to the thumb on whichever side it sits. */
+function _fillSpan(percent, props) {
+    if (props.origin === undefined) return `width: ${percent}%`;
+    const min = props.min !== undefined ? props.min : 0;
+    const max = props.max !== undefined ? props.max : 100;
+    const o = ((props.origin - min) / (max - min)) * 100;
+    return `left: ${Math.min(o, percent)}%; width: ${Math.abs(percent - o)}%`;
+}
+
 export const MpiProgressBar = ComponentFactory.create({
     name: 'MpiProgressBar',
     css: ['js/components/Primitives/MpiProgressBar/MpiProgressBar.css'],
@@ -59,6 +70,7 @@ export const MpiProgressBar = ComponentFactory.create({
         // two in step or the mount paints one axis and the first drag paints the other.
         const handleOffset = vertical ? `bottom: ${fillPercent}%` : `left: ${fillPercent}%`;
         const handleHtml = props.handle ? `<div class="mpi-progress__handle" style="${handleOffset}"></div>` : '';
+        const fillStyle = vertical ? `height: ${fillPercent}%` : _fillSpan(fillPercent, props);
 
         return `<div class="mpi-progress mpi-progress--${variant} ${stateClass}${axisClass}" ${infoAttr}>
             <div class="mpi-progress__track-container">
@@ -71,7 +83,7 @@ export const MpiProgressBar = ComponentFactory.create({
                     value="${value}"
                     ${isDisabledAttr}
                 >
-                <div class="mpi-progress__track-fill" style="${vertical ? 'height' : 'width'}: ${fillPercent}%"></div>
+                <div class="mpi-progress__track-fill" style="${fillStyle}"></div>
                 ${handleHtml}
             </div>
         </div>`;
@@ -94,7 +106,8 @@ export const MpiProgressBar = ComponentFactory.create({
             const min = props.min !== undefined ? props.min : 0;
             const max = props.max !== undefined ? props.max : 100;
             const percent = ((val - min) / (max - min)) * 100;
-            if (trackFill) trackFill.style[vertical ? 'height' : 'width'] = `${percent}%`;
+            if (trackFill && vertical) trackFill.style.height = `${percent}%`;
+            else if (trackFill) trackFill.style.cssText = _fillSpan(percent, props);
             if (handleEl) handleEl.style[vertical ? 'bottom' : 'left'] = `${percent}%`;
 
             if (!infoOptOut && infoTpl.includes('{value}')) {
