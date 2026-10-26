@@ -1,0 +1,63 @@
+{
+  "schema": "mpi-kanban/handoff/v1",
+  "id": "2f2c3e98-2667-4f73-a41a-89d2f6ce7dc3",
+  "generated_at": "2026-10-26T21:10:00Z",
+  "status": "resolved",
+  "from_session": ".agents/mpi-kanban/state/sessions/a08f6645-6ac5-4511-b4be-eeaae4829e38.json",
+  "session": {
+    "name": "GitHub pull request review: merged PR #12, then MPI-1302 phase 1a + D6",
+    "branch": "master"
+  },
+  "goal": {
+    "original": "Work through the rest of AUDIT.md (repo root) phase by phase on card MPI-1302, handing off between phases when context gets high.",
+    "status": "in_progress",
+    "summary": "Phase 1a (B4, B6, a missing test assertion; H3 dropped) and D6 (graph_utils.py for the workflow generators) are on master and pushed. Next is D8, the biggest phase 1 item."
+  },
+  "plan": {
+    "file": ".agents/mpi-kanban/tasks/MPI-1302/plan.md",
+    "completed": [
+      "Phase 1a: B4, B6, comfy-vanished-prompt assertion (8c05c2c8e); H3 dropped",
+      "D6: graph_utils.py, 24 workflows byte-identical (90e79b465)"
+    ],
+    "pending": [
+      "D8 shared small JS utilities",
+      "X4 unused routes/exports (ask Fabio about skill-listed routes)",
+      "T1/T2 ts-check + JSDoc",
+      "Phases 2-4 per plan.md"
+    ]
+  },
+  "task_card": {
+    "id": "MPI-1302",
+    "title": "AUDIT follow-up: the cleanup, duplication and speed findings PR #12 left open",
+    "column": "doing",
+    "workspace": ".agents/mpi-kanban/tasks/MPI-1302/",
+    "links": {
+      "plan": "plan.md",
+      "checklist": "checklist.md",
+      "validation": "validation.md"
+    }
+  },
+  "next_action": {
+    "description": "Start D8 (AUDIT.md section D8): add escapeHtml to js/utils/string.js, basename to js/utils/file.js, clamp/clampInt to a new js/utils/math.js, ORIENTATION_OPTIONS / ratio options to js/utils/ratios.js, use formatClock everywhere, one hexToRgb; replace the local copies the audit lists (re-check each location first, line numbers drifted). Unit-test each new helper, lint, npm test, commit, push, update AUDIT.md Status + checklist.",
+    "command": "mpi-continue"
+  },
+  "context": {
+    "key_decisions": [
+      "Fabio wants MPI-1302 done in sequence in one session at a time, no parallel batch; hand off between phases.",
+      "H3 dropped: the D:\\tmp stage dir in build:portable:* is deliberate (C: short on space).",
+      "X4: ask Fabio before removing any route the agent skill docs list as public HTTP API."
+    ],
+    "constraints": [
+      "Shared tree: peers leave uncommitted edits in board.json and root events.jsonl. Commit with .agents/mpi-kanban/tasks/MPI-1302/research/commit_mine.py (private index: HEAD + named files + only MPI-1302 lines of board/events), then push the SHA. Check git log origin/master..master right before pushing.",
+      "D8 touches ~30 UI files that peers edit often (MpiGalleryBlock, agentDispatch, MpiAgentChat, comfyController): claim each in files.json + a file claim before editing, run git status --short on it, and skip + note any file with peer changes.",
+      "The two weaker escapeHtml copies (MpiInput, MpiVoicePicker) do not escape ' \u2014 switching them to the shared one changes output slightly; the formatClock change must not reintroduce the 0:60 bug (B3, fixed in PR #12)."
+    ],
+    "files_to_read_first": [
+      ".agents/mpi-kanban/tasks/MPI-1302/plan.md",
+      "AUDIT.md",
+      "docs/utils.md"
+    ]
+  },
+  "resume_prompt": "Read .agents/mpi-kanban/state/handoffs/2f2c3e98-2667-4f73-a41a-89d2f6ce7dc3.json and continue card MPI-1302 (in doing) with mpi-continue. Phase 1a and D6 are pushed; start D8 from AUDIT.md section D8 and the card's plan.md. Commit with the card's research/commit_mine.py so peers' uncommitted board edits stay out, claim every file before editing, and ask Fabio before removing any route in X4.",
+  "resolved_by": "ba21235f-b4ce-4c88-8034-2f7c9280a077"
+}

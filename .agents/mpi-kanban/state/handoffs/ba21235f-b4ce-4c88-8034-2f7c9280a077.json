@@ -1,0 +1,57 @@
+{
+  "schema": "mpi-kanban/handoff/v1",
+  "id": "ba21235f-b4ce-4c88-8034-2f7c9280a077",
+  "generated_at": "2026-10-26T22:30:00Z",
+  "status": "open",
+  "from_session": ".agents/mpi-kanban/state/sessions/a8a2c066-6708-4555-a247-dff35c670e08.json",
+  "session": { "name": "Cubric Studio improvements 1: MPI-1302 D8 + X4", "branch": "master" },
+  "goal": {
+    "original": "Work through the rest of AUDIT.md (repo root) phase by phase on card MPI-1302, handing off between phases when context gets high.",
+    "status": "in_progress",
+    "summary": "D8 (shared small utilities, 37ea2d46c) and X4 (unused routes/exports, f1d97c07b) are pushed. Only the seed/gallery icon end of X4 is left, waiting on Fabio. Next phase is 1d: T1/T2."
+  },
+  "plan": {
+    "file": ".agents/mpi-kanban/tasks/MPI-1302/plan.md",
+    "completed": [
+      "Phase 1a: B4, B6, comfy-vanished-prompt assertion (8c05c2c8e); H3 dropped",
+      "D6: graph_utils.py (90e79b465)",
+      "D8: escapeHtml/basename/math.js/ratio options/formatClock/hexToRgb (37ea2d46c)",
+      "X4: 7 unused routes incl. skill-listed ones, un-exports, dead functions, icons translate/volumeLow (f1d97c07b)"
+    ],
+    "pending": [
+      "X4 tail: icons seed/gallery + renderIcon ['seed','gallery'] stroke special case - needs Fabio's OK to edit .claude/rules/dos_and_donts.md line 40",
+      "T1: // @ts-check on the pure modules in AUDIT.md + scoped tsc --noEmit CI step",
+      "T2: JSDoc on promptReuse.js, projectService.js, routes/shared.js (MPI-444 realpath, MPI-484 stop contracts)",
+      "Phases 2-4 per plan.md"
+    ]
+  },
+  "task_card": {
+    "id": "MPI-1302",
+    "title": "AUDIT follow-up: the cleanup, duplication and speed findings PR #12 left open",
+    "column": "doing",
+    "workspace": ".agents/mpi-kanban/tasks/MPI-1302/",
+    "links": { "plan": "plan.md", "checklist": "checklist.md", "validation": "validation.md" }
+  },
+  "next_action": {
+    "description": "Start Phase 1d T1 (AUDIT.md section T1): add // @ts-check to the pure modules the audit lists (re-check each first), add a scoped tsc --noEmit step to CI, make it pass locally; then T2 JSDoc. If Fabio has okayed the dos_and_donts.md line 40 edit, first finish X4: delete icons seed/gallery, drop ['seed','gallery'] from renderIcon's stroke check and its JSDoc, update the rule line. Lint, npm test, commit, push, update AUDIT.md Status + checklist.",
+    "command": "mpi-continue"
+  },
+  "context": {
+    "key_decisions": [
+      "Fabio wants MPI-1302 done in sequence, one session at a time, no parallel batch; hand off between phases.",
+      "Fabio (2026-10-26): remove unused routes even when the agent skill docs list them; skill docs updated to match.",
+      ".claude/rules/ files are never edited without Fabio's explicit OK - that is why the seed/gallery icons are still there."
+    ],
+    "constraints": [
+      "Shared tree: peers leave uncommitted edits (board.json, root events.jsonl, other cards' files). Commit with .agents/mpi-kanban/tasks/MPI-1302/research/commit_mine.py <repo> <msgfile> MPI-1302 <files...>, then push the printed SHA; filter git status to your own files (peer files appear mid-session).",
+      "Claim files before editing (state/files/<sid8>-mpi1302-<phase>.json + active_file_claims in state/index.json); guard-claim does not expand shell variables in paths, and heredocs are blocked - write scripts to the scratchpad and run them by path.",
+      "When checking whether an export is unused, count uses INSIDE its own file too (captureFrame looked dead from outside but firstFrameDataUrl calls it)."
+    ],
+    "files_to_read_first": [
+      ".agents/mpi-kanban/tasks/MPI-1302/plan.md",
+      "AUDIT.md",
+      "docs/utils.md"
+    ]
+  },
+  "resume_prompt": "Read .agents/mpi-kanban/state/handoffs/ba21235f-b4ce-4c88-8034-2f7c9280a077.json and continue card MPI-1302 (in doing) with mpi-continue. D8 and X4 are pushed; start Phase 1d T1/T2 from AUDIT.md and the card's plan.md. The seed/gallery icon end of X4 waits on Fabio's OK to edit .claude/rules/dos_and_donts.md line 40. Commit with the card's research/commit_mine.py so peers' uncommitted edits stay out, and claim every file before editing."
+}
