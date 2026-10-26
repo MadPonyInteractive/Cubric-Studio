@@ -4427,13 +4427,14 @@
         "Node name for S&R": "UNETLoader"
       },
       "widgets_values": [
-        "Minimax-h3_Singularity_ref2va_v2_pruned_int8.safetensors",
+        "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
         "default"
       ],
       "widgets_values_named": {
-        "unet_name": "Minimax-h3_Singularity_ref2va_v2_pruned_int8.safetensors",
+        "unet_name": "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
         "weight_dtype": "default"
-      }
+      },
+      "title": "Input_Base_Model"
     },
     {
       "id": 101,
