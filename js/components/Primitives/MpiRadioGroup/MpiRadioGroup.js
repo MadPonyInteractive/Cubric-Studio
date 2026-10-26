@@ -1,5 +1,5 @@
 import { ComponentFactory } from '../../factory.js';
-import { qs, qsa } from '../../../utils/dom.js';
+import { qs, qsa, on } from '../../../utils/dom.js';
 import { renderIcon } from '../../../utils/icons.js';
 
 /**
@@ -100,7 +100,7 @@ export const MpiRadioGroup = ComponentFactory.create({
             emit('select', { value, option });
         };
 
-        el.addEventListener('click', (e) => {
+        on(el, 'click', (e) => {
             const btn = e.target.closest('.mpi-radio-group__btn');
             if (!btn || btn.disabled || btn.getAttribute('aria-disabled') === 'true') return;
 

@@ -414,9 +414,6 @@ describe('(b) compaction trigger', () => {
 
 describe('(c) generate non-blocking', () => {
     test('generate returns a started response before the async generation settles', async () => {
-        let generateResolveFn = null;
-        const generateCalledAt = [];
-        const turnReturnedAt = [];
 
         // Longer than EARLY_REFUSAL_MS (1000): a generate now waits that long to catch a
         // refusal, so a fixture that settles inside the window proves nothing about
@@ -857,7 +854,7 @@ test('the agent can cancel what it started: the latest by default, an earlier on
 test('a job still running tells the NEXT turn, names the id to cancel, and a quiet turn says nothing', async () => {
     const project = { folderPath: '/project', name: 'Test' };
     const gen = (id, args) => ({ text: '', toolCalls: [{ id, type: 'function', function: { name: 'generate', arguments: JSON.stringify(args) } }] });
-    const { loop, tools, engine } = await makeLoop({ engineResponses: [
+    const { loop, tools } = await makeLoop({ engineResponses: [
         gen('g1', { modelId: 'krea2', operation: 'krea2Edit', prompt: 'Make it night', cardName: 'Cowgirl edit' }),
         { text: 'Editing.' },
         { text: 'Sure, switching to Klein 9B.' },

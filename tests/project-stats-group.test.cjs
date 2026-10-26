@@ -74,5 +74,5 @@ test('no code parses a /project-file url with a greedy path=(.+)', () => {
             });
         }
     }
-    assert.deepEqual(offenders, [], 'use pathFromProjectFileUrl, which stops at `&`');
+    assert.deepEqual(offenders, [], 'use diskPathOf (services/projectFileUrl.js), which stops at `&`');
 });

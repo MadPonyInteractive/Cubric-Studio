@@ -529,7 +529,7 @@ test('gif output: the preview pane encodes on demand and its badge goes stale wi
     expect(body.loop, "the current entry's loop rides along unchanged").toBe(1);
 
     await expect.poll(async () => (await pane()).imgShown).toBe(true);
-    expect(await pane()).toMatchObject({ emptyShown: false, badgeShown: true, badgeText: '2 KiB', stale: false });
+    expect(await pane()).toMatchObject({ emptyShown: false, badgeShown: true, badgeText: '2KB', stale: false });
 
     // ── A settings change marks it stale, and does NOT clear it ─────────
     // The pane keeps the last build precisely so the next one can be compared
@@ -543,7 +543,7 @@ test('gif output: the preview pane encodes on demand and its badge goes stale wi
     await window.locator('.mpi-tool-options-gif-timing #preview-btn-slot button').click();
     await expect.poll(() => window.evaluate(() => window.__mpi769.previewCalls.length)).toBe(2);
     expect((await window.evaluate(() => window.__mpi769.previewCalls[1])).output.colours).toBe(64);
-    await expect.poll(async () => (await pane()).badgeText).toBe('4 KiB');
+    await expect.poll(async () => (await pane()).badgeText).toBe('4KB');
     expect((await pane()).stale).toBe(false);
 
     // ── MPI-836: the TRIM RANGE and the rate are part of what it built ──

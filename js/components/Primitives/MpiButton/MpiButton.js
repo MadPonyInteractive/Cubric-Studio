@@ -1,6 +1,6 @@
 import { ComponentFactory } from '../../factory.js';
 import { renderIcon } from '../../../utils/icons.js';
-import { ce, qs } from '../../../utils/dom.js';
+import { ce, qs, on } from '../../../utils/dom.js';
 
 /**
  * MpiButton — Atomic Button Primitive
@@ -40,7 +40,6 @@ export const MpiButton = ComponentFactory.create({
             // ── Plain text button ──────────────────────────────────────────────
             const variant = props.variant || 'primary';
             const size = props.size || 'md';
-            const type = props.type || 'button';
             const isDisabled = props.disabled || props.loading ? 'disabled' : '';
             const isLoading = props.loading ? 'mpi-btn--loading' : '';
             const shapeClass = props.shape === 'pill' ? 'mpi-btn--pill' : '';
@@ -121,7 +120,7 @@ export const MpiButton = ComponentFactory.create({
         let pressStart = 0;
         let pressTimer = null;
 
-        el.addEventListener('pointerdown', () => {
+        on(el, 'pointerdown', () => {
             if (props.disabled || props.loading || props.variant === 'loading') return;
             pressStart = Date.now();
             el.classList.add('is-pressed');
@@ -137,11 +136,11 @@ export const MpiButton = ComponentFactory.create({
             }
         };
 
-        el.addEventListener('pointerup', releasePress);
-        el.addEventListener('pointerleave', releasePress);
-        el.addEventListener('pointercancel', releasePress);
+        on(el, 'pointerup', releasePress);
+        on(el, 'pointerleave', releasePress);
+        on(el, 'pointercancel', releasePress);
 
-        el.addEventListener('click', (e) => {
+        on(el, 'click', (e) => {
             if (props.disabled || props.loading || props.variant === 'loading') return;
 
             // Toggle logic (icon-button mode only)

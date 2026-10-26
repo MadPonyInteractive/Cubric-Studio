@@ -6,14 +6,14 @@ import { MpiPopup } from '../../Primitives/MpiPopup/MpiPopup.js';
 import { MpiToast } from '../../Primitives/MpiToast/MpiToast.js';
 import { Events } from '../../../events.js';
 import { renderIcon } from '../../../utils/icons.js';
-import { commands, getAvailableCommands, getCommandComponents, getCommandMediaInputs, filterMediaInputsForModel, matchRefTagQuery, refTagHandle, stripOrdinalMediaRoles, modelShowsStyleRack, modelShowsRatio, modelShowsBatch, modelControlTypes, getOpHelp, isTextOnlyOp, pickTextOnlyOp, opAllowsEnhance, selectCueAllTargets } from '../../../data/commandRegistry.js';
+import { commands, getAvailableCommands, getCommandMediaInputs, filterMediaInputsForModel, matchRefTagQuery, refTagHandle, stripOrdinalMediaRoles, getOpHelp, isTextOnlyOp, pickTextOnlyOp, opAllowsEnhance, selectCueAllTargets } from '../../../data/commandRegistry.js';
 import { MpiOpHelpDialog } from '../../Compounds/MpiOpHelpDialog/MpiOpHelpDialog.js';
 import { MpiMediaPicker } from '../../Compounds/MpiMediaPicker/MpiMediaPicker.js';
 import { MpiVoicePicker } from '../../Compounds/MpiVoicePicker/MpiVoicePicker.js';
 import { MpiLoraRack } from '../../Compounds/MpiLoraRack/MpiLoraRack.js';
 import { MpiBoxesPanel } from '../../Compounds/MpiBoxesPanel/MpiBoxesPanel.js';
 import { getModelDepStatus, tierLetterFor } from '../../../data/modelRegistry.js';
-import { usesQualityTier, h3FastMotionOnePass } from '../../../utils/ratios.js';
+import { h3FastMotionOnePass } from '../../../utils/ratios.js';
 import { deriveInstalledOps } from '../../../data/modelConstants/resolveModelDeps.js';
 import { getSelectedOp } from '../../../utils/modelHelpers.js';
 import { PROMPT_BOX_CONTROLS, getInjectionParamsFromControls, visibleControlIds } from './PromptBoxControls.js';
@@ -792,7 +792,6 @@ export const MpiPromptBox = ComponentFactory.create({
             const maxCount = _maxMediaForCurrentOperation(mediaType);
             if (maxCount <= 0) { _showIncompatibleToast(); return; }
 
-            const sameType = _mediaItems.filter(m => m.mediaType === mediaType);
             // Role-aware replacement: if the new item carries an explicit role,
             // displace any existing item already tagged with that role first
             // (so "Set as end frame" overwrites a prior end-frame chip
@@ -1300,9 +1299,9 @@ export const MpiPromptBox = ComponentFactory.create({
                 },
             });
             const close = () => { _picker?.el?.destroy?.(); _picker = null; };
-            _picker.el.addEventListener('pick', close);
-            _picker.el.addEventListener('import', close);
-            _picker.el.addEventListener('cancel', close);
+            on(_picker.el, 'pick', close);
+            on(_picker.el, 'import', close);
+            on(_picker.el, 'cancel', close);
             _picker.el.show();
         }
         // MPI-1012: the agent's voice card opens this box's picker straight into the library.
@@ -1530,7 +1529,7 @@ export const MpiPromptBox = ComponentFactory.create({
                 // (browsers ignore the attr on some media elements during specific
                 // gesture sequences). Prevents the strip from acting as a source
                 // for OS-style file drags that would re-import on the gallery.
-                chip.addEventListener('dragstart', (e) => e.preventDefault());
+                on(chip, 'dragstart', (e) => e.preventDefault());
                 _stripEl.appendChild(chip);
             });
 

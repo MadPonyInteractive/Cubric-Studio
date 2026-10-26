@@ -74,7 +74,7 @@ import { MpiSpinner } from '../../Primitives/MpiSpinner/MpiSpinner.js';
 import { createCropTool } from '../../../utils/cropTool.js';
 import { SOCIAL_RATIOS } from '../../../utils/ratios.js';
 import { captureFrameBlob } from '../../../utils/video.js';
-import { qs, on } from '../../../utils/dom.js';
+import { qs, on, off } from '../../../utils/dom.js';
 import { Events } from '../../../events.js';
 import { StatusBar } from '../../../shell/statusBar.js';
 
@@ -363,10 +363,10 @@ export const MpiVideoViewer = ComponentFactory.create({
             _panning = false;
             stageEl.dataset.panning = 'false';
         };
-        window.addEventListener('mousemove', _onWinMove);
-        window.addEventListener('mouseup', _onWinUp);
-        _unsubs.push(() => window.removeEventListener('mousemove', _onWinMove));
-        _unsubs.push(() => window.removeEventListener('mouseup', _onWinUp));
+        on(window, 'mousemove', _onWinMove);
+        on(window, 'mouseup', _onWinUp);
+        _unsubs.push(() => off(window, 'mousemove', _onWinMove));
+        _unsubs.push(() => off(window, 'mouseup', _onWinUp));
 
         // Suppress the surface's click-to-toggle when the user actually dragged.
         // Capture-phase so we intercept before MpiVideoSurface's bubble handler.
@@ -517,10 +517,10 @@ export const MpiVideoViewer = ComponentFactory.create({
                 && Math.abs((_videoElement.currentTime || 0) - target) > 1e-3) {
                 await new Promise(resolve => {
                     const onSeeked = () => {
-                        _videoElement.removeEventListener('seeked', onSeeked);
+                        off(_videoElement, 'seeked', onSeeked);
                         resolve();
                     };
-                    _videoElement.addEventListener('seeked', onSeeked);
+                    on(_videoElement, 'seeked', onSeeked);
                     _surfaceInstance?.el.seek(target);
                 });
             }

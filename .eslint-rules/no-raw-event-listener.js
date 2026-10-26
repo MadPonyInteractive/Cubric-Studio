@@ -7,7 +7,9 @@ module.exports = {
     },
   },
   create(context) {
-    const filename = context.filename;
+    // Forward slashes on every OS. Matching the raw path meant this rule never ran on
+    // Windows, where CI lints, so 142 violations grew unseen until a Linux run.
+    const filename = (context.filename || '').replace(/\\/g, '/');
     const isComponentFile = filename.includes('/js/components/');
 
     return {

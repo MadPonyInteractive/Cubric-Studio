@@ -6,7 +6,6 @@
 
 'use strict';
 
-import { state } from '../state.js';
 import { Events } from '../events.js';
 import { Storage } from '../core/storage.js';
 import { qs, qsa, gid, on } from '../utils/dom.js';
@@ -427,7 +426,7 @@ function mountAll() {
         slotEl.appendChild(toggleSlot);
         slotEl.appendChild(spinnerSlot);
 
-        const spinner = MpiSpinner.mount(spinnerSlot, { size: 'lg', variant: 'primary' });
+        MpiSpinner.mount(spinnerSlot, { size: 'lg', variant: 'primary' });
         const toggle = MpiButton.mount(toggleSlot, {
             icon: 'refresh',
             label: 'Toggle Spinner',

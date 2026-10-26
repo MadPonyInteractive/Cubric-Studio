@@ -11,7 +11,6 @@ import { MpiOkCancel } from '../../Compounds/MpiOkCancel/MpiOkCancel.js';
 import { MpiModal } from '../../Primitives/MpiModal/MpiModal.js';
 import { state } from '../../../state.js';
 import { Events } from '../../../events.js';
-import { Storage } from '../../../core/storage.js';
 import { secretsClient } from '../../../core/secretsClient.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { ce, qs } from '../../../utils/dom.js';
@@ -1107,7 +1106,6 @@ export const MpiRunpodSettings = ComponentFactory.create({
             gpuSlot.innerHTML = '';
 
             const dcs = _runpodAvailability?.dataCenters || [];
-            const gpus = _runpodAvailability?.gpuTypes || [];
             if (!dcs.length) {
                 dcSlot.appendChild(ce('div', {
                     className: 'mpi-settings__empty-row',

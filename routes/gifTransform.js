@@ -61,6 +61,7 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs-extra');
 const path = require('path');
+const { projectFileUrl, projectFileUrlBusted } = require('../services/projectFileUrl');
 const sharp = require('sharp');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('./logger');
@@ -75,10 +76,6 @@ const {
 const { planExtendedCrop, cropPipeline } = require('../services/imageCrop');
 const { extractImageThumb, imageThumbPath, IMAGE_RENDITION_PX } = require('../services/ffmpegThumb');
 const { nextSequence } = require('./projects');
-
-function projectFileUrl(filePath) {
-    return `/project-file?path=${encodeURIComponent(filePath)}`;
-}
 
 /**
  * Crop and Resize never build below this longest edge, whatever the source entry
@@ -152,7 +149,7 @@ async function _writeNewGifCard({ folderPath, mediaDir, metaDir, newFrames, loop
     const meta = {
         id,
         type: 'image',
-        filePath: projectFileUrl(outputPath),
+        filePath: projectFileUrlBusted(outputPath),
         operation,
         displayName: finalName.replace(/\.[^.]+$/, ''),
         prompt: '',

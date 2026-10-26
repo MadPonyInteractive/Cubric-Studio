@@ -78,7 +78,6 @@ const { getComfyPath, getEngineRoot } = require('./platformEngine');
 const { isNodeTickPending } = require('./install/computeProgress');
 const { engineJobRunning } = require('./engineJobs');
 const {
-    isCompleteOnDisk,
     isNodeInstalledOnDisk,
     isDepInstalledOnDisk,
     markDownloadInProgress,
@@ -94,6 +93,7 @@ const { createReconciler } = require('./install/reconciler');
 const { scanUserFlows } = require('../services/userFlows');  // MPI-532
 
 const _require = createRequire(__filename);
+const { formatSpeed: _formatSpeed } = _require('../js/utils/formatBytes.js');
 let _extractZip = null;
 
 // Extract a custom-node archive (GitHub /archive/ or Comfy Registry zip).
@@ -1493,12 +1493,6 @@ function _describeTransportError(err, url) {
         + 'the cause.';
 }
 
-function _formatSpeed(bytesPerSec) {
-    if (bytesPerSec >= 1024 * 1024) return `${(bytesPerSec / 1024 / 1024).toFixed(1)} MB/s`;
-    if (bytesPerSec >= 1024) return `${(bytesPerSec / 1024).toFixed(0)} KB/s`;
-    return `${bytesPerSec.toFixed(0)} B/s`;
-}
-
 function _modelSpeedLabel(modelJob) {
     const now = Date.now();
     const bytes = modelJob.downloadedBytes || 0;
@@ -2536,7 +2530,6 @@ function _failOutstandingRemoteDeps(reason) {
 // remoteModelsCheck (/wrapper/models/status) — no new wrapper endpoint.
 async function _reconcileOutstandingRemoteDeps() {
     if (_remoteDepIds.size === 0) return;
-    const { MODELS } = _require('../js/data/modelConstants/models.js');
     const { DEPS } = _require('../js/data/modelConstants/dependencies.js');
     // Build a one-model check carrying every outstanding dep so the wrapper
     // reports each dep's real installed state on the volume.

@@ -120,8 +120,6 @@ async function makeLargePng() {
 
 // ── Describe model constants ──────────────────────────────────────────────────
 
-const DI_URL = 'https://api.deepinfra.com/v1/openai';
-
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 test('POST /llm/describe: image_url content part reaches the endpoint', async () => {

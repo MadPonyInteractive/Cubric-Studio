@@ -187,7 +187,7 @@ test('the picker stays opt-in: only the Lyrics box declares tags', async () => {
 // ── Tab belongs to an open picker, not to the shell (MPI-664, 2026-09-12) ────
 
 test('an open picker takes Tab off the radial menu', async () => {
-    const { HOTKEY_REGISTRY, MENTION_PICKER_OPEN_SELECTOR } = await esm('js/managers/hotkeyRegistry.js');
+    const { HOTKEY_REGISTRY } = await esm('js/managers/hotkeyRegistry.js');
 
     // MPI-811 moved Tab back from the flipper to the radial. Same key, same gate.
     const flip = HOTKEY_REGISTRY.find(e => e.id === 'radialMenu.toggle');

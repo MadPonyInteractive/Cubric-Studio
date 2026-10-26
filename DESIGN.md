@@ -165,7 +165,7 @@ Don't ship a light mode. Don't ship a "darker" mode. The single mid-tone is the 
 ## Typography
 
 **Family:** `JetBrains Mono` (already vendored in `assets/fonts/`). All UI, labels, numbers, body. Variable monospaced.
-**Wordmark only:** `Russo One` (`--font-wordmark`, vendored in `assets/fonts/`). Not a pixel font — the pixel `VT323` this file used to name is the `docs/redesign/` mockups' wordmark. Its `@font-face` is still declared in `01_base.css` and referenced by nothing in `styles/` or `js/`.
+**Wordmark only:** `Russo One` (`--font-wordmark`, vendored in `assets/fonts/`). Not a pixel font — the pixel `VT323` this file used to name is the `docs/redesign/` mockups' wordmark. The app does not ship it: its `@font-face` and `.woff2` were removed (AUDIT X2).
 
 **Hierarchy via scale + weight contrast (ratio ≥ 1.25). Never via color.**
 

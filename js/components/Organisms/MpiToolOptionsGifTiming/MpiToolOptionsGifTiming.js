@@ -52,10 +52,9 @@ import { MpiCheckbox } from '../../Primitives/MpiCheckbox/MpiCheckbox.js';
 import { MpiColorPicker } from '../../Primitives/MpiColorPicker/MpiColorPicker.js';
 import { MpiSpinner } from '../../Primitives/MpiSpinner/MpiSpinner.js';
 import { clientLogger } from '../../../services/clientLogger.js';
-import { state } from '../../../state.js';
-import { Events } from '../../../events.js';
-import { getToolSettings } from '../../../data/projectModel.js';
+import { readToolSettings, toolSettingsWriter } from '../../../services/toolSettings.js';
 import { qs } from '../../../utils/dom.js';
+import { formatBytes } from '../../../utils/formatBytes.js';
 import {
     MIN_FPS, MAX_FPS, MAX_LOOP, MIN_EDGE, MAX_EDGE, MIN_COLOURS, MAX_COLOURS,
     OUTPUT_DEFAULTS, clampNumber, fpsToDelay, delayToFps, rangeBounds, uniformFps,
@@ -65,14 +64,6 @@ const DESC = 'Saves the frames between the trim handles as a new GIF. The frames
 
 /** Only the build settings persist; rate and loop come from the GIF on screen. */
 const DEFAULTS = Object.freeze({ ...OUTPUT_DEFAULTS });
-
-/** Byte badge on the preview — same rounding as MpiToolOptionsGif's. */
-function formatBytes(n) {
-    if (!Number.isFinite(n) || n <= 0) return '';
-    if (n < 1024) return `${n} B`;
-    if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KiB`;
-    return `${(n / (1024 * 1024)).toFixed(1)} MiB`;
-}
 
 function coerceSettings(raw) {
     return {
@@ -110,7 +101,7 @@ export const MpiToolOptionsGifTiming = ComponentFactory.create({
 
     setup: (el, props, emit) => {
         const viewer = props.viewer;
-        let settings = coerceSettings(getToolSettings(state.currentProject || {}, 'gifTiming', DEFAULTS));
+        let settings = coerceSettings(readToolSettings('gifTiming', DEFAULTS));
         let range = null;
         /** Blank until the user types a rate: null = every frame keeps its delay. */
         let fps = null;
@@ -119,17 +110,12 @@ export const MpiToolOptionsGifTiming = ComponentFactory.create({
 
         // Destroying a child also drops its listeners (factory.js), so no unsubscribe list.
         const _children = [];
-        const _persistTimers = new Map();
         const fields = qs('#fields-slot', el);
         const note = qs('#note', el);
 
-        const persist = (key, value) => {
-            clearTimeout(_persistTimers.get(key));
-            _persistTimers.set(key, setTimeout(() => {
-                Events.emit('settings:tool:update', { toolKey: 'gifTiming', key, value });
-                _persistTimers.delete(key);
-            }, 250));
-        };
+        // dispose() in destroy sends a write still waiting (AUDIT B2).
+        const _writer = toolSettingsWriter('gifTiming', { delayMs: 250 });
+        const persist = _writer.persist;
 
         const setNote = (text) => { note.textContent = text; note.hidden = !text; };
 
@@ -316,9 +302,11 @@ export const MpiToolOptionsGifTiming = ComponentFactory.create({
                     img.src = result.url;
                     img.hidden = false;
                     empty.hidden = true;
-                    badge.textContent = formatBytes(result.byteSize);
+                    badge.textContent = result.byteSize ? formatBytes(result.byteSize) : '';
                     badge.hidden = !result.byteSize;
-                    badge.classList.remove('mpi-tool-options-gif-timing__badge--stale');
+                    // Settings changed WHILE it encoded leave the build stale: clearing the mark
+                    // unconditionally said "fresh" over a rate typed mid-encode.
+                    badge.classList.toggle('mpi-tool-options-gif-timing__badge--stale', outputKey() !== key);
                     _lastKey = key;
                 } catch (err) {
                     if (!_destroyed) clientLogger.warn('MpiToolOptionsGifTiming', 'GIF preview failed', err);
@@ -356,8 +344,7 @@ export const MpiToolOptionsGifTiming = ComponentFactory.create({
 
         el.destroy = () => {
             _destroyed = true;
-            _persistTimers.forEach(t => clearTimeout(t));
-            _persistTimers.clear();
+            _writer.dispose();
             _children.forEach(c => c.destroy?.());
         };
     },

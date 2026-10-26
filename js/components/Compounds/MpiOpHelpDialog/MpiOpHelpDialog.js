@@ -1,7 +1,7 @@
 import { ComponentFactory } from '../../factory.js';
 import { MpiModal } from '../../Primitives/MpiModal/MpiModal.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
-import { qs } from '../../../utils/dom.js';
+import { qs, on } from '../../../utils/dom.js';
 
 /**
  * MpiOpHelpDialog — "How to prompt this operation" guide (Compound)
@@ -79,7 +79,7 @@ export const MpiOpHelpDialog = ComponentFactory.create({
                 video.muted = true;
                 video.playsInline = true;
                 // A missing/undecodable file would otherwise leave a black box.
-                video.addEventListener('error', () => video.remove());
+                on(video, 'error', () => video.remove());
                 return video;
             }
             const img = document.createElement('img');
@@ -88,7 +88,7 @@ export const MpiOpHelpDialog = ComponentFactory.create({
             img.alt = '';
             // Drop the node rather than render the browser's broken-image glyph:
             // help media is authored by hand and a typo must degrade to text-only.
-            img.addEventListener('error', () => img.remove());
+            on(img, 'error', () => img.remove());
             return img;
         };
 

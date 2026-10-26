@@ -29,6 +29,7 @@
 
 import { ComponentFactory } from '../../factory.js';
 import { mountButton } from '../../Primitives/MpiButton/MpiButton.js';
+import { on } from '../../../utils/dom.js';
 
 export const MpiAutoMaskThumbs = ComponentFactory.create({
     name: 'MpiAutoMaskThumbs',
@@ -67,7 +68,7 @@ export const MpiAutoMaskThumbs = ComponentFactory.create({
                 badge.textContent = idx + 1;
                 item.appendChild(badge);
 
-                item.addEventListener('click', () => {
+                on(item, 'click', () => {
                     if (_picks.has(idx)) {
                         _picks.delete(idx);
                         item.classList.remove('mpi-auto-mask-thumbs__item--selected');

@@ -52,7 +52,7 @@ import { MpiButton }        from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiCheckbox }      from '../../Primitives/MpiCheckbox/MpiCheckbox.js';
 import { MpiMediaSlot }     from '../../Compounds/MpiMediaSlot/MpiMediaSlot.js';
 import { MpiMediaPicker }   from '../../Compounds/MpiMediaPicker/MpiMediaPicker.js';
-import { qs }               from '../../../utils/dom.js';
+import { qs, on }               from '../../../utils/dom.js';
 
 const HINT = 'Drag the image or its handles. Shift keeps its proportions, Alt over a handle rotates around it.';
 const EMPTY = 'Click to choose, drop a file, or right-click to paste';
@@ -150,9 +150,9 @@ export const MpiToolOptionsPlace = ComponentFactory.create({
                 onImport: (files) => { if (files?.[0]) place.importFile?.(files[0]); },
             });
             const close = () => { _picker?.el?.destroy?.(); _picker = null; };
-            _picker.el.addEventListener('pick', close);
-            _picker.el.addEventListener('import', close);
-            _picker.el.addEventListener('cancel', close);
+            on(_picker.el, 'pick', close);
+            on(_picker.el, 'import', close);
+            on(_picker.el, 'cancel', close);
             _picker.el.show();
         }
 

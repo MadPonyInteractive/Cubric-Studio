@@ -2,7 +2,8 @@ import { ComponentFactory } from '../../factory.js';
 import { renderIcon } from '../../../utils/icons.js';
 import { Overlays } from '../../../managers/overlayManager.js';
 import { Events } from '../../../events.js';
-import { gid, qs } from '../../../utils/dom.js';
+import { gid, qs, on } from '../../../utils/dom.js';
+import { clientLogger } from '../../../services/clientLogger.js';
 
 /**
  * MpiOverlay — Page Overlay Primitive
@@ -105,7 +106,7 @@ export const MpiOverlay = ComponentFactory.create({
                     ? qs('.main-area')
                     : gid('tool-container');
             if (!_target) {
-                console.warn(`[MpiOverlay:${_overlayId}] mount target "${mountTarget}" not found`);
+                clientLogger.warn('overlay', `${_overlayId}: mount target "${mountTarget}" not found`);
                 return;
             }
 
@@ -267,7 +268,7 @@ export const MpiOverlay = ComponentFactory.create({
 
         const closeBtn = qs('.mpi-overlay__close', el);
         if (closeBtn) {
-            closeBtn.addEventListener('click', () => el.hide());
+            on(closeBtn, 'click', () => el.hide());
         }
 
         // Global close signal — only react when shown. EXCEPT when fired by an

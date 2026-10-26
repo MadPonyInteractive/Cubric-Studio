@@ -28,11 +28,10 @@ import { MpiInput } from '../../Primitives/MpiInput/MpiInput.js';
 import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiSpinner } from '../../Primitives/MpiSpinner/MpiSpinner.js';
-import { state } from '../../../state.js';
-import { Events } from '../../../events.js';
-import { getToolSettings } from '../../../data/projectModel.js';
+import { readToolSettings, toolSettingsWriter } from '../../../services/toolSettings.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { qs } from '../../../utils/dom.js';
+import { formatBytes } from '../../../utils/formatBytes.js';
 
 const SIZE_OPTIONS = [
     { value: 'original', label: 'Original' },
@@ -57,13 +56,6 @@ function coerceSettings(raw) {
         sizePreset: SIZE_VALUES.has(raw.sizePreset) ? raw.sizePreset : DEFAULTS.sizePreset,
         loop: clampInt(raw.loop, DEFAULTS.loop, 0, 999),
     };
-}
-
-function formatBytes(n) {
-    if (!Number.isFinite(n) || n <= 0) return '';
-    if (n < 1024) return `${n} B`;
-    if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KiB`;
-    return `${(n / (1024 * 1024)).toFixed(1)} MiB`;
 }
 
 export const MpiToolOptionsGif = ComponentFactory.create({
@@ -96,12 +88,11 @@ export const MpiToolOptionsGif = ComponentFactory.create({
 
     setup: (el, props, emit) => {
         let settings = coerceSettings(
-            getToolSettings(state.currentProject || {}, 'exportGif', DEFAULTS)
+            readToolSettings('exportGif', DEFAULTS)
         );
 
         const _children = [];
         const _unsubs = [];
-        const _persistTimers = new Map();
         let _destroyed = false;
         let _busy = false;
 
@@ -117,13 +108,9 @@ export const MpiToolOptionsGif = ComponentFactory.create({
 
         const settingsKey = () => `${settings.fps}|${settings.sizePreset}|${settings.loop}`;
 
-        const persist = (key, value) => {
-            clearTimeout(_persistTimers.get(key));
-            _persistTimers.set(key, setTimeout(() => {
-                Events.emit('settings:tool:update', { toolKey: 'exportGif', key, value });
-                _persistTimers.delete(key);
-            }, 250));
-        };
+        // dispose() in destroy sends a write still waiting (AUDIT B2).
+        const _writer = toolSettingsWriter('exportGif', { delayMs: 250 });
+        const persist = _writer.persist;
 
         // Any settings change invalidates the cached preview → mark badge stale.
         const _markStale = () => {
@@ -199,9 +186,11 @@ export const MpiToolOptionsGif = ComponentFactory.create({
                 _img.src = result.url;
                 _img.hidden = false;
                 _empty.hidden = true;
-                _badge.textContent = formatBytes(result.byteSize);
+                _badge.textContent = result.byteSize ? formatBytes(result.byteSize) : '';
                 _badge.hidden = !result.byteSize;
-                _badge.classList.remove('mpi-tool-options-gif__badge--stale');
+                // Settings changed WHILE it encoded leave the build stale: clearing the mark
+                // unconditionally said "fresh" over a rate typed mid-encode.
+                _badge.classList.toggle('mpi-tool-options-gif__badge--stale', settingsKey() !== key);
                 _lastEncodeKey = key;
             } catch (err) {
                 if (!_destroyed) clientLogger.warn('MpiToolOptionsGif', 'GIF preview failed', err);
@@ -212,8 +201,7 @@ export const MpiToolOptionsGif = ComponentFactory.create({
 
         el.destroy = () => {
             _destroyed = true;
-            _persistTimers.forEach(t => clearTimeout(t));
-            _persistTimers.clear();
+            _writer.dispose();
             _unsubs.forEach(fn => fn?.());
             _children.forEach(c => c.destroy?.());
         };

@@ -52,31 +52,86 @@ async function post(endpoint, body) {
 let _saveProjectSettingsTimer = null;
 function _debouncedSaveProjectSettings() {
     clearTimeout(_saveProjectSettingsTimer);
-    _saveProjectSettingsTimer = setTimeout(async () => {
-        if (!state.currentProject) return;
-        const { modelSettings, toolSettings, shared } = state.currentProject;
-        const result = await post('/update-project-settings', {
-            folderPath: state.currentProject.folderPath,
-            updates: { modelSettings, toolSettings, shared },
-        });
-        if (!result.success) throw new Error(result.error);
+    _saveProjectSettingsTimer = setTimeout(() => {
+        _saveSettingsNow().catch(err => clientLogger.error('projectService', 'Failed to save project settings', err));
     }, 500);
+}
+
+/**
+ * POST the open project's settings now, cancelling a pending debounced save. The body
+ * is read synchronously, so it is THIS project's settings and folder even if another
+ * project opens before the request lands.
+ * @returns {Promise<void>} rejects when the server refuses the write
+ */
+function _saveSettingsNow() {
+    clearTimeout(_saveProjectSettingsTimer);
+    _saveProjectSettingsTimer = null;
+    if (!state.currentProject) return Promise.resolve();
+    const { folderPath, modelSettings, toolSettings, shared } = state.currentProject;
+    return post('/update-project-settings', { folderPath, updates: { modelSettings, toolSettings, shared } })
+        .then((result) => { if (!result.success) throw new Error(result.error); });
 }
 
 // ── Settings event queue ───────────────────────────────────────────────────────
 
-// Per-model queues: Map<modelId, { timer, modelPending, opPending: Map<opName, Object> }>
+// Per-model queues: Map<modelId, { timer, folderPath, modelPending, opPending: Map<opName, Object> }>
 // `modelPending` accumulates model-wide writes (loras, upscaleModel).
 // `opPending` accumulates per-op / shared bucket writes.
 const _modelQueues = new Map();
 
-// Per-tool queues: Map<toolKey, { timer: number|null, pending: Object }>
+// Per-tool queues: Map<toolKey, { timer, folderPath, pending: Object }>
 const _toolQueues = new Map();
 
-// Per-mediaType shared queues: Map<'image'|'video', { timer, pending }>
+// Per-mediaType shared queues: Map<'image'|'video', { timer, folderPath, pending }>
 const _sharedQueues = new Map();
 
 const _QUEUE_DEBOUNCE_MS = 300;
+
+// Every queue is PINNED to the project it was filled for (`folderPath`). A queue is
+// written into `state.currentProject` when its debounce fires, so one still pending
+// across a project switch used to land in the project opened next — and one that
+// fired with no project open kept its edits and carried them into the next project.
+// `flushPendingSettings()` writes them before the open project changes; a queue whose
+// project is no longer open is dropped (and logged), never applied elsewhere.
+function _isStale(q) {
+    return !state.currentProject || q.folderPath !== state.currentProject.folderPath;
+}
+
+function _dropStale(what, q) {
+    clientLogger.warn('projectService', `dropped ${what} settings queued for ${q.folderPath || 'no project'}: that project is no longer open`);
+}
+
+/** A fresh queue for `key`, or the pending one when it still belongs to the open project. */
+function _queueFor(map, key, what, init) {
+    let q = map.get(key);
+    if (q && _isStale(q)) {
+        clearTimeout(q.timer);
+        map.delete(key);
+        _dropStale(what, q);
+        q = null;
+    }
+    if (!q) {
+        q = { timer: null, folderPath: state.currentProject?.folderPath ?? null, ...init() };
+        map.set(key, q);
+    }
+    return q;
+}
+
+/** (Re)arm a queue's debounce; when it fires the queue is written and the project saved. */
+function _arm(q, flush) {
+    clearTimeout(q.timer);
+    q.timer = setTimeout(() => { if (flush()) saveProjectSettings(); }, _QUEUE_DEBOUNCE_MS);
+}
+
+/** Take `key`'s queue out of `map`, or null when there is none or it is stale. */
+function _takeQueue(map, key, what) {
+    const q = map.get(key);
+    if (!q) return null;
+    clearTimeout(q.timer);
+    map.delete(key);
+    if (_isStale(q)) { _dropStale(what, q); return null; }
+    return q;
+}
 
 // Legacy opName-less model-wide keys emitted by callers that DON'T set `modelWide`
 // (the model-settings gear writes loras/upscaleModel this way). scope:'perModel'
@@ -88,10 +143,8 @@ const _MODEL_WIDE_KEYS = new Set([
 ]);
 
 function _enqueueModelUpdate(modelId, opName, key, value) {
-    if (!_modelQueues.has(modelId)) {
-        _modelQueues.set(modelId, { timer: null, modelPending: {}, opPending: new Map() });
-    }
-    const q = _modelQueues.get(modelId);
+    const q = _queueFor(_modelQueues, modelId, `model "${modelId}"`,
+        () => ({ modelPending: {}, opPending: new Map() }));
 
     if (opName) {
         if (!q.opPending.has(opName)) q.opPending.set(opName, {});
@@ -105,32 +158,34 @@ function _enqueueModelUpdate(modelId, opName, key, value) {
         q.modelPending[key] = value;
     }
 
-    clearTimeout(q.timer);
-    q.timer = setTimeout(async () => {
-        try {
-            if (!state.currentProject) return;
-            if (!state.currentProject.modelSettings?.[modelId]) {
-                const defaults = getModelSettings(state.currentProject, modelId);
-                state.currentProject = {
-                    ...state.currentProject,
-                    updatedAt: new Date().toISOString(),
-                    modelSettings: { ...state.currentProject.modelSettings, [modelId]: defaults },
-                };
-            }
-            for (const [k, v] of Object.entries(q.modelPending)) {
-                state.currentProject = setModelSettings(state.currentProject, modelId, { [k]: v });
-            }
-            for (const [op, updates] of q.opPending) {
-                state.currentProject = setOpSettings(state.currentProject, modelId, op, updates);
-            }
-            q.modelPending = {};
-            q.opPending.clear();
-            saveProjectSettings();
-        } catch (err) {
-            clientLogger.error('projectService', 'Failed to flush model queue', err);
-            Events.emit('ui:error', { title: 'Save failed', message: 'Failed to save model settings.' });
+    _arm(q, () => _flushModelQueue(modelId));
+}
+
+/** Write `modelId`'s pending settings into the open project. @returns {boolean} whether it wrote */
+function _flushModelQueue(modelId) {
+    const q = _takeQueue(_modelQueues, modelId, `model "${modelId}"`);
+    if (!q) return false;
+    try {
+        if (!state.currentProject.modelSettings?.[modelId]) {
+            const defaults = getModelSettings(state.currentProject, modelId);
+            state.currentProject = {
+                ...state.currentProject,
+                updatedAt: new Date().toISOString(),
+                modelSettings: { ...state.currentProject.modelSettings, [modelId]: defaults },
+            };
         }
-    }, _QUEUE_DEBOUNCE_MS);
+        for (const [k, v] of Object.entries(q.modelPending)) {
+            state.currentProject = setModelSettings(state.currentProject, modelId, { [k]: v });
+        }
+        for (const [op, updates] of q.opPending) {
+            state.currentProject = setOpSettings(state.currentProject, modelId, op, updates);
+        }
+        return true;
+    } catch (err) {
+        clientLogger.error('projectService', 'Failed to flush model queue', err);
+        Events.emit('ui:error', { title: 'Save failed', message: 'Failed to save model settings.' });
+        return false;
+    }
 }
 
 /**
@@ -144,45 +199,46 @@ function _enqueueModelUpdate(modelId, opName, key, value) {
  * the read is current without touching the debounce every other tool relies on.
  *
  * @param {string} toolKey
- * @returns {Object} the pending partial, empty when nothing is in flight
+ * @returns {Object} the pending partial, empty when nothing is in flight for the open project
  */
 export function getPendingToolSettings(toolKey) {
-    return { ..._toolQueues.get(toolKey)?.pending };
+    const q = _toolQueues.get(toolKey);
+    return q && !_isStale(q) ? { ...q.pending } : {};
 }
 
 function _enqueueToolUpdate(toolKey, key, value) {
-    if (!_toolQueues.has(toolKey)) _toolQueues.set(toolKey, { timer: null, pending: {} });
-    const q = _toolQueues.get(toolKey);
+    const q = _queueFor(_toolQueues, toolKey, `tool "${toolKey}"`, () => ({ pending: {} }));
     q.pending[key] = value;
+    _arm(q, () => _flushToolQueue(toolKey));
+}
 
-    clearTimeout(q.timer);
-    q.timer = setTimeout(async () => {
-        try {
-            if (!state.currentProject) return;
-            if (!state.currentProject.toolSettings?.[toolKey]) {
-                const defaults = getToolSettings(state.currentProject, toolKey);
-                state.currentProject = {
-                    ...state.currentProject,
-                    updatedAt: new Date().toISOString(),
-                    toolSettings: { ...state.currentProject.toolSettings, [toolKey]: defaults },
-                };
-            }
-            for (const [k, v] of Object.entries(q.pending)) {
-                state.currentProject = setToolSettings(state.currentProject, toolKey, { [k]: v });
-            }
-            q.pending = {};
-            saveProjectSettings();
-        } catch (err) {
-            clientLogger.error('projectService', 'Failed to flush tool queue', err);
-            Events.emit('ui:error', { title: 'Save failed', message: 'Failed to save tool settings.' });
+/** Write `toolKey`'s pending settings into the open project. @returns {boolean} whether it wrote */
+function _flushToolQueue(toolKey) {
+    const q = _takeQueue(_toolQueues, toolKey, `tool "${toolKey}"`);
+    if (!q) return false;
+    try {
+        if (!state.currentProject.toolSettings?.[toolKey]) {
+            const defaults = getToolSettings(state.currentProject, toolKey);
+            state.currentProject = {
+                ...state.currentProject,
+                updatedAt: new Date().toISOString(),
+                toolSettings: { ...state.currentProject.toolSettings, [toolKey]: defaults },
+            };
         }
-    }, _QUEUE_DEBOUNCE_MS);
+        for (const [k, v] of Object.entries(q.pending)) {
+            state.currentProject = setToolSettings(state.currentProject, toolKey, { [k]: v });
+        }
+        return true;
+    } catch (err) {
+        clientLogger.error('projectService', 'Failed to flush tool queue', err);
+        Events.emit('ui:error', { title: 'Save failed', message: 'Failed to save tool settings.' });
+        return false;
+    }
 }
 
 function _enqueueSharedUpdate(mediaType, key, value) {
     if (mediaType !== 'image' && mediaType !== 'video') return;
-    if (!_sharedQueues.has(mediaType)) _sharedQueues.set(mediaType, { timer: null, pending: {} });
-    const q = _sharedQueues.get(mediaType);
+    const q = _queueFor(_sharedQueues, mediaType, `shared ${mediaType}`, () => ({ pending: {} }));
 
     // Deep-merge object values one level (e.g. ratioSelector sub-keys);
     // replace primitives/arrays.
@@ -190,27 +246,50 @@ function _enqueueSharedUpdate(mediaType, key, value) {
         ? { ...(q.pending[key] ?? {}), ...value }
         : value;
 
-    clearTimeout(q.timer);
-    q.timer = setTimeout(async () => {
-        try {
-            if (!state.currentProject) return;
-            if (!state.currentProject.shared) {
-                state.currentProject = {
-                    ...state.currentProject,
-                    updatedAt: new Date().toISOString(),
-                    shared: { image: {}, video: {} },
-                };
-            }
-            for (const [k, v] of Object.entries(q.pending)) {
-                state.currentProject = setSharedSettings(state.currentProject, mediaType, { [k]: v });
-            }
-            q.pending = {};
-            saveProjectSettings();
-        } catch (err) {
-            clientLogger.error('projectService', 'Failed to flush shared queue', err);
-            Events.emit('ui:error', { title: 'Save failed', message: 'Failed to save shared settings.' });
+    _arm(q, () => _flushSharedQueue(mediaType));
+}
+
+/** Write the shared `mediaType` bucket's pending settings into the open project. @returns {boolean} whether it wrote */
+function _flushSharedQueue(mediaType) {
+    const q = _takeQueue(_sharedQueues, mediaType, `shared ${mediaType}`);
+    if (!q) return false;
+    try {
+        if (!state.currentProject.shared) {
+            state.currentProject = {
+                ...state.currentProject,
+                updatedAt: new Date().toISOString(),
+                shared: { image: {}, video: {} },
+            };
         }
-    }, _QUEUE_DEBOUNCE_MS);
+        for (const [k, v] of Object.entries(q.pending)) {
+            state.currentProject = setSharedSettings(state.currentProject, mediaType, { [k]: v });
+        }
+        return true;
+    } catch (err) {
+        clientLogger.error('projectService', 'Failed to flush shared queue', err);
+        Events.emit('ui:error', { title: 'Save failed', message: 'Failed to save shared settings.' });
+        return false;
+    }
+}
+
+/**
+ * Write every queued settings change into the open project and save it NOW. Call it
+ * before the open project changes (`openProject`, `deleteProject`), so a change made
+ * in the last few hundred milliseconds lands in the project it was made in.
+ * @returns {Promise<void>} never rejects: a failed save is logged and shown as a warning
+ */
+export async function flushPendingSettings() {
+    let wrote = false;
+    for (const id of [..._modelQueues.keys()]) wrote = _flushModelQueue(id) || wrote;
+    for (const key of [..._toolQueues.keys()]) wrote = _flushToolQueue(key) || wrote;
+    for (const mt of [..._sharedQueues.keys()]) wrote = _flushSharedQueue(mt) || wrote;
+    if (!wrote && !_saveProjectSettingsTimer) return;
+    try {
+        await _saveSettingsNow();
+    } catch (err) {
+        clientLogger.error('projectService', 'Failed to save settings before leaving the project', err);
+        Events.emit('ui:warning', { message: 'Your last settings changes in the previous project could not be saved.' });
+    }
 }
 
 // Store unsubs — service is a permanent singleton, but events.md rule requires it
@@ -285,6 +364,9 @@ export async function listProjects() {
 }
 
 export async function openProject(project) {
+    // Settings changed in the project being left are written into IT first — the
+    // queues apply to whichever project is open when they fire.
+    await flushPendingSettings();
     const migratedRes = await fetch('/migrate-project', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -448,6 +530,8 @@ export function applyPromptReuseSettings({ modelId, mediaType, operation, shared
 
 export async function deleteProject(project, { deleteFiles = true } = {}) {
     const folderPath = project.folderPath;
+    // The open project is about to go; its queued settings go with it, not to the next one.
+    if (state.currentProject?.folderPath === folderPath) await flushPendingSettings();
 
     if (deleteFiles) {
         // Removes the folder, and prunes the parent from the registry when no

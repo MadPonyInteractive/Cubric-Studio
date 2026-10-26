@@ -221,7 +221,7 @@ function selectNvidiaBuild(gpuName, cudaVersion) {
     // for modern arches; below that, or unknown, prefer the safe modern default
     // (Comfy-Org default targets 20-series+, the common case today).
     if (cudaVersion) {
-        const [maj, min] = cudaVersion.split('.').map((n) => parseInt(n, 10));
+        const [maj] = cudaVersion.split('.').map((n) => parseInt(n, 10));
         if (maj < 11) return NVIDIA_LEGACY; // ancient driver → old card
     }
     return NVIDIA_DEFAULT;

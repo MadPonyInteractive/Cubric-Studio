@@ -28,7 +28,6 @@ import { flowDepUniverse, setFlowDepStatus } from './flowsRegistry.js';
 // MPI-310 — plugins ride the same check for the same reason. Same one-way import rule.
 import { pluginDepUniverse, setPluginDepStatus } from './pluginsRegistry.js';
 import { Events } from '../events.js';
-import { state } from '../state.js';
 import { clientLogger } from '../services/clientLogger.js';
 // MPI-851 — "installed" for a cloud model is "a key is saved"; this is the only
 // renderer-side way to ask. Set/has/clear only: there is no get channel by design.

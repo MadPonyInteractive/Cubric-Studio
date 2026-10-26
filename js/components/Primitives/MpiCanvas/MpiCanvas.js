@@ -92,10 +92,8 @@ import { CompositeManager }  from './managers/CompositeManager.js';
 import { drawBrushRing } from './managers/brushDab.js';
 import { UndoStack }         from './managers/UndoStack.js';
 import { InputController }   from './managers/InputController.js';
-import { accentHeat, on }    from '../../../utils/dom.js';
+import { accentHeat, on, off }    from '../../../utils/dom.js';
 import { resolveDisplayImage, displayMaxEdge } from '../../../utils/displayImage.js';
-
-const getCSSColor = (varName) => getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
 
 /** True if value is a valid first arg for CanvasRenderingContext2D.drawImage(). */
 function _isDrawable(src) {
@@ -632,11 +630,11 @@ class _CanvasCore {
                 const onData = () => { cleanup(); resolve(); };
                 const onErr  = () => { cleanup(); reject(new Error(`Video failed to load: ${url}`)); };
                 const cleanup = () => {
-                    v.removeEventListener('loadeddata', onData);
-                    v.removeEventListener('error', onErr);
+                    off(v, 'loadeddata', onData);
+                    off(v, 'error', onErr);
                 };
-                v.addEventListener('loadeddata', onData);
-                v.addEventListener('error', onErr);
+                on(v, 'loadeddata', onData);
+                on(v, 'error', onErr);
             });
             try { v.currentTime = 0; } catch (_) {}
 
@@ -707,11 +705,11 @@ class _CanvasCore {
             const onPause  = () => { /* rAF self-stops when both paused */ };
             const onEnded  = () => this._onCompareEnded();
             const onSeeked = () => this.draw();
-            video.addEventListener('timeupdate', onTimeUpdate);
-            video.addEventListener('play',   onPlay);
-            video.addEventListener('pause',  onPause);
-            video.addEventListener('ended',  onEnded);
-            video.addEventListener('seeked', onSeeked);
+            on(video, 'timeupdate', onTimeUpdate);
+            on(video, 'play',   onPlay);
+            on(video, 'pause',  onPause);
+            on(video, 'ended',  onEnded);
+            on(video, 'seeked', onSeeked);
             handlers.push({ video, name: 'timeupdate', fn: onTimeUpdate });
             handlers.push({ video, name: 'play',   fn: onPlay });
             handlers.push({ video, name: 'pause',  fn: onPause });
@@ -726,7 +724,7 @@ class _CanvasCore {
 
     _teardownCompareVideoHandlers() {
         for (const { video, name, fn } of this._compareVideoHandlers) {
-            try { video.removeEventListener(name, fn); } catch (_) {}
+            try { off(video, name, fn); } catch (_) {}
         }
         this._compareVideoHandlers = [];
     }
@@ -884,9 +882,9 @@ class _CanvasCore {
             try { v.currentTime = next; } catch (_) {}
             const onSeeked = () => {
                 if (Math.abs(v.currentTime - next) < step / 2) v._pendingSeekTime = null;
-                v.removeEventListener('seeked', onSeeked);
+                off(v, 'seeked', onSeeked);
             };
-            v.addEventListener('seeked', onSeeked);
+            on(v, 'seeked', onSeeked);
         };
         if (this._videoBefore) stepVideo(this._videoBefore);
         if (this.comparison.afterKind === 'video') stepVideo(this.comparison.imgAfter);

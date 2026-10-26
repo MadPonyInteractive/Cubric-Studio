@@ -14,7 +14,6 @@ const { Readable } = require('stream');
 const router = express.Router();
 const logger = require('./logger');
 const { getWrapperToken, proxyUrl } = require('./remoteEngine');
-const { UA } = require('./remoteHeaders');
 const state = require('./remotePodState');
 const { _authHeaders, _guard, _evaluatePodHealth, _passthrough, _streamthrough, _resolveLocalModelPath } = state;
 const _mode = state.getMode(); // live singleton

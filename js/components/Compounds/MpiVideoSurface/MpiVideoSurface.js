@@ -35,7 +35,7 @@
  */
 
 import { ComponentFactory } from '../../factory.js';
-import { qs, on } from '../../../utils/dom.js';
+import { qs, on, off } from '../../../utils/dom.js';
 import { frameSink } from '../../../services/frameSink.js';
 
 export const MpiVideoSurface = ComponentFactory.create({
@@ -192,8 +192,8 @@ export const MpiVideoSurface = ComponentFactory.create({
             if (wasLoop) video.loop = false;
             video.currentTime = clamped;
             if (wasLoop) {
-                const restore = () => { video.loop = true; video.removeEventListener('seeked', restore); };
-                video.addEventListener('seeked', restore);
+                const restore = () => { video.loop = true; off(video, 'seeked', restore); };
+                on(video, 'seeked', restore);
             }
         };
 

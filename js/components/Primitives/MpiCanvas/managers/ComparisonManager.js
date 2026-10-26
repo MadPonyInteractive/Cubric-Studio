@@ -2,6 +2,8 @@
  * ComparisonManager.js
  * Manages comparison state and split-slider logic for image+video pairs.
  */
+import { off, on } from '../../../../utils/dom.js';
+
 export class ComparisonManager {
     constructor() {
         this.imgAfter = new Image();
@@ -56,11 +58,11 @@ export class ComparisonManager {
             const onData = () => { cleanup(); resolve(); };
             const onErr  = () => { cleanup(); reject(new Error(`Video failed to load: ${url}`)); };
             const cleanup = () => {
-                v.removeEventListener('loadeddata', onData);
-                v.removeEventListener('error', onErr);
+                off(v, 'loadeddata', onData);
+                off(v, 'error', onErr);
             };
-            v.addEventListener('loadeddata', onData);
-            v.addEventListener('error', onErr);
+            on(v, 'loadeddata', onData);
+            on(v, 'error', onErr);
         });
         // Nudge to t=0 so first frame is committed for paint (Chromium sometimes
         // needs an explicit seek before drawImage reads a non-blank frame).

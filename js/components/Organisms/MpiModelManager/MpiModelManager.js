@@ -24,7 +24,7 @@ import { remoteEngineClient } from '../../../services/remoteEngineClient.js';
 import { blockedByNoEngine } from '../../../services/engineGate.js';
 import { mountPodDiskBar } from '../../../services/podDiskBar.js';
 import { getModelLicence, hasAcceptedLicence } from '../../../data/modelConstants/licences.js';
-import { qs, qsa, ce, on } from '../../../utils/dom.js';
+import { qs, ce, on } from '../../../utils/dom.js';
 import { mascotLoop } from '../../../utils/mascotLoop.js';
 import { renderIcon } from '../../../utils/icons.js';
 import { ASSET_KINDS } from '../../../utils/assetKinds.js';

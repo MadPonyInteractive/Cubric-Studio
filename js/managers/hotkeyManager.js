@@ -1,6 +1,5 @@
 'use strict';
 
-import { APP_CONFIG } from '../../dev_configs/app_config.js';
 import { HOTKEY_REGISTRY, KEY_TYPE } from './hotkeyRegistry.js';
 import { on, qsa } from '../utils/dom.js';
 import { state } from '../state.js';

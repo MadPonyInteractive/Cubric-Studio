@@ -42,6 +42,7 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs-extra');
 const path = require('path');
+const { diskPathOf, projectFileUrlBusted } = require('../services/projectFileUrl');
 const { v4: uuidv4 } = require('uuid');
 const sharp = require('sharp');
 const logger = require('./logger');
@@ -57,18 +58,6 @@ const DELAY_HUNDREDTHS = 100;
 // past it buys nothing. A 16K still (268 MP) stored as-is also fails every later
 // ffmpeg pass: "Picture size 16384x16384 is invalid" (MPI-925).
 const FRAME_MAX_EDGE = 4096;
-
-function _resolveAbsPath(rawFilePath) {
-    const raw = String(rawFilePath || '');
-    if (!raw) return null;
-    if (raw.includes('project-file?path=')) {
-        try {
-            const u = new URL(raw, 'http://localhost');
-            return decodeURIComponent(u.searchParams.get('path') || '');
-        } catch { return null; }
-    }
-    return path.isAbsolute(raw) ? raw : null;
-}
 
 /** Still image, not a GIF, not a 3D Scene — the same eligibility the gallery
  * context menu enforces client-side (js/utils/assetKinds.js `kindOfItem`'s
@@ -109,7 +98,7 @@ router.post('/gif/make', async (req, res) => {
             if (!_isEligibleStillImage(sidecar)) {
                 return res.status(400).json({ success: false, error: `item ${id} is not an eligible still image` });
             }
-            const abs = _resolveAbsPath(sidecar.filePath);
+            const abs = diskPathOf(sidecar.filePath);
             if (!abs || !(await fs.pathExists(abs))) {
                 return res.status(404).json({ success: false, error: `source file missing for item ${id}` });
             }
@@ -148,8 +137,7 @@ router.post('/gif/make', async (req, res) => {
         await buildGif(gifEntry, mediaDir, outputPath);
 
         const id = uuidv4();
-        const _mtime = (await fs.stat(outputPath).catch(() => null))?.mtimeMs || 0;
-        const filePathUrl = `/project-file?path=${encodeURIComponent(outputPath)}&v=${Math.round(_mtime)}`;
+        const filePathUrl = projectFileUrlBusted(outputPath);
         const meta = {
             id,
             type: 'image',
@@ -183,5 +171,4 @@ router.post('/gif/make', async (req, res) => {
 
 module.exports = router;
 // Shared with routes/imageSheet.js (MPI-1094): the same stills, resolved the same way.
-module.exports.resolveAbsPath = _resolveAbsPath;
 module.exports.isEligibleStillImage = _isEligibleStillImage;

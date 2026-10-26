@@ -57,9 +57,8 @@ import { createPreviewClipPlayer } from '../../../services/previewClipPlayer.js'
 import { openFlowFromReuse } from '../../../services/flowService.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { hasNoEngine } from '../../../services/engineGate.js';
-import { qs, gid } from '../../../utils/dom.js';
+import { qs, gid, on } from '../../../utils/dom.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
-import { loadAll as loadAssets } from '../../../services/assetService.js';
 import { extractFilenameFromPath, extractAbsPath, resolveMediaUrl, downloadMediaFiles } from '../../../utils/mediaActions.js';
 import { describeItem } from '../../../utils/describeAction.js';
 import { resolveActiveModel, setSelectedModelId, getSelectedOp, setSelectedOp } from '../../../utils/modelHelpers.js';
@@ -2128,12 +2127,12 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             if (_isFileDrag(e)) e.preventDefault();
         };
 
-        window.addEventListener('dragenter', _onHistDragEnter);
-        window.addEventListener('dragleave', _onHistDragLeave);
-        window.addEventListener('dragover',  _onHistDragOver);
+        on(window, 'dragenter', _onHistDragEnter);
+        on(window, 'dragleave', _onHistDragLeave);
+        on(window, 'dragover',  _onHistDragOver);
         // CAPTURE — a drop overlay stops the bubble, so on that phase this reset never ran
         // and the counter stranded. Same fix as MpiGalleryBlock (MPI-532).
-        window.addEventListener('drop',      _onHistDrop, { capture: true });
+        on(window, 'drop',      _onHistDrop, { capture: true });
 
         // ── PromptBox ─────────────────────────────────────────────────────────
 

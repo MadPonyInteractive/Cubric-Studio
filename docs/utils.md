@@ -78,9 +78,7 @@ Backend logging is `routes/logger.js` — see [DEVELOPMENT.md](DEVELOPMENT.md) �
 
 | File | Purpose |
 |---|---|
-| `async.js` | Async helpers (retry, timeout, etc.) |
 | `file.js` | File path manipulation and I/O helpers |
-| `images.js` | Image processing helpers |
 | `video.js` | Video processing helpers |
 | `string.js` | String manipulation helpers |
 | `markdown.js` | The app's ONLY markdown renderer — `marked` parses, `DOMPurify` sanitizes. `renderMarkdown` (document), `renderInlineMarkdown` (one line, no `<p>`), `renderMarkdownInto(el, src)`, `wireMarkdownLinks(el)` (call once; routes links to the user's browser). Style output with `.mpi-md` from `styles/markdown.css`. Never hand-roll markdown or `innerHTML` unsanitized output. |

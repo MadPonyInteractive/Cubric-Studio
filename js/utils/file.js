@@ -17,20 +17,6 @@ export const getExtension = (filename) =>
     (filename || '').split('.').pop().toLowerCase();
 
 /**
- * Formats bytes as a human-readable string (e.g. "1.4 MB").
- * @param {number} bytes - The number of bytes to format.
- * @param {number} [decimals=1] - Number of decimal places to include.
- * @returns {string} The formatted byte string (e.g., "0 B", "1.5 KB").
- */
-export function formatBytes(bytes, decimals = 1) {
-    if (!bytes) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${(bytes / Math.pow(k, i)).toFixed(decimals)} ${sizes[i]}`;
-}
-
-/**
  * Checks if the given filename has a supported image extension.
  * @param {string} filename - The name of the file to check.
  * @returns {boolean} True if it is an image file, false otherwise.

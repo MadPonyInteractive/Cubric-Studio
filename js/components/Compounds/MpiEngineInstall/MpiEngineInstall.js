@@ -371,7 +371,7 @@ export const MpiEngineInstall = ComponentFactory.create({
             variant: 'secondary'
         });
 
-        _browseButtonInst.el.addEventListener('click', async () => {
+        on(_browseButtonInst.el, 'click', async () => {
             try {
                 if (ipcRenderer) {
                     // Use Electron IPC to show cross-platform native folder picker
@@ -404,7 +404,7 @@ export const MpiEngineInstall = ComponentFactory.create({
         });
 
         // Empty → server resolves to the absolute default models root.
-        _installButtonInst.el.addEventListener('click', () => _installLocal((pathInputField.value || '').trim()));
+        on(_installButtonInst.el, 'click', () => _installLocal((pathInputField.value || '').trim()));
 
         // The Install button's whole path, also run by an outside agent's install_engine (MPI-1126).
         async function _installLocal(modelPath) {
@@ -449,7 +449,7 @@ export const MpiEngineInstall = ComponentFactory.create({
         // qsa, not qs: there are two now — the progress-phase documentation link and
         // the setup-phase RunPod video link (MPI-390). Same handler for both.
         qsa('[data-ref="docsLink"]', el).forEach((docsLink) => {
-            docsLink.addEventListener('click', (evt) => {
+            on(docsLink, 'click', (evt) => {
                 evt.preventDefault();
                 const url = docsLink.href;
                 if (ipcRenderer) {
@@ -483,7 +483,7 @@ export const MpiEngineInstall = ComponentFactory.create({
         // NOT ready and engine:ready consumers must not be told otherwise.
         const skipToRunpod = qs('[data-ref="chooseRemote"]', el);
         if (skipToRunpod) {
-            skipToRunpod.addEventListener('click', () => {
+            on(skipToRunpod, 'click', () => {
                 // Through state, NOT Storage.setRunpodConfig: state.runpodConfig is
                 // seeded once at module load (state.js:164) and write-throughs to
                 // Storage (state.js:245). A raw Storage write would leave state stale,
@@ -514,7 +514,7 @@ export const MpiEngineInstall = ComponentFactory.create({
             variant: 'primary'
         });
 
-        _retryButtonInst.el.addEventListener('click', async () => {
+        on(_retryButtonInst.el, 'click', async () => {
             try {
                 _beginProgress('Retrying installation...');
                 // Route by failure phase: only a COMPLETE engine can be repaired

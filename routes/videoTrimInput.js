@@ -15,6 +15,7 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs-extra');
 const path = require('path');
+const { diskPathOf } = require('../services/projectFileUrl');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
 const { v4: uuidv4 } = require('uuid');
@@ -28,18 +29,6 @@ const { probeVideo } = require('../services/ffprobeVideo');
 // rendition, so a project open popped ~20 of them (MPI-651, the tail of MPI-637).
 const execFileP = promisify(execFile);
 
-function _resolveInput(raw) {
-    if (!raw) return '';
-    if (raw.includes('project-file?path=')) {
-        try {
-            const u = new URL(raw, 'http://localhost');
-            return decodeURIComponent(u.searchParams.get('path') || '');
-        } catch (_) {
-            return '';
-        }
-    }
-    return raw;
-}
 
 function _safeTempPath(folderPath) {
     return path.join(folderPath, 'data', 'temp', 'comfy-inputs');
@@ -53,7 +42,7 @@ router.post('/api/video/trim-input', async (req, res) => {
             return res.status(400).json({ success: false, error: 'folderPath and sourcePath required' });
         }
 
-        const inputPath = _resolveInput(sourcePath);
+        const inputPath = diskPathOf(sourcePath) || '';
         if (!(await fs.pathExists(inputPath))) {
             return res.status(404).json({ success: false, error: `source file not found: ${inputPath}` });
         }
@@ -118,7 +107,7 @@ router.post('/api/video/trim-input/cleanup', async (req, res) => {
         const removed = [];
         for (const raw of Array.isArray(paths) ? paths : []) {
             if (!raw || typeof raw !== 'string') continue;
-            const filePath = _resolveInput(raw);
+            const filePath = diskPathOf(raw) || '';
             if (!filePath) continue;
             if (!path.basename(filePath).startsWith('comfy_trim_')) continue;
             await fs.remove(filePath);

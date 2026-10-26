@@ -75,6 +75,7 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs-extra');
 const path = require('path');
+const { projectFileUrl, projectFileUrlBusted } = require('../services/projectFileUrl');
 const os = require('os');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
@@ -183,10 +184,6 @@ let _distanceFieldPromise = null;
 function loadDistanceField() {
     if (!_distanceFieldPromise) _distanceFieldPromise = import(DISTANCE_FIELD_MODULE);
     return _distanceFieldPromise;
-}
-
-function projectFileUrl(filePath) {
-    return `/project-file?path=${encodeURIComponent(filePath)}`;
 }
 
 /** A mask arrives as a data: URL (inlined) or an http(s) URL (an engine /view link). */
@@ -391,7 +388,7 @@ router.post('/gif-cutout/apply', async (req, res) => {
         const meta = {
             id,
             type: 'image',
-            filePath: projectFileUrl(outputPath),
+            filePath: projectFileUrlBusted(outputPath),
             operation: 'gifCutout',
             displayName: finalName.replace(/\.[^.]+$/, ''),
             prompt: '',

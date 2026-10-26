@@ -34,11 +34,12 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs-extra');
 const path = require('path');
+const { diskPathOf, projectFileUrlBusted } = require('../services/projectFileUrl');
 const { v4: uuidv4 } = require('uuid');
 const sharp = require('sharp');
 const logger = require('./logger');
 const { nextSequence, writeImageRenditions } = require('./projects');
-const { resolveAbsPath, isEligibleStillImage } = require('./gifMake');
+const { isEligibleStillImage } = require('./gifMake');
 const {
     SHEET_SIZES, isValidTree, packSheet, sheetPixelSize, sheetGutter, placeSheet, frameRect, autoRatio, sheetBadge,
     gridSheet, placeGrid, containRect, sheetShapeRatio,
@@ -156,7 +157,7 @@ router.post('/combine-images', async (req, res) => {
             if (!isEligibleStillImage(sidecar)) {
                 return res.status(400).json({ success: false, error: `item ${id} is not an eligible still image` });
             }
-            const abs = resolveAbsPath(sidecar.filePath);
+            const abs = diskPathOf(sidecar.filePath);
             if (!abs || !(await fs.pathExists(abs))) {
                 return res.status(404).json({ success: false, error: `source file missing for item ${id}` });
             }
@@ -172,11 +173,10 @@ router.post('/combine-images', async (req, res) => {
         await (ext === 'png' ? sheet.png() : sheet.jpeg({ quality: 95 })).toFile(outputPath);
 
         const id = uuidv4();
-        const _mtime = (await fs.stat(outputPath).catch(() => null))?.mtimeMs || 0;
         const meta = {
             id,
             type: 'image',
-            filePath: `/project-file?path=${encodeURIComponent(outputPath)}&v=${Math.round(_mtime)}`,
+            filePath: projectFileUrlBusted(outputPath),
             operation: 'combine-images',
             displayName: finalName.replace(/\.[^.]+$/, ''),
             prompt: '',
