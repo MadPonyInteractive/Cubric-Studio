@@ -23,6 +23,7 @@ import { PAGE_LANDING, PAGE_GALLERY, PAGE_GROUP_HISTORY, PAGE_SCENE } from '../.
 import { qs, ce, on } from '../../../utils/dom.js';
 import { mascotLoop } from '../../../utils/mascotLoop.js';
 import { openExternal } from '../../../utils/openExternal.js';
+import { renderMarkdown } from '../../../utils/markdown.js';
 import { renderIcon } from '../../../utils/icons.js';
 import { hasAcceptedLicence } from '../../../data/modelConstants/licences.js';
 import { flowInstallKeys, flowLicences, flowOptionalModelIds, buildLicenceRows } from '../../../utils/flowLicences.js';
@@ -747,7 +748,7 @@ export const MpiFlowLibrary = ComponentFactory.create({
                 <div class="mpi-detail__titlerow">
                     <div><div class="mpi-detail__name">${entry.title}</div></div>
                 </div>
-                <p class="mpi-detail__desc">${entry.description}</p>
+                <div class="mpi-detail__desc mpi-md">${renderMarkdown(entry.description)}</div>
                 <div class="mpi-detail__field">
                     <span class="mpi-detail__field-label">This Flow is sold separately</span>
                     <p class="mpi-detail__desc">Buying it downloads a Flow folder. Add it to
@@ -804,7 +805,7 @@ export const MpiFlowLibrary = ComponentFactory.create({
                 <div class="mpi-detail__titlerow">
                     <div><div class="mpi-detail__name">${flow.title}</div></div>
                 </div>
-                ${flow.description ? `<p class="mpi-detail__desc">${flow.description}</p>` : ''}
+                ${flow.description ? `<div class="mpi-detail__desc mpi-md">${renderMarkdown(flow.description)}</div>` : ''}
                 ${_modelChoiceHtml(flow)}
                 <div class="mpi-detail__field">
                     <span class="mpi-detail__field-label">Required models</span>

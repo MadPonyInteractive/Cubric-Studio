@@ -502,7 +502,11 @@
     max-width: 62ch;
     margin: 0 auto;
 }
-.mpi-base-flow__explainer p + p { margin-top: var(--s-3); }
+/* Two classes so the explainer's size wins over `.mpi-md`'s; paragraphs space themselves. */
+.mpi-base-flow__explainer.mpi-md {
+    font-size: var(--t-sm);
+    line-height: 1.65;
+}
 /* Licence block (MPI-666) — spacing ONLY. The rows are MpiModelManager's
    `mpi-detail__licence*`, loaded app-wide by preloadStyles.js, so this surface
    inherits the Model Library's layout instead of forking it; the column separates

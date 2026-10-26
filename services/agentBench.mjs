@@ -52,7 +52,7 @@ const withFrame = (f) => {
 // `boxParams` and `opens` (MPI-1086: Character Sheet from Images opens at its face box).
 const flowRow = (flow) => ({
     id: flow.id, title: flow.title,
-    does: flow.description.split(/(?<=[.!?])\s/)[0].split(/\s[—–]\s|:\s/)[0].replace(/[.!?]$/, '').trim(),
+    does: flow.description.replace(/\*/g, '').split(/(?<=[.!?])\s/)[0].split(/\s[—–]\s|:\s/)[0].replace(/[.!?]$/, '').trim(),
     operation: flow.operation, installed: true, fields: agentFieldSpecs(flow),
     boxParams: (flow.steps || []).filter((s) => s.kind === 'box' && s.param).map((s) => ({
         param: s.param, role: s.role,

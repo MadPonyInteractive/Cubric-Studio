@@ -28,6 +28,7 @@ import { setDisplaySrc, resolveDisplayImage } from '../../../utils/displayImage.
 import { isVideoFile } from '../../../utils/file.js';
 import { qs, ce, on } from '../../../utils/dom.js';
 import { renderIcon } from '../../../utils/icons.js';
+import { renderMarkdownInto } from '../../../utils/markdown.js';
 import { getStepKind, stepValueToParam, stepValueToMedia, isFrameKind } from './stepKinds.js';
 import { enqueueGeneration, findMissingMediaSlot, cancelCueJobs } from '../../../services/generationService.js';
 import { getCommand } from '../../../data/commandRegistry.js';
@@ -2171,10 +2172,9 @@ export const MpiBaseFlow = ComponentFactory.create({
                 }
                 right.appendChild(frame);
             }
+            // Markdown, so a description can breathe: blank-line paragraphs, **bold**, *italic*.
             const explainer = ce('div', { className: 'mpi-base-flow__explainer' });
-            const p = ce('p');
-            p.textContent = flow.description || '';
-            explainer.appendChild(p);
+            renderMarkdownInto(explainer, flow.description || '');
             right.appendChild(explainer);
 
             // MPI-666 phase 2 — the licence, where an INSTALLED flow can still reach it.

@@ -1980,9 +1980,13 @@ export function validateBoxParams(flow, params) {
  * `agent.list-models` — build the full model/flow list with current install state.
  * Called by GET /connector/models; the route adds hardware fit + download sizes.
  */
-/** A Flow's description cut to one clause: its first sentence, up to a dash or a colon. */
+/**
+ * A Flow's description cut to one clause: its first sentence, up to a dash or a colon.
+ * Descriptions are markdown (MPI-1298), so the emphasis goes first: `**…frame.**` would
+ * otherwise hide the sentence end from the split.
+ */
 export function flowDoes(description) {
-    const first = String(description || '').split(/(?<=[.!?])\s/)[0];
+    const first = String(description || '').replace(/\*/g, '').split(/(?<=[.!?])\s/)[0];
     return first.split(/\s[—–]\s|:\s/)[0].replace(/[.!?]$/, '').trim();
 }
 

@@ -634,7 +634,8 @@ const ALL_FLOWS = [
         // rail complete, over the walk it bought.
         preview: 'flow-ltx-extend.webp',
         video: 'flow-ltx-extend.mp4',
-        description: 'Continue a video past its last frame. Drop a clip, describe what happens next, and the model generates the new seconds — with matching audio — onto the end of it.',
+        description: '**Continue a video past its last frame.**\n\n'
+            + 'Drop a clip, describe what happens next, and the model generates the new seconds, **with matching audio**, onto the end of it.',
         // MPI-591 — the first slot whose members do not share a graph. `modelParams` cannot
         // express it: LTX 2.3 and MiniMax H3 extend with different node sets end to end, so
         // the choice is resolved in `universal_workflows.js` (`flowLtxExtend.byModel`) and
@@ -779,7 +780,8 @@ const ALL_FLOWS = [
         // while the waveform of the generated foley draws itself in sync.
         preview: 'flow-ltx-foley.webp',
         video: 'flow-ltx-foley.mp4',
-        description: 'Give a silent clip a soundtrack. Drop a video, describe what it should sound like, and LTX 2.3 generates matching foley across the whole clip — the picture comes back untouched.',
+        description: '**Give a silent clip a soundtrack.**\n\n'
+            + 'Drop a video, describe what it should sound like, and LTX 2.3 generates matching foley across the whole clip. *The picture comes back untouched.*',
         requiredModels: ['ltx-23-balanced'],
         operation: 'flowLtxFoley',
         workflow: 'flow_ltx_foley.json',
@@ -852,7 +854,9 @@ const ALL_FLOWS = [
         title: 'Upscale Video',
         preview: 'flow-ltx-upscale.webp',
         video: 'flow-ltx-upscale.mp4',
-        description: 'Double a video’s resolution and rebuild its detail. Drop a clip and LTX 2.3 re-renders it at 2x — the audio comes through untouched. Short clips first: cost grows with length, and a long one can exhaust the GPU.',
+        description: '**Double a video’s resolution and rebuild its detail.**\n\n'
+            + 'Drop a clip and LTX 2.3 re-renders it at 2x. The audio comes through untouched.\n\n'
+            + '**Short clips first:** cost grows with length, and a long one can exhaust the GPU.',
         requiredModels: [{ label: 'Model', models: ['ltx-23-balanced'], loras: true }],
         operation: 'ltxVideoUpscale',
         workflow: 'ltx_video_upscale.json',
@@ -927,7 +931,10 @@ const ALL_FLOWS = [
         title: 'Video Edit',
         preview: 'flow-video-edit.webp',
         video: 'flow-video-edit.mp4',
-        description: 'Swap the person, head or outfit in a video, change its background, or make any edit you describe. Add a picture of the new character, outfit or place, or describe it in words. List what to change under “Only change” and just that part is masked and re-rendered, faster, with the rest kept exactly as filmed. The soundtrack comes through untouched. Short clips first: a 5-second clip can take 20 minutes, and longer ones drift. MiniMax H3 Reference copies the video’s moves closest; on Singularity H3 the new person can move their own way.',
+        description: '**Swap the person, head or outfit in a video, change its background, or make any edit you describe.** Add a picture of the new character, outfit or place, or describe it in words.\n\n'
+            + 'List what to change under **Only change** and just that part is masked and re-rendered, faster, with the rest kept exactly as filmed. The soundtrack comes through untouched.\n\n'
+            + '**Short clips first:** a 5-second clip can take 20 minutes, and longer ones drift.\n\n'
+            + '**MiniMax H3 Reference** copies the video’s moves closest; on **Singularity H3** the new person can move their own way.',
         // The slot takes the user's own H3 LoRAs (Input_Lora_Phase1_1..6, loader -> the Flow's own LoRAs).
         // MPI-1284: Singularity H3 is the same DiT fine-tuned, so ONE graph and `modelParams` swaps
         // the transformer (Input_Base_Model). The original first: the swap and Faceswap LoRAs were
@@ -1117,7 +1124,10 @@ const ALL_FLOWS = [
         // has to land BEFORE the drawing, not in the paint step's hint where the user
         // has already committed to a shape. The hero demonstrates exactly this
         // contrast — beat 1 is a filled blob, beat 2 a drawn outline.
-        description: 'Draw what you want on top of your own photo, describe it, and the flow paints it into the scene — a person, an animal, an object — matching the light, casting a shadow on the ground, and letting whatever is already in front of it overlap its edges. The better you draw it, the more detail carries through: an outline with a pose and a tail gives the model far more to work with than a filled blob, and the less you have to fight the prompt to get what you meant.',
+        // Markdown (MPI-1298): blank lines are paragraphs, **bold** and *italic* render.
+        description: 'Draw what you want on top of **your own photo**, describe it, and the flow paints it into the scene: a person, an animal, an object.\n\n'
+            + 'It **matches the light**, **casts a shadow** on the ground, and lets whatever is already in front of it **overlap its edges**.\n\n'
+            + '**Tip: the better you draw it, the more detail carries through.** An outline with a pose and a tail gives the model far more to work with than a filled blob, *and the less you have to fight the prompt to get what you meant.*',
         // ONE slot now, where the old route picked a render model AND a blend model.
         //
         // 9B ONLY, and it is a CORRECTNESS call rather than a quality preference. Under
@@ -1313,7 +1323,9 @@ const ALL_FLOWS = [
         // input both `kleinEdit_011` (anime) and `kleinEdit_012` (photoreal) ate.
         preview: 'flow-scribble.webp',
         video: 'flow-scribble.mp4',
-        description: 'Draw something and let the model render it. Start from a blank canvas at the shape you want, or bring in a drawing you made elsewhere, then say what it is — the drawing gives the shapes and the composition, the words give the subject and the style. It does not have to be a good drawing: rough placement and a readable silhouette are enough for the model to build a finished image around.',
+        description: '**Draw something and let the model render it.** Start from a blank canvas at the shape you want, or bring in a drawing you made elsewhere, then say what it is.\n\n'
+            + 'The **drawing** gives the shapes and the composition; the **words** give the subject and the style.\n\n'
+            + '*It does not have to be a good drawing:* rough placement and a readable silhouette are enough for the model to build a finished image around.',
         // EDIT MODELS, NOT SDXL + ControlNet — Fabio's call on 2026-08-26 after a live
         // side-by-side on one drawing, and it retires SDXL scribble-to-image from the
         // product. A deliberate call, not drift: this card EXISTED to rehouse the SDXL
@@ -1506,7 +1518,8 @@ const ALL_FLOWS = [
         title: 'Character Sheet',
         preview: 'flow-character-sheet.webp',
         video: 'flow-character-sheet.mp4',
-        description: 'Describe a character and get a reference sheet back: a large three-quarter portrait, plus full-body front and back views, on a plain grey studio backdrop. Built to be fed to a video model, so the front body comes back headless — that leaves the portrait as the only place a face can come from.',
+        description: '**Describe a character and get a reference sheet back:** a large three-quarter portrait, plus full-body front and back views, on a plain grey studio backdrop.\n\n'
+            + 'Built to be fed to a video model, so the front body comes back **headless**. That leaves the portrait as the only place a face can come from.',
         // A CHOOSABLE SLOT (MPI-590): the sheet samples Krea 2, and the SFW and NSFW cards
         // are the SAME architecture with a different bake — so a user holding either one
         // can run it, and is never asked for a second 12.25GB download of the other. Both
@@ -1710,7 +1723,10 @@ const ALL_FLOWS = [
         title: 'Character Sheet from Images',
         preview: 'flow-character-sheet-from-images.webp',
         video: 'flow-character-sheet-from-images.mp4',
-        description: 'Turn pictures of a character you already have into a character sheet: a large three-quarter portrait, plus full-body front and back views, on a plain grey studio backdrop. Box the face in the first picture; add a full-body picture and the sheet takes its build and clothes. Runs on Qwen-Image 2.1, whose pictures are not for commercial use. If the sheet does not look like your character, run it again.',
+        description: '**Turn pictures of a character you already have into a character sheet:** a large three-quarter portrait, plus full-body front and back views, on a plain grey studio backdrop.\n\n'
+            + '**Box the face** in the first picture. Add a full-body picture and the sheet takes its build and clothes.\n\n'
+            + 'If the sheet does not look like your character, run it again.\n\n'
+            + '*Runs on Qwen-Image 2.1, whose pictures are not for commercial use.*',
         // The slot takes the user's LoRA rack (MPI-1036): Input_Lora_Phase1_1..6 in the graph.
         requiredModels: [{ label: 'Model', models: ['qwen-image-2-1'] }],
         operation: 'flowCharacterSheetImages',
@@ -1794,7 +1810,10 @@ const ALL_FLOWS = [
         // registered, so the layout holds and only the change moves.
         preview: 'flow-character-sheet-editor.webp',
         video: 'flow-character-sheet-editor.mp4',
-        description: 'Change one thing on a character sheet you already have - the clothes, accessories, makeup, tattoos, hairstyle, beard, condition, body shape or age - with the front, back and close-up kept the same character. Pick what to change and say it in a few words, or anything else under Custom; for clothes, an accessory, makeup, tattoos or a hairstyle you can add a picture to copy. The result is a new card and the sheet you started from stays as it is. Body shape, a hairstyle, a beard, accessories, makeup, tattoos, taking the clothes off and ages of 12 and under run on Qwen-Image 2.1, whose pictures are not for commercial use; everything else runs on FLUX.2 Klein 9B.',
+        description: '**Change one thing on a character sheet you already have:** the clothes, accessories, makeup, tattoos, hairstyle, beard, condition, body shape or age. The front, back and close-up stay the same character.\n\n'
+            + 'Pick what to change and say it in a few words, or anything else under **Custom**. For clothes, an accessory, makeup, tattoos or a hairstyle you can **add a picture to copy**.\n\n'
+            + 'The result is a new card; the sheet you started from stays as it is.\n\n'
+            + '*Body shape, a hairstyle, a beard, accessories, makeup, tattoos, taking the clothes off and ages of 12 and under run on Qwen-Image 2.1, whose pictures are not for commercial use. Everything else runs on FLUX.2 Klein 9B.*',
         // Each slot's rack fills its phase's nodes: Klein's Input_Lora_Phase1_* (the edit and age
         // legs), Qwen's Input_Lora_Phase2_* (Body shape). The child rebuild leg runs the
         // from-images graph, titled Phase1, so it takes no rack here.
@@ -1984,9 +2003,9 @@ const ALL_FLOWS = [
         video: 'flow-outpaint.mp4',
         // MPI-1208: the first sentence is the agent's `does` (agentDispatch flowDoes), so it says
         // what the Flow changes: the shape, with the new area painted from the prompt.
-        description: 'Extend an image past its edges into a new shape, the new area painted from what you describe. Choose the shape you want, drag the frame out '
-            + 'over the sides you want filled, and say what should appear there if you like. Runs '
-            + 'on FLUX.2 Klein 9B.',
+        description: '**Extend an image past its edges into a new shape**, the new area painted from what you describe.\n\n'
+            + 'Choose the shape you want, **drag the frame out** over the sides you want filled, and say what should appear there if you like.\n\n'
+            + '*Runs on FLUX.2 Klein 9B.*',
         // The graph bakes 9B's transformer + encoder, so there is nothing to inject. NO cloud
         // model (Fabio, 2026-10-02, MPI-1011); Klein 9B cloud ran here 2026-10-01 to 10-02
         // (MPI-918).
@@ -2045,11 +2064,10 @@ const ALL_FLOWS = [
         // The scope is said out loud (Fabio, 2026-10-13): only a band along each edge is repainted,
         // so one big shape crossing an edge (a marble vein) or light falling off to one side still
         // repeats when tiled. A texture made to tile from scratch is a separate Flow (MPI-1128).
-        description: 'Join the edges of a picture you already have so it repeats left-right, '
-            + 'top-bottom or both: a panorama whose ends do not meet, a background, a busy texture. '
-            + 'Only a band along each edge is repainted, so a big shape crossing an edge or light '
-            + 'falling off to one side still shows when tiled; it does not make game textures. '
-            + 'Drag a handle in from each edge to choose how much is repainted. Runs on FLUX.2 Klein 9B.',
+        description: '**Join the edges of a picture you already have so it repeats** left-right, top-bottom or both: a panorama whose ends do not meet, a background, a busy texture.\n\n'
+            + '**Drag a handle in from each edge** to choose how much is repainted.\n\n'
+            + 'Only a band along each edge is repainted, so a big shape crossing an edge or light falling off to one side still shows when tiled. *It does not make game textures.*\n\n'
+            + '*Runs on FLUX.2 Klein 9B.*',
         requiredModels: [{ label: 'Base model', models: ['klein-9b'] }],
         operation: 'flowMakeSeamless',
         workflow: 'flow_make_seamless.json',
@@ -2132,7 +2150,8 @@ const ALL_FLOWS = [
         // of the hero would throw a whole lane away.
         preview: 'flow-voice-changer.webp',
         video: 'flow-voice-changer.mp4',
-        description: 'Say it in someone else’s voice. Record yourself performing a line, pick the voice you want it in, and Chatterbox keeps every bit of your delivery — timing, breath, even a laugh or a cough — while swapping the voice itself.',
+        description: '**Say it in someone else’s voice.**\n\n'
+            + 'Record yourself performing a line, pick the voice you want it in, and Chatterbox keeps **every bit of your delivery** (timing, breath, even a laugh or a cough) while swapping the voice itself.',
         requiredModels: [],
         // `ComfyUI-MpiNodes` is deliberately NOT declared, even though the graph runs
         // MpiLoadAudio and MpiInt. `requiredDeps` means "flow-only weights/nodes that
@@ -2224,7 +2243,8 @@ const ALL_FLOWS = [
         // is invisible. The tile is the same layout with every lane filled.
         preview: 'flow-stems.webp',
         video: 'flow-stems.mp4',
-        description: 'Pull a track apart. Drop in a song — one you made here or one you brought — and get bass, drums, vocals and everything else back as four separate files, ready to take into a DAW and mix properly.',
+        description: '**Pull a track apart.**\n\n'
+            + 'Drop in a song, one you made here or one you brought, and get **bass, drums, vocals and everything else** back as four separate files, ready to take into a DAW and mix properly.',
         requiredModels: [],
         // Flow-only node pack: no model declares it, same reasoning as head-swap and
         // `comfyui-inpaint-cropandstitch`. `ComfyUI-MpiNodes` stays OUT even though the
@@ -2294,8 +2314,8 @@ const ALL_FLOWS = [
     {
         id: 'transcribe',
         title: 'Transcribe',
-        description: 'Turn speech into text. Drop in a recording or a video and get back everything '
-            + 'said, as text to copy and as an .srt subtitle file.',
+        description: '**Turn speech into text.**\n\n'
+            + 'Drop in a recording or a video and get back everything said, as **text to copy** and as an **.srt subtitle file**.',
         // Art off a real run of MpiSpeechToText on a spoken "Welcome to Cubric Studio."
         // (Words to expect = Cubric Studio; without it the node wrote "Kubrick"). The
         // waveform above, the SRT cue below; the hero reveals both under a heat playhead,
@@ -2357,7 +2377,9 @@ const ALL_FLOWS = [
         // dead-air failure Outpaint's first hero was thrown away for.
         preview: 'flow-object-stamp.webp',
         video: 'flow-object-stamp.mp4',
-        description: 'Take an object out of one photo and put it into another — a mug on your desk, a lamp in your living room, a bag on a chair. The object keeps its own shape and markings, and the flow lights it with the scene it lands in, resting it on the surface it touches and giving it a shadow that matches the ones already there. You clean the object up first, then say where it goes.',
+        description: '**Take an object out of one photo and put it into another:** a mug on your desk, a lamp in your living room, a bag on a chair.\n\n'
+            + 'The object **keeps its own shape and markings**, and the flow lights it with the scene it lands in, resting it on the surface it touches and giving it a shadow that matches the ones already there.\n\n'
+            + 'You **clean the object up first**, then say where it goes.',
         // ONE slot, 9B only. 4B was tested and FAILED (Fabio, 2026-08-26) — the same
         // call Draw It In made, for the same reason: under load 4B follows the source
         // shape more closely and integrates worse.
@@ -2596,7 +2618,8 @@ const ALL_FLOWS = [
         // (Fabio, 2026-09-07): naming the other flow from INSIDE this one reads as an
         // option on this one. Each description says what its own flow makes; the Flow
         // Library is where the choice between them is made.
-        description: 'Describe a song and hear it sung. Say what it should feel like, pick a style, write your own lyrics and cast the voices that perform them — MiniMax Music 3 writes and sings the whole track.',
+        description: '**Describe a song and hear it sung.**\n\n'
+            + 'Say what it should feel like, pick a style, **write your own lyrics** and **cast the voices** that perform them. MiniMax Music 3 writes and sings the whole track.',
         requiredModels: [],
         // FOUR weights, 18.22GB (the three MiniMax ones are 13.34GB measured — never
         // typed: `computeDepHashes.py --sizes`, because `size` is parsed 1024-based and
@@ -3012,9 +3035,8 @@ const ALL_FLOWS = [
         title: '360 Panorama',
         preview: 'flow-pano-360.webp',
         video: 'flow-pano-360.mp4',
-        description: 'Make a 360 panorama from a description or from a picture. With a picture, the rest '
-            + 'of the world around it is painted in. To look around it in 3D, right-click the result and '
-            + 'choose Convert to 360 pano.',
+        description: '**Make a 360 panorama** from a description or from a picture. With a picture, the rest of the world around it is painted in.\n\n'
+            + 'To look around it in 3D, right-click the result and choose **Convert to 360 pano**.',
         requiredModels: [{ label: 'Render model', models: ['krea2'] }],
         requiredDeps: ['krea2-360-t2i-lora', 'krea2-360-outpaint-lora'],
         operation: 'flowPano360',
@@ -3046,7 +3068,9 @@ const ALL_FLOWS = [
         title: 'Storyboard',
         preview: 'flow-storyboard.webp',
         video: 'flow-storyboard.mp4',
-        description: 'Turn an idea into a storyboard of numbered panels for a video. Each panel lands as its own picture in one stack, in story order, with a note saying what happens in the shot, plus one sheet showing every panel numbered. Add pictures of your characters and places to keep them the same in every panel.',
+        description: '**Turn an idea into a storyboard of numbered panels for a video.**\n\n'
+            + 'Each panel lands as its own picture in one stack, in story order, with a note saying what happens in the shot, plus **one sheet showing every panel** numbered.\n\n'
+            + '**Add pictures of your characters and places** to keep them the same in every panel.',
         // Edit models only: a panel with pictures is an edit (Fabio, 2026-10-25). Two routes:
         // FLUX.3 Klein, and Qwen-Image 2.1 under its own non-commercial licence gate. No graph,
         // so no `modelParams`: the driver reads the pick with `flowModelIds`. `loras: true` is the
@@ -3147,7 +3171,9 @@ const ALL_FLOWS = [
         driver: 'multiAngle',
         title: 'Multi-angle',
         // No `preview` until phase 5's /mpi-flow-graphics: the tile shows its placeholder.
-        description: 'See the person in a picture from another camera angle: turned round, from low down or from above, closer or further away, in the same place and style. Each new view lands as its own picture, ready to edit like any other. To zoom out from a close-up, add a character sheet of the same person, or say what the rest of their outfit is, so the clothes you cannot see come out right.',
+        description: '**See the person in a picture from another camera angle:** turned round, from low down or from above, closer or further away, in the same place and style.\n\n'
+            + 'Each new view lands as its own picture, ready to edit like any other.\n\n'
+            + '**Tip: to zoom out from a close-up**, add a character sheet of the same person, or say what the rest of their outfit is, so the clothes you cannot see come out right.',
         // FLUX.3 Klein turns and lifts the front; Qwen-Image 2.1 makes every low and every height
         // on a turned view (flow-spec.md § Which model runs each stop). Qwen is OPTIONAL: without
         // it the gizmo offers only the stops FLUX.3 runs alone (`multiAngleChoices`).

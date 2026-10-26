@@ -94,6 +94,9 @@ test('flowDoes: one clause of the description, for the agent\'s catalogue', () =
     assert.equal(flowDoes('Take an object out of one photo and put it into another — a mug on your desk.'), 'Take an object out of one photo and put it into another');
     assert.equal(flowDoes('Describe a character and get a reference sheet back: a large portrait.'), 'Describe a character and get a reference sheet back');
     assert.equal(flowDoes(undefined), '');
+    // MPI-1298: descriptions are markdown; emphasis must not hide the sentence end.
+    assert.equal(flowDoes('**Pull a track apart.**\n\nDrop in a song.'), 'Pull a track apart');
+    assert.equal(flowDoes('**Describe a character and get a sheet back:** a portrait.'), 'Describe a character and get a sheet back');
 });
 
 test.describe('openFlow — filled, on screen, and nothing runs', () => {
