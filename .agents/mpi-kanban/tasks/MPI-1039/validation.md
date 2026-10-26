@@ -1227,3 +1227,22 @@ user's ratio later; a crop changes the zoom, so the gizmo may need per-ratio-fam
   both sources. 8 edits. PHOTO still 0/4 (the man faces frame-right in every cell, the picture nearly identical to
   round 64); anime still 4/4. Read: the sentence does nothing - rejected, the shipped words stay. Next idea (not run):
   the man's own facing is what FLUX.3 keeps from the source; a group doll ref (two mannequins) is the likelier lever.
+- 2026-10-26 ROUND 66, STEP 2 "MATCH YOUR PICTURE": HEIGHT / ZOOM ALONE ON AN UNTURNED SIDE OR REAR INPUT (session
+  "Multi-Angle 37", Fabio's step-2 design in plan.md). research/r66.py + r66_plan.mjs, out/mq_blender66{,_sources,
+  _describe,_plans}.json, sheets r66_sources.jpg, r66_match_{111,222}.jpg. Inputs made by NEITHER edit model (Krea2
+  photo in a sunlit square, Illustrious anime in a shop street), start view set by eye as a user would: photo pr_r,
+  photo tq_br, photo back, anime pr_r, anime back x2 (Illustrious gave no rear 3/4). multiAnglePlan with turn = the
+  start, the turn step dropped, the zoom pass re-alternated (no prior pass = FLUX.3). Picks lo, hi + the benched zooms
+  (pr_r hs/far, tq_br hs, back hs/far); seeds 111/222; 6 describes + 46 one-pass edits.
+  VIEW KEPT 46/46 - no pass turned anyone. hs 12/12 and far 10/10 clean (FLUX.3 on side/rear views, never run before).
+  lo 12/12 a real low; on the four SIDE cells (photo + anime pr_r) the head is cropped off the top edge 4/4 (backs and
+  tq_br keep the head). hi 12/12 a real high; photos fill with the cobbles (the accepted round-30s look); anime: the
+  street turned into a PLAIN backdrop on 3/6 (anime pr_r 222, anime back 111 + 222) - anime back 222 is the parser bug
+  below, the other two are not.
+  BUG FOUND + FIXED: gemma-4 answered one describe ALL IN LOWER CASE (anime back 222); parseMultiAngleFacts read only
+  [A-Z_] keys, so the whole answer was dropped - "the person", photo keep words on a drawing. Keys now read in any case
+  (test added, 11/11). Also seen, harmless here: two answers echoed the ask's FROM_ABOVE instruction as the value
+  (unused: LEFT/RIGHT were none, so not the scene branch) and the stray "KEY: people" line again.
+  Read: step 2 works - a height or zoom with no turn pass keeps the user's view on every cell. Open cells: low on a
+  side view cuts the head (a framing line in the side low words, or keep it unoffered); anime high loses the street
+  sometimes (Qwen; the known round-33 street issue, now on an unturned input).

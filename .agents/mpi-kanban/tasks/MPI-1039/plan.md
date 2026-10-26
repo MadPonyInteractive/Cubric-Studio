@@ -605,6 +605,19 @@ facts.people > 1, turn pass only. Round 65: naming the person at frame-right doe
 OPEN: (1) two people on a PHOTO at the left stops - the right-hand person keeps facing frame-right; next lever = a
 two-mannequin doll ref (Blender, CLI-Anything CLI per memory), not words. (2) Rear-left from an anime frame-right start
 (both methods weak). (3) Heights/zooms for groups use one-person words (unbenched). (4) Stage 1 eye test + Flow phase 5.
+DECISION (Fabio 2026-10-26, session "Multi-Angle 37"): a new STEP 2 "match your picture" - the user's picture large on
+top, the same Cosmo gizmo big under it; the user moves the sliders until Cosmo matches the picture EXACTLY (the copy
+says so). Cosmo starts at front / eye level / as is - NO automatic prefill (costs time, and a turned start confuses);
+instead a "Try to Match" button runs the describer's guess ON DEMAND and moves the sliders, the user corrects from there.
+That gives the Flow the input's turn, height and framing for sure. The FINAL step keeps a bypass per slider: only the
+moved sliders run a pass (zoom alone = only the zoom pass; height alone = only the height pass; no turn = no turn
+pass), so Front means only "face the camera". Needs a bench before the build: height + zoom passes on UNTURNED side
+and rear inputs, with the view words + doll ref of the matched start view (never benched: every height/zoom so far ran
+on a front input or on a view the Flow had just turned), and a height pass from a non-eye-level start.
+ROUND 66 DONE (session "Multi-Angle 37", validation.md): height/zoom ALONE on unturned side + rear inputs (Krea2 /
+Illustrious, view matched by eye) keep the view 46/46; hs 12/12, far 10/10; lo cuts the head on side views 4/4; anime hi
+loses the street 2/6 (+1 from the parser bug). FIXED: lower-case describe keys were dropped (multi-angle-runner tests
+11/11). NEXT: (a) side-view low head crop, (b) a non-eye-level start (unbenched), (c) build step 2 + per-slider bypass.
 
 ## Remaining Work
 - [ ] Stage 1 (face, 9 runs) + Fabio's eye test

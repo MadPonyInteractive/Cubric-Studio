@@ -512,8 +512,9 @@ function _oneSided(items, near, p) {
 export function parseMultiAngleFacts(text) {
     const a = {};
     for (const line of String(text || '').split(/\r?\n/)) {
-        const m = line.match(/^\s*[-*]?\s*([A-Z_]+)\s*:\s*(.*?)\s*\.?\s*$/);
-        if (m) a[m[1]] = m[2].replace(/^"(.*)"$/, '$1').trim();
+        // Keys in any case: gemma-4 sometimes answers the whole list in lower case (round 66).
+        const m = line.match(/^\s*[-*]?\s*([A-Za-z_]+)\s*:\s*(.*?)\s*\.?\s*$/);
+        if (m) a[m[1].toUpperCase()] = m[2].replace(/^"(.*)"$/, '$1').trim();
     }
     const pronoun = PRONOUNS[String(a.PRONOUN).toLowerCase()] ? String(a.PRONOUN).toLowerCase() : 'they';
     const style = String(a.STYLE || 'photo').toLowerCase();
