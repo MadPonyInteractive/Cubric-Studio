@@ -87,6 +87,16 @@
     "services/imageComposite.js",
     "routes/platformEngine.js",
     "js/utils/icons.js",
-    "js/components/Organisms/MpiPromptBox/PromptBoxControls.js"
+    "js/components/Organisms/MpiPromptBox/PromptBoxControls.js",
+    "services/outputCard.js",
+    "tests/output-card.test.cjs",
+    "routes/videoConcat.js",
+    "routes/videoCrop.js",
+    "routes/videoReverse.js",
+    "routes/videoExtract.js",
+    "routes/gifToVideo.js",
+    "routes/imageSheet.js",
+    "routes/projects.js",
+    "docs/gallery.md"
   ]
 }

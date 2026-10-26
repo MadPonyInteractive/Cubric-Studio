@@ -22,6 +22,7 @@
 - [x] Lint + type-check + npm test (3742 pass / 0 fail), AUDIT.md status, docs/DEVELOPMENT.md + red-master.md
 ## Phase 2: D1, D3/D10, P2, P14, P7, P12, P13
 - [x] D1: `_controlHost` (label row, all 17 controls) + `_mountSlider` (the 7 sliders) in PromptBoxControls.js, -262 lines; 198-case desktop snapshot identical before/after; lint + type-check, npm test 3742 pass / 0 fail, 11 PromptBox desktop specs green
-- [ ] D3/D10 route by route, one commit each
+- [x] D3: services/outputCard.js (writeVideoCard, writeImageCard, writeImageRenditions moved from projects.js), 10 routes, one commit each; 12-case real-ffmpeg route snapshot identical bar the sheet's flowId/flowInputs; tests/output-card.test.cjs; lint + type-check, npm test 3744 pass / 0 fail
+- [ ] D10 piece by piece, one commit each
 - [ ] P2, P14, P7, P12, P13
 ## Phase 3–4: see plan.md

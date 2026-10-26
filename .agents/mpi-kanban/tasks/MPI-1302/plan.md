@@ -2,8 +2,12 @@
 
 ## Current State
 
-- **Where it stands (2026-10-26):** Phases 1a-1d and D1 done and pushed. Next: **D3/D10** route
-  by route, one commit each, then P2/P14/P7/P12/P13. `npm run lint` now ends with the
+- **Where it stands (2026-10-26):** Phases 1a-1d, D1 and D3 done and pushed. Next: **D10** piece
+  by piece (GIF card tail first: it is D3's twin and can build on `services/outputCard.js`), one
+  commit each, then P2/P14/P7/P12/P13.
+- Backend route refactors are proven with a throwaway script that mounts the routers on a temp
+  project, drives each route on real ffmpeg output and dumps sidecar + response (D3's is
+  `d3snap.cjs` in the session scratchpad): normalise ids/dates/mtime busts, diff key-order-blind. `npm run lint` now ends with the
   type-check; a new file under `js/utils/` must start with `// @ts-check` and pass it.
 - A behaviour-preserving frontend refactor is proven with a throwaway desktop spec that
   snapshots DOM + values + emitted events before and after (D1's lives in the session
@@ -41,6 +45,9 @@
 - [x] T2: JSDoc on `promptReuse.js`, `projectService.js`, `routes/shared.js`.
 - [x] D1: `_controlHost` + `_mountSlider` in `PromptBoxControls.js` (-262 lines); 198-case desktop
   snapshot identical before/after.
+- [x] D3: `services/outputCard.js` — `outputSidecar`, `writeVideoCard` (5 video routes),
+  `writeImageCard` (sheet + 4 projects.js still routes), `writeImageRenditions` moved there.
+  12-case route snapshot identical bar the sheet's new `flowId`/`flowInputs: null`.
 
 ## Remaining Work
 
@@ -115,6 +122,10 @@ touches the same code.
   TypeScript 6 defaults `strict` on (5,000+ implicit-any errors); the config turns it off.
 - T1 found two JSDoc blocks detached from their function (llmService `describeImage`,
   commandRegistry `getAvailableCommands`): moved back.
+
+- D3: the audit's "~15 routes" are 10 (5 video, 5 still); the GIF card routes are D10's. Noticed,
+  not changed: `/project/crop-media` writes no gallery renditions (every other still route does),
+  so a big crop decodes full-res in the grid; `writeImageCard({ renditions: false })` keeps it.
 
 - H3 dropped: `build:portable:*` point at `D:\tmp` on purpose (Fabio's PC, C: short on space;
   CI passes its own `--stage-dir`).

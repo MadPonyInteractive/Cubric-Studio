@@ -69,9 +69,15 @@ the 142 violations they had let through). The finding sections below are left as
   the 17 were sliders, the rest are radio rows, a dropdown and the style picker). 262 lines
   fewer. Proof: 198 control x model cases (DOM, value, injection params, a drag and its
   settings event) identical before and after in the desktop app.
+- Phase 2: **D3** (`services/outputCard.js`: `writeVideoCard` for combine, video crop, reverse,
+  video extract, GIF-to-video; `writeImageCard` for sheets, crop-media, composite, apply-paint,
+  extract-media; `writeImageRenditions` moved there from `projects.js`). Proof: all 12 route
+  cases driven on real ffmpeg output, sidecar + response identical before and after except the
+  sheet card now carries `flowId`/`flowInputs: null` like the other stills. crop-media still
+  writes no renditions (unchanged, noted on the card).
 
 **Still open, suggested batches:**
-- Next: **D3/D10** route by route, **P2/P14/P7/P12/P13**.
+- Next: **D10** piece by piece, **P2/P14/P7/P12/P13**.
 - Needs the desktop suite or Fabio watching: **P1**, **P3**, **D7**, **D9**.
 - Needs a local profile or a Pod: **P4–P6**, **P9–P11**.
 
