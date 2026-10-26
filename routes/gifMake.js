@@ -42,12 +42,11 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs-extra');
 const path = require('path');
-const { diskPathOf, projectFileUrlBusted } = require('../services/projectFileUrl');
-const { v4: uuidv4 } = require('uuid');
+const { diskPathOf } = require('../services/projectFileUrl');
 const sharp = require('sharp');
 const logger = require('./logger');
-const { holdFrames, writeFrame, buildGif, builtGifDimensions } = require('../services/gifFrames');
-const { extractImageThumb, imageThumbPath, IMAGE_RENDITION_PX } = require('../services/ffmpegThumb');
+const { holdFrames, writeFrame } = require('../services/gifFrames');
+const { writeGifCard } = require('../services/outputCard');
 const { nextSequence } = require('./projects');
 
 // Make GIF's fixed default (no prompt, plan Decision 8): each still holds 1 s.
@@ -134,32 +133,9 @@ router.post('/gif/make', async (req, res) => {
 
         const finalName = await nextSequence(folderPath, mediaDir, 'gif', 'gif');
         outputPath = path.join(mediaDir, finalName);
-        await buildGif(gifEntry, mediaDir, outputPath);
+        const { item } = await writeGifCard({ outputPath, mediaDir, metaDir, gifEntry, operation: 'gif-make' });
 
-        const id = uuidv4();
-        const filePathUrl = projectFileUrlBusted(outputPath);
-        const meta = {
-            id,
-            type: 'image',
-            filePath: filePathUrl,
-            operation: 'gif-make',
-            displayName: finalName.replace(/\.[^.]+$/, ''),
-            prompt: '',
-            negativePrompt: '',
-            seed: -1,
-            modelId: null,
-            createdAt: new Date().toISOString(),
-            name: null,
-            uploaded: false,
-            pixelDimensions: await builtGifDimensions(outputPath),
-            generationMs: null,
-            gif: gifEntry,
-        };
-        await extractImageThumb(outputPath, path.join(metaDir, `${id}.thumb.jpg`), { width: IMAGE_RENDITION_PX.small });
-        meta.thumbPath = `/project-file?path=${encodeURIComponent(imageThumbPath(path.join(metaDir, `${id}.thumb.jpg`), { width: IMAGE_RENDITION_PX.small }))}`;
-        await fs.writeJson(path.join(metaDir, `${id}.json`), meta, { spaces: 2 });
-
-        res.json({ success: true, item: { ...meta } });
+        res.json({ success: true, item });
     } catch (err) {
         logger.error('project', 'gif/make failed', err);
         if (outputPath) { try { await fs.remove(outputPath); } catch {} }
