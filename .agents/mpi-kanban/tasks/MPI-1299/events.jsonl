@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1299", "at": "2026-10-26T06:12:33+00:00", "actor": "claude", "column": "todo", "title": "Draw It In: fix the visible seams, and bench FLUX.3 (BFL-shaped prompts) and Qwen-Image 2.1 against Klein 9B (LTX 2.5 release; no wiring until 2.1.3 ships)"}

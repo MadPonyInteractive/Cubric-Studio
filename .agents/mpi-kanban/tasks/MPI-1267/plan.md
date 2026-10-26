@@ -25,6 +25,7 @@ none of them removes a gate. Decision record: memory `project_keyframes_storyboa
 | MPI-1268 | Stacks: reorder members in the Stack workspace + right-click Create Sheet (numbered, stack order). NOT gated (Fabio): ships in the next bug-fix release once it passes | - |
 | MPI-1231 | Storyboard Flow: idea + character/place pictures -> a stack of panel cards with intent lines as notes + the numbered overview. Users make their own videos from the panels | MPI-1268 (Create Sheet) |
 | MPI-1185 | PiD 1.5: an upgrade to the PiD upscaler we ship (`nvidia-pid`). Bench old vs new; if 1.5 wins it REPLACES the old one (Fabio expects it will). Joined 2026-10-24, from MPI-1179 | - |
+| MPI-1299 | Draw It In: fix the visible seams (grade-correction nodes never applied), bench FLUX.3 with BFL-shaped prompts and Qwen-Image 2.1 against Klein 9B. Joined 2026-10-26 (Fabio). Bench now; NO wiring until 2.1.3 ships | 2.1.3 out (MPI-1286) |
 
 **Left the umbrella 2026-10-24 (Fabio):** MPI-1191 Keyframes to Video. Too big for this release
 ("maybe more than a week"); the Storyboard ships alone and users animate its panels themselves. 1191
