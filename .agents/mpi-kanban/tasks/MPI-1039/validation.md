@@ -1045,3 +1045,31 @@ user's ratio later; a crop changes the zoom, so the gizmo may need per-ratio-fam
   fails ('one' eye on most 3/4s); rear 3/4 often 'none/hidden/away' = back; height worse (hi 0/45 on the yes/no cues).
   BEST MIX (round 1 FACING group + CAMERA, round 2 NOSE/CHEST side): front / turned-left / turned-right / rear 115/115;
   height 84/115 (lo 31/32, level 30/38, hi 23/45). Not readable: 3/4 vs profile, rear 3/4 vs back, a high camera.
+  ROUND 3 (session "Multi-Angle 34"; Fabio's yes for ~2.5c; $0.024 spent, $0.064 in all; research/viewread3.py,
+  out/viewread3.json + .txt): round 1 FACING + CAMERA and round 2 NOSE kept, plus FAR_CHEEK, NOSE_OUTLINE,
+  MOUTH_CORNERS, EARS, CHEEK_EDGE, FLOOR_BEHIND, HEAD_BIG. Group 114/115, side 74/75 (holds). Rescored offline:
+  REAR 3/4 vs BACK now 37/42, no back ever read as 3/4 (rear 3/4 = FAR_CHEEK yes OR EARS one OR CHEEK_EDGE not none
+  OR FACING back-left/right; true backs answer none/hidden on all). The 5 misses are all lo/far rear 3/4s. Rear side
+  by FACING 20/26. HIGH 28/45 with CAMERA high OR FLOOR_BEHIND yes (floor yes on 1 of 70 non-high), level 31/38,
+  lo 31/32 = height 90/115 (best yet). HEAD_BIG adds nothing. 3/4 vs PROFILE still NOT readable: FAR_CHEEK 'no' on
+  31/32 3/4s, NOSE_OUTLINE and EARS split the same both ways; only MOUTH_CORNERS two (8/32 3/4s, 0/32 profiles) is a
+  clean but rare sign. Gemma sees a 3/4 face as a profile.
+- 2026-10-26 ROUND 52, THE TURN PASS ON A PICTURE THAT IS ALREADY TURNED (session "Multi-Angle 34"; Fabio: "the user is
+  going to give you different views", the tool must land on the mascot's view whatever the input's view). research/
+  r52.py + r52_prompts.mjs, sheets r52_{anime,photo}_angled_inputs.jpg (FLUX.3) + r52q_* (Qwen). Inputs = the accepted
+  eye-level pr l, tq fr, tqb l, back (anime + photo, seed 111); targets front, tq fl, pr r, tq br; A = the Flow's own
+  turn words (multiAnglePlan), B = the same with "the camera has moved ... round" cut (end view only). NEW ASSET: the
+  app had NO eye-level front doll (the Flow assumed every input faces front, so Turn = Front ran nothing):
+  blender/front_eye.py renders it (back_eye turned round) -> assets/flows/multi-angle/refs/room/front.png (uncommitted).
+  FLUX.3 Turbo (the Flow's turn model), 48 edits ~32 s: it FREEZES - anime 0/32 changed; photo ~1 in 3 turned (pr l ->
+  pr r and tq br, tqb l -> pr r, back -> front clean, back -> pr r; tq fr -> all frozen, tq br broke the face). A vs B
+  no difference. Inputs are FLUX.3 edits (round 41 freeze), so this does not yet say how a user's own photo does.
+  QWEN (QWEN29 edit, same room ref, B words), 32 edits ~58 s, it TURNS: FRONT 8/8 clean, place kept 8/8 (photo
+  backdrop too). REAR 3/4 R 8/8 view (anime back -> tq br pasted a small mannequin into the street, 1/8). PROFILE R 6/8
+  (tq fr -> pr r stays 3/4 right, anime + photo). 3/4 LEFT lands as PROFILE left 7/8 - right side, too far round.
+  PHOTO PLACE LOST on 10/12 non-front turns: Qwen copies the doll's grey room (the round 30 reason Qwen steps use the
+  PLAIN doll on white; no plain eye-level dolls exist yet). Anime street kept 15/16.
+  Read: the mascot ref DOES drive the view from any starting view on Qwen; FLUX.3 cannot re-turn a turned picture.
+  NEXT (GPU, ask Fabio): round 53 = Qwen turn with PLAIN eye-level dolls (render 8 plain level refs) to keep the photo
+  place, plus a stronger 3/4 (not profile) wording; and a NON-FLUX input (a real photo) on FLUX.3 to see if the freeze is
+  only FLUX-on-FLUX.
