@@ -12,7 +12,7 @@
  * that declares `driver` (MpiBaseFlow `_run`).
  */
 
-import { runStoryboard, parseStoryboardPlan, recurringActors, panelStyle, MAX_DRAWN_FIRST } from '../services/storyboardRunner.js';
+import { runStoryboard, parseStoryboardPlan, panelsWithDrawn, recurringActors, panelStyle, MAX_DRAWN_FIRST } from '../services/storyboardRunner.js';
 import { enqueueGeneration } from '../services/generationService.js';
 import { addGroup, updateGroup, reorderStack } from '../services/projectService.js';
 import { clientLogger } from '../services/clientLogger.js';
@@ -64,11 +64,13 @@ function _deps(project, { flow, inputs, unit, modelId, idea, references, ratio, 
         isLoopArmed: () => state.loopArmed === true,
 
         async submit(panel, index, landing) {
+            // A panel drawn after the cast carries its own list: a place rides only the panels naming it.
+            const media = panel.references ?? references;
             const built = await buildGeneration({
                 modelId,
-                operation: references.length ? 'edit' : 't2i',
+                operation: media.length ? 'edit' : 't2i',
                 positive: panel.prompt,
-                media: references,
+                media,
                 turbo,
                 ..._size(panel.ratio || ratio, qualityTier),
             }, project);
@@ -215,7 +217,9 @@ async function runStoryboardFlow(flow, inputs, frame) {
         { name: castName, sheet: false },
         _deps(project, { ...opts, unit: 'picture', references: [] }, frame));
     if (!cast.ok) {
-        StatusBar.notify(cast.message, 'warning');
+        // A Stop while the first cast picture was built reads as a Stop, like `_drawPanels` (MPI-1293).
+        if (cast.code === 'CANCELLED') StatusBar.notify(`${name} stopped: no panel was drawn.`, 'info');
+        else StatusBar.notify(cast.message, 'warning');
         return false;
     }
     const left = wanted.slice(actors.length).map(a => a.name);
@@ -231,11 +235,13 @@ async function runStoryboardFlow(flow, inputs, frame) {
         const drawn = out.panels.filter(r => r.item?.filePath);
         const missing = out.panels.filter(r => !r.item?.filePath).map(r => actors[r.index].name);
         if (missing.length) StatusBar.notify(`${name}: the picture of ${missing.join(', ')} failed, so the panels describe them in words.`, 'warning');
-        // The cast pictures follow the user's in the edit, so each is image (user pictures + its place).
-        const actorImages = Object.fromEntries(drawn.map((r, k) => [actors[r.index].name.toLowerCase(), references.length + k + 1]));
-        const refs = [...references, ...drawn.map(r => ({ url: r.item.filePath }))]
-            .map((r, i) => ({ role: i ? `inputImage${i + 1}` : 'inputImage', url: r.url }));
-        const drawing = await _drawPanels(parseStoryboardPlan(inputs.plan, idea, actorImages), name, _deps(project, { ...opts, references: refs }, frame));
+        // The drawn pictures follow the user's in each panel's edit; a place goes only to the
+        // panels that name it, so every panel has its own reference list.
+        const panelsDrawn = panelsWithDrawn(inputs.plan, idea, drawn.map(r => actors[r.index]), references.length)
+            .map(({ drawn: picks, ...p }) => ({ ...p,
+                references: [...references, ...picks.map(i => ({ url: drawn[i].item.filePath }))]
+                    .map((r, i) => ({ role: i ? `inputImage${i + 1}` : 'inputImage', url: r.url })) }));
+        const drawing = await _drawPanels(panelsDrawn, name, _deps(project, { ...opts, references }, frame));
         return drawing ? drawing.finished : { ok: false, cancelled: !!frame?.stopped?.() };
     }) };
 }

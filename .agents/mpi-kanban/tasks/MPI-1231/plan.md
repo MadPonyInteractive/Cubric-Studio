@@ -301,6 +301,12 @@
   drawn non-places + drawn places it `_mentions` (pass `names`), numbering "from image N" per panel
   from those picks (factor parseStoryboardPlan's per-block body out); the dispatch cast-path passes
   each panel its own `references` and `submit` uses `panel.references ?? references` (t2i when empty).
+- 2026-10-26 ("Storyboard 23") PLACES PER PANEL BUILT as designed: `panelsWithDrawn(plan, idea,
+  drawn, userPictures)` + `_panel` factored out of parseStoryboardPlan; dispatch sends each panel its
+  own list. Also MPI-1293's audit fix: a Stop during the first cast build reads as info. Runner test
+  added; reparse (research/crowd-cap/reparse.mjs) on the bat-cave plan: cave only in panels 2-4, river
+  only 5-6 (as image 3), panel 1 (Entrance) no place picture. NO GPU run (Fabio). NEXT: Fabio's eye
+  on research/crowd-cap/gpu/sheet.jpg + refs.jpg, then Phase 2.
 
 ## Phase 0: Panel recipe - `user-ux` (local GPU, Fabio's yes; no money)
 

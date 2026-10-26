@@ -13,10 +13,10 @@ const path = require('node:path');
 
 const esm = (p) => import('file:///' + path.join(__dirname, '..', p).replace(/\\/g, '/'));
 
-let runStoryboard, parseStoryboardPlan, recurringActors, panelStyle, MAX_DRAWN_FIRST, applyReorderMembers;
+let runStoryboard, parseStoryboardPlan, panelsWithDrawn, recurringActors, panelStyle, MAX_DRAWN_FIRST, applyReorderMembers;
 
 test.before(async () => {
-    ({ runStoryboard, parseStoryboardPlan, recurringActors, panelStyle, MAX_DRAWN_FIRST } = await esm('js/services/storyboardRunner.js'));
+    ({ runStoryboard, parseStoryboardPlan, panelsWithDrawn, recurringActors, panelStyle, MAX_DRAWN_FIRST } = await esm('js/services/storyboardRunner.js'));
     ({ applyReorderMembers } = await esm('js/data/stackModel.js'));
 });
 
@@ -251,6 +251,27 @@ test('a name inside another name is no mention of it, and a name may hold "the"'
     assert.strictEqual(panels[3].prompt, 'Squirrel leaps off Cliff Over the River toward the River below. Squirrel is a young squirrel. Cliff Over the River is a rocky cliff edge. River is a fast blue river.');
     // The short-name fallback still works when no other name holds the word.
     assert.match(parseStoryboardPlan('[CAST] Grandpa Finn: an old man. [PANEL 1] Grandpa holds the kite.')[0].prompt, /Grandpa Finn is an old man\./);
+});
+
+test('a drawn place rides only the panels that name it; characters and objects ride every panel, numbered per panel', () => {
+    // Fabio, 2026-10-26: the bat-cave board fed the cave picture to the river panels too.
+    const plan = '[CAST] Squirrel: a young squirrel. [PLACES] Bat Cave Entrance: a dark cave mouth. Bat Cave Interior: a pitch-black cavern. River: a fast blue river. [OBJECTS] Gold Helmet: a gold helmet.'
+        + ' [PANEL 1] Picture: Squirrel at Bat Cave Entrance. Intent: a [PANEL 2] Picture: Squirrel in Bat Cave Interior grabs the Gold Helmet. Intent: b'
+        + ' [PANEL 3] Picture: Squirrel in the River wears the Gold Helmet. Intent: c';
+    const drawn = [{ name: 'Squirrel', kind: 'character' }, { name: 'Bat Cave Interior', kind: 'place' }, { name: 'River', kind: 'place' }, { name: 'Gold Helmet', kind: 'object' }];
+    // One picture of the user's comes first, so the drawn ones start at image 2.
+    const [p1, p2, p3] = panelsWithDrawn(plan, '', drawn, 1);
+    // "Bat Cave Entrance" is no mention of "Bat Cave Interior": no place picture at all.
+    assert.deepStrictEqual(p1.drawn, [0, 3]);
+    assert.strictEqual(p1.prompt, 'Squirrel at Bat Cave Entrance. Squirrel is a young squirrel from image 2. Bat Cave Entrance is a dark cave mouth.');
+    assert.deepStrictEqual(p2.drawn, [0, 1, 3]);
+    assert.strictEqual(p2.prompt, 'Squirrel in Bat Cave Interior grabs the Gold Helmet. Squirrel is a young squirrel from image 2. Bat Cave Interior is a pitch-black cavern from image 3. Gold Helmet is a gold helmet from image 4.');
+    // Without the cave, the river is image 3 and the helmet one lower.
+    assert.deepStrictEqual(p3.drawn, [0, 2, 3]);
+    assert.strictEqual(p3.prompt, 'Squirrel in the River wears the Gold Helmet. Squirrel is a young squirrel from image 2. River is a fast blue river from image 3. Gold Helmet is a gold helmet from image 4.');
+    assert.deepStrictEqual([p1.intent, p2.intent, p3.intent], ['a', 'b', 'c']);
+    // Nothing drawn: the panels read as parseStoryboardPlan's, with no picks.
+    assert.deepStrictEqual(panelsWithDrawn(plan, '', [], 0).map(({ drawn: d, ...p }) => [d, p]), parseStoryboardPlan(plan).map(p => [[], p]));
 });
 
 test('the panels\' shared opening is the style a picture drawn before them takes', () => {

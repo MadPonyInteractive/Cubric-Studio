@@ -55,15 +55,40 @@ const _fail = (code, message) => ({ ok: false, code, message });
  */
 export function parseStoryboardPlan(text, idea = '', actorImages = {}) {
     const cast = _cast(String(text || ''), idea);
+    return _blocks(String(text || '')).map(b => _panel(b, cast, actorImages));
+}
+
+/**
+ * The panels once the pictures drawn before them have landed, each with the drawn pictures IT
+ * gets: every character and object, but a place only in the panels that name it (Fabio,
+ * 2026-10-26: the bat-cave board fed the cave to the river panels too). Each panel's "from image
+ * N" counts in its OWN reference list, the user's pictures first, then its drawn ones in `drawn`
+ * order, so a panel without the cave numbers the helmet one lower.
+ * @param {string} text - the plan box
+ * @param {string} idea - as `parseStoryboardPlan`
+ * @param {Array<{name: string, kind: string}>} drawn - the pictures that landed, in reference order
+ * @param {number} userPictures - how many of the user's pictures come before them
+ * @returns {Array<StoryboardPanel & {drawn: number[]}>} - `drawn`: indices into `drawn`, in order
+ */
+export function panelsWithDrawn(text, idea, drawn, userPictures) {
+    const cast = _cast(String(text || ''), idea);
     const names = [...cast.values()].map(c => c.name);
-    return _blocks(String(text || '')).map(({ prompt, intent }) => {
-        const named = [...cast.values()].filter(c => _mentions(prompt, c.name, names));
-        const line = (c) => {
-            const n = actorImages[c.name.toLowerCase()];
-            return `${c.name} is ${c.desc}${n ? ` from image ${n}` : ''}.`;
-        };
-        return { prompt: [prompt, ...named.map(line)].join(' '), intent };
+    return _blocks(String(text || '')).map((b) => {
+        const picks = drawn.map((d, i) => i).filter(i => drawn[i].kind !== 'place' || _mentions(b.prompt, drawn[i].name, names));
+        const images = Object.fromEntries(picks.map((i, k) => [drawn[i].name.toLowerCase(), userPictures + k + 1]));
+        return { ..._panel(b, cast, images), drawn: picks };
     });
+}
+
+/** One block's prompt with the line of each cast, place and object name it mentions. */
+function _panel({ prompt, intent }, cast, actorImages) {
+    const names = [...cast.values()].map(c => c.name);
+    const named = [...cast.values()].filter(c => _mentions(prompt, c.name, names));
+    const line = (c) => {
+        const n = actorImages[c.name.toLowerCase()];
+        return `${c.name} is ${c.desc}${n ? ` from image ${n}` : ''}.`;
+    };
+    return { prompt: [prompt, ...named.map(line)].join(' '), intent };
 }
 
 /**

@@ -82,8 +82,11 @@ sheet. `devOnly: true` until the LTX 2.5 release (umbrella MPI-1267).
   The driver draws them (`t2i`; a character or object 1:1 on plain grey, a place empty at the video's
   ratio, both in the panels' style, `panelStyle`) into their OWN stack "<name> · Cast"
   (`sheet: false`, no overview), then queues the panels as `edit` with those pictures after the
-  user's; `parseStoryboardPlan(plan, idea, actorImages)` ends that cast line "from image N". A failed
-  actor picture is a warning and the panels describe it in words; Stop during the cast draws no panel.
+  user's. A drawn PLACE goes only to the panels that name it (Fabio 2026-10-26); characters and
+  objects go to every panel. `panelsWithDrawn(plan, idea, drawn, userPictures)` gives each panel its
+  picks and numbers "from image N" in THAT panel's list, and the dispatch sends `panel.references`
+  (`submit`: `panel.references ?? references`). A failed actor picture is a warning and the panels
+  describe it in words; Stop during the cast draws no panel and reads as a Stop (info), not a warning.
 - **A Picture never describes a cast member's looks** (planner rule, 2026-10-25): DeepSeek wrote
   "Fox (a small, bright-orange fox)" for a purple fox in picture 3, fighting the cast line.
 
