@@ -4,7 +4,10 @@
   "generated_at": "2026-10-26T22:30:00Z",
   "status": "open",
   "from_session": ".agents/mpi-kanban/state/sessions/a8a2c066-6708-4555-a247-dff35c670e08.json",
-  "session": { "name": "Cubric Studio improvements 1: MPI-1302 D8 + X4", "branch": "master" },
+  "session": {
+    "name": "Cubric Studio improvements 1: MPI-1302 D8 + X4",
+    "branch": "master"
+  },
   "goal": {
     "original": "Work through the rest of AUDIT.md (repo root) phase by phase on card MPI-1302, handing off between phases when context gets high.",
     "status": "in_progress",
@@ -19,7 +22,7 @@
       "X4: 7 unused routes incl. skill-listed ones, un-exports, dead functions, icons translate/volumeLow (f1d97c07b)"
     ],
     "pending": [
-      "X4 tail: icons seed/gallery + renderIcon ['seed','gallery'] stroke special case - needs Fabio's OK to edit .claude/rules/dos_and_donts.md line 40",
+      "X4 tail (APPROVED by Fabio): delete icons seed/gallery, drop the ['seed','gallery'] stroke special case from renderIcon and its JSDoc, and edit .claude/rules/dos_and_donts.md line 40 to match",
       "T1: // @ts-check on the pure modules in AUDIT.md + scoped tsc --noEmit CI step",
       "T2: JSDoc on promptReuse.js, projectService.js, routes/shared.js (MPI-444 realpath, MPI-484 stop contracts)",
       "Phases 2-4 per plan.md"
@@ -30,17 +33,22 @@
     "title": "AUDIT follow-up: the cleanup, duplication and speed findings PR #12 left open",
     "column": "doing",
     "workspace": ".agents/mpi-kanban/tasks/MPI-1302/",
-    "links": { "plan": "plan.md", "checklist": "checklist.md", "validation": "validation.md" }
+    "links": {
+      "plan": "plan.md",
+      "checklist": "checklist.md",
+      "validation": "validation.md"
+    }
   },
   "next_action": {
-    "description": "Start Phase 1d T1 (AUDIT.md section T1): add // @ts-check to the pure modules the audit lists (re-check each first), add a scoped tsc --noEmit step to CI, make it pass locally; then T2 JSDoc. If Fabio has okayed the dos_and_donts.md line 40 edit, first finish X4: delete icons seed/gallery, drop ['seed','gallery'] from renderIcon's stroke check and its JSDoc, update the rule line. Lint, npm test, commit, push, update AUDIT.md Status + checklist.",
+    "description": "First finish X4 (Fabio approved the rule edit, see key_decisions): delete icons seed/gallery from js/utils/icons.js, drop ['seed','gallery'] from renderIcon's stroke check and its JSDoc, and edit .claude/rules/dos_and_donts.md line 40 to drop the built-in list. Then Phase 1d T1 (AUDIT.md section T1): // @ts-check on the pure modules the audit lists (re-check each first) + a scoped tsc --noEmit CI step passing locally; then T2 JSDoc. Lint, npm test, commit, push, update AUDIT.md Status + checklist.",
     "command": "mpi-continue"
   },
   "context": {
     "key_decisions": [
       "Fabio wants MPI-1302 done in sequence, one session at a time, no parallel batch; hand off between phases.",
       "Fabio (2026-10-26): remove unused routes even when the agent skill docs list them; skill docs updated to match.",
-      ".claude/rules/ files are never edited without Fabio's explicit OK - that is why the seed/gallery icons are still there."
+      ".claude/rules/ files are never edited without Fabio's explicit OK - that is why the seed/gallery icons are still there.",
+      "Fabio, 2026-10-26, verbatim: \"Yes: the next session may edit .claude/rules/dos_and_donts.md line 40 to remove the seed/gallery stroke mention, and delete those icons.\""
     ],
     "constraints": [
       "Shared tree: peers leave uncommitted edits (board.json, root events.jsonl, other cards' files). Commit with .agents/mpi-kanban/tasks/MPI-1302/research/commit_mine.py <repo> <msgfile> MPI-1302 <files...>, then push the printed SHA; filter git status to your own files (peer files appear mid-session).",
@@ -53,5 +61,5 @@
       "docs/utils.md"
     ]
   },
-  "resume_prompt": "Read .agents/mpi-kanban/state/handoffs/ba21235f-b4ce-4c88-8034-2f7c9280a077.json and continue card MPI-1302 (in doing) with mpi-continue. D8 and X4 are pushed; start Phase 1d T1/T2 from AUDIT.md and the card's plan.md. The seed/gallery icon end of X4 waits on Fabio's OK to edit .claude/rules/dos_and_donts.md line 40. Commit with the card's research/commit_mine.py so peers' uncommitted edits stay out, and claim every file before editing."
+  "resume_prompt": "Read .agents/mpi-kanban/state/handoffs/ba21235f-b4ce-4c88-8034-2f7c9280a077.json and continue card MPI-1302 (in doing) with mpi-continue. D8 and X4 are pushed; start Phase 1d T1/T2 from AUDIT.md and the card's plan.md. Fabio approved the seed/gallery icon end of X4, including the .claude/rules/dos_and_donts.md line 40 edit: do it first. Commit with the card's research/commit_mine.py so peers' uncommitted edits stay out, and claim every file before editing."
 }
