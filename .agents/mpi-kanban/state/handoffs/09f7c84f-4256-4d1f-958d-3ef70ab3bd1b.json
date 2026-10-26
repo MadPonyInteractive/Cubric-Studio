@@ -1,0 +1,63 @@
+{
+  "schema": "mpi-kanban/handoff/v1",
+  "id": "09f7c84f-4256-4d1f-958d-3ef70ab3bd1b",
+  "generated_at": "2026-10-26T22:53:21Z",
+  "status": "open",
+  "from_session": ".agents/mpi-kanban/state/sessions/d6921471-3eba-4fb2-b8fb-8a93e1ef0584.json",
+  "session": {
+    "name": "Cubric Studio improvements 2: MPI-1302 X4 tail + T1/T2",
+    "branch": "master"
+  },
+  "goal": {
+    "original": "Work through the rest of AUDIT.md (repo root) phase by phase on card MPI-1302, handing off between phases when context gets high.",
+    "status": "in_progress",
+    "summary": "Phases 1a-1d are done and pushed (last: c360f775d, X4 icon tail + T1 type-check + T2 JSDoc). Phase 2 is next, starting with D1."
+  },
+  "plan": {
+    "file": ".agents/mpi-kanban/tasks/MPI-1302/plan.md",
+    "completed": [
+      "Phase 1a: B4, B6, comfy-vanished-prompt assertion (8c05c2c8e); H3 dropped",
+      "D6 graph_utils.py (90e79b465), D8 shared small utilities (37ea2d46c)",
+      "X4 unused routes/exports (f1d97c07b) + seed/gallery icons and dos_and_donts.md line 40 (c360f775d)",
+      "T1: npm run typecheck inside npm run lint; // @ts-check on all js/utils, commandRegistry.js, resolveModelDeps.js (c360f775d)",
+      "T2: JSDoc on promptReuse.js, projectService.js, routes/shared.js (c360f775d)"
+    ],
+    "pending": [
+      "Phase 2: D1 PromptBox slider x17, then D3/D10 route by route (one commit each), then P2, P14, P7, P12, P13 - each with the audit's GPU-free check",
+      "Phase 3 (user-ux): P1, P3, D7, D9",
+      "Phase 4 (user-ux): P4-P6, P9-P11"
+    ]
+  },
+  "task_card": {
+    "id": "MPI-1302",
+    "title": "AUDIT follow-up: the cleanup, duplication and speed findings PR #12 left open",
+    "column": "doing",
+    "workspace": ".agents/mpi-kanban/tasks/MPI-1302/",
+    "links": {
+      "plan": "plan.md",
+      "checklist": "checklist.md",
+      "validation": "validation.md"
+    }
+  },
+  "next_action": {
+    "description": "Start Phase 2 with D1 (AUDIT.md section D1, PromptBox slider duplicated 17 times): re-check the locations first, claim the files, extract the shared slider, verify with the audit's GPU-free check + npm run lint + npm test, commit with research/commit_mine.py, push, update AUDIT.md Status + checklist. Then D3/D10 route by route.",
+    "command": "mpi-continue"
+  },
+  "context": {
+    "key_decisions": [
+      "Fabio wants MPI-1302 done in sequence, one session at a time, no parallel batch; hand off between phases.",
+      ".claude/rules/ files are never edited without Fabio's explicit OK.",
+      "T1 design: tsconfig.typecheck.json keeps checkJs and strict OFF, so only files starting with // @ts-check are checked; it runs inside npm run lint (CI + pre-push), no separate tests.yml step."
+    ],
+    "constraints": [
+      "Shared tree: commit with python .agents/mpi-kanban/tasks/MPI-1302/research/commit_mine.py . <msgfile> MPI-1302 <files...>, then git push origin <sha>:refs/heads/master; filter git status to your own files.",
+      "Claim files before editing (state/files/<sid8>-mpi1302-<phase>.json + active_file_claims in state/index.json). guard-claim does not expand shell variables in paths and heredocs/backticks in inline scripts are blocked: write scripts to the scratchpad and run them by path.",
+      "Any js/utils file you touch must still pass npm run typecheck (it carries // @ts-check); cast a DOM query result with /** @type {T} */ (expr) rather than loosening JSDoc. Many working-copy files are CRLF: make text replacements line-ending aware."
+    ],
+    "files_to_read_first": [
+      ".agents/mpi-kanban/tasks/MPI-1302/plan.md",
+      "AUDIT.md"
+    ]
+  },
+  "resume_prompt": "Read .agents/mpi-kanban/state/handoffs/09f7c84f-4256-4d1f-958d-3ef70ab3bd1b.json and continue card MPI-1302 (in doing) with mpi-continue. Phases 1a-1d of AUDIT.md are pushed (last commit c360f775d). Start Phase 2 with D1 (PromptBox slider x17), then D3/D10 route by route, per the card's plan.md. Commit with the card's research/commit_mine.py so peers' uncommitted edits stay out, claim every file before editing, and keep js/utils passing npm run typecheck."
+}

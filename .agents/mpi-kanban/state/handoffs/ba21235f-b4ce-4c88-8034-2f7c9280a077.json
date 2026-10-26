@@ -2,7 +2,7 @@
   "schema": "mpi-kanban/handoff/v1",
   "id": "ba21235f-b4ce-4c88-8034-2f7c9280a077",
   "generated_at": "2026-10-26T22:30:00Z",
-  "status": "open",
+  "status": "resolved",
   "from_session": ".agents/mpi-kanban/state/sessions/a8a2c066-6708-4555-a247-dff35c670e08.json",
   "session": {
     "name": "Cubric Studio improvements 1: MPI-1302 D8 + X4",
@@ -61,5 +61,7 @@
       "docs/utils.md"
     ]
   },
-  "resume_prompt": "Read .agents/mpi-kanban/state/handoffs/ba21235f-b4ce-4c88-8034-2f7c9280a077.json and continue card MPI-1302 (in doing) with mpi-continue. D8 and X4 are pushed; start Phase 1d T1/T2 from AUDIT.md and the card's plan.md. Fabio approved the seed/gallery icon end of X4, including the .claude/rules/dos_and_donts.md line 40 edit: do it first. Commit with the card's research/commit_mine.py so peers' uncommitted edits stay out, and claim every file before editing."
+  "resume_prompt": "Read .agents/mpi-kanban/state/handoffs/ba21235f-b4ce-4c88-8034-2f7c9280a077.json and continue card MPI-1302 (in doing) with mpi-continue. D8 and X4 are pushed; start Phase 1d T1/T2 from AUDIT.md and the card's plan.md. Fabio approved the seed/gallery icon end of X4, including the .claude/rules/dos_and_donts.md line 40 edit: do it first. Commit with the card's research/commit_mine.py so peers' uncommitted edits stay out, and claim every file before editing.",
+  "resolved_at": "2026-10-26T22:53:21Z",
+  "superseded_by": ".agents/mpi-kanban/state/handoffs/09f7c84f-4256-4d1f-958d-3ef70ab3bd1b.json"
 }
