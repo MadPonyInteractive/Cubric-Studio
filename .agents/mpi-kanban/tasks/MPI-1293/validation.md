@@ -13,7 +13,11 @@
   `frame.stopped()` before each enqueue, returns `{ finished }`.
 - eslint clean on every touched file.
 
-## Live (Fabio's GPU) — pending
+## Live (Fabio's GPU)
+- 2026-10-26 Storyboard: PASSED. Fabio: one Stop press cancelled the whole run.
+- Multi-angle (pass-2 latents, Stop between passes) and a stacked graph Flow: not yet checked.
+
+Steps:
 Not run by an agent: a Stop from an isolated app interrupts Fabio's own render (ComfyUI /interrupt
 has no owner).
 1. Storyboard with a cast: press Stop once while the cast draws, once while panels draw. The queue

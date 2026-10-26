@@ -5,4 +5,5 @@
 - [x] Drivers: queueJobId, stopped check, finished (Multi-angle here; Storyboard in 06328dd08 by Storyboard 22)
 - [x] Tests
 - [x] Playbook + skill rule
-- [ ] Live check by Fabio (Storyboard, Multi-angle, pass-2 latents)
+- [x] Live check by Fabio: Storyboard (2026-10-26, one Stop cancelled the whole run)
+- [ ] Live check by Fabio: Multi-angle (pass-2 latents, Stop between passes)
