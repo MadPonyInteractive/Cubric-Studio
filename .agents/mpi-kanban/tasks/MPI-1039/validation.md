@@ -1032,3 +1032,16 @@ user's ratio later; a crop changes the zoom, so the gizmo may need per-ratio-fam
   - HS, LOW, BACK VIEWS (tqb l, tqb r, back): 0/12 - every one frames the seat and hips, head small at the top. Fail.
   - Read: far opens on every lo and hi cell; hs opens on hi for the seven turned views. lo hs (and front hi hs) need
     a stronger wording round before anything is offered - ask Fabio before the GPU.
+- 2026-10-26 VIEW READ (session "Multi-Angle 33"; Fabio reconsidering auto-detect instead of bypass buttons): the
+  describe ask + FACING (picture directions: front, front-left, left, back-left, back, mirrored) + CAMERA (level/low/
+  high) on DeepInfra gemma-4-26B-A4B-it, greedy, on 115 bench pictures of known view (accepted turn x height cells,
+  r50/r51 turned zooms, both sources; research/viewread.py, out/viewread.json). $0.019 spent (Fabio's yes for ~3c).
+  Exact turn 68/115, height 84/115, both 50/115. Coarse group front / turned-front / rear 115/115. Left vs right 63/80,
+  biased to 'left'. 3/4 front reads as profile almost always. Low 31/32; high 23/45 (photos read level); level 30/38
+  (anime reads low). Local Qwen3-VL 4B (the default describer) NOT tested - needs Fabio's GPU.
+  ROUND 2 (Fabio's yes for ~2c; $0.021 spent, $0.040 in all; research/viewread2.py, out/viewread2.json): ask what
+  SHOWS - EYES (two / two-far-small / one / none), NOSE and CHEST (which IMAGE side they point to), TOP_OF_HEAD and
+  UNDER_CHIN yes/no - view worked out in code. Side 71/71 (NOSE in image terms fixes left/right). 3/4 vs profile still
+  fails ('one' eye on most 3/4s); rear 3/4 often 'none/hidden/away' = back; height worse (hi 0/45 on the yes/no cues).
+  BEST MIX (round 1 FACING group + CAMERA, round 2 NOSE/CHEST side): front / turned-left / turned-right / rear 115/115;
+  height 84/115 (lo 31/32, level 30/38, hi 23/45). Not readable: 3/4 vs profile, rear 3/4 vs back, a high camera.
