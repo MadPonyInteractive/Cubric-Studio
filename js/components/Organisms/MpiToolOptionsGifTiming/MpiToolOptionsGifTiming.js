@@ -304,7 +304,9 @@ export const MpiToolOptionsGifTiming = ComponentFactory.create({
                     empty.hidden = true;
                     badge.textContent = result.byteSize ? formatBytes(result.byteSize) : '';
                     badge.hidden = !result.byteSize;
-                    badge.classList.remove('mpi-tool-options-gif-timing__badge--stale');
+                    // Settings changed WHILE it encoded leave the build stale: clearing the mark
+                    // unconditionally said "fresh" over a rate typed mid-encode.
+                    badge.classList.toggle('mpi-tool-options-gif-timing__badge--stale', outputKey() !== key);
                     _lastKey = key;
                 } catch (err) {
                     if (!_destroyed) clientLogger.warn('MpiToolOptionsGifTiming', 'GIF preview failed', err);

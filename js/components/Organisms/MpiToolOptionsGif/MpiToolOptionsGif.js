@@ -188,7 +188,9 @@ export const MpiToolOptionsGif = ComponentFactory.create({
                 _empty.hidden = true;
                 _badge.textContent = result.byteSize ? formatBytes(result.byteSize) : '';
                 _badge.hidden = !result.byteSize;
-                _badge.classList.remove('mpi-tool-options-gif__badge--stale');
+                // Settings changed WHILE it encoded leave the build stale: clearing the mark
+                // unconditionally said "fresh" over a rate typed mid-encode.
+                _badge.classList.toggle('mpi-tool-options-gif__badge--stale', settingsKey() !== key);
                 _lastEncodeKey = key;
             } catch (err) {
                 if (!_destroyed) clientLogger.warn('MpiToolOptionsGif', 'GIF preview failed', err);
