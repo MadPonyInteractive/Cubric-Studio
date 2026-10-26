@@ -335,7 +335,7 @@
     line-height: 1.5;
     color: var(--ink-2);
 }
-/* A markdown description (Flow Library): keep the drawer's size over `.mpi-md`'s. */
+/* A markdown description (Model + Flow Library): keep the drawer's size over `.mpi-md`'s. */
 .mpi-detail__desc.mpi-md {
     font-size: var(--t-sm);
     line-height: 1.6;

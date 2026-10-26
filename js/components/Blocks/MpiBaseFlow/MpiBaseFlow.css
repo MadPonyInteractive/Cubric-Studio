@@ -630,6 +630,8 @@
 .mpi-base-flow__work-hint-line:first-child {
     color: var(--ink-2);
 }
+/* Hint lines are inline markdown (MPI-1298); bold is the brightest ink, like `.mpi-md`. */
+.mpi-base-flow__work-hint-line strong { color: var(--ink-1); font-weight: 700; }
 
 /* ── Declared fields — ONE row, between canvas and hint ─────────────────── */
 /* The cap is the point. No nesting, no panels, no accordions: a gizmo wanting

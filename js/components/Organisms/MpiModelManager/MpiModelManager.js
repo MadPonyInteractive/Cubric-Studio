@@ -30,6 +30,7 @@ import { renderIcon } from '../../../utils/icons.js';
 import { ASSET_KINDS } from '../../../utils/assetKinds.js';
 import { openExternal } from '../../../utils/openExternal.js';
 import { formatBytes } from '../../../utils/formatBytes.js';
+import { renderMarkdown } from '../../../utils/markdown.js';
 import { tradeTable, sizeToGb, fitsHardware } from '../../../data/modelConstants/footprint.js';
 // MPI-853 — a cloud model's tile shows what it COSTS where a local model shows its
 // size, because that is the same question answered in the currency that applies.
@@ -862,7 +863,7 @@ export const MpiModelManager = ComponentFactory.create({
                     </div>
                     <span class="mpi-detail__pill mpi-detail__pill--${model.mediaType}">${ASSET_KINDS.find(k => k.kind === model.mediaType)?.singular || 'Image'}</span>
                 </div>
-                ${model.description ? `<p class="mpi-detail__desc">${model.description}</p>` : ''}
+                ${model.description ? `<div class="mpi-detail__desc mpi-md">${renderMarkdown(model.description)}</div>` : ''}
                 <div class="mpi-detail__field" id="detail-arch" style="display:none;">
                     <span class="mpi-detail__field-label">GPU weight</span>
                     <div class="mpi-detail__toggle-row" id="detail-arch-row"></div>

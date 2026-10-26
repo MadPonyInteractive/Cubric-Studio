@@ -108,7 +108,8 @@ const ALL_MODELS = [
             upscale: { Input_wf_type: 7 },
         },
         gen_speed: 'fast',
-        description: 'This image generator uses the famous Juggernaut XL model as its base. It can create different styles but is best suited for realistic images.',
+        description: 'This image generator uses the famous **Juggernaut XL** model as its base.\n\n'
+            + 'It can create different styles but is **best suited for realistic images**.',
         workflows: {
             // MPI-365: ONE file for all five ops — the branch is chosen by opInject's
             // Input_wf_type and lazy evaluation prunes the rest at run time. The old
@@ -186,7 +187,7 @@ const ALL_MODELS = [
             upscale: { Input_wf_type: 7 },
         },
         gen_speed: 'fast',
-        description: 'This spicy image generator uses one of the best NSFW models available for SDXL, the famous Lustify model by Coyotte.',
+        description: 'This spicy image generator uses one of the **best NSFW models available for SDXL**: the famous Lustify model by Coyotte.',
         workflows: {
             // MPI-365: ONE file for all five ops — the branch is chosen by opInject's
             // Input_wf_type and lazy evaluation prunes the rest at run time. The old
@@ -268,7 +269,7 @@ const ALL_MODELS = [
             upscale: { Input_wf_type: 7 },
         },
         gen_speed: 'fast',
-        description: 'Illustrous workflows for Anime style images with an extra shine using AlchemyMix V176.',
+        description: 'Illustrious workflows for **anime-style images** with an extra shine, using AlchemyMix V176.',
         workflows: {
             // MPI-365: ONE file for all five ops — the branch is chosen by opInject's
             // Input_wf_type and lazy evaluation prunes the rest at run time. The old
@@ -350,7 +351,7 @@ const ALL_MODELS = [
             upscale: { Input_wf_type: 7 },
         },
         gen_speed: 'fast',
-        description: 'Illustrous workflows for Anime style images using AnimeMix V8.',
+        description: 'Illustrious workflows for **anime-style images**, using AnimeMix V8.',
         workflows: {
             // MPI-365: ONE file for all five ops — the branch is chosen by opInject's
             // Input_wf_type and lazy evaluation prunes the rest at run time. The old
@@ -432,7 +433,8 @@ const ALL_MODELS = [
             upscale: { Input_wf_type: 7 },
         },
         gen_speed: 'fast',
-        description: 'This image generator uses the AnimerJei V3 PONY model. It is a stylized model that can create different animation styles.',
+        description: 'This image generator uses the **AnimerJei V3 PONY** model.\n\n'
+            + 'It is a stylized model that can create **different animation styles**.',
         workflows: {
             // MPI-365: ONE file for all five ops — the branch is chosen by opInject's
             // Input_wf_type and lazy evaluation prunes the rest at run time. The old
@@ -552,7 +554,8 @@ const ALL_MODELS = [
             'chroma-style-none.webp', 'chroma-style-bwsketch.webp', 'chroma-style-lenovo.webp',
             'chroma-style-brushwork.webp', 'chroma-style-anime.webp',
         ],
-        description: 'Chroma is a high-detail Flux-family image generator. It can produce some really hardcore high quality NSFW but can sometimes struggle with hands.',
+        description: 'Chroma is a **high-detail Flux-family image generator**. It can produce some really hardcore, high-quality NSFW.\n\n'
+            + '*It can sometimes struggle with hands.*',
         workflows: {
             // MPI-365: ONE file for all five ops — the branch is chosen by opInject's
             // Input_wf_type and lazy evaluation prunes the rest at run time.
@@ -637,7 +640,8 @@ const ALL_MODELS = [
             'chroma-style-none.webp', 'chroma-style-bwsketch.webp', 'chroma-style-lenovo.webp',
             'chroma-style-brushwork.webp', 'chroma-style-anime.webp',
         ],
-        description: 'A faster, lighter Chroma — the same high-detail Flux-family image generator distilled to run quicker at low VRAM. Great for realistic, hardcore NSFW; hands can still struggle.',
+        description: '**A faster, lighter Chroma:** the same high-detail Flux-family image generator, distilled to run quicker at low VRAM.\n\n'
+            + 'Great for realistic, hardcore NSFW. *Hands can still struggle.*',
         workflows: {
             t2i: 'chroma_hyper_t2i.json',
             i2i: 'chroma_hyper_t2i.json',
@@ -766,7 +770,9 @@ const ALL_MODELS = [
             'krea2-style-vintagetarot.webp', 'krea2-style-midjourney.webp',
         ],
         gen_speed: 'balanced',
-        description: 'Krea 2 at full quality — the un-distilled Raw weight with a working negative prompt. Edit an image with a prompt (changes only what you ask; add a second reference image to pull from both), plus the distinctive photographic look, ten style LoRAs, depth reference, up to 2K. Uses the most VRAM and is slower than Turbo — best on a high-end NVIDIA card.',
+        description: '**Krea 2 at full quality:** the un-distilled Raw weight, with a working negative prompt.\n\n'
+            + '**Edit an image with a prompt:** it changes only what you ask, and a second reference image lets it pull from both. You also get the distinctive photographic look, ten style LoRAs, depth reference, and sizes up to 2K.\n\n'
+            + '*Uses the most VRAM and is slower than Turbo. Best on a high-end NVIDIA card.*',
         workflows: {
             // MPI-365: ONE file for all six ops — the branch is chosen by opInject's
             // Input_wf_type above. The separate krea2_detailer_* / krea2_upscaler_*
@@ -901,7 +907,9 @@ const ALL_MODELS = [
             'krea2-style-vintagetarot.webp', 'krea2-style-midjourney.webp',
         ],
         gen_speed: 'balanced',
-        description: 'The spicy Lustify Krea weights at full quality — the un-distilled Raw weight with a working negative prompt. Edit an image with a prompt (changes only what you ask; add a second reference image to pull from both), plus the photographic look, ten style LoRAs, depth reference, up to 2K. int8 weight: fastest on NVIDIA RTX (Turing+); uses the most VRAM and is slower than Turbo.',
+        description: '**The spicy Lustify Krea weights at full quality:** the un-distilled Raw weight, with a working negative prompt.\n\n'
+            + '**Edit an image with a prompt:** it changes only what you ask, and a second reference image lets it pull from both. You also get the photographic look, ten style LoRAs, depth reference, and sizes up to 2K.\n\n'
+            + '*int8 weight: fastest on NVIDIA RTX (Turing+). Uses the most VRAM and is slower than Turbo.*',
         workflows: {
             // ONE file for all six ops (MPI-365) — see the SFW card above.
             t2i:       'krea2_t2i_nsfw.json',
@@ -967,7 +975,9 @@ const ALL_MODELS = [
         showSettings: false,
         supportedOps: ['pid'],
         gen_speed: 'fast',
-        description: 'NVIDIA PiD generative 4x image upscaler. This upscaler offers you 4 different models. (Flux/SD3/Qwen/SDXL) Each providing you different results. Like with any other model, you should reuse the prompt that generated the initial image or describe the image for better results. ',
+        description: '**NVIDIA PiD generative 4x image upscaler.**\n\n'
+            + 'It offers **4 different models** (Flux, SD3, Qwen, SDXL), each giving different results.\n\n'
+            + '**Tip:** like with any other model, reuse the prompt that generated the original image, or describe the image, for better results.',
         workflows: {
             pid: 'nvidia_pid.json',
         },
@@ -1082,7 +1092,10 @@ const ALL_MODELS = [
             'klein-style-doodle.webp', 'klein-style-vintage.webp', 'klein-style-aesthetic.webp',
         ],
         gen_speed: 'fast',
-        description: 'The fastest image model in Cubric Studio, and the quickest way to REMOVE things — mask an object, run Inpaint with an instruction that names it ("remove the tattoo"), and it is gone in seconds. Apache-2.0 and only 4B, so it runs where the big models will not. Generate from text, reshape an image, follow a depth reference, edit with up to three reference images, detail and upscale — all with eight style LoRAs available on every operation. Quality is modest next to Krea 2; this one is built for speed and for cleaning images up.',
+        description: '**The fastest image model in Cubric Studio**, and the quickest way to **remove things**: mask an object, run Inpaint with an instruction that names it ("remove the tattoo"), and it is gone in seconds.\n\n'
+            + 'Apache-2.0 and only 4B, so it runs where the big models will not.\n\n'
+            + 'Generate from text, reshape an image, follow a depth reference, edit with up to three reference images, detail and upscale, all with **eight style LoRAs** available on every operation.\n\n'
+            + '*Quality is modest next to Krea 2; this one is built for speed and for cleaning images up.*',
         workflows: {
             // ONE file for all seven ops — the branch is chosen by opInject above.
             t2i:           'klein_t2i.json',
@@ -1214,7 +1227,11 @@ const ALL_MODELS = [
             'klein-9b-style-vintage.webp', 'klein-9b-style-watercolour.webp',
         ],
         gen_speed: 'balanced',
-        description: 'FLUX.2 Klein at 9B — the same seven operations as the 4B card with more detail and stronger prompt adherence, traded against speed and a non-commercial model licence you confirm before downloading (the IMAGES you make stay commercially usable). Needs roughly 15GB of video memory at peak, so on a 16GB card the margin is thin; the 4B card is the one to use if you hit out-of-memory. Seven style LoRAs are available on every operation — a different set from the 4B card, because most styles have no 9B version at all. Reference-driven placement lands about two times in three on every 9B weight tested, and it fails quietly — if it places the wrong person, or nobody, run it again.',
+        description: '**FLUX.2 Klein at 9B:** the same seven operations as the 4B card, with **more detail and stronger prompt adherence**, traded against speed.\n\n'
+            + '**Seven style LoRAs** are available on every operation. It is a different set from the 4B card, because most styles have no 9B version at all.\n\n'
+            + '**Needs roughly 15GB of video memory at peak**, so on a 16GB card the margin is thin. If you hit out-of-memory, use the 4B card.\n\n'
+            + 'Reference-driven placement lands about two times in three on every 9B weight tested, and it fails quietly: *if it places the wrong person, or nobody, run it again.*\n\n'
+            + '*Non-commercial model licence, which you confirm before downloading. The IMAGES you make stay commercially usable.*',
         workflows: {
             // ONE file for all seven ops, baked by generate_klein.py from the shared template.
             t2i:           'klein_9b_t2i.json',
@@ -1280,7 +1297,8 @@ const ALL_MODELS = [
         loraStrengths: ['model'],
         capabilities: { multiStage: false, audio: false, negativePrompt: true },
         gen_speed: 'slow',
-        description: 'Boogu Image Edit is a unified 10B instruction image editor. Describe the change you want and it edits the image while preserving the rest. The High tier uses the full bf16 weights at 30 steps for the best quality; needs the most VRAM.',
+        description: '**Boogu Image Edit** is a unified 10B instruction image editor. **Describe the change you want** and it edits the image while preserving the rest.\n\n'
+            + 'The **High** tier uses the full bf16 weights at 30 steps for the best quality. *It needs the most VRAM.*',
         workflows: {
             edit: 'boogu_edit_high.json',
         },
@@ -1315,7 +1333,9 @@ const ALL_MODELS = [
         loraStrengths: ['model'],
         capabilities: { multiStage: false, audio: false, negativePrompt: false },
         gen_speed: 'balanced',
-        description: 'Boogu Image Edit is a unified 10B instruction image editor. Describe the change you want and it edits the whole image while preserving the rest. The Balanced tier uses a distilled turbo (int8) weight at 8 steps — fast, lower VRAM, and consistent across NVIDIA GPUs. Fastest on NVIDIA RTX (Turing+); older or non-NVIDIA GPUs may be slow. Its understanding is not as deep as the High tier, but it is still a capable image editor.',
+        description: '**Boogu Image Edit** is a unified 10B instruction image editor. **Describe the change you want** and it edits the whole image while preserving the rest.\n\n'
+            + 'The **Balanced** tier uses a distilled turbo (int8) weight at 8 steps: fast, lower VRAM, and consistent across NVIDIA GPUs. Its understanding is not as deep as the High tier, but it is still a capable image editor.\n\n'
+            + '*Fastest on NVIDIA RTX (Turing+); older or non-NVIDIA GPUs may be slow.*',
         workflows: {
             edit: 'boogu_edit_balanced.json',
         },
@@ -1372,7 +1392,8 @@ const ALL_MODELS = [
         // restoring the deleted wan22_t2v graph + its template.
         supportedOps: ['i2v_ms'],
         gen_speed: 'fast',
-        description: "This video generator uses the Wan 2.2 SmoothMix models. Providing any style in image to video. It's fast and completely uncensored. It creates videos at 16 fps, so it is advisable to interpolate them later.",
+        description: 'This video generator uses the **Wan 2.2 SmoothMix** models, for **any style in image to video**. It is fast and completely uncensored.\n\n'
+            + '**Tip:** it creates videos at 16 fps, so it is worth interpolating them later.',
         workflows: {
             i2v_ms: 'wan22_i2v.json',
         },
@@ -1422,7 +1443,8 @@ const ALL_MODELS = [
         loraStrengths: ['model', 'clip'],
         supportedOps: ['t2v_ms', 'i2v_ms', 'ref2v_ms'],
         gen_speed: 'fast',
-        description: 'This video generator is one of the best open source models available. It comes with synchronized audio — reference-voice and direct-audio modes. A faster tier that trades a little quality for speed and lighter VRAM use.',
+        description: '**One of the best open-source video generators available**, with **synchronized audio**: reference-voice and direct-audio modes.\n\n'
+            + 'A faster tier that trades a little quality for speed and lighter VRAM use.',
         // The int8 sibling of the High card's file — same graph, different transformer
         // baked by generate_ltx.py. No suffix is resolved any more: the arch axis that
         // produced one is gone, so the filename is named outright.
@@ -1488,7 +1510,8 @@ const ALL_MODELS = [
         loraStrengths: ['model', 'clip'],
         supportedOps: ['t2v_ms', 'i2v_ms', 'ref2v_ms'],
         gen_speed: 'fast',
-        description: 'The newest LTX video generator, with more natural acting than LTX 2.3 and faster. It comes with synchronized audio: reference-voice and direct-audio modes.',
+        description: '**The newest LTX video generator**, with **more natural acting** than LTX 2.3, and faster.\n\n'
+            + 'It comes with **synchronized audio**: reference-voice and direct-audio modes.',
         workflows: {
             t2v_ms: 'ltx25_i2v_t2v.json',
             i2v_ms: 'ltx25_i2v_t2v.json',
@@ -1577,7 +1600,8 @@ const ALL_MODELS = [
         // Input_Start_Frame.
         supportedOps: ['t2v_ms', 'i2v_ms'],
         gen_speed: 'slow',
-        description: 'Generates video with synchronized stereo audio in a single pass — no separate audio step. Strong at natural motion and camera movement.',
+        description: 'Generates video with **synchronized stereo audio in a single pass**, with no separate audio step.\n\n'
+            + 'Strong at **natural motion and camera movement**.',
         workflows: {
             t2v_ms: 'minimax_h3_fl2va.json',
             i2v_ms: 'minimax_h3_fl2va.json',
@@ -1688,7 +1712,8 @@ const ALL_MODELS = [
         // every run is the same shape and the presence of chips is the only variable.
         supportedOps: ['ref2v_ms'],
         gen_speed: 'slow',
-        description: 'Keeps a character, place or voice consistent across generations from reference images alone — no training. Takes up to 9 images, 3 videos and 3 audio references, and outputs video with synchronized audio.',
+        description: '**Keeps a character, place or voice consistent** across generations from reference images alone, with no training.\n\n'
+            + 'Takes up to **9 images, 3 videos and 3 audio references**, and outputs video with synchronized audio.',
         workflows: {
             ref2v_ms: 'minimax_h3_r2va.json',
         },
@@ -1745,7 +1770,9 @@ const ALL_MODELS = [
         loraStrengths: ['model', 'clip'],
         supportedOps: ['ref2v_ms'],
         gen_speed: 'slow',
-        description: 'A community fine-tune of MiniMax H3 Reference: less tearing and better fast motion. Same references (up to 9 images, 3 videos, 3 audio), video with synchronized audio. Try it when H3 Reference tears on fast action.',
+        description: '**A community fine-tune of MiniMax H3 Reference:** less tearing and better fast motion.\n\n'
+            + 'Same references (up to 9 images, 3 videos, 3 audio), and video with synchronized audio.\n\n'
+            + '**Try it when H3 Reference tears on fast action.**',
         workflows: {
             ref2v_ms: 'minimax_h3_r2va_singularity.json',
         },
@@ -1786,7 +1813,7 @@ const ALL_MODELS = [
         // capabilities.multiStage:false. First video model to use the non-_ms ops.
         supportedOps: ['t2v', 'i2v'],
         gen_speed: 'fast',
-        description: 'This fast low-tier video generator is a lightweight version of Wan 2.2.',
+        description: '**A fast, low-tier video generator:** a lightweight version of Wan 2.2.',
         // Combined transformer: both ops ship together (LTX pattern). generate_wan5b.py
         // bakes Input_Text_to_video from the template into the two runtime files.
         workflows: {
@@ -1893,7 +1920,11 @@ const ALL_MODELS = [
             'qwen-style-caricature.webp', 'qwen-style-snapshot.webp',
         ],
         gen_speed: 'fast',
-        description: 'Qwen Image Edit 2511 is an instruction image editor: give it an image and describe the change, and it edits while preserving the rest. Takes up to three reference images at once, ships seven built-in style LoRAs, and keeps the source image dimensions. Pick a tier per run — Quality for the best result, Turbo or Hyper when you want it fast. It is at its best COMBINING images: take a character, face, garment, or object from one image and place it into another, and it keeps the reference recognisable. Refer to your images BY NUMBER in the prompt — "place the man and the woman from image 2 into the scene from image 1" — in the order you added them. (This is the opposite of Krea 2, which wants images described in natural language instead.) Single-image instruction edits are its weak side — simple attribute changes like recolouring a shirt work, but bigger rewrites tend to be ignored or come back with the framing and faces degraded. For those, try Boogu Image Edit or Krea 2.',
+        description: '**Qwen Image Edit 2511** is an instruction image editor: give it an image and describe the change, and it edits while preserving the rest.\n\n'
+            + 'Takes **up to three reference images** at once, ships seven built-in style LoRAs, and keeps the source image dimensions. Pick a tier per run: **Quality** for the best result, **Turbo** or **Hyper** when you want it fast.\n\n'
+            + '**It is at its best combining images:** take a character, face, garment or object from one image and place it into another, and it keeps the reference recognisable.\n\n'
+            + '**Refer to your images by number** in the prompt, in the order you added them: "place the man and the woman from image 2 into the scene from image 1". *This is the opposite of Krea 2, which wants images described in natural language.*\n\n'
+            + '*Single-image instruction edits are its weak side.* Simple attribute changes like recolouring a shirt work, but bigger rewrites tend to be ignored or come back with the framing and faces degraded. For those, try Boogu Image Edit or Krea 2.',
         workflows: {
             // ONE file for all three ops — branch chosen by opInject above (MPI-365).
             qwenEdit: 'qwen_edit.json',
@@ -2047,7 +2078,10 @@ const ALL_MODELS = [
             },
         },
         gen_speed: 'balanced',
-        description: 'Qwen-Image 2.1 makes images from text AND edits them, with up to eight reference images, and it also does image-to-image, structure control (depth, pose, scribble, canny), inpaint, detail and upscale. Text-to-image and edits can return a transparent background: turn on No Background in the prompt box settings. Eight styles are available on every operation (five photo looks, Detail Fix, Natural Exposure and Clay); pick one and run an edit with an empty prompt to restyle a photo like a filter. Licensed for research or evaluation only. You confirm that before downloading, and it covers the images you make too: they are not for commercial use.',
+        description: '**Qwen-Image 2.1 makes images from text and edits them**, with up to eight reference images. It also does image-to-image, structure control (depth, pose, scribble, canny), inpaint, detail and upscale.\n\n'
+            + 'Text-to-image and edits can return a **transparent background**: turn on **No Background** in the prompt box settings.\n\n'
+            + '**Eight styles** are available on every operation (five photo looks, Detail Fix, Natural Exposure and Clay). Pick one and run an edit with an empty prompt to restyle a photo like a filter.\n\n'
+            + '*Licensed for research or evaluation only. You confirm that before downloading, and it covers the images you make too: they are not for commercial use.*',
         workflows: {
             // ONE file for all seven ops.
             t2i:     'qwen_image_2_1.json',
@@ -2197,7 +2231,9 @@ const ALL_MODELS = [
             },
         },
         gen_speed: 'balanced',
-        description: 'FLUX.3 Klein from Black Forest Labs makes images from text and edits them with up to ten reference images, plus image-to-image, inpaint, detail and upscale, up to 4K. Turbo (on by default) is the fast distilled model; turn it off for the base model, which is about four times slower and clearly more natural on skin and photographs. Both are installed together. Licensed by Black Forest Labs under the FLUX Kommunity License: you confirm it before downloading, and the images are yours to use commercially if you earn under US$5 million a year.',
+        description: '**FLUX.3 Klein** from Black Forest Labs makes images from text and **edits them with up to ten reference images**, plus image-to-image, inpaint, detail and upscale, up to 4K.\n\n'
+            + '**Turbo** (on by default) is the fast distilled model. Turn it off for the **base model**, which is about four times slower and clearly more natural on skin and photographs. Both are installed together.\n\n'
+            + '*Licensed by Black Forest Labs under the FLUX Kommunity License: you confirm it before downloading, and the images are yours to use commercially if you earn under US$5 million a year.*',
         workflows: {
             // ONE file for all six ops, baked by generate_flux3.py.
             t2i:     'flux3_t2i.json',
@@ -2293,7 +2329,10 @@ const ALL_MODELS = [
             ],
         },
         gen_speed: 'fast',
-        description: 'MOSS-Image from OpenMOSS makes images from text, and is especially good at exact lettering: signs, posters, covers and labels come out spelled as you wrote them, even with long, detailed prompts. It also does image-to-image, inpaint, detail and upscale, but it cannot edit from a reference image. Turbo (on by default) makes an image in about ten seconds; turn it off for the slower SFT model, which is softer and more natural. Both are installed together. Apache-2.0.',
+        description: '**MOSS-Image** from OpenMOSS makes images from text, and is especially good at **exact lettering**: signs, posters, covers and labels come out spelled as you wrote them, even with long, detailed prompts.\n\n'
+            + 'It also does image-to-image, inpaint, detail and upscale, *but it cannot edit from a reference image.*\n\n'
+            + '**Turbo** (on by default) makes an image in about ten seconds. Turn it off for the slower **SFT** model, which is softer and more natural. Both are installed together.\n\n'
+            + '*Apache-2.0.*',
         workflows: {
             // ONE file for all five ops, baked by generate_moss.py.
             t2i:     'moss_t2i.json',
@@ -2353,7 +2392,8 @@ const ALL_MODELS = [
         showSettings: false,
         supportedOps: ['t2a'],
         gen_speed: 'fast',
-        description: 'Describe a sound and hear it. Backing tracks and instrumentals, a single instrument, sound effects, or a one-shot hit — Stable Audio 3 makes it, at exactly the length you ask for.',
+        description: '**Describe a sound and hear it.**\n\n'
+            + 'Backing tracks and instrumentals, a single instrument, sound effects, or a one-shot hit: Stable Audio 3 makes it, **at exactly the length you ask for**.',
         workflows: { t2a: 'stable_audio_3.json' },
         dependencies: [
             'stable-audio-3-medium',      // 8.59GB — Music and Instrument
@@ -2384,7 +2424,8 @@ const ALL_MODELS = [
         showSettings: false,
         supportedOps: ['tts'],
         gen_speed: 'fast',
-        description: 'Type a line and hear it spoken. Give Chatterbox a sample of the voice you want it in, pick one of 23 languages, and it reads your text in that voice.',
+        description: '**Type a line and hear it spoken.**\n\n'
+            + 'Give Chatterbox **a sample of the voice** you want, pick one of **23 languages**, and it reads your text in that voice.',
         workflows: { tts: 'chatterbox_tts.json' },
         dependencies: [
             // The English arm (3.19GB).
@@ -2445,7 +2486,9 @@ const ALL_MODELS = [
         // Batch is REAL here and costs four times as much, because the provider bills per
         // image. It is the same control SDXL uses, capped at the same 4.
         batchOps: ['t2i'],
-        description: 'FLUX Schnell running in the cloud on your own DeepInfra key, so it needs no GPU, no download and no engine. Four-step distilled: fast, cheap (about $0.0005 an image) and good at clean graphic images, product shots and quick concepts. You pay DeepInfra directly for what you use, and nothing is stored here but the picture.',
+        description: '**FLUX Schnell running in the cloud** on your own DeepInfra key, so it needs no GPU, no download and no engine.\n\n'
+            + 'Four-step distilled: fast, cheap and good at clean graphic images, product shots and quick concepts.\n\n'
+            + '**About $0.0005 an image.** You pay DeepInfra directly for what you use, and nothing is stored here but the picture.',
         // A cloud model ships no graph. The key is the install.
         workflows: {},
     },
@@ -2497,7 +2540,9 @@ const ALL_MODELS = [
         // outpainted, subject intact (cloud probe 2026-10-20). 4.5 too; NOT 5 Pro (stretches).
         customSizeOps: ['edit'],
         capabilities: { negativePrompt: false, batch: false },
-        description: 'ByteDance Seedream 4, running at DeepInfra on your own key — no GPU, no download. Strong at photographic scenes and readable text in the image, at 2K or 4K. About $0.04 an image, billed to you by DeepInfra.',
+        description: '**ByteDance Seedream 4**, running at DeepInfra on your own key, with no GPU and no download.\n\n'
+            + 'Strong at **photographic scenes** and **readable text in the image**, at 2K or 4K.\n\n'
+            + '**About $0.04 an image**, billed to you by DeepInfra.',
         workflows: {},
     },
     {
@@ -2514,7 +2559,8 @@ const ALL_MODELS = [
         supportedOps: ['t2i', 'edit'],
         customSizeOps: ['edit'],   // as Seedream 4 (MPI-1207)
         capabilities: { negativePrompt: false, batch: false },
-        description: 'Seedream 4.5 — the same shape as Seedream 4 with a newer checkpoint behind it: better prompt following and cleaner faces, at the same $0.04 an image. Runs at DeepInfra on your own key.',
+        description: '**Seedream 4.5:** the same shape as Seedream 4 with a newer checkpoint behind it, for **better prompt following and cleaner faces**.\n\n'
+            + '**About $0.04 an image**, the same as Seedream 4. Runs at DeepInfra on your own key.',
         workflows: {},
     },
     {
@@ -2544,7 +2590,8 @@ const ALL_MODELS = [
         // the figure sideways (2026-10-20), unlike Seedream 4 / 4.5. Follows the source.
         imageSizedOps: ['edit'],
         capabilities: { negativePrompt: false, batch: false, multiReference: true },
-        description: 'Seedream 5.0 Pro, the top of the Seedream line, on your own DeepInfra key. About $0.05 an image up to 1.5K and about $0.10 above it — the tier selector is what moves you between the two.',
+        description: '**Seedream 5.0 Pro**, the top of the Seedream line, on your own DeepInfra key.\n\n'
+            + '**About $0.05 an image up to 1.5K and about $0.10 above it.** The tier selector is what moves you between the two.',
         workflows: {},
     },
 
@@ -2572,7 +2619,8 @@ const ALL_MODELS = [
         customSizeOps: ['edit'],
         enhanceRecipe: 'flux-2',
         capabilities: { negativePrompt: false, batch: false, multiReference: true },
-        description: 'FLUX 2 Dev in the cloud on your own DeepInfra key. The open FLUX 2 weights without the download: about $0.02 an image at this size. Price rises with pixels on this one, so a larger ratio costs more.',
+        description: '**FLUX 2 Dev in the cloud** on your own DeepInfra key: the open FLUX 2 weights without the download.\n\n'
+            + '**About $0.02 an image at this size.** The price rises with pixels on this one, so a larger ratio costs more.',
         workflows: {},
     },
     // MPI-918: the local `klein-9b` weights at DeepInfra, so a Flow tuned on Klein can run its
@@ -2597,7 +2645,8 @@ const ALL_MODELS = [
         // Klein's own recipe, as on the local card: every Flow prompt was tuned on it.
         enhanceRecipe: 'flux',
         capabilities: { negativePrompt: false, batch: false, multiReference: true },
-        description: 'FLUX.2 Klein 9B in the cloud on your own DeepInfra key: the same model as the local Klein 9B, with no GPU and no download. About $0.015 an image at this size, and the price rises with pixels, so a larger picture costs more.',
+        description: '**FLUX.2 Klein 9B in the cloud** on your own DeepInfra key: the same model as the local Klein 9B, with no GPU and no download.\n\n'
+            + '**About $0.015 an image at this size.** The price rises with pixels, so a larger picture costs more.',
         workflows: {},
     },
     {
@@ -2621,7 +2670,8 @@ const ALL_MODELS = [
         supportedOps: ['t2i', 'edit'],
         enhanceRecipe: 'flux-2',
         capabilities: { negativePrompt: false, batch: false, multiReference: true },
-        description: 'FLUX 2 Pro on your own DeepInfra key — Black Forest Labs\' hosted tier, sharper and more literal than Dev. About $0.03 an image at this size, plus about $0.015 for each reference image.',
+        description: '**FLUX 2 Pro** on your own DeepInfra key: Black Forest Labs’ hosted tier, **sharper and more literal than Dev**.\n\n'
+            + '**About $0.03 an image at this size**, plus about $0.015 for each reference image.',
         workflows: {},
     },
     {
@@ -2638,7 +2688,8 @@ const ALL_MODELS = [
         supportedOps: ['t2i', 'edit'],
         enhanceRecipe: 'flux-2',
         capabilities: { negativePrompt: false, batch: false, multiReference: true, multiReference8: true },
-        description: 'FLUX 2 Max, the top FLUX tier, on your own DeepInfra key. The best prompt adherence of the three and the dearest: about $0.07 an image, plus about $0.03 for each reference image — worth it for a final, not for exploring.',
+        description: '**FLUX 2 Max**, the top FLUX tier, on your own DeepInfra key. **The best prompt adherence of the three**, and the dearest.\n\n'
+            + '**About $0.07 an image**, plus about $0.03 for each reference image. *Worth it for a final, not for exploring.*',
         workflows: {},
     },
 
@@ -2672,7 +2723,8 @@ const ALL_MODELS = [
         // Up to four references in the prompt box, collaged into the ONE image this
         // endpoint takes (MPI-919). Gates slots 2-4 of the `edit` op.
         capabilities: { negativePrompt: false, batch: false, multiReference: true, referenceCollage: true },
-        description: 'Google\'s Nano Banana 2 Lite on your own DeepInfra key — the cheap end of the family at about $0.034 an image, and very good at edits that keep the rest of the picture intact. Output is about 1 MP whatever ratio you pick.',
+        description: '**Google’s Nano Banana 2 Lite** on your own DeepInfra key: the cheap end of the family, and **very good at edits that keep the rest of the picture intact**.\n\n'
+            + '**About $0.034 an image.** Output is about 1 MP whatever ratio you pick.',
         workflows: {},
     },
     {
@@ -2695,7 +2747,9 @@ const ALL_MODELS = [
         // while BOTH its cheaper and its dearer sibling accepted the identical request
         // (01d § 3). Shipped on Fabio's call. `CONTENT_FILTERED` in cloudExecutor.js is
         // the copy a user meets when it happens, and a refused call is not billed.
-        description: 'Nano Banana 2 on your own DeepInfra key, about $0.067 an image. The middle of Google\'s family: better at faces and fine detail than Lite. Its content filter is stricter than either sibling\'s — if it refuses, try Lite or Pro, and nothing is charged for a refusal.',
+        description: '**Nano Banana 2** on your own DeepInfra key: the middle of Google’s family, **better at faces and fine detail** than Lite.\n\n'
+            + '**About $0.067 an image.**\n\n'
+            + '*Its content filter is stricter than either sibling’s.* If it refuses, try Lite or Pro; nothing is charged for a refusal.',
         workflows: {},
     },
     {
@@ -2722,7 +2776,9 @@ const ALL_MODELS = [
         // Up to four references in the prompt box, collaged into the ONE image this
         // endpoint takes (MPI-919). Gates slots 2-4 of the `edit` op.
         capabilities: { negativePrompt: false, batch: false, multiReference: true, referenceCollage: true },
-        description: 'Nano Banana Pro on your own DeepInfra key, about $0.134 an image — the strongest of the family at text in the image and at following a long prompt exactly. Google also calls it Gemini 3 Pro Image; it is the same model either way.',
+        description: '**Nano Banana Pro** on your own DeepInfra key: the strongest of the family at **text in the image** and at **following a long prompt exactly**.\n\n'
+            + '**About $0.134 an image.**\n\n'
+            + 'Google also calls it Gemini 3 Pro Image; it is the same model either way.',
         workflows: {},
     },
 
@@ -2745,7 +2801,9 @@ const ALL_MODELS = [
         supportedOps: ['t2v', 'i2v'],
         enhanceRecipe: 'seedance-1.5',
         capabilities: { negativePrompt: false, batch: false },
-        description: 'ByteDance Seedance 1.5 Pro on your own DeepInfra key — no GPU and no 30 GB download. Clips of 4 to 12 seconds with real camera movement. Billed per token, which works out at about $0.30 for five seconds at 1080p; shorter and smaller clips cost proportionally less.',
+        description: '**ByteDance Seedance 1.5 Pro** on your own DeepInfra key, with no GPU and no 30 GB download.\n\n'
+            + 'Clips of **4 to 12 seconds** with **real camera movement**.\n\n'
+            + 'Billed per token, which works out at **about $0.30 for five seconds at 1080p**. Shorter and smaller clips cost proportionally less.',
         workflows: {},
     },
     {
@@ -2769,7 +2827,9 @@ const ALL_MODELS = [
         // Its own feed publishes the CHEAP "with reference video" token band, which a
         // plain call does not get; deepinfraPricing.js overrides it with the measured
         // dear band. That override is why this description can quote $2.07 honestly.
-        description: 'Seedance 2.0, the newest ByteDance video model, on your own DeepInfra key. Clips up to 15 seconds and a clear step up in motion and coherence — and much dearer than 1.5 Pro: about $2.07 for five seconds at 1080p. Check the estimate before you run it.',
+        description: '**Seedance 2.0**, the newest ByteDance video model, on your own DeepInfra key.\n\n'
+            + 'Clips **up to 15 seconds**, and a clear step up in motion and coherence.\n\n'
+            + '**Much dearer than 1.5 Pro: about $2.07 for five seconds at 1080p.** Check the estimate before you run it.',
         workflows: {},
     },
     {
@@ -2798,7 +2858,8 @@ const ALL_MODELS = [
         // otherwise); negativePrompt: false keeps the audio-negative stop it would arm
         // off, as on minimax-h3-ref2va. endFrame shows i2v's optional last frame.
         capabilities: { negativePrompt: false, batch: false, audio: true, endFrame: true },
-        description: 'Wan 3.0 on your own DeepInfra key — the hosted Wan, up to 30 seconds a clip. Priced per second and per tier: $0.05/s at 480p, $0.10/s at 720p, $0.20/s at 1080p, so five seconds at 1080p is about $1.00. Dropping a tier genuinely halves it.',
+        description: '**Wan 3.0** on your own DeepInfra key: the hosted Wan, **up to 30 seconds a clip**.\n\n'
+            + 'Priced per second and per tier: **$0.05/s at 480p, $0.10/s at 720p, $0.20/s at 1080p**, so five seconds at 1080p is about $1.00. Dropping a tier genuinely halves it.',
         workflows: {},
     },
     {
@@ -2826,7 +2887,8 @@ const ALL_MODELS = [
         // nicety on this model.
         capabilities: { negativePrompt: true, batch: true },
         batchOps: ['t2v', 'i2v'],
-        description: 'Google Veo 3.1 Fast on your own DeepInfra key, with sound. Fixed eight-second clips at $0.15 a second — about $1.20 each. The cheaper of the two Veos and the one to explore with.',
+        description: '**Google Veo 3.1 Fast** on your own DeepInfra key, **with sound**.\n\n'
+            + 'Fixed eight-second clips at $0.15 a second: **about $1.20 each**. The cheaper of the two Veos, and the one to explore with.',
         workflows: {},
     },
     {
@@ -2843,7 +2905,8 @@ const ALL_MODELS = [
         supportedOps: ['t2v', 'i2v'],
         capabilities: { negativePrompt: true, batch: true },
         batchOps: ['t2v', 'i2v'],
-        description: 'Google Veo 3.1 on your own DeepInfra key, with sound — the best video model in this list and the dearest. Fixed eight-second clips at $0.40 a second, about $3.20 each, so a batch of four is roughly $12.80. Read the estimate first.',
+        description: '**Google Veo 3.1** on your own DeepInfra key, **with sound**: the best video model in this list, and the dearest.\n\n'
+            + 'Fixed eight-second clips at $0.40 a second: **about $3.20 each**, so a batch of four is roughly $12.80. *Read the estimate first.*',
         workflows: {},
     },
 ];

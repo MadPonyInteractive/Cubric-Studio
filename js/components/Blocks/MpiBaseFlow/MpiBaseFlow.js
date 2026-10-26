@@ -28,7 +28,7 @@ import { setDisplaySrc, resolveDisplayImage } from '../../../utils/displayImage.
 import { isVideoFile } from '../../../utils/file.js';
 import { qs, ce, on } from '../../../utils/dom.js';
 import { renderIcon } from '../../../utils/icons.js';
-import { renderMarkdownInto } from '../../../utils/markdown.js';
+import { renderMarkdownInto, renderInlineMarkdown } from '../../../utils/markdown.js';
 import { getStepKind, stepValueToParam, stepValueToMedia, isFrameKind } from './stepKinds.js';
 import { enqueueGeneration, findMissingMediaSlot, cancelCueJobs } from '../../../services/generationService.js';
 import { getCommand } from '../../../data/commandRegistry.js';
@@ -2246,8 +2246,8 @@ export const MpiBaseFlow = ComponentFactory.create({
         }
 
         /**
-         * Repaint a hint block in place. `textContent` per paragraph — the lines are
-         * flow-authored copy, never markup.
+         * Repaint a hint block in place, one paragraph per line. Each line is inline
+         * markdown (MPI-1298) for **bold** / *italic*; renderInlineMarkdown sanitizes.
          * @param {HTMLElement} el
          * @param {Object} step
          * @param {Object|null} value
@@ -2256,7 +2256,7 @@ export const MpiBaseFlow = ComponentFactory.create({
             el.innerHTML = '';
             _hintLines(step, value).forEach((line) => {
                 const para = ce('p', { className: 'mpi-base-flow__work-hint-line' });
-                para.textContent = line;
+                para.innerHTML = renderInlineMarkdown(line);
                 el.appendChild(para);
             });
         }

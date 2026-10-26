@@ -114,14 +114,16 @@ test('the Lyrics box offers the section tags, and still no voice marker', async 
     // NOTHING about the audio. Fabio followed the hint on two live runs before we
     // measured it. The key that pointed at the roster must not come back.
     assert.strictEqual(lyrics.mentions, undefined, 'the roster pointer must stay gone');
+    // A hint is a string or a list of paragraphs (MPI-1298); read every line.
+    const hint = [].concat(step.hint || []).join(' ');
     assert.ok(
-        !/angle bracket|<Singer/i.test(step.hint || ''),
+        !/angle bracket|<Singer/i.test(hint),
         'the hint must not tell the user to write a voice marker',
     );
 
     // What replaced it.
     assert.ok(Array.isArray(lyrics.tags) && lyrics.tags.length, 'the Lyrics box must offer tags');
-    assert.match(step.hint || '', /type @/i, 'the hint must say the picker is there');
+    assert.match(hint, /type @/i, 'the hint must say the picker is there');
 });
 
 test('the nine tags offered are exactly the nine the GRAPH accepts', async () => {

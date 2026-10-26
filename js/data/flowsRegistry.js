@@ -1266,7 +1266,10 @@ const ALL_FLOWS = [
                 // 75px scribble with 3px strokes rendered a grounded figure with contact
                 // shading. What matters instead is that the strokes say where, how big
                 // and what pose, which is what this copy now asks for.
-                hint: 'Draw roughly where it goes, how big it is and what pose it holds, then say what it is — the drawing gives the placement, the words give the subject. It does not need to be large: the flow crops in around whatever you draw.',
+                hint: [
+                    'Draw roughly **where it goes, how big it is and what pose it holds**, then say what it is. The drawing gives the placement; the words give the subject.',
+                    'It does not need to be large: *the flow crops in around whatever you draw.*',
+                ],
             },
             {
                 // The return region. `param: 'box1'` -> `Input_Box` through the box
@@ -1293,7 +1296,10 @@ const ALL_FLOWS = [
                 // sized from the drawing but can never be smaller than this box, so a
                 // very large box under-anchors the render and the subject comes back
                 // bigger than it was drawn.
-                hint: 'Include the subject plus room on the ground for its shadow — it is rendered around your drawing, not inside it, so a box drawn tight to the strokes will slice it. Keep it close otherwise: everything inside gets re-rendered, and a very large box makes the subject come back bigger than you drew it.',
+                hint: [
+                    'Include the subject **plus room on the ground for its shadow**. It is rendered around your drawing, not inside it, so a box drawn tight to the strokes will slice it.',
+                    'Keep it close otherwise: everything inside gets re-rendered, and *a very large box makes the subject come back bigger than you drew it.*',
+                ],
             },
         ],
         // NO `fields`. Both of the old ones were ControlNet knobs and the graph no
@@ -1490,7 +1496,11 @@ const ALL_FLOWS = [
                         ],
                     },
                 ],
-                hint: 'Rough is fine — the drawing carries placement, scale and silhouette, and the words carry the rest. Colour matters: the model reads what you paint, so a blue patch reads as water and a green one as vegetation. Nothing you draw survives into the result, so scribble freely.',
+                hint: [
+                    '**Rough is fine.** The drawing carries placement, scale and silhouette; the words carry the rest.',
+                    '**Colour matters:** the model reads what you paint, so a blue patch reads as water and a green one as vegetation.',
+                    'Nothing you draw survives into the result, so scribble freely.',
+                ],
             },
         ],
         // NO FLOW-LEVEL FIELDS. Both that lived here — the `Input_Control_Net` drawing-type
@@ -1587,7 +1597,10 @@ const ALL_FLOWS = [
                 kind: 'fields',
                 tickerLabel: 'Describe',
                 title: 'Describe your character',
-                hint: 'Enhance rewrites your description into the phrase the sheet is generated from. Edit it freely — whatever is in the lower box is what runs. Leave it empty and your own words run raw.',
+                hint: [
+                    '**Enhance** rewrites your description into the phrase the sheet is generated from.',
+                    'Edit it freely: **whatever is in the lower box is what runs**. Leave it empty and your own words run raw.',
+                ],
                 fields: [
                     {
                         id: 'positive', type: 'text', rows: 3, label: 'Your character',
@@ -1759,8 +1772,8 @@ const ALL_FLOWS = [
                 tickerLabel: 'Face',
                 title: 'Box the face',
                 hint: [
-                    'Box the head and shoulders, hair and headwear included: the portrait copies what is inside the box.',
-                    'Adding a full-body picture? The sheet takes its build and clothes.',
+                    '**Box the head and shoulders**, hair and headwear included: the portrait copies what is inside the box.',
+                    'Adding a full-body picture? The sheet takes its **build and clothes**.',
                 ],
             },
         ],
@@ -2029,7 +2042,7 @@ const ALL_FLOWS = [
                 maxGrow: OUTPAINT_MAX_GROW,
                 tickerLabel: 'Frame',
                 title: 'Choose the frame you want',
-                hint: 'Pick a shape, then drag the frame past the edges — black is what gets painted in.',
+                hint: 'Pick a shape, then **drag the frame past the edges**. Black is what gets painted in.',
             },
         ],
         fields: [
@@ -2084,7 +2097,7 @@ const ALL_FLOWS = [
                 kind: 'edges', role: 'image1',
                 tickerLabel: 'Edges',
                 title: 'Choose the edges to join',
-                hint: 'Drag a handle in from an edge: the band between the handle and the edge is repainted to meet the opposite side.',
+                hint: '**Drag a handle in from an edge:** the band between the handle and the edge is repainted to meet the opposite side.',
             },
         ],
         // The result carries the Tiles slider (`result.tiles`): seams can only be judged on what
@@ -2461,8 +2474,8 @@ const ALL_FLOWS = [
                 // mask layers are never flattened, so toggling the background off and on
                 // preserves erasures.
                 hint: [
-                    'Remove the background, then erase whatever it left behind. Restore paints pixels back.',
-                    'Already cut out on transparency? Skip this step.',
+                    '**Remove the background**, then erase whatever it left behind. **Restore** paints pixels back.',
+                    'Already cut out on transparency? *Skip this step.*',
                 ],
             },
             {
@@ -2536,11 +2549,11 @@ const ALL_FLOWS = [
                 // (Fabio, 2026-08-27, twice).
                 hint: {
                     auto: [
-                        'Drag and scale the object to where it should sit.',
-                        'ALT + drag a corner rotates it. Shift keeps its proportions.',
+                        '**Drag and scale** the object to where it should sit.',
+                        '**ALT + drag** a corner rotates it. **Shift** keeps its proportions.',
                     ],
                     manual: [
-                        'The model only sees what is inside the box. Put it where the object should go, with a little room around it.',
+                        '**The model only sees what is inside the box.** Put it where the object should go, with a little room around it.',
                         'Describe the object and the angle you want in the box above.',
                     ],
                 },
@@ -2745,7 +2758,11 @@ const ALL_FLOWS = [
                 // `[Instrumental]` with nothing under it buys a section with no vocals.
                 // Said out loud here because it is the answer to "how do I get a guitar
                 // break", and the tag channel is MiniMax's closed nine words or nothing.
-                hint: 'Mark sections with [Intro] [Verse] [Pre-Chorus] [Chorus] [Post-Chorus] [Bridge] [Instrumental] [Solo] [Outro] — type @ in the lyrics to pick one. They steer the arrangement rather than guarantee it, and a tag with nothing under it buys a section with no vocals. Every line outside a tag is sung, and so is anything in round brackets: (like this) is a backing vocal, not a note to the model, so instruments and production belong in Your song or Style. The lyrics cannot hand a line to a particular voice — say who sings where in Voice notes instead.',
+                hint: [
+                    '**Mark sections** with [Intro] [Verse] [Pre-Chorus] [Chorus] [Post-Chorus] [Bridge] [Instrumental] [Solo] [Outro]; **type @** in the lyrics to pick one. They steer the arrangement rather than guarantee it, and *a tag with nothing under it buys a section with no vocals.*',
+                    '**Every line outside a tag is sung**, and so is anything in round brackets: (like this) is a backing vocal, not a note to the model. Instruments and production belong in **Your song** or **Style**.',
+                    'The lyrics cannot hand a line to a particular voice: say who sings where in **Voice notes** instead.',
+                ],
                 fields: [
                     {
                         // The roster (MPI-664 tier 2). Its `v` values are the CAPTION
@@ -3098,9 +3115,9 @@ const ALL_FLOWS = [
                 tickerLabel: 'Plan',
                 title: 'Plan the storyboard',
                 hint: [
-                    'Plan with Cosmo writes the cast once, then one block per panel: the picture, then its intent. Edit it freely: whatever is in the plan box is what gets drawn, and a cast line you change changes every panel.',
-                    'How many panels: a calm moment reads well in 4 to 6. A fast action scene with many cuts wants 10 to 12, one panel per cut.',
-                    'Added pictures? Under each one, say who or what it shows, like "Lena, a waitress". A picture works best with one character alone in it.',
+                    '**Plan with Cosmo** writes the cast once, then one block per panel: the picture, then its intent. Edit it freely: **whatever is in the plan box is what gets drawn**, and a cast line you change changes every panel.',
+                    '**How many panels:** a calm moment reads well in 4 to 6. A fast action scene with many cuts wants 10 to 12, one panel per cut.',
+                    '**Added pictures?** Under each one, say who or what it shows, like "Lena, a waitress". A picture works best with one character alone in it.',
                 ],
                 fields: [
                     {
