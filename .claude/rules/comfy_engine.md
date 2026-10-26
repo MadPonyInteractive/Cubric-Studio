@@ -74,6 +74,7 @@ See `docs/comfy.md` for the ComfyUI integration overview and `docs/data.md` for 
 - **`getComfyPath(engineRoot, ...parts)`** — shorthand for paths inside ComfyUI folder
 - **`resolveDownloadConfig()`** — async GPU detection + provisioning method
   - Detects NVIDIA (via `nvidia-smi`), AMD (via WMI), Intel Arc (via WMI)
+  - WMI is read through `powershell.exe ... Get-CimInstance Win32_VideoController`, **never `wmic`**: current Windows 11 does not ship it, the spawn fails, and every AMD / Intel Arc machine silently gets the NVIDIA build (MPI-1304)
   - Windows: selects prebuilt NVIDIA build by GPU architecture (`selectNvidiaBuild`); CUDA version (bare `nvidia-smi` stdout header) is a tiebreaker for build choice + the start-time driver floor (MPI-902)
   - Returns: `{ method: 'archive'|'uv-bootstrap', comfy: { url, filename }|null, gpu }` — `comfy` is null on Linux/macOS (uv-bootstrap)
   - Cached per session — called once during engine install/upgrade
