@@ -114,14 +114,18 @@ assertion to `tests/flow-lora-rack.test.cjs` with it.
 - **OPT-IN, and it must stay that way.** `flow_ltx_foley` carries `Input_Lora_1..6` nodes while
   deliberately declaring no rack. Filling every slot whose graph HAS the nodes would silently start
   injecting the user's LTX LoRAs into it.
-- **EVERY new Flow takes one, on every slot whose model takes LoRAs** (Fabio, 2026-10-26: "every
-  new flow needs to have LoRAs for the models that it uses", so the user can add a style). The flag
-  stays opt-in in code (the rule above); the playbook makes it the default, and a Flow without it
-  needs Fabio's word. Already have it: Character Sheet, Scribble, Draw It In, Object Stamp, Upscale
-  Video, Video Edit, Extend Video (both graphs), Character Sheet from Images (both graphs),
-  Character Sheet Editor (both graphs, phases 1 and 2), Storyboard. Foley and Outpaint do not, by
-  his call (MPI-1036). `tests/flow-lora-rack.test.cjs` `RACKS` walks each graph's chain loader ->
-  consumer; add a row with every new rack.
+- **A new Flow that MAKES pictures or video takes one, on every slot whose model takes LoRAs**
+  (Fabio, 2026-10-26: "every new flow needs to have LoRAs for the models that it uses", so the user
+  can add a style). The flag stays opt-in in code (the rule above); the playbook makes it the
+  default. Two kinds of Flow need NONE (Fabio, same day):
+  - **It works from media that already exists** (a detailer, Make Seamless, Outpaint, an upscale
+    that only refines): it picks the style up from that media.
+  - **It brings its own style and draws no characters** (Pano 360, with its baked 360 LoRAs).
+  Any other Flow without one needs Fabio's word. Already have it: Character Sheet, Scribble, Draw It
+  In, Object Stamp, Upscale Video, Video Edit, Extend Video (both graphs), Character Sheet from
+  Images (both graphs), Character Sheet Editor (both graphs, phases 1 and 2), Storyboard. Foley
+  does not, by his call (MPI-1036). `tests/flow-lora-rack.test.cjs` `RACKS` walks each graph's
+  chain loader -> consumer; add a row with every new rack.
 - **A driver Flow (`driver`, no graph) needs only the flag.** Its jobs are plain model generations
   (`buildGeneration` with a `modelId`), so `commandExecutor`'s modelId branch injects that model's
   own rack as flat `Lora_N`; there is no `loraPhases` hop to wire. Pin that each candidate's graph
