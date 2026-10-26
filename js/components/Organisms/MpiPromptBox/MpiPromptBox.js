@@ -1088,6 +1088,7 @@ export const MpiPromptBox = ComponentFactory.create({
         const _PEEK_LIVE = 'mpi-prompt-box__peek--live';
         let _peekTimer = null;
         let _peekModelId = null;
+        let _peekSwap = null;
         function _playPeek() {
             clearTimeout(_peekTimer);
             if (!document.hidden && _peekClip.getAttribute('src')) {
@@ -1095,10 +1096,13 @@ export const MpiPromptBox = ComponentFactory.create({
                 _peekWrap.style.setProperty('--peek-x', `${band + Math.random() * 14}%`);
                 _peekClip.currentTime = 0;
                 _peekClip.play().catch(() => {});
-                _peekWrap.classList.add(_PEEK_LIVE);
             }
             // ponytail: 25-60 s by feel; tune here if it reads as too busy or too rare.
             _peekTimer = setTimeout(_playPeek, 25000 + Math.random() * 35000);
+        }
+        /** @returns {boolean} the clip sits fully below the rule (its slide-down, if any, is over). */
+        function _peekGone() {
+            return new DOMMatrixReadOnly(getComputedStyle(_peekClip).transform).m42 >= _peekClip.offsetHeight - 1;
         }
         function _peekForModel(m) {
             if (!m || m.id === _peekModelId) return;
@@ -1106,11 +1110,27 @@ export const MpiPromptBox = ComponentFactory.create({
             _peekModelId = m.id;
             // Named for the mascot, as getCommandAccent: image -> vision (Prism).
             const key = m.mediaType === 'image' ? 'vision' : (m.mediaType || 'studio');
-            _peekClip.src = `assets/mascot/${key}/peek.webm`;
-            if (first) _peekTimer = setTimeout(_playPeek, 25000 + Math.random() * 35000);
-            else _playPeek();
+            _peekSwap = () => {
+                _peekSwap = null;
+                _peekClip.src = `assets/mascot/${key}/peek.webm`;
+                if (first) _peekTimer = setTimeout(_playPeek, 25000 + Math.random() * 35000);
+                else _playPeek();
+            };
+            // A new src blanks the clip, so one still on screen leaves first (MPI-1295).
+            if (_peekGone()) _peekSwap();
         }
-        _unsubs.push(on(_peekClip, 'ended', () => _peekWrap.classList.remove(_PEEK_LIVE)));
+        // Slides up once it plays, not when play() is called: a fresh src is blank until it decodes.
+        _unsubs.push(on(_peekClip, 'playing', () => _peekWrap.classList.add(_PEEK_LIVE)));
+        // Ended: slide down on its last frame. A model picked meanwhile swaps in once it is out of sight.
+        const _peekLeft = () => {
+            if (!_peekWrap.classList.contains(_PEEK_LIVE) && _peekGone()) _peekSwap?.();
+        };
+        _unsubs.push(on(_peekClip, 'ended', () => {
+            _peekWrap.classList.remove(_PEEK_LIVE);
+            _peekLeft();    // reduced motion: no slide, so no transitionend
+        }));
+        _unsubs.push(on(_peekClip, 'transitionend', _peekLeft));
+        _unsubs.push(on(_peekClip, 'transitioncancel', _peekLeft));
         _peekForModel(model);
 
         el.setModel = (newModel) => {

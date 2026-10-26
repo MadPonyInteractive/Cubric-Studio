@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1295",
+  "title": "Prompt box peek slides in and out instead of fading",
+  "description": "Same flaw MPI-1294 fixed in the Flows: every peek.webm opens and closes with the head already up, so the prompt box's fade popped the mascot in and out. Its window now slides the clip up from below the box's top rule and back down, and a model change waits for the last mascot to leave.",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-10-26T01:04:46+00:00",
+  "updated_at": "2026-10-26T01:06:36+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

@@ -48,9 +48,10 @@ test('prompt box: a model selection plays its mascot peek once; a mount does not
       const { getModelById } = await import('/js/data/modelRegistry.js');
       window.__peekBox.el.setModel(getModelById('wan-22'));
     });
+    // Live once the clip is playing, not when play() is called (MPI-1295).
+    await expect.poll(async () => (await peek()).live, { timeout: 4000 }).toBe(true);
     const picked = await peek();
     expect(picked.src).toMatch(/assets\/mascot\/video\/peek\.webm$/);
-    expect(picked.live).toBe(true);
     expect(parseFloat(picked.x)).toBeGreaterThanOrEqual(28);
     expect(parseFloat(picked.x)).toBeLessThanOrEqual(72);
 

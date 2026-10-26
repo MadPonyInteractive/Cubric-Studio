@@ -47,23 +47,26 @@
     height: calc(var(--peek-w) * 62 / 182);
     overflow: hidden;
     pointer-events: none;
-    opacity: 0;
-    transition: opacity var(--t-fast) var(--ease);
 }
 
-.mpi-prompt-box__peek--live {
-    opacity: 1;
-}
-
+/* MPI-1295: the clip waits below the rule and slides up while live, then back down once
+   it ends. No fade: every peek.webm opens and closes with the head already up, so a fade
+   popped it in and out (the Flows had the same, MPI-1294). */
 .mpi-prompt-box__peek-clip {
     position: absolute;
     left: 0;
     bottom: 0;
     width: 100%;
+    transform: translateY(100%);
+    transition: transform var(--t-slow) var(--ease);
+}
+
+.mpi-prompt-box__peek--live .mpi-prompt-box__peek-clip {
+    transform: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .mpi-prompt-box__peek {
+    .mpi-prompt-box__peek-clip {
         transition: none;
     }
 }
