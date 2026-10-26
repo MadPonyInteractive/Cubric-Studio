@@ -37,6 +37,7 @@ import { MpiTrimBar } from '../../Compounds/MpiTrimBar/MpiTrimBar.js';
 import { MpiVolumeControl } from '../../Compounds/MpiVolumeControl/MpiVolumeControl.js';
 import { formatTime } from '../../../utils/string.js';
 import { qs } from '../../../utils/dom.js';
+import { clientLogger } from '../../../services/clientLogger.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
 
 export const MpiVideoControlBar = ComponentFactory.create({
@@ -344,7 +345,7 @@ export const MpiVideoControlBar = ComponentFactory.create({
                     const videoEl = _surface ? _surface.getVideoElement() : null;
                     if (videoEl) await videoEl.requestFullscreen();
                 }
-            } catch (err) { console.error('Fullscreen request failed:', err); }
+            } catch (err) { clientLogger.error('videoControlBar', 'Fullscreen request failed', err); }
         });
 
         // ── Hotkey adjust helper ──────────────────────────────────────────
@@ -567,7 +568,7 @@ function addCb(instance, event, cb) {
     let active = true;
     instance.on(event, (payload) => {
         if (!active) return;
-        try { cb(payload); } catch (err) { console.error(`[MpiVideoControlBar] surface ${event} cb error:`, err); }
+        try { cb(payload); } catch (err) { clientLogger.error('videoControlBar', `surface ${event} callback failed`, err); }
     });
     return () => { active = false; };
 }

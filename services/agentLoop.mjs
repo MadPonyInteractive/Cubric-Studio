@@ -3091,10 +3091,6 @@ ${knowledgeIndex}`.trim();
         let i = messages.length - 1;
         while (i >= 1 && groups.length < n) {
             if (messages[i].role === 'user') {
-                // Find the start of this exchange (the user message and everything up to the next user message)
-                let start = i;
-                // Find end of this group: everything from this user message until (not including) the next user message
-                const end = i + 1;
                 // Walk forward from this user msg to find the end of the exchange
                 let j = i + 1;
                 while (j < messages.length && messages[j].role !== 'user') j++;

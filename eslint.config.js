@@ -1,4 +1,3 @@
-const js = require('@eslint/js');
 const globals = require('globals');
 const noRawDomQuery = require('./.eslint-rules/no-raw-dom-query');
 const noRawEventListener = require('./.eslint-rules/no-raw-event-listener');
@@ -59,6 +58,15 @@ module.exports = [
     },
     rules: {
       'no-undef': 'error',
+      // Dead imports and locals. A 'warn' still fails `npm run lint` (--max-warnings=0).
+      // `args: 'none'`: unused parameters document a callback's shape and are allowed.
+      // A `_` prefix marks a binding kept on purpose.
+      'no-unused-vars': ['warn', {
+        args: 'none',
+        varsIgnorePattern: '^_',
+        caughtErrors: 'none',
+        ignoreRestSiblings: true,
+      }],
     },
   },
   {

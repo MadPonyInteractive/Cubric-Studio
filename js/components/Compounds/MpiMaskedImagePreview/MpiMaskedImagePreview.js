@@ -22,7 +22,7 @@
 
 import { ComponentFactory } from '../../factory.js';
 import { ViewManager }       from '../../Primitives/MpiCanvas/managers/ViewManager.js';
-import { qs }                from '../../../utils/dom.js';
+import { qs, on }                from '../../../utils/dom.js';
 import { AUTO_PIXEL_THRESHOLD } from '../../../state.js';
 import { resolveDisplayImage } from '../../../utils/displayImage.js';
 
@@ -110,12 +110,12 @@ export const MpiMaskedImagePreview = ComponentFactory.create({
             _applyTransform();
         }
 
-        el.addEventListener('wheel',     _onWheel,    { passive: false });
-        el.addEventListener('mousedown', _onMouseDown);
-        el.addEventListener('mousemove', _onMouseMove);
-        el.addEventListener('mouseup',   _onMouseUp);
-        el.addEventListener('mouseleave',_onMouseUp);
-        el.addEventListener('dblclick',  _onDblClick);
+        on(el, 'wheel',     _onWheel,    { passive: false });
+        on(el, 'mousedown', _onMouseDown);
+        on(el, 'mousemove', _onMouseMove);
+        on(el, 'mouseup',   _onMouseUp);
+        on(el, 'mouseleave',_onMouseUp);
+        on(el, 'dblclick',  _onDblClick);
 
         // ── Resize ────────────────────────────────────────────────────────────
 

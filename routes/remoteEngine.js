@@ -18,7 +18,7 @@ const express = require('express');
 const crypto = require('crypto');
 const router = express.Router();
 const logger = require('./logger');
-const { client, setApiKeyResolver } = require('./runpodRemote');
+const { setApiKeyResolver } = require('./runpodRemote');
 const { isNetworkDownError } = require('./netCheck');
 const { ask: _ask } = require('./forkBridge');
 

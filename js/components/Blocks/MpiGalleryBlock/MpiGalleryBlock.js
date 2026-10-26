@@ -30,28 +30,27 @@ import { MpiPromptBox } from '../../Organisms/MpiPromptBox/MpiPromptBox.js';
 import { state } from '../../../state.js';
 import { Events } from '../../../events.js';
 import { openFlowFromReuse } from '../../../services/flowService.js';
-import { Hotkeys } from '../../../managers/hotkeyManager.js';
-import { ce, qs, gid } from '../../../utils/dom.js';
-import { navigate, PAGE_LANDING, PAGE_GALLERY, PAGE_GROUP_HISTORY, PAGE_SCENE } from '../../../router.js';
-import { extractFilenameFromPath, extractAbsPath, downloadMediaFiles, deleteMediaFiles, resolveMediaUrl } from '../../../utils/mediaActions.js';
+import { qs, gid, on } from '../../../utils/dom.js';
+import { navigate, PAGE_LANDING, PAGE_GROUP_HISTORY, PAGE_SCENE } from '../../../router.js';
+import { extractFilenameFromPath, extractAbsPath, downloadMediaFiles, resolveMediaUrl } from '../../../utils/mediaActions.js';
 import { describeItem } from '../../../utils/describeAction.js';
 import { resolveActiveModel, setSelectedModelId, getSelectedModelId, getSelectedOp, setSelectedOp, getLastSelectedMediaType, MODEL_MEDIA_TYPES } from '../../../utils/modelHelpers.js';
 import { truncateCardName } from '../../../utils/displayHelpers.js';
-import { MODELS, getModelsByType, getModelById, isModelUsable, isOperationInstalled, firstInstalledOp } from '../../../data/modelRegistry.js';
+import { MODELS, getModelById, isModelUsable, isOperationInstalled, firstInstalledOp } from '../../../data/modelRegistry.js';
 import { canonicalModelId } from '../../../data/modelConstants/resolveModelDeps.js';
-import { getAvailableCommands, getCommand, buildCueAllJobItems, selectCueAllTargets } from '../../../data/commandRegistry.js';
+import { getCommand, buildCueAllJobItems, selectCueAllTargets } from '../../../data/commandRegistry.js';
 import { isStack, expandStacks, stackableKind, resultStackFields, STACK_TYPE } from '../../../data/stackModel.js';
 import { getSceneItem, getPathVideoItem } from '../../../utils/assetKinds.js';
 import { convertToPano } from '../../../services/scene/sceneConvert.js';
 import { pluginAvailability, getPlugin } from '../../../data/pluginsRegistry.js';
-import { startGeneration, enqueueGeneration, clearPendingQueue, refreshQueueDepth, removeCueJob, peekCueQueue, cancelRunningCueJob } from '../../../services/generationService.js';
+import { enqueueGeneration, clearPendingQueue, refreshQueueDepth, removeCueJob, peekCueQueue, cancelRunningCueJob } from '../../../services/generationService.js';
 import { StatusBar } from '../../../shell/statusBar.js';
 import { readSavedRoutines, routineMenu, runSavedRoutine } from '../../../shell/routineDispatch.js';
 import { activeGenerations } from '../../../services/activeGenerations.js';
 import { runCpuJob } from '../../../services/cpuJobs.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { uploadMediaFile, prepareImageImport } from '../../../services/mediaUploadService.js';
-import { addGroup, updateGroup, removeGroup, persistGroups, validatePreviewAssets, applyPromptReuseSettings, listProjects, stackGroups, unstackGroup } from '../../../services/projectService.js';
+import { addGroup, updateGroup, removeGroup, validatePreviewAssets, applyPromptReuseSettings, listProjects, stackGroups, unstackGroup } from '../../../services/projectService.js';
 import { trackConcatJob } from '../../../services/concatProgress.js';
 import { buildPromptReuseSettings, resolvePromptReuseMediaItems, payloadHasReusableImages, payloadHasReusableVideos, payloadHasReusableAudio, isFlowCardItem } from '../../../utils/promptReuse.js';
 import {
@@ -259,15 +258,15 @@ export const MpiGalleryBlock = ComponentFactory.create({
         };
         const _onDragOver = (e) => { if (_isFileDrag(e)) e.preventDefault(); };
 
-        window.addEventListener('dragenter', _onDragEnter);
-        window.addEventListener('dragleave', _onDragLeave);
-        window.addEventListener('dragover',  _onDragOver);
+        on(window, 'dragenter', _onDragEnter);
+        on(window, 'dragleave', _onDragLeave);
+        on(window, 'dragover',  _onDragOver);
         // CAPTURE (MPI-532). Every drop overlay — this one, and the Flow Library's, which
         // can sit over the gallery — calls stopPropagation() so the file is handled once.
         // On the bubble phase this reset therefore never ran for a drop that landed ON an
         // overlay, `_dragCounter` stayed above zero, and the next drag left the overlay
         // stuck visible over the gallery with no way to dismiss it but leaving the project.
-        window.addEventListener('drop',      _onDrop, { capture: true });
+        on(window, 'drop',      _onDrop, { capture: true });
 
         // ── Navigate to group history ───────────────────────────────────────────
         // Audio-only groups are not click-through (like preview cards) — they are

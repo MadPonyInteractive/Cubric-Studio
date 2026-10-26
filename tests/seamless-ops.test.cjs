@@ -508,7 +508,6 @@ test('16384x8192 synthetic: prepare + window + paste + finish completes', async 
     assert.ok(state.windows.length > 0, 'at least one window');
 
     // Process just the first window: cut → paste with the cut itself (identity).
-    const win0 = state.windows[0];
     const { imagePath } = await windowCut(state.runId, 0);
 
     // Paste the cut back as the result (identity — changes nothing).

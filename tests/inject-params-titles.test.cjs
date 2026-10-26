@@ -160,7 +160,7 @@ test('every opInject title exists, and covers every op the model runs (MPI-354)'
 
     const problems = [];
     for (const m of defs) {
-        for (const [op, file] of m.workflows) {
+        for (const [op] of m.workflows) {
             if (!m.opInject.has(op)) {
                 problems.push(`${m.id}: op "${op}" has a workflow but no opInject entry `
                     + '— it would run the graph\'s DEFAULT branch');

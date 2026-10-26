@@ -47,9 +47,7 @@ import { MpiInput } from '../../Primitives/MpiInput/MpiInput.js';
 import { MpiColorPicker } from '../../Primitives/MpiColorPicker/MpiColorPicker.js';
 import { CROP_RATIOS } from '../../../utils/ratios.js';
 import { qs } from '../../../utils/dom.js';
-import { state } from '../../../state.js';
-import { Events } from '../../../events.js';
-import { getToolSettings } from '../../../data/projectModel.js';
+import { readToolSettings, toolSettingsWriter } from '../../../services/toolSettings.js';
 
 const DEFAULTS = Object.freeze({
     family:       'ratio',
@@ -157,7 +155,7 @@ export const MpiToolOptionsCrop = ComponentFactory.create({
         const stackMode = !!props.stackMode && !isVideo;
 
         const _initial = coerceSettings(
-            getToolSettings(state.currentProject || {}, 'crop', DEFAULTS)
+            readToolSettings('crop', DEFAULTS)
         );
         let _family       = _initial.family;
         let _orientation  = _initial.orientation;
@@ -174,14 +172,9 @@ export const MpiToolOptionsCrop = ComponentFactory.create({
         // members of different sizes. The saved family stays for the single-card Crop.
         if (stackMode) _family = 'ratio';
 
-        const _persistTimers = new Map();
-        const persist = (key, value) => {
-            clearTimeout(_persistTimers.get(key));
-            _persistTimers.set(key, setTimeout(() => {
-                Events.emit('settings:tool:update', { toolKey: 'crop', key, value });
-                _persistTimers.delete(key);
-            }, 200));
-        };
+        // dispose() in destroy sends a write still waiting (AUDIT B2).
+        const _writer = toolSettingsWriter('crop', { delayMs: 200 });
+        const persist = _writer.persist;
 
         const familySlot   = qs('#family-slot',    el);
         const orientSlot   = qs('#orient-slot',    el);
@@ -402,8 +395,7 @@ export const MpiToolOptionsCrop = ComponentFactory.create({
         el.destroy = () => {
             if (isVideo) viewer.el.exitCropMode?.();
             else         viewer.el.exitMode?.();
-            _persistTimers.forEach(timer => clearTimeout(timer));
-            _persistTimers.clear();
+            _writer.dispose();
             orientRadio?.destroy?.();
             ratioRadio?.destroy?.();
             _children.forEach(c => c.destroy?.());

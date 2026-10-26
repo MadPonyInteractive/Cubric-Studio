@@ -39,6 +39,7 @@ const express = require('express');
 const router  = express.Router();
 const fs      = require('fs-extra');
 const path    = require('path');
+const { diskPathOf, projectFileUrlBusted } = require('../services/projectFileUrl');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
 const { v4: uuidv4 } = require('uuid');
@@ -55,16 +56,6 @@ const TEMP_DIRNAME = '.video-extract-tmp';
 const TEMP_MAX_AGE_MS = 60 * 60 * 1000;
 const TRACK_MAX_EDGE = 1024;
 
-function _resolveInput(raw) {
-    if (!raw) return '';
-    if (raw.includes('project-file?path=')) {
-        try {
-            const u = new URL(raw, 'http://localhost');
-            return decodeURIComponent(u.searchParams.get('path') || '');
-        } catch { return ''; }
-    }
-    return raw;
-}
 
 /** The same input seek on both routes, so the tracker and the cut see the same frames. */
 function _trimArgs(trimIn, trimOut) {
@@ -167,7 +158,7 @@ router.post('/video-extract/source', async (req, res) => {
         if (!folderPath || !sourcePath) {
             return res.status(400).json({ success: false, error: 'folderPath, sourcePath required' });
         }
-        const inputPath = _resolveInput(sourcePath);
+        const inputPath = diskPathOf(sourcePath) || '';
         if (!(await fs.pathExists(inputPath))) {
             return res.status(404).json({ success: false, error: 'source file not found: ' + inputPath });
         }
@@ -199,7 +190,7 @@ router.post('/video-extract/apply', async (req, res) => {
         if (!Array.isArray(masks) || !masks.length) {
             return res.status(400).json({ success: false, error: 'masks required (non-empty array)' });
         }
-        const inputPath = _resolveInput(sourcePath);
+        const inputPath = diskPathOf(sourcePath) || '';
         if (!(await fs.pathExists(inputPath))) {
             return res.status(404).json({ success: false, error: 'source file not found: ' + inputPath });
         }
@@ -232,11 +223,10 @@ router.post('/video-extract/apply', async (req, res) => {
         const newId = uuidv4();
         const metaDir = path.join(mediaDir, '.meta');
         await fs.ensureDir(metaDir);
-        const _mtime = (await fs.stat(outputPath).catch(() => null))?.mtimeMs || 0;
         const sidecar = {
             id:         newId,
             type:       'video',
-            filePath:   `/project-file?path=${encodeURIComponent(outputPath)}&v=${Math.round(_mtime)}`,
+            filePath:   projectFileUrlBusted(outputPath),
             operation:  'extract',
             displayName: finalName.replace(/\.[^.]+$/, ''),
             prompt:     '',
@@ -297,7 +287,7 @@ router.post('/video-extract/prores', async (req, res) => {
         if (!folderPath || !sourcePath) {
             return res.status(400).json({ success: false, error: 'folderPath, sourcePath required' });
         }
-        const inputPath = _resolveInput(sourcePath);
+        const inputPath = diskPathOf(sourcePath) || '';
         if (!(await fs.pathExists(inputPath))) {
             return res.status(404).json({ success: false, error: 'source file not found: ' + inputPath });
         }

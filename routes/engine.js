@@ -175,7 +175,6 @@ async function _provisionWindowsEngine(targetDir, engineInfo, missingDepIds, ins
     const type = 'comfy';
 
     // ── Download engine using FileDownloader ────────────────────────────────
-    let engineArchiveSize = 0;
     broadcastEngineEvent('engine:downloading', { progress: 0, downloadedBytes: 0, totalBytes: 0 });
 
     await fs.ensureDir(targetDir);
@@ -206,7 +205,6 @@ async function _provisionWindowsEngine(targetDir, engineInfo, missingDepIds, ins
     const downloader = new FileDownloader(depJob, archivePath);
 
     downloader.onProgress = (downloaded, total, speed) => {
-        engineArchiveSize = total;
         const progress = total > 0 ? Math.round((downloaded / total) * 100) : 0;
         broadcastEngineEvent('engine:downloading', { progress, downloadedBytes: downloaded, totalBytes: total, speed });
     };

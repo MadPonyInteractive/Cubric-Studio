@@ -1,5 +1,4 @@
 const { test, expect } = require('@playwright/test');
-const path = require('path');
 const crypto = require('crypto');
 const fs = require('fs-extra');
 const sharp = require('sharp');

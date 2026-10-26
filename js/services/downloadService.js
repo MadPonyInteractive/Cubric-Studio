@@ -17,6 +17,7 @@ import { showLicenceGate } from '../components/Compounds/MpiLicenceGate/MpiLicen
 import { remoteEngineClient } from './remoteEngineClient.js';
 import { onStream, onStreamOpen, ensureStream } from './eventStream.js';
 import { runCpuJob } from './cpuJobs.js';
+import { formatSpeed } from '../utils/formatBytes.js';
 import { jobDisplayName } from '../shell/notificationService.js';
 
 // Which engine an install POST would land on right now. Mirrors the server's
@@ -981,15 +982,9 @@ function _deriveSpeed(modelId, downloadedBytes) {
     if (dt < 1 || dBytes <= 0) return prev.label;
     const instantRate = dBytes / dt;
     const rate = prev.rate > 0 ? (prev.rate * 0.65) + (instantRate * 0.35) : instantRate;
-    const label = _formatSpeed(rate);
+    const label = formatSpeed(rate);
     _speedSamples.set(modelId, { bytes: downloadedBytes, t: now, rate, label });
     return label;
-}
-
-function _formatSpeed(bytesPerSec) {
-    if (bytesPerSec >= 1024 * 1024) return `${(bytesPerSec / 1024 / 1024).toFixed(1)} MB/s`;
-    if (bytesPerSec >= 1024) return `${(bytesPerSec / 1024).toFixed(0)} KB/s`;
-    return `${bytesPerSec.toFixed(0)} B/s`;
 }
 
 export { downloadService };

@@ -25,11 +25,11 @@ const express = require('express');
 const router  = express.Router();
 const fs      = require('fs-extra');
 const path    = require('path');
+const { projectFileUrl } = require('../services/projectFileUrl');
 const logger  = require('./logger');
 const { streamDownload } = require('./shared');
 const { prepare, windowCut, paste, finish, runDirOf } = require('../services/seamlessOps');
 
-const _fileUrl = (p) => `/project-file?path=${encodeURIComponent(p)}`;
 
 const _fail = (res, code, message, status = 200) =>
     res.status(status).json({ ok: false, error: { code, message } });
@@ -72,7 +72,7 @@ router.post('/seamless/window', async (req, res) => {
 
     try {
         const { imagePath, maskPath } = await windowCut(runId, i);
-        res.json({ ok: true, image: _fileUrl(imagePath), mask: _fileUrl(maskPath) });
+        res.json({ ok: true, image: projectFileUrl(imagePath), mask: projectFileUrl(maskPath) });
     } catch (err) {
         logger.error('project', `seamless window ${runId}:${i} failed`, err);
         _fail(res, 'SEAMLESS_FAILED', err.message);
@@ -106,7 +106,7 @@ router.post('/seamless/finish', async (req, res) => {
         const name = `result_${Date.now()}.png`;
         const outPath = await finish(runId, path.join(runDirOf(runId), name));
         logger.info('project', `seamless finish runId=${runId} -> ${name}`);
-        res.json({ ok: true, url: `${req.protocol}://${req.get('host')}${_fileUrl(outPath)}&filename=${name}` });
+        res.json({ ok: true, url: `${req.protocol}://${req.get('host')}${projectFileUrl(outPath)}&filename=${name}` });
     } catch (err) {
         logger.error('project', `seamless finish ${runId} failed`, err);
         _fail(res, 'SEAMLESS_FAILED', err.message);

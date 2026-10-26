@@ -22,6 +22,7 @@
 import { ComponentFactory } from '../../factory.js';
 import { Events } from '../../../events.js';
 import { renderIcon } from '../../../utils/icons.js';
+import { on } from '../../../utils/dom.js';
 
 function _getWebUtils() {
     try {
@@ -51,12 +52,12 @@ export const MpiProjectDropOverlay = ComponentFactory.create({
         el.show = () => el.classList.add('mpi-project-drop-overlay--visible');
         el.hide = () => el.classList.remove('mpi-project-drop-overlay--visible');
 
-        el.addEventListener('dragover', (e) => {
+        on(el, 'dragover', (e) => {
             e.preventDefault();
             if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
         });
 
-        el.addEventListener('drop', (e) => {
+        on(el, 'drop', (e) => {
             e.preventDefault();
             e.stopPropagation();
             el.hide();

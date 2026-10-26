@@ -47,6 +47,7 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs-extra');
 const path = require('path');
+const { projectFileUrlBusted } = require('../services/projectFileUrl');
 const os = require('os');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
@@ -70,10 +71,6 @@ const execFileP = promisify(execFile);
 // uses instead.
 const OUTPUT_FPS = 30;
 const DEFAULT_BACKGROUND = '#000000';
-
-function projectFileUrl(filePath) {
-    return `/project-file?path=${encodeURIComponent(filePath)}`;
-}
 
 /**
  * hundredths-of-a-second GIF delays -> whole output frames at OUTPUT_FPS, one
@@ -198,8 +195,7 @@ router.post('/gif/to-video', async (req, res) => {
         const newId = uuidv4();
         const metaDir = path.join(mediaDir, '.meta');
         await fs.ensureDir(metaDir);
-        const _mtime = (await fs.stat(outputPath).catch(() => null))?.mtimeMs || 0;
-        const filePathUrl = `${projectFileUrl(outputPath)}&v=${Math.round(_mtime)}`;
+        const filePathUrl = projectFileUrlBusted(outputPath);
 
         const sidecar = {
             id: newId,

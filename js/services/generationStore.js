@@ -77,7 +77,6 @@ const LEGAL_TRANSITIONS = new Map([
 // MPI-1069 — the fourth, 'tool', for the same reason: a sharp/ffmpeg op (Resize) runs
 // in the app's own server, and queued behind a generation it was locked for minutes.
 const LANES = ['local', 'remote', 'cloud', 'tool'];
-const MAX_ACTIVE_PER_LANE = 1;
 
 // ── Factory ───────────────────────────────────────────────────────────────────
 

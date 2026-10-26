@@ -34,7 +34,6 @@ const { probeVideo } = require('./ffprobeVideo');
 const logger = require('../routes/logger');
 
 const SILENT_SAMPLE_RATE = 48000;
-const SILENT_CHANNELS    = 2;
 const SILENT_CHANNEL_LAYOUT = 'stereo';
 
 function _parseTimeToSeconds(s) {

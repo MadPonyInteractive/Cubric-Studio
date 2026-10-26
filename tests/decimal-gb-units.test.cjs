@@ -21,6 +21,24 @@ test('formatBytes prints decimal units', async () => {
     assert.equal(formatBytes(20 * 1024 ** 3), '21.5GB');
 });
 
+test('formatSpeed prints decimal units, so a size and its speed agree', async () => {
+    const { formatSpeed } = await import(pathToFileURL(path.join(root, 'js', 'utils', 'formatBytes.js')).href);
+    assert.equal(formatSpeed(2.5e6), '2.5 MB/s');
+    assert.equal(formatSpeed(640e3), '640 KB/s');
+    assert.equal(formatSpeed(512), '512 B/s');
+    assert.equal(formatSpeed(undefined), '0 B/s');
+    // 2.5 MiB/s read "2.5 MB/s" under the old 1024-based copies.
+    assert.equal(formatSpeed(2.5 * 1024 ** 2), '2.6 MB/s');
+});
+
+test('the server speed labels come from the shared formatSpeed', () => {
+    for (const rel of ['routes/downloadManager.js', 'routes/shared.js', 'js/services/downloadService.js']) {
+        const src = fs.readFileSync(path.join(root, rel), 'utf8');
+        assert.ok(!/function _formatSpeed\(/.test(src), `${rel} defines its own _formatSpeed again`);
+        assert.ok(/formatSpeed/.test(src) && /utils\/formatBytes\.js/.test(src), `${rel} no longer uses formatBytes.js formatSpeed`);
+    }
+});
+
 test('the server disk-full / free-space formatter divides by 1e9', () => {
     // _fmtGb is module-internal to an express route file, so source-read it (the
     // disk-full-message.test.cjs convention) and evaluate just that body.

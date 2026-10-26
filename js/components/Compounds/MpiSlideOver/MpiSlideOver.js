@@ -1,6 +1,6 @@
 import { ComponentFactory } from '../../factory.js';
 import { Events } from '../../../events.js';
-import { on, qs } from '../../../utils/dom.js';
+import { on, qs, off } from '../../../utils/dom.js';
 import { mountButton } from '../../Primitives/MpiButton/MpiButton.js';
 
 /**
@@ -100,11 +100,11 @@ export const MpiSlideOver = ComponentFactory.create({
             const onEnd = () => {
                 if (_removed) return;
                 _removed = true;
-                el.removeEventListener('transitionend', onEnd);
+                off(el, 'transitionend', onEnd);
                 if (el.parentNode) el.parentNode.removeChild(el);
                 if (scrim?.parentNode) scrim.parentNode.removeChild(scrim);
             };
-            el.addEventListener('transitionend', onEnd);
+            on(el, 'transitionend', onEnd);
             // Throttled/background windows can skip the CSS transition entirely
             // (no transitionend → panel node never leaves the DOM). Backstop just
             // past --t-base (280ms) so close always completes.

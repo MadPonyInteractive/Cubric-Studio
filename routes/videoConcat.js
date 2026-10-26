@@ -23,6 +23,7 @@ const express = require('express');
 const router  = express.Router();
 const fs      = require('fs-extra');
 const path    = require('path');
+const { diskPathOf, projectFileUrlBusted } = require('../services/projectFileUrl');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('./logger');
 const { serveChannel } = require('./eventStream');
@@ -50,17 +51,6 @@ router.get('/concat/events/stream', serveChannel(attachEvents));
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function _decodeProjectFilePath(value) {
-    if (!value) return null;
-    if (value.includes('project-file?path=')) {
-        try {
-            const u = new URL(value, 'http://localhost');
-            return decodeURIComponent(u.searchParams.get('path') || '');
-        } catch (_) { return null; }
-    }
-    return value;
-}
-
 async function _readSidecar(metaDir, itemId) {
     const p = path.join(metaDir, `${itemId}.json`);
     if (!(await fs.pathExists(p))) return null;
@@ -71,7 +61,7 @@ async function _readSidecar(metaDir, itemId) {
 async function _resolveItemPath(metaDir, itemId) {
     const sidecar = await _readSidecar(metaDir, itemId);
     if (!sidecar) return { abs: null, sidecar: null };
-    const abs = _decodeProjectFilePath(sidecar.filePath);
+    const abs = diskPathOf(sidecar.filePath);
     return { abs, sidecar };
 }
 
@@ -97,8 +87,7 @@ async function _writeOutputSidecar({ mediaDir, metaDir, outputPath, finalName, o
     // Cache-bust on the output's mtime: a re-run that overwrites a reused
     // filename (e.g. combined_001.mp4 after an in-app delete) gets a fresh URL,
     // so Chromium can't replay stale cached bytes for the same /project-file path.
-    const _mtime = (await fs.stat(outputPath).catch(() => null))?.mtimeMs || 0;
-    const filePathUrl = `/project-file?path=${encodeURIComponent(outputPath)}&v=${Math.round(_mtime)}`;
+    const filePathUrl = projectFileUrlBusted(outputPath);
     const sidecar = {
         id:         newId,
         type:       'video',

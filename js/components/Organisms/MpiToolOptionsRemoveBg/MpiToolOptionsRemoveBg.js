@@ -18,9 +18,7 @@ import { ComponentFactory } from '../../factory.js';
 import { MpiRadioGroup } from '../../Primitives/MpiRadioGroup/MpiRadioGroup.js';
 import { MpiColorField } from '../../Compounds/MpiColorField/MpiColorField.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
-import { state } from '../../../state.js';
-import { Events } from '../../../events.js';
-import { getToolSettings } from '../../../data/projectModel.js';
+import { readToolSettings, toolSettingsWriter } from '../../../services/toolSettings.js';
 import { qs } from '../../../utils/dom.js';
 
 const BG_MODES = [
@@ -65,19 +63,14 @@ export const MpiToolOptionsRemoveBg = ComponentFactory.create({
 
     setup: (el, props, emit) => {
         const _initial = coerceSettings(
-            getToolSettings(state.currentProject || {}, 'removeBackground', DEFAULTS)
+            readToolSettings('removeBackground', DEFAULTS)
         );
         let _bgMode = _initial.bgMode;
         let _color  = _initial.color;
 
-        const _persistTimers = new Map();
-        const persist = (key, value) => {
-            clearTimeout(_persistTimers.get(key));
-            _persistTimers.set(key, setTimeout(() => {
-                Events.emit('settings:tool:update', { toolKey: 'removeBackground', key, value });
-                _persistTimers.delete(key);
-            }, 200));
-        };
+        // dispose() in destroy sends a write still waiting (AUDIT B2).
+        const _writer = toolSettingsWriter('removeBackground', { delayMs: 200 });
+        const persist = _writer.persist;
 
         const colorSection = qs('#color-section', el);
         const _syncColorVisibility = () => { colorSection.hidden = _bgMode !== 'color'; };
@@ -115,8 +108,7 @@ export const MpiToolOptionsRemoveBg = ComponentFactory.create({
         applyBtn.on('click', () => emit('apply', { bgMode: _bgMode, color: _color }));
 
         el.destroy = () => {
-            _persistTimers.forEach(t => clearTimeout(t));
-            _persistTimers.clear();
+            _writer.dispose();
             modeRadio.destroy?.();
             colorPicker.destroy?.();
             applyBtn.destroy?.();

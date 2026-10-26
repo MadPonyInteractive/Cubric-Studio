@@ -61,10 +61,6 @@ test('MpiThumbStrip: click select, scrub+end, Ctrl/Shift selection, right-click 
                 await sleep(50);
 
                 // ── 1. Click → thumb-select ───────────────────────────────────
-                // setItems emits one selection-change (cleared); record the baseline count.
-
-                const selBefore = events.sel.length;
-
                 const t0 = document.querySelector('.mpi-thumb-strip__thumb[data-index="0"]');
                 if (!t0) return { error: 'thumb 0 not found' };
                 const r0 = t0.getBoundingClientRect();

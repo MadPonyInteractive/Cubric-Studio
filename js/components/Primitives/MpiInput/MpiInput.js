@@ -1,5 +1,5 @@
 import { ComponentFactory } from '../../factory.js';
-import { qs } from '../../../utils/dom.js';
+import { qs, on } from '../../../utils/dom.js';
 
 /**
  * MpiInput — Form Input Primitive
@@ -101,7 +101,7 @@ export const MpiInput = ComponentFactory.create({
                 input.style.height = `${input.scrollHeight}px`;
             };
             resize();
-            input.addEventListener('input', resize);
+            on(input, 'input', resize);
         }
 
         // Programmatic write. The Primitives that get driven from outside expose one of
@@ -141,24 +141,24 @@ export const MpiInput = ComponentFactory.create({
                 }
             };
 
-            input.addEventListener('blur', commit);
-            input.addEventListener('keydown', (e) => {
+            on(input, 'blur', commit);
+            on(input, 'keydown', (e) => {
                 if (e.key === 'Enter') { commit(e); input.blur(); }
             });
-            input.addEventListener('wheel', (e) => {
+            on(input, 'wheel', (e) => {
                 e.preventDefault();
                 const raw = parseFloat(input.value) || 0;
                 const next = clampAndRound(raw + (e.deltaY < 0 ? step : -step));
                 input.value = props.decimals !== undefined ? next.toFixed(props.decimals) : String(next);
                 emit('change', { value: next, originalEvent: e });
             }, { passive: false });
-            input.addEventListener('input', (e) => {
+            on(input, 'input', (e) => {
                 const raw = parseFloat(e.target.value);
                 emit('input', { value: isNaN(raw) ? e.target.value : raw, originalEvent: e });
             });
         } else {
-            input.addEventListener('input', (e) => emit('input', { value: e.target.value, originalEvent: e }));
-            input.addEventListener('change', (e) => emit('change', { value: e.target.value, originalEvent: e }));
+            on(input, 'input', (e) => emit('input', { value: e.target.value, originalEvent: e }));
+            on(input, 'change', (e) => emit('change', { value: e.target.value, originalEvent: e }));
         }
     }
 });

@@ -1,6 +1,6 @@
 import { ComponentFactory } from '../../factory.js';
 import { Events } from '../../../events.js';
-import { on, qs } from '../../../utils/dom.js';
+import { on, qs, off } from '../../../utils/dom.js';
 
 const HEX_RE = /^#?([a-f0-9]{6})$/i;
 
@@ -280,14 +280,14 @@ export const MpiColorPicker = ComponentFactory.create({
                     const move = moveEvent => updater(moveEvent);
                     const up = (upEvent) => {
                         target.releasePointerCapture?.(upEvent.pointerId);
-                        target.removeEventListener('pointermove', move);
-                        target.removeEventListener('pointerup', up);
-                        target.removeEventListener('pointercancel', up);
+                        off(target, 'pointermove', move);
+                        off(target, 'pointerup', up);
+                        off(target, 'pointercancel', up);
                     };
 
-                    target.addEventListener('pointermove', move);
-                    target.addEventListener('pointerup', up);
-                    target.addEventListener('pointercancel', up);
+                    on(target, 'pointermove', move);
+                    on(target, 'pointerup', up);
+                    on(target, 'pointercancel', up);
                 }));
             };
 

@@ -1,7 +1,6 @@
 import { ComponentFactory } from '../../factory.js';
 import { MpiOverlay } from '../../Primitives/MpiOverlay/MpiOverlay.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
-import { MpiRadioGroup } from '../../Primitives/MpiRadioGroup/MpiRadioGroup.js';
 import { MpiMediaPicker } from '../../Compounds/MpiMediaPicker/MpiMediaPicker.js';
 import { MpiVoicePicker } from '../../Compounds/MpiVoicePicker/MpiVoicePicker.js';
 import { recordAudioIntoProject } from '../MpiAudioRecorder/MpiAudioRecorder.js';
@@ -30,7 +29,7 @@ import { qs, ce, on } from '../../../utils/dom.js';
 import { renderIcon } from '../../../utils/icons.js';
 import { renderMarkdownInto, renderInlineMarkdown } from '../../../utils/markdown.js';
 import { getStepKind, stepValueToParam, stepValueToMedia, isFrameKind } from './stepKinds.js';
-import { enqueueGeneration, findMissingMediaSlot, cancelCueJobs } from '../../../services/generationService.js';
+import { findMissingMediaSlot, cancelCueJobs } from '../../../services/generationService.js';
 import { getCommand } from '../../../data/commandRegistry.js';
 import {
     flowEnhanceDecls, enhanceTargets, enhanceSources, enhanceSourceText, enhancedWrites,
@@ -1026,8 +1025,8 @@ export const MpiBaseFlow = ComponentFactory.create({
             // onDirty rebuilds the slide, which destroys this slide's listeners —
             // the picker portals to document.body so it survives that, and tears
             // itself down on hide rather than riding the slide's unsubs.
-            picker.el.addEventListener('pick', () => picker.el.destroy?.());
-            picker.el.addEventListener('cancel', () => picker.el.destroy?.());
+            on(picker.el, 'pick', () => picker.el.destroy?.());
+            on(picker.el, 'cancel', () => picker.el.destroy?.());
             picker.el.show();
         }
 

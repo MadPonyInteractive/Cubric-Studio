@@ -192,7 +192,7 @@ function classSetOf(file) {
 const TIER_RANK = { low: 0, balanced: 1, high: 2 };
 
 function resolveSmokeSet(reg, only) {
-    const { MODELS, DEPS, resolveDeps, resolveWorkflowFile, sizeToGb } = reg;
+    const { MODELS, DEPS, resolveDeps, sizeToGb } = reg;
     const depsOf = (m, ops) => resolveDeps(m, ops || null, null, ENGINE, { arch: ARCH });
     const gbOf = (ids) => [...ids].reduce((g, i) => g + (isWeight(DEPS[i]) ? sizeToGb(DEPS[i].size) : 0), 0);
 
@@ -2251,7 +2251,7 @@ async function main() {
     const probeFiles = { image: await stageProbeImage(), ...await stageProbeMedia() };
 
     const results = [];
-    const vramGb = await podVramGb(gpu.id);
+    const vramGb = await podVramGb(activeGpu.id);
     for (const e of set) {
         await stageModelOnPod(reg, e.model, vramGb);
         for (const op of e.ops) {
@@ -2287,7 +2287,7 @@ async function main() {
 
     const evidence = {
         at: new Date().toISOString(), engine, datacenter: DATACENTER,
-        gpu: gpu.displayName || gpu.id, volume: { id: volume.id, size: volume.size },
+        gpu: activeGpu.displayName || activeGpu.id, volume: { id: volume.id, size: volume.size },
         budget: BUDGET, results,
         counts: { pass: n('PASS'), skip: n('SKIP'), fail: n('FAIL'), opsPlanned: opCount + flowCount },
         // What this file does NOT prove. Without it a `--models klein-4b` run writes an

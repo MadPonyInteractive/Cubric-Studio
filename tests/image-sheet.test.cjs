@@ -18,8 +18,6 @@ const {
 } = require('../js/utils/sheetLayout.js');
 const { renderSheet } = require('../routes/imageSheet.js');
 
-const ids = (t) => (t.kind === undefined ? [t.id] : [...ids(t.a), ...ids(t.b)]);
-
 /** Share of the sheet a cell would cover with its picture uncropped (contain). */
 function coverage(tree, aspects, r) {
     const { width, height } = sheetPixelSize(r, 2048);
