@@ -28,8 +28,10 @@ checklist, and a routing table. Then state, in one line each:
 4. Its **agent role** (README § Agent role): the in-app agent Cosmo RUNS it, OPENS it for the
    user (`agentOpens`), or ASKS first (prose in `docs/agent/flows.md`) — and the one sentence
    that will be its catalogue `does` (the first sentence of `description`).
+5. Whether it takes **LoRAs**: never inferred. ASK FABIO before the workflow is built, so the graph
+   gets the `Input_Lora_Phase<N>` chain from the start (`ui/lora-rack.md`).
 
-If you cannot answer all four from the hub + the workflow JSON, stop and ask.
+If you cannot answer 1-4 from the hub + the workflow JSON, stop and ask; 5 is always asked.
 
 **Before you write ANY prompt text** (a fixed prompt, a template, or a bench prompt), read
 `docs/agent/models/<model>.md` for each model it targets, and keep the prompt generic (`01`
@@ -79,7 +81,7 @@ file the moment you reach a step that needs it, and only that section.
 | An flow-vs-browser divergence is ALWAYS a flow-side injection/routing bug, never the workflow | 02 |
 | **Prompt text written without the model's guide** (no `GUIDE_NOT_READ` gate for a Flow): read `docs/agent/models/<model>.md` first; the prompt names "the subject", never the bench picture | 01 |
 | uiComponent is OPTIONAL — omit for a media-only flow (BaseFlow renders slots) | 01/04 |
-| **Every new Flow gets LoRAs for the models it uses** (Fabio, 2026-10-26): `loras: true` on each model slot = the cogwheel beside its dropdown, opening that model's own rack. Forgotten, the Flow ships with no way to add a style and nothing fails. A graph Flow also needs the `Input_Lora_Phase<N>` chain (else the rack saves and injects nothing); a driver Flow needs only the flag. NOT for a Flow working from existing media (detailer, Make Seamless, Outpaint: it takes that media's style) or one with its own style and no characters (Pano 360); any other omission needs Fabio's word | ui/lora-rack.md |
+| **LoRAs: ASK FABIO when the workflow is being made** (2026-10-26), never decide it yourself. Yes = `loras: true` on each model slot (the cogwheel beside its dropdown, opening that model's own rack); forgotten, the Flow ships with no way to add a style and nothing fails. A graph Flow also needs the `Input_Lora_Phase<N>` chain (else the rack saves and injects nothing); a driver Flow needs only the flag | ui/lora-rack.md |
 | **The peeking mascot comes from `mediaType`** (what the Flow MAKES: image Prism, video Reel + Vinyl, audio Vinyl) and the enhance declaration (Lingo; Cosmo for `runsOn: 'agent'`). The frame owns it — never add one of your own | ui/peeking-mascot.md |
 | **A driver Flow (`driver`, no graph) must call `frame.onJob(queued.queueJobId, done)` for EVERY job it queues** (the queue id: a job landing in a card's history has no tempId) and stamp each job `flowId: flow.id, flowInputs: inputs` (else Reuse opens a bare edit, not the Flow), and set `flowStep` `'n/total'` on a chain. Without it: no live latents, greyed Stop, no result in the pane, nothing fails. Shipped twice; `tests/flow-drivers-report-jobs.test.cjs` pins it | README § Driver Flows |
 | **One Stop press stops the WHOLE Flow run** (Fabio, 2026-10-25, MPI-1293): every press, leg, pass and driver job, pending too. A driver checks `frame.stopped()` right before each `enqueueGeneration` and returns `{ finished }`, or it keeps queuing after Stop (between two jobs nothing is queued to cancel). Live-check it: Stop mid-run, nothing more appears | ui/stop-button.md |

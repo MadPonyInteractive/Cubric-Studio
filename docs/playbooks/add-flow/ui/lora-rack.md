@@ -114,14 +114,12 @@ assertion to `tests/flow-lora-rack.test.cjs` with it.
 - **OPT-IN, and it must stay that way.** `flow_ltx_foley` carries `Input_Lora_1..6` nodes while
   deliberately declaring no rack. Filling every slot whose graph HAS the nodes would silently start
   injecting the user's LTX LoRAs into it.
-- **A new Flow that MAKES pictures or video takes one, on every slot whose model takes LoRAs**
-  (Fabio, 2026-10-26: "every new flow needs to have LoRAs for the models that it uses", so the user
-  can add a style). The flag stays opt-in in code (the rule above); the playbook makes it the
-  default. Two kinds of Flow need NONE (Fabio, same day):
-  - **It works from media that already exists** (a detailer, Make Seamless, Outpaint, an upscale
-    that only refines): it picks the style up from that media.
-  - **It brings its own style and draws no characters** (Pano 360, with its baked 360 LoRAs).
-  Any other Flow without one needs Fabio's word. Already have it: Character Sheet, Scribble, Draw It
+- **ASK FABIO whether a new Flow takes LoRAs, when its workflow is being made** (2026-10-26), so
+  the graph gets the rack chain from the start. Never decide it yourself. Yes = `loras: true` on
+  each slot whose model takes LoRAs: the cogwheel beside its dropdown, for a style. His answers so
+  far, for context only: yes for a Flow that draws characters or a story (Storyboard); no for one
+  working from existing media, which takes that media's style (a detailer, Make Seamless, Outpaint),
+  or one with its own style and no characters (Pano 360). Already have it: Character Sheet, Scribble, Draw It
   In, Object Stamp, Upscale Video, Video Edit, Extend Video (both graphs), Character Sheet from
   Images (both graphs), Character Sheet Editor (both graphs, phases 1 and 2), Storyboard. Foley
   does not, by his call (MPI-1036). `tests/flow-lora-rack.test.cjs` `RACKS` walks each graph's
