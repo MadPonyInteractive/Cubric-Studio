@@ -31,8 +31,7 @@ import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
 import { MpiRadioGroup } from '../../Primitives/MpiRadioGroup/MpiRadioGroup.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { state } from '../../../state.js';
-import { Events } from '../../../events.js';
-import { getToolSettings } from '../../../data/projectModel.js';
+import { readToolSettings, toolSettingsWriter } from '../../../services/toolSettings.js';
 import { loadAll as loadAssets } from '../../../services/assetService.js';
 import { qs } from '../../../utils/dom.js';
 import { buildField } from '../../../utils/declaredFields.js';
@@ -99,20 +98,15 @@ export const MpiToolOptionsUpscale = ComponentFactory.create({
         if (kind === 'video') viewer.el.enterUpscaleMode?.();
 
         const _initial = coerceSettings(
-            getToolSettings(state.currentProject || {}, toolKey, DEFAULTS)
+            readToolSettings(toolKey, DEFAULTS)
         );
         let _factor = _initial.factor;
         let _model  = _initial.model;
         const _pluginValues = { ..._initial.pluginValues };
 
-        const _persistTimers = new Map();
-        const persist = (key, value) => {
-            clearTimeout(_persistTimers.get(key));
-            _persistTimers.set(key, setTimeout(() => {
-                Events.emit('settings:tool:update', { toolKey, key, value });
-                _persistTimers.delete(key);
-            }, 200));
-        };
+        // dispose() in destroy sends a write still waiting (AUDIT B2).
+        const _writer = toolSettingsWriter(toolKey, { delayMs: 200 });
+        const persist = _writer.persist;
 
         // ── Plugin controls (MPI-580) ───────────────────────────────────────
         // Only installed plugins contributing to THIS kind. Not installed = absent,
@@ -258,8 +252,7 @@ export const MpiToolOptionsUpscale = ComponentFactory.create({
 
         el.destroy = () => {
             if (kind === 'video') viewer.el.exitUpscaleMode?.();
-            _persistTimers.forEach(t => clearTimeout(t));
-            _persistTimers.clear();
+            _writer.dispose();
             _teardownFields();
             factorRadio?.destroy?.();
             factorRadio = null;

@@ -52,9 +52,7 @@ import { MpiCheckbox } from '../../Primitives/MpiCheckbox/MpiCheckbox.js';
 import { MpiColorPicker } from '../../Primitives/MpiColorPicker/MpiColorPicker.js';
 import { MpiSpinner } from '../../Primitives/MpiSpinner/MpiSpinner.js';
 import { clientLogger } from '../../../services/clientLogger.js';
-import { state } from '../../../state.js';
-import { Events } from '../../../events.js';
-import { getToolSettings } from '../../../data/projectModel.js';
+import { readToolSettings, toolSettingsWriter } from '../../../services/toolSettings.js';
 import { qs } from '../../../utils/dom.js';
 import { formatBytes } from '../../../utils/formatBytes.js';
 import {
@@ -103,7 +101,7 @@ export const MpiToolOptionsGifTiming = ComponentFactory.create({
 
     setup: (el, props, emit) => {
         const viewer = props.viewer;
-        let settings = coerceSettings(getToolSettings(state.currentProject || {}, 'gifTiming', DEFAULTS));
+        let settings = coerceSettings(readToolSettings('gifTiming', DEFAULTS));
         let range = null;
         /** Blank until the user types a rate: null = every frame keeps its delay. */
         let fps = null;
@@ -112,17 +110,12 @@ export const MpiToolOptionsGifTiming = ComponentFactory.create({
 
         // Destroying a child also drops its listeners (factory.js), so no unsubscribe list.
         const _children = [];
-        const _persistTimers = new Map();
         const fields = qs('#fields-slot', el);
         const note = qs('#note', el);
 
-        const persist = (key, value) => {
-            clearTimeout(_persistTimers.get(key));
-            _persistTimers.set(key, setTimeout(() => {
-                Events.emit('settings:tool:update', { toolKey: 'gifTiming', key, value });
-                _persistTimers.delete(key);
-            }, 250));
-        };
+        // dispose() in destroy sends a write still waiting (AUDIT B2).
+        const _writer = toolSettingsWriter('gifTiming', { delayMs: 250 });
+        const persist = _writer.persist;
 
         const setNote = (text) => { note.textContent = text; note.hidden = !text; };
 
@@ -349,8 +342,7 @@ export const MpiToolOptionsGifTiming = ComponentFactory.create({
 
         el.destroy = () => {
             _destroyed = true;
-            _persistTimers.forEach(t => clearTimeout(t));
-            _persistTimers.clear();
+            _writer.dispose();
             _children.forEach(c => c.destroy?.());
         };
     },

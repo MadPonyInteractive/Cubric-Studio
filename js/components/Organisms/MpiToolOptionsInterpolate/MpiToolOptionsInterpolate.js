@@ -14,9 +14,7 @@
 import { ComponentFactory } from '../../factory.js';
 import { MpiRadioGroup } from '../../Primitives/MpiRadioGroup/MpiRadioGroup.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
-import { state } from '../../../state.js';
-import { Events } from '../../../events.js';
-import { getToolSettings } from '../../../data/projectModel.js';
+import { readToolSettings, toolSettingsWriter } from '../../../services/toolSettings.js';
 import { qs } from '../../../utils/dom.js';
 
 const MULT_OPTIONS = [
@@ -53,18 +51,13 @@ export const MpiToolOptionsInterpolate = ComponentFactory.create({
         viewer.el.enterInterpolateMode?.();
 
         const _initial = coerceSettings(
-            getToolSettings(state.currentProject || {}, 'videoInterpolate', DEFAULTS)
+            readToolSettings('videoInterpolate', DEFAULTS)
         );
         let _multiplier = _initial.multiplier;
 
-        const _persistTimers = new Map();
-        const persist = (key, value) => {
-            clearTimeout(_persistTimers.get(key));
-            _persistTimers.set(key, setTimeout(() => {
-                Events.emit('settings:tool:update', { toolKey: 'videoInterpolate', key, value });
-                _persistTimers.delete(key);
-            }, 200));
-        };
+        // dispose() in destroy sends a write still waiting (AUDIT B2).
+        const _writer = toolSettingsWriter('videoInterpolate', { delayMs: 200 });
+        const persist = _writer.persist;
 
         const multRadio = MpiRadioGroup.mount(document.createElement('div'), {
             options: MULT_OPTIONS,
@@ -90,8 +83,7 @@ export const MpiToolOptionsInterpolate = ComponentFactory.create({
 
         el.destroy = () => {
             viewer.el.exitInterpolateMode?.();
-            _persistTimers.forEach(t => clearTimeout(t));
-            _persistTimers.clear();
+            _writer.dispose();
             multRadio.destroy?.();
             runBtn.destroy?.();
         };

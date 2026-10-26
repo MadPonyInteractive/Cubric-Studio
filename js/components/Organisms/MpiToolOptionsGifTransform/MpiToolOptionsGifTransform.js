@@ -30,9 +30,7 @@ import { MpiInput } from '../../Primitives/MpiInput/MpiInput.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiCheckbox } from '../../Primitives/MpiCheckbox/MpiCheckbox.js';
 import { MpiColorPicker } from '../../Primitives/MpiColorPicker/MpiColorPicker.js';
-import { state } from '../../../state.js';
-import { Events } from '../../../events.js';
-import { getToolSettings } from '../../../data/projectModel.js';
+import { readToolSettings, toolSettingsWriter } from '../../../services/toolSettings.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { qs } from '../../../utils/dom.js';
 
@@ -76,7 +74,7 @@ export const MpiToolOptionsGifTransform = ComponentFactory.create({
     setup: (el, props, emit) => {
         const def = TOOLS[props.mode] || TOOLS.gifResize;
         const viewer = props.viewer;
-        const saved = getToolSettings(state.currentProject || {}, 'gifTransform', DEFAULTS);
+        const saved = readToolSettings('gifTransform', DEFAULTS);
         let keepAspect = saved.keepAspect !== false;
         let background = typeof saved.background === 'string' ? saved.background : DEFAULTS.background;
         let size = null;          // the frame's own size
@@ -86,17 +84,12 @@ export const MpiToolOptionsGifTransform = ComponentFactory.create({
 
         // Destroying a child also drops its listeners (factory.js), so no unsubscribe list.
         const _children = [];
-        const _persistTimers = new Map();
         const fields = qs('#fields-slot', el);
         const note = qs('#note', el);
 
-        const persist = (key, value) => {
-            clearTimeout(_persistTimers.get(key));
-            _persistTimers.set(key, setTimeout(() => {
-                Events.emit('settings:tool:update', { toolKey: 'gifTransform', key, value });
-                _persistTimers.delete(key);
-            }, 250));
-        };
+        // dispose() in destroy sends a write still waiting (AUDIT B2).
+        const _writer = toolSettingsWriter('gifTransform', { delayMs: 250 });
+        const persist = _writer.persist;
 
         /** Each primitive gets its own row: mount() replaces its container's content. */
         const mountRow = (Primitive, mountProps) => {
@@ -155,8 +148,7 @@ export const MpiToolOptionsGifTransform = ComponentFactory.create({
 
         el.destroy = () => {
             destroyed = true;
-            _persistTimers.forEach(t => clearTimeout(t));
-            _persistTimers.clear();
+            _writer.dispose();
             _children.forEach(c => c.destroy?.());
         };
     },

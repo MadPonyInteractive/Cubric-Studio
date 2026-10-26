@@ -28,9 +28,7 @@ import { MpiInput } from '../../Primitives/MpiInput/MpiInput.js';
 import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiSpinner } from '../../Primitives/MpiSpinner/MpiSpinner.js';
-import { state } from '../../../state.js';
-import { Events } from '../../../events.js';
-import { getToolSettings } from '../../../data/projectModel.js';
+import { readToolSettings, toolSettingsWriter } from '../../../services/toolSettings.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { qs } from '../../../utils/dom.js';
 import { formatBytes } from '../../../utils/formatBytes.js';
@@ -90,12 +88,11 @@ export const MpiToolOptionsGif = ComponentFactory.create({
 
     setup: (el, props, emit) => {
         let settings = coerceSettings(
-            getToolSettings(state.currentProject || {}, 'exportGif', DEFAULTS)
+            readToolSettings('exportGif', DEFAULTS)
         );
 
         const _children = [];
         const _unsubs = [];
-        const _persistTimers = new Map();
         let _destroyed = false;
         let _busy = false;
 
@@ -111,13 +108,9 @@ export const MpiToolOptionsGif = ComponentFactory.create({
 
         const settingsKey = () => `${settings.fps}|${settings.sizePreset}|${settings.loop}`;
 
-        const persist = (key, value) => {
-            clearTimeout(_persistTimers.get(key));
-            _persistTimers.set(key, setTimeout(() => {
-                Events.emit('settings:tool:update', { toolKey: 'exportGif', key, value });
-                _persistTimers.delete(key);
-            }, 250));
-        };
+        // dispose() in destroy sends a write still waiting (AUDIT B2).
+        const _writer = toolSettingsWriter('exportGif', { delayMs: 250 });
+        const persist = _writer.persist;
 
         // Any settings change invalidates the cached preview → mark badge stale.
         const _markStale = () => {
@@ -206,8 +199,7 @@ export const MpiToolOptionsGif = ComponentFactory.create({
 
         el.destroy = () => {
             _destroyed = true;
-            _persistTimers.forEach(t => clearTimeout(t));
-            _persistTimers.clear();
+            _writer.dispose();
             _unsubs.forEach(fn => fn?.());
             _children.forEach(c => c.destroy?.());
         };

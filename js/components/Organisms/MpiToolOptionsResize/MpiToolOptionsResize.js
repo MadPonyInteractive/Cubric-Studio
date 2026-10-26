@@ -38,9 +38,7 @@ import { MpiRadioGroup } from '../../Primitives/MpiRadioGroup/MpiRadioGroup.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiSpinner } from '../../Primitives/MpiSpinner/MpiSpinner.js';
 import { MpiColorPicker } from '../../Primitives/MpiColorPicker/MpiColorPicker.js';
-import { state } from '../../../state.js';
-import { Events } from '../../../events.js';
-import { getToolSettings } from '../../../data/projectModel.js';
+import { readToolSettings, toolSettingsWriter } from '../../../services/toolSettings.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { qs } from '../../../utils/dom.js';
 import { extractThumbnail } from '../../../utils/thumbnail.js';
@@ -240,12 +238,11 @@ export const MpiToolOptionsResize = ComponentFactory.create({
         let currentItem = props.currentItem ?? null;
 
         let settings = coerceSettings(
-            getToolSettings(state.currentProject || {}, 'resize', DEFAULTS)
+            readToolSettings('resize', DEFAULTS)
         );
 
         const _children = [];
         const _unsubs = [];
-        const _persistTimers = new Map();
         let _previewTimer = null;
         let _previewAbort = null;
         let _previewSerial = 0;
@@ -270,13 +267,9 @@ export const MpiToolOptionsResize = ComponentFactory.create({
         let _stackValue = STACK_DEFAULTS.longEdge;
         let _stackValueInput = null;
 
-        const persist = (key, value) => {
-            clearTimeout(_persistTimers.get(key));
-            _persistTimers.set(key, setTimeout(() => {
-                Events.emit('settings:tool:update', { toolKey: 'resize', key, value });
-                _persistTimers.delete(key);
-            }, 300));
-        };
+        // dispose() in destroy sends a write still waiting (AUDIT B2).
+        const _writer = toolSettingsWriter('resize', { delayMs: 300 });
+        const persist = _writer.persist;
 
         const setValue = (key, value) => {
             settings = { ...settings, [key]: value };
@@ -749,8 +742,7 @@ export const MpiToolOptionsResize = ComponentFactory.create({
         el.destroy = () => {
             _destroyed = true;
             cancelPreview();
-            _persistTimers.forEach(timer => clearTimeout(timer));
-            _persistTimers.clear();
+            _writer.dispose();
             if (_previewImg?.src?.startsWith('blob:')) {
                 try { URL.revokeObjectURL(_previewImg.src); } catch (_) {}
             }
