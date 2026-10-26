@@ -24,6 +24,7 @@
 import { MpiInput } from './Primitives/MpiInput/MpiInput.js';
 import { mountButton } from './Primitives/MpiButton/MpiButton.js';
 import { on } from '../utils/dom.js';
+import { basename } from '../utils/file.js';
 
 /**
  * Build the strength-inputs row for one LoRA slot. `kinds` is the model's
@@ -124,7 +125,6 @@ export function applyBypass(btn, hostEl, next, bypassedClass) {
 }
 
 /** Filename without any folder, separator-agnostic. */
-export const baseName = (f) => String(f || '').replace(/\\/g, '/').split('/').pop();
 
 /** Separator-agnostic full-path key (forward slash, lowercased). */
 export const pathKey = (f) => String(f || '').replace(/\\/g, '/').toLowerCase();
@@ -144,8 +144,8 @@ export function resolveInfo(value, available) {
     const want = pathKey(value);
     const exact = list.find(f => pathKey(f) === want);
     if (exact) return { value: exact, healed: false, ambiguous: false };
-    const base = baseName(value).toLowerCase();
-    const byName = list.filter(f => baseName(f).toLowerCase() === base);
+    const base = basename(value).toLowerCase();
+    const byName = list.filter(f => basename(f).toLowerCase() === base);
     if (byName.length === 1) return { value: byName[0], healed: true, ambiguous: false };
     if (byName.length > 1) return { value, healed: false, ambiguous: true };
     return { value, healed: false, ambiguous: false };

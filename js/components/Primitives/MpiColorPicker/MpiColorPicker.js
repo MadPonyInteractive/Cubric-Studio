@@ -1,6 +1,7 @@
 import { ComponentFactory } from '../../factory.js';
 import { Events } from '../../../events.js';
 import { on, qs, off } from '../../../utils/dom.js';
+import { hexToRgb } from '../../../utils/colourKeyMask.js';
 
 const HEX_RE = /^#?([a-f0-9]{6})$/i;
 
@@ -14,16 +15,8 @@ const rgbToHex = ({ r, g, b }) => `#${[r, g, b]
     .map(v => clampChannel(v).toString(16).padStart(2, '0'))
     .join('')}`;
 
-const hexToRgb = (value, fallback = { r: 0, g: 0, b: 0 }) => {
-    const match = String(value || '').trim().match(HEX_RE);
-    if (!match) return { ...fallback };
-    const hex = match[1].toLowerCase();
-    return {
-        r: parseInt(hex.slice(0, 2), 16),
-        g: parseInt(hex.slice(2, 4), 16),
-        b: parseInt(hex.slice(4, 6), 16),
-    };
-};
+/** The shared parser, with this picker's fallback for anything that is not #rrggbb. */
+const hexOr = (value, fallback = { r: 0, g: 0, b: 0 }) => hexToRgb(value) ?? { ...fallback };
 
 const clampUnit = value => Math.max(0, Math.min(1, Number(value) || 0));
 const clampHue = value => {
@@ -103,7 +96,7 @@ export const MpiColorPicker = ComponentFactory.create({
                 b: clampChannel(props.value.b),
             }
             // eslint-disable-next-line mpi/no-hardcoded-hex-color -- color picker default value
-            : hexToRgb(props.value || '#000000');
+            : hexOr(props.value || '#000000');
         const hex = rgbToHex(rgb);
         const info = props.info ? `data-info="${props.info}"` : '';
 
@@ -131,7 +124,7 @@ export const MpiColorPicker = ComponentFactory.create({
                 b: clampChannel(props.value.b),
             }
             // eslint-disable-next-line mpi/no-hardcoded-hex-color -- color picker default value
-            : hexToRgb(props.value || '#000000');
+            : hexOr(props.value || '#000000');
         let hsv = rgbToHsv(rgb);
 
         const currentPayload = () => ({ ...rgb, hex: rgbToHex(rgb) });
@@ -322,7 +315,7 @@ export const MpiColorPicker = ComponentFactory.create({
                     return;
                 }
                 if (input.dataset.role === 'hex' && HEX_RE.test(input.value.trim())) {
-                    setRgb(hexToRgb(input.value, rgb));
+                    setRgb(hexOr(input.value, rgb));
                 }
             }));
 
@@ -330,7 +323,7 @@ export const MpiColorPicker = ComponentFactory.create({
                 const input = e.target.closest('input');
                 if (!input) return;
                 if (input.dataset.role === 'hex') {
-                    setRgb(hexToRgb(input.value, rgb));
+                    setRgb(hexOr(input.value, rgb));
                 } else if (input.dataset.channel) {
                     setRgb({
                         ...rgb,
@@ -359,7 +352,7 @@ export const MpiColorPicker = ComponentFactory.create({
 
         el.getRGB = () => ({ ...rgb });
         el.setRGB = (r, g, b) => setRgb({ r, g, b });
-        el.setHex = (hex) => setRgb(hexToRgb(hex, rgb));
+        el.setHex = (hex) => setRgb(hexOr(hex, rgb));
         el.getHex = () => rgbToHex(rgb);
 
         el.destroy = () => {

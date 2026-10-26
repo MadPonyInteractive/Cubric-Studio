@@ -65,7 +65,12 @@ test('selectMatching flips the polarity (the image tools select the colour)', ()
 test('cornerColour / hexToRgb round-trip', () => {
     const { rgba } = image({ corner: [10, 171, 255] });
     assert.equal(cornerColour(rgba), '#0aabff');
-    assert.deepEqual(hexToRgb('#0aabff'), [10, 171, 255]);
+    assert.deepEqual(hexToRgb('#0aabff'), { r: 10, g: 171, b: 255 });
+});
+
+test('hexToRgb: the # is optional, space is trimmed, anything else is null (D8)', () => {
+    assert.deepEqual(hexToRgb(' 0AABFF '), { r: 10, g: 171, b: 255 });
+    for (const bad of ['#abc', '#0aabfg', '', null, undefined, 'red']) assert.equal(hexToRgb(bad), null, String(bad));
 });
 
 test('no default key colour when the corner is transparent (MPI-771)', () => {

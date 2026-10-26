@@ -47,8 +47,8 @@
 
 import { ComponentFactory } from '../../factory.js';
 import { qs, on } from '../../../utils/dom.js';
+import { clamp } from '../../../utils/math.js';
 
-const _clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 export const MpiTrimBar = ComponentFactory.create({
     name: 'MpiTrimBar',
@@ -91,9 +91,9 @@ export const MpiTrimBar = ComponentFactory.create({
         // one x on drop and jumps to another when the seek's timeupdate echoes
         // back through setValueQuiet(). Null until setFrameCount().
         let _frameCount = Number.isFinite(+props.frameCount) && +props.frameCount > 0 ? +props.frameCount : null;
-        let _in       = _clamp(+props.inPoint  || 0, 0, _duration);
-        let _out      = _clamp(props.outPoint == null ? _duration : +props.outPoint, _in, _duration);
-        let _value    = _clamp(+props.value || 0, _in, _out);
+        let _in       = clamp(+props.inPoint  || 0, 0, _duration);
+        let _out      = clamp(props.outPoint == null ? _duration : +props.outPoint, _in, _duration);
+        let _value    = clamp(+props.value || 0, _in, _out);
 
         // Drag state
         /** @type {null | 'in' | 'out' | 'playhead'} */
@@ -186,7 +186,7 @@ export const MpiTrimBar = ComponentFactory.create({
         function _eventToSeconds(ev) {
             const rect = trackEl.getBoundingClientRect();
             if (rect.width <= 0 || _duration <= 0) return 0;
-            const x = _clamp((ev.clientX - rect.left) / rect.width, 0, 1);
+            const x = clamp((ev.clientX - rect.left) / rect.width, 0, 1);
             const eff = _effFps();
             const last = _lastIdx();
             // Invert the same frame-indexed, last-normalized mapping _pctOf uses,
@@ -200,21 +200,21 @@ export const MpiTrimBar = ComponentFactory.create({
         function _applyDrag(rawSec) {
             const fs = _frameStep();
             if (_dragRole === 'in') {
-                const next = _clamp(rawSec, 0, Math.max(0, _out - fs));
+                const next = clamp(rawSec, 0, Math.max(0, _out - fs));
                 if (next === _in) return false;
                 _in = next;
                 if (_value < _in) _value = _in;
                 return true;
             }
             if (_dragRole === 'out') {
-                const next = _clamp(rawSec, _in + fs, _duration);
+                const next = clamp(rawSec, _in + fs, _duration);
                 if (next === _out) return false;
                 _out = next;
                 if (_value > _out) _value = _out;
                 return true;
             }
             // playhead
-            const next = _clamp(rawSec, _in, _out);
+            const next = clamp(rawSec, _in, _out);
             if (next === _value) return false;
             _value = next;
             return true;
@@ -311,9 +311,9 @@ export const MpiTrimBar = ComponentFactory.create({
 
         el.setDuration = (d) => {
             _duration = Math.max(0, +d || 0);
-            _in    = _clamp(_in,    0, _duration);
-            _out   = _clamp(_out,   _in, _duration);
-            _value = _clamp(_value, _in, _out);
+            _in    = clamp(_in,    0, _duration);
+            _out   = clamp(_out,   _in, _duration);
+            _value = clamp(_value, _in, _out);
             _renderPositions();
         };
 
@@ -330,7 +330,7 @@ export const MpiTrimBar = ComponentFactory.create({
         el.setWavePath = (url) => _applyWave(url);
 
         el.setValueQuiet = (t) => {
-            const next = _clamp(+t || 0, _in, _out);
+            const next = clamp(+t || 0, _in, _out);
             if (next === _value) return;
             _value = next;
             _renderPositions();
@@ -344,8 +344,8 @@ export const MpiTrimBar = ComponentFactory.create({
 
         el.setRangeQuiet = (inSec, outSec) => {
             const fs = _frameStep();
-            const nextIn  = _clamp(+inSec  || 0, 0, _duration);
-            const nextOut = _clamp(+outSec || _duration, nextIn + fs, _duration);
+            const nextIn  = clamp(+inSec  || 0, 0, _duration);
+            const nextOut = clamp(+outSec || _duration, nextIn + fs, _duration);
             _in = nextIn;
             _out = nextOut;
             if (_value < _in)  _value = _in;

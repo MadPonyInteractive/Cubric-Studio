@@ -21,6 +21,10 @@
   StatusBar.notify, comfy-vanished-prompt queue assertion. H3 dropped (see Plan Drift).
 - [x] D6 (90e79b465): `comfy_workflows/scripts/workflow_generation/graph_utils.py` used by 11
   handlers; all 24 workflows byte-identical (rebuilt in a throwaway worktree, `orchestrate.py --all`).
+- [x] D8: `escapeHtml` (string.js), `basename` (file.js), `clamp`/`clampNumber`/`clampInt` (new
+  math.js), `ORIENTATION_OPTIONS`/`ratioIcon`/`cropRatioOptions` (ratios.js), `formatClock`
+  everywhere, one `hexToRgb` (colourKeyMask.js, `{r,g,b}|null`, required by gifFrames.js too).
+  `tests/small-utils.test.cjs`; `docs/utils.md` lists them.
 
 ## Remaining Work
 
@@ -90,6 +94,9 @@ touches the same code.
   thumb-strip counters were never used.
 - `tests/toast-truth.test.cjs` source-reads the MPI-1076 `gone` rule; it now reads
   `uninstallOutcome.js`.
+- D8: also did 3 basename copies the audit missed (entryInfo, MpiPromptBox, MpiEngineInstall) and
+  the phone gallery chip's 0:60 bug; skipped `js/phone/phoneMedia.js` (MPI-1300 still open).
+  `hexToRgb` changed shape (array -> object|null); its only array caller, `colourKeyMaskUrl`, converts.
 - Commits go through a private-index script (HEAD + this card's files + only MPI-1302 lines of
   `board.json` / root `events.jsonl`): peers leave uncommitted board edits in the tree. Compare
   event lines with `\r` stripped, or committed lines get re-appended (happened once, fixed

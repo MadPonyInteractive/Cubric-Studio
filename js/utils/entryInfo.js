@@ -12,6 +12,7 @@
 import { getModelById, tierLetterFor } from '../data/modelRegistry.js';
 import { getCommand } from '../data/commandRegistry.js';
 import { flowModelChoices, getFlowById } from '../data/flowsRegistry.js';
+import { basename } from './file.js';
 
 // Row 1 of a FLOW card's badge: the model that actually ran (MPI-620). A flow gen has
 // `modelId: null` — it is an operation, not a model — so the tier lives in
@@ -99,7 +100,7 @@ function _loraLines(item) {
     if (!Array.isArray(loras)) return '';
     return loras
         .filter(l => l?.name && !l.bypass && Number(l.strengthModel) !== 0)
-        .map(l => `${l.name.split(/[\\/]/).pop().replace(/\.safetensors$/i, '')} · ${_num(Number(l.strengthModel ?? 1))}`)
+        .map(l => `${basename(l.name).replace(/\.safetensors$/i, '')} · ${_num(Number(l.strengthModel ?? 1))}`)
         .join('\n');
 }
 

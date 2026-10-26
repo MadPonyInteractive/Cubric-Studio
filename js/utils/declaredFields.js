@@ -48,6 +48,7 @@ import { renderIcon } from './icons.js';
 import { attachMentionPicker } from './mentionPicker.js';
 import { clientLogger } from '../services/clientLogger.js';
 import { ruleHolds } from '../data/flowsRegistry.js';
+import { formatClock } from './elapsedTicker.js';
 
 // The rule evaluator is defined beside the leg engine in flowsRegistry.js (a server-required
 // module, which must not import this UI file) and re-exported here, where field rules live:
@@ -338,7 +339,7 @@ export function formatDeclaredValue(f, v) {
     // Shortening the string is the fix rather than moving the readout below: a length
     // control reads best beside its own number, and "2:30" is the form every player,
     // editor and DAW already writes.
-    return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+    return formatClock(total * 1000);
 }
 
 /**

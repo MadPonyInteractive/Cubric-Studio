@@ -10,7 +10,7 @@ import { qs, qsa, on, inheritAccent } from '../../../utils/dom.js';
 // not import a UI component. Importing this module from Node pulls MpiButton →
 // icons.js on a browser-absolute path, which fails to resolve.
 // Re-exported so existing importers of this module keep working.
-import { getModelRatios, qualityTiersFor, usesOrientation, usesQualityTier, clampQualityTier, defaultQualityTier } from '../../../utils/ratios.js';
+import { getModelRatios, qualityTiersFor, usesOrientation, usesQualityTier, clampQualityTier, defaultQualityTier, ratioIcon } from '../../../utils/ratios.js';
 export { usesOrientation, usesQualityTier, clampQualityTier, defaultQualityTier };
 
 /**
@@ -51,12 +51,12 @@ function _templateRatio(props) {
     const triggerSize = props.size || 'md';
 
     const currentRatio = ratios.find(r => r.label === value) || ratios[0];
-    const triggerIcon  = currentRatio.icon.replace('rect_', 'ratio_');
+    const triggerIcon  = ratioIcon(currentRatio);
     const orientIcon   = orientation === 'portrait' ? 'ratio_16_9' : 'ratio_9_16';
 
     const ratioBtnsHtml = ratios.map(r => {
         const isSelected = r.label === value;
-        const iconName   = r.icon.replace('rect_', 'ratio_');
+        const iconName   = ratioIcon(r);
         const dims       = (r.w && r.h) ? ` — ${r.w}×${r.h}` : '';
         return `<div class="mpi-opt-sel__item" data-label="${r.label}">
             ${MpiButton.template({ icon: iconName, label: r.label, labelPosition: 'top', size: 'md', active: isSelected, toggleable: true, info: `${r.label}${dims}` })}
@@ -499,7 +499,7 @@ function _setupRatio(el, props, emit) {
 
         grid.innerHTML = ratios.map(r => {
             const isSelected = r.label === value;
-            const iconName   = r.icon.replace('rect_', 'ratio_');
+            const iconName   = ratioIcon(r);
             const dims       = (r.w && r.h) ? ` — ${r.w}×${r.h}` : '';
             return `<div class="mpi-opt-sel__item" data-label="${r.label}">
                 ${MpiButton.template({ icon: iconName, label: r.label, labelPosition: 'top', active: isSelected, toggleable: true, info: `${r.label}${dims}` })}
@@ -518,7 +518,7 @@ function _setupRatio(el, props, emit) {
         }
 
         const currentRatio   = ratios.find(r => r.label === value) || ratios[0];
-        const triggerIconName = currentRatio.icon.replace('rect_', 'ratio_');
+        const triggerIconName = ratioIcon(currentRatio);
         trigger.innerHTML = MpiButton.template({
             icon: triggerIconName, label: value, size: triggerSize, active: props.showPopup, toggleable: true
         });

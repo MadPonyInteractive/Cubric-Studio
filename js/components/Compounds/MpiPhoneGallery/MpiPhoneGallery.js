@@ -4,6 +4,7 @@ import { MpiSpinner } from '../../Primitives/MpiSpinner/MpiSpinner.js';
 import { ce, qs, on } from '../../../utils/dom.js';
 import { onStream } from '../../../services/eventStream.js';
 import { clientLogger } from '../../../services/clientLogger.js';
+import { formatClock } from '../../../utils/elapsedTicker.js';
 
 /**
  * MpiPhoneGallery — the project's cards on the phone (MPI-1300, Phase 2).
@@ -29,7 +30,6 @@ const FILTERS = [
 // After the full-width newest card: two halves, three thirds, a wide and a third (6 columns).
 const RHYTHM = ['half', 'half', 'third', 'third', 'third', 'wide', 'third'];
 
-const _clock = (s) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
 
 export const MpiPhoneGallery = ComponentFactory.create({
     name: 'MpiPhoneGallery',
@@ -94,7 +94,7 @@ export const MpiPhoneGallery = ComponentFactory.create({
             const src = (i === 0 ? v.thumbLg : null) || v.thumb || (v.type === 'image' ? v.url : '');
             if (src) frame.appendChild(ce('img', { src, alt: '', loading: 'lazy', decoding: 'async' }));
             if (card.kind === 'video') {
-                frame.appendChild(ce('span', { className: 'mpi-phone-gallery__kind', textContent: v.duration ? `Video · ${_clock(v.duration)}` : 'Video' }));
+                frame.appendChild(ce('span', { className: 'mpi-phone-gallery__kind', textContent: v.duration ? `Video · ${formatClock(Math.round(v.duration) * 1000)}` : 'Video' }));
             }
             if (size === 'hero' || size === 'half') {
                 const name = ce('div', { className: 'mpi-phone-gallery__name' }, [ce('b', { textContent: card.name || '' })]);

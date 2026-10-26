@@ -45,6 +45,7 @@ import { generationStore, PHASES } from './generationStore.js';
 import { settleInGraphEnhance } from './llmService.js';
 import { cloudEditPass1, cloudEditPass2, CLOUD_RESULT_TITLE } from '../utils/cloudEditGraph.js';
 import { h3FastMotionOnePass } from '../utils/ratios.js';
+import { basename } from '../utils/file.js';
 
 // Adapters over the shared js/utils/comfyOutputUrls.js (MPI-176). MPI-74: a
 // force-local run's output lives on LOCAL ComfyUI — build the /view URL against
@@ -470,7 +471,6 @@ function _resolveUpscaleFilename(value) {
     return _depFilename(value) || value;
 }
 
-const _baseName = (f) => String(f || '').replace(/\\/g, '/').split('/').pop();
 const _pathKey = (f) => String(f || '').replace(/\\/g, '/').toLowerCase();
 
 /**
@@ -481,9 +481,9 @@ const _pathKey = (f) => String(f || '').replace(/\\/g, '/').toLowerCase();
  * @returns {boolean}
  */
 function _isShippedDepFile(name) {
-    const base = _baseName(name).toLowerCase();
+    const base = basename(name).toLowerCase();
     if (!base) return false;
-    return Object.values(DEPS).some(d => d?.filename && _baseName(d.filename).toLowerCase() === base);
+    return Object.values(DEPS).some(d => d?.filename && basename(d.filename).toLowerCase() === base);
 }
 
 /**
@@ -505,8 +505,8 @@ function _resolveModelName(value, available) {
     //    LoRA's subfolder was removed and the file now sits at root). Heal to it ONLY
     //    when unambiguous (exactly one basename match); multiple matches are genuinely
     //    different files, so don't guess — leave the value as-is (stays "missing").
-    const base = _baseName(value).toLowerCase();
-    const byName = list.filter(f => _baseName(f).toLowerCase() === base);
+    const base = basename(value).toLowerCase();
+    const byName = list.filter(f => basename(f).toLowerCase() === base);
     if (byName.length === 1) return byName[0];
     return value;
 }
@@ -555,7 +555,7 @@ function _resolveUpscaleParam(upscaleFilename) {
     const siax = _depFilename('4x-NMKD-Siax');
     const siaxResolved = siax ? _resolveModelName(siax, available) : null;
     Events.emit('ui:warning', {
-        message: `Upscale model "${_baseName(upscaleFilename)}" was not found in your folders. `
+        message: `Upscale model "${basename(upscaleFilename)}" was not found in your folders. `
             + `Using the default (${siax || 'built-in'}) instead. Add it in Settings → External Connections, or pick another.`,
     });
     return siaxResolved || upscaleFilename;
@@ -2006,7 +2006,7 @@ export function runCommand(payload) {
         if (missingModel) {
             await _cleanupTrimmedVideoInputs(tempTrimInputPaths);
             Events.emit('ui:warning', {
-                message: `"${_baseName(missingModel)}" was not found in your LoRA/upscale folders. `
+                message: `"${basename(missingModel)}" was not found in your LoRA/upscale folders. `
                     + 'Add it in Settings → External Connections (drag-drop), or pick another in Model Settings.',
             });
             _failBail(new Error('model_missing'), { reported: true });

@@ -28,6 +28,7 @@ import { clientLogger } from './clientLogger.js';
 import { describeAsks, describeFlowRun } from './flowEnhance.js';
 import { extractAbsPath } from '../utils/mediaActions.js';
 import { characterSheetEditor, characterSheetEditorRefusal, characterSheetEditorCardName } from '../data/flowPrompts/characterSheetEditor.js';
+import { basename } from '../utils/file.js';
 
 /**
  * Flows whose prompt is BUILT in code (FlowDef `promptBuilder`, MPI-1041), by name so the FlowDef
@@ -53,7 +54,7 @@ export function sourceCardName(media, project) {
 
 /** A file's name, from a `/project-file?path=` URL or a plain path. */
 function base(p) {
-    return String(extractAbsPath(p) || p || '').split(/[\\/]/).pop();
+    return basename(extractAbsPath(p) || p);
 }
 
 /**

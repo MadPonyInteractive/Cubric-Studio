@@ -37,6 +37,7 @@ import { qs }               from '../../../utils/dom.js';
 import { Hotkeys }          from '../../../managers/hotkeyManager.js';
 import { clientLogger }     from '../../../services/clientLogger.js';
 import { resolveMediaUrl }  from '../../../utils/mediaActions.js';
+import { basename } from '../../../utils/file.js';
 
 const LABEL_MAX = 28;
 
@@ -84,7 +85,7 @@ function _basenameNoExt(filePath) {
             if (match) filePath = decodeURIComponent(match[1]);
         } catch (_) {}
     }
-    const base = filePath.replace(/\\/g, '/').split('/').pop() || '';
+    const base = basename(filePath);
     const dot = base.lastIndexOf('.');
     return dot > 0 ? base.slice(0, dot) : base;
 }

@@ -31,6 +31,7 @@
  */
 
 import SNAPSHOT from '../../../dev_configs/deepinfra-prices.json' with { type: 'json' };
+import { clamp } from '../../utils/math.js';
 
 /**
  * FLUX's own grid. The in_fields publish a min and a max but not a step, and Black Forest
@@ -189,7 +190,7 @@ export function buildSizeFields(endpointId, want = {}) {
             if (tier) out.resolution = tier;
             const range = durationRangeFor(endpointId);
             if (range && Number(want.duration) > 0) {
-                out.duration = Math.round(_clamp(Number(want.duration), range.min, range.max));
+                out.duration = Math.round(clamp(Number(want.duration), range.min, range.max));
             }
             break;
         }
@@ -208,10 +209,6 @@ export function buildSizeFields(endpointId, want = {}) {
 }
 
 // ── Internals ────────────────────────────────────────────────────────────────
-
-function _clamp(value, min, max) {
-    return Math.min(max, Math.max(min, value));
-}
 
 /**
  * Fit a width/height PAIR into the captured bounds, scaling both by one factor so the
@@ -240,7 +237,7 @@ function _fitPair(width, height, wLimit, hLimit, step) {
 
 /** Land on the grid, then back inside the bound when the bound itself is off-grid. */
 function _snap(value, min, max, step) {
-    let fitted = _clamp(Math.round(_clamp(value, min, max) / step) * step, min, max);
+    let fitted = clamp(Math.round(clamp(value, min, max) / step) * step, min, max);
     // A max of 1450 rounds UP to 1472, a min of 250 rounds DOWN to 224 — walk one step in.
     if (fitted > max) fitted -= step;
     if (fitted < min) fitted += step;
@@ -250,7 +247,7 @@ function _snap(value, min, max, step) {
 /** Seedream's own rule: inside the box, rounded UP to the step. */
 function _boxFit(value, min, max, step) {
     const stepped = step > 1 ? Math.ceil(value / step) * step : value;
-    return _clamp(stepped, min, max);
+    return clamp(stepped, min, max);
 }
 
 /** "16:9" -> 1.777…; anything unparseable -> null. */

@@ -44,9 +44,9 @@ import {
     buildStrengthsRow,
     buildBypassBtn,
     applyBypass,
-    baseName,
     isMissing,
 } from '../../loraSlotParts.js';
+import { basename } from '../../../utils/file.js';
 
 const BEM = 'mpi-lora-rack';
 const BYPASSED_CLASS = `${BEM}__row--bypassed`;
@@ -178,7 +178,7 @@ export const MpiLoraRack = ComponentFactory.create({
             const badge = MpiBadge.mount(nameHost, { label: '', variant: 'secondary' });
             // textContent, not the label prop: a filename is user data and the
             // Primitive interpolates its label straight into the template string.
-            badge.el.textContent = baseName(slot.name).replace(/\.(safetensors|ckpt|pt|bin)$/i, '');
+            badge.el.textContent = basename(slot.name).replace(/\.(safetensors|ckpt|pt|bin)$/i, '');
             // An empty availableLoras list means the scan has not run, not that every
             // file is gone — flagging the lot red on a cold popup would be a lie.
             const missing = available.length > 0 && isMissing(slot.name, available);

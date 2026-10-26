@@ -9,7 +9,7 @@
 
 ## Phase 1b: shared small utilities
 - [x] D6: graph_utils.py (find_by_title, find_id_by_title, prune_to_captures, bake_int) used by 11 handlers; 24 workflows byte-identical
-- [ ] D8: escapeHtml, basename, clamp/clampInt, orientations/ratio options, formatClock, hexToRgb
+- [x] D8: escapeHtml, basename, clamp/clampInt, orientations/ratio options, formatClock, hexToRgb (tests/small-utils.test.cjs; lint; npm test 3742 pass / 0 fail)
 
 ## Phase 1c: X4 (ask Fabio about skill-listed routes)
 ## Phase 1d: T1, T2

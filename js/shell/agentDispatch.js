@@ -94,6 +94,7 @@ import { ROUTINE_HANDLERS } from './routineDispatch.js';
 import { AGENT_TOOL_OPS, TOOLS_NEEDING_SIZE, agentToolOp, toolOperation, toolRun } from './agentToolOps.js';
 import { clientLogger } from '../services/clientLogger.js';
 import { onStream } from '../services/eventStream.js';
+import { basename } from '../utils/file.js';
 
 let _armed = false;
 /** Job ids already reported — the "one result out" half of the contract. */
@@ -1768,7 +1769,7 @@ async function _importMedia(jobId, input = {}) {
     if (target.error) return _fail(jobId, target.error.code, target.error.message);
     const { project, open } = target;
     if (!project) return _fail(jobId, 'NO_PROJECT', 'No project is open in Vision. Name one with folderPath, or open one, then send this again.');
-    const filename = String(sourcePath).split(/[\\/]/).pop();
+    const filename = basename(sourcePath);
     const tempId = crypto.randomUUID();
     if (open) Events.emit('media:import-started', { tempId, filename, mediaType });
     try {

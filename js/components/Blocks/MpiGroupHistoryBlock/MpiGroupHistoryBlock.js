@@ -93,6 +93,7 @@ import { splitDeclaredValues } from '../../../utils/declaredFields.js';
 import { setMaskReader, clearMaskReader } from '../../../shell/activeMask.js';
 import { setFrameReader, clearFrameReader } from '../../../shell/activeFrame.js';
 import { setStackMemberReader, clearStackMemberReader } from '../../../shell/activeStackMember.js';
+import { formatClock } from '../../../utils/elapsedTicker.js';
 
 /**
  * Registry mapping MpiHistoryTools `activate { mode }` keys to the compound
@@ -1303,10 +1304,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         let _videoChipMode = '';
         const _fmtClipTime = (sec) => {
             if (!Number.isFinite(+sec) || sec <= 0) return '';
-            const s = Math.max(0, +sec);
-            const m = Math.floor(s / 60);
-            const r = Math.floor(s % 60);
-            return `${m}:${String(r).padStart(2, '0')}`;
+            return formatClock(+sec * 1000);
         };
         const _renderVideoChips = () => {
             if (!isVideo) return;

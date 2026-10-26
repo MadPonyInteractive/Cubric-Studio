@@ -2,13 +2,7 @@ import { ComponentFactory } from '../../factory.js';
 import { qs, qsa, on, inheritAccent } from '../../../utils/dom.js';
 import { Events } from '../../../events.js';
 import { renderIcon } from '../../../utils/icons.js';
-
-const escapeHtml = (value) => String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+import { escapeHtml } from '../../../utils/string.js';
 
 const optionValue = (opt) => typeof opt === 'string' ? opt : opt.value;
 const optionLabel = (opt) => typeof opt === 'string' ? opt : opt.label;

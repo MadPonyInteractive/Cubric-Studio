@@ -1,7 +1,7 @@
 import { ComponentFactory } from '../../factory.js';
 import { MpiRadioGroup } from '../../Primitives/MpiRadioGroup/MpiRadioGroup.js';
 import { CropManager } from '../../Primitives/MpiCanvas/managers/CropManager.js';
-import { CROP_RATIOS } from '../../../utils/ratios.js';
+import { CROP_RATIOS, ORIENTATION_OPTIONS, cropRatioOptions } from '../../../utils/ratios.js';
 import { resolveMediaUrl } from '../../../utils/mediaActions.js';
 import { setDisplaySrc, originalSize } from '../../../utils/displayImage.js';
 import { planOutpaintPasses, nextPassRect } from '../../../utils/outpaintPasses.js';
@@ -66,28 +66,16 @@ const HANDLE_SLACK = 14;
 /** The long edge the engine is ever sent (routes/projects.js ENGINE_MAX_EDGE). */
 const ENGINE_MAX_EDGE = 4096;
 
-/** Icon-only orientation toggle. Mirrors MpiToolOptionsCrop's own pair. */
-const ORIENTATIONS = [
-    { label: 'Portrait',  value: 'portrait',  icon: 'ratio_9_16', info: 'Portrait shapes' },
-    { label: 'Landscape', value: 'landscape', icon: 'ratio_16_9', info: 'Landscape shapes' },
-];
-
 /** FREE leads the row: no lock, each handle moves its own axis. */
 const FREE = { label: 'Free', value: 'free', icon: 'crop', info: 'No aspect lock — every edge moves on its own' };
 
 /**
- * Ratio options for one orientation, in MpiRadioGroup's shape.
- * `rect_*` → `ratio_*` is the same icon-name mapping MpiToolOptionsCrop does.
+ * Ratio options for one orientation, in MpiRadioGroup's shape: FREE, then the crop bar's own.
  * @param {'portrait'|'landscape'} orientation
  * @returns {Array<{label:string,value:string,icon:string}>}
  */
 function _ratioOptionsFor(orientation) {
-    const list = CROP_RATIOS[orientation] ?? CROP_RATIOS.portrait;
-    return [FREE, ...list.map(r => ({
-        label: r.label,
-        value: r.label,
-        icon: r.icon.replace('rect_', 'ratio_'),
-    }))];
+    return [FREE, ...cropRatioOptions(orientation)];
 }
 
 /**
@@ -366,7 +354,7 @@ export const MpiStepCrop = ComponentFactory.create({
         }
 
         _orientRadio = MpiRadioGroup.mount(document.createElement('div'), {
-            options: ORIENTATIONS,
+            options: ORIENTATION_OPTIONS,
             value: _orientation,
             name: 'flow-crop-orientation',
             iconOnly: true,

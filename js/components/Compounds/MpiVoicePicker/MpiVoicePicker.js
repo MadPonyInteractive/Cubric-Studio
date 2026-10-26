@@ -6,6 +6,7 @@ import { renderIcon } from '../../../utils/icons.js';
 import { createVoiceLibrary, EMOTIONS } from '../../../data/voiceLibrary.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { applySink } from '../../../utils/audioOutput.js';
+import { escapeHtml } from '../../../utils/string.js';
 
 /**
  * MpiVoicePicker — voice selection compound for the TTS/VC flows (MPI-622).
@@ -217,7 +218,7 @@ export const MpiVoicePicker = ComponentFactory.create({
                      data-voice-id="${voice.id}" role="button" tabindex="0"
                      aria-pressed="${isSelected}">
                     <div class="mpi-voice-picker__card-main">
-                        <div class="mpi-voice-picker__card-name">${_esc(cardName)}</div>
+                        <div class="mpi-voice-picker__card-name">${escapeHtml(cardName)}</div>
                         <div class="mpi-voice-picker__card-meta">
                             <!-- NO KIND BADGE. Every voice in the library has kind 'both', so
                                  it read "both" on all 56 rows and carried no information - Fabio
@@ -230,7 +231,7 @@ export const MpiVoicePicker = ComponentFactory.create({
                                  so a badge under every card repeats its own heading.
                                  The pitch warning below says the one thing a user needs, in
                                  semitones, and says it in plain language. -->
-                            ${voice.language ? `<span class="mpi-voice-picker__badge">${_esc(voice.language)}</span>` : ''}
+                            ${voice.language ? `<span class="mpi-voice-picker__badge">${escapeHtml(voice.language)}</span>` : ''}
                         </div>
                         ${warnHtml}
                     </div>
@@ -245,9 +246,6 @@ export const MpiVoicePicker = ComponentFactory.create({
             `;
         }
 
-        function _esc(str) {
-            return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-        }
 
         // ── Footer: emotion (when the mount wants it) + the one confirm button ─
         //
@@ -320,11 +318,11 @@ export const MpiVoicePicker = ComponentFactory.create({
             //            a plain voice with no variation count (see `isVariations`).
             listEl.innerHTML = groups.map(grp => `
                 <div class="mpi-voice-picker__group">
-                    <div class="mpi-voice-picker__group-head">${_esc(grp.label)}</div>
+                    <div class="mpi-voice-picker__group-head">${escapeHtml(grp.label)}</div>
                     ${grp.sections.map(g => `
                         <div class="mpi-voice-picker__section">
                             <div class="mpi-voice-picker__section-head">
-                                <span class="mpi-voice-picker__section-name">${_esc(g.label)}</span>
+                                <span class="mpi-voice-picker__section-name">${escapeHtml(g.label)}</span>
                                 ${g.isVariations
                                     ? `<span class="mpi-voice-picker__section-count">${g.voices.length} variations of one voice</span>`
                                     : ''}

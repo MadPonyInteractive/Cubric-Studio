@@ -4,23 +4,17 @@ import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
 import { MpiRadioGroup } from '../../Primitives/MpiRadioGroup/MpiRadioGroup.js';
 import { qs, ce, on } from '../../../utils/dom.js';
-import { CROP_RATIOS } from '../../../utils/ratios.js';
+import { ORIENTATION_OPTIONS, cropRatioOptions } from '../../../utils/ratios.js';
 import {
     SHEET_SIZES, SHEET_MAX_ZOOM, packSheet, placeSheet, frameRect, sheetPixelSize, sheetGutter, sheetBadge,
     sheetShapeRatio, gridSheet, placeGrid, containRect,
 } from '../../../utils/sheetLayout.js';
 
-/** Portrait / landscape, as the Flow crop step's ratio bar (MPI-1268). */
-const ORIENTATIONS = [
-    { label: 'Portrait',  value: 'portrait',  icon: 'ratio_9_16', info: 'Portrait sheets' },
-    { label: 'Landscape', value: 'landscape', icon: 'ratio_16_9', info: 'Landscape sheets' },
-];
-
 /** Auto, then the first six crop ratios of one orientation (1:1 to 9:16 or 16:9, 1:2 or 2:1). */
 function _shapeOptions(orientation) {
     return [
         { label: 'Auto', value: 'auto', icon: 'image', info: 'The shape the pictures fill without padding' },
-        ...CROP_RATIOS[orientation].slice(0, 6).map(r => ({ label: r.label, value: r.label, icon: r.icon.replace('rect_', 'ratio_') })),
+        ...cropRatioOptions(orientation).slice(0, 6),
     ];
 }
 
@@ -99,7 +93,7 @@ export const MpiImageSheet = ComponentFactory.create({
         // ── Controls ────────────────────────────────────────────────────────
         const shapeSlot = qs('#shape', el);
         const orientRadio = MpiRadioGroup.mount(document.createElement('div'), {
-            options: ORIENTATIONS, value: orientation, name: 'sheet-orientation', iconOnly: true,
+            options: ORIENTATION_OPTIONS, value: orientation, name: 'sheet-orientation', iconOnly: true,
         });
         let ratioRadio = null;
         const _mountRatios = () => {

@@ -17,6 +17,14 @@ export const getExtension = (filename) =>
     (filename || '').split('.').pop().toLowerCase();
 
 /**
+ * The last segment of a path, split on `/` AND `\` (Windows paths and model
+ * subfolders both reach the renderer). Empty input gives ''.
+ * @param {string} p
+ * @returns {string}
+ */
+export const basename = (p) => String(p || '').split(/[\\/]/).pop();
+
+/**
  * Checks if the given filename has a supported image extension.
  * @param {string} filename - The name of the file to check.
  * @returns {boolean} True if it is an image file, false otherwise.

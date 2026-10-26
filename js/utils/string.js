@@ -30,6 +30,19 @@ export const slugify = (str) =>
     str.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 /**
+ * Escapes a value for an HTML template: element content AND a quoted attribute
+ * (either quote). null/undefined become ''.
+ * @param {*} value
+ * @returns {string}
+ */
+export const escapeHtml = (value) => String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+/**
  * How long a piece of text needs to be on screen to be READ.
  *
  * Broadcast subtitling already solved this: Netflix caps adult English at 17

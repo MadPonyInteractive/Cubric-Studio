@@ -9,13 +9,13 @@ import { state } from '../../../state.js';
 import { Events } from '../../../events.js';
 import { qs } from '../../../utils/dom.js';
 import { formatBytes } from '../../../utils/formatBytes.js';
+import { basename } from '../../../utils/file.js';
 
 const TABS = [
     { value: 'loras', label: 'LoRAs' },
     { value: 'upscale_models', label: 'Upscale models' },
 ];
 const LIVE = new Set(['queued', 'uploading']);
-const baseName = (rel) => String(rel).split('/').pop();
 const pct = (j) => (j.totalBytes ? `${Math.floor((j.sentBytes / j.totalBytes) * 100)}%` : '0%');
 
 /** Plain words for the server's coded refusals (routes/remoteUploads.js). */
@@ -100,10 +100,10 @@ export const MpiModelUploader = ComponentFactory.create({
             if (!_list) return;
             const live = _liveJobs();
             const liveByName = new Map(live.map(j => [j.filename, j]));
-            const onPod = new Set(_list.remote.filter(f => !f.partial).map(f => baseName(f.rel)));
+            const onPod = new Set(_list.remote.filter(f => !f.partial).map(f => basename(f.rel)));
 
             localTree.el.setItems(_list.local.map((f) => {
-                const name = baseName(f.rel);
+                const name = basename(f.rel);
                 const there = onPod.has(name);
                 const going = liveByName.has(name);
                 return {
@@ -175,7 +175,7 @@ export const MpiModelUploader = ComponentFactory.create({
                 const { skipped = [] } = await downloadService.uploadModels(_type, files);
                 localTree.el.clearSelection();
                 if (skipped.length) {
-                    _setStatus(`Skipped ${skipped.length}: ${skipped.map(s => `${baseName(s.rel)} (${s.reason.replace(/_/g, ' ')})`).join(', ')}.`);
+                    _setStatus(`Skipped ${skipped.length}: ${skipped.map(s => `${basename(s.rel)} (${s.reason.replace(/_/g, ' ')})`).join(', ')}.`);
                 }
                 _render();
             } catch (err) {

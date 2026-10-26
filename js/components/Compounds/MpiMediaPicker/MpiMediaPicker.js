@@ -16,6 +16,7 @@ import {
 } from '../../../utils/galleryFilter.js';
 import { mountGalleryFilter } from '../../galleryFilterPanel.js';
 import { buildJustifiedRows } from '../../../utils/justifiedLayout.js';
+import { basename } from '../../../utils/file.js';
 
 /**
  * MpiMediaPicker — pick media the project ALREADY holds, or bring one in (Compound)
@@ -151,7 +152,7 @@ export const MpiMediaPicker = ComponentFactory.create({
             const raw = String(filePath || '');
             const q = raw.indexOf('path=');
             const p = q === -1 ? raw : decodeURIComponent(raw.slice(q + 5).split('&')[0]);
-            return p.split(/[/\\]/).pop() || '';
+            return basename(p);
         }
 
         /** Drop the extension — the user names takes, not files. */

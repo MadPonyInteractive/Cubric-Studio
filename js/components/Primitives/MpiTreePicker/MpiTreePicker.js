@@ -3,19 +3,11 @@ import { qs, on, inheritAccent } from '../../../utils/dom.js';
 import { Events } from '../../../events.js';
 import { renderIcon } from '../../../utils/icons.js';
 import { buildTree as buildPathTree, sortedFolderNames, sortedFiles } from '../../../utils/pathTree.js';
-
-const escapeHtml = (value) => String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+import { escapeHtml } from '../../../utils/string.js';
+import { basename } from '../../../utils/file.js';
 
 const optionValue = (opt) => typeof opt === 'string' ? opt : opt.value;
 const optionLabel = (opt) => typeof opt === 'string' ? opt : opt.label;
-
-/** basename of a path (last segment after \ or /) */
-const baseName = (v) => String(v || '').split(/[\\/]/).pop();
 
 /** basename with the trailing extension removed (keeps dotfiles/no-ext intact) */
 const stripExt = (name) => String(name || '').replace(/\.[^.\\/]+$/, '');
@@ -62,7 +54,7 @@ export const MpiTreePicker = ComponentFactory.create({
         const value        = props.value ?? '';
         const placeholder  = props.placeholder ?? 'Select...';
         const extraClasses = props.extraClasses || '';
-        const base         = baseName(value);
+        const base         = basename(value);
         const triggerLabel = value ? (props.stripExtension === true ? stripExt(base) : base) : placeholder;
         return `
             <div class="mpi-tree-picker ${extraClasses}">
@@ -290,7 +282,7 @@ export const MpiTreePicker = ComponentFactory.create({
             const value = fileRow.dataset.value ?? '';
             const label = fileRow.dataset.label || value;
             props.value = value;
-            labelEl.textContent = value ? fileLabel(baseName(value)) : placeholder;
+            labelEl.textContent = value ? fileLabel(basename(value)) : placeholder;
             closeBox();
             emit('change', { value, label });
         }));

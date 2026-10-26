@@ -32,6 +32,7 @@ import { readToolSettings, toolSettingsWriter } from '../../../services/toolSett
 import { clientLogger } from '../../../services/clientLogger.js';
 import { qs } from '../../../utils/dom.js';
 import { formatBytes } from '../../../utils/formatBytes.js';
+import { clampInt } from '../../../utils/math.js';
 
 const SIZE_OPTIONS = [
     { value: 'original', label: 'Original' },
@@ -43,12 +44,6 @@ const SIZE_OPTIONS = [
 const SIZE_VALUES = new Set(SIZE_OPTIONS.map(o => o.value));
 
 const DEFAULTS = Object.freeze({ fps: 10, sizePreset: 'original', loop: 0 });
-
-const clampInt = (value, fallback, min, max) => {
-    const n = Number(value);
-    if (!Number.isFinite(n)) return fallback;
-    return Math.max(min, Math.min(max, Math.round(n)));
-};
 
 function coerceSettings(raw) {
     return {

@@ -61,6 +61,7 @@ import {
     getSelectedItem,
     removeHistoryEntry,
 } from '../../../data/projectModel.js';
+import { basename } from '../../../utils/file.js';
 
 /**
  * Is this item's media file still on disk? Used to tell a genuinely deleted file
@@ -1531,15 +1532,14 @@ export const MpiGalleryBlock = ComponentFactory.create({
                 // custom name instead of the raw filename. Match by basename —
                 // the reuse mediaItem carries a url/filePath, the source group's
                 // selected item carries a filePath pointing at the same file.
-                const _basename = (p) => String(p || '').split(/[\\/]/).pop();
                 const _customNameForUrl = (url) => {
-                    const base = _basename(url);
+                    const base = basename(url);
                     if (!base) return undefined;
                     const groups = state.currentProject?.itemGroups || [];
                     for (const g of groups) {
                         if (!g.customName) continue;
                         const sel = g.history?.[g.selectedIndex ?? 0];
-                        if (sel && _basename(sel.filePath) === base) return g.customName;
+                        if (sel && basename(sel.filePath) === base) return g.customName;
                     }
                     return undefined;
                 };

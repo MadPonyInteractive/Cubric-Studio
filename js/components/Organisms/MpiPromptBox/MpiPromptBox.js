@@ -37,6 +37,7 @@ import { applyPromptReuseSettings } from '../../../services/projectService.js';
 import { getSharedSettings } from '../../../data/projectModel.js';
 import { ratioSettingsFromParams } from '../../../utils/promptReuse.js';
 import { resolveMediaUrl } from '../../../utils/mediaActions.js';
+import { basename } from '../../../utils/file.js';
 
 /**
  * MpiPromptBox — Prompt input Block with self-composing operation slots.
@@ -1318,7 +1319,7 @@ export const MpiPromptBox = ComponentFactory.create({
                 const pathPart = raw.includes('path=')
                     ? decodeURIComponent(raw.split('path=')[1])
                     : decodeURIComponent(raw.split('?')[0]);
-                const base = pathPart.split(/[\\/]/).pop() || '';
+                const base = basename(pathPart);
                 return base || 'audio';
             } catch { return 'audio'; }
         }

@@ -83,10 +83,16 @@ export function cornerColour(rgba) {
     return '#' + [rgba[0], rgba[1], rgba[2]].map(v => v.toString(16).padStart(2, '0')).join('');
 }
 
-/** `#rrggbb` -> [r, g, b] */
+/**
+ * `#rrggbb` (the `#` optional, surrounding space ignored) -> { r, g, b }; null when it
+ * is not six hex digits. The app's one parser: MpiColorPicker and services/gifFrames.js
+ * use it too.
+ */
 export function hexToRgb(hex) {
-    const v = parseInt(String(hex).replace('#', ''), 16);
-    return [(v >> 16) & 255, (v >> 8) & 255, v & 255];
+    const m = /^#?([0-9a-f]{6})$/i.exec(String(hex ?? '').trim());
+    if (!m) return null;
+    const v = parseInt(m[1], 16);
+    return { r: (v >> 16) & 255, g: (v >> 8) & 255, b: v & 255 };
 }
 
 /** Decode an image URL to RGBA pixels (browser only). */
@@ -119,7 +125,9 @@ export async function colourKeyMaskUrl(url, { colour = null, tolerance, edgesOnl
     const { width, height, data } = await readImagePixels(url);
     const hex = colour || cornerColour(data);
     if (!hex) throw new Error('no key colour: this frame\'s corner is transparent — pick one');
-    const mask = colourKeyMask(data, width, height, { key: hexToRgb(hex), tolerance, edgesOnly, selectMatching });
+    const rgb = hexToRgb(hex);
+    if (!rgb) throw new Error(`not a key colour: "${hex}" is not #rrggbb`);
+    const mask = colourKeyMask(data, width, height, { key: [rgb.r, rgb.g, rgb.b], tolerance, edgesOnly, selectMatching });
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;

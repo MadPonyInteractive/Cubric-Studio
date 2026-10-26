@@ -42,7 +42,8 @@ import { readToolSettings, toolSettingsWriter } from '../../../services/toolSett
 import { clientLogger } from '../../../services/clientLogger.js';
 import { qs } from '../../../utils/dom.js';
 import { extractThumbnail } from '../../../utils/thumbnail.js';
-import { getModelRatios, deriveResizeDims } from '../../../utils/ratios.js';
+import { getModelRatios, deriveResizeDims, ORIENTATION_OPTIONS, ratioIcon } from '../../../utils/ratios.js';
+import { clampInt } from '../../../utils/math.js';
 
 const KEEP_PROPORTIONS = ['stretch', 'resize', 'pad', 'pad_edge', 'pad_edge_pixel', 'crop', 'pillarbox_blur', 'total_pixels'];
 const CROP_POSITIONS = ['center', 'top', 'bottom', 'left', 'right'];
@@ -96,23 +97,12 @@ const STACK_FAMILIES = [
 /** Default value for each stack family. */
 const STACK_DEFAULTS = Object.freeze({ longEdge: 1024, percent: 50 });
 
-const ORIENTATIONS = [
-    { label: 'Portrait',  value: 'portrait',  icon: 'ratio_9_16', info: 'Portrait orientation' },
-    { label: 'Landscape', value: 'landscape', icon: 'ratio_16_9', info: 'Landscape orientation' },
-];
-
 const MULTIPLIERS = [
     { label: 'x1', value: '1', info: 'Use ratio resolution as-is' },
     { label: 'x2', value: '2', info: 'Double the ratio resolution' },
 ];
 
 const labelize = (value) => String(value).replace(/_/g, ' ');
-
-const clampInt = (value, fallback = 1) => {
-    const n = Number(value);
-    if (!Number.isFinite(n)) return fallback;
-    return Math.max(1, Math.round(n));
-};
 
 const normalizeColor = (value = {}) => ({
     r: Math.max(0, Math.min(255, Math.round(Number(value.r) || 0))),
@@ -141,8 +131,8 @@ function coerceSettings(settings) {
         if (!list.some(r => r.label === ratioLabel)) ratioLabel = list[0]?.label ?? DEFAULTS.ratioLabel;
     }
 
-    let width = clampInt(settings.width, DEFAULTS.width);
-    let height = clampInt(settings.height, DEFAULTS.height);
+    let width = clampInt(settings.width, DEFAULTS.width, 1);
+    let height = clampInt(settings.height, DEFAULTS.height, 1);
     if (PRESET_FAMILIES.has(family)) {
         const dims = _resolveRatioDims(family, orientation, ratioLabel, multiplier);
         width = dims.width;
@@ -159,7 +149,7 @@ function coerceSettings(settings) {
         keep_proportion: KEEP_PROPORTIONS.includes(settings.keep_proportion) ? settings.keep_proportion : DEFAULTS.keep_proportion,
         pad_color: normalizeColor(settings.pad_color || DEFAULTS.pad_color),
         crop_position: CROP_POSITIONS.includes(settings.crop_position) ? settings.crop_position : DEFAULTS.crop_position,
-        divisible_by: clampInt(settings.divisible_by, DEFAULTS.divisible_by),
+        divisible_by: clampInt(settings.divisible_by, DEFAULTS.divisible_by, 1),
         flip: ['none', 'x', 'y'].includes(settings.flip) ? settings.flip : DEFAULTS.flip,
         rotation: ['none', '90', '180', '270'].includes(String(settings.rotation)) ? String(settings.rotation) : DEFAULTS.rotation,
     };
@@ -394,7 +384,7 @@ export const MpiToolOptionsResize = ComponentFactory.create({
             if (isPreset) {
                 orientRadio = MpiRadioGroup.mount(document.createElement('div'), {
                     name: 'resize-orientation', value: settings.orientation,
-                    options: ORIENTATIONS, iconOnly: true,
+                    options: ORIENTATION_OPTIONS, iconOnly: true,
                 });
                 qs('#resize-orientation-slot', el).appendChild(orientRadio.el);
                 _children.push(orientRadio);
@@ -435,7 +425,7 @@ export const MpiToolOptionsResize = ComponentFactory.create({
             qs('#resize-ratio-slot', el).innerHTML = '';
             const opts = _ratioListFor(settings.family, settings.orientation).map(r => ({
                 label: r.label, value: r.label,
-                icon: r.icon.replace('rect_', 'ratio_'),
+                icon: ratioIcon(r),
                 info: `${r.w}×${r.h}`,
             }));
             ratioRadio = MpiRadioGroup.mount(document.createElement('div'), {
@@ -480,13 +470,13 @@ export const MpiToolOptionsResize = ComponentFactory.create({
         });
         // ponytail: 'change' only — MpiInput number commits on blur/Enter/wheel.
         // Binding 'input' too dispatched a preview workflow per keystroke.
-        _unsubs.push(widthInput.on('change', ({ value }) => setValue('width', clampInt(value, settings.width))));
+        _unsubs.push(widthInput.on('change', ({ value }) => setValue('width', clampInt(value, settings.width, 1))));
 
         heightInput = mount('#resize-height-slot', MpiInput, {
             type: 'number', label: 'Height', value: settings.height,
             min: 1, step: 1, info: 'Output height',
         });
-        _unsubs.push(heightInput.on('change', ({ value }) => setValue('height', clampInt(value, settings.height))));
+        _unsubs.push(heightInput.on('change', ({ value }) => setValue('height', clampInt(value, settings.height, 1))));
 
         const resetDimsBtn = mount('#resize-reset-dims-slot', MpiButton, {
             icon: 'refresh', label: 'Original Size', variant: 'primary', size: 'sm',
@@ -552,7 +542,7 @@ export const MpiToolOptionsResize = ComponentFactory.create({
             type: 'number', label: 'Divisible by', value: settings.divisible_by,
             min: 1, step: 1, info: 'Force dimensions to be divisible by this number',
         });
-        _unsubs.push(divisibleInput.on('change', ({ value }) => setValue('divisible_by', clampInt(value, settings.divisible_by))));
+        _unsubs.push(divisibleInput.on('change', ({ value }) => setValue('divisible_by', clampInt(value, settings.divisible_by, 1))));
 
         const flipRadio = mount('#resize-flip-slot', MpiRadioGroup, {
             name: 'resize-flip', value: settings.flip, iconOnly: true,
@@ -658,8 +648,8 @@ export const MpiToolOptionsResize = ComponentFactory.create({
         }
 
         function _syncDimInputsToSource() {
-            const w = clampInt(_sourceW, settings.width);
-            const h = clampInt(_sourceH, settings.height);
+            const w = clampInt(_sourceW, settings.width, 1);
+            const h = clampInt(_sourceH, settings.height, 1);
             settings = { ...settings, width: w, height: h };
             const wField = widthInput?.el ? qs('.mpi-input__field', widthInput.el) : null;
             const hField = heightInput?.el ? qs('.mpi-input__field', heightInput.el) : null;

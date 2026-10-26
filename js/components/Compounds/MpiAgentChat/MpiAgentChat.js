@@ -54,6 +54,7 @@ import {
     agentShorten,
     agentUseModel,
 } from '../../../services/agentService.js';
+import { formatClock } from '../../../utils/elapsedTicker.js';
 
 /**
  * Cosmo's ledge, in both modes. On the landing he stands BEHIND the block's top rule, which
@@ -521,8 +522,7 @@ export const MpiAgentChat = ComponentFactory.create({
             if (want.kind === 'job') {
                 if (arriving) _guestSince = Date.now();
                 const tick = () => {
-                    const s = Math.floor((Date.now() - _guestSince) / 1000);
-                    stateEl.textContent = `${want.verb} · ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+                    stateEl.textContent = `${want.verb} · ${formatClock(Date.now() - _guestSince)}`;
                 };
                 tick();
                 _guestTimer = setInterval(tick, 1000);

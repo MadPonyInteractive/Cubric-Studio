@@ -542,6 +542,30 @@ export const CROP_RATIOS = {
     ]
 };
 
+/** The icon-only portrait / landscape toggle every crop-shaped tool shows (MpiRadioGroup options). */
+export const ORIENTATION_OPTIONS = Object.freeze([
+    { label: 'Portrait',  value: 'portrait',  icon: 'ratio_9_16', info: 'Portrait orientation' },
+    { label: 'Landscape', value: 'landscape', icon: 'ratio_16_9', info: 'Landscape orientation' },
+]);
+
+/**
+ * The radio icon for a ratio entry: the tables name `rect_*` shapes, icons.js draws
+ * them as `ratio_*`.
+ * @param {{icon: string}} r
+ * @returns {string}
+ */
+export const ratioIcon = (r) => r.icon.replace('rect_', 'ratio_');
+
+/**
+ * CROP_RATIOS for one orientation as MpiRadioGroup options, label as value.
+ * @param {'portrait'|'landscape'} orientation  anything else reads as portrait
+ * @returns {Array<{label:string,value:string,icon:string,info:string}>}
+ */
+export function cropRatioOptions(orientation) {
+    const list = CROP_RATIOS[orientation] ?? CROP_RATIOS.portrait;
+    return list.map(r => ({ label: r.label, value: r.label, icon: ratioIcon(r), info: r.label }));
+}
+
 // Ratios for social media image and video
 export const SOCIAL_RATIOS = [
     { label: "1:1", ratio: 1 / 1, icon: "rect_1_1" },

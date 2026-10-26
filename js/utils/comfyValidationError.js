@@ -17,6 +17,8 @@
  * @module utils/comfyValidationError
  */
 
+import { basename } from './file.js';
+
 /** Loader inputs that name a model weight file — the not-installed family. */
 export const MODEL_FILE_INPUTS = Object.freeze(['unet_name', 'ckpt_name', 'vae_name', 'clip_name']);
 
@@ -54,5 +56,5 @@ export function findRejectedFile(nodeErrors, inputNames, comfyText = '') {
 
 /** Bare filename — ComfyUI echoes back whatever path the graph asked for. */
 export function rejectedBasename(file) {
-    return String(file || '').split(/[\\/]/).pop();
+    return basename(file);
 }

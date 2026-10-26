@@ -52,6 +52,7 @@ const { v4: uuidv4 } = require('uuid');
 const sharp = require('sharp');
 const { ffmpegPath } = require('./ffmpegBinary');
 const { extractImageThumb, imageThumbPath } = require('./ffmpegThumb');
+const { hexToRgb } = require('../js/utils/colourKeyMask.js');
 
 const execFileP = promisify(execFile);
 
@@ -219,13 +220,6 @@ async function extractFramesFromGif(gifAbsPath, mediaDir, hold) {
 /* ---------------------------------------------------------------------------
  * Build (E1)
  * ------------------------------------------------------------------------ */
-
-function hexToRgb(hex) {
-    const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || ''));
-    if (!m) return null;
-    const n = parseInt(m[1], 16);
-    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
-}
 
 /**
  * Flatten a frame's RGB toward `edgeColour` wherever alpha is PARTIAL, while

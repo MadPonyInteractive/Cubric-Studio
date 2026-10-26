@@ -13,6 +13,8 @@
  * the floor and 50 fps the ceiling; 16 fps rounds to 6 and plays at 16.7.
  */
 
+import { clampNumber, clampInt } from './math.js';
+
 export const MIN_DELAY = 2;
 export const MIN_FPS = 0.1;
 export const MAX_FPS = 50;
@@ -31,14 +33,6 @@ export const OUTPUT_DEFAULTS = Object.freeze({
 });
 
 const HEX = /^#[0-9a-f]{6}$/i;
-
-export function clampNumber(value, fallback, min, max) {
-    const n = Number(value);
-    if (!Number.isFinite(n)) return fallback;
-    return Math.max(min, Math.min(max, n));
-}
-
-const clampInt = (value, fallback, min, max) => Math.round(clampNumber(value, fallback, min, max));
 
 /** fps -> whole-hundredths delay, never under MIN_DELAY. */
 export function fpsToDelay(fps) {

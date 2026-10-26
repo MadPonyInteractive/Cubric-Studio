@@ -1,13 +1,7 @@
 import { ComponentFactory } from '../../factory.js';
 import { qs, qsa, on } from '../../../utils/dom.js';
 import { renderIcon } from '../../../utils/icons.js';
-
-const escapeHtml = (value) => String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+import { escapeHtml } from '../../../utils/string.js';
 
 /**
  * MpiFilterBar — Tag-group + search header row (MPI-754)

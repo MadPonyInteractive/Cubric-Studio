@@ -29,6 +29,7 @@ import { state } from '../state.js';
 import { getCommandProgressLabel, getCommandAccent } from '../data/commandRegistry.js';
 import { generationStore } from '../services/generationStore.js';
 import { podSessionCost, podSpendText } from '../utils/podCost.js';
+import { formatClock } from '../utils/elapsedTicker.js';
 
 // ── DOM refs ───────────────────────────────────────────────────────────────────
 let _job       = null;  // #shell-info-job
@@ -74,19 +75,13 @@ const _listenUnsubs = [];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function _fmtTime(sec) {
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
-    return m > 0 ? `${m}:${String(s).padStart(2, '0')}` : `0:${String(s).padStart(2, '0')}`;
-}
-
 // MPI-1059: while a job runs the time slot also carries the live Pod spend
 // (`2:10 · $0.61`), so a long render on a Pod shows what it costs next to how long
 // it has taken. Before the clock starts (queue, a cold model load) it is the spend alone.
 function _renderTime() {
     if (!_jobTime) return;
     const parts = [];
-    if (_timeSec !== null) parts.push(_fmtTime(_timeSec));
+    if (_timeSec !== null) parts.push(formatClock(_timeSec * 1000));
     if (_state === 'active' && _podSpend !== null) parts.push(_podSpend);
     _jobTime.textContent = parts.join(' · ');
 }

@@ -59,6 +59,7 @@ import { Events } from '../../../events.js';
 import { maskTempStore } from '../../../services/maskTempStore.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { colourKeyMaskUrl, COLOUR_KEY_DEFAULTS } from '../../../utils/colourKeyMask.js';
+import { basename } from '../../../utils/file.js';
 
 function _resolveUrl(filePath) {
     if (!filePath) return '';
@@ -331,7 +332,7 @@ export const MpiCanvasViewer = ComponentFactory.create({
             // An imported entry has no displayName and a project-file URL for filePath.
             const raw = item?.name || item?.displayName || item?.operation || '';
             if (raw) return raw.length > 28 ? raw.slice(0, 27) + '…' : raw;
-            const fp = (item?.filePath || '').replace(/\\/g, '/').split('/').pop() || '';
+            const fp = basename(item?.filePath);
             const dot = fp.lastIndexOf('.');
             return dot > 0 ? fp.slice(0, dot) : fp;
         }

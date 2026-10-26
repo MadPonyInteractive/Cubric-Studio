@@ -23,6 +23,7 @@ import { remoteEngineClient } from './remoteEngineClient.js';
 import { hasNoEngine, blockedByNoEngine, NO_ENGINE_CODE } from './engineGate.js';
 import { buildComfyViewUrl, collectComfyOutputUrls } from '../utils/comfyOutputUrls.js';
 import { findRejectedFile, rejectedBasename, MODEL_FILE_INPUTS } from '../utils/comfyValidationError.js';
+import { basename } from '../utils/file.js';
 
 // Seconds to wait for the ComfyUI server to report ready before giving up.
 // Cold start on a slow / CPU-only machine loads torch + a checkpoint and can
@@ -2218,7 +2219,7 @@ function createEngine({ engine, alwaysLocal }) {
      * @private
      */
     async _uploadRemoteMedia(localPath) {
-        const filename = String(localPath).split(/[\\/]/).pop();
+        const filename = basename(localPath);
         const res = await fetch('/remote/upload/media', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -2282,14 +2283,13 @@ function createEngine({ engine, alwaysLocal }) {
         // param values to their basename to match the flat Pod loader enum. Doing this
         // up front (independent of the presence/upload result below) heals a value that
         // was already flat-present on the Pod from a prior run too.
-        const _base = (n) => String(n).split(/[\\/]/).pop();
         for (const value of Object.values(params || {})) {
-            if (value && typeof value === 'object' && value.lora_name) value.lora_name = _base(value.lora_name);
+            if (value && typeof value === 'object' && value.lora_name) value.lora_name = basename(value.lora_name);
         }
-        if (params.Upscale_Model) params.Upscale_Model = _base(params.Upscale_Model);
+        if (params.Upscale_Model) params.Upscale_Model = basename(params.Upscale_Model);
 
         for (const { type, name } of wanted) {
-            const base = String(name).split(/[\\/]/).pop();
+            const base = basename(name);
             // 1. Skip if the Pod already has it (works on today's image).
             let present = false;
             try {

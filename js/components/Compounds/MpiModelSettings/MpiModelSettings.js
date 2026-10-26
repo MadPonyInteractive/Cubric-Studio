@@ -34,7 +34,6 @@ import {
     buildStrengthsRow,
     buildBypassBtn,
     applyBypass,
-    baseName as _baseName,
     resolveInfo as _resolveInfo,
     isMissing as _isMissing,
 } from '../../loraSlotParts.js';
@@ -48,6 +47,7 @@ import { getModelById } from '../../../data/modelRegistry.js';
 import { DEPS } from '../../../data/modelConstants/dependencies.js';
 import { loadAll as loadAssets } from '../../../services/assetService.js';
 import { clientLogger } from '../../../services/clientLogger.js';
+import { basename } from '../../../utils/file.js';
 
 const LORA_COUNT = 6;
 
@@ -129,7 +129,7 @@ function _resolveToList(value, available) {
  */
 function _withMissingOption(options, value) {
     if (!value || options.some(o => o.value === value)) return options;
-    return [...options, { label: `${_baseName(value)} (missing)`, value, disabled: true }];
+    return [...options, { label: `${basename(value)} (missing)`, value, disabled: true }];
 }
 
 export const MpiModelSettings = ComponentFactory.create({

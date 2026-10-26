@@ -13,6 +13,7 @@ import { trimSilence } from '../../../utils/trimSilence.js';
 import { uploadMediaFile } from '../../../services/mediaUploadService.js';
 import { state } from '../../../state.js';
 import { Events } from '../../../events.js';
+import { formatClock } from '../../../utils/elapsedTicker.js';
 
 /**
  * The waveform mask's rendition, kept equal to `AUDIO_WAVEFORM_PX` in
@@ -374,8 +375,7 @@ export const MpiAudioRecorder = ComponentFactory.create({
         }
 
         function _renderTime() {
-            const s = Math.floor((Date.now() - _startedAt) / 1000);
-            timeSlot.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+            timeSlot.textContent = formatClock(Date.now() - _startedAt);
         }
 
         /**

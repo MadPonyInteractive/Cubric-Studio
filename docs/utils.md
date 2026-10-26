@@ -31,6 +31,7 @@
 
 - `RATIOS` constant: named aspect ratio definitions (e.g. `RATIOS.square`, `RATIOS.landscape16x9`).
 - Used by workspaces and components to maintain consistent proportional layouts.
+- `ORIENTATION_OPTIONS` (the portrait/landscape icon toggle), `ratioIcon(r)` (a table's `rect_*` icon as the `ratio_*` radio icon) and `cropRatioOptions(orientation)` (CROP_RATIOS as radio options). Never redeclare an orientation pair or the `rect_` -> `ratio_` mapping in a component (AUDIT D8).
 
 ## mediaActions.js (`js/utils/mediaActions.js`) — save/download media to disk
 
@@ -78,8 +79,11 @@ Backend logging is `routes/logger.js` — see [DEVELOPMENT.md](DEVELOPMENT.md) �
 
 | File | Purpose |
 |---|---|
-| `file.js` | File path manipulation and I/O helpers |
+| `file.js` | File type checks and `basename(p)` (last segment, splits on `/` AND `\`). Never `split(/[\\/]/).pop()` inline. |
 | `video.js` | Video processing helpers |
-| `string.js` | String manipulation helpers |
+| `string.js` | String helpers, incl. `escapeHtml` (all five characters, `'` too) for every HTML template — never a local escaper. |
+| `math.js` | `clamp(v, lo, hi)`, `clampNumber(value, fallback, min?, max?)` (non-numbers give the fallback) and `clampInt` (the same, rounded). |
+| `elapsedTicker.js` | `formatClock(ms)` is the app's ONE `m:ss` / `h:mm:ss` clock. Never hand-roll `Math.floor(s / 60)`: rounding `s % 60` on its own printed "0:60" (B3). Round whole seconds first when the input is fractional. |
+| `colourKeyMask.js` | Mask by colour, plus the app's ONE `hexToRgb(hex)` -> `{ r, g, b }` or `null` (the server requires it too: `services/gifFrames.js`). |
 | `uninstallOutcome.js` | What a `download:uninstalled` report freed (`gone`, `keptForModel`…). Both uninstall toasts (Model Library, Flow Library) count through it — never re-count `already-absent` locally (MPI-469, MPI-1076). |
 | `markdown.js` | The app's ONLY markdown renderer — `marked` parses, `DOMPurify` sanitizes. `renderMarkdown` (document), `renderInlineMarkdown` (one line, no `<p>`), `renderMarkdownInto(el, src)`, `wireMarkdownLinks(el)` (call once; routes links to the user's browser). Style output with `.mpi-md` from `styles/markdown.css`. Never hand-roll markdown or `innerHTML` unsanitized output. |

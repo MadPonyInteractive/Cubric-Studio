@@ -45,7 +45,8 @@ import { MpiRadioGroup } from '../../Primitives/MpiRadioGroup/MpiRadioGroup.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiInput } from '../../Primitives/MpiInput/MpiInput.js';
 import { MpiColorPicker } from '../../Primitives/MpiColorPicker/MpiColorPicker.js';
-import { CROP_RATIOS } from '../../../utils/ratios.js';
+import { CROP_RATIOS, ORIENTATION_OPTIONS, cropRatioOptions } from '../../../utils/ratios.js';
+import { clampInt } from '../../../utils/math.js';
 import { qs } from '../../../utils/dom.js';
 import { readToolSettings, toolSettingsWriter } from '../../../services/toolSettings.js';
 
@@ -63,12 +64,6 @@ const DEFAULTS = Object.freeze({
 const FAMILY_VALUES      = new Set(['ratio', 'free', 'resolution']);
 const ORIENTATION_VALUES = new Set(['portrait', 'landscape']);
 
-const clampInt = (value, fallback = 1) => {
-    const n = Number(value);
-    if (!Number.isFinite(n)) return fallback;
-    return Math.max(1, Math.round(n));
-};
-
 function coerceSettings(raw) {
     const family = FAMILY_VALUES.has(raw.family) ? raw.family : DEFAULTS.family;
     const orientation = ORIENTATION_VALUES.has(raw.orientation) ? raw.orientation : DEFAULTS.orientation;
@@ -78,9 +73,9 @@ function coerceSettings(raw) {
         const list = CROP_RATIOS[orientation] ?? CROP_RATIOS.portrait;
         if (!list.some(r => r.label === label)) label = list[0]?.label ?? DEFAULTS.label;
     }
-    const divisible_by = clampInt(raw.divisible_by, DEFAULTS.divisible_by);
-    const res_w = clampInt(raw.res_w, DEFAULTS.res_w);
-    const res_h = clampInt(raw.res_h, DEFAULTS.res_h);
+    const divisible_by = clampInt(raw.divisible_by, DEFAULTS.divisible_by, 1);
+    const res_w = clampInt(raw.res_w, DEFAULTS.res_w, 1);
+    const res_h = clampInt(raw.res_h, DEFAULTS.res_h, 1);
     const fill_color = typeof raw.fill_color === 'string' ? raw.fill_color : DEFAULTS.fill_color;
     return { family, orientation, label, divisible_by, res_w, res_h, fill_color };
 }
@@ -90,22 +85,6 @@ const FAMILIES = [
     { label: 'FREE',       value: 'free'       },
     { label: 'RESOLUTION', value: 'resolution' },
 ];
-
-const ORIENTATIONS = [
-    { label: 'Portrait',  value: 'portrait',  icon: 'ratio_9_16', info: 'Portrait orientation' },
-    { label: 'Landscape', value: 'landscape', icon: 'ratio_16_9', info: 'Landscape orientation' },
-];
-
-/** Build radio options for ratio row — icon + label, label as value. */
-function _ratioOptionsFor(orientation) {
-    const list = CROP_RATIOS[orientation] ?? CROP_RATIOS.portrait;
-    return list.map(r => ({
-        label: r.label,
-        value: r.label,
-        icon:  r.icon.replace('rect_', 'ratio_'),
-        info:  r.label,
-    }));
-}
 
 /** Resolve numeric ratio float for an orientation/label. null = FREE. */
 function _resolveRatio(family, orientation, label) {
@@ -212,7 +191,7 @@ export const MpiToolOptionsCrop = ComponentFactory.create({
             orientSection.style.display = visible ? '' : 'none';
             if (!visible) return;
             orientRadio = MpiRadioGroup.mount(document.createElement('div'), {
-                options: ORIENTATIONS,
+                options: ORIENTATION_OPTIONS,
                 value:   _orientation,
                 name:    'crop-orientation',
                 iconOnly: true,
@@ -223,8 +202,8 @@ export const MpiToolOptionsCrop = ComponentFactory.create({
                 _orientation = value;
                 // Mirror by index across orientations (lists are same length
                 // + parallel: 1:1↔1:1, 3:4↔4:3, 4:5↔5:4, 5:8↔8:5, 9:16↔16:9).
-                const prevList = _ratioOptionsFor(prevOrientation);
-                const newList  = _ratioOptionsFor(_orientation);
+                const prevList = cropRatioOptions(prevOrientation);
+                const newList  = cropRatioOptions(_orientation);
                 const idx = prevList.findIndex(o => o.value === _label);
                 if (idx >= 0 && newList[idx]) _label = newList[idx].value;
                 else if (!newList.some(o => o.value === _label)) _label = newList[0]?.value ?? _label;
@@ -241,7 +220,7 @@ export const MpiToolOptionsCrop = ComponentFactory.create({
             const visible = _family === 'ratio';
             ratiosSection.style.display = visible ? '' : 'none';
             if (!visible) return;
-            const opts = _ratioOptionsFor(_orientation);
+            const opts = cropRatioOptions(_orientation);
             ratioRadio = MpiRadioGroup.mount(document.createElement('div'), {
                 options: opts,
                 value:   _label,
@@ -294,7 +273,7 @@ export const MpiToolOptionsCrop = ComponentFactory.create({
             // re-shows it, FREE hides it (kept for later restore). Fall back to
             // the first label only if it somehow drifted out of the list.
             if (_family === 'ratio') {
-                const opts = _ratioOptionsFor(_orientation);
+                const opts = cropRatioOptions(_orientation);
                 if (!opts.some(o => o.value === _label)) _label = opts[0]?.value ?? _label;
             }
             persist('family', _family);
@@ -318,7 +297,7 @@ export const MpiToolOptionsCrop = ComponentFactory.create({
         qs('#res-w-slot', el).appendChild(resWInput.el);
         _children.push(resWInput);
         resWInput.on('change', ({ value }) => {
-            _res_w = clampInt(value, _res_w);
+            _res_w = clampInt(value, _res_w, 1);
             persist('res_w', _res_w);
             _pushShape();
         });
@@ -330,7 +309,7 @@ export const MpiToolOptionsCrop = ComponentFactory.create({
         qs('#res-h-slot', el).appendChild(resHInput.el);
         _children.push(resHInput);
         resHInput.on('change', ({ value }) => {
-            _res_h = clampInt(value, _res_h);
+            _res_h = clampInt(value, _res_h, 1);
             persist('res_h', _res_h);
             _pushShape();
         });
@@ -354,8 +333,8 @@ export const MpiToolOptionsCrop = ComponentFactory.create({
         });
         divisibleSlot.appendChild(divisibleInput.el);
         _children.push(divisibleInput);
-        divisibleInput.on('input',  ({ value }) => { _divisible_by = clampInt(value, _divisible_by); persist('divisible_by', _divisible_by); });
-        divisibleInput.on('change', ({ value }) => { _divisible_by = clampInt(value, _divisible_by); persist('divisible_by', _divisible_by); });
+        divisibleInput.on('input',  ({ value }) => { _divisible_by = clampInt(value, _divisible_by, 1); persist('divisible_by', _divisible_by); });
+        divisibleInput.on('change', ({ value }) => { _divisible_by = clampInt(value, _divisible_by, 1); persist('divisible_by', _divisible_by); });
 
         // ── Actions ──────────────────────────────────────────────────────────
         // A number input commits on blur, and blur lands before the click, so

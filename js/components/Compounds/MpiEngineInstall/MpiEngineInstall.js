@@ -13,6 +13,7 @@ import { startElapsedTicker } from '../../../utils/elapsedTicker.js';
 import { Events } from '../../../events.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { downloadService } from '../../../services/downloadService.js';
+import { basename } from '../../../utils/file.js';
 
 /* The two Phase-0 cards' faces. They live outside the template because each card is
    a mounted MpiButton the setup places, not markup — see `_mountRef` (MPI-588). */
@@ -794,7 +795,7 @@ export const MpiEngineInstall = ComponentFactory.create({
                 _run.label = STAGE_LABELS[data.status] || data.status || _run.label;
                 _run.unpacking = data.status === 'extracting';
                 if (_run.unpacking) {
-                    _run.detail = (data.file || '').split(/[\\/]/).pop();
+                    _run.detail = basename(data.file);
                     if (Number.isFinite(data.percent)) _run.unpack = data.percent;
                 } else {
                     _run.detail = data.file || '';

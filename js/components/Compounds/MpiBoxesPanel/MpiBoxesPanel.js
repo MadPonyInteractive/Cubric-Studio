@@ -7,6 +7,7 @@ import { qs, qsa, on } from '../../../utils/dom.js';
 import { boxName, uniqueBoxName, MAX_BOXES } from '../../../data/layoutBoxes.js';
 import { Storage } from '../../../core/storage.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
+import { clamp } from '../../../utils/math.js';
 
 /**
  * MpiBoxesPanel — draw where things go in the picture (Compound, MPI-1181)
@@ -40,7 +41,6 @@ import { Hotkeys } from '../../../managers/hotkeyManager.js';
 const COLOURS = ['--accent-frost', '--prompt-accent', '--accent-ok', '--video-accent', '--vision-accent', '--accent-err'];
 const MIN_SIZE = 0.03;
 const TAG_IN_Y = 0.04;    // a box this close to the frame top keeps its tag inside (the panel's padding takes any spill)
-const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const TOP_GAP = 200;      // px the open panel leaves below the window top (header + op strip room)
 const MIN_PANEL_H = 260;  // a short window still shows a usable frame
 const MIN_SIDE_W = 280;   // name + a few words of the desc
