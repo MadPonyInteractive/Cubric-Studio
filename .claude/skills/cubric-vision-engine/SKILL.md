@@ -79,10 +79,9 @@ seconds, which at pod download rates is gigabytes of drift.
 |---|---|---|
 | GET | `/system/stats` | Host stats |
 | GET | `/system/gpu-info` | GPU |
-| GET | `/system/list-components` | Installed components |
 | GET | `/system/platform-config` | Platform config |
 | POST | `/open-folder`, `/reveal-item`, `/choose-folder` | Shell integration |
-| GET | `/logs/read`, `/logs/download` | Logs |
+| GET | `/logs/read` | The app log, as JSON `{ log }` |
 | POST | `/logs/reveal` | Open the app log in the file manager |
 | POST | `/github/issue-url` | Build a prefilled bug-report URL (no credentials; does NOT file anything) |
 

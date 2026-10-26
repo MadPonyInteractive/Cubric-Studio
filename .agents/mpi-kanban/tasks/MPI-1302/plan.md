@@ -25,6 +25,8 @@
   math.js), `ORIENTATION_OPTIONS`/`ratioIcon`/`cropRatioOptions` (ratios.js), `formatClock`
   everywhere, one `hexToRgb` (colourKeyMask.js, `{r,g,b}|null`, required by gifFrames.js too).
   `tests/small-utils.test.cjs`; `docs/utils.md` lists them.
+- [x] X4 (minus the seed/gallery icons): 7 unused routes gone incl. the skill-listed ones (Fabio,
+  2026-10-26), skill docs updated, internal-only exports un-exported, dead functions deleted.
 
 ## Remaining Work
 
@@ -97,6 +99,9 @@ touches the same code.
 - D8: also did 3 basename copies the audit missed (entryInfo, MpiPromptBox, MpiEngineInstall) and
   the phone gallery chip's 0:60 bug; skipped `js/phone/phoneMedia.js` (MPI-1300 still open).
   `hexToRgb` changed shape (array -> object|null); its only array caller, `colourKeyMaskUrl`, converts.
+- X4: `GET /project-media/:id` was registered before `GET /project-media/temp` and swallowed it;
+  removing it routes `projectReconciler._listMediaFiles` to the temp handler (same name/type/path).
+  Icons seed/gallery wait on Fabio (their stroke rule is in `.claude/rules/dos_and_donts.md`).
 - Commits go through a private-index script (HEAD + this card's files + only MPI-1302 lines of
   `board.json` / root `events.jsonl`): peers leave uncommitted board edits in the tree. Compare
   event lines with `\r` stripped, or committed lines get re-appended (happened once, fixed

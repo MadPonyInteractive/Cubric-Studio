@@ -267,4 +267,4 @@ async function buildReferenceSheet(pictures, prompt, { width, height } = {}) {
     return { png, prompt: sheetPrompt(prompt, tags, names, roles, lines), cells, coverage };
 }
 
-module.exports = { buildReferenceSheet, layoutSheet, cellName, parseSheetPrompt, sheetPrompt, sheetRoles, sheetSize, GUT };
+module.exports = { buildReferenceSheet, layoutSheet, cellName, parseSheetPrompt, sheetSize, GUT };

@@ -179,4 +179,4 @@ async function ensureGit({ onStatus = () => {} } = {}) {
     return installGit({ onStatus });
 }
 
-module.exports = { findGit, detectPackageManager, manualInstallHint, installGit, ensureGit };
+module.exports = { ensureGit };

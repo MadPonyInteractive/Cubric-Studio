@@ -16,7 +16,7 @@ function _toSrc(input) {
  * @param {File|Blob|string} input
  * @returns {Promise<{w: number, h: number}>}
  */
-export function measureImageDimensions(input) {
+function measureImageDimensions(input) {
     return new Promise((resolve) => {
         const { src, revoke } = _toSrc(input);
         const cleanup = () => { if (revoke) URL.revokeObjectURL(src); };
@@ -35,7 +35,7 @@ export function measureImageDimensions(input) {
  * @param {File|Blob|string} input
  * @returns {Promise<{w: number, h: number}>}
  */
-export function measureVideoDimensions(input) {
+function measureVideoDimensions(input) {
     return new Promise((resolve) => {
         const { src, revoke } = _toSrc(input);
         const cleanup = () => { if (revoke) URL.revokeObjectURL(src); };

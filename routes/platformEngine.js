@@ -82,18 +82,6 @@ function getPortableRoot() {
 }
 
 /**
- * Resource root for portable/packaged binaries such as ffmpeg.
- * @returns {string|null}
- */
-function getPortableResourcesPath() {
-    const explicit = _resolveEnvPath('MPI_RESOURCES_PATH') || _resolveEnvPath('CUBRIC_RESOURCES_PATH');
-    if (explicit) return explicit;
-
-    const portableRoot = getPortableRoot();
-    return portableRoot ? path.join(portableRoot, 'resources') : null;
-}
-
-/**
  * Get the full path to the Python binary.
  * @param {string} engineRoot - root directory containing engine folder
  * @returns {string} full path to python executable
@@ -466,5 +454,4 @@ module.exports = {
     getEngineRoot,
     COMFY_DIR_MAP,
     getPortableRoot,
-    getPortableResourcesPath,
 };

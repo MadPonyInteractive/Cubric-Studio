@@ -38,10 +38,18 @@ the 142 violations they had let through). The finding sections below are left as
   "Portrait/Landscape orientation" like the crop bar. Also fixed: the phone gallery's video
   chip had the same "0:60" bug as B3. Left: `js/phone/phoneMedia.js` `fileNameOf` (MPI-1300's
   file, card still open), PromptBox clamps (D1).
+- Phase 1c: **X4** (Fabio: remove the unused skill-listed routes). Gone: `/project-templates/*`,
+  `GET /project-media/:id`, `upload-raw`, `probe-videos`, `/project-data/:id/upload`,
+  `/system/list-components`, `/logs/download` (skill docs updated). `GET /project-media/:id` had
+  been shadowing `/project-media/temp`, so the project reconciler now reaches its own cheap
+  handler instead of one that read every PNG. Internal-only exports un-exported; never-used
+  `truncate`/`capitalize`/`slugify`, `getVideoBounds`/`handleSnapshot`,
+  `getPortableResourcesPath` deleted; icons `translate`/`volumeLow` deleted. **Waiting on
+  Fabio:** icons `seed`/`gallery` and their stroke special case in `renderIcon`, because
+  `.claude/rules/dos_and_donts.md` line 40 names them (a rule file needs his OK).
 
 **Still open, suggested batches:**
-- Low risk, GPU-free: **X4** (ask Fabio before trimming routes the skill docs list),
-  **T1/T2**.
+- Low risk, GPU-free: **T1/T2**; the `seed`/`gallery` icon end of X4 once Fabio okays the rule edit.
 - Then **D1** (PromptBox slider ×17), **D3/D10** route by route, **P2/P14/P7/P12/P13**.
 - Needs the desktop suite or Fabio watching: **P1**, **P3**, **D7**, **D9**.
 - Needs a local profile or a Pod: **P4–P6**, **P9–P11**.

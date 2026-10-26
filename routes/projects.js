@@ -8,7 +8,6 @@
  *   POST   /get-project
  *   POST   /update-project
  *   POST   /delete-project
- *   GET    /project-media/:projectId
  *   DELETE /project-media/:projectId/:filename
  *   GET    /project-media/:projectId/download/:filename
  *   POST   /project-media/:projectId/update-meta
@@ -16,7 +15,6 @@
  *   POST   /project-notes
  *   POST   /project-notes/save
  *   POST   /project-media/:projectId/upload
- *   POST   /project-data/:projectId/upload
  *   GET    /project-file
  *   GET    /display-image
  *   GET    /image-size
@@ -1203,78 +1201,6 @@ router.post('/project/cleanup-assets', async (req, res) => {
 
 // ── Media Library ─────────────────────────────────────────────────────────────
 
-router.get('/project-media/:projectId', async (req, res) => {
-    try {
-        const { folderPath } = req.query;
-        if (!folderPath) return res.status(400).json({ success: false, error: 'folderPath required' });
-
-        const mediaDir = path.join(folderPath, 'Media');
-        if (!(await fs.pathExists(mediaDir))) return res.json({ success: true, files: [] });
-
-        const entries = await fs.readdir(mediaDir);
-        const realFiles = entries.filter(e => !e.endsWith('.meta.json') && !e.endsWith('.json'));
-
-        const files = await Promise.all(realFiles.map(async (name) => {
-            const filePath = path.join(mediaDir, name);
-            const stat = await fs.stat(filePath);
-            if (!stat.isFile()) return null;
-
-            const ext = path.extname(name).toLowerCase().slice(1);
-            let type = 'other';
-            if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif'].includes(ext)) type = 'image';
-            else if (['mp4', 'webm', 'mov', 'avi'].includes(ext)) type = 'video';
-            else if (['mp3', 'wav', 'ogg', 'flac', 'm4a'].includes(ext)) type = 'audio';
-
-            let promptContext = null;
-            let seed = null;
-            let resolution = '';
-            const metaPath = filePath + '.json';
-            let metadata = {};
-
-            if (await fs.pathExists(metaPath)) {
-                try {
-                    metadata = await fs.readJson(metaPath);
-                    promptContext = metadata.promptContext || metadata.prompt || null;
-                    seed = metadata.seed || null;
-                    if (metadata.width && metadata.height) resolution = `${metadata.width}x${metadata.height}`;
-                } catch (e) { }
-            }
-
-            if (!promptContext && ext === 'png') {
-                try {
-                    const buffer = await fs.readFile(filePath);
-                    const contentStr = buffer.toString('binary');
-                    const promptIdx = contentStr.indexOf('prompt\0');
-                    if (promptIdx !== -1) {
-                        const startIdx = promptIdx + 7;
-                        const firstBracket = contentStr.indexOf('{', startIdx);
-                        if (firstBracket !== -1) {
-                            let depth = 0, lastIdx = -1;
-                            for (let i = firstBracket; i < contentStr.length; i++) {
-                                if (contentStr[i] === '{') depth++;
-                                else if (contentStr[i] === '}') depth--;
-                                if (depth === 0) { lastIdx = i; break; }
-                            }
-                            if (lastIdx !== -1) {
-                                const fullPrompt = JSON.parse(contentStr.slice(firstBracket, lastIdx + 1));
-                                if (fullPrompt['1460']?.inputs?.text) promptContext = fullPrompt['1460'].inputs.text;
-                                if (fullPrompt['1454']?.inputs?.seed) seed = fullPrompt['1454'].inputs.seed;
-                                else if (fullPrompt['1466']?.inputs?.noise_seed) seed = fullPrompt['1466'].inputs.noise_seed;
-                            }
-                        }
-                    }
-                } catch (e) { /* silent parse fail */ }
-            }
-
-            return { name, type, size: stat.size, path: filePath, ext, promptContext, seed, resolution, metadata, mtime: stat.mtimeMs };
-        }));
-
-        res.json({ success: true, files: files.filter(Boolean) });
-    } catch (err) {
-        res.status(500).json({ success: false, error: err.message });
-    }
-});
-
 router.delete('/project-media/:projectId/:filename', async (req, res) => {
     try {
         const { folderPath, itemId } = req.query;
@@ -1779,65 +1705,6 @@ router.post('/project-media/:projectId/upload', async (req, res) => {
 });
 
 /**
- * Handles raw binary uploads for large files (videos, audio).
- * Expects headers: 
- *   x-filename: final_name.mp4
- *   content-type: application/octet-stream (or specific)
- */
-/**
- * POST /project-media/:projectId/probe-videos
- * Body: { folderPath }
- * Scans Media/ for video files, probes any whose sidecar lacks fps, and patches
- * the sidecar with { fps, duration, frameCount, hasAudio }.
- * Returns { patched: number, total: number }.
- */
-router.post('/project-media/:projectId/probe-videos', async (req, res) => {
-    try {
-        const { folderPath } = req.body;
-        if (!folderPath) return res.status(400).json({ success: false, error: 'folderPath required' });
-
-        const mediaDir = path.join(folderPath, 'Media');
-        const metaDir  = path.join(mediaDir, '.meta');
-        if (!(await fs.pathExists(metaDir))) return res.json({ success: true, patched: 0, total: 0 });
-
-        const sidecars = (await fs.readdir(metaDir)).filter(isSidecarFile);
-        let patched = 0, total = 0;
-
-        for (const f of sidecars) {
-            const p = path.join(metaDir, f);
-            let meta;
-            try { meta = await fs.readJson(p); } catch { continue; }
-            if (meta.type !== 'video') continue;
-            total++;
-            if (meta.fps && meta.duration) continue;
-
-            // Resolve media file path from stored filePath URL
-            const inputPath = projectFilePath(meta.filePath);
-            if (!inputPath || !(await fs.pathExists(inputPath))) continue;
-
-            const v = await probeVideo(inputPath);
-            if (!v) continue;
-
-            meta.fps        = v.fps;
-            meta.duration   = v.duration;
-            meta.frameCount = v.frameCount;
-            meta.hasAudio   = v.hasAudio;
-            if (meta.pixelDimensions) {
-                if (!meta.pixelDimensions.w && v.width)  meta.pixelDimensions.w = v.width;
-                if (!meta.pixelDimensions.h && v.height) meta.pixelDimensions.h = v.height;
-            }
-            await fs.writeJson(p, meta, { spaces: 2 });
-            patched++;
-        }
-
-        res.json({ success: true, patched, total });
-    } catch (err) {
-        logger.error('project', 'probe-videos failed', err);
-        res.status(500).json({ success: false, error: err.message });
-    }
-});
-
-/**
  * POST /backfill-media-derivatives
  * Body: { folderPath }
  * MPI-319: generate a gallery thumb for any IMAGE sidecar that lacks one
@@ -2013,35 +1880,6 @@ router.post('/backfill-media-derivatives', async (req, res) => {
     }
 });
 
-router.post('/project-media/:projectId/upload-raw', async (req, res) => {
-    try {
-        const { folderPath } = req.query;
-        const filename = req.headers['x-filename'];
-
-        if (!folderPath || !filename) {
-            return res.status(400).json({ success: false, error: 'folderPath and x-filename header required' });
-        }
-
-        const mediaDir = path.join(folderPath, 'Media');
-        await fs.ensureDir(mediaDir);
-        const filePath = path.join(mediaDir, filename);
-
-        const writeStream = fs.createWriteStream(filePath);
-        req.pipe(writeStream);
-
-        writeStream.on('finish', () => {
-            res.json({ success: true, filePath, filename });
-        });
-
-        writeStream.on('error', (err) => {
-            logger.error('project', 'raw upload error', err);
-            res.status(500).json({ success: false, error: err.message });
-        });
-    } catch (err) {
-        res.status(500).json({ success: false, error: err.message });
-    }
-});
-
 // MPI-259: place a dropped Flow input file into the content-addressed preview-assets
 // store (Media/.preview-assets/<sha256><ext>) instead of the visible gallery. Keeps the
 // gallery clean while persisting the file durably so a later Reuse can resolve it (the
@@ -2118,26 +1956,6 @@ router.post('/project-media/:projectId/frames-to-video', async (req, res) => {
         res.status(500).json({ success: false, error: err.message });
     } finally {
         if (tmpDir) await fs.remove(tmpDir).catch(() => {});
-    }
-});
-
-router.post('/project-data/:projectId/upload', async (req, res) => {
-    try {
-        const { folderPath } = req.query;
-        const { subDir, filename, base64Data } = req.body;
-        if (!folderPath) return res.status(400).json({ success: false, error: 'folderPath required' });
-        if (!subDir || !filename || !base64Data) return res.status(400).json({ success: false, error: 'subDir, filename and base64Data required' });
-
-        const targetDir = path.join(folderPath, 'data', subDir);
-        await fs.ensureDir(targetDir);
-        const base64Content = base64Data.replace(/^data:image\/\w+;base64,/, '');
-        const buffer = Buffer.from(base64Content, 'base64');
-        const filePath = path.join(targetDir, filename);
-        await fs.writeFile(filePath, buffer);
-        res.json({ success: true, filePath, filename });
-    } catch (err) {
-        logger.error('project', 'project-data upload error', err);
-        res.status(500).json({ success: false, error: err.message });
     }
 });
 
@@ -3757,92 +3575,6 @@ router.post('/migrate-project', async (req, res) => {
     } catch (err) {
         logger.error('project', 'migrate-project error', err);
         res.status(500).json({ success: false, error: err.message });
-    }
-});
-
-// ─── Project Templates ────────────────────────────────────────────────────────
-
-/**
- * Helper to find a project's folder on disk by its internal UUID.
- */
-async function findProjectFolder(id) {
-    if (!id) return null;
-    const roots = [getProjectsRoot()];
-    for (const root of roots) {
-        if (!(await fs.pathExists(root))) continue;
-        const entries = await fs.readdir(root);
-        for (const entry of entries) {
-            const entryPath = path.join(root, entry);
-            const jsonPath = path.join(entryPath, 'project.json');
-            if (await fs.pathExists(jsonPath)) {
-                try {
-                    const p = await fs.readJson(jsonPath);
-                    if (p.id === id) return entryPath;
-                } catch (e) { /* skip */ }
-            }
-        }
-    }
-    return null;
-}
-
-/**
- * GET /project-templates/:id
- * Returns all templates for a project.
- */
-router.get('/project-templates/:id', async (req, res) => {
-    try {
-        const folderPath = await findProjectFolder(req.params.id);
-        if (!folderPath) return res.status(404).json({ error: 'Project not found' });
-        const projectPath = path.join(folderPath, 'project.json');
-        const project = await fs.readJson(projectPath);
-        res.json({ templates: project.templates || {} });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
-});
-
-/**
- * POST /project-templates/:id
- * Body: { name: string, toolStates: Object }
- * Saves or overwrites a named template.
- */
-router.post('/project-templates/:id', async (req, res) => {
-    try {
-        const { name, toolStates } = req.body;
-        if (!name) return res.status(400).json({ error: 'name required' });
-        const folderPath = await findProjectFolder(req.params.id);
-        if (!folderPath) return res.status(404).json({ error: 'Project not found' });
-        const projectPath = path.join(folderPath, 'project.json');
-        await updateProjectJson(projectPath, project => ({
-            ...project,
-            templates: {
-                ...(project.templates || {}),
-                [name]: { created: new Date().toISOString(), toolStates },
-            },
-        }));
-        res.json({ ok: true });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
-});
-
-/**
- * DELETE /project-templates/:id/:name
- * Deletes a named template.
- */
-router.delete('/project-templates/:id/:name', async (req, res) => {
-    try {
-        const folderPath = await findProjectFolder(req.params.id);
-        if (!folderPath) return res.status(404).json({ error: 'Project not found' });
-        const projectPath = path.join(folderPath, 'project.json');
-        await updateProjectJson(projectPath, project => {
-            const templates = { ...(project.templates || {}) };
-            delete templates[req.params.name];
-            return { ...project, templates };
-        });
-        res.json({ ok: true });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
     }
 });
 

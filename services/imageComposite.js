@@ -258,4 +258,4 @@ async function extractThroughMask({ basePath, maskBuffer, outPath, background = 
     return { width, height };
 }
 
-module.exports = { compositeThroughMask, compositeOverlay, extractThroughMask, defaultFeather, fillMaskHoles };
+module.exports = { compositeThroughMask, compositeOverlay, extractThroughMask, fillMaskHoles };

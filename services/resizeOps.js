@@ -360,4 +360,4 @@ async function resizeVideoFile(inputPath, outPath, params, { trimIn, trimOut, si
     return { width: plan.outW - (plan.outW % 2), height: plan.outH - (plan.outH % 2) };
 }
 
-module.exports = { planResize, normalizeResizeParams, resizeImage, resizeImageFile, resizeVideoFile, videoFilter, pyRound };
+module.exports = { planResize, normalizeResizeParams, resizeImage, resizeImageFile, resizeVideoFile, pyRound };

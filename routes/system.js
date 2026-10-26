@@ -216,35 +216,6 @@ router.post('/reveal-item', async (req, res) => {
     }
 });
 
-/**
- * GET /system/list-components
- * Scans the js/components directory for Primitives, Compounds, and Blocks.
- */
-router.get('/system/list-components', (req, res) => {
-    const fs = require('fs');
-    const path = require('path');
-    const componentsRoot = path.join(__dirname, '..', 'js', 'components');
-    const tiers = ['Primitives', 'Compounds', 'Blocks'];
-    const results = {};
-
-    try {
-        tiers.forEach(tier => {
-            const tierPath = path.join(componentsRoot, tier);
-            if (fs.existsSync(tierPath)) {
-                results[tier] = fs.readdirSync(tierPath).filter(f => {
-                    const fullPath = path.join(tierPath, f);
-                    return fs.statSync(fullPath).isDirectory();
-                });
-            } else {
-                results[tier] = [];
-            }
-        });
-        res.json({ success: true, components: results });
-    } catch (err) {
-        res.status(500).json({ success: false, error: err.message });
-    }
-});
-
 // ── Client-side log bridge ────────────────────────────────────────────────────
 // Allows frontend JS errors to be written into the same app.log file.
 
@@ -263,23 +234,7 @@ router.post('/log', (req, res) => {
     res.json({ success: true });
 });
 
-// ── Log Download ──────────────────────────────────────────────────────────────
-
-router.get('/logs/download', async (req, res) => {
-    const logPath = logger.getLogPath();
-    try {
-        const exists = await fs.pathExists(logPath);
-        if (!exists) {
-            return res.status(404).json({ success: false, error: 'No log file found yet.' });
-        }
-        res.setHeader('Content-Disposition', 'attachment; filename="mpi-app.log"');
-        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-        fs.createReadStream(logPath).pipe(res);
-    } catch (err) {
-        logger.error('system', 'Log download failed', err);
-        res.status(500).json({ success: false, error: err.message });
-    }
-});
+// ── Logs ──────────────────────────────────────────────────────────────────────
 
 router.get('/logs/read', async (req, res) => {
     const logPath = logger.getLogPath();

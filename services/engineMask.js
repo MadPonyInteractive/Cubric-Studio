@@ -414,4 +414,4 @@ async function applyMatte({ sourcePath, resultPath, color, outPath }) {
     return { width, height };
 }
 
-module.exports = { prepareMaskedInput, prepareBoxedInput, stitchMaskCrop, applyMatte, planMaskCrop, maskBox, uprightSize, CONTEXT_PAD, CONTEXT_REACH, BLEND_BAND };
+module.exports = { prepareMaskedInput, prepareBoxedInput, stitchMaskCrop, applyMatte, planMaskCrop, uprightSize, CONTEXT_PAD, CONTEXT_REACH };

@@ -73,6 +73,19 @@
     "tests/small-utils.test.cjs",
     "js/utils/entryInfo.js",
     "js/components/Organisms/MpiPromptBox/MpiPromptBox.js",
-    "js/components/Compounds/MpiEngineInstall/MpiEngineInstall.js"
+    "js/components/Compounds/MpiEngineInstall/MpiEngineInstall.js",
+    "routes/system.js",
+    "routes/projects.js",
+    ".claude/skills/cubric-vision-engine/SKILL.md",
+    ".claude/skills/cubric-vision/projects.md",
+    "js/utils/video.js",
+    "js/utils/mediaDimensions.js",
+    "routes/gitProvision.js",
+    "routes/ingredientsSheet.js",
+    "services/engineMask.js",
+    "services/resizeOps.js",
+    "services/imageComposite.js",
+    "routes/platformEngine.js",
+    "js/utils/icons.js"
   ]
 }

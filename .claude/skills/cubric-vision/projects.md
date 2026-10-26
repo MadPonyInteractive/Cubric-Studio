@@ -181,17 +181,16 @@ so; do not fall back to the whole project, or "what I can see" silently becomes 
 
 | Verb | Path | Purpose |
 |---|---|---|
-| GET | `/project-media/:projectId` | List a project's media |
 | GET | `/project-media/:projectId/download/:filename` | Fetch one file |
 | DELETE | `/project-media/:projectId/:filename` | Delete one file |
 | POST | `/project-media/:projectId/upload` | Add media |
-| POST | `/project-media/:projectId/upload-raw` | Add media, raw body |
 | POST | `/project-media/:projectId/update-meta` | Edit a media item's metadata |
 | POST | `/project-media/:projectId/extract` | Extract a frame |
-| POST | `/project-media/:projectId/probe-videos` | Probe video metadata |
 | GET | `/project-media/:projectId/validate-preview-assets` | Check preview assets |
-| POST | `/project-data/:projectId/upload` | Upload project data |
 | GET | `/project-file?path=<urlencoded absolute path>` | Serve any project file |
+
+There is no raw Media-folder listing: to see what a project holds, list its cards with
+`/connector/cards?folderPath=...` (above).
 
 `/project-file` is how the app itself refers to media internally, and the stored
 `filePath` values are already in that form with a `&v=<timestamp>` cache buster.
