@@ -3211,11 +3211,29 @@ const ALL_FLOWS = [
                     labels: ['Whole outfit (optional)\na character sheet or turnaround of the same person\ngood for consistency and zooming out'] },
             ],
         },
+        steps: [
+            {
+                // Step 2 (Fabio 2026-10-26): the user tells the Flow the picture's own view, so only the
+                // sliders moved on Generate run a pass. Cosmo starts at front / eye level / as is - never
+                // guessed; Try to Match asks the describer on demand and the user corrects it.
+                kind: 'fields',
+                tickerLabel: 'Match',
+                title: 'Match your picture',
+                hint: [
+                    '**Move the sliders until Cosmo is seen exactly as the person in your picture:** the same side turned to you, the same camera height, the same framing.',
+                    '**Not sure?** Try to Match makes a guess. Check each slider against your picture and fix what it got wrong.',
+                ],
+                fields: [
+                    { id: 'start', type: 'angle', mode: 'match', pictureRole: 'inputImage' },
+                ],
+            },
+        ],
         fields: [
             {
                 // The camera picker: a small Cosmo over Turn / Height / Zoom sliders, on the Generate
-                // slide (Fabio, 2026-10-25: no step of its own). Its value is { turn, height, zoom }.
-                id: 'angle', type: 'angle', label: 'New view',
+                // slide. Its value is { turn, height, zoom }; it starts on the view matched in step 2
+                // (`startField`), and only the sliders moved from there run a pass.
+                id: 'angle', type: 'angle', label: 'New view', startField: 'start',
             },
             {
                 // Read only by a zoom out from a close-up (rounds 46-47): the rest of the outfit

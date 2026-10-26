@@ -1246,3 +1246,38 @@ user's ratio later; a crop changes the zoom, so the gizmo may need per-ratio-fam
   Read: step 2 works - a height or zoom with no turn pass keeps the user's view on every cell. Open cells: low on a
   side view cuts the head (a framing line in the side low words, or keep it unoffered); anime high loses the street
   sometimes (Qwen; the known round-33 street issue, now on an unturned input).
+- 2026-10-26 ROUND 67, BEFORE THE STEP-2 BUILD (session "Multi-Angle 38"): research/r67.py + r67_plan.mjs, out/
+  mq_blender67{,_sources,_describe,_plans}.json, sheets r67_sources.jpg, r67_{A,B}_{111,222}.jpg. 8 describes (Fabio OK).
+  (A) SIDE LOW HEAD CROP: the r66 side inputs (photo + anime pr_r) and their mirrors (pr_l), seeds 111/222. base (the
+  shipped words) crops the head 5/8. v1 = "is small near the top of the frame with a clear gap above it: her whole head
+  and hair are inside the frame, below the top edge" + "The whole woman fits in the frame from her sneakers to the top
+  of her head." - head kept 8/8, still a real low, a milder one on photos (horizon at the knees, not the shoes). v2 =
+  v1 + "a few steps further back" - head kept 8/8 but the low goes weaker still: v1 wins.
+  (B) A START THAT IS NOT EYE LEVEL: new Krea2 / Illustrious pictures (front lo, front hi, side pr_r hi photo; front lo,
+  front hi, back hi anime), the start set by eye; no turn pass, no pass for the start's height.
+  ZOOM at the start's height (the shipped zoom-on-height words, FLUX.3, one pass): 16/16 clean - far 12/12, hs 4/4,
+  the low / high kept on every cell.
+  THE OTHER HEIGHT (shipped words): the height lands 12/12. lo from a high PHOTO cuts the head 4/4 (front + side); lo
+  from anime keeps it. hi from a low ANIME start turns the street into a plain backdrop 2/2 (FLUX.3 front hi); photo
+  hi from low keeps the square but comes in closer.
+  BACK TO EYE LEVEL (new words, Qwen + plain/<turn> doll): 0/12. The low starts come back unchanged, the high starts a
+  little less high; photo side hi 111 lost the square to a white backdrop.
+  Read: a non-level start can take a ZOOM now. Eye level and the other height need round 68 (FLUX.3 + room doll for
+  level; v1's headroom line on the low).
+- 2026-10-26 ROUND 68 (session "Multi-Angle 38"): round 67's open cells on the same six part-B inputs, seeds 111/222.
+  research/r68.py (part C of r67_plan.mjs), out/mq_blender68{,_plans}.json, sheets r68_{111,222}.jpg (beside r67).
+  BACK TO EYE LEVEL on FLUX.3 + the ROOM doll of the start view (same words as r67): closer than Qwen's 0/12 but not
+  there - photo front lo and anime front hi 222 come most of the way, the rest stay partly low / high, photo side hi
+  stays high 2/2. No clean eye level: NOT offered.
+  LOW FROM A HIGH START with v1's headroom line: photo side keeps the head 2/2 (r67's words cut it 2/2); anime front
+  and back keep it (as in r67); photo FRONT still cuts the head 2/2 (4/4 over r67-68) - the front low words lose the
+  head from a high start whatever the line.
+  Read for the step-2 build: a start that is not eye level takes ZOOM only (16/16 in r67); turn and height stay at
+  the start. Eye level and the other height from there stay unoffered until a round lands them.
+- 2026-10-26 ROUND 69 (session "Multi-Angle 38"): the profile low SHIPS round 67's v1 headroom words, so the accepted
+  round-35 chain cells re-ran with them: the r35 turned profiles (anime + photo, pr_l + pr_r) -> the low pass, seeds
+  111/222. research/r69.py, out/mq_blender69.json, sheet r69_profile_lo.jpg (beside r35's old-words low). Head kept
+  8/8, a real low 8/8 (anime pr_l 111 the mildest), profile and side kept 8/8, place kept. Accepted: the fixture and
+  accepted_prompts.md take the new words for the four pr lo cells (tests 36/36). The other turned lows keep theirs.
+  Also learned: opening my own app:isolated instance in the browser pane made that tab a second renderer, and the
+  connector's jobs went to it and failed ("Failed to fetch", 3 times) until the tab was closed.

@@ -122,12 +122,15 @@ export async function runMultiAngleFlow(flow, inputs, frame) {
     }
     const media = inputs.mediaItems || [];
     const url = role => media.find(m => m?.role === role && m.url && m.mediaType === 'image')?.url;
-    // An untouched gizmo has reported nothing: it SHOWS front, eye level, as in the picture.
-    const angle = inputs.angle || {};
-    const pick = { turn: angle.turn || 'front', height: angle.height || 'level',
-        zoom: angle.zoom && angle.zoom !== 'none' ? angle.zoom : null };
-    if (pick.turn === 'front' && pick.height === 'level' && !pick.zoom) {
-        StatusBar.notify('Pick a new view first: move Turn, Height or Zoom.', 'warning');
+    // Step 2's match: an untouched one SHOWS front, eye level, as in the picture. An untouched
+    // Generate gizmo has reported nothing: it SHOWS the matched view, so nothing moved.
+    const start = { turn: inputs.start?.turn || 'front', height: inputs.start?.height || 'level',
+        zoom: inputs.start?.zoom || 'none' };
+    const angle = inputs.angle || start;
+    const pick = { turn: angle.turn || start.turn, height: angle.height || start.height,
+        zoom: angle.zoom && angle.zoom !== 'none' && angle.zoom !== start.zoom ? angle.zoom : null, from: start };
+    if (pick.turn === start.turn && pick.height === start.height && !pick.zoom) {
+        StatusBar.notify('Pick a new view first: move Turn, Height or Zoom away from the view you matched.', 'warning');
         return false;
     }
     const outfitWords = String(inputs.outfitWords || '').trim();

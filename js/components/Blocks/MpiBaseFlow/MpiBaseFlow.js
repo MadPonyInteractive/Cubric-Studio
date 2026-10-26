@@ -1165,6 +1165,8 @@ export const MpiBaseFlow = ComponentFactory.create({
                 // What a `mentions` field reads its list from. Passed for every field
                 // because the vocabulary decides who uses it, not this call site.
                 readField: _readDeclaredField,
+                // What a field that shows one of the Flow's pictures reads it from (Multi-angle's step 2).
+                mediaUrl: role => _mediaForRole(role)?.url || null,
             });
 
         // ── Enhance: a declared ACTION on a button field (MPI-504) ─────────────
