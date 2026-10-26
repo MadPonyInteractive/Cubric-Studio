@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1304",
+  "title": "AMD and Intel Arc cards get the NVIDIA engine on current Windows 11 (wmic is gone)",
+  "description": "GPU detection for AMD/Intel Arc runs wmic, which recent Windows 11 builds no longer ship. The probe errors, reports no AMD/Intel card, and the installer falls back to the NVIDIA portable build. Reported by a Discord user with an RX 6800. Fix: query Win32_VideoController through PowerShell Get-CimInstance instead.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-26T23:20:25+00:00",
+  "updated_at": "2026-10-26T23:20:59+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

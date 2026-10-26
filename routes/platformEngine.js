@@ -278,14 +278,21 @@ const { gpuArch } = require('module').createRequire(__filename)('../js/data/mode
  * same stdout with two different regexes — so every detection paid for two
  * processes to read one answer. `wmic` costs ~200ms a call (MPI-639).
  *
+ * The probe is PowerShell's Get-CimInstance, not `wmic`: current Windows 11 no
+ * longer ships `wmic`, so its spawn failed, both flags came back false and every
+ * AMD / Intel Arc machine was handed the NVIDIA build (MPI-1304).
+ *
  * @returns {Promise<{hasAmd: boolean, hasIntel: boolean}>}
  */
 async function detectWmiGPUs() {
     if (process.platform !== 'win32') return { hasAmd: false, hasIntel: false };
 
     return new Promise((resolve) => {
-        execFile('wmic', ['path', 'win32_videocontroller', 'get', 'name'], { timeout: 5000, windowsHide: true }, (error, stdout) => {
-            if (error) return resolve({ hasAmd: false, hasIntel: false });
+        execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', '(Get-CimInstance Win32_VideoController).Name'], { timeout: 10000, windowsHide: true }, (error, stdout) => {
+            if (error) {
+                logger.warn('gpu-detect', `WMI video-controller probe failed, AMD / Intel Arc cannot be detected: ${error.message}`);
+                return resolve({ hasAmd: false, hasIntel: false });
+            }
             const hasAmd = /AMD|Radeon/i.test(stdout);
             const hasIntel = /Intel.*Arc|Intel.*Data\s+Center\s+GPU/i.test(stdout);
             if (hasAmd) logger.info('gpu-detect', 'AMD GPU detected via WMI');

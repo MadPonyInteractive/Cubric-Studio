@@ -86,16 +86,22 @@ test('a later call spawns nothing at all', async () => {
     assert.strictEqual(calls.length, afterFirst, 'cached calls must not re-probe');
 });
 
-test('wmic is skipped entirely when nvidia-smi already found the card', async () => {
+// The WMI probe goes through PowerShell, never `wmic` — current Windows 11 does not
+// ship `wmic`, so probing with it handed every AMD / Intel Arc machine the NVIDIA
+// build (MPI-1304).
+const isWmiProbe = (c) => c.startsWith('powershell.exe') && c.includes('Win32_VideoController');
+
+test('the WMI probe is skipped entirely when nvidia-smi already found the card', async () => {
     const { platformEngine, calls } = loadWithStub(NVIDIA_PRESENT);
     await platformEngine.resolveDownloadConfig();
-    assert.deepStrictEqual(calls.filter((c) => c.startsWith('wmic')), []);
+    assert.deepStrictEqual(calls.filter(isWmiProbe), []);
 });
 
-test('with no NVIDIA, wmic runs ONCE and still finds AMD', async () => {
+test('with no NVIDIA, the WMI probe runs ONCE and still finds AMD', async () => {
     const { platformEngine, calls } = loadWithStub(NO_NVIDIA);
     const cfg = await platformEngine.resolveDownloadConfig();
-    const wmic = calls.filter((c) => c.startsWith('wmic'));
+    assert.ok(!calls.some((c) => c.startsWith('wmic')), `wmic is gone from Windows 11, got: ${calls.join(' | ')}`);
+    const wmic = calls.filter(isWmiProbe);
     assert.strictEqual(wmic.length, 1, `one WMI probe answers both vendors, got ${wmic.length}`);
     // Proves the single probe is really read for BOTH vendors, not just AMD.
     assert.strictEqual(cfg.gpu.vendor, 'amd');
