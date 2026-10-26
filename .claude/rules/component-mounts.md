@@ -422,6 +422,8 @@ Mounted twice — see `shell.js` (panel, `standalone:false`) and `projectUI.js` 
 
 **There is NO per-Flow component (MPI-572).** The shell mounts `MpiBaseFlow` with the descriptor and nothing else; the `_flowComponents` name→blueprint map and the last flow component (`MpiFlowHeadSwap`) are both deleted. A component cannot ride in a third-party Flow manifest, so everything a flow needs is declarable — a knob is a `fields` entry, a gizmo's output is a step's `param` binding. Do not add one back; add a field type in `_buildField` instead.
 
+**Driver Flows (MPI-1231, MPI-1293):** a FlowDef with `driver` skips `submitFlowGeneration`; Generate calls `FLOW_DRIVERS[id](flow, inputs, frame)` with `frame = { onJob(queueJobId, done), stopped() }`, and the driver returns `false` or `{ finished }`. The frame holds ONE run token from the press to `finished`, follows each job by its QUEUE ID (`_isMine`; a history-landing job has no tempId), and its Stop (`_cancel`) runs `cancelCueJobs` on every job of the window, pending first, then flags every run handle. The driver must check `frame.stopped()` before each enqueue — `docs/playbooks/add-flow/ui/stop-button.md`.
+
 - `MpiOverlay`   props: `{ closable: true, mountTarget: 'main-area' }`   slot: `document.createElement('div')`
 - `<declared fields>` — NOT a mount of its own. Flow-level `fields` render through `buildField` (`js/utils/declaredFields.js`) into `.mpi-base-flow__content`; each type mounts its own Primitive (select=MpiDropdown, radio=MpiRadioGroup, button=MpiButton, toggle=MpiCheckbox, number/text=MpiInput, slider=MpiProgressBar)
 - `MpiButton` (Run)   props: `{ text:'Generate', variant:'primary', size:'md' }`   slot: `.mpi-base-flow__gen` (built with `ce()`, not an id)
