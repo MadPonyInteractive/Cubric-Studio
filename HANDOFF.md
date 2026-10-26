@@ -1,77 +1,56 @@
-# Handoff: act on AUDIT.md (first batch)
+# Handoff: AUDIT.md first batch — done, in PR #12
 
-**From:** cloud session of 2026-10-26 that produced `AUDIT.md` (read-only audit, nothing executed).
-**Branch:** `claude/youthful-cerf-jy5ms7`. Read `AUDIT.md` first; finding IDs below (H2, B1, X3…) refer to it.
+**Branch:** `claude/youthful-cerf-jy5ms7` · **PR:** MadPonyInteractive/Cubric-Studio#12 (ready for review)
+· **Updated:** 2026-10-26, end of the cloud session that did the work.
 
-## State you inherit
+Read the PR description first: it lists every change, what each commit verified, and the
+visible label changes. `AUDIT.md` is the source of the finding IDs used below.
 
-- `AUDIT.md` — ranked findings with file:line, fix, risk, GPU-free yes/no. Nothing in it was
-  measured or run: the audit was done with grep/read only because the shell was blocked.
-- `.claude/settings.json` — hooks now resolve via `$CLAUDE_PROJECT_DIR`. Before this change every
-  `PreToolUse` hook pointed at `c:/AI/Mpi/Cubric-Vision/...` and blocked **every** shell command
-  outside Fabio's Windows box. If your shell is blocked, you are on a checkout without this commit.
-- Both are in one commit on this branch. Nothing else changed.
+## Done in this PR (one commit each)
 
-## Cloud environment notes (first cloud use for this project)
+| Audit ID | What |
+|---|---|
+| H1 | `.claude/settings.json` hooks resolve via `$CLAUDE_PROJECT_DIR` (shell works off Windows) |
+| H2, X3 | `no-unused-vars` on; 78 findings cleared |
+| — | `scripts/smoke-workflows.mjs` records the GPU the run really got (found by H2; unverified, Pod-only) |
+| B1, B5, D2 | `services/projectFileUrl.js`: one `/project-file?path=` <-> disk-path helper; the double decode is gone |
+| B2, D4 | `js/services/toolSettings.js` for the 8 tool panels; `projectService` settings queues pinned to their project, `flushPendingSettings()` before open/delete |
+| B3 | audio card length no longer reads `0:60` |
+| D5 | decimal `formatSpeed`; GIF badges use `formatBytes`; dead `file.js` copy deleted |
+| X1, X2 | dead utils, `shaderBackground.js`, 3 unused packages, Fira Code / VT323 fonts removed |
+| — | Stop hooks find the repo from their own path |
+| — | `mpi/no-raw-event-listener` + `mpi/no-raw-console` normalise path separators (they never ran on Windows CI); the 142 violations they had let through are fixed |
 
-- **GitHub access:** the first session could CLONE but not PUSH (`403: Claude doesn't have GitHub
-  access ... for your organization`). If your push fails the same way, stop and tell Fabio — fixing
-  it is an org-admin step (install the Claude GitHub App on `MadPonyInteractive/Cubric-Studio`),
-  not something to work around. Work that is not pushed is lost when the container is reclaimed.
-- **No `node_modules`.** Run `ELECTRON_SKIP_BINARY_DOWNLOAD=1 npm ci` first (the Electron binary is
-  not needed for lint or unit tests, and its download may fail through the proxy).
-- **What can run here:** `npm run lint`, `npm test` (node --test). **What cannot:** the app,
-  `npm run test:desktop` (Electron/Playwright, Windows CI only), ComfyUI, any GPU or Pod work.
-  So the first batch is chosen to be verifiable by lint + unit tests alone; anything needing the
-  desktop suite is called out and must be confirmed by Fabio locally or by CI.
-- **The Mpi-Kanban plugin is NOT installed in the cloud** (`~/.claude/plugins/installed_plugins.json`
-  is empty), so `task_ops.py`, `validate_board.py` and the `/mpi-*` skills are absent. `CLAUDE.md`
-  still requires a card in `doing` before code edits. Either ask Fabio whether to hand-write the
-  card per `.claude/rules/kanban.md` (schema, both event logs, `files.json`, `checklist.md`) or to
-  track this batch in the PR description instead. Do not guess; the board is public and shared.
-- `.husky/pre-push` only gates pushes to `master`; this branch is unaffected. Do not push to master.
+## Still open on this PR
 
-## Proposed first batch (low risk, verifiable without a GPU)
+- **One manual check in the app** (no spec covers it): change a setting in a tool panel, switch
+  tool within 200 ms, come back, then reopen the project. The setting should hold.
+- Review and merge. CI is the Windows `Tests` workflow on PRs to master.
 
-Confirm the scope with Fabio before starting; he may want a different slice.
+## Left alone on purpose
 
-1. **H2** — enable `no-unused-vars` in `eslint.config.js` (warn first; `args: 'none'`,
-   `varsIgnorePattern: '^_'`), and drop the unused `@eslint/js` import (or spread its recommended
-   config). Run `npm run lint` to size the backlog and fix it. This supersedes the sampled **X3** list.
-   Note `lint` runs with `--max-warnings=0`, so a `warn` rule fails lint until the backlog is clear.
-2. **B1 + D2 (backend half)** — one helper module for `/project-file?path=` ↔ disk path
-   (decode ONCE, as `projects.js` `decodeProjectFilePath` does) and the URL builders; replace the
-   copies listed in AUDIT D2. Add a node test with `%`, `&`, `#`, spaces, unicode and `&v=` suffix.
-   Fixes the double-decode bug and the non-busted GIF URLs (B5).
-3. **B2 + D4** — `createToolSettings(toolKey, DEFAULTS, { delayMs })` whose `dispose()` FLUSHES
-   pending writes; migrate the 8 `MpiToolOptions*` panels. Desktop-suite confirmation needed
-   (change a setting, switch tool within 200 ms, reopen) — flag it for CI/Fabio.
-4. **B3** — `MpiGalleryGrid.js:1521` duration rounding (`0:60`): use `formatClock` from
-   `js/utils/elapsedTicker.js`.
-5. **X1 + X2** — delete `js/utils/async.js`, `js/utils/images.js`, `js/components/shaderBackground.js`
-   and update `.claude/rules/dos_and_donts.md` / `docs/utils.md` that still recommend the first two
-   (rule files need Fabio's explicit OK per CLAUDE.md rule 5 — ask). `npm uninstall
-   electron-context-menu firacode jetbrains-mono`; remove the dead Fira Code and VT323
-   `@font-face` blocks. Check `scripts/build-portable.mjs` (`build:portable:dry-run`) still passes.
-6. **D5** — one decimal `formatBytes` + `formatSpeed`; delete the unused `js/utils/file.js`
-   `formatBytes`; replace the local copies. Visible label change: mention it in the PR.
-7. **Hook follow-up** — the three Stop hooks (`bump-rebuild-reminder.py`, `handoff-index-drift.py`,
-   `kanban-event-schema.py`) hard-code `REPO = "c:/AI/Mpi/Cubric-Vision"` and silently check
-   nothing elsewhere. Derive it from `Path(__file__).resolve().parents[2]`; keep `--selftest` green.
+- `MpiProjectName` / `MpiQueuePanel` keep local byte formatters (decimal already; merging them
+  changes spacing and precision on screen — a visual call for Fabio).
+- `connector.js`, `mcp.js`, `agentLoop.mjs` already decode `/project-file` URLs once; ~30 plain
+  inline URL builders in `projects.js` / `ffmpegThumb.js` are correct as written.
+- Three tests filled counters they never asserted (agent-loop, comfy-vanished-prompt,
+  thumb-strip); the counters were removed. Possibly a missing assertion each — worth a look.
 
-Commit each item separately (`git commit --only <paths>`; `git add` new files first), run
-`npm run lint && npm test` before each push.
+## Next batch candidates (from AUDIT.md, not started)
 
-## Explicitly NOT for the cloud
+- Low risk, GPU-free: **B4**, **B6**, **D8**, **D6**, **H3**, **X4** (ask Fabio before trimming
+  routes the skill docs list), **T1/T2**.
+- Then **D1** (PromptBox slider x17), **D3/D10** route by route, **P2/P14/P7/P12/P13**.
+- Needs the desktop suite or Fabio watching: **P1**, **P3**, **D7**, **D9**.
+- Needs a local profile or a Pod: **P4–P6**, **P9–P11**.
 
-AUDIT P4–P6, P9–P11 (canvas readbacks, Pod uploads, undo) need a local profile or a Pod.
-P1/P3 (sidecar GC, bulk delete) touch code with three past race fixes — do them only with the
-existing race tests green and ideally with Fabio watching. D7/D9 (canvas managers, the two
-workspace Blocks) need the desktop suite.
+## Working notes for the next agent
 
-## Open questions for Fabio
-
-- Kanban card for this batch: hand-written card, or PR-only tracking while in the cloud?
-- OK to edit `.claude/rules/dos_and_donts.md` (stale `async.js`/`images.js` advice, the
-  `seed`/`gallery` icon note)?
-- Routes listed in AUDIT X4 as "public HTTP API per skill docs" — keep or trim?
+- Lint now passes on Linux too (`npm run lint`, `--max-warnings=0`), so a new warning anywhere
+  fails it — on Windows CI as well, since the two path rules work there now.
+- `npm test` on a Linux cloud container has 16 environmental failures (RunPod, agent
+  installers, `sh` scripts, Windows `wmic`); compare failing-test NAMES before and after a
+  change, not the exit code.
+- Cloud setup: `ELECTRON_SKIP_BINARY_DOWNLOAD=1 npm ci`. No app, desktop suite, ComfyUI or GPU.
+  The Mpi-Kanban plugin is not installed in the cloud; this batch was tracked in the PR instead
+  (Fabio's call). Ask before assuming the same next time.
