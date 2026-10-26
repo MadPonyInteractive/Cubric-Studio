@@ -108,6 +108,11 @@ strips a tag naming an empty slot, which is why the no-picture bank exists at al
   picture's room, and the two-stage run took it (R2o); the same run in this format kept the clip's
   room (R2p). A picture-less new look gets no `<Subject N>` (subjects come from reference assets):
   the words land in `[Shot 1]` ("The new character: ...").
+- **Never name a turn the clip does not make.** "the back of the head and outfit showing whenever they
+  turn away" PRIMED an invented back turn while the source faced the camera: template 6 (V6o -> V6p
+  without it, MPI-1036) and template 1 on Singularity H3, a 7 s run turning her back for its last
+  ~0.4 s (MPI-1284). Both dropped; "from every angle" still carries the picture's back. Ops 2 and 3
+  keep theirs (the head's back hair, the outfit's back) until a run of theirs turns.
 - **Change the background (template 4) makes the place the EDITED subject** (MPI-1151): `<Subject 3>` is
   everything around the kept subject, and the picture's place is `attribute_transfer` onto it, with `{look}`
   repeated in the summary and `[Shot 1]`. Marked `fully_preserved` (the old form), a cartoon clip kept its own

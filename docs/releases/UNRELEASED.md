@@ -78,6 +78,7 @@
 - The Model picker now lists featured models first, the same order as the Model Library, and MOSS-Image is featured (MPI-1245).
 - The child-safety check reads more wording: plural body words and clothing "pulled aside" now get the picture looked at (MPI-1241).
 - Cosmo now tells you how many tiles a Use Tiles upscale runs, up to the number the status bar counts (MPI-1237).
+- Video Edit's Swap the person no longer turns the new person's back to the camera at the end of a clip when the person in the video never turns away (MPI-1284).
 - Cosmo makes FLUX.3 Klein pictures on Turbo, the fast setting, and switches to the slower base model only when you ask for more quality or more natural skin (MPI-1278).
 - Cosmo now edits pictures on the best editor you have installed (Qwen-Image 2.1, then FLUX.3 Klein, then Klein 9B), instead of passing over the top two for photo edits (MPI-1279).
 - Cosmo tells you what it is making the moment it starts, instead of after the picture has landed (MPI-1280).

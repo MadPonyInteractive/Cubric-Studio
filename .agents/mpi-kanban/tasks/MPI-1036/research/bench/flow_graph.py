@@ -58,7 +58,7 @@ retention_analysis:
 
 detailed_description:
 {STYLE}
-[Shot 1] In <Subject 3>, <Subject 1> performs exactly what <Subject 2> does in <Video 1>, {MOVES}, with the face, hair, outfit and accessories of <Picture 1> from every angle, the back of the head and outfit showing whenever <Subject 2> turns away. {{words}}
+[Shot 1] In <Subject 3>, <Subject 1> performs exactly what <Subject 2> does in <Video 1>, {MOVES}, with the face, hair, outfit and accessories of <Picture 1> from every angle. {{words}}
 {CAMERA}{SOUND}""",
 
     2: f"""{SRC}<Subject 1> is the head of the person in <Picture 1>. {{look}}
@@ -170,7 +170,7 @@ retention_analysis:
 
 detailed_description:
 {STYLE}
-[Shot 1] In <Subject 2>, the new character performs exactly what <Subject 1> does in <Video 1>, {MOVES}, their face, hair and outfit holding from every angle, the back of the head and outfit showing whenever they turn away. The new character: {{words}}
+[Shot 1] In <Subject 2>, the new character performs exactly what <Subject 1> does in <Video 1>, {MOVES}, their face, hair and outfit holding from every angle. The new character: {{words}}
 {CAMERA}{SOUND}""",
 
     2: f"""{SRC}<Subject 1> is {{who}} in <Video 1>.
