@@ -669,5 +669,13 @@ card's FLUX.3 route stays.
 ## Completed
 
 ## Plan Drift
+- 2026-10-26 (Multi-Angle 41): DIRECTION CHANGE. Fabio's re-test: front lo + pr_r lo pass, tq_br -> eye level fails
+  (round 70's pass was a thumbnail over-read, validation.md). Fabio: no more skipped views / bypassed sliders - the
+  FLUX.3 doll route is not converging after a week; FLUX.3 also filters nipples even with a correct reference (a
+  filter, not anatomy). NEW ROUTE: split sampling - Qwen Edit 2511 + fal angle LoRA (camera move, identity) for the
+  first steps, Krea2 (lustify NSFW raw + identity-edit LoRA + Krea2EditModelPatch refs) finishes the last steps on
+  the SAME latent (shared Wan21 latent + qwen_image VAE, MPI-242 research `image-conditioning-and-controlnet.md`
+  §5b: hand-off works; July's locality loss predates Krea2's edit patch). Bench: `research/split1.py`
+  (stage `qwen` -> `krea` -> `sheet`) on Fabio's G:\ComfyUi bench :8188, NOT RUN YET.
 - 2026-10-26: Fabio's "front first" decision (after round 56) was built and reverted for the turn stops the same night
   on rounds 57-61 evidence (one lucky seed in round 57); only Turn = Front alone keeps the front pass.

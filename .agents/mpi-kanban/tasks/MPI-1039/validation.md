@@ -1301,3 +1301,13 @@ user's ratio later; a crop changes the zoom, so the gizmo may need per-ratio-fam
 - Read: offer every turn at the start's height (picture strongly advised), eye level from a front start with the
   picture and from a turned start without it, lo -> hi, hi -> lo only on side/back views. Not offered: crossing to the
   other front side from a rear start, front hi -> lo.
+
+## Fabio's re-test of the low/high-start moves (2026-10-26, session "Multi-Angle 41", his app, local GPU)
+- Start edit_006 (tq_br lo, set by Try to match), Whole Outfit = his front eye-level picture. Cards in project
+  "Draw it in improvements": edit_007 front lo PASS (low held, room held; the brief front came out laced, his are plain
+  string), edit_008 pr_r lo PASS (head a clean profile, hips a little toward the back), edit_009 tq_br -> Eye level
+  FAIL (Fabio: "the photographer is still on one knee"; view and room right), edit_010 = his second pass on edit_009:
+  higher (about chest) but drifted toward a straight back view.
+- ROOT CAUSE of the eye-level miss: NOT app drift - the app sent round 70's exact words + the room/tq_br doll, no
+  image 3. Round 70's "rear 3/4 at eye level 2/2" was a thumbnail OVER-READ: edit_2491 (111) and edit_2538 (222) put
+  the camera at hip height too, same as edit_009. The toLevel words lift the camera only partway from a turned low start.
