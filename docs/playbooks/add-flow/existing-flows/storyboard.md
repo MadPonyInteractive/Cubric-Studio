@@ -101,4 +101,6 @@ it only when the gate comes off (a release Cosmo cannot see a dev-only Flow).
 
 ## Open
 
-No `preview` yet (placeholder tile) — Phase 2 `/mpi-flow-graphics`. Never run live on the GPU yet.
+Tile + hero (`flow-storyboard.webp`/`.mp4`) are the bat-cave board's real panels (FLUX.3 Klein,
+2026-10-26) under the idea in words; the hero lands them 1 to 6. The release note waits in
+`UNRELEASED.md` § Held for the LTX 2.5 release.

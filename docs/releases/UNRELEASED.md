@@ -85,3 +85,11 @@
 - Less noise in the log: the mascot freeze warnings now appear only with speed diagnostics on, and a RunPod connect that stops early no longer logs a false freeze (MPI-1255).
 - Renaming a card in Show info mode: you can see what you type with the mouse still on the card (MPI-1289).
 - Compare labels each side with the card's name, not the file name (MPI-1290).
+
+## Held for the LTX 2.5 release — do NOT fold until its dev gate comes off
+
+> These ship with the LTX 2.5 release (umbrella MPI-1267), not with the next version bump. A bump
+> before that leaves this section here untouched; the bump that takes the gates off folds it.
+
+- Roster: one new Flow, Storyboard.
+- **Storyboard, a new Flow.** Describe a video idea, add pictures of your characters and places if you have them, and Cosmo plans the shots. Each panel lands as a picture in one stack, in story order, with a note on what happens, plus a numbered sheet of the whole board. Up to four characters, places or things seen in several panels are drawn once first, so they stay the same. Runs on FLUX.3 Klein or Qwen-Image 2.1 (not for commercial use), with the LoRA cog wheel; planning needs Cosmo connected (MPI-1231).

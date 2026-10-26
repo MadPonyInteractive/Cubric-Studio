@@ -316,6 +316,20 @@
 - 2026-10-26 Fabio: Make Seamless / Pano 360 need no LoRAs; the playbook + /mpi-add-flow now ASK him
   whether a new Flow takes LoRAs when its workflow is made (5d5467fd0). Master went red on a peer's
   peek (MPI-1295), fixed by that peer in 002aaede4, CI green. HANDOFF: next = Phase 2.
+- 2026-10-26 ("Storyboard 24") PHASE 2 BUILT (uncommitted), no GPU/money: tile `flow-storyboard.webp`
+  (896x1120 q86, 214 KB) + hero `.mp4` (1280x720, 7.96 s, 469 KB, loop seam 0.008/255) from the
+  bat-cave run's real panels under "[Your idea] A squirrel and a rabbit sneak into a bat cave for a
+  gold helmet." in the app's type; the hero lands panels 1-6 in order. Sources:
+  `research/graphics/` (layout page + ffmpeg script; plates were the run's Media in a dead
+  scratchpad, copy them before it is cleared if a rebuild is likely). Wired in flowsRegistry; both
+  200 + exact bytes from an isolated instance; playback proven in the Browser pane (playwright
+  Chromium has no H.264: new 06 trap row). Agent (07): `does` reads right, handover test already
+  pins `agentOpens: 'run'`; flows.md paragraph WAITS for the gate (storyboard.md § Agent; flows.md
+  is at its 200-line cap). Release note: UNRELEASED.md § "Held for the LTX 2.5 release" (roster
+  line + entry) and /mpi-version-bump now leaves a Held section in place. Lint clean, npm test
+  3684/0. Fabio's eye PASSED the tile + slide-over ("They look right"); committed. Hero inside the
+  open Flow not yet confirmed by him. NEXT: the LoRA cogwheel on screen, then (after 2.1.3) Cosmo +
+  MCP run the Flow, and at the gate-off bump: flows.md paragraph + fold the Held release note.
 
 ## Phase 0: Panel recipe - `user-ux` (local GPU, Fabio's yes; no money)
 

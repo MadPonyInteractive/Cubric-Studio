@@ -313,7 +313,9 @@ Release notes live in **two** places that must stay aligned:
    like `**bold**`, links, and parentheticals ship verbatim. Strip author asides
    ("add notes when X ships", "Also shipping as a 1.0.1 hotfix") and editorial
    instructions; ship only the user-facing sentence. Fold `docs/releases/UNRELEASED.md`
-   scratchpad items into these arrays and clear it back to its header.
+   scratchpad items into these arrays and clear it back to its header. **A `## Held for …`
+   section is the exception**: its items wait for a dev gate to come off (a release set such as
+   LTX 2.5). Leave it in place and fold it only in the bump that ships that gate.
 
    **Folding is not copying — it is CUTTING.** One or two lines per item, no jargon,
    no mechanism, no history of the feature. A long scratchpad bullet gets shortened

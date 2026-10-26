@@ -3036,7 +3036,8 @@ const ALL_FLOWS = [
         devOnly: true,
         driver: 'storyboard',
         title: 'Storyboard',
-        // No `preview` until Phase 2's /mpi-flow-graphics: the tile shows its placeholder.
+        preview: 'flow-storyboard.webp',
+        video: 'flow-storyboard.mp4',
         description: 'Turn an idea into a storyboard of numbered panels for a video. Each panel lands as its own picture in one stack, in story order, with a note saying what happens in the shot, plus one sheet showing every panel numbered. Add pictures of your characters and places to keep them the same in every panel.',
         // Edit models only: a panel with pictures is an edit (Fabio, 2026-10-25). Two routes:
         // FLUX.3 Klein, and Qwen-Image 2.1 under its own non-commercial licence gate. No graph,

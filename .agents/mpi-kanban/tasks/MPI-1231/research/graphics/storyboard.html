@@ -1,0 +1,51 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="/styles/01_base.css">
+<style>
+  html, body { margin: 0; background: #000; }
+  #el { position: relative; overflow: hidden; background: var(--surface-viewer); font-family: 'JetBrains Mono', monospace; }
+  .tile { width: 896px; height: 1120px; }
+  .hero { width: 1280px; height: 720px; }
+  .idea { box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; }
+  .tile .idea { height: 330px; padding: 0 64px; }
+  .hero .idea { height: 220px; padding: 0 72px; }
+  .kicker { color: var(--vision-accent); }
+  .tile .kicker { font-size: 32px; margin-bottom: 18px; }
+  .hero .kicker { font-size: 26px; margin-bottom: 14px; }
+  .text { color: var(--ink-1); font-weight: 700; line-height: 1.18; }
+  .tile .text { font-size: 50px; }
+  .hero .text { font-size: 40px; }
+  .grid { position: absolute; left: 0; right: 0; bottom: 0; display: grid; gap: 2px; background: var(--line); }
+  .tile .grid { top: 330px; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(3, 1fr); }
+  .hero .grid { top: 220px; grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr; }
+  .cell { position: relative; background: var(--surface-viewer); overflow: hidden; }
+  .cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .num { position: absolute; left: 0; top: 0; background: var(--surface-viewer); color: var(--ink-1); font-weight: 700; }
+  .tile .num { font-size: 30px; padding: 6px 16px; }
+  .hero .num { font-size: 24px; padding: 4px 12px; }
+  .off { visibility: hidden; }
+</style></head>
+<body>
+<div id="el"></div>
+<script>
+  // ?mode=tile|hero&step=N : N -1 = bare ground, 0 = the idea only, 1..6 = panels 1..N landed
+  const q = new URLSearchParams(location.search);
+  const mode = q.get('mode') || 'tile';
+  const step = Number(q.get('step') ?? 6);
+  const el = document.getElementById('el');
+  el.className = mode;
+  const idea = document.createElement('div');
+  idea.className = 'idea' + (step < 0 ? ' off' : '');
+  idea.innerHTML = '<div class="kicker">[Your idea]</div><div class="text">A squirrel and a rabbit sneak into a bat cave for a gold helmet.</div>';
+  el.appendChild(idea);
+  const grid = document.createElement('div');
+  grid.className = 'grid';
+  for (let i = 1; i <= 6; i++) {
+    const c = document.createElement('div');
+    c.className = 'cell';
+    if (i <= step) c.innerHTML = `<img src="p${i}.png"><div class="num">${i}</div>`;
+    grid.appendChild(c);
+  }
+  el.appendChild(grid);
+</script>
+</body></html>
