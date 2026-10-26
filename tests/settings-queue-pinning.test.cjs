@@ -136,3 +136,16 @@ test('dispose sends each key once, only what is still waiting', async () => {
         off();
     }
 });
+
+test('a panel closed after the agent opened another project does not write into it', async () => {
+    const { toolSettingsWriter } = await import(mod('js', 'services', 'toolSettings.js'));
+    state.currentProject = project('g');
+    const writer = toolSettingsWriter('crop', { delayMs: 200 });
+    writer.persist('label', 'from-g');
+    // agentDispatch opens the project first and only then navigates, which destroys the panel.
+    state.currentProject = project('h');
+    writer.dispose();
+    await sleep(WAIT);
+    assert.equal(state.currentProject.toolSettings.crop, undefined);
+    assert.equal(posts.length, 0);
+});

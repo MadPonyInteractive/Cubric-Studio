@@ -14,6 +14,7 @@ import { Events } from '../events.js';
 import { state } from '../state.js';
 import { getToolSettings } from '../data/projectModel.js';
 import { getPendingToolSettings } from './projectService.js';
+import { clientLogger } from './clientLogger.js';
 
 /**
  * The open project's settings for `toolKey`, including writes still queued.
@@ -38,12 +39,20 @@ export function readToolSettings(toolKey, defaults) {
 export function toolSettingsWriter(toolKey, { delayMs = 200 } = {}) {
     const timers = new Map();
     const pending = new Map();
+    // Pinned to the project the panel was opened in. The agent can open another project
+    // under a mounted panel, and the panel is only destroyed when the page changes AFTER
+    // that open, so a write sent then would land in the new project.
+    const folderPath = state.currentProject?.folderPath ?? null;
     const send = (key) => {
         clearTimeout(timers.get(key));
         timers.delete(key);
         if (!pending.has(key)) return;
         const value = pending.get(key);
         pending.delete(key);
+        if (state.currentProject?.folderPath !== folderPath) {
+            clientLogger.warn('toolSettings', `dropped "${toolKey}.${key}" for ${folderPath || 'no project'}: that project is no longer open`);
+            return;
+        }
         Events.emit('settings:tool:update', { toolKey, key, value });
     };
     return {
