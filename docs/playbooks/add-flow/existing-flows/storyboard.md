@@ -87,6 +87,9 @@ sheet. `devOnly: true` until the LTX 2.5 release (umbrella MPI-1267).
   picks and numbers "from image N" in THAT panel's list, and the dispatch sends `panel.references`
   (`submit`: `panel.references ?? references`). A failed actor picture is a warning and the panels
   describe it in words; Stop during the cast draws no panel and reads as a Stop (info), not a warning.
+- **LoRAs: the cogwheel beside the Panel model dropdown** (`loras: true`, Fabio 2026-10-26) opens
+  that model's own rack. Panels and cast pictures are plain generations on it, so the rack reaches
+  them all as flat `Lora_N`: a style LoRA keeps the cast and the panels in one style.
 - **A Picture never describes a cast member's looks** (planner rule, 2026-10-25): DeepSeek wrote
   "Fox (a small, bright-orange fox)" for a purple fox in picture 3, fighting the cast line.
 

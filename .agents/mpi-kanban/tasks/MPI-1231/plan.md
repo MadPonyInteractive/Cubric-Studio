@@ -307,6 +307,12 @@
   added; reparse (research/crowd-cap/reparse.mjs) on the bat-cave plan: cave only in panels 2-4, river
   only 5-6 (as image 3), panel 1 (Entrance) no place picture. NO GPU run (Fabio). NEXT: Fabio's eye
   on research/crowd-cap/gpu/sheet.jpg + refs.jpg, then Phase 2.
+- 2026-10-26 Fabio: the bat-cave run "looks good" (it was FLUX.3 Klein, turbo). He asked for LoRAs:
+  Panel model slot now `loras: true` (the existing per-slot cogwheel; the panels are plain model
+  generations, so the model's own rack injects as flat Lora_N, no loraPhases). Test in
+  flow-lora-rack (mutation-checked). Playbook + /mpi-add-flow: EVERY new Flow declares `loras: true`
+  on each model slot. NOT SEEN on screen. Other Flows still without a rack: Multi-angle (peer card
+  MPI-1039), Pano 360, Make Seamless (Foley + Outpaint by Fabio's call). NEXT: Phase 2.
 
 ## Phase 0: Panel recipe - `user-ux` (local GPU, Fabio's yes; no money)
 

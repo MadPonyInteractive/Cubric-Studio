@@ -1704,7 +1704,7 @@ const ALL_FLOWS = [
         video: 'flow-character-sheet-from-images.mp4',
         description: 'Turn pictures of a character you already have into a character sheet: a large three-quarter portrait, plus full-body front and back views, on a plain grey studio backdrop. Box the face in the first picture; add a full-body picture and the sheet takes its build and clothes. Runs on Qwen-Image 2.1, whose pictures are not for commercial use. If the sheet does not look like your character, run it again.',
         // The slot takes the user's LoRA rack (MPI-1036): Input_Lora_Phase1_1..6 in the graph.
-        requiredModels: [{ label: 'Model', models: ['qwen-image-2-1'], loras: true }],
+        requiredModels: [{ label: 'Model', models: ['qwen-image-2-1'] }],
         operation: 'flowCharacterSheetImages',
         // Read only by the tests that check declared fields against node titles; the run takes
         // the op's graph from universal_workflows.js.
@@ -3040,8 +3040,10 @@ const ALL_FLOWS = [
         description: 'Turn an idea into a storyboard of numbered panels for a video. Each panel lands as its own picture in one stack, in story order, with a note saying what happens in the shot, plus one sheet showing every panel numbered. Add pictures of your characters and places to keep them the same in every panel.',
         // Edit models only: a panel with pictures is an edit (Fabio, 2026-10-25). Two routes:
         // FLUX.3 Klein, and Qwen-Image 2.1 under its own non-commercial licence gate. No graph,
-        // so no `modelParams`: the driver reads the pick with `flowModelIds`.
-        requiredModels: [{ label: 'Panel model', models: ['flux3-klein', 'qwen-image-2-1'] }],
+        // so no `modelParams`: the driver reads the pick with `flowModelIds`. `loras: true` is the
+        // cogwheel beside the dropdown (Fabio, 2026-10-26): every panel and cast picture is a plain
+        // generation on that model, so its own rack reaches them under `modelId`, no `loraPhases`.
+        requiredModels: [{ label: 'Panel model', models: ['flux3-klein', 'qwen-image-2-1'], loras: true }],
         // Never dispatched: it carries the ten reference slots (commandRegistry.js).
         operation: 'flowStoryboard',
         // The user reads the plan before any panel is drawn (Fabio, 2026-10-24); the agent's

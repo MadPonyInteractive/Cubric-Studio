@@ -378,3 +378,18 @@ for (const r of RACKS) {
         }
     });
 }
+
+test('a driver Flow reaches its LoRAs through the panel model, so its slot still opts in (Storyboard)', () => {
+    // Fabio, 2026-10-26: the Storyboard had no LoRA cogwheel. Its panels and cast pictures are plain
+    // t2i / edit generations on the picked model, so the model's OWN rack injects as flat Lora_N
+    // (commandExecutor's modelId branch): the cogwheel is the whole wiring, provided each
+    // candidate's graph carries the six flat slots.
+    const src = read('js/data/flowsRegistry.js');
+    const i = src.indexOf("id: 'storyboard'");
+    assert.match(src.slice(i, src.indexOf("\n        id: '", i + 1)), /models: \['flux3-klein', 'qwen-image-2-1'\], loras: true/,
+        'the Panel model slot must declare its LoRA cogwheel');
+    for (const file of ['flux3_t2i.json', 'qwen_image_2_1.json']) {
+        const g = JSON.parse(read(`comfy_workflows/${file}`));
+        for (let n = 1; n <= 6; n++) assert.equal(idByTitle(g, `Input_Lora_${n}`).length, 1, `${file} must carry Input_Lora_${n}`);
+    }
+});
