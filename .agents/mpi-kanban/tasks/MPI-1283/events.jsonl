@@ -1,1 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1283", "at": "2026-10-25T09:01:15+00:00", "actor": "H3 Singularity 6", "column": "todo", "title": "H3 reference prompts always carry subject_definitions + retention_analysis"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1283", "at": "2026-10-26T13:02:51+00:00", "actor": "H3 reference prompts 1", "from": "todo", "to": "doing", "reason": "Implementation started: app-written H3 reference sections."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1283", "at": "2026-10-26T13:15:28+00:00", "actor": "H3 reference prompts 1", "from": "doing", "to": "doing", "reason": "Verified: tests + live DeepInfra enhance."}

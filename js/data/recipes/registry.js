@@ -259,6 +259,51 @@ export function withPictureLines(text, captions = []) {
     return `${block.join('\n')}\n\n${scene.join('\n').trim()}`;
 }
 
+// The enhancer's own copy of the sections, if it wrote one: the app's replaces it.
+const SECTION_LINE = /^\s*(?:subject_definitions:|retention_analysis:|<Subject \d+>)/i;
+const SHOT_LINE = /^\s*\[Shot (\d+)\]/;
+// A clause about ethnicity, origin or skin tone the describer wrote anyway goes; the rest stays.
+const ORIGIN_WORDS = /\b(?:ethnic\w*|race|racial|nationality|asian|african|caucasian|hispanic|latin[oax]|european|middle[- ]eastern|arab\w*|indian|indigenous|mixed[- ]race|complexion|skin[- ]?tone|(?:dark|light|fair|olive|pale|tan(?:ned)?|brown|black|white)[- ]skinned|(?:dark|light|fair|olive|pale|tan(?:ned)?|brown) skin)\b/i;
+// A leading "wearing" goes too: "..., wearing a black bikini are retained" (Gemma 4, live).
+const withoutOrigin = (list) => list.split(/,\s*/).filter(part => part.trim() && !ORIGIN_WORDS.test(part))
+    .map(part => part.replace(/^(and\s+)?wearing\s+/i, '$1')).join(', ');
+
+/**
+ * THE APP WRITES H3's TWO REFERENCE SECTIONS (MPI-1283, Fabio 2026-10-26). MiniMax's ref-en.txt
+ * §2.1 / §4.1 `subject_definitions` + `retention_analysis`, prepended to the enhancer's prompt the
+ * way MPI-1135's Shot Cs carried them: with them the man kept his bag and shoes, the bag moved like
+ * a real object and her bikini kept its back; without them they were lost. The traits are the
+ * describer's looks-only answer (`pictureCaptions` with `traits`), never the enhancer's guess,
+ * which is what keeps ethnicity and origin out; a clause naming one anyway is dropped here, so a
+ * trait kept in an older sidecar is held to the same rule. One `<Subject N>` per person, animal or object
+ * picture; a place is cited for its content and gets none (the bench never tested one). It
+ * "appears in" every `[Shot N]` that cites its picture, `[Shot 1]` when none does.
+ *
+ * @param {string} text  the enhancer's prompt
+ * @param {Array<{tag:string, kind?:string, traits?:string}>} captions  in load order
+ * @returns {string}
+ */
+export function withSubjectSections(text, captions = []) {
+    // "the woman, with a pink bob, ..." -> who + what she keeps; an answer without the "with" is all traits.
+    const subjects = captions.filter(c => c.traits && ['person', 'animal', 'object'].includes(c.kind)).map((c) => {
+        const [, who, list] = /^(.+?),?\s+with\s+(.+)$/i.exec(c.traits) ?? [null, '', c.traits];
+        return { ...c, who: who && !ORIGIN_WORDS.test(who) ? who : `the ${c.kind}`, kept: withoutOrigin(list) };
+    }).filter(c => c.kept);
+    const body = String(text).split(/\r?\n/).filter(line => !SECTION_LINE.test(line)).join('\n').trim();
+    if (!subjects.length) return body;
+    const shots = body.split(/\r?\n/).map(line => ({ n: SHOT_LINE.exec(line)?.[1], line })).filter(s => s.n);
+    const definitions = [];
+    const retention = [];
+    subjects.forEach(({ tag, kind, who, kept }, i) => {
+        const subject = `<Subject ${i + 1}>`;
+        definitions.push(`${subject} is ${who} in ${tag}, with ${kept}.`);
+        const cited = shots.filter(s => s.line.includes(tag)).map(s => `[Shot ${s.n}]`);
+        const face = kind === 'person' ? 'the face, ' : '';
+        retention.push(`${subject} (appears in ${(cited.length ? cited : ['[Shot 1]']).join(', ')}): fully_preserved - ${face}${kept} are retained.`);
+    });
+    return ['subject_definitions:', ...definitions, 'retention_analysis:', ...retention, body].join('\n');
+}
+
 /**
  * Appended to the enhancer's SYSTEM prompt when the user turned on No Background (MPI-1049).
  * A background described in the prompt beats the RGBA sentences the app wraps it in: "a woman

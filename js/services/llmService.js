@@ -38,7 +38,7 @@
  * Nothing here ever sees it.
  */
 
-import { resolveRecipe, FALLBACK_RECIPE_ID, getRecipe, withReferences, withImageLooks, withFrameLooks, withPictureLines, TRANSPARENT_BACKGROUND_RULE, styleRule } from '../data/recipes/registry.js';
+import { resolveRecipe, FALLBACK_RECIPE_ID, getRecipe, withReferences, withImageLooks, withFrameLooks, withPictureLines, withSubjectSections, TRANSPARENT_BACKGROUND_RULE, styleRule } from '../data/recipes/registry.js';
 import { layoutRows, upsamplingInput, editPlacementInput, reconcileBoxes, splitBoxTable } from '../data/layoutBoxes.js';
 import { composeSystemPrompt } from '../data/recipes/styles.js';
 import { clientLogger } from './clientLogger.js';
@@ -941,7 +941,8 @@ export async function enhance({ prompt, model, recipeKey, mode, operation, refer
 
     // MPI-1006: only an r2v mode is told what is staged; it cites those tags and no others.
     // MPI-1084: and what each picture shows, or it guesses the roles by load order.
-    const seen = modeRecipe.seesPictures && pictures?.length ? await pictureCaptions(pictures) : { captions: [], missed: [] };
+    const seen = modeRecipe.seesPictures && pictures?.length
+        ? await pictureCaptions(pictures, { traits: !!modeRecipe.subjectSections }) : { captions: [], missed: [] };
     const request = !boxRows ? idea
         : resolvedMode.endsWith('_bbox') ? upsamplingInput(idea, boxRows) : editPlacementInput(idea, boxes);
     const userText = resolvedMode === 'r2v' ? withReferences(idea, references ?? [], seen.captions)
@@ -972,7 +973,10 @@ export async function enhance({ prompt, model, recipeKey, mode, operation, refer
     }
     // MPI-1084: the picture lines are the app's, from what the describer saw; the enhancer keeps the scene.
     // r2v only: an edit's looks are for the enhancer to read, never lines in its instruction.
-    if (resolvedMode === 'r2v' && seen.captions.length) result.text = withPictureLines(result.text, seen.captions);
+    // MPI-1283: H3 reads MiniMax's two reference sections instead, written the same way.
+    if (resolvedMode === 'r2v' && seen.captions.length) {
+        result.text = modeRecipe.subjectSections ? withSubjectSections(result.text, seen.captions) : withPictureLines(result.text, seen.captions);
+    }
     // The user's boxes win over the box mode's own plan (BFL `bbox.reconcile`).
     // An empty reply (a reasoning model that thought through its budget) would leave the table alone.
     if (resolvedMode.endsWith('_bbox')) {
@@ -1329,6 +1333,16 @@ const NAME_QUESTION = (kind, look) => {
         ? `The subject of this picture is the place itself.${seen} Name it in at most 15 words: what the place is and what is in it. Never what anyone in it is doing. Answer with the phrase only, for example "a narrow cobbled street with red brick houses".`
         : `The subject of this picture is the ${kind}.${seen} Name it in at most 15 words: what it is and what sets its looks apart (hair, skin, clothing, colours, markings). Never its pose, what it is doing, or what is around it. Answer with the phrase only, for example "a bald man in a grey suit and round glasses".`;
 };
+// MPI-1283: H3's subject_definitions list what the reference SHOWS, so it keeps the bag, the
+// shoes, the back of the bikini (MPI-1135 Shot Cs). Never ethnicity or origin (the Singularity
+// HF advice the bench followed), and never skin tone, the describer's usual way back to them.
+const TRAITS_QUESTION = (kind) => `List what can be SEEN of the ${kind} in this picture, so it can be drawn again exactly: ${kind === 'object'
+    ? 'its shape, material, colours, markings and parts'
+    : 'hair (colour, length, cut), eyes, facial hair, every piece of clothing, footwear, jewellery, anything worn or carried, tattoos and markings'}. Never ethnicity, race, nationality, origin, skin colour or skin tone, age, pose, what it is doing, or what is around it. Answer with one phrase only, in this form: "the woman, with a black bob and a blunt fringe, brown eyes, a thin gold necklace, black tattoos on both arms and a black string bikini".`;
+/** The describer's traits answer: one line, no quotes, no closing full stop, no leading capital. */
+const tidyTraits = (text) => String(text || '').trim().split('\n')[0].replace(/["*]/g, '').replace(/[.\s]+$/, '')
+    .replace(/^[A-Z](?![A-Z])/, (c) => c.toLowerCase());
+
 /** The describer's phrase as a picture line's words: no quotes, no closing full stop, no leading capital. */
 const tidyName = (text) => String(text || '').trim().split('\n')[0].replace(/["*]/g, '').replace(/[.\s]+$/, '')
     .replace(/^[A-Z](?![A-Z])/, (c) => c.toLowerCase()).split(/\s+/).slice(0, 25).join(' ');
@@ -1348,10 +1362,14 @@ const tidyName = (text) => String(text || '').trim().split('\n')[0].replace(/["*
  * Each picture is also asked ONCE what it is (`KIND_QUESTION`) and then what it looks like (`NAME_QUESTION`),
  * kept as the sidecar's `lookKind` + `lookName`; the app writes its picture line from them (Fabio 2026-10-12).
  *
+ * With `traits` (H3's reference sections, MPI-1283) a person, animal or object is also asked once
+ * what can be seen of it (`TRAITS_QUESTION`), kept as the sidecar's `lookTraits`.
+ *
  * @param {Array<{tag:string, url:string}>} pictures  staged images, by the tag the recipe reads
- * @returns {Promise<{captions: Array<{tag:string, text:string, kind?:string, name?:string}>, missed: string[]}>}
+ * @param {{traits?: boolean}} [opts]
+ * @returns {Promise<{captions: Array<{tag:string, text:string, kind?:string, name?:string, traits?:string}>, missed: string[]}>}
  */
-export async function pictureCaptions(pictures = []) {
+export async function pictureCaptions(pictures = [], { traits: wantTraits = false } = {}) {
     const project = state.currentProject;
     const samePath = (p) => String(p || '').replace(/\\/g, '/').toLowerCase();
     const idByPath = new Map();
@@ -1405,6 +1423,13 @@ export async function pictureCaptions(pictures = []) {
             if (name) keep.lookName = name;
             else clientLogger.warn('prompt', `[llmService] ${p.tag} not named, the enhancer's words stay: ${n.error || n.text}`);
         }
+        let traits = meta?.lookTraits;
+        if (wantTraits && !traits && ['person', 'animal', 'object'].includes(kind)) {
+            const t = await describeImage({ imagePath: p.url, question: TRAITS_QUESTION(kind) });
+            traits = (t.ok && tidyTraits(t.text)) || undefined;
+            if (traits) keep.lookTraits = traits;
+            else clientLogger.warn('prompt', `[llmService] ${p.tag} has no traits, no subject line for it: ${t.error || t.text}`);
+        }
         // `meta` null = no sidecar, and update-meta would mint one holding only these.
         if (meta && Object.keys(keep).length) {
             await fetch(`/project-media/${project.id}/update-meta?folderPath=${encodeURIComponent(project.folderPath)}`, {
@@ -1413,7 +1438,7 @@ export async function pictureCaptions(pictures = []) {
                 body: JSON.stringify({ itemId: p.itemId, updates: keep }),
             }).catch(err => clientLogger.warn('prompt', `[llmService] keeping a look failed: ${err?.message}`));
         }
-        return { tag: p.tag, text, ...(kind && { kind }), ...(name && { name }) };
+        return { tag: p.tag, text, ...(kind && { kind }), ...(name && { name }), ...(wantTraits && traits && { traits }) };
     }));
     return { captions: captions.filter(Boolean), missed };
 }
