@@ -27,14 +27,13 @@ const express = require('express');
 const router  = express.Router();
 const fs      = require('fs-extra');
 const path    = require('path');
-const { diskPathOf, projectFileUrlBusted } = require('../services/projectFileUrl');
+const { diskPathOf } = require('../services/projectFileUrl');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
-const { v4: uuidv4 } = require('uuid');
 const logger = require('./logger');
 const { ffmpegPath } = require('../services/ffmpegBinary');
 const { probeVideo } = require('../services/ffprobeVideo');
-const { writeVideoDerivatives } = require('../services/ffmpegThumb');
+const { writeVideoCard } = require('../services/outputCard');
 const { nextSequence } = require('./projects');
 
 // windowsHide on EVERY execFileP call below: the forked server.js owns no console,
@@ -123,57 +122,19 @@ router.post('/api/video/crop', async (req, res) => {
         logger.info('project', `video-crop ffmpeg: ${ffmpegPath} ${args.join(' ')}`);
         await execFileP(ffmpegPath, args, { maxBuffer: 8 * 1024 * 1024, windowsHide: true });
 
-        // 5. Probe output for meta
-        const outMeta = await probeVideo(outputPath) || {};
-
-        // 6. Write .meta/<uuid>.json sidecar
-        const newId = uuidv4();
-        const metaDir = path.join(mediaDir, '.meta');
-        await fs.ensureDir(metaDir);
-        // Cache-bust on mtime so a re-run overwriting a reused name plays fresh bytes.
-        const filePathUrl = projectFileUrlBusted(outputPath);
-        const sidecar = {
-            id:         newId,
-            type:       'video',
-            filePath:   filePathUrl,
-            operation:  'crop',
-            displayName: finalName.replace(/\.[^.]+$/, ''),
-            prompt:     '',
-            negativePrompt: '',
-            seed:       -1,
-            modelId:    null,
-            createdAt:  new Date().toISOString(),
-            name:       null,
-            uploaded:   false,
-            pixelDimensions: { w: cropW, h: cropH },
-            cropRect:   { x, y, w: width, h: height },
-            fps:        outMeta.fps        || srcMeta.fps,
-            duration:   outMeta.duration   || 0,
-            frameCount: outMeta.frameCount || 0,
-            hasAudio:   !!outMeta.hasAudio,
-            sourceItemId: itemId  || null,
-            sourceGroupId: groupId || null,
-        };
-        // First-frame poster + 720p hover proxy + trim-bar waveform (MPI-633, MPI-829).
-        const { thumbPath, thumbPathLg, proxyPath, wavePath } = await writeVideoDerivatives(outputPath, metaDir, newId, { sourceWidth: outMeta.width, sourceHeight: outMeta.height, hasAudio: !!outMeta.hasAudio });
-        if (thumbPath) sidecar.thumbPath = thumbPath;
-        if (thumbPathLg) sidecar.thumbPathLg = thumbPathLg;
-        if (proxyPath) sidecar.proxyPath = proxyPath;
-        if (wavePath) sidecar.wavePath = wavePath;
-
-        await fs.writeJson(path.join(metaDir, `${newId}.json`), sidecar, { spaces: 2 });
-
-        // 7. Build item + group payload for frontend addGroup()
-        const item  = { ...sidecar };
-        const group = {
-            id:         uuidv4(),
-            type:       'video',
-            operation:  'crop',
-            createdAt:  new Date().toISOString(),
-            fps:        sidecar.fps,
-            duration:   sidecar.duration,
-            items:      [item],
-        };
+        // 5. Write .meta/<uuid>.json sidecar + derivatives; item + group for addGroup()
+        const { item, group } = await writeVideoCard({
+            outputPath,
+            metaDir: path.join(mediaDir, '.meta'),
+            operation: 'crop',
+            fallback: { fps: srcMeta.fps },
+            fields: {
+                pixelDimensions: { w: cropW, h: cropH },
+                cropRect:   { x, y, w: width, h: height },
+                sourceItemId: itemId  || null,
+                sourceGroupId: groupId || null,
+            },
+        });
 
         res.json({ success: true, item, group });
     } catch (err) {
