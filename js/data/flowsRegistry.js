@@ -927,11 +927,12 @@ const ALL_FLOWS = [
         title: 'Video Edit',
         preview: 'flow-video-edit.webp',
         video: 'flow-video-edit.mp4',
-        description: 'Swap the person, head or outfit in a video, change its background, or make any edit you describe. Add a picture of the new character, outfit or place, or describe it in words. List what to change under “Only change” and just that part is masked and re-rendered, faster, with the rest kept exactly as filmed. The soundtrack comes through untouched. Short clips first: a 5-second clip can take 20 minutes, and longer ones drift.',
+        description: 'Swap the person, head or outfit in a video, change its background, or make any edit you describe. Add a picture of the new character, outfit or place, or describe it in words. List what to change under “Only change” and just that part is masked and re-rendered, faster, with the rest kept exactly as filmed. The soundtrack comes through untouched. Short clips first: a 5-second clip can take 20 minutes, and longer ones drift. MiniMax H3 Reference copies the video’s moves closest; on Singularity H3 the new person can move their own way.',
         // The slot takes the user's own H3 LoRAs (Input_Lora_Phase1_1..6, loader -> the Flow's own LoRAs).
         // MPI-1284: Singularity H3 is the same DiT fine-tuned, so ONE graph and `modelParams` swaps
         // the transformer (Input_Base_Model). The original first: the swap and Faceswap LoRAs were
-        // trained on it, and Fabio's Singularity runs went one fail, one pass.
+        // trained on it, and Fabio's Singularity runs went one fail, one pass, then a 960p swap
+        // (flowVideoEdit_024) that did not copy the source's moves while the original's did.
         requiredModels: [{ label: 'Model', models: ['minimax-h3-ref2va', 'minimax-h3-singularity'], loras: true }],
         modelParams: {
             'minimax-h3-ref2va': { 'Input_Base_Model': 'minimax_h3_ref2va_pruned_int8_convrot.safetensors' },
