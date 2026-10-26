@@ -546,16 +546,16 @@
   },
   "46": {
     "inputs": {
-      "boolean": [
-        "45",
-        0
-      ],
       "true": [
         "39",
         0
       ],
       "false": [
         "31",
+        0
+      ],
+      "boolean": [
+        "45",
         0
       ]
     },
@@ -1214,7 +1214,7 @@
     "inputs": {
       "preview_rate": 24,
       "model": [
-        "106",
+        "211",
         0
       ],
       "vae": [
@@ -1247,7 +1247,7 @@
         0
       ],
       "ref_video_1": [
-        "60",
+        "210",
         0
       ],
       "prompt": [
@@ -1255,11 +1255,11 @@
         0
       ],
       "width": [
-        "61",
+        "203",
         0
       ],
       "height": [
-        "62",
+        "204",
         0
       ],
       "length": [
@@ -1299,7 +1299,7 @@
       "steps": 8,
       "denoise": 1,
       "model": [
-        "105",
+        "211",
         0
       ]
     },
@@ -1355,7 +1355,7 @@
   "116": {
     "inputs": {
       "samples": [
-        "115",
+        "229",
         0
       ],
       "vae": [
@@ -1439,16 +1439,16 @@
   },
   "123": {
     "inputs": {
+      "images": [
+        "122",
+        0
+      ],
       "start_index": [
         "36",
         0
       ],
       "num_frames": [
         "30",
-        0
-      ],
-      "images": [
-        "122",
         0
       ]
     },
@@ -1703,6 +1703,592 @@
     "class_type": "MpiLoraModelClip",
     "_meta": {
       "title": "Input_Lora_Phase1_6"
+    }
+  },
+  "200": {
+    "inputs": {
+      "math_expression": "floor(sqrt(1032192 * a / b) / 32 + 0.5) * 32",
+      "a": [
+        "61",
+        0
+      ],
+      "b": [
+        "62",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Base width (768p area, render shape)"
+    }
+  },
+  "201": {
+    "inputs": {
+      "math_expression": "floor(sqrt(1032192 * a / b) / 32 + 0.5) * 32",
+      "a": [
+        "62",
+        0
+      ],
+      "b": [
+        "61",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Base height (768p area, render shape)"
+    }
+  },
+  "202": {
+    "inputs": {
+      "math_expression": "0 if a <= b else (1 if a <= 2 * b else 2)",
+      "a": [
+        "61",
+        0
+      ],
+      "b": [
+        "200",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Fast Motion Mode"
+    }
+  },
+  "203": {
+    "inputs": {
+      "math_expression": "a if c == 0 else b",
+      "a": [
+        "61",
+        0
+      ],
+      "b": [
+        "200",
+        0
+      ],
+      "c": [
+        "202",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Stage 1 width"
+    }
+  },
+  "204": {
+    "inputs": {
+      "math_expression": "a if c == 0 else b",
+      "a": [
+        "62",
+        0
+      ],
+      "b": [
+        "201",
+        0
+      ],
+      "c": [
+        "202",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Stage 1 height"
+    }
+  },
+  "205": {
+    "inputs": {
+      "math_expression": "a == 0",
+      "a": [
+        "202",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "One Pass"
+    }
+  },
+  "206": {
+    "inputs": {
+      "math_expression": "(floor(0.75 * b / 32 + 0.5) + 0) * 32 if fabs(floor((floor(0.75 * b / 32 + 0.5) + 0) * 32 * a / b / 32 + 0.5) * 32 * b - (floor(0.75 * b / 32 + 0.5) + 0) * 32 * a) <= 0.01 * (floor(0.75 * b / 32 + 0.5) + 0) * 32 * a else ((floor(0.75 * b / 32 + 0.5) + 1) * 32 if fabs(floor((floor(0.75 * b / 32 + 0.5) + 1) * 32 * a / b / 32 + 0.5) * 32 * b - (floor(0.75 * b / 32 + 0.5) + 1) * 32 * a) <= 0.01 * (floor(0.75 * b / 32 + 0.5) + 1) * 32 * a else ((floor(0.75 * b / 32 + 0.5) + 2) * 32 if fabs(floor((floor(0.75 * b / 32 + 0.5) + 2) * 32 * a / b / 32 + 0.5) * 32 * b - (floor(0.75 * b / 32 + 0.5) + 2) * 32 * a) <= 0.01 * (floor(0.75 * b / 32 + 0.5) + 2) * 32 * a else (b)))",
+      "a": [
+        "203",
+        0
+      ],
+      "b": [
+        "204",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Stage 1 clip height (~0.75 of stage 1)"
+    }
+  },
+  "207": {
+    "inputs": {
+      "math_expression": "floor(c * a / b / 32 + 0.5) * 32",
+      "a": [
+        "203",
+        0
+      ],
+      "b": [
+        "204",
+        0
+      ],
+      "c": [
+        "206",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Stage 1 clip width"
+    }
+  },
+  "208": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "keep_proportion": "crop",
+      "pad_color": "0, 0, 0",
+      "crop_position": "center",
+      "divisible_by": 32,
+      "device": "cpu",
+      "image": [
+        "46",
+        0
+      ],
+      "width": [
+        "207",
+        0
+      ],
+      "height": [
+        "206",
+        0
+      ]
+    },
+    "class_type": "ImageResizeKJv2",
+    "_meta": {
+      "title": "Whole frame at 0.75 of stage 1"
+    }
+  },
+  "209": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "keep_proportion": "crop",
+      "pad_color": "0, 0, 0",
+      "crop_position": "center",
+      "divisible_by": 32,
+      "device": "cpu",
+      "image": [
+        "54",
+        1
+      ],
+      "width": [
+        "203",
+        0
+      ],
+      "height": [
+        "204",
+        0
+      ]
+    },
+    "class_type": "ImageResizeKJv2",
+    "_meta": {
+      "title": "Crop at stage 1"
+    }
+  },
+  "210": {
+    "inputs": {
+      "true": [
+        "209",
+        0
+      ],
+      "false": [
+        "208",
+        0
+      ],
+      "boolean": [
+        "24",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "masked ? crop : whole frame (stage 1)"
+    }
+  },
+  "211": {
+    "inputs": {
+      "selection": "sol-attn",
+      "selection.tau": 1.3,
+      "start_percent": 0.2,
+      "end_percent": 1,
+      "dense_blocks": "",
+      "min_tokens": 12288,
+      "extra_tokens": 256,
+      "sink_conditioning": "exact_kv_and_rows",
+      "verbose": false,
+      "model": [
+        "106",
+        0
+      ]
+    },
+    "class_type": "BlockSparseAttention",
+    "_meta": {
+      "title": "sol-attn"
+    }
+  },
+  "212": {
+    "inputs": {
+      "passthrough": [
+        "115",
+        0
+      ]
+    },
+    "class_type": "MpiClearVram",
+    "_meta": {
+      "title": "Free stage 1"
+    }
+  },
+  "213": {
+    "inputs": {
+      "av_latent": [
+        "212",
+        0
+      ]
+    },
+    "class_type": "LTXVSeparateAVLatent",
+    "_meta": {
+      "title": "Separate AV Latent"
+    }
+  },
+  "214": {
+    "inputs": {
+      "math_expression": "a if c < 2 else 2 * b",
+      "a": [
+        "61",
+        0
+      ],
+      "b": [
+        "203",
+        0
+      ],
+      "c": [
+        "202",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Hop 1 width"
+    }
+  },
+  "215": {
+    "inputs": {
+      "math_expression": "a if c < 2 else 2 * b",
+      "a": [
+        "62",
+        0
+      ],
+      "b": [
+        "204",
+        0
+      ],
+      "c": [
+        "202",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Hop 1 height"
+    }
+  },
+  "216": {
+    "inputs": {
+      "model_name": "minimax_h3_latent_upscaler_3d_bf16.safetensors",
+      "mode": "target dimensions",
+      "align": 32,
+      "enable_temporal_chunking": true,
+      "force_unload": true,
+      "device": "cuda",
+      "precision": "bf16",
+      "latent": [
+        "213",
+        0
+      ],
+      "mode.width": [
+        "214",
+        0
+      ],
+      "mode.height": [
+        "215",
+        0
+      ]
+    },
+    "class_type": "MinimaxH3LatentUpscaler3D",
+    "_meta": {
+      "title": "Minimax H3 Latent Upscaler (3D)"
+    }
+  },
+  "217": {
+    "inputs": {
+      "model_name": "minimax_h3_latent_upscaler_3d_bf16.safetensors",
+      "mode": "target dimensions",
+      "align": 32,
+      "enable_temporal_chunking": true,
+      "force_unload": true,
+      "device": "cuda",
+      "precision": "bf16",
+      "latent": [
+        "216",
+        0
+      ],
+      "mode.width": [
+        "61",
+        0
+      ],
+      "mode.height": [
+        "62",
+        0
+      ]
+    },
+    "class_type": "MinimaxH3LatentUpscaler3D",
+    "_meta": {
+      "title": "Hop 2 Upscaler"
+    }
+  },
+  "218": {
+    "inputs": {
+      "math_expression": "a == 2",
+      "a": [
+        "202",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Needs Hop 2"
+    }
+  },
+  "219": {
+    "inputs": {
+      "true": [
+        "217",
+        0
+      ],
+      "false": [
+        "216",
+        0
+      ],
+      "boolean": [
+        "218",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "hop 2 ? : hop 1"
+    }
+  },
+  "220": {
+    "inputs": {
+      "video_latent": [
+        "219",
+        0
+      ],
+      "audio_latent": [
+        "213",
+        1
+      ]
+    },
+    "class_type": "LTXVConcatAVLatent",
+    "_meta": {
+      "title": "Concat AV Latent"
+    }
+  },
+  "221": {
+    "inputs": {
+      "reuse_threshold": 0.2,
+      "start_percent": 0.15,
+      "end_percent": 0.95,
+      "verbose": true,
+      "model": [
+        "148",
+        0
+      ]
+    },
+    "class_type": "EasyCache",
+    "_meta": {
+      "title": "EasyCache"
+    }
+  },
+  "222": {
+    "inputs": {
+      "shift_video": 12,
+      "shift_audio": 0.5,
+      "model": [
+        "221",
+        0
+      ]
+    },
+    "class_type": "MiniMaxH3SigmaShift",
+    "_meta": {
+      "title": "ModelSamplingMiniMaxH3 (refine)"
+    }
+  },
+  "223": {
+    "inputs": {
+      "ref_image_size": "max",
+      "clip": [
+        "185",
+        1
+      ],
+      "vae": [
+        "102",
+        0
+      ],
+      "audio_vae": [
+        "103",
+        0
+      ],
+      "ref_image_1": [
+        "29",
+        0
+      ],
+      "ref_video_1": [
+        "60",
+        0
+      ],
+      "prompt": [
+        "149",
+        0
+      ],
+      "width": [
+        "61",
+        0
+      ],
+      "height": [
+        "62",
+        0
+      ],
+      "length": [
+        "47",
+        0
+      ]
+    },
+    "class_type": "MpiH3References",
+    "_meta": {
+      "title": "Refine_Refs"
+    }
+  },
+  "224": {
+    "inputs": {
+      "model": [
+        "222",
+        0
+      ],
+      "conditioning": [
+        "223",
+        0
+      ]
+    },
+    "class_type": "BasicGuider",
+    "_meta": {
+      "title": "Basic Guider (refine)"
+    }
+  },
+  "225": {
+    "inputs": {
+      "sigmas": "0.9035, 0.6316, 0.3158, 0.0000"
+    },
+    "class_type": "ManualSigmas",
+    "_meta": {
+      "title": "3 step Sigmas"
+    }
+  },
+  "226": {
+    "inputs": {
+      "sampler_name": "euler"
+    },
+    "class_type": "KSamplerSelect",
+    "_meta": {
+      "title": "KSamplerSelect (refine)"
+    }
+  },
+  "227": {
+    "inputs": {
+      "math_expression": "100000 if a * b < 850000 else (243 if a * b < 1100000 else (90 if a * b < 6000000 else 39))",
+      "a": [
+        "61",
+        0
+      ],
+      "b": [
+        "62",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Window Frames"
+    }
+  },
+  "228": {
+    "inputs": {
+      "overlap_frames": 17,
+      "frame_grid": 5,
+      "noise": [
+        "111",
+        0
+      ],
+      "guider": [
+        "224",
+        0
+      ],
+      "sampler": [
+        "226",
+        0
+      ],
+      "sigmas": [
+        "225",
+        0
+      ],
+      "latent_image": [
+        "220",
+        0
+      ],
+      "window_frames": [
+        "227",
+        0
+      ]
+    },
+    "class_type": "MpiWindowedSampler",
+    "_meta": {
+      "title": "Mpi Windowed Sampler"
+    }
+  },
+  "229": {
+    "inputs": {
+      "true": [
+        "212",
+        0
+      ],
+      "false": [
+        "228",
+        0
+      ],
+      "boolean": [
+        "205",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "one pass ? stage 1 : refined"
     }
   }
 }

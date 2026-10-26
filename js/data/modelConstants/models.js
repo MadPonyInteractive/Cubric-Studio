@@ -1638,7 +1638,7 @@ const ALL_MODELS = [
         // are keyed by LICENCE id, so a user who accepted during an fl2va install gets NO
         // second dialog here. That silence is deliberate — do not read it as a missing gate.
         id: 'minimax-h3-ref2va',
-        featured: true,
+        featured: false,         // Singularity H3 carries it (Fabio 2026-10-26)
         sizeTier: 'balanced',
         modelFamily: 'MiniMax-H3',
         name: 'MiniMax H3 Reference',
@@ -1733,6 +1733,7 @@ const ALL_MODELS = [
         // comments for capabilities and deps. Same MINIMAX_H3 licence (licences.js).
         // NO modelFamily: that field drives the H/B/L tier letter, and this is not a tier.
         id: 'minimax-h3-singularity',
+        featured: true,
         sizeTier: 'balanced',
         name: 'Singularity H3',
         minVramGb: 12,

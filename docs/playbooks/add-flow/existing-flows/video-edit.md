@@ -1,4 +1,4 @@
-# Video Edit (`video-edit`) — one single-pass H3 graph, masked or whole frame
+# Video Edit (`video-edit`) — one H3 graph, masked or whole frame, Fast Motion always on
 
 > Swap a person, a head or an outfit in a clip, change its background, or any edit in words,
 > with an optional picture. MPI-1036 (umbrella MPI-897). Bench evidence, numbers and Fabio's
@@ -12,7 +12,7 @@
 | requiredModels | `[{ label: 'Model', models: ['minimax-h3-ref2va', 'minimax-h3-singularity'], loras: true }]` (the user's LoRA rack) — one graph, `modelParams` swap the transformer on `Input_Base_Model` (MPI-1284): the original ref2va weight (recommended; the swap LoRAs were trained on it) or Singularity H3 v2 (Fabio's runs: one fail, one pass). Plus its 8-step turbo LoRA, `taeh3` |
 | requiredDeps | `['minimax-h3-character-swap-lora', 'minimax-h3-faceswap-lora']` (akatz-ai, UntMods; `loraDeps.js`). `flow:video-edit` is gated by `MINIMAX_H3` in `licences.js`, so an H3 receipt covers both |
 | operation | `flowVideoEdit` (new, `appVersionIntroduced` 2.0.1) |
-| workflow | `flow_video_edit.json`, one single-pass H3 r2v turbo graph for both routes. Authoring: `tasks/MPI-1036/research/bench/flow_graph.py` (inputs, templates, routes), exported by `export_raw.py`; `flow_graph_ours.py` is the two-stage attempt, research only |
+| workflow | `flow_video_edit.json`, one H3 r2v turbo graph for both routes, H3 Reference's Fast Motion route always on (below). Authoring: `tasks/MPI-1036/research/bench/flow_graph.py` (inputs, templates, routes), exported by `export_raw.py`; `flow_graph_ours.py` is the two-stage attempt, research only |
 | describe | `Input_Look` / `Input_Kept`, filled by the app before the run (below) |
 | inputs | `video1` (Input_Video), `image1` (Input_Image, optional); 6 run-slide fields (the 6th: Resolution, `Input_Quality`) |
 | output | `video`, source soundtrack muxed back (the edit is pixels only); `result.compare: 'video1'` |
@@ -27,6 +27,14 @@ rendered at the **Resolution** field's area (`Input_Quality`, node 26: 576p 0.59
 960p, 1080p, 2K, 4K = ratios.js's H3 medium / high / very_high / 2k / 4k areas; aspect kept, /32;
 2K/4K warned, not capped: MPI-549 saw H3 with references run out of memory at both on a 32 GB 5090), with the clip handed to H3
 as `<Video 1>` at **~0.75 of that size**. Both trim the clip to H3's 17k+5 frame grid.
+
+**Fast Motion, always on** (MPI-1284, `_fast_motion()` in the builder; Fabio: over 768p the single pass ran out of
+memory at 16 GB). The math of `minimax_h3_r2va`'s switch-on modes ([fast-motion.md](../../../models/h3/fast-motion.md)):
+sol-attn on the stage-1 model; a render up to the BASE (the 768p area at the render's shape, nodes 200/201) is one
+pass as before; bigger draws the base, latent-upscales to the render (two hops past 2x the base), then a 3-step
+`MpiWindowedSampler` refine on the non-turbo chain with its own references. Video Edit renders any shape, so the base
+is an area, not r2va's four medium cells (9:16 and 16:9 land on the same size); a masked square crop is one pass up
+to ~1016. 576p and 768p are one pass, unchanged. No bar total is recorded for this graph (progressStages.js).
 
 - **The clip must have the render's SHAPE.** Core H3 stretches a reference video onto its own /32
   canvas (`nodes_minimax_h3.py`, crop "disabled") and the result follows it, so 0.75 rounded per axis
