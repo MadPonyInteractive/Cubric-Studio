@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1294", "at": "2026-10-26T00:32:25+00:00", "actor": "claude", "column": "todo", "title": "Flow peeks slide in and out instead of popping"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1294", "at": "2026-10-26T00:32:44+00:00", "actor": "claude", "from": "todo", "to": "doing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1294", "at": "2026-10-26T00:36:06+00:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Probe in an isolated app: slides up in ~0.4s, down after the clip ends, next waits until out of sight. Fabio's eye-test remains."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1294", "at": "2026-10-26T01:01:02+00:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio eye-tested the Flow peeks: they slide in and out properly."}
