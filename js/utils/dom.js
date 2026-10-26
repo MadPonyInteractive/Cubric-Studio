@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * js/utils/dom.js — Lightweight DOM utilities for Cubric Studio.
  * Import these instead of writing querySelector boilerplate.
@@ -35,7 +36,7 @@ export const gid = (id) => document.getElementById(id);
  * Convenience addEventListener. Returns a cleanup function.
  * @param {EventTarget} el
  * @param {string} event
- * @param {Function} fn
+ * @param {(e: any) => void} fn  any event handler; typed loose so callers keep their own event type
  * @param {AddEventListenerOptions} [opts]
  * @returns {Function} cleanup — call to remove the listener
  */
@@ -48,7 +49,7 @@ export const on = (el, event, fn, opts) => {
  * Convenience removeEventListener. Returns a re-add function.
  * @param {EventTarget} el
  * @param {string} event
- * @param {Function} fn
+ * @param {(e: any) => void} fn  any event handler; typed loose so callers keep their own event type
  * @param {AddEventListenerOptions} [opts]
  * @returns {Function} re-add — call to re-attach the listener
  */
@@ -94,7 +95,7 @@ export const ce = (tag, props, children) => {
  * @param {HTMLElement} anchor   - The trigger still sitting in the real tree.
  */
 export const inheritAccent = (portalEl, anchor) => {
-    const accent = anchor?.closest?.('[data-accent]')?.dataset.accent;
+    const accent = /** @type {HTMLElement|null} */ (anchor?.closest?.('[data-accent]'))?.dataset.accent;
     if (accent) portalEl.dataset.accent = accent;
     else delete portalEl.dataset.accent;
 };

@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * ratios.js — Shared Aspect Ratio Configuration & Utilities Module
  *

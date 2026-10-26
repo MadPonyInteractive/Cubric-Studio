@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Icon registry — fill="currentColor" Material-style paths, 24x24 grid.
  * Sourced from the app's existing inline SVGs (sidebar, modals, toolbars).
@@ -58,7 +59,6 @@ export const ICONS = {
     'sparkle': '<path d="M12 3l2.09 6.26L20 12l-5.91 2.74L12 21l-2.09-6.26L4 12l5.91-2.74z"/>',
     'layers': '<path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5-10-5-10 5zM2 12l10 5 10-5-10-5-10 5z"/>',
     'gpu': '<rect x="2" y="6" width="20" height="12" rx="2"/><rect x="6" y="10" width="5" height="4" rx="1"/><circle cx="16" cy="12" r="2"/><path d="M6 6V4M18 6V4M6 20v-2M18 20v-2"/>',
-    'seed': '<path d="M9 3c0 4.5 6 4.5 6 9s-6 4.5-6 9"/><path d="M15 3c0 4.5-6 4.5-6 9s6 4.5 6 9"/><path d="M10 6h4"/><path d="M10 18h4"/><path d="M11 12h2"/>',
 
     // ── App Sections ──────────────────────────────────────────────────────────
     'folder': '<path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/>',
@@ -171,7 +171,6 @@ export const ICONS = {
     'ratio_1_185': '<rect x="6.5" y="2" width="11" height="20" rx="2"/>',
     'ratio_9_21': '<rect x="7.5" y="1.5" width="9" height="21" rx="2"/>',
     'ratio_1_239': '<rect x="7.8" y="2" width="8.4" height="20" rx="2"/>',
-    'gallery': '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>',
     'refresh_stroke': '<path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/>',
 };
 
@@ -183,7 +182,6 @@ export const ICONS = {
  * 1. The `opts.stroke` property is explicitly set to true.
  * 2. The icon name ends with `_stroke`.
  * 3. The icon name starts with `ratio_` (aspect ratio rectangles).
- * 4. The icon is one of the predefined stroke-based names: ['seed', 'gallery'].
  *
  * @param {string} name - Key from the ICONS registry (e.g., 'play', 'refresh_stroke').
  * @param {'xs'|'sm'|'md'|'lg'|'xl'} [size='md'] - Standard UI size class.
@@ -196,8 +194,7 @@ export function renderIcon(name, size = 'md', opts = {}) {
     const inner = ICONS[name] || ICONS['info'];
     const isStroke = opts.stroke === true ||
         name.endsWith('_stroke') ||
-        name.startsWith('ratio_') ||
-        ['seed', 'gallery'].includes(name);
+        name.startsWith('ratio_');
 
     const colorClass = opts.color ? ` mpi-icon--${opts.color}` : '';
     const svgAttrs = isStroke

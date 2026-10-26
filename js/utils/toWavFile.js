@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * toWavFile.js — any decodable audio Blob → 16-bit 48 kHz mono WAV File.
  *

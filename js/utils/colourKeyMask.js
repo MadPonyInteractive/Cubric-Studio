@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * colourKeyMask — mask by colour (MPI-771, plan Decision 15). A pixel whose RGB
  * sits within `tolerance` of the key colour is keyed OUT; everything else is
@@ -28,7 +29,7 @@ export const COLOUR_KEY_DEFAULTS = Object.freeze({ tolerance: 16, edgesOnly: fal
  * @returns {Uint8Array} one byte per pixel, 255 = keep, 0 = keyed out
  *          (`selectMatching`: 255 = the keyed pixels instead)
  */
-export function colourKeyMask(rgba, width, height, { key, tolerance = COLOUR_KEY_DEFAULTS.tolerance, edgesOnly = false, selectMatching = false } = {}) {
+export function colourKeyMask(rgba, width, height, { key, tolerance = COLOUR_KEY_DEFAULTS.tolerance, edgesOnly = false, selectMatching = false }) {
     const mask = keepMask(rgba, width, height, key, tolerance, edgesOnly);
     if (selectMatching) for (let i = 0; i < mask.length; i++) mask[i] = 255 - mask[i];
     return mask;

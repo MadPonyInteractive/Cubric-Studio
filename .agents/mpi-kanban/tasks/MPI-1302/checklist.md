@@ -14,6 +14,10 @@
 ## Phase 1c: X4
 - [x] Unused routes removed (Fabio chose: remove the unused skill-listed ones too); skill docs updated
 - [x] Internal-only exports un-exported; never-used functions deleted; icons translate/volumeLow deleted
-- [ ] Icons seed/gallery + renderIcon stroke special case: needs Fabio's OK to edit .claude/rules/dos_and_donts.md line 40
+- [x] Icons seed/gallery + renderIcon stroke special case deleted; .claude/rules/dos_and_donts.md line 40 edited (Fabio's OK, 2026-10-26)
+
 ## Phase 1d: T1, T2
+- [x] T1: typescript 6.0.3 dev dep, tsconfig.typecheck.json, `npm run typecheck` inside `npm run lint` (CI + pre-push); // @ts-check on all 57 js/utils, commandRegistry.js, resolveModelDeps.js, all clean
+- [x] T2: JSDoc on promptReuse.js, projectService.js, routes/shared.js (MPI-484 stop, MPI-444 realpath.native)
+- [x] Lint + type-check + npm test (3742 pass / 0 fail), AUDIT.md status, docs/DEVELOPMENT.md + red-master.md
 ## Phase 2–4: see plan.md

@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * audioOutput.js — the app's chosen audio OUTPUT device (MPI-803).
  *
@@ -141,7 +142,7 @@ export async function setOutputDevice(deviceId, label = '') {
     Storage.setAudioOutputDevice({ deviceId, label });
     // A fresh pick is a fresh chance: whatever we gave up on before is not this.
     _reresolved.clear();
-    await Promise.all(qsa('audio, video').map(el => applySink(el)));
+    await Promise.all(qsa('audio, video').map(el => applySink(/** @type {HTMLMediaElement} */ (el))));
 }
 
 /**
@@ -167,6 +168,6 @@ export function installAudioOutput() {
     // repeatedly, and a warning per churn is a log nobody can read.
     navigator.mediaDevices?.addEventListener?.('devicechange', () => {
         _reresolved.clear();
-        qsa('audio, video').forEach(el => applySink(el));
+        qsa('audio, video').forEach(el => applySink(/** @type {HTMLMediaElement} */ (el)));
     });
 }

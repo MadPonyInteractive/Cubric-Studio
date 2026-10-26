@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * maskUtils.js — Utility functions for mask operations.
  *

@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * entryInfo — what the card-info flyout shows for one history entry (MPI-1162).
  *

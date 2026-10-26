@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Justified Layout (Google Photos-style) utilities.
  *

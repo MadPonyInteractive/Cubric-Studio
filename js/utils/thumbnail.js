@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * thumbnail.js — Downscale a source image/video element to a small data URL
  * suitable for cheap Comfy preview round-trips.

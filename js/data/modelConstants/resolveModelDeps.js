@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * resolveModelDeps.js — Pure dependency resolver for operation-selectable models.
  *
@@ -240,7 +241,7 @@ function variantSuffixOf(model, variantTokens = {}) {
  * @param {object} model
  * @param {string} op
  * @param {'local'|'remote'|null} [engine]
- * @param {{stage2?: boolean}} [opts]
+ * @param {{stage2?: boolean, variantTokens?: Record<string,string|null>}} [opts]
  * @returns {string|null}
  */
 export function resolveWorkflowFile(model, op, engine = null, { stage2 = false, variantTokens = {} } = {}) {
@@ -551,7 +552,7 @@ export function deriveInstalledOps(model, depStatus, engine = null, variantToken
  * @param {object} model
  * @param {string[]|null} selectedOps - null = all selectable ops.
  * @param {'local'|'remote'|null} engine
- * @param {{stage2?: boolean, op?: string, depExists?: (id:string)=>boolean, isNode?: (id:string)=>boolean}} [opts]
+ * @param {{stage2?: boolean, op?: string, depExists?: (id:string)=>boolean, isNode?: (id:string)=>boolean, variantTokens?: Record<string,string|null>}} [opts]
  * @returns {{ depIds: string[], workflowFile: string|null, nodeIds: string[]|null }}
  */
 export function resolve(model, selectedOps = null, engine = null, opts = {}) {
@@ -594,7 +595,7 @@ export function partialInstall(deps, depStatus, heldElsewhere = null) {
     for (const dep of own) {
         const st = depStatus.get(dep.id);
         if (onDisk(st)) { downloaded += depSizeBytes(dep.size); installedDeps += 1; }
-        else if (st?.partialBytes) downloaded += st.partialBytes;
+        else if (typeof st === 'object' && st?.partialBytes) downloaded += st.partialBytes;
         total += depSizeBytes(dep.size);
     }
     const PARTIAL_FLOOR_BYTES = 1024 ** 3;

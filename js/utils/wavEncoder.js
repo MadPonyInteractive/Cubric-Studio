@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * wavEncoder.js — AudioBuffer → 16-bit PCM WAV (MPI-573).
  *

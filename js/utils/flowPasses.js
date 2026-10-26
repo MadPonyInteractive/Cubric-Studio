@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * flowPasses.js — registry of multi-pass planners (D3, MPI-1101).
  *
@@ -87,7 +88,7 @@ export function getPlanner(id) {
  * @param {Array<Object>} mediaItems  the run's full media array
  * @param {Object} source             the item in mediaItems that gets replaced each pass
  * @param {Function} placeAsset       async (file: File) → string | null
- * @returns {{ count: number, next: Function }}
+ * @returns {{ count: number, runPass: {index: number, count: number}|null, next: (r?: {item?: Object}) => Promise<*> }}
  */
 export function buildCropPassNext(plan, mediaItems, source, placeAsset) {
     let ran = 0;
@@ -210,7 +211,7 @@ async function _seamlessPlanner(flow, stepValues, mediaItems, deps) {
         // Every window, pass 1 included, pastes into the run's working copy (D2): commandExecutor
         // lands the whole picture as it stands, and each later window REPLACES that version.
         runPass: { index: 1, count, seamless: { runId, i: 0 } },
-        next: async ({ item } = {}) => {
+        next: async (/** @type {{item?: Object}} */ { item } = {}) => {
             served += 1;
             if (served >= count) return null;
 

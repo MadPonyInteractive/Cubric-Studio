@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * trimSilence.js — strip the dead air off the START of a recorded take (MPI-999).
  *

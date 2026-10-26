@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * uiZoom.js — global UI size control via Electron webFrame zoom factor.
  *

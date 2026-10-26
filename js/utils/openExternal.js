@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * js/utils/openExternal.js — open a URL in the user's own browser, not in the app.
  *

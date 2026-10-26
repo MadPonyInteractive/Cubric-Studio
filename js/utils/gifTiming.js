@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * gifTiming — the frame-list math behind the GIF timing and output tools (MPI-772).
  *

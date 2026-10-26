@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * declaredFields.js — the ONE renderer for the declared-field vocabulary
  * (`FlowStepField` in js/data/flowsRegistry.js).
@@ -704,6 +705,8 @@ export function resolveFlowFieldValues(flow, values = {}) {
  * @param {string} [opts.namespace='field']      radio-group `name` prefix; must be
  *                                               unique per surface or two mounted
  *                                               groups share a selection
+ * @param {(fieldId: string) => *} [opts.readField]       an `angle` field's `startField` value
+ * @param {(role: string) => (string|null)} [opts.mediaUrl] an `angle` field's `pictureRole` URL
  * @returns {HTMLElement|null} null for an unknown type
  */
 export function buildField(f, cur, onChange, unsubs, opts = {}) {
@@ -969,7 +972,7 @@ export function buildField(f, cur, onChange, unsubs, opts = {}) {
             info: f.info || '',
         });
         if (multi) {
-            const ta = qs('textarea', inst.el);
+            const ta = /** @type {HTMLTextAreaElement|null} */ (qs('textarea', inst.el));
             if (ta) ta.rows = Number(f.rows);
         }
         inst.on('input', ({ value }) => onChange(value));
@@ -993,7 +996,7 @@ export function buildField(f, cur, onChange, unsubs, opts = {}) {
         // go stale — `getTags` returns the same array every call, which the picker
         // allows.
         if (Array.isArray(f.tags) && f.tags.length) {
-            const field = qs('textarea, input', inst.el);
+            const field = /** @type {HTMLTextAreaElement|null} */ (qs('textarea, input', inst.el));
             if (field) {
                 unsubs.push(attachMentionPicker(field, {
                     host,

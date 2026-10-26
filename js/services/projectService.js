@@ -343,6 +343,10 @@ const _settingsUnsubs = [
 
 // ── CRUD (same signatures as projectManager.js) ────────────────────────────────
 
+/**
+ * The native folder picker (Electron IPC `choose-folder`).
+ * @returns {Promise<string|null>} the chosen path; null when cancelled or in browser dev mode
+ */
 export async function chooseFolder() {
     // Browser dev mode has no native dialog — return null silently.
     if (typeof window.require !== 'function') return null;
@@ -351,18 +355,40 @@ export async function chooseFolder() {
     return result?.cancelled ? null : (result?.path ?? null);
 }
 
+/**
+ * Create a project on disk (`/create-project`). Does not open it.
+ * @param {string} name
+ * @param {string|null} [folderPath]  where to create it; null = the default projects root
+ * @returns {Promise<Object>} the new project.json contents
+ * @throws {Error} the route's error message when it refuses
+ */
 export async function createProject(name, folderPath = null) {
     const result = await post('/create-project', { name, folderPath });
     if (!result.success) throw new Error(result.error);
     return result.project;
 }
 
+/**
+ * Every project Landing lists (`/list-projects`): the default root plus the durable
+ * registry's parents, minus the hidden ones.
+ * @returns {Promise<Object[]>}
+ * @throws {Error} the route's error message when it refuses
+ */
 export async function listProjects() {
     const result = await post('/list-projects', {});
     if (!result.success) throw new Error(result.error);
     return result.projects;
 }
 
+/**
+ * Open a project: flush the settings queued for the project being left INTO it, migrate
+ * and reconcile this one (writing back through `/update-project` when reconcile changed
+ * it), make it `state.currentProject`, register its parent in the durable registry and
+ * emit `project:changed`. Media derivatives backfill afterwards, fire-and-forget.
+ * @param {{folderPath: string}} project  a listed project (only `folderPath` is read)
+ * @returns {Promise<void>}
+ * @throws {Error} when migration refuses the folder
+ */
 export async function openProject(project) {
     // Settings changed in the project being left are written into IT first — the
     // queues apply to whichever project is open when they fire.
@@ -483,6 +509,14 @@ export async function addProjectByFolder(folderPath) {
     return res.project;
 }
 
+/**
+ * Write top-level project.json keys through `/update-project` (the server's
+ * `updateProjectJson`, the sole writer) and MERGE them into the open project in memory.
+ * The server's answer is NOT adopted: it holds `history` as id strings, and replacing
+ * the hydrated project with it would blank every card.
+ * @param {Object} updates  top-level keys to write
+ * @returns {Promise<Object|undefined>} the open project; undefined when none is open
+ */
 export async function updateProject(updates) {
     if (!state.currentProject) return;
     const result = await post('/update-project', {
@@ -504,10 +538,28 @@ export async function updateProject(updates) {
     return state.currentProject;
 }
 
+/**
+ * Save the open project's settings, debounced 500 ms. `flushPendingSettings` is the
+ * immediate path.
+ * @returns {void}
+ */
 export function saveProjectSettings() {
     _debouncedSaveProjectSettings();
 }
 
+/**
+ * Apply a Reuse's control values (`buildPromptReuseSettings`) to the open project:
+ * per-model, shared (image/video only) and per-op buckets, then one debounced save.
+ * No-op without an open project or a `modelId`.
+ * @param {Object} reuse
+ * @param {string} reuse.modelId
+ * @param {'image'|'video'|'audio'} [reuse.mediaType]
+ * @param {string} [reuse.operation]
+ * @param {Object} [reuse.sharedUpdates]
+ * @param {Object} [reuse.opUpdates]
+ * @param {Object} [reuse.modelUpdates]
+ * @returns {void}
+ */
 export function applyPromptReuseSettings({ modelId, mediaType, operation, sharedUpdates = {}, opUpdates = {}, modelUpdates = {} } = {}) {
     if (!state.currentProject || !modelId) return;
 
@@ -528,6 +580,16 @@ export function applyPromptReuseSettings({ modelId, mediaType, operation, shared
     }
 }
 
+/**
+ * Remove a project from Landing. With `deleteFiles` the folder goes (`/delete-project`,
+ * guarded by the project's id); without, it is only HIDDEN in the durable registry, per
+ * project, never by dropping its parent (MPI-809). Deleting the open project closes it
+ * and returns to Landing, after flushing its queued settings into it.
+ * @param {{folderPath: string, id: string}} project
+ * @param {{deleteFiles?: boolean}} [opts]
+ * @returns {Promise<void>}
+ * @throws {Error} the route's error message when it refuses
+ */
 export async function deleteProject(project, { deleteFiles = true } = {}) {
     const folderPath = project.folderPath;
     // The open project is about to go; its queued settings go with it, not to the next one.

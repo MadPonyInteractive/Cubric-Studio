@@ -61,7 +61,9 @@ Green here and red in CI is an ANSWER, not a dead end — see cause 1.
    `no-undef` (MPI-832): a rename that leaves one use of the old name behind is a
    `ReferenceError` in the user’s app, and the suite cannot see it — the source-contract
    tests are regexes that never execute the line. Red in seconds rather than twenty
-   minutes, and `npm run lint` locally reproduces it exactly.
+   minutes, and `npm run lint` locally reproduces it exactly. Since AUDIT T1 (2026-10-26) it
+   ends with `npm run typecheck`: a `file.js(line,col): error TS…` line is a JSDoc that
+   disagrees with the code in a `// @ts-check` file (`docs/DEVELOPMENT.md`).
 
 ## The two gates, and what each is for
 

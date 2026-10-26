@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * mediaDimensions.js — Measure pixel dimensions of image/video sources.
  *

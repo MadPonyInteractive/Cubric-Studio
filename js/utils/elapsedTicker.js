@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * elapsedTicker — keeps a long wait visibly alive (MPI-792).
  *

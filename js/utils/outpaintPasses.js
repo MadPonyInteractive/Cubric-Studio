@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * outpaintPasses.js — split a big outpaint into passes (MPI-900).
  *

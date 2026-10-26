@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * MPI-749 — the gallery filter/sort contract, shared by the grid predicate and the filter
  * panel so the two can never disagree. MPI-785: the media picker runs the same contract on

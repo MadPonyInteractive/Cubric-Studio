@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * js/utils/math.js — Number clamping for Cubric Studio.
  */

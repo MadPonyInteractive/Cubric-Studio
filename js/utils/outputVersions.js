@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * outputVersions.js — a run whose graph makes several pictures on the way to ONE result (MPI-1086,
  * Fabio 2026-10-14): every picture lands as a VERSION of the one card, in the graph's order, instead

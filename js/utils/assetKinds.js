@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * MPI-749 — what KIND of asset a gallery card is showing.
  *

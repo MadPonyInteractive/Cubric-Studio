@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * mediaActions.js — Shared media file utilities.
  *
@@ -149,7 +150,7 @@ export async function downloadMediaFiles(project, items) {
  * Delete media files for the given items from a project.
  * Calls DELETE /project-media/:projectId/:filename for each item.
  * @param {Object} project — state.currentProject
- * @param {Array<{filePath: string}>} items — items whose files to delete
+ * @param {Array<{filePath: string, id?: string}>} items — items whose files to delete
  */
 export async function deleteMediaFiles(project, items) {
     if (!project) return;

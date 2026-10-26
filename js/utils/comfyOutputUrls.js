@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * comfyOutputUrls.js — build ComfyUI /view URLs from a node's output payload.
  *

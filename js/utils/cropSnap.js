@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * cropSnap.js — snap crop edges to the source image bounds (MPI-383).
  *

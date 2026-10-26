@@ -389,6 +389,15 @@ const processState = {
     comfyRestartReason: null,
 };
 
+/**
+ * Kill the ComfyUI process THIS server fork spawned, and mark the stop as requested so its
+ * exit handler does not record a crash. A fork that did not spawn the engine owns no handle,
+ * so this is a no-op there, deliberately (MPI-484): the engine on 48188 is shared by every
+ * app instance, and one instance must never stop another's. Never add a kill-by-port or a
+ * PID lookup here; a non-owner that needs a restart delegates it
+ * (`.claude/rules/comfy_engine.md` § Cross-instance engine restart).
+ * @returns {void}
+ */
 function stopComfyUI() {
     if (processState.activeComfyProcess) {
         logger.info('comfy', 'Killing active ComfyUI process...');
@@ -673,6 +682,14 @@ async function curatedDepsFailure() {
     }
 }
 
+/**
+ * Install the build's curated Python deps (`PYTHON_DEPS_PATH`) in ONE `pip install
+ * --no-deps` pass, skipped when the marker already holds the file's hash. A failure is
+ * written to the failure marker before it is rethrown, so the next launch can offer the
+ * repair (`curatedDepsFailure`); every attempt clears that record first.
+ * @returns {Promise<void>}
+ * @throws {Error} the deps file is missing (an incomplete build), or pip failed
+ */
 async function ensureCuratedPythonDeps() {
     if (!(await fs.pathExists(PYTHON_DEPS_PATH))) {
         throw new Error(`curated python deps missing at ${PYTHON_DEPS_PATH} — the build is incomplete`);
@@ -923,6 +940,12 @@ async function getCustomRoot() {
     return null;
 }
 
+/**
+ * The models root when the user picked none: `CUBRIC_MODELS_ROOT` when set, else
+ * `<ENGINE_ROOT>/mpi_models`. The YAML keeps it as a second search block even on a
+ * custom-root install (`getSearchedModelsRoots`).
+ * @returns {string} absolute path
+ */
 function getDefaultModelsRoot() {
     if (process.env.CUBRIC_MODELS_ROOT) {
         return path.resolve(process.env.CUBRIC_MODELS_ROOT);
@@ -981,6 +1004,15 @@ function hasExtraModelFolders(extras) {
     return EXTRA_MODEL_FOLDER_KEYS.some(key => Array.isArray(extras?.[key]) && extras[key].length > 0);
 }
 
+/**
+ * One extra model folder, canonicalised for storage and dedupe. MUST use
+ * `fs.realpath.native`, never `fs.realpath` (MPI-444): fs-extra's realpath leaves an 8.3
+ * short name as is, so one folder would get two spellings and be added twice.
+ * @param {*} folderPath  anything the UI sent; non-strings and blanks are dropped
+ * @param {boolean} validateExists  throw when it is not an existing directory
+ * @returns {Promise<string|null>} absolute canonical path; null for an empty entry
+ * @throws {Error} with `validateExists`, when the folder does not exist
+ */
 async function _normalizeExtraFolderPath(folderPath, validateExists) {
     if (typeof folderPath !== 'string' || !folderPath.trim()) return null;
     const resolved = path.resolve(folderPath.trim());
@@ -1000,6 +1032,13 @@ async function _normalizeExtraFolderPath(folderPath, validateExists) {
     return fs.realpath.native(resolved).catch(() => resolved);
 }
 
+/**
+ * Every extra model folder list (`EXTRA_MODEL_FOLDER_KEYS`) canonicalised, blanks dropped
+ * and deduped (case-insensitively on Windows). Unknown keys are dropped.
+ * @param {Object<string, string[]>} [input]
+ * @param {{validateExists?: boolean}} [opts]  throw on a folder that does not exist
+ * @returns {Promise<{loras: string[], upscale_models: string[]}>}
+ */
 async function normalizeExtraModelFolders(input = {}, { validateExists = false } = {}) {
     const normalized = _emptyExtraModelFolders();
     for (const key of EXTRA_MODEL_FOLDER_KEYS) {
@@ -1017,6 +1056,11 @@ async function normalizeExtraModelFolders(input = {}, { validateExists = false }
     return normalized;
 }
 
+/**
+ * The saved extra model folders (`extra_model_folders.json`), normalised without checking
+ * that they still exist. Missing or unreadable config = empty lists, never a throw.
+ * @returns {Promise<{loras: string[], upscale_models: string[]}>}
+ */
 async function getExtraModelFolders() {
     const configPath = getExtraModelFoldersPath();
     if (!(await fs.pathExists(configPath))) return _emptyExtraModelFolders();
@@ -1029,6 +1073,13 @@ async function getExtraModelFolders() {
     }
 }
 
+/**
+ * Save the extra model folders after normalising them; every folder must exist. Does NOT
+ * rewrite the YAML: the caller follows with `writeExtraModelPathsYaml`.
+ * @param {Object<string, string[]>} [input]
+ * @returns {Promise<{loras: string[], upscale_models: string[]}>} what was saved
+ * @throws {Error} when a folder does not exist
+ */
 async function setExtraModelFolders(input = {}) {
     const normalized = await normalizeExtraModelFolders(input, { validateExists: true });
     const configPath = getExtraModelFoldersPath();
@@ -1037,6 +1088,14 @@ async function setExtraModelFolders(input = {}) {
     return normalized;
 }
 
+/**
+ * Write ComfyUI's `extra_model_paths.yaml` for a models root (plus the default root and the
+ * extra folders), and record that root in `model_roots.json`, the source of truth. ComfyUI
+ * reads the YAML only at boot.
+ * @param {string|null} primaryRoot  null = the default models root
+ * @param {{loras: string[], upscale_models: string[]}|null} [extras]  null = the saved ones
+ * @returns {Promise<string>} the YAML's path
+ */
 async function writeExtraModelPathsYaml(primaryRoot, extras = null) {
     const root = primaryRoot || getDefaultModelsRoot();
     const normalizedExtras = extras || await getExtraModelFolders();

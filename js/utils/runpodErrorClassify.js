@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * runpodErrorClassify.js — shared classification of RunPod create-Pod refusals.
  *

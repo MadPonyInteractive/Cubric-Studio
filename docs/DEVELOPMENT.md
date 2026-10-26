@@ -30,6 +30,12 @@ npm run test:desktop
 npm run build:portable:dry-run
 ```
 
+**`npm run lint` also type-checks (`npm run typecheck`, AUDIT T1).** `tsconfig.typecheck.json`
+loads `js/` with `checkJs` off and `strict` off, so only a file that starts with `// @ts-check`
+is checked, against its own JSDoc. Every `js/utils/*.js`, `commandRegistry.js` and
+`resolveModelDeps.js` carry it. To widen: add the line to a file, run `npm run typecheck`, fix
+the JSDoc (or cast with `/** @type {T} */ (expr)`) until it is clean. `routes/` is not covered.
+
 **Tests: `npm test` (unit) + `npm run test:desktop` (Playwright/Electron).** Both
 are a release gate; the desktop suite runs fine with the app open (it takes its own
 free port, MPI-448). The full suite contract and the green

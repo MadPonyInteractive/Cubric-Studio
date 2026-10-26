@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * audioInput.js — open the microphone the user picked in Settings (MPI-1034).
  *

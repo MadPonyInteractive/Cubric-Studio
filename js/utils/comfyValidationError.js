@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * comfyValidationError.js — read the offending filename out of a ComfyUI
  * `/prompt` 400 (`prompt_outputs_failed_validation`).

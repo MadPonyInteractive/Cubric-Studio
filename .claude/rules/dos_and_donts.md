@@ -37,7 +37,7 @@ Whenever you need generic functionality, ALWAYS check the `js/utils/` directory 
 1. **`icons.js` (The Icon Source of Truth):** 
    - NEVER paste raw SVG code directly into component templates. 
    - ALL icons must be imported from `js/utils/icons.js`. If an icon doesn't exist, add it to this file first.
-   - **Stroke is auto-detected by `renderIcon()` — never pass `stroke: true` to `MpiButton`.** Icons render as stroke automatically if: the name starts with `ratio_`, the name ends with `_stroke`, or it is in the built-in list (`seed`, `gallery`). Name your icon accordingly and stroke is free.
+   - **Stroke is auto-detected by `renderIcon()` — never pass `stroke: true` to `MpiButton`.** Icons render as stroke automatically if: the name starts with `ratio_` or ends with `_stroke`. Name your icon accordingly and stroke is free.
    - **For outline/stroke icons:** use the `_stroke` suffix (e.g. `refresh_stroke`). For ratio/rect icons: use the `ratio_` prefix (e.g. `ratio_16_9`). No extra props needed.
 2. **`dom.js` (DOM Shorthands):** 
    - Use the shorthands in this file instead of raw, verbose `document.querySelector` or generic DOM manipulation where applicable.

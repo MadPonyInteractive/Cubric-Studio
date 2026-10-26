@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * js/utils/mascotClipQueue.js — one mascot slot's clip queue (MPI-777 Phase 2).
  *
@@ -57,18 +58,21 @@ export function createMascotClipQueue({
     paintTransition = () => {},
     preload,
     reducedMotion = false,
-} = {}) {
+}) {
     if (!states || !states[rest]) throw new Error(`mascotClipQueue: no "${rest}" state to rest in`);
 
     const _timers = new Set();
     /** The current clip's own end timer, cancelled separately when an interrupt cuts it short. */
+    /** @type {ReturnType<typeof setTimeout>|0} */
     let _clipTimer = 0;
     let _state = rest;
     let _clip = null;
     let _pending = null;
     /** The state an interrupt under a transition will enter at its swap, until it does. */
     let _incoming = null;
+    /** @type {ReturnType<typeof setTimeout>|0} */
     let _swapTimer = 0;
+    /** @type {ReturnType<typeof setTimeout>|0} */
     let _clearTimer = 0;
     let _dead = false;
     /** Last id played per state, so a random pool never repeats back to back. */

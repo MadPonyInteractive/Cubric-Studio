@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * js/utils/file.js — File/media type utilities for Cubric Studio.
  */

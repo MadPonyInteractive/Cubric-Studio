@@ -1,3 +1,4 @@
+// @ts-check
 import { findClosestRatio, getModelRatios, qualityTiersFor, usesOrientation, usesQualityTier, clampQualityTier } from './ratios.js';
 import { getCommand, getCommandDefault, getCommandMediaInputs } from '../data/commandRegistry.js';
 import { PROMPT_CONTROL_DEFAULTS } from '../data/promptControlDefaults.js';
@@ -114,6 +115,32 @@ function _settingsSource(item = {}) {
     return {};
 }
 
+/**
+ * @typedef {Object} PromptReusePayload
+ * @property {string} positive       the user's own words when the run was enhanced (MPI-677), else the prompt
+ * @property {{positive: string, boxes: Array}|null} enhanced  the enhanced text + its layout boxes; null when not enhanced
+ * @property {string} negative
+ * @property {string} negativeAudio
+ * @property {string|null} modelId   a retired Flow's model when the card came from one (MPI-1012)
+ * @property {string|null} operation
+ * @property {Object} injectionParams  a clone, back-filled with Ratio_Label/Width/Height/Seed from the item
+ * @property {Object|null} retiredControls  a retired Flow card's fields as the model's controls; else null
+ * @property {Array<Object>} mediaItems  op-gated: only media types the reused op declares a slot for
+ * @property {boolean} previewOnly
+ * @property {Object} generationSettings  a clone of the settings source
+ * @property {Object} item           the history item it was built from
+ */
+
+/**
+ * Everything Reuse needs from ONE history item, never the group: which item that is
+ * (Current = the card's `selectedIndex` entry, strict; Original = the first reusable
+ * generated one) is the caller's choice, see `buildGalleryPromptReusePayloads` and
+ * `.claude/rules/state.md` § promptReuseSource. Reads `generationSettings`, falling back
+ * to a preview item's `frozenParams`. Sync: media is NOT checked on disk here, that is
+ * `resolvePromptReuseMediaItems`.
+ * @param {Object} [item]  a history entry
+ * @returns {PromptReusePayload}
+ */
 export function buildPromptReusePayload(item = {}) {
     // A card made by a Flow that is a MODEL now (MPI-1012) reuses as that model: its op
     // drives media acceptance below (the Flow op is a tombstone with no slots, so its
@@ -200,6 +227,13 @@ function _mergeReuseMedia(frameItems = [], savedItems = []) {
     return [...frameItems, ...savedNonImage];
 }
 
+/**
+ * The payload's media as it can be staged NOW: preview-asset frames merged with the saved
+ * non-image media, minus every url whose file is gone (HEAD each one). Callers compare the
+ * count with what the source declared and toast when some were lost.
+ * @param {Partial<PromptReusePayload>} [payload]
+ * @returns {Promise<Array<Object>>}  never rejects; an unreachable url is dropped
+ */
 export async function resolvePromptReuseMediaItems(payload = {}) {
     // Preview-asset frames (from the flat content-addressed store, MPI-227) are the
     // authoritative IMAGE source. Merge them with the payload's saved NON-image
@@ -226,26 +260,39 @@ export async function resolvePromptReuseMediaItems(payload = {}) {
     return merged.filter((_, i) => checks[i]);
 }
 
-// True when a reuse payload actually carries an input image to reuse. A card
-// generated WITHOUT an input image (e.g. a t2i output) resolves to no image
-// media here, so "Use Images" is meaningless for it — offering it injects an
-// empty slot, which both warns ("No saved frame images…") and leaves an
-// image-required target op unrunnable (MPI-212). Callers use this to grey out /
-// skip the images reuse for such sources. Sync: reads the payload's already-built
-// mediaItems (buildPromptReusePayload); the async resolver can additionally find
-// materialized frames on disk, but only for ops that accept image input — which a
-// no-input-image source's op does not, so the sync check matches.
+/**
+ * True when a reuse payload actually carries an input image to reuse. A card
+ * generated WITHOUT an input image (e.g. a t2i output) resolves to no image
+ * media here, so "Use Images" is meaningless for it — offering it injects an
+ * empty slot, which both warns ("No saved frame images…") and leaves an
+ * image-required target op unrunnable (MPI-212). Callers use this to grey out /
+ * skip the images reuse for such sources. Sync: reads the payload's already-built
+ * mediaItems (buildPromptReusePayload); the async resolver can additionally find
+ * materialized frames on disk, but only for ops that accept image input — which a
+ * no-input-image source's op does not, so the sync check matches.
+ * @param {Partial<PromptReusePayload>} [payload]
+ * @returns {boolean}
+ */
 export function payloadHasReusableImages(payload = {}) {
     return _payloadHasReusableType(payload, 'image');
 }
 
-// Video/audio parallels (MPI-227). The op-gate in buildPromptReusePayload already
-// dropped video/audio that the reused op can't consume, so a truthy result means
-// the source both HAS that media and the op ACCEPTS it — the Reuse dialog uses
-// these to enable/grey the "Use Video" / "Use Audio" toggles.
+/**
+ * Video/audio parallels (MPI-227). The op-gate in buildPromptReusePayload already
+ * dropped video/audio that the reused op can't consume, so a truthy result means
+ * the source both HAS that media and the op ACCEPTS it — the Reuse dialog uses
+ * these to enable/grey the "Use Video" / "Use Audio" toggles.
+ * @param {Partial<PromptReusePayload>} [payload]
+ * @returns {boolean}
+ */
 export function payloadHasReusableVideos(payload = {}) {
     return _payloadHasReusableType(payload, 'video');
 }
+/**
+ * The audio parallel of `payloadHasReusableVideos`.
+ * @param {Partial<PromptReusePayload>} [payload]
+ * @returns {boolean}
+ */
 export function payloadHasReusableAudio(payload = {}) {
     return _payloadHasReusableType(payload, 'audio');
 }
@@ -261,6 +308,12 @@ export function isFlowCardItem(item) {
     return !!id && !retiredFlow(id);
 }
 
+/**
+ * Whether Reuse has anything to give back from this item: a prompt, a model, preview
+ * params, or a Flow to reopen (MPI-256). An uploaded item never does.
+ * @param {Object} [item]  a history entry
+ * @returns {boolean}
+ */
 export function itemHasReusablePrompt(item = {}) {
     if (!item || item.uploaded === true) return false;
     const source = _settingsSource(item);
@@ -274,6 +327,12 @@ export function itemHasReusablePrompt(item = {}) {
     );
 }
 
+/**
+ * The ORIGINAL of a card for Reuse: its first reusable entry that is not an upload, else
+ * its first reusable entry at all, else null.
+ * @param {Object} [group]  a gallery card, `{ history, selectedIndex }`
+ * @returns {Object|null}
+ */
 export function findOriginalReusableItem(group = {}) {
     const history = Array.isArray(group.history) ? group.history : [];
     return history.find(item => item && item.uploaded !== true && itemHasReusablePrompt(item))
@@ -281,6 +340,14 @@ export function findOriginalReusableItem(group = {}) {
         || null;
 }
 
+/**
+ * Both Gallery Reuse sources for one card. `current` is STRICT: the `selectedIndex`
+ * entry or null (an upload, an input preview), never a fallback to Original, because a
+ * promptless action can still carry model, settings and media recall
+ * (`.claude/rules/state.md` § promptReuseSource).
+ * @param {Object} [group]  a gallery card, `{ history, selectedIndex }`
+ * @returns {{current: PromptReusePayload|null, original: PromptReusePayload|null, group: Object}}
+ */
 export function buildGalleryPromptReusePayloads(group = {}) {
     const currentItem = Array.isArray(group.history)
         ? group.history[group.selectedIndex ?? 0]
@@ -389,6 +456,15 @@ function _clampReusedTier(modelUpdates, model) {
     return { ...modelUpdates, qualityTier: clampQualityTier(model?.type, modelUpdates.qualityTier) };
 }
 
+/**
+ * The PromptBox control values to replay for a reused payload, split by the bucket they
+ * live in. Items since MPI-115 replay their `controlState` snapshot as is; older sidecars
+ * are reverse-derived from `injectionParams`. A reused quality tier is clamped to one the
+ * TARGET model has (MPI-133).
+ * @param {Partial<PromptReusePayload>} [payload]
+ * @param {Object} [model]  the target ModelDef
+ * @returns {{sharedUpdates: Object, opUpdates: Object, modelUpdates: Object}}
+ */
 export function buildPromptReuseSettings(payload = {}, model = {}) {
     // A card from a retired Flow (MPI-1012) carries no control snapshot — a Flow run has no
     // model to snapshot against — so its saved fields ARE its settings, all perModel.

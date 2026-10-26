@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * cropRounding.js — round a selected crop dimension to a multiple of N.
  *

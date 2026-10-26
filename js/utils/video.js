@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * videoUtils.js — Video Processing Utilities
  */

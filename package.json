@@ -23,7 +23,8 @@
     "agent:test": "node scripts/agent-test.mjs",
     "test": "node --test \"tests/**/*.test.cjs\"",
     "test:desktop": "playwright test --config=playwright.desktop.config.js",
-    "lint": "eslint . --max-warnings=0",
+    "lint": "eslint . --max-warnings=0 && npm run -s typecheck",
+    "typecheck": "tsc -p tsconfig.typecheck.json",
     "lint:components": "eslint js/components/ --max-warnings=0",
     "prepare": "husky"
   },
@@ -57,7 +58,8 @@
     "globals": "^17.12.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
-    "rcedit": "^5.0.2"
+    "rcedit": "^5.0.2",
+    "typescript": "^6.0.3"
   },
   "lint-staged": {
     "js/**/*.js": [

@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * maskTextPrompt.js — build the SAM3 open-vocabulary prompt (MPI-384).
  *

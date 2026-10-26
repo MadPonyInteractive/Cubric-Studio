@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * flowLicences.js — the ONE answer to "which licences gate this flow, and how do
  * they render", shared by every surface that has to show them.

@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * commandRegistry.js — Source of truth for all generative operations.
  *
@@ -99,7 +100,7 @@ const I2V_HELP = {
  *                                              `label` + `info` rather than opening an empty popup.
  * @property {string}          [icon]         - MpiIcon registry key for op selectors (model-manager operation toggles). Optional.
  * @property {'image'|'video'|'audio'} mediaType - Which group type this applies to (the OUTPUT type)
- * @property {number}          requiresImages - Min number of input images needed (0 = none)
+ * @property {number}          [requiresImages] - Min number of input images needed (0 = none; absent reads as 0)
  * @property {number}          [requiresVideo]- Min number of input videos needed (0 = none)
  * @property {boolean}         [requiresMask] - Requires an active mask from the Mask Tool
  * @property {boolean}         [modelSizedInputs] - Every graph running this op shrinks its IMAGE inputs to model
@@ -142,6 +143,19 @@ const I2V_HELP = {
  * @property {boolean}         [promptRequired] - Whether a text prompt is mandatory
  * @property {boolean}         [universal]    - Not model-tied; uses universalWorkflows in modelRegistry
  * @property {boolean}         [stub]         - Not yet implemented; registered but disabled in UI
+ * @property {boolean}         [sizeOptIn]    - A source-sized op (edit): the output follows the source unless the
+ *                                              user opens the Custom size picker, and the quality tier mounts
+ *                                              with that picker or not at all (MPI-1181, PromptBoxControls).
+ * @property {boolean}         [isMultiStage] - A two-stage (preview -> stage-2) op (MPI-128, `commandIsMultiStage`).
+ *                                              Whether a model exposes it is still `capabilities.multiStage`.
+ * @property {boolean}         [allowsBranchingContinue] - Its preview cards show Continue (stage-2 to a NEW
+ *                                              card) beside Finish (`commandAllowsBranchingContinue`).
+ * @property {string}          [injector]     - Key into commandExecutor's INJECTORS, run on the payload before
+ *                                              dispatch (`ltxSigmas`, ...).
+ * @property {Object<string, string>} [outputVersions] - A graph that makes several pictures on the way to
+ *                                              ONE result lands them as versions of one card: output node
+ *                                              title -> the op each version is filed under (MPI-1086,
+ *                                              generationService `orderVersions`).
  * @property {Array<{
  *   key:string,
  *   mediaType:'image'|'video'|'audio',
@@ -151,7 +165,8 @@ const I2V_HELP = {
  *   requiresCapability?:string,
  *   tag?:string,
  *   voiceLibrary?:'character'|'narration',
- *   planned?:boolean
+ *   planned?:boolean,
+ *   compositorInput?:string
  * }>}                         [mediaInputs] - Named media slots injected by Comfy node title.
  *                                              `planned` (MPI-1101): the app's pass planner fills the slot on
  *                                              every pass (Make seamless's window mask), so a CALLER never sends
@@ -224,6 +239,9 @@ const I2V_HELP = {
  *                                    Detail there can never light up). Defaults to true: omitting it keeps
  *                                    mask ops listed, so only a workspace that KNOWS it lacks the tool
  *                                    has to say so.
+ * @property {number}  [audioCount] - Number of audio clips staged; a REQUIRED audio slot is a minimum (MPI-1012)
+ * @property {string[]|null} [installedOps] - The model's physically-installed ops (MPI-122): a selectable
+ *                                    op not in it is hidden. Absent or null = static `supportedOps`.
  */
 
 /** @type {Record<string, CommandDef>} */
@@ -834,12 +852,13 @@ export const commands = {
         requiresImages: 0,
         // No `modelSizedInputs`: there is no graph, and the cloud route bounds every
         // image itself (`_readReference`, routes/deepinfra.js).
-        mediaInputs: [
+        // Built by .map, so the literal types need the cast a plain array gets from context.
+        mediaInputs: /** @type {CommandDef['mediaInputs']} */ ([
             ...[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => ({ key: n === 1 ? 'inputImage' : `inputImage${n}`, mediaType: MEDIA_TYPE.IMAGE, title: n === 1 ? 'Input_Image' : `Input_Image_${n}`, required: false, ordinal: true, tag: `Image ${n}` })),
             ...[1, 2, 3].map(n => ({ key: n === 1 ? 'inputVideo' : `inputVideo${n}`, mediaType: MEDIA_TYPE.VIDEO, title: n === 1 ? 'Input_Video' : `Input_Video_${n}`, required: false, ordinal: true, tag: `Video ${n}` })),
             // ponytail: Wan publishes no audio name; slot-numbered like H3's until one does.
             ...[1, 2, 3].map(n => ({ key: n === 1 ? 'inputAudio' : `inputAudio${n}`, mediaType: 'audio', title: n === 1 ? 'Input_Audio' : `Input_Audio_${n}`, required: false, ordinal: true, tag: `Audio ${n}` })),
-        ],
+        ]),
         promptRequired: true,
         components: ['qualityTier', 'duration', 'ratio'],
     },
@@ -1999,7 +2018,7 @@ export const TTS_LANGUAGES = Object.freeze([
     { v: 'Swahili (sw)', label: 'Swahili' },
     { v: 'Turkish (tr)', label: 'Turkish' },
     { v: 'Chinese (zh)', label: 'Chinese' },
-].map(Object.freeze));
+].map(l => Object.freeze(l)));
 
 /** A language as asked ('French', 'french' or 'French (fr)') -> its combo value, or null. */
 export function ttsLanguageValue(asked) {
@@ -2166,25 +2185,6 @@ export function modelShowsBatch(model, operation) {
 
 // ── Queries ───────────────────────────────────────────────────────────────────
 
-/**
- * Returns all non-stub commands for a given media type, filtered by the
- * active model's supported ops and the current runtime context.
- *
- * The returned list is what the PromptBox and radial menu render, in canonical
- * OP_ORDER (never registry or supportedOps order) so an op holds its position
- * across models.
- *
- * Two kinds of unavailable, and they are NOT interchangeable: a command the
- * model+workspace can run but whose inputs aren't staged yet is returned with
- * `available: false` (the UI dims it). A command that can never run here — the
- * model doesn't declare it, the user didn't install it, or the workspace has no
- * mask tool — is not returned at all.
- *
- * @param {'image'|'video'}              mediaType
- * @param {import('./modelRegistry.js').ModelDef|null} model
- * @param {CommandContext}               [ctx]
- * @returns {Array<{key: string, available: boolean} & CommandDef>}
- */
 // MPI-337: max media of a type an op accepts = number of declared input slots of
 // that type. Falls back to the requires* minimum for ops with no mediaInputs, so
 // a legacy op degenerates to "count must equal its minimum" rather than uncapped.
@@ -2217,6 +2217,25 @@ function _orderIndex(cmd) {
     return i === -1 ? OP_ORDER.length : i;
 }
 
+/**
+ * Returns all non-stub commands for a given media type, filtered by the
+ * active model's supported ops and the current runtime context.
+ *
+ * The returned list is what the PromptBox and radial menu render, in canonical
+ * OP_ORDER (never registry or supportedOps order) so an op holds its position
+ * across models.
+ *
+ * Two kinds of unavailable, and they are NOT interchangeable: a command the
+ * model+workspace can run but whose inputs aren't staged yet is returned with
+ * `available: false` (the UI dims it). A command that can never run here — the
+ * model doesn't declare it, the user didn't install it, or the workspace has no
+ * mask tool — is not returned at all.
+ *
+ * @param {'image'|'video'}              mediaType
+ * @param {import('./modelConstants/models.js').ModelDef|null} model
+ * @param {CommandContext}               [ctx]
+ * @returns {Array<{key: string, available: boolean} & CommandDef>}
+ */
 export function getAvailableCommands(mediaType, model = null, ctx = {}) {
     const { imageCount = 0, videoCount = 0, audioCount = 0, hasMask = false, canMask = true, installedOps = null } = ctx;
 
@@ -2424,9 +2443,10 @@ export function refTagHandle(tag, model = null) {
  * (i2v_ms/t2v_ms) declare an audio slot, but only models with
  * `capabilities.audio` (LTX) may surface/accept it; WAN must not. Call this at
  * every read point where the slot list drives UI acceptance or injection.
- * @param {Array<{mediaType:string}>} slots
- * @param {import('./modelRegistry.js').ModelDef|null} [model]
- * @returns {Array<{mediaType:string}>}
+ * @template {{mediaType:string, requiresCapability?:string}} T
+ * @param {T[]} slots
+ * @param {import('./modelConstants/models.js').ModelDef|null} [model]
+ * @returns {T[]}
  */
 export function filterMediaInputsForModel(slots, model = null) {
     // No model = a universal/App op (model.id === null). Its declared slots ARE the
@@ -2481,7 +2501,7 @@ export function filterMediaInputsForModel(slots, model = null) {
  * time with the payload's op, since the run hotkey does not go through the op strip.
  *
  * @param {string|null} operation - the op key, or null when nothing is picked
- * @param {import('./modelRegistry.js').ModelDef|null} model - gates capability-bound slots
+ * @param {import('./modelConstants/models.js').ModelDef|null} model - gates capability-bound slots
  * @param {Array<{id?:string, type:string}>} groups - the cards to feed it (a stack passes
  *   `[{ type: stack.kind }]`)
  * @returns {{eligible: Array<Object>, skipped: Array<Object>, reason: string|null}}
@@ -2653,7 +2673,7 @@ export function commandAllowsBranchingContinue(key, model = null) {
  * base `title` and `media`.
  *
  * @param {string} key                       Operation key (`inpaint`, `krea2Edit`, …)
- * @param {{id?:string, type?:string}|null} [model]
+ * @param {{id?:string, type?:string, enhanceFirstOps?:string[]}|null} [model]
  * @returns {{title:string, body:string[], examples:Array<{prompt:string,note?:string,bad?:boolean}>, media:string[], accent:string}|null}
  *          null only when the key is unknown.
  */
@@ -2728,5 +2748,5 @@ export function getCommandProgressLabel(key) {
  */
 export function getCommandAccent(key, mediaType) {
     const t = mediaType || commands[key]?.mediaType;
-    return t === 'image' ? 'vision' : (t || 'studio');
+    return t === 'image' ? 'vision' : /** @type {'video'|'audio'|'studio'} */ (t || 'studio');
 }

@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Format a byte count as a human-readable string (e.g. "1.5GB", "512MB").
  * Shared between download UI components.

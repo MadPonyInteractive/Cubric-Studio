@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * tileCount.js — how many tiles the upscale op's Use Tiles path will sample (MPI-1038),
  * and the rect maths Phase 3 needs for per-tile captions (MPI-1232).

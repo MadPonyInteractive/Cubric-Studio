@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * mentionPicker.js — the `@` popup that turns a half-typed name into a bracketed tag.
  *
@@ -129,7 +130,7 @@ function caretOffset(el, index) {
  *        called with the new value and the caret it belongs at, after a pick
  * @returns {() => void} destroy
  */
-export function attachMentionPicker(textareaEl, { host, block, getTags, wrap, onInsert } = {}) {
+export function attachMentionPicker(textareaEl, { host, block, getTags, wrap, onInsert }) {
     if (!textareaEl || !host || typeof getTags !== 'function') return () => {};
 
     const cls = (el) => `${block}__mention-picker${el}`;

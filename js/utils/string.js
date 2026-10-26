@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * js/utils/string.js — String utilities for Cubric Studio.
  */

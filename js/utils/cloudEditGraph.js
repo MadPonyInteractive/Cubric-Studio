@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * cloudEditGraph.js — the two passes that move a Flow's edit stage to a cloud model (MPI-918).
  *

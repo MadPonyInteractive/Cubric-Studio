@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Folder tree from path-shaped values (`Folder\Sub\file.ext` or POSIX `/`).
  * Shared by MpiTreePicker and MpiFileTree: two Primitives may not import each other.

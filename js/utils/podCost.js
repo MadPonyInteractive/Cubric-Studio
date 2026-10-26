@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * podCost.js — what the connected Pod has cost so far (MPI-80, shared by MPI-1059).
  *

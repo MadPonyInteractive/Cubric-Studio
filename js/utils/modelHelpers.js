@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * modelHelpers.js — Model resolution utilities.
  *

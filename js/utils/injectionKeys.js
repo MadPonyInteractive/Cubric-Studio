@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * The `Input_` canonicalization pass (MPI-127 / MPI-252), pure so a test can run it.
  *

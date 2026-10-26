@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * galleryRenditions.js — which image rendition a gallery card mounts (MPI-633).
  *

@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * describeAction.js — run the image captioner on one item and drop the result in
  * the prompt box (MPI-310, MPI-737).

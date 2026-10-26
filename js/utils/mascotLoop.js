@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * js/utils/mascotLoop.js — one looping mascot clip for a spot that never swaps (MPI-908):
  * the empty states. A spot that swaps clips needs two stacked videos and heroCrew.js

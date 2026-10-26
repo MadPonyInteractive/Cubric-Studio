@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * srt.js — the plain text inside an SRT subtitle file (MPI-1071).
  *

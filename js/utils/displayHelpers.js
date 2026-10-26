@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * displayHelpers.js — Display/formatting utilities.
  */

@@ -44,13 +44,28 @@ the 142 violations they had let through). The finding sections below are left as
   been shadowing `/project-media/temp`, so the project reconciler now reaches its own cheap
   handler instead of one that read every PNG. Internal-only exports un-exported; never-used
   `truncate`/`capitalize`/`slugify`, `getVideoBounds`/`handleSnapshot`,
-  `getPortableResourcesPath` deleted; icons `translate`/`volumeLow` deleted. **Waiting on
-  Fabio:** icons `seed`/`gallery` and their stroke special case in `renderIcon`, because
-  `.claude/rules/dos_and_donts.md` line 40 names them (a rule file needs his OK).
+  `getPortableResourcesPath` deleted; icons `translate`/`volumeLow` deleted, then (Fabio's OK
+  for the rule edit) `seed`/`gallery` and their stroke special case in `renderIcon`;
+  `.claude/rules/dos_and_donts.md` now names only the `ratio_` / `_stroke` rules.
+- Phase 1d: **T1** (`typescript` dev dependency, `tsconfig.typecheck.json`, `npm run typecheck`
+  run by `npm run lint`, so by CI and the pre-push gate too). `checkJs` and `strict` stay off:
+  only files with `// @ts-check` are checked, i.e. all 57 `js/utils/*.js`, `commandRegistry.js`
+  and `resolveModelDeps.js`. Fixed to pass: JSDoc that no longer matched the code
+  (`CommandDef` gained `sizeOptIn`/`isMultiStage`/`allowsBranchingContinue`/`injector`/
+  `outputVersions`, `CommandContext` `audioCount`/`installedOps`, flow slot shapes, etc.), and
+  two doc blocks that had come loose from their function (`describeImage` in llmService.js had
+  been documenting `enlargedCrop`; `getAvailableCommands`' sat above `_maxMediaSlots`). Three
+  required-options functions lost a `= {}` default every caller already overrode.
+  `routes/` is not covered (Node side, needs its own config).
+- Phase 1d: **T2** JSDoc on the undocumented exports of `promptReuse.js` (a
+  `PromptReusePayload` typedef, the strict Current vs Original contract), `projectService.js`
+  (the 8 lifecycle functions) and `routes/shared.js` (`stopComfyUI` states the MPI-484
+  owner-only stop, `_normalizeExtraFolderPath` the MPI-444 `realpath.native` rule, plus
+  `ensureCuratedPythonDeps`, `getDefaultModelsRoot` and the extra-folders cluster). Left: the
+  audit's "smaller gaps" (projectStatsService, devUpdatesService, commandExecutor).
 
 **Still open, suggested batches:**
-- Low risk, GPU-free: **T1/T2**; the `seed`/`gallery` icon end of X4 once Fabio okays the rule edit.
-- Then **D1** (PromptBox slider ×17), **D3/D10** route by route, **P2/P14/P7/P12/P13**.
+- Next: **D1** (PromptBox slider ×17), **D3/D10** route by route, **P2/P14/P7/P12/P13**.
 - Needs the desktop suite or Fabio watching: **P1**, **P3**, **D7**, **D9**.
 - Needs a local profile or a Pod: **P4–P6**, **P9–P11**.
 

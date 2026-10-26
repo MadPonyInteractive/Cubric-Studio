@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * js/utils/markdown.js — the app's ONE markdown renderer.
  *

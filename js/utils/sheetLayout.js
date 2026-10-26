@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * sheetLayout.js — where each picture goes on a combined image sheet (MPI-1094).
  *

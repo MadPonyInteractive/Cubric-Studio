@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * What a `download:uninstalled` report actually freed. The Model Library and the Flow
  * Library each toast the result of an uninstall; both read their numbers here, so a fix

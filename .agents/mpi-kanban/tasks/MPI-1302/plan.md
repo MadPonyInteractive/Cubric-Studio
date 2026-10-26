@@ -2,6 +2,9 @@
 
 ## Current State
 
+- **Where it stands (2026-10-26):** Phases 1a-1d done and pushed. Next: Phase 2, starting with
+  **D1** (PromptBox slider x17). `npm run lint` now ends with the type-check; a new file under
+  `js/utils/` must start with `// @ts-check` and pass it.
 - `AUDIT.md` (repo root) is the investigation. Its **Status** section lists what PR #12
   (MadPonyInteractive/Cubric-Studio#12, merged 2026-10-26) already fixed: H1, H2, X3, B1, B5, D2,
   B2, D4, B3, D5, X1, X2. Every ID below has a detail section there; read it before the step.
@@ -25,8 +28,14 @@
   math.js), `ORIENTATION_OPTIONS`/`ratioIcon`/`cropRatioOptions` (ratios.js), `formatClock`
   everywhere, one `hexToRgb` (colourKeyMask.js, `{r,g,b}|null`, required by gifFrames.js too).
   `tests/small-utils.test.cjs`; `docs/utils.md` lists them.
-- [x] X4 (minus the seed/gallery icons): 7 unused routes gone incl. the skill-listed ones (Fabio,
-  2026-10-26), skill docs updated, internal-only exports un-exported, dead functions deleted.
+- [x] X4: 7 unused routes gone incl. the skill-listed ones (Fabio, 2026-10-26), skill docs updated,
+  internal-only exports un-exported, dead functions deleted; icons seed/gallery + their stroke
+  special case gone, `.claude/rules/dos_and_donts.md` line 40 edited with Fabio's OK.
+- [x] T1: `npm run typecheck` (`tsconfig.typecheck.json`, typescript 6.0.3, `checkJs`/`strict` off,
+  so only `// @ts-check` files are checked) runs inside `npm run lint`, so CI's unit job and the
+  pre-push gate run it with no workflow edit. Marked: all `js/utils/*.js`, `commandRegistry.js`,
+  `resolveModelDeps.js`. Widen by adding the pragma to more files.
+- [x] T2: JSDoc on `promptReuse.js`, `projectService.js`, `routes/shared.js`.
 
 ## Remaining Work
 
@@ -89,6 +98,12 @@ Not planned (audit marks them low value): D11, X5, T3, P8, P-misc. Pick up only 
 touches the same code.
 
 ## Plan Drift
+
+- T1: no `tests.yml` step. The check is chained into `npm run lint`, which CI and the pre-push
+  gate already run; a separate CI step would have let a red reach master past the local gate.
+  TypeScript 6 defaults `strict` on (5,000+ implicit-any errors); the config turns it off.
+- T1 found two JSDoc blocks detached from their function (llmService `describeImage`,
+  commandRegistry `getAvailableCommands`): moved back.
 
 - H3 dropped: `build:portable:*` point at `D:\tmp` on purpose (Fabio's PC, C: short on space;
   CI passes its own `--stage-dir`).

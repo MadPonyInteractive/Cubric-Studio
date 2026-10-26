@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * displayImage.js — which pixels the History canvas and the Prompt preview draw (MPI-961).
  *

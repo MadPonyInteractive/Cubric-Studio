@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * upscaleLimit.js — how big an upscale may make a picture (MPI-971 Phase 3, P-A), and how big
  * a picture the engine can open or an Outpaint can make (Phase 4).

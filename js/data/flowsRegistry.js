@@ -3366,7 +3366,7 @@ const _modelChoice = new Map();
  * accepted — it predates labels and reads as the generic "Model" slot.
  *
  * @param {FlowDef} flow
- * @returns {{label: string, models: string[]}[]}
+ * @returns {{label: string, models: string[], loras: boolean, optional?: boolean, for?: string[]}[]}
  */
 export function flowModelSlots(flow) {
     return (flow?.requiredModels || []).map((entry) => {
@@ -3471,7 +3471,7 @@ export function isCloudCandidate(modelId) {
  * downloaded the safe default and never mentioned there had been a choice.
  *
  * @param {FlowDef|string} flowOrId
- * @returns {{label: string, models: string[], recommended: string}[]}
+ * @returns {{label: string, models: string[], loras: boolean, optional?: boolean, for?: string[], index: number, recommended: string}[]}
  */
 export function flowModelChoices(flowOrId) {
     const flow = typeof flowOrId === 'string' ? getFlowById(flowOrId) : flowOrId;

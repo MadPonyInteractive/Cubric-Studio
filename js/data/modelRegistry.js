@@ -375,7 +375,7 @@ export async function reSyncInstalledModels() {
 
 /**
  * Returns all models for a given media type.
- * @param {'image'|'video'} mediaType
+ * @param {'image'|'video'|'audio'} mediaType
  * @returns {ModelDef[]}
  */
 export function getModelsByType(mediaType) {
