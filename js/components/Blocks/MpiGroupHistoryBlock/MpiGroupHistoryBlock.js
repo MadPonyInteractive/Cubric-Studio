@@ -84,7 +84,6 @@ import { MpiModelSettings } from '../../Compounds/MpiModelSettings/MpiModelSetti
 import { MpiModelPicker } from '../../Compounds/MpiModelPicker/MpiModelPicker.js';
 import { MpiMediaDropOverlay } from '../../Primitives/MpiMediaDropOverlay/MpiMediaDropOverlay.js';
 import { uploadMediaFile, prepareImageImport } from '../../../services/mediaUploadService.js';
-import { MpiToast } from '../../Primitives/MpiToast/MpiToast.js';
 import { MpiCompareOverlay } from '../../Organisms/MpiCompareOverlay/MpiCompareOverlay.js';
 import { MpiContextMenu } from '../../Compounds/MpiContextMenu/MpiContextMenu.js';
 import { MpiOkCancel } from '../../Compounds/MpiOkCancel/MpiOkCancel.js';
@@ -476,12 +475,11 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             }
         }
 
+        // Through the status bar's toast path (`ui:*` → StatusBar.notify), which destroys
+        // each toast on close; this used to mount its own and never destroy it (AUDIT B6).
+        // 'error' is the danger toast (`ui:danger`); `ui:error` is the error dialog.
         function _showToast(message, variant = 'info') {
-            const wrapper = document.createElement('div');
-            wrapper.style.cssText = 'position:fixed;z-index:9999;pointer-events:none;';
-            document.body.appendChild(wrapper);
-            const toast = MpiToast.mount(wrapper, { message, variant });
-            toast.on('close', () => wrapper.remove());
+            Events.emit(variant === 'error' ? 'ui:danger' : `ui:${variant}`, { message });
         }
 
         function _downloadMaskDataURL(dataUrl, item) {

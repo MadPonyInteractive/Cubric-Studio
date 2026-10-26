@@ -47,9 +47,10 @@ test('a generate-time upload is not announced twice', () => {
 });
 
 test('uninstall says "uninstalled" only when something went', () => {
-    // Re-run the decision the Model Library makes, on the 2026-10-11 Wan 2.2 case:
-    // its own files absent, everything left held by a plugin and the engine.
-    const src = read('js/components/Organisms/MpiModelManager/MpiModelManager.js');
+    // Re-run the decision both uninstall toasts make (Model Library and Flow Library,
+    // through uninstallOutcome.js), on the 2026-10-11 Wan 2.2 case: its own files
+    // absent, everything left held by a plugin and the engine.
+    const src = read('js/utils/uninstallOutcome.js');
     const m = src.match(/const gone = ([^;]+);/);
     assert.ok(m, 'uninstall toast: the `gone` decision moved - update this test');
     const gone = new Function('removed', 'keptTotal', 'absent', `return ${m[1]};`);

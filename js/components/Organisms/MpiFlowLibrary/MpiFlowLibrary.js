@@ -27,6 +27,7 @@ import { renderMarkdown } from '../../../utils/markdown.js';
 import { renderIcon } from '../../../utils/icons.js';
 import { hasAcceptedLicence } from '../../../data/modelConstants/licences.js';
 import { flowInstallKeys, flowLicences, flowOptionalModelIds, buildLicenceRows } from '../../../utils/flowLicences.js';
+import { uninstallOutcome } from '../../../utils/uninstallOutcome.js';
 import { MpiProjectDropOverlay } from '../../Primitives/MpiProjectDropOverlay/MpiProjectDropOverlay.js';
 import { registerUserFlow, loadUserFlows, userFlowsDir, USER_FLOW_PREFIX } from '../../../services/userFlowService.js';
 import { clientLogger } from '../../../services/clientLogger.js';
@@ -1126,15 +1127,12 @@ export const MpiFlowLibrary = ComponentFactory.create({
         // The repaint is the `await reSyncInstalledModels()` in `_uninstallFlow` — it
         // re-reads disk and ends in `models:checked`, which MPI-681 made fire for a
         // deps-only change and which `_patchAllAffected` is bound to above.
-        _unsubs.push(Events.on('download:uninstalled', ({ modelId, removed = [], keptShared = [], keptModelFiles = [] }) => {
-            const flow = listFlows().find(f => flowDepKey(f.id) === modelId);
+        _unsubs.push(Events.on('download:uninstalled', (report) => {
+            const flow = listFlows().find(f => flowDepKey(f.id) === report.modelId);
             if (!flow) return;
-            // MPI-469 — a dep reported 'already-absent' was not KEPT, it was never on disk,
-            // so it is gone and the uninstall is complete. Counting it as kept toasts
-            // "files kept" over a flow whose weights had all vanished.
-            const absent = keptModelFiles.filter(k => k.reason === 'already-absent').length;
-            const gone = removed.length + absent;
-            const kept = (keptModelFiles.length - absent) + keptShared.length;
+            // Same MPI-469 / MPI-1076 counting as the Model Library: removed 0 with files
+            // kept is "nothing freed", not "uninstalled".
+            const { gone, keptForModel: kept } = uninstallOutcome(report);
             // sound:false — this confirms a click the user just made; no chime.
             if (gone && kept) {
                 Events.emit('ui:info', { title: 'Uninstalled', message: `${flow.title} uninstalled (some shared files kept).`, sound: false });

@@ -1,0 +1,14 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "AUDIT.md",
+    "js/utils/uninstallOutcome.js",
+    "tests/uninstall-outcome.test.cjs",
+    "js/components/Organisms/MpiFlowLibrary/MpiFlowLibrary.js",
+    "js/components/Organisms/MpiModelManager/MpiModelManager.js",
+    "js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.js",
+    "tests/comfy-vanished-prompt.test.cjs",
+    "docs/utils.md",
+    "tests/toast-truth.test.cjs"
+  ]
+}

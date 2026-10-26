@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1302", "at": "2026-10-26T19:52:24+00:00", "actor": "claude", "column": "todo", "title": "AUDIT follow-up: the cleanup, duplication and speed findings PR #12 left open"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1302", "at": "2026-10-26T19:54:09+00:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Phase 1a started: B4, B6, missing assertion."}

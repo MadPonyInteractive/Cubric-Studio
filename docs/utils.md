@@ -81,4 +81,5 @@ Backend logging is `routes/logger.js` — see [DEVELOPMENT.md](DEVELOPMENT.md) �
 | `file.js` | File path manipulation and I/O helpers |
 | `video.js` | Video processing helpers |
 | `string.js` | String manipulation helpers |
+| `uninstallOutcome.js` | What a `download:uninstalled` report freed (`gone`, `keptForModel`…). Both uninstall toasts (Model Library, Flow Library) count through it — never re-count `already-absent` locally (MPI-469, MPI-1076). |
 | `markdown.js` | The app's ONLY markdown renderer — `marked` parses, `DOMPurify` sanitizes. `renderMarkdown` (document), `renderInlineMarkdown` (one line, no `<p>`), `renderMarkdownInto(el, src)`, `wireMarkdownLinks(el)` (call once; routes links to the user's browser). Style output with `.mpi-md` from `styles/markdown.css`. Never hand-roll markdown or `innerHTML` unsanitized output. |

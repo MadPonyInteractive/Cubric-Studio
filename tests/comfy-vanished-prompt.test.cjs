@@ -184,8 +184,10 @@ test('already settled by a live event between the awaits → no double-reject', 
     const { ctx, seen } = makeCtx();
     // After queue read but before history re-read, a live terminal settles the promise.
     // Simulate this by clearing the resolver map inside the queue fetch call.
+    let queueReads = 0;
     const fetch = async (url) => {
         if (String(url).includes('/queue')) {
+            queueReads++;
             // Simulate live terminal settling the prompt while we awaited queue
             ctx._promptResolvers.clear();
             ctx._promptRejectors.clear();
@@ -194,6 +196,8 @@ test('already settled by a live event between the awaits → no double-reject', 
         return { ok: true, json: async () => ({}) };
     };
     await checkVanished.call(ctx, fetch, noop, PROMPT);
+    // Without this the test passes for a check that never reads the queue at all.
+    assert.ok(queueReads > 0, 'the queue must have been read, or the live settle never happened');
     assert.equal(seen.rejected, null,
         'must not reject a prompt that was already settled by a live terminal event');
 });

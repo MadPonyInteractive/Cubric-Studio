@@ -31,6 +31,7 @@ import { ASSET_KINDS } from '../../../utils/assetKinds.js';
 import { openExternal } from '../../../utils/openExternal.js';
 import { formatBytes } from '../../../utils/formatBytes.js';
 import { renderMarkdown } from '../../../utils/markdown.js';
+import { uninstallOutcome } from '../../../utils/uninstallOutcome.js';
 import { tradeTable, sizeToGb, fitsHardware } from '../../../data/modelConstants/footprint.js';
 // MPI-853 — a cloud model's tile shows what it COSTS where a local model shows its
 // size, because that is the same question answered in the currency that applies.
@@ -1668,26 +1669,8 @@ export const MpiModelManager = ComponentFactory.create({
             const modelName = MODELS.find(m => m.id === modelId)?.name
                 || PLUGINS.find(p => pluginDepKey(p.id) === modelId)?.title
                 || modelId;
-            // MPI-469 — a dep reported with reason 'already-absent' was NOT kept: it was
-            // not on disk (local) / not on the volume (remote) to begin with, so it is
-            // GONE and the uninstall is complete. Counting it as kept turned the
-            // removed[]-honesty fix into a toast lie — a model whose files had all
-            // vanished toasted "model files kept on disk; still installed". Both engines
-            // emit that reason (local since MPI-276, remote since MPI-469), so this one
-            // line covers both.
-            const absent = keptModelFiles.filter(k => k.reason === 'already-absent').length;
-            const keptFiles = keptModelFiles.length - absent;
-            const keptTotal = keptUniversal.length + keptShared.length + keptFiles + keptPipInstalls.length;
-            // MPI-1076 — but an absent file proves the uninstall complete only when nothing
-            // was kept. Removed 0 with files kept means the click changed nothing on disk:
-            // Wan 2.2 on a Pod volume (its files all held by a plugin and the engine) said
-            // "uninstalled" on every click while the card kept showing them (2026-10-11).
-            const gone = removed.length > 0 || keptTotal === 0 ? removed.length + absent : 0;
-            // "shared" wording is only honest when ANOTHER MODEL still needs a dep
-            // (keptShared carries sharedWith). keptUniversal/keptPipInstalls are
-            // engine-owned files (VAE, custom nodes, pip env) shared with no model —
-            // saying "shared files kept" there falsely implies a sibling model.
-            const keptForModel = keptShared.length + keptFiles;
+            // MPI-469 / MPI-1076 counting, shared with the Flow Library's toast.
+            const { gone, keptFiles, keptTotal, keptForModel } = uninstallOutcome({ removed, keptUniversal, keptShared, keptModelFiles, keptPipInstalls });
             // "uninstalled" for a whole model/plugin removal, "updated" when this is the
             // removal half of an Update (an op or arch weight going away). Saying
             // "updated" for both read as the opposite of what happened (MPI-394).
