@@ -62,6 +62,18 @@
     margin: 0;
 }
 
+/* MPI-1303 — the shared MpiFilterBar row sits under the count, the Library's spacing. */
+.mpi-model-picker__head .mpi-filter-bar {
+    margin-top: var(--s-4);
+}
+
+.mpi-model-picker__empty {
+    padding: var(--s-6) 0;
+    color: var(--ink-4);
+    font-size: var(--t-sm);
+    text-align: center;
+}
+
 .mpi-model-picker__body {
     flex: 1;
     overflow-y: auto;

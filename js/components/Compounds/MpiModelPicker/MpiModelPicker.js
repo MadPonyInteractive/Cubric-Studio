@@ -1,10 +1,12 @@
 import { ComponentFactory } from '../../factory.js';
 import { MpiOverlay } from '../../Primitives/MpiOverlay/MpiOverlay.js';
 import { MpiTileSheet } from '../../Primitives/MpiTileSheet/MpiTileSheet.js';
+import { MpiFilterBar } from '../../Primitives/MpiFilterBar/MpiFilterBar.js';
 import { ce, qs, on } from '../../../utils/dom.js';
 import { renderIcon } from '../../../utils/icons.js';
 import { modelQuote } from '../../../data/modelConstants/deepinfraPricing.js';
 import { ASSET_KINDS } from '../../../utils/assetKinds.js';
+import { Storage } from '../../../core/storage.js';
 
 const _mediaLabel = (media) => ASSET_KINDS.find(k => k.kind === media)?.singular || media;
 
@@ -62,6 +64,33 @@ export const MpiModelPicker = ComponentFactory.create({
             closable: true, mountTarget: 'body',
         });
         overlay.el.appendToContainer(el);
+
+        // ── Source filter + search (MPI-1303) ────────────────────────────────
+        // The libraries' MpiFilterBar row. Each Block mounts its own picker, so a
+        // closure would forget the choice on the next workspace — Source lives in
+        // Storage instead and is read back on every open. Search is per-open: a
+        // stale query hiding the model you came to swap is worse than retyping it.
+        // An empty group means "all", as in the libraries.
+        let _source = new Set(Storage.getModelPickerSource());
+        let _query = '';
+        let _activeId = null;
+        const filterBar = MpiFilterBar.mount(ce('div'), {
+            groups: [
+                { key: 'source', label: 'Source', options: [{ value: 'local', label: 'Local' }, { value: 'cloud', label: 'Cloud' }] },
+            ],
+            searchPlaceholder: 'Search models…',
+        });
+        filterBar.on('change', ({ active, query }) => {
+            _source = active.source;
+            _query = query;
+            Storage.setModelPickerSource(_source);
+            _render(_activeId);
+        });
+        qs('.mpi-model-picker__head', el).appendChild(filterBar.el);
+
+        const _passes = (m) =>
+            (_source.size === 0 || _source.has(m.provider ? 'cloud' : 'local'))
+            && (!_query || `${m.name} ${m.dropdownMeta || ''}`.toLowerCase().includes(_query));
 
         function _tileItem(model, activeId) {
             // A cloud model (MPI-865) has no weights, so two of the tile's parts describe
@@ -154,13 +183,27 @@ export const MpiModelPicker = ComponentFactory.create({
             subEl.textContent = cloudN
                 ? `${_models.length - cloudN} installed · ${cloudN} cloud`
                 : `${_models.length} installed`;
-            _mediaBlock(_models, 'image', activeId);
-            _mediaBlock(_models, 'video', activeId);
-            _mediaBlock(_models, 'audio', activeId);
+            const shown = _models.filter(_passes);
+            if (!shown.length) {
+                bodySlot.appendChild(ce('p', {
+                    className: 'mpi-model-picker__empty',
+                    textContent: 'No model matches these filters.',
+                }));
+                return;
+            }
+            _mediaBlock(shown, 'image', activeId);
+            _mediaBlock(shown, 'video', activeId);
+            _mediaBlock(shown, 'audio', activeId);
         }
 
         el.open = ({ models = [], modelId = null } = {}) => {
             _models = models;
+            _activeId = modelId;
+            // Re-read: another workspace's picker may have changed it since.
+            _source = new Set(Storage.getModelPickerSource());
+            filterBar.el.setActive('source', _source);
+            _query = '';
+            filterBar.el.setQuery('');
             _render(modelId);
             overlay.el.show();
             // Centre the active tile — AFTER show(), the overlay is only in the DOM
@@ -179,6 +222,7 @@ export const MpiModelPicker = ComponentFactory.create({
             _unsubs.forEach(fn => fn?.());
             _sheets.forEach(s => s.el.destroy?.());
             _sheets = [];
+            filterBar.el.destroy?.();
             overlay.el.destroy?.();
             el.remove();
         };

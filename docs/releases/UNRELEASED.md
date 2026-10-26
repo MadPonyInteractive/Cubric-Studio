@@ -75,6 +75,7 @@
 - Video Edit at sizes above 768p draws the movement at 768p first, then enlarges it and sharpens it at your size in a short second pass, the way MiniMax H3 Reference's Fast Motion does. A 1.6-second clip at 960 took about 13 minutes on a 16 GB card (MPI-1284).
 - When an update is ready, the Dev updates panel (the bell) shows an "Update to v…" button at the top, naming the version the posts below talk about (MPI-1242).
 - When the app is minimised during a generation, the floating Latents window fills the bar under each picture with the run's progress, the same percent as the status bar (MPI-1296).
+- The Model picker has the same filter row as the Models and Flows pages: Source shows only your Local models or only Cloud ones, and the app remembers your choice next time, even after a restart. A search box sits beside it (MPI-1303).
 - Every Flow and model description is easier to read: short paragraphs, with the key points in bold, in the Flow Library, the Models drawer and on the Flow's first screen. The tips under each Flow step got the same treatment (MPI-1298).
 
 ## Fixes

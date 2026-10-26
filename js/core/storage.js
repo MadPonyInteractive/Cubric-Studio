@@ -275,6 +275,12 @@ export const Storage = {
   getBoxesDim:         () => Math.min(100, Math.max(0, Number(get(STORAGE_KEYS.BOXES_DIM, 0)) || 0)),
   setBoxesDim:         (v) => set(STORAGE_KEYS.BOXES_DIM, Math.min(100, Math.max(0, Number(v) || 0))),
 
+  // MPI-1303 — the Model picker's Source filter; anything but 'local'/'cloud' is dropped.
+  getModelPickerSource: () => [].concat(get(STORAGE_KEYS.MODEL_PICKER_SOURCE, []) || [])
+      .filter(v => v === 'local' || v === 'cloud'),
+  setModelPickerSource: (v) => set(STORAGE_KEYS.MODEL_PICKER_SOURCE,
+      [...(v || [])].filter(s => s === 'local' || s === 'cloud')),
+
   getToastSound:       () => get(STORAGE_KEYS.TOAST_SOUND, true),
   setToastSound:       (v) => set(STORAGE_KEYS.TOAST_SOUND, v),
 

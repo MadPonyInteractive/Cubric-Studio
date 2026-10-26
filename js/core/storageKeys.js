@@ -17,6 +17,8 @@ export const STORAGE_KEYS = {
   SCENE_SHOT:          'mpi_scene_shot',
   // MPI-1253: the Boxes panel's Darken slider, 0-100 (view only, never reaches a run).
   BOXES_DIM:           'mpi_boxes_dim',
+  // MPI-1303: the Model picker's Source filter, a subset of ['local', 'cloud'] (empty = all).
+  MODEL_PICKER_SOURCE: 'mpi_model_picker_source',
 
   // MPI-573: microphone capture. Device is a deviceId from enumerateDevices (empty
   // = system default); gain is a linear multiplier applied to the recorded signal,
