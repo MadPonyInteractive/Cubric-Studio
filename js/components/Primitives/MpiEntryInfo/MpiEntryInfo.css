@@ -37,6 +37,11 @@
     transform: translateX(0);
 }
 
+/* Read-out only (gallery): the pointer goes through to the card underneath. */
+.mpi-entry-info--pass-through.is-active {
+    pointer-events: none;
+}
+
 .mpi-entry-info__rows {
     display: grid;
     grid-template-columns: auto 1fr;

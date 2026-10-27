@@ -24,6 +24,8 @@ import { ce, on, inheritAccent } from '../../../utils/dom.js';
  *   el.watch(container, selector, getInfo, { openMs }) — wire hover on every `selector`
  *       inside `container`; `getInfo(rowEl)` returns an `entryInfo()` result or null (no
  *       flyout). `openMs` overrides the rest delay (the gallery opens at once, MPI-1308).
+ *       `passThrough` makes it a pure read-out: the pointer goes through it and it closes
+ *       the moment the row is left, so it never sits over the next card (gallery, MPI-1308).
  *       Returns the unwatch function.
  *   el.hide()
  */
@@ -106,7 +108,8 @@ export const MpiEntryInfo = ComponentFactory.create({
             el.classList.add('is-active');
         };
 
-        el.watch = (container, selector, getInfo, { openMs = OPEN_MS } = {}) => {
+        el.watch = (container, selector, getInfo, { openMs = OPEN_MS, passThrough = false } = {}) => {
+            el.classList.toggle('mpi-entry-info--pass-through', passThrough);
             const rowOf = (node) => {
                 const row = node?.closest?.(selector);
                 return row && container.contains(row) ? row : null;
@@ -123,7 +126,9 @@ export const MpiEntryInfo = ComponentFactory.create({
                 on(container, 'pointerout', (e) => {
                     const row = rowOf(e.target);
                     if (!row || row !== _anchor) return;
-                    if (row.contains(e.relatedTarget) || el.contains(e.relatedTarget)) return;
+                    if (row.contains(e.relatedTarget)) return;
+                    if (passThrough) { el.hide(); return; }
+                    if (el.contains(e.relatedTarget)) return;
                     _scheduleClose();
                 }),
                 on(container, 'pointerdown', el.hide),

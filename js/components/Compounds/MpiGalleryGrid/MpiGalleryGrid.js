@@ -2696,7 +2696,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
             if (!state.galleryShowInfo) return null;
             const group = _groups.find(g => g.id === wrap.dataset.groupId);
             return group && !isStack(group) ? entryInfo(group.history?.[group.selectedIndex]) : null;
-        }, { openMs: 0 }));
+        }, { openMs: 0, passThrough: true }));
 
         // ── Cleanup ──────────────────────────────────────────────────────────
         el.destroy = () => {
