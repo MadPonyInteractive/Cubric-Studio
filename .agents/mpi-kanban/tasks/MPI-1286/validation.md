@@ -57,3 +57,10 @@ GPU: ~13 Klein Turbo 1K images on the local 4060 Ti, ~10 min across three launch
 - The agent dropdown row now reads `(recommended) deepseek-ai/DeepSeek-V4-Flash-0731` (same prefix as the enhance/describe rows). Checked on an isolated app (own port and profile) with the live DeepInfra catalogue: trigger and first option carry the flag, MiMo second.
 - Vision: DeepInfra tags 0731 `chat, prompt_cache, reasoning`, no `vision` (MiMo, V4.1-Flash and V4.1-Flash-1017 do). On 0731 `_visionFor` is false, so `look` has no `see: true` and Cosmo only reads the describer's words (gemma-4-26B); it cannot compare two faces or judge grain itself. 2.1.2's "Cosmo can see pictures" no longer holds on the default. No workaround built.
 - Fallback after a stall: 0731 -> MiMo, MiMo -> 0731, untested -> 0731.
+
+## 2026-10-27 - re-cut 2: tag v2.1.3 -> b85d242fa (release 6 session)
+
+- Tag moved on Fabio's go; mpi-ci run 40602289786 green on all three OSes; six files in D:\CubricStudio\Vision\Builds2.1.3\ (re-cut 1 set kept as v2.1.3.recut1); CI artifacts deleted.
+- 1.5.0 -> 2.1.3 gate redone on a fresh 1.5.0 extract (D:\CVTest1.5.0-to-v2.1.3): bundle b85d242fa1d2, FIRST launch, one engine start, 0 degraded, Klein 4B t2i_004 opened (red bicycle, matches). update-evidence.json rewritten (9ab055cfe); release:check:publish passed.
+- Fabio's copy D:\CVTest2.1.2-to-v2.1.3 re-extracted from the published 2.1.2 zip, engine moved across, update applied (Applied Cubric Studio update to 2.1.3). FRESH user-data: his DeepInfra key must be re-entered; old copy kept as v2.1.2-to-v2.1.3.recut1. Start Menu shortcut re-pointed at his copy.
+- Left: Fabio retests (joining clips with a real generation, calm start picture, MPI-1316 style drop, DeepSeek default), then Gate 2 and publish.
