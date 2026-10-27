@@ -235,15 +235,16 @@ async function stageMedia(t, media, folderPath) {
         if (m.voice) { out.push({ role: m.role, voice: String(m.voice) }); continue; }
         if (!MEDIA_EXT.has(path.extname(file).toLowerCase())) return fail('UNSUPPORTED_FILE', `"${m.path}" is not an image, video or audio file.`);
         if (!fs.existsSync(file)) return fail('FILE_NOT_FOUND', `no file at "${m.path}". Use a path from list_cards, from a generate result, or one the user gave.`);
+        const frame = m.frame === 'last' ? { frame: 'last' } : {};
         if (path.dirname(file) === own) {
-            out.push({ role: m.role, url: `/project-file?path=${encodeURIComponent(file)}` });
+            out.push({ role: m.role, url: `/project-file?path=${encodeURIComponent(file)}`, ...frame });
             continue;
         }
         const placed = await t.placeAsset(open.folder, file);
         if (!placed?.success || !placed.filePath) return fail('RUNTIME_ERROR', `could not copy "${m.path}" into the project: ${placed?.error || 'unknown error'}.`);
         // `name` keeps the user's filename past the content-addressed copy: a transcript is saved
         // under it (MPI-1071), never under a hash.
-        out.push({ role: m.role, url: placed.filePath, name: path.basename(file) });
+        out.push({ role: m.role, url: placed.filePath, name: path.basename(file), ...frame });
     }
     return { media: out };
 }
@@ -505,6 +506,7 @@ const TOOLS = {
                     items: obj({
                         role: { type: 'string', description: 'A media role describe_model lists for this op.' },
                         path: { type: 'string', description: 'A file on disk: a card\'s path from list_cards or a generate result, or any image, video or audio file the user named. A video in a picture role is its first frame; any other frame is the user\'s right-click Create snapshot in the app.' },
+                        frame: { type: 'string', enum: ['last'], description: 'A video in a picture role: its last frame instead, for a clip that continues from it.' },
                         voice: { type: 'string', description: 'In place of path, on a role describe_model lists voices for: a library voice id from there, for a voice line with no sample.' },
                     }, ['role']),
                 },

@@ -482,8 +482,10 @@ async function _asCurrentBody(body) {
  * A video sent where the op takes a picture stands for its FIRST frame (MPI-980): the
  * picture the clip was made from when its sidecar names one (`agentCards.startFrameOf`, full
  * size), else frame 0, put in the project's content-addressed store like any staged input.
- * Any other frame is the user's to pick (the video viewer's Create snapshot): nothing here
- * can know which one is meant. A clip this cannot read goes on unchanged, and the renderer
+ * A media item with `frame: 'last'` stands for the clip's LAST frame instead: a clip that
+ * continues from it starts there (docs/agent/joining-clips.md). Any other frame is the
+ * user's to pick (the video viewer's Create snapshot): nothing here can know which one is
+ * meant. A clip this cannot read goes on unchanged, and the renderer
  * refuses it by name (`resolveAgentMedia`) instead of sending an mp4 as a picture (MPI-979).
  */
 async function _firstFrames(media, operation, model) {
@@ -495,11 +497,13 @@ async function _firstFrames(media, operation, model) {
     let file = null;
     try { file = new URL(String(m?.url), 'http://127.0.0.1').searchParams.get('path'); } catch (_) { /* not a project file */ }
     if (!file || !path.isAbsolute(file) || !isVideoFile(file) || !pictures.has(m.role)) return m;
+    const last = m.frame === 'last';
     try {
-      const start = await (await _cards()).startFrameOf(file);
-      return { ...m, url: start ? `/project-file?path=${encodeURIComponent(start)}` : await _frameZero(file) };
+      const start = last ? null : await (await _cards()).startFrameOf(file);
+      const { frame: _picked, ...item } = m;
+      return { ...item, url: start ? `/project-file?path=${encodeURIComponent(start)}` : await _frameOf(file, last) };
     } catch (err) {
-      logger.warn('connector', `first frame of ${path.basename(file)} failed: ${err.message}`);
+      logger.warn('connector', `${last ? 'last' : 'first'} frame of ${path.basename(file)} failed: ${err.message}`);
       return m;
     }
   }));
@@ -523,8 +527,8 @@ async function _clipSeconds(media) {
   }));
 }
 
-/** Frame 0 of a project's clip, full size, as a staged input of that same project. */
-async function _frameZero(file) {
+/** Frame 0 (or the last frame) of a project's clip, full size, as a staged input of that same project. */
+async function _frameOf(file, last = false) {
   const parts = path.resolve(file).split(path.sep);
   const media = parts.lastIndexOf('Media');
   if (media < 1) throw new Error('not in a project\'s Media folder');
@@ -532,7 +536,11 @@ async function _frameZero(file) {
   const tmp = path.join(os.tmpdir(), `cubric-frame-${randomUUID()}.png`);
   try {
     const { runFfmpeg } = require('../services/ffmpegBinary');
-    await runFfmpeg(['-v', 'error', '-i', file, '-frames:v', '1', '-y', tmp], { timeout: 60_000 });
+    // The last frame: seek to the final second and keep overwriting one picture, so the frame
+    // left on disk is the clip's last whatever its frame rate.
+    await runFfmpeg(last
+      ? ['-v', 'error', '-sseof', '-1', '-i', file, '-update', '1', '-y', tmp]
+      : ['-v', 'error', '-i', file, '-frames:v', '1', '-y', tmp], { timeout: 60_000 });
     const placed = await _appPost(`/project-media/agent/place-preview-asset?folderPath=${encodeURIComponent(folder)}`,
       { dataUrl: tmp, ext: '.png' });
     if (!placed?.success || !placed.filePath) throw new Error(placed?.error || 'the frame could not be staged');

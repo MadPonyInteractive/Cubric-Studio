@@ -537,6 +537,51 @@ test('a clip with no start frame goes as frame 0, full size, staged in its own p
   }
 });
 
+test('frame: last sends the clip\'s LAST frame, never its start picture (joining clips)', async () => {
+  // A clip that continues from another starts on that clip's last frame (docs/agent/joining-clips.md).
+  const { dir, media } = tempProject();
+  const clip = path.join(media, 'i2v_001.mp4');
+  execFileSync(ffmpegPath, ['-v', 'error', '-f', 'lavfi', '-i', 'color=c=red:s=64x48:d=0.5:r=24',
+    '-f', 'lavfi', '-i', 'color=c=blue:s=64x48:d=0.5:r=24', '-filter_complex', '[0][1]concat=n=2:v=1',
+    '-pix_fmt', 'yuv420p', clip], { windowsHide: true });
+  // A start picture on record must not answer for the last frame.
+  fs.writeFileSync(path.join(media, '.meta', 'item-1.json'), JSON.stringify({
+    filePath: fileUrl(clip),
+    generationSettings: { mediaItems: [{ role: 'startFrame', url: fileUrl(path.join(media, 't2i_001.png')) }] },
+  }));
+  const staged = [];
+  const app = express();
+  app.use(express.json());
+  app.post('/project-media/:id/place-preview-asset', (req, res) => {
+    staged.push(fs.readFileSync(req.body.dataUrl));
+    res.json({ success: true, filePath: '/project-file?path=staged.png' });
+  });
+  app.use(connectorRoutes);
+  const server = await new Promise((resolve) => { const s = app.listen(0, '127.0.0.1', () => resolve(s)); });
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const port = process.env.CUBRIC_PORT;
+  process.env.CUBRIC_PORT = String(server.address().port);
+  const renderer = await fakeRenderer(base);
+  try {
+    const pending = postJson(`${base}/connector/generate`, {
+      modelId: 'nano-banana-2-lite-cloud', operation: 'edit', positive: 'make it night',
+      media: [{ role: 'inputImage', url: fileUrl(clip), frame: 'last' }],
+    });
+    const frame = await renderer.readFrame();
+    assert.deepEqual(frame.data.input.media, [{ role: 'inputImage', url: '/project-file?path=staged.png' }]);
+    await postJson(`${base}/connector/jobs/${frame.data.jobId}/result`, { ok: true, output: {} });
+    await pending;
+    assert.equal(staged.length, 1);
+    const { channels } = await sharp(staged[0]).stats();
+    assert.ok(channels[2].mean > 200 && channels[0].mean < 60, `expected the blue last frame, got r=${channels[0].mean} b=${channels[2].mean}`);
+  } finally {
+    renderer.close();
+    if (port === undefined) delete process.env.CUBRIC_PORT; else process.env.CUBRIC_PORT = port;
+    await new Promise((resolve) => server.close(resolve));
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 // ── look reports the image's SHAPE (MPI-774 Phase 7) ─────────────────────────
 
 test('every look carries imageSize, not just a boxed one', async () => {

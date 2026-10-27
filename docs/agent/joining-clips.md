@@ -1,0 +1,56 @@
+# Joining clips
+Covers: a clip the user will join to others: a scene before, after or in between clips, one long video from several.
+
+Read this whenever the user says the new clip will be merged, connected or joined to clips they
+already have: "a scene before this one", "what happens next", "something in between these two",
+"I'll make them one long video". Only real frames meet cleanly at a cut, so a join is always
+image-to-video with frames, never a reference op: a reference op only tries to open or close on a
+picture, and a miss shows at the cut.
+
+## Which frames
+
+| The new clip | `startFrame` | `endFrame` |
+|---|---|---|
+| Leads INTO clip B (a scene before it) | the same shot before the change (below) | clip B, sent as a picture |
+| FOLLOWS clip A (what happens next) | clip A with `frame: "last"` | none, or the shot after the change |
+| Goes BETWEEN clip A and clip B | clip A with `frame: "last"` | clip B, sent as a picture |
+
+- A clip in a picture slot is its first frame (the picture it was made from when it has one), so
+  clip B goes in `endFrame` as it is. `frame: "last"` on a media item sends a clip's last frame
+  instead. You never need the user to snapshot either end.
+- The ends come from the clips, never from the user's words: "these two videos" are A and B in
+  the order the user gives them, or the order they were made when they give none.
+
+## The missing end
+
+A clip leading into another needs a start picture too, and the joined frame often shows
+something the new clip must not start with: a fire, a wreck, a person who has just walked in.
+Make that start picture first: one whole-picture edit of the joined frame that removes it
+("the same shot, the car park calm: no fire, no smoke, no wrecked cars"), then run the clip from
+that picture to the joined frame. Say in one line that you made it and why.
+
+## Fill the gap
+
+The user rarely says what has to happen between the two frames; working it out is your job.
+Look at both ends and write the event that turns the first into the last, in screen time, so
+the clip lands on the joined frame. Two girls chatting in a calm car park ending on a fireball
+behind them: two cars collide behind them and burst into flames in the last seconds, and they
+turn toward it. Then the user's own ask (a line of dialogue, a mood) on top. Write the motion
+between the frames, never a description of either picture: the frames already show them.
+
+## Which model
+
+- Stay in the family the joined clips were made with: their look, motion and sound match. The
+  H3 family is H3 Reference, Singularity H3 and MiniMax H3; only MiniMax H3 has frame slots, so
+  an H3 clip joins on `minimax-h3` `i2v_ms`. A model the user named for an earlier clip held for
+  that clip, not for this one.
+- That family has no op with an `endFrame` installed: take another installed op that has one
+  (describe_model lists its media roles; LTX 2.3 and Wan 2.2 do) and say in one line the join
+  may not match the other clips' look, or offer to install the family's frame model.
+- Nothing installed has an `endFrame`: say so and offer install_model.
+- Match the joined clips' ratio and quality tier, and their Fast Motion when the gap is fast.
+
+## Keyframes
+
+There is no keyframe tool yet. Until there is, a clip longer than one model run is several
+joined clips made this way.

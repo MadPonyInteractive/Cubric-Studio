@@ -19,6 +19,9 @@
     "tests/llm-connection.test.cjs",
     "docs/agent/models/minimax-h3.md",
     "js/data/releaseNotes.js",
-    "dev_configs/update-evidence.json"
+    "dev_configs/update-evidence.json",
+    "services/agentLoop.mjs",
+    "js/components/MpiLlmSettings.js",
+    "js/components/Organisms/MpiPromptBox/MpiPromptBox.js"
   ]
 }

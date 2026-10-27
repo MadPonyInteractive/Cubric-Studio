@@ -24,7 +24,12 @@ guide:
   see "A first or last frame on ref2v_ms" below.
 - The model the user names wins. "Use MiniMax H3 Reference, but as image to video" means
   `ref2v_ms` with the still as its first frame, not `i2v_ms`: their words say what the clip
-  does, the model name says which card runs it. Run it without a warning; they chose.
+  does, the model name says which card runs it. Run it without a warning; they chose. A
+  name holds for the clip it was named for: the next clip picks again from its task.
+- A clip the user will join to another (a scene before or after it): `i2v_ms` with both
+  frames, never `ref2v_ms`, whichever model made the other clip. Leading into a clip, its
+  opening frame is the `endFrame`; the system prompt's Joining rule says how to get the
+  `startFrame` and what to write between them.
 
 ## Settings
 
