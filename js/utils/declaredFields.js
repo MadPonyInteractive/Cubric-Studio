@@ -169,7 +169,9 @@ export function pictureSentences(notes, looks = []) {
         const look = String(looks[i] || '').trim().replace(/[.\s]+$/, '').replace(/^(An?|The)\b/, w => w.toLowerCase());
         const said = !look ? (text ? `Picture ${i + 1} is ${text}.` : '')
             : text ? `Picture ${i + 1} is ${text}. It shows ${look}.` : `Picture ${i + 1} shows ${look}.`;
-        return [said, notes[i]?.several ? `Picture ${i + 1} ${SEVERAL}.` : ''].filter(Boolean).join(' ');
+        const note = notes[i];
+        const several = typeof note === 'object' && note?.several === true;
+        return [said, several ? `Picture ${i + 1} ${SEVERAL}.` : ''].filter(Boolean).join(' ');
     }).filter(Boolean).join(' ');
 }
 
