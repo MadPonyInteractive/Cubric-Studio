@@ -1,2 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1308", "at": "2026-10-27T16:20:33+00:00", "actor": "claude", "column": "todo", "title": "Gallery card info flyout: instant, and only in info mode"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1308", "at": "2026-10-27T16:20:47+00:00", "actor": "claude", "from": "todo", "to": "doing"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1308", "at": "2026-10-27T16:22:03+00:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "committed e02fc101c; awaiting Fabio eye-test"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1308", "at": "2026-10-27T19:56:57+00:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio approved in the app; lint + release:check green"}
