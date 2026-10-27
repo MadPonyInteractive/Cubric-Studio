@@ -60,13 +60,16 @@ test.describe('which Flows open for the user (Fabio\'s sort)', () => {
         assert.ok(flow.steps.some((s) => s.kind === 'box' && s.role === 'image1'));
     });
 
-    test('Storyboard opens ready to press, and its submit path refuses it (MPI-1231)', async () => {
-        // The user reads the plan before any panel is drawn, and one press fans out into many
-        // jobs inside the frame, which the agent's one-job submit cannot do.
+    test('Storyboard is the agent\'s to run, never a routine step\'s (MPI-1286)', async () => {
+        // Cosmo and MCP run it through its agent driver (the app plans when no plan is sent); a
+        // routine step submits one job, and one press of Storyboard is many pictures.
         const flow = getFlowById('storyboard');
-        assert.equal(flow.agentOpens, 'run');
-        const built = await buildFlow({ flowId: 'storyboard' }, state.currentProject);
-        assert.equal(built.code, 'OPENS_FOR_USER');
+        assert.equal(flow.agentOpens, undefined);
+        const routine = await buildFlow({ flowId: 'storyboard' }, state.currentProject);
+        assert.equal(routine.code, 'OPENS_FOR_USER');
+        assert.match(routine.message, /routine step/);
+        const agent = await buildFlow({ flowId: 'storyboard' }, state.currentProject, { driver: true });
+        assert.notEqual(agent.code, 'OPENS_FOR_USER');
     });
 
     test('every other Flow is the agent\'s to run', () => {

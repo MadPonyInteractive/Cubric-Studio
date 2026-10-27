@@ -104,7 +104,7 @@ test('cards arriving out of order end in panel order, each with its note, then t
         [['item0', 'beat 1'], ['item1', 'beat 2'], ['item2', 'beat 3'], ['item3', 'beat 4']]);
     const last = app.calls.at(-1);
     assert.deepStrictEqual(last, ['overview', ['card0', 'card1', 'card2', 'card3'], 'Heist']);
-    assert.deepStrictEqual(out, { ok: true, cancelled: false, reordered: true, overview: true,
+    assert.deepStrictEqual(out, { ok: true, cancelled: false, reordered: true, overview: true, stackId: run.stackId,
         panels: [0, 1, 2, 3].map(i => ({ index: i, groupId: `card${i}`, item: { id: `item${i}`, filePath: `C:/p/${i}.png` } })) });
 });
 

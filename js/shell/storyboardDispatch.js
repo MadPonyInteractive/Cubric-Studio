@@ -29,6 +29,8 @@ import { MODELS } from '../data/modelConstants/models.js';
 import { COMMANDS } from '../data/commandRegistry.js';
 import { resolveTurboControlId } from '../data/generationControls.js';
 import { runMultiAngleFlow } from './multiAngleDispatch.js';
+import { flowEnhanceDecls, enhanceSourceText, runEnhanceDecl, enhancedWrites, describePictures } from '../services/flowEnhance.js';
+import { flowDeclaredFields, pictureSentences, readPictureSentences } from '../utils/declaredFields.js';
 
 /**
  * How many pictures the model's edit takes: the edit op's slots its capabilities open
@@ -59,6 +61,12 @@ function _references(mediaItems, roles) {
 /** The selected item of a group as it stands in the open project now. */
 const _liveGroup = (groupId) => (state.currentProject?.itemGroups || []).find(g => g.id === groupId);
 
+/** A refusal before any job: the status bar says why, and so does the answer (an agent reads it). */
+function _refused(code, message, variant = 'warning') {
+    StatusBar.notify(message, variant);
+    return { ok: false, code, message };
+}
+
 function _deps(project, { flow, inputs, unit, modelId, idea, references, ratio, qualityTier, turbo }, frame) {
     return {
         isLoopArmed: () => state.loopArmed === true,
@@ -77,12 +85,13 @@ function _deps(project, { flow, inputs, unit, modelId, idea, references, ratio, 
             if (!built.ok) return built;
             // Stop was pressed while the panels were still going in (each waits on its build) or while the cast was drawn: nothing more is queued (MPI-1293).
             if (frame?.stopped?.()) return { ok: false, code: 'CANCELLED', message: 'The user pressed Stop.' };
-            // The user pressed Generate: their toasts show, and the child-safety gate reads
-            // their own idea beside the panel prompt the planner wrote from it.
+            // The user pressed Generate: their toasts show (an agent's run reads its refusals
+            // instead), and the child-safety gate reads their own idea beside the panel prompt
+            // the planner wrote from it.
             // `flowId` + `flowInputs` ride to the sidecar, so Reuse > Apply to App reopens the
             // Storyboard with the idea, pictures and plan that drew this panel (Fabio, 2026-10-25).
             // `flowStep` is the status bar's "panel 5/6", which also hides the graph's bare stage "1".
-            const config = { ...built.config, byAgent: false, userWords: [idea, panel.prompt],
+            const config = { ...built.config, byAgent: frame?.byAgent === true, userWords: [idea, panel.prompt],
                 flowId: flow.id, flowInputs: inputs,
                 flowStep: landing.batchTotal > 1 ? `${unit} ${index + 1}/${landing.batchTotal}` : null };
             let settle;
@@ -156,34 +165,27 @@ function _summary(name, out) {
  * @param {Object} flow - the FlowDef
  * @param {Object} inputs - the frame's collected inputs (`positive`, `plan`, `ratio`,
  *   `qualityTier`, `turbo`, `mediaItems`)
- * @param {{onJob?: function(string, Promise<Object>): void, stopped?: function(): boolean}} [frame] -
- *   the Flow frame, told of every queued picture (its queue id and its `done`) so its result pane
- *   can follow it, and asked before each one goes in whether Stop was pressed
- * @returns {Promise<false|{finished: Promise<Object>}>} false when nothing started, else the end
- *   of the whole run
+ * @param {{onJob?: function(string, Promise<Object>): void, stopped?: function(): boolean, byAgent?: boolean}} [frame] -
+ *   the Flow frame (or the agent's run), told of every queued picture (its queue id and its
+ *   `done`) so it can follow it, and asked before each one goes in whether Stop was pressed
+ * @returns {Promise<{ok: false, code: string, message: string}|{finished: Promise<Object>}>} the
+ *   refusal when nothing started (the status bar said it too), else the end of the whole run
  */
 async function runStoryboardFlow(flow, inputs, frame) {
     const project = state.currentProject;
-    if (!project?.folderPath) {
-        StatusBar.notify('Open a project first: the storyboard lands in its gallery.', 'warning');
-        return false;
-    }
+    if (!project?.folderPath) return _refused('NO_PROJECT', 'Open a project first: the storyboard lands in its gallery.');
     // The notes under the pictures arrive as "Picture N is ..." sentences (`pictureNotes`); they
     // join the idea, which is what the cast lines and the child-safety gate read.
     const idea = [inputs.positive, inputs.pictureNotes].map(s => String(s || '').trim()).filter(Boolean).join(' ');
     const panels = parseStoryboardPlan(inputs.plan, idea);
-    if (!panels.length) {
-        StatusBar.notify('Press Plan with Cosmo to write the plan first, or write it yourself as [PANEL 1] Picture: ... Intent: ...', 'warning');
-        return false;
-    }
+    if (!panels.length) return _refused('NO_PANELS', 'Press Plan with Cosmo to write the plan first, or write it yourself as [PANEL 1] Picture: ... Intent: ...');
     const roles = flow.inputSchema.media[0].roles;
     const [modelId] = flowModelIds(flow);
     const model = MODELS.find(m => m.id === modelId);
     const references = _references(inputs.mediaItems || [], roles);
     const max = _maxReferences(model);
     if (references.length > max) {
-        StatusBar.notify(`${model?.name || modelId} takes up to ${max} pictures and this storyboard has ${references.length}. Remove ${references.length - max}, or pick FLUX.3 Klein as the panel model.`, 'warning');
-        return false;
+        return _refused('TOO_MANY_PICTURES', `${model?.name || modelId} takes up to ${max} pictures and this storyboard has ${references.length}. Remove ${references.length - max}, or pick FLUX.3 Klein as the panel model.`);
     }
     const words = String(inputs.positive || '').trim();
     const title = words ? `Storyboard · ${words}` : 'Storyboard';
@@ -218,9 +220,8 @@ async function runStoryboardFlow(flow, inputs, frame) {
         _deps(project, { ...opts, unit: 'picture', references: [] }, frame));
     if (!cast.ok) {
         // A Stop while the first cast picture was built reads as a Stop, like `_drawPanels` (MPI-1293).
-        if (cast.code === 'CANCELLED') StatusBar.notify(`${name} stopped: no panel was drawn.`, 'info');
-        else StatusBar.notify(cast.message, 'warning');
-        return false;
+        if (cast.code === 'CANCELLED') return _refused(cast.code, `${name} stopped: no panel was drawn.`, 'info');
+        return _refused(cast.code, cast.message);
     }
     const left = wanted.slice(actors.length).map(a => a.name);
     StatusBar.notify(`${name}: drawing ${actors.map(a => a.name).join(', ')} first, so every panel shows the same one. The panels follow.`
@@ -230,7 +231,7 @@ async function runStoryboardFlow(flow, inputs, frame) {
     return { finished: cast.finished.then(async (out) => {
         if (out.cancelled) {
             StatusBar.notify(`${name} stopped while drawing the cast: no panel was drawn.`, 'info');
-            return out;
+            return { ok: false, cancelled: true, panels: [] };
         }
         const drawn = out.panels.filter(r => r.item?.filePath);
         const missing = out.panels.filter(r => !r.item?.filePath).map(r => actors[r.index].name);
@@ -242,7 +243,7 @@ async function runStoryboardFlow(flow, inputs, frame) {
                 references: [...references, ...picks.map(i => ({ url: drawn[i].item.filePath }))]
                     .map((r, i) => ({ role: i ? `inputImage${i + 1}` : 'inputImage', url: r.url })) }));
         const drawing = await _drawPanels(panelsDrawn, name, _deps(project, { ...opts, references }, frame));
-        return drawing ? drawing.finished : { ok: false, cancelled: !!frame?.stopped?.() };
+        return drawing.finished || { ok: false, cancelled: drawing.code === 'CANCELLED', error: drawing, panels: [] };
     }) };
 }
 
@@ -266,9 +267,8 @@ function _castPrompt({ name, desc, kind }, style) {
 async function _drawPanels(panels, name, deps) {
     const run = await runStoryboard(panels, { name }, deps);
     if (!run.ok) {
-        if (run.code === 'CANCELLED') StatusBar.notify(`${name} stopped: no panel was drawn.`, 'info');
-        else StatusBar.notify(run.message, 'warning');
-        return false;
+        if (run.code === 'CANCELLED') return _refused(run.code, `${name} stopped: no panel was drawn.`, 'info');
+        return _refused(run.code, run.message);
     }
     return { finished: run.finished.then((out) => {
         const { text, variant } = _summary(name, out);
@@ -277,8 +277,54 @@ async function _drawPanels(panels, name, deps) {
     }) };
 }
 
+/**
+ * Storyboard run by Cosmo or an outside agent (`agentDispatch._submitDriverFlow`, MPI-1286). A
+ * plan sent with the call is drawn as it is; with none, the app plans first exactly as Plan with
+ * Cosmo does on a hand run: every picture described (a queue row each), then the planner on
+ * Cosmo's model (a queue row), and its plan drawn. Asking for a storyboard is the go-ahead: the
+ * agent's run has no plan to read before the GPU spends (Fabio, 2026-10-27).
+ *
+ * @param {Object} flow - the FlowDef
+ * @param {Object} inputs - `buildFlow`'s resolved inputs (`pictureNotes` as sentences)
+ * @param {Object} frame - as `runStoryboardFlow`'s
+ * @returns {Promise<{ok: false, code: string, message: string}|{finished: Promise<Object>, plan: string}>}
+ */
+async function runStoryboardForAgent(flow, inputs, frame) {
+    let plan = String(inputs.plan || '').trim();
+    if (!plan) {
+        const d = flowEnhanceDecls(flow).find(x => x.to === 'plan');
+        const roles = flow.inputSchema.media[0].roles;
+        const pictures = [];
+        for (const m of inputs.mediaItems || []) if (m?.url && roles.includes(m.role)) pictures[roles.indexOf(m.role)] = m;
+        let values = inputs;
+        if (pictures.length) {
+            const step = await describePictures(Array.from(pictures), d.describePictures.ask);
+            if (!step.ok) return _refused(step.cancelled ? 'CANCELLED' : 'DESCRIBE_FAILED', step.message, step.cancelled ? 'info' : 'warning');
+            values = { ...inputs, pictureNotes: pictureSentences(readPictureSentences(inputs.pictureNotes), step.looks) };
+        }
+        if (frame?.stopped?.()) return _refused('CANCELLED', 'Storyboard stopped: nothing was planned.', 'info');
+        const source = enhanceSourceText(d, flowDeclaredFields(flow), values, new Set(), { graphValues: true });
+        const result = await runEnhanceDecl(d, source, { flowId: flow.id });
+        if (result.cancelled) return _refused('CANCELLED', 'Storyboard stopped while Cosmo was planning: nothing was drawn.', 'info');
+        plan = result.ok ? String(enhancedWrites(d, String(result.text || ''), () => true).find(([id]) => id === 'plan')?.[1] || '').trim() : '';
+        if (!plan) {
+            const why = String(result.error || 'The planner gave no answer.').trim();
+            return _refused(result.errorCode === 'CHILD_SAFETY' ? 'CHILD_SAFETY' : 'ENHANCE_FAILED',
+                `Nothing was drawn: Cosmo could not plan the storyboard. ${why}${/[.!?]$/.test(why) ? '' : '.'}`);
+        }
+        if (frame?.stopped?.()) return _refused('CANCELLED', 'Storyboard stopped: nothing was drawn.', 'info');
+    }
+    const started = await runStoryboardFlow(flow, { ...inputs, plan }, frame);
+    return started.finished ? { ...started, plan } : started;
+}
+
 /** Driver id (a FlowDef's `driver`) -> what Generate runs instead of the Flow's op. */
 export const FLOW_DRIVERS = {
     storyboard: runStoryboardFlow,
     multiAngle: runMultiAngleFlow,
+};
+
+/** Driver id -> the agent's run of it (`agentDispatch`); a driver not here only opens for the user. */
+export const AGENT_DRIVERS = {
+    storyboard: runStoryboardForAgent,
 };

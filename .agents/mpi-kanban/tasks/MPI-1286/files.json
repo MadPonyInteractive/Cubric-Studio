@@ -1,0 +1,18 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/shell/agentDispatch.js",
+    "js/shell/storyboardDispatch.js",
+    "js/data/flowsRegistry.js",
+    "docs/agent/flows.md",
+    ".claude/skills/cubric-vision-flows/SKILL.md",
+    "docs/releases/UNRELEASED.md",
+    ".agents/mpi-kanban/tasks/MPI-1286/",
+    "js/services/storyboardRunner.js",
+    "js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js",
+    "tests/agent-flow-handover.test.cjs",
+    "tests/storyboard-agent.test.cjs",
+    "tests/storyboard-runner.test.cjs",
+    ".agents/mpi-kanban/tasks/MPI-1267/plan.md"
+  ]
+}

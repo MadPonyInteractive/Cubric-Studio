@@ -3075,12 +3075,11 @@ const ALL_FLOWS = [
     {
         // MPI-1231: an idea in words, plus optional pictures of the cast and places, becomes a
         // STACK of panel cards in story order, each with its intent line as the card note, and a
-        // numbered overview sheet. Dev-gated until the LTX 2.5 release (umbrella MPI-1267).
+        // numbered overview sheet. Ships in 2.1.3 (MPI-1286, Fabio 2026-10-27).
         // No graph and no op of its own: `driver` hands Generate to `js/shell/storyboardDispatch.js`,
         // which runs every panel as an ordinary generation on the picked panel model (edit with
         // pictures, t2i without), so each panel is a normal card the user can edit like any other.
         id: 'storyboard',
-        devOnly: true,
         driver: 'storyboard',
         title: 'Storyboard',
         preview: 'flow-storyboard.webp',
@@ -3096,9 +3095,9 @@ const ALL_FLOWS = [
         requiredModels: [{ label: 'Panel model', models: ['flux3-klein', 'qwen-image-2-1'], loras: true }],
         // Never dispatched: it carries the ten reference slots (commandRegistry.js).
         operation: 'flowStoryboard',
-        // The user reads the plan before any panel is drawn (Fabio, 2026-10-24); the agent's
-        // generate path is one job per press, so it opens the Flow ready to press instead.
-        agentOpens: 'run',
+        // No `agentOpens`: Cosmo and an outside agent run it (MPI-1286), the app planning first
+        // when the call sends no plan (`AGENT_DRIVERS`, storyboardDispatch.js). On a hand run the
+        // user still reads the plan before any panel is drawn (Fabio, 2026-10-24).
         mediaType: 'image',
         type: 'create',
         inputSchema: {

@@ -60,6 +60,15 @@
 
 ## New
 
+- Roster: one new Flow, Storyboard.
+- **Storyboard, a new Flow.** Describe a video idea, add pictures of your characters and places if you have them, and Cosmo writes a plan of the shots you can edit before anything is drawn. Each panel lands as a picture in one stack, in story order, with a note on what happens, plus a numbered sheet of the whole board. Characters, places or things you gave no picture of that come back in several panels (up to four) are drawn once first, so they stay the same. Runs on FLUX.3 Klein or Qwen-Image 2.1 (not for commercial use), with the LoRA cog wheel; planning needs Cosmo connected (MPI-1231).
+- Ask Cosmo for a storyboard ("make me a storyboard of ...") and it runs the Storyboard Flow for you, plan and panels, into the project you have open. An outside agent connected over MCP can do the same (MPI-1286).
+- Every Flow has a mascot peeking in while it works: Lingo while a prompt is written, Cosmo while it plans, then Prism for pictures, Reel and Vinyl for video and Vinyl for sound (MPI-1292).
+- Rest the mouse on a gallery card for a moment and its info card opens, as in a card's history: model, time taken, date, prompt and notes, now with the ratio, Turbo, style, denoise, the LoRAs used, and the graphics card, VRAM and RAM it ran on (MPI-1261).
+- Cosmo knows every entry of the card you have open, so "do it again" redoes the one it worked on, and a redo after a masked edit uses the same mask. When it upscales or details a picture another model made, it asks which model should redraw it, the maker in its own style first (MPI-1262).
+- Before a Use Tiles upscale, Cosmo shows each tile size with how many tiles it makes, and runs the one you click (MPI-1260).
+- When Cosmo's language model stalls, the chat offers to switch to the other tested model (MPI-1277).
+- The message after installing a model with new engine parts has a Restart engine button, to load them now (MPI-1247).
 - New model: MOSS-Image, a text-to-image model that writes exact lettering on signs and posters, with a fast Turbo mode and Boxes for placing things. It also does image-to-image, inpaint, detail and upscale on your pictures (MPI-1243).
 - Boxes can now read a picture for you, to make a new one laid out the same way (a magazine cover, a poster). Right-click a card and pick Create boxes: each thing in the picture gets its own named box, with what it is and any lettering written out, the shape follows the picture, and the prompt is replaced by a caption for the whole scene. Drop a picture on the prompt box meanwhile and it switches mode as usual; back on text to image the layout picture is there again with its boxes, and Remove picture in the Boxes panel takes it away for good. Works on MOSS-Image and FLUX.3 Klein (MPI-1253).
 - Use Tiles is redone: pick a Tile size (smaller tiles, more detail), and Describe each tile (on by default) names what fills each tile in a few words before the upscale, so grass is redrawn as grass. People and faces get their own gentle passes and are never described, so they keep their look. Use Grid is gone: Use Tiles replaces it, and an old Use Grid setting opens as Use Tiles (MPI-1232).
@@ -93,11 +102,14 @@
 - Renaming a card in Show info mode: you can see what you type with the mouse still on the card (MPI-1289).
 - Compare labels each side with the card's name, not the file name (MPI-1290).
 - AMD and Intel Arc graphics cards are recognised again on current Windows 11. The check relied on a Windows tool that newer versions no longer include, so these computers were given the NVIDIA engine instead of their own (MPI-1304).
-
-## Held for the LTX 2.5 release — do NOT fold until its dev gate comes off
-
-> These ship with the LTX 2.5 release (umbrella MPI-1267), not with the next version bump. A bump
-> before that leaves this section here untouched; the bump that takes the gates off folds it.
-
-- Roster: one new Flow, Storyboard.
-- **Storyboard, a new Flow.** Describe a video idea, add pictures of your characters and places if you have them, and Cosmo writes a plan of the shots you can edit before anything is drawn. Each panel lands as a picture in one stack, in story order, with a note on what happens, plus a numbered sheet of the whole board. Characters, places or things you gave no picture of that come back in several panels (up to four) are drawn once first, so they stay the same. Runs on FLUX.3 Klein or Qwen-Image 2.1 (not for commercial use), with the LoRA cog wheel; planning needs Cosmo connected (MPI-1231).
+- One press of Stop in a Flow stops everything that Flow started, including jobs still waiting in the queue (MPI-1293).
+- Repair engine fixes an engine that will not start because a crash left one of its add-on files empty: it fetches that add-on again (MPI-1274).
+- When the child-safety check could not look at a picture, the message now says why (a timeout, a busy service, an unreadable frame) (MPI-1273).
+- Cosmo's tiled upscale opens the picture's history, so you see the latents as it works (MPI-1256).
+- A click plays a maximised video again; only Space did (MPI-1251).
+- The Picture and Start frame tags above the prompt box's picture chips read clearly over any picture (MPI-1252).
+- The prompt box's mascot slides up and back down instead of fading, and no longer lands on the video controls (MPI-1295).
+- A tool setting changed just before you switch tools, change page or open another project is kept, in the project it was made in (AUDIT B2).
+- A GIF preview marks itself out of date when you change a setting while it is still building (AUDIT).
+- An audio card's length never reads "0:60": 59.6 seconds shows 1:00 (AUDIT B3).
+- Krea 2 NSFW is no longer featured in the Model Library (MPI-1270).

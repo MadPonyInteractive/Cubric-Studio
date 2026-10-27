@@ -1,5 +1,5 @@
 # Flows
-Covers: every Flow (outpaint, head swap, video edit, make seamless, spoken lines, transcribe, song) and how to run one.
+Covers: every Flow (outpaint, head swap, video edit, storyboard, seamless, speech, transcribe, song), how to run one.
 
 A Flow is a ready-made recipe (Outpaint, Voice Changer, Song, a character sheet), run
 with `generate` and a `flowId`, never a `modelId`. `describe_model` with the Flow's id gives its
@@ -124,11 +124,8 @@ place (`image1`, optional) or from words. `Input_Operation` picks the change.
 
 ## 360 Panorama
 
-Makes a whole 360 world from words, or from a picture (`image1`, optional) with the rest of the
-world painted in around it. The card is a flat panorama picture; to look around it in 3D the user
-right-clicks it and chooses Convert to 360 pano, after any edits they want. A run takes a few
-minutes. What comes after Convert (the 3D Scene workspace, camera paths, the 360 player, Take
-picture) is app:360-and-3d-scenes.
+Makes a whole 360 world from words, or from a picture (`image1`, optional) with the rest of the world painted in around it. The card is a flat panorama picture; to look around it in 3D the user right-clicks it and chooses Convert to 360 pano, after any edits they want.
+A run takes a few minutes. What comes after Convert (the 3D Scene workspace, camera paths, the 360 player, Take picture) is app:360-and-3d-scenes.
 
 - `positive`: the place, as if standing in it ("a tiny cartoon village in a forest clearing,
   warm afternoon light"). Never camera words ("360", "panorama", "wide shot"): the Flow adds
@@ -137,11 +134,13 @@ picture) is app:360-and-3d-scenes.
 
 ## Make seamless
 
-Repaints the edges of a picture the user already has (`image1`, required) so it tiles: a busy
-texture, or a panorama whose ends do not meet; for a new 360 world use 360 Panorama. Only a band
-by each edge changes, so a big shape crossing an edge (a marble vein) or one-sided light still
-repeats: say so, and never offer it for a game texture. `direction` picks the joins; leave
-`Input_Positive` empty unless the user said what the picture shows. `tiles` is only the preview.
+Repaints the edges of a picture the user already has (`image1`, required) so it tiles: a busy texture, or a panorama whose ends do not meet; for a new 360 world use 360 Panorama.
+Only a band by each edge changes, so a big shape crossing an edge (a marble vein) or one-sided light still repeats: say so, and never offer it for a game texture. `direction` picks the joins; leave `Input_Positive` empty unless the user said what the picture shows. `tiles` is only the preview.
+
+## Storyboard
+
+Turns an idea into numbered panel pictures for a video: one stack in story order, each panel's note saying what happens in the shot, plus a numbered sheet of the whole board. For "make me a storyboard of ...", or the first step of a longer video the user will animate panel by panel.
+`positive` is the idea in the user's words; `panelCount` 3 to 12 (4 to 6 for a calm moment, 10 to 12 for fast action, one panel per cut); `ratio` the video's shape. Pictures of characters or places go as `inputImage`, `inputImage2` ... with `pictureNotes`, one note per picture ("Lena, a waitress"). Leave `plan` empty: the app describes the pictures, plans on your model and draws. It lands only in the project the app has open, and takes minutes: say it started.
 
 ## Spoken lines
 

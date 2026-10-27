@@ -43,6 +43,7 @@
 
 import { enqueueGeneration, findMissingMediaSlot } from '../services/generationService.js';
 import { submitFlowGeneration, cloudEditQuote, flowRunRefusal, cancelQueuedJob } from '../services/flowService.js';
+import { AGENT_DRIVERS } from './storyboardDispatch.js';
 import { openProject, renameGroup, markGroup, serializeGroup, addGroup } from '../services/projectService.js';
 import { createItemGroup, getSelectedItem } from '../data/projectModel.js';
 import { buildImportGroup } from '../services/mediaImportService.js';
@@ -1190,8 +1191,9 @@ async function _submitFlow(jobId, input = {}) {
     if (!target.project) {
         return _fail(jobId, 'NO_PROJECT', 'No project is open in Vision and the request named none. Send folderPath, or create or open a project, then send this request again.');
     }
-    const built = await buildFlow(input, target.project);
+    const built = await buildFlow(input, target.project, { driver: true });
     if (!built.ok) return _fail(jobId, built.code, built.message);
+    if (built.flow.driver) return _submitDriverFlow(jobId, input, built, target);
 
     // A Flow always lands in the gallery (Fabio, 2026-09-22), so that is where it is watched,
     // unless it lands in a project the user does not have open.
@@ -1217,6 +1219,65 @@ async function _submitFlow(jobId, input = {}) {
     // describe or a cloud edit, and through each later leg and pass (MPI-1083).
     if (!_settled.has(jobId)) _inFlight.set(jobId, queued);
     return null;
+}
+
+/**
+ * An agent's run of a driver Flow (MPI-1286, Storyboard): one ask, many jobs, ONE answer when
+ * the last has ended, the stack and every card in it. Its jobs are added to the open project's
+ * gallery and stack as the Flow frame's are, so it runs only in the project the app has open.
+ * `cancel_generation` stops it as Stop does in the frame: nothing more is queued, and every
+ * picture still queued or rendering is cancelled.
+ */
+async function _submitDriverFlow(jobId, input, built, target) {
+    const { flow, inputs } = built;
+    if (!target.open) {
+        return _fail(jobId, 'PROJECT_NOT_OPEN', `${flow.title} lands only in the project the app has open. Open that project first (open_project), then send it again.`);
+    }
+    _followWork(input, null);
+    const queueIds = new Set();
+    const handle = {
+        cancelled: false,
+        cancel() {
+            this.cancelled = true;
+            const was = [...queueIds].map(cancelQueuedJob).filter(Boolean);
+            return was.includes('running') ? 'running' : was[0] || 'planning';
+        },
+    };
+    _inFlight.set(jobId, handle);
+    const started = await AGENT_DRIVERS[flow.driver](flow, inputs, {
+        onJob: (queueJobId, done) => {
+            queueIds.add(queueJobId);
+            done.then(() => queueIds.delete(queueJobId));
+        },
+        stopped: () => handle.cancelled,
+        byAgent: true,
+    });
+    if (!started.finished) return _fail(jobId, started.code, started.message);
+    const out = await started.finished;
+    const landed = out.panels.filter(p => p.groupId);
+    if (out.cancelled && !landed.length) return _fail(jobId, 'CANCELLED', 'The user pressed Stop.');
+    if (!out.ok) {
+        const first = (out.panels.find(p => p.error) || {}).error || out.error || {};
+        return _fail(jobId, first.code || 'RUNTIME_ERROR', `No panel was drawn. ${first.message || 'See the app log for the cause.'}`);
+    }
+    const [lead] = landed;
+    return _report(jobId, {
+        ok: true,
+        output: {
+            itemId: lead.item?.id,
+            groupId: lead.groupId,
+            type: 'image',
+            filePath: lead.item?.filePath,
+            ...(out.stackId ? { stackId: out.stackId } : {}),
+            // Story order: panel N is the plan's [PANEL N], its note the panel's intent.
+            cards: out.panels.map(p => (p.groupId
+                ? { panel: p.index + 1, groupId: p.groupId, itemId: p.item?.id, filePath: p.item?.filePath }
+                : { panel: p.index + 1, failed: p.error?.message || 'It did not finish.' })),
+            sheet: out.overview,
+            ...(out.cancelled ? { stopped: true } : {}),
+            plan: started.plan,
+        },
+    });
 }
 
 // ── Library voices (MPI-1004) ────────────────────────────────────────────────────────────
@@ -1301,19 +1362,24 @@ export async function resolveVoices(source, media, project, title = source?.titl
  *
  * @param {{flowId: string, fields?: object, media?: Array, params?: object}} input
  * @param {object} project - where the card lands (`runOriginProject`)
+ * @param {{driver?: boolean}} [opts] - `driver`: the caller runs a driver Flow's agent run
+ *   (`AGENT_DRIVERS`) itself, as the agent's submit does; a routine step submits one job, so never
  * @returns {Promise<{ok: true, flow: object, inputs: object}|{ok: false, code: string, message: string}>}
  */
-export async function buildFlow(input, project) {
+export async function buildFlow(input, project, { driver = false } = {}) {
     const { flowId, fields = {}, media = [], params = {} } = input;
 
     const flow = getFlowById(flowId);
     if (!flow) {
         return _refuse('UNKNOWN_FLOW', retiredFlowMessage(flowId) || `No flow with id "${flowId}".`);
     }
-    // A driver Flow (MPI-1231, Storyboard) fans one press out into many jobs inside the Flow
-    // frame; this path submits ONE job, so it can only open it for the user.
-    if (flow.driver) {
-        return _refuse('OPENS_FOR_USER', `${flow.title} runs only from its own window, where the user reads the plan and presses Generate. Open it for them instead (open: true).`);
+    // A driver Flow (MPI-1231, Storyboard) fans one press out into many jobs. The agent's submit
+    // runs the ones with an agent run (MPI-1286); a routine step is one job, and a driver with no
+    // agent run (Multi-angle) only opens for the user.
+    if (flow.driver && !(driver && AGENT_DRIVERS[flow.driver])) {
+        return _refuse('OPENS_FOR_USER', driver
+            ? `${flow.title} runs only from its own window, where the user presses Generate. Open it for them instead (open: true).`
+            : `${flow.title} cannot be a routine step: one press of it is many pictures. Run it on its own.`);
     }
 
     // submitFlowGeneration pre-flights this itself, but it reports through a TOAST

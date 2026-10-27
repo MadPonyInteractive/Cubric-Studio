@@ -76,6 +76,31 @@ Extra failure codes on this path:
 in the gallery until it finishes — the real card lands on completion. Silence is
 not a failure.
 
+### Storyboard: one ask, a stack of panels
+
+`storyboard` turns an idea into numbered panel pictures, ONE stack in story order with
+each panel's intent as its card note, plus a numbered sheet. It is the one Flow whose
+run is many jobs (MPI-1286), so it answers once, when the last panel has ended:
+`output.stackId`, `output.cards` (`{ panel, groupId, itemId, filePath }` in story order,
+or `{ panel, failed }`), `output.sheet`, and the `plan` that was drawn.
+
+```bash
+curl -s -X POST "$CUBRIC_URL/connector/generate" \
+  -H 'Content-Type: application/json' \
+  -d '{"flowId":"storyboard","fields":{"positive":"A waitress in a late-night diner meets a stranger who knows her name.","panelCount":6,"ratio":"16:9"}}'
+```
+
+- **`plan` empty** (the usual call): the app describes any pictures, plans on Cosmo's
+  model (Cosmo must be connected, Remote > Language Models), then draws. Or write the
+  plan yourself in its format (`[CAST] Lena: ... [PANEL 1] Picture: ... Intent: ...`):
+  it is drawn as sent and Cosmo is not needed.
+- Pictures go as `inputImage` ... `inputImage10`, with `pictureNotes`, one note per
+  picture (`["Lena, a waitress"]`).
+- It runs only in the project the app has OPEN: a `folderPath` naming another one is
+  `PROJECT_NOT_OPEN`. A routine cannot hold it (`OPENS_FOR_USER`).
+- Minutes, not seconds (6 panels at 1K took ~8 min on a 16 GB card).
+  `/connector/cancel` stops it like Stop: nothing more is queued, the queued panels go.
+
 ### Supplying your own audio, image or video
 
 Stage the file first, then pass back the url. Bytes never go through

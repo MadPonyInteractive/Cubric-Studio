@@ -4085,7 +4085,7 @@ export const MpiBaseFlow = ComponentFactory.create({
                 const started = await FLOW_DRIVERS[flow.driver](flow, inputs, {
                     onJob: _followDriverJob, stopped: () => run.handle.cancelled,
                 });
-                // `false` = refused before any job, and its toast said why.
+                // No `finished` (false, or a refusal) = refused before any job, and its toast said why.
                 Promise.resolve(started && started.finished).then((out) => {
                     const stopped = run.handle.cancelled || out?.cancelled;
                     const failed = !stopped && !!out && (!out.ok || !!out.error);

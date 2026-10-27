@@ -16,6 +16,9 @@ none of them removes a gate. Decision record: memory `project_keyframes_storyboa
   upscaler, benched old vs new, replaces it if it wins.
 - 2026-10-26 ("Storyboard 24"): MPI-1231 Storyboard DONE (dev-gated; tile + hero shipped, release note
   held in UNRELEASED.md). Its last item, Cosmo + MCP running it, moved HERE as a release check below.
+- 2026-10-27 (Fabio): Storyboard LEFT this umbrella for 2.1.3 (MPI-1286), in place of Multi-angle.
+  Its gate came off there, its note was folded into 2.1.3, and the Cosmo + MCP release check below
+  was built there (MPI-1286). Both Storyboard release checks below are now MPI-1286's, not this one's.
 
 ## Members
 

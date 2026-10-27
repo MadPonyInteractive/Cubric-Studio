@@ -224,7 +224,7 @@ const _lowerLead = s => (/^(?:A\s|[A-Z][a-z])/.test(s) ? s[0].toLowerCase() + s.
  * @param {StoryboardDeps} deps
  * @returns {Promise<{ok: false, code: string, message: string}|{ok: true, runId: string, stackId: string|null,
  *   finished: Promise<{ok: boolean, cancelled: boolean, reordered: boolean, overview: boolean,
- *   panels: Array<{index: number, groupId: string|null, item?: Object, error?: {code: string, message: string}}>}>}>}
+ *   stackId: string|null, panels: Array<{index: number, groupId: string|null, item?: Object, error?: {code: string, message: string}}>}>}>}
  */
 export async function runStoryboard(panels, { name, sheet = true }, deps) {
     if (deps.isLoopArmed()) return _fail('LOOP_ARMED', 'Disarm Loop before drawing a storyboard.');
@@ -265,7 +265,7 @@ export async function runStoryboard(panels, { name, sheet = true }, deps) {
         // A sheet needs two pictures (`/combine-images`); a stopped run gets none.
         const overview = sheet && landed.length > 1 && !cancelled;
         if (overview) await deps.makeOverview(landed, name);
-        return { ok: landed.length > 0, cancelled, reordered, overview, panels: rows };
+        return { ok: landed.length > 0, cancelled, reordered, overview, stackId, panels: rows };
     });
     return { ok: true, runId, stackId, finished };
 }
