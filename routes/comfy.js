@@ -1070,38 +1070,51 @@ router.post('/comfy/models/check-local', async (req, res) => {
  * (primary/custom root + default root + engine custom_nodes). Shared by
  * /comfy/models/check (local branch) and /comfy/models/check-local.
  */
+// Each dep's probes are independent disk reads, so they run a few at a time instead of one
+// dep after another (P14); a cold disk overlaps them. Results keep the request's order.
+const DEP_PROBE_CONCURRENCY = 16;
+
 async function _localModelsCheck(models) {
     const customRoot = await getCustomRoot();
 
-    const results = {};
+    const probe = async (dep) => {
+        if (!dep.filename) return { id: dep.id || null, installed: false };
 
-    for (const model of models) {
-        if (!model.id || !Array.isArray(model.deps)) { results[model.id] = { installed: false, deps: [] }; continue; }
+        // MPI-654: ONE resolver for both readers. This function used to carry its own
+        // copy of the targetPath / custom_nodes / custom-root / default-root ladder,
+        // and every copy drifted: MPI-607 was the missing `targetPath` branch (flow
+        // deps read not-installed FOREVER), and the search scope drifted next — this
+        // copy searched the dep's bucket while resolveComfyPath searched the whole
+        // custom root, so a same-named weight in another bucket read installed to the
+        // installer and not-installed here. Both are fixed by there being one ladder.
+        const { localPath: depPath } = await resolveComfyPath(dep, customRoot, {});
 
-        let allPresent = true;
-        const depResults = [];
+        // MPI-387 F1: type-aware — a custom_nodes folder holding only a `targetPath`
+        // weight's subdir is not an installed node, and must not report as one.
+        const isInstalled = await isDepInstalledOnDisk(dep, depPath);
+        const partialBytes = isInstalled ? 0 : await getPartialBytes(depPath);
+        return { id: dep.id || null, installed: isInstalled, partialBytes };
+    };
 
-        for (const dep of model.deps) {
-            if (!dep.filename) { depResults.push({ id: dep.id || null, installed: false }); continue; }
-
-            // MPI-654: ONE resolver for both readers. This function used to carry its own
-            // copy of the targetPath / custom_nodes / custom-root / default-root ladder,
-            // and every copy drifted: MPI-607 was the missing `targetPath` branch (flow
-            // deps read not-installed FOREVER), and the search scope drifted next — this
-            // copy searched the dep's bucket while resolveComfyPath searched the whole
-            // custom root, so a same-named weight in another bucket read installed to the
-            // installer and not-installed here. Both are fixed by there being one ladder.
-            const { localPath: depPath } = await resolveComfyPath(dep, customRoot, {});
-
-            // MPI-387 F1: type-aware — a custom_nodes folder holding only a `targetPath`
-            // weight's subdir is not an installed node, and must not report as one.
-            const isInstalled = await isDepInstalledOnDisk(dep, depPath);
-            const partialBytes = isInstalled ? 0 : await getPartialBytes(depPath);
-            if (!isInstalled) allPresent = false;
-            depResults.push({ id: dep.id || null, installed: isInstalled, partialBytes });
+    const valid = (model) => model.id && Array.isArray(model.deps);
+    const deps = models.flatMap(model => (valid(model) ? model.deps : []));
+    const probed = new Array(deps.length);
+    let next = 0;
+    await Promise.all(Array.from({ length: Math.min(DEP_PROBE_CONCURRENCY, deps.length) }, async () => {
+        while (next < deps.length) {
+            const i = next++;
+            probed[i] = await probe(deps[i]);
         }
+    }));
 
-        results[model.id] = { installed: allPresent, deps: depResults };
+    const results = {};
+    let at = 0;
+    for (const model of models) {
+        if (!valid(model)) { results[model.id] = { installed: false, deps: [] }; continue; }
+        const depResults = probed.slice(at, at += model.deps.length);
+        // A dep with no filename reads not-installed but never held its model back.
+        const installed = depResults.every((d, j) => d.installed || !model.deps[j].filename);
+        results[model.id] = { installed, deps: depResults };
     }
 
     return results;
