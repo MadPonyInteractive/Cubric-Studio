@@ -30,5 +30,9 @@
 - [x] D10 remote proxy: _forward/_forwardRoute, 7 routes (883092079); mocked-fetch 17-case drive byte-identical; npm test 3753 / 0 fail
 - [x] D10 EXIF swap: 8 sites on metadata().autoOrient (416a5ddb8); 37-input equivalence 0 mismatches, image-orientation test green
 - [x] D10 lazy imports: connector _corpus() (651182d34), /connector/knowledge 200 with 73 entries; engines/trash/_getSharp and _fail x5 left on purpose (AUDIT Status)
-- [ ] P2, P14, P7, P12, P13
+- [x] P2 list-projects head + update-project stamp (58d6f6e5f): 69 projects 1,535,292 -> 35,592 bytes, rows identical on read fields
+- [x] P14 models/check pool of 16 (27831b39d): 234 deps, answer byte-identical, warm 26-32 -> 12-15 ms
+- [x] P7 GIF frame thumbs via sharp (dd8073a90): 200-frame import 13.4 s -> 1.7 s, hashes/entry unchanged
+- [x] P12 extractImageThumbs one ffmpeg (78746ff3d): renditions sha1-identical, 295 -> 251 ms
+- [x] P13 nvidia-smi only on NVIDIA, 1.5 s TTL (5790c89a4): tests/system-vram-stats.test.cjs fails 2/3 on old code; npm test 3756 / 0
 ## Phase 3–4: see plan.md

@@ -98,9 +98,16 @@ the 142 violations they had let through). The finding sections below are left as
 - Phase 2: **D10, EXIF swap**: all eight read sharp's `metadata().autoOrient` (37-input equivalence
   check, 0 mismatches). **Lazy imports**: connector's `_corpus()` only; the `engines()`/trash/
   `_getSharp` caches and the five `_fail` one-liners are left (no saving; trash is a test seam).
+- Phase 2: **P2** `/list-projects` sends `projectHead` (id/name/createdAt/updatedAt, cached on
+  project.json mtime+size) + cover/stats: 1.5 MB -> 36 KB for 69 projects, warm 30-43 -> 10-13 ms;
+  `/update-project` answers `{ success, updatedAt }`. **P14** models/check probes 16 at a time
+  (warm 26-32 -> 12-15 ms, answer identical). **P7** GIF frame thumbs via sharp in `writeFrame`
+  (200-frame import 13.4 s -> 1.7 s). **P12** `extractImageThumbs`: both renditions from one
+  ffmpeg run, bytes identical, ~15-20% faster. **P13** `getVramStats` skips nvidia-smi off NVIDIA
+  and shares one answer per 1.5 s (`tests/system-vram-stats.test.cjs`).
 
 **Still open, suggested batches:**
-- Next: **P2/P14/P7/P12/P13**.
+- Next: Phase 3 (below), which needs the desktop suite or Fabio watching.
 - Needs the desktop suite or Fabio watching: **P1**, **P3**, **D7**, **D9**.
 - Needs a local profile or a Pod: **P4–P6**, **P9–P11**.
 

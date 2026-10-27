@@ -5,8 +5,9 @@
 - **Where it stands (2026-10-27):** Phases 1a-1d, D1, D3, D10's GIF card tail and D10's scratch
   sweeps (`services/scratchSweep.js`, e6a14214b) and ffmpeg plumbing (`runFfmpeg`/`runFfprobe`/
   `trimArgs` in `services/ffmpegBinary.js`) done and pushed.
-  D10 is finished (ffprobe, proxy, EXIF, lazy imports: see Completed).
-  Next: P2/P14/P7/P12/P13, one commit each. The route snapshot
+  Phase 2 is finished (D10 + P2/P14/P7/P12/P13: see Completed).
+  Next: Phase 3 (user-ux) P1, P3, D7, D9 - needs the desktop suite and Fabio's eye on anything
+  visible; then Phase 4 (P4-P6, P9-P11) needs a local profile or a Pod. The route snapshot
   scripts are in this card's `research/` (`d3snap.cjs`, `d10snap.cjs`, diff with `d3diff.py`):
   `node research/d10snap.cjs <repo> <out.json>` before and after, then diff. In d10snap,
   `/gif/preview` must run before an update (`/gif/entry` update sweeps unreferenced frames).
@@ -64,6 +65,9 @@
 - [x] D10 proxy (883092079) `_forward`/`_forwardRoute`; EXIF (416a5ddb8) `metadata().autoOrient`;
   lazy (651182d34) connector `_corpus()` only. Left on purpose: `remoteModels._authHeaders`,
   `engines()`/trash/`_getSharp` caches, `_fail` x5 (reasons in AUDIT.md Status). **D10 is done.**
+- [x] P2 (58d6f6e5f), P14 (27831b39d), P7 (dd8073a90), P12 (78746ff3d), P13 (5790c89a4): measured
+  numbers in AUDIT.md Status + checklist. **Phase 2 is done.** Not done in P7: parallel frame
+  writes (a repeated frame = two writers on one hash's files, a Windows rename/EBUSY risk).
 
 ## Remaining Work
 
