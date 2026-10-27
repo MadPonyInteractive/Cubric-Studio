@@ -5,9 +5,10 @@
 - **Where it stands (2026-10-27):** Phases 1a-1d, D1, D3, D10's GIF card tail and D10's scratch
   sweeps (`services/scratchSweep.js`, e6a14214b) and ffmpeg plumbing (`runFfmpeg`/`runFfprobe`/
   `trimArgs` in `services/ffmpegBinary.js`) done and pushed.
-  Phase 2 is finished (D10 + P2/P14/P7/P12/P13: see Completed).
-  Next: Phase 3 (user-ux) P1, P3, D7, D9 - needs the desktop suite and Fabio's eye on anything
-  visible; then Phase 4 (P4-P6, P9-P11) needs a local profile or a Pod. The route snapshot
+  Phase 2 is finished (D10 + P2/P14/P7/P12/P13: see Completed). P1 + P3 pushed (f6e4fe8f2),
+  Fabio checked it; AUDIT.md Status + checklist ticked.
+  Fabio 2026-10-27: the MOSS release (2.1.3) goes out this afternoon with P1 + P3 only; D7, D9
+  and Phase 4 (P4-P6, P9-P11) are for the NEXT release - do not start them before the cut. The route snapshot
   scripts are in this card's `research/` (`d3snap.cjs`, `d10snap.cjs`, diff with `d3diff.py`):
   `node research/d10snap.cjs <repo> <out.json>` before and after, then diff. In d10snap,
   `/gif/preview` must run before an update (`/gif/entry` update sweeps unreferenced frames).
@@ -68,6 +69,11 @@
 - [x] P2 (58d6f6e5f), P14 (27831b39d), P7 (dd8073a90), P12 (78746ff3d), P13 (5790c89a4): measured
   numbers in AUDIT.md Status + checklist. **Phase 2 is done.** Not done in P7: parallel frame
   writes (a repeated frame = two writers on one hash's files, a Windows rename/EBUSY risk).
+- [x] P1 + P3 (f6e4fe8f2): `sweepOrphanSidecars` at project open (after `/migrate-project`
+  answers) replaces save-generation's GC; `POST /project-media/:projectId/delete-batch` +
+  `deleteMediaFiles` for all four delete callers; async fs in `removeItemThumbs`, `/delete-meta`,
+  `/load-meta`, `/file-exists`. 5,000 sidecars: save 2,936 -> 62 ms, delete 50 cards 118 s -> 2.3 s
+  (bench + throwaway desktop spec in the session scratchpad, not committed).
 
 ## Remaining Work
 
@@ -151,6 +157,10 @@ touches the same code.
   unset instead of naming a missing file (MPI-627), and `/gif/crop`+`/gif/resize` now remove a
   half-built `.gif` when the build throws (their outputPath was only known after success).
 
+- P1: the audit said project open and Manual Cleanup "already sweep" orphan sidecars. Neither
+  did: the reconciler drops only sidecars of cards the project LISTS, and Manual Cleanup only
+  derivatives. So the sweep moved to open instead of being deleted; `.meta` mtime gating was
+  rejected (a save always changes `.meta`, while orphans come from `Media/` changing).
 - H3 dropped: `build:portable:*` point at `D:\tmp` on purpose (Fabio's PC, C: short on space;
   CI passes its own `--stage-dir`).
 - Of the three #12 test counters only comfy-vanished-prompt had lost a check; agent-loop and

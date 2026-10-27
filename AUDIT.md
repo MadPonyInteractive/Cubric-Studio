@@ -105,10 +105,16 @@ the 142 violations they had let through). The finding sections below are left as
   (200-frame import 13.4 s -> 1.7 s). **P12** `extractImageThumbs`: both renditions from one
   ffmpeg run, bytes identical, ~15-20% faster. **P13** `getVramStats` skips nvidia-smi off NVIDIA
   and shares one answer per 1.5 s (`tests/system-vram-stats.test.cjs`).
+- Phase 3: **P1** the orphan-sidecar sweep left save-generation for project open
+  (`sweepOrphanSidecars`, after `/migrate-project` answers), MPI-975/976/977 guards kept.
+  This finding was wrong that open and Manual Cleanup already swept: neither removed a sidecar
+  no card lists. **P3** `POST /project-media/:projectId/delete-batch` + `deleteMediaFiles` for
+  every delete caller (one `.meta` listing, one GIF frame sweep), async fs in
+  `removeItemThumbs`, `/delete-meta`, `/load-meta`, `/file-exists`. 5,000 sidecars: save
+  2,936 -> 62 ms, deleting 50 cards 118 s -> 2.3 s (f6e4fe8f2, Fabio checked).
 
 **Still open, suggested batches:**
-- Next: Phase 3 (below), which needs the desktop suite or Fabio watching.
-- Needs the desktop suite or Fabio watching: **P1**, **P3**, **D7**, **D9**.
+- After the 2.1.3 cut (Fabio, 2026-10-27): **D7**, **D9**, then Phase 4.
 - Needs a local profile or a Pod: **P4–P6**, **P9–P11**.
 
 **Notes for whoever picks it up:** lint now runs with `--max-warnings=0` and the two path rules

@@ -35,4 +35,6 @@
 - [x] P7 GIF frame thumbs via sharp (dd8073a90): 200-frame import 13.4 s -> 1.7 s, hashes/entry unchanged
 - [x] P12 extractImageThumbs one ffmpeg (78746ff3d): renditions sha1-identical, 295 -> 251 ms
 - [x] P13 nvidia-smi only on NVIDIA, 1.5 s TTL (5790c89a4): tests/system-vram-stats.test.cjs fails 2/3 on old code; npm test 3756 / 0
-## Phase 3–4: see plan.md
+- [x] P1 orphan-sidecar sweep at project open (f6e4fe8f2): 5,000 sidecars, save 2,936 -> 62 ms; race tests drive the sweep
+- [x] P3 delete-batch route + deleteMediaFiles (f6e4fe8f2): 50 cards 118 s -> 2.3 s; desktop History + Gallery delete one request each; Fabio checked
+## Phase 3–4: see plan.md (D7, D9, Phase 4 after the 2.1.3 cut)
