@@ -59,6 +59,8 @@
   or per-name age (`null` = leave it), `only: 'file'|'dir'`. Unit test + MPI-919 test.
 - [x] D10 ffmpeg: `runFfmpeg`/`runFfprobe` (windowsHide forced; callers keep their opts), `trimArgs`,
   mux on `_spawnFfmpeg`. The MPI-637 scan (`windows-hide-spawn.test.cjs`) still covers the helper.
+- [x] D10 ffprobe (924b0e15e): extract route crops on `probeVideo`'s upright dims (rotated-clip
+  bug); `_mediaSeconds` kept (container length, video or audio). The route has no in-app caller.
 
 ## Remaining Work
 

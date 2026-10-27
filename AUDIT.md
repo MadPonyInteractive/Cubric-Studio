@@ -89,6 +89,9 @@ the 142 violations they had let through). The finding sections below are left as
   `windowsHide` for the 17 files that each promisified `execFile` (comment kept once there);
   `trimArgs` replaces the four `-ss/-to` copies; `muxAudioIntoVideo` uses `ffmpegMux`'s own
   `_spawnFfmpeg`. `videoConcat`'s runner stays: it feeds stdin and parses progress.
+- Phase 2: **D10, ffprobe bypass**: the `/project-media/:projectId/extract` crop now reads
+  `probeVideo`'s upright size (it cropped a rotated phone clip wrong, or 500'd past the frame).
+  `deepinfra.js` `_mediaSeconds` stays: it wants the container length of video OR audio.
 
 **Still open, suggested batches:**
 - Next: rest of **D10** ( remote proxy, EXIF swap, lazy imports,
