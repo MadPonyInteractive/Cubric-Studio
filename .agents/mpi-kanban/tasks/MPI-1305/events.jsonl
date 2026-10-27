@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1305", "at": "2026-10-27T10:03:08+00:00", "actor": "claude", "column": "todo", "title": "Storyboard: the plan as Markdown behind a View plan button"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1305", "at": "2026-10-27T10:03:29+00:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started."}

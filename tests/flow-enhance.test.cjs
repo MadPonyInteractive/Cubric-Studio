@@ -170,6 +170,17 @@ test('flowEnhanceDecls finds the flow-level declaration and the button ones, and
     assert.deepStrictEqual(fe.flowEnhanceDecls(null), []);
 });
 
+test('Storyboard\'s planner answer is written as the Markdown plan (writeAs, MPI-1305)', async () => {
+    const fe = await esm('js/services/flowEnhance.js');
+    const { getFlowById } = await esm('js/data/flowsRegistry.js');
+    const d = fe.flowEnhanceDecls(getFlowById('storyboard')).find(x => x.to === 'plan');
+    assert.strictEqual(d.writeAs, 'storyboardPlan');
+    const [[id, plan]] = fe.enhancedWrites(d, 'Storyboard plan:\n[CAST]\nLena: a waitress\n[PANEL 1] Picture: Lena pours coffee. Intent: x', () => true);
+    assert.strictEqual(id, 'plan');
+    assert.match(plan, /^# Storyboard plan\n\n## Cast\n\n- \*\*Lena\*\*: a waitress\n\n## Panel 1\n/);
+    assert.deepStrictEqual(fe.enhancedWrites({ to: 'x' }, 'a phrase', () => true), [['x', 'a phrase']], 'no writeAs writes the answer as it came');
+});
+
 test('splitEnhanced and enhancedWrites: marked blocks, unmarked fallback, the user\'s own boxes', async () => {
     const fe = await esm('js/services/flowEnhance.js');
     const { flow } = await song();

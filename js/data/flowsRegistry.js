@@ -275,7 +275,10 @@
  *                               `Input_*` reaches it inside `injectionParams`. A step's fields are
  *                               additionally mirrored under that step's role in `stepValues`,
  *                               which is the shape Reuse restores from.
- * @property {'select'|'radio'|'button'|'toggle'|'number'|'slider'|'text'} type
+ * @property {'select'|'radio'|'button'|'toggle'|'number'|'slider'|'text'|'markdown'} type -
+ *                               `markdown` (MPI-1305): a long text read as a document, held behind
+ *                               a button (`label`, `icon`) that opens it in MpiNotesEditor under
+ *                               `title`; disabled while the text is empty.
  * @property {string}  [label]
  * @property {Array<{v:string|number, label:string, info?:string, note?:string}>} [options] -
  *                               For `select` / `radio`. `radio` emits the option's ORIGINAL `v`,
@@ -554,8 +557,8 @@ const SHEET_CLOTHES_CHECKS = ['upper body, the chest and belly', 'lower body, th
 // 4B, told to repeat descriptions, wrote "the same waitress" from panel 2 on (a stranger every
 // time). It cannot see the user's pictures and invented their looks however it was told, so each
 // picture is described first (`describePictures` on the button) and the planner copies that
-// description into the picture's cast line; the plan box's line is what every panel gets. The enhancer
-// flattens its answer to one line: panels are found by `[PANEL n]` and `Intent:`, never newlines.
+// description into the picture's cast line; the plan's line is what every panel gets. The answer
+// keeps its newlines and lands as Markdown (MPI-1305); panels are still found by their markers.
 // "Name, never a pronoun" and "speech goes in the Intent" are the bench's two faults: a stranger
 // called "him" got no line and changed clothes, and quoted speech rendered as lettering.
 // Places go in their own `[PLACES]` block, and each panel names its place by that name: a cast
@@ -587,6 +590,10 @@ const STORYBOARD_PLAN_ENHANCE_PARAMS = {
         '<|im_end|>',
         '<|im_start|>user',
     ].join('\n'),
+    // Newlines stay (MPI-1305): the graph's Replace Text deleted them with no space, gluing each
+    // cast line to the next name ("crew trailersDirector's Station" read as a place "Station").
+    // '\n' -> '\n' makes that node an identity pass, as in llmService's job params.
+    'Replace Text.replace': '\n',
     'Input_Scrub_Negation.regex_pattern': '(?!)',
     'Input_Tidy.regex_pattern': '\\s+$',
     // 12 panels x ~160 words is ~2,600 tokens; the cap is a guard against a loop, not the budget.
@@ -3114,7 +3121,7 @@ const ALL_FLOWS = [
                 tickerLabel: 'Plan',
                 title: 'Plan the storyboard',
                 hint: [
-                    '**Plan with Cosmo** writes the cast once, then one block per panel: the picture, then its intent. Edit it freely: **whatever is in the plan box is what gets drawn**, and a cast line you change changes every panel.',
+                    '**Plan with Cosmo** writes the cast once, then one block per panel: the picture, then its intent. **View plan** opens it to read or edit: **whatever the plan says is what gets drawn**, and a cast line you change changes every panel.',
                     '**How many panels:** a calm moment reads well in 4 to 6. A fast action scene with many cuts wants 10 to 12, one panel per cut.',
                     '**Added pictures?** Under each one, say who or what it shows, like "Lena, a waitress". A picture works best with one character alone in it.',
                 ],
@@ -3127,7 +3134,8 @@ const ALL_FLOWS = [
                         empty: 'No pictures. The panels are drawn from your words. To keep a character or place the same in every panel, add its picture on the first step.',
                     },
                     {
-                        id: 'positive', type: 'text', rows: 8, label: 'Your idea', col: 'right',
+                        // The plan box went behind View plan (MPI-1305): the idea takes its room.
+                        id: 'positive', type: 'text', rows: 16, label: 'Your idea', col: 'right',
                         placeholder: 'A waitress in a late-night diner meets a stranger who knows her name.',
                     },
                     {
@@ -3143,11 +3151,14 @@ const ALL_FLOWS = [
                         // 2026-10-25): a planner that only reads "Sphinx" draws the monument.
                         describePictures: { field: 'pictureNotes', ask: STORYBOARD_PICTURE_ASK },
                         from: ['positive', 'pictureNotes', 'panelCount', 'ratio'], to: 'plan',
+                        // The answer lands as a Markdown document (MPI-1305, `storyboardPlanMarkdown`).
+                        writeAs: 'storyboardPlan',
                         injectionParams: STORYBOARD_PLAN_ENHANCE_PARAMS,
                     },
                     {
-                        id: 'plan', type: 'text', rows: 12, label: 'The plan', col: 'right',
-                        placeholder: 'Press Plan with Cosmo, or write it yourself: [CAST] Lena: ... [PANEL 1] Picture: ... Intent: ...',
+                        // Fabio, 2026-10-27: the one-line plan was unreadable in a box. It opens
+                        // in the notes editor, rendered, and the button waits for a plan.
+                        id: 'plan', type: 'markdown', label: 'View plan', icon: 'eye', title: 'Storyboard plan', col: 'right',
                     },
                 ],
             },

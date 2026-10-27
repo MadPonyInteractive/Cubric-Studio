@@ -13,10 +13,10 @@ const path = require('node:path');
 
 const esm = (p) => import('file:///' + path.join(__dirname, '..', p).replace(/\\/g, '/'));
 
-let runStoryboard, parseStoryboardPlan, panelsWithDrawn, recurringActors, panelStyle, MAX_DRAWN_FIRST, applyReorderMembers;
+let runStoryboard, parseStoryboardPlan, panelsWithDrawn, recurringActors, panelStyle, MAX_DRAWN_FIRST, storyboardPlanMarkdown, applyReorderMembers;
 
 test.before(async () => {
-    ({ runStoryboard, parseStoryboardPlan, panelsWithDrawn, recurringActors, panelStyle, MAX_DRAWN_FIRST } = await esm('js/services/storyboardRunner.js'));
+    ({ runStoryboard, parseStoryboardPlan, panelsWithDrawn, recurringActors, panelStyle, MAX_DRAWN_FIRST, storyboardPlanMarkdown } = await esm('js/services/storyboardRunner.js'));
     ({ applyReorderMembers } = await esm('js/data/stackModel.js'));
 });
 
@@ -160,6 +160,33 @@ test('the plan parses from the enhancer\'s one flattened line and from hand-edit
     ];
     assert.deepStrictEqual(parseStoryboardPlan(flat), want);
     assert.deepStrictEqual(parseStoryboardPlan(flat.replace(/ \[/g, '\n\n[').replace(/ Intent/g, '\nIntent')), want);
+});
+
+// MPI-1305: Fabio's movie-set board, as the old enhancer glued it ("trailersDirector's Station").
+const GLUED = "Storyboard plan:[CAST]Vinyl: a small pink robot from image 1Lingo: a pixel art robot from image 2[PLACES]Movie Set: the outdoor filming area with crew trailersDirector's Station: the shaded spot with a monitor[OBJECTS]Clapperboard: a cue stick with a hinged top[PANEL 1]Picture: 2D cartoon film still, a wide shot at Movie Set. Vinyl holds the Clapperboard. Intent: The shoot begins.[PANEL 2]Picture: 2D cartoon film still, Lingo at Movie Set. Intent: He types.";
+
+test('the planner\'s answer becomes a Markdown plan that parses exactly as the bracket form did', () => {
+    const md = storyboardPlanMarkdown(GLUED);
+    assert.match(md, /^# Storyboard plan\n\n## Cast\n\n- \*\*Vinyl\*\*: a small pink robot from image 1\n- \*\*Lingo\*\*: a pixel art robot from image 2\n\n## Places\n/);
+    assert.match(md, /\n## Objects\n\n- \*\*Clapperboard\*\*: a cue stick with a hinged top\n/);
+    assert.match(md, /\n## Panel 2\n\n\*\*Picture:\*\* 2D cartoon film still, Lingo at Movie Set\.\n\n\*\*Intent:\*\* He types\.$/);
+    for (const plan of [GLUED, CAST_PLAN]) {
+        const m = storyboardPlanMarkdown(plan);
+        assert.deepStrictEqual(parseStoryboardPlan(m), parseStoryboardPlan(plan));
+        assert.deepStrictEqual(recurringActors(m), recurringActors(plan));
+        assert.deepStrictEqual(panelsWithDrawn(m, '', [{ name: 'Lena', kind: 'character' }], 1), panelsWithDrawn(plan, '', [{ name: 'Lena', kind: 'character' }], 1));
+        assert.strictEqual(storyboardPlanMarkdown(m), m, 'converting twice changes nothing');
+    }
+    assert.strictEqual(storyboardPlanMarkdown('Sorry, I cannot plan that.'), 'Sorry, I cannot plan that.', 'an answer with no panel is left as it came');
+});
+
+test('an answer that keeps its newlines splits every name, where the glued one lost them', () => {
+    const lines = GLUED.replace(/(\d|trailers|top)(?=[A-Z[])/g, '$1\n').replace(/\[/g, '\n[');
+    const names = recurringActors(lines).map(a => a.name);
+    assert.ok(lines.includes("trailers\nDirector's Station"));
+    assert.deepStrictEqual(storyboardPlanMarkdown(lines).match(/^- \*\*[^*]+\*\*/gm),
+        ['- **Vinyl**', '- **Lingo**', '- **Movie Set**', "- **Director's Station**", '- **Clapperboard**']);
+    assert.ok(names.includes('Movie Set'), names.join());
 });
 
 test('a block with no Intent keeps its words as the prompt; text before the first marker and empty blocks are dropped', () => {

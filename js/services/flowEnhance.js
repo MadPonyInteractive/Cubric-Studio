@@ -28,6 +28,7 @@ import { firstFrameDataUrl } from '../utils/video.js';
 import { resolveMediaUrl } from '../utils/mediaActions.js';
 import { getFlowById, flowModelIds, ruleHolds, flowMediaCtx } from '../data/flowsRegistry.js';
 import { mapDeclaredValue, hiddenFieldIds, isInjectionParam } from '../utils/declaredFields.js';
+import { storyboardPlanMarkdown } from './storyboardRunner.js';
 
 /**
  * Every field an enhance declaration writes into.
@@ -217,9 +218,19 @@ export function enhancedWrites(d, text, mayWrite) {
     const { blocks, unmarked } = splitEnhanced(d, text);
     const open = blocks.filter(([id]) => mayWrite(id));
     if (!open.length) return [];
-    if (unmarked) return [[open[0][0], text]];
-    return open.filter(([, v]) => v);
+    const as = WRITE_AS[d.writeAs] || (v => v);
+    if (unmarked) return [[open[0][0], as(text)]];
+    return open.filter(([, v]) => v).map(([id, v]) => [id, as(v)]);
 }
+
+/**
+ * The shape an answer is written in, by a declaration's `writeAs` (MPI-1305). The hand run, the
+ * agent's Flow run and the agent's Storyboard all write through `enhancedWrites`, so one key
+ * gives them the same text.
+ */
+const WRITE_AS = {
+    storyboardPlan: storyboardPlanMarkdown,
+};
 
 /**
  * Target ids to adopt as the ENHANCER'S at the frame's seed: a declaration whose targets are

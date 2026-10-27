@@ -55,3 +55,7 @@
 > or three times inside one unreleased version reads like user-visible history but
 > never shipped, and the entry is then simply false. Full gate:
 > `.claude/skills/mpi-release/references/copy-review.md` § Gate 0.
+
+## Fixes
+
+- Storyboard's plan is readable: View plan opens it as a document, with the cast, places, objects and each panel under its own heading, and you can edit it there. The idea box gets the freed room. Names on a line of their own no longer run into the line before, which could give a panel the wrong place or leave a thing out (MPI-1305).

@@ -34,10 +34,10 @@
 const _fail = (code, message) => ({ ok: false, code, message });
 
 /**
- * The plan box's text as panels. The enhancer flattens its answer to ONE line (the shared
- * graph's `Replace Text`, carried to every backend by `postProcessLikeGraph`), so blocks
- * are found by their `[PANEL n]` markers and labels, never by newlines; the user's own
- * edits may add newlines back, and those read the same. A block's `Intent:` part is its
+ * The plan's text as panels. A plan saved before MPI-1305 is ONE line (the enhancer graph's
+ * `Replace Text` deleted every newline), so blocks are found by their `[PANEL n]` markers and
+ * labels, never by newlines; the Markdown plan (`storyboardPlanMarkdown`) reads through
+ * `_plain` into the same markers. A block's `Intent:` part is its
  * card note; the rest, less a leading `Picture:`, is its prompt. A block with no picture
  * text is dropped.
  *
@@ -54,9 +54,48 @@ const _fail = (code, message) => ({ ok: false, code, message });
  * @returns {StoryboardPanel[]}
  */
 export function parseStoryboardPlan(text, idea = '', actorImages = {}) {
-    const cast = _cast(String(text || ''), idea);
-    return _blocks(String(text || '')).map(b => _panel(b, cast, actorImages));
+    const plan = _plain(text);
+    const cast = _cast(plan, idea);
+    return _blocks(plan).map(b => _panel(b, cast, actorImages));
 }
+
+/**
+ * The planner's answer as the Markdown the plan holds (MPI-1305): the enhancer's one flattened
+ * line was unreadable ("from image 1Lingo: ... [PLACES]Movie Set: ..."), so it lands as a
+ * `## Cast` / `## Places` / `## Objects` list of `- **Name**: description` and one `## Panel N`
+ * per panel with its `**Picture:**` and `**Intent:**`. Every reader goes through `_plain`, so
+ * this Markdown, the bracket form an outside agent writes and a plan saved before both parse
+ * the same. An answer with no panel is left as it came, for the user to read.
+ * @param {string} text - the planner's answer, or any plan
+ * @returns {string}
+ */
+export function storyboardPlanMarkdown(text) {
+    const plan = _plain(text);
+    const blocks = _blocks(plan);
+    if (!blocks.length) return String(text || '');
+    const lines = _castLines(plan);
+    const section = (title, kind) => {
+        const rows = lines.filter(c => c.kind === kind).map(c => `- **${c.name}**: ${c.desc}`);
+        return rows.length ? [`## ${title}`, '', ...rows, ''] : [];
+    };
+    return [
+        '# Storyboard plan', '',
+        ...section('Cast', 'character'), ...section('Places', 'place'), ...section('Objects', 'object'),
+        ...blocks.flatMap((b, i) => [`## Panel ${i + 1}`, '', `**Picture:** ${b.prompt}`, '',
+            ...(b.intent ? [`**Intent:** ${b.intent}`, ''] : [])]),
+    ].join('\n').trim();
+}
+
+/**
+ * A Markdown plan in the bracket form the readers below parse: `## Cast` is `[CAST]`, `## Panel 2`
+ * is `[PANEL 2]`, and list marks and bold go (`- **Lena**: ...` is `Lena: ...`). A bracket plan
+ * passes through unchanged.
+ */
+const _plain = text => String(text || '')
+    .replace(/^[ \t]*#{1,6}[ \t]*(cast|places|objects)[ \t]*$/gim, (m, tag) => `[${tag.toUpperCase()}]`)
+    .replace(/^[ \t]*#{1,6}[ \t]*panel[ \t]*(\d*)[ \t]*$/gim, (m, n) => `[PANEL ${n}]`)
+    .replace(/^[ \t]*[-*+][ \t]+/gm, '')
+    .replace(/\*\*|__/g, '');
 
 /**
  * The panels once the pictures drawn before them have landed, each with the drawn pictures IT
@@ -71,9 +110,10 @@ export function parseStoryboardPlan(text, idea = '', actorImages = {}) {
  * @returns {Array<StoryboardPanel & {drawn: number[]}>} - `drawn`: indices into `drawn`, in order
  */
 export function panelsWithDrawn(text, idea, drawn, userPictures) {
-    const cast = _cast(String(text || ''), idea);
+    const plan = _plain(text);
+    const cast = _cast(plan, idea);
     const names = [...cast.values()].map(c => c.name);
-    return _blocks(String(text || '')).map((b) => {
+    return _blocks(plan).map((b) => {
         const picks = drawn.map((d, i) => i).filter(i => drawn[i].kind !== 'place' || _mentions(b.prompt, drawn[i].name, names));
         const images = Object.fromEntries(picks.map((i, k) => [drawn[i].name.toLowerCase(), userPictures + k + 1]));
         return { ..._panel(b, cast, images), drawn: picks };
@@ -105,7 +145,7 @@ function _panel({ prompt, intent }, cast, actorImages) {
  * @returns {Array<{name: string, desc: string, kind: 'character'|'place'|'object'}>}
  */
 export function recurringActors(text, idea = '') {
-    const plan = String(text || '');
+    const plan = _plain(text);
     const pictured = new Set(_pictureCast(idea).map(c => c.name.toLowerCase()));
     const blocks = _blocks(plan);
     const names = [..._cast(plan, idea).values()].map(c => c.name);

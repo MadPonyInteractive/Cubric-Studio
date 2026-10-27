@@ -92,8 +92,10 @@ curl -s -X POST "$CUBRIC_URL/connector/generate" \
 
 - **`plan` empty** (the usual call): the app describes any pictures, plans on Cosmo's
   model (Cosmo must be connected, Remote > Language Models), then draws. Or write the
-  plan yourself in its format (`[CAST] Lena: ... [PANEL 1] Picture: ... Intent: ...`):
-  it is drawn as sent and Cosmo is not needed.
+  plan yourself in its format (`[CAST] Lena: ... [PANEL 1] Picture: ... Intent: ...`, or the
+  Markdown the app writes: `## Cast`, `- **Lena**: ...`, `## Panel 1`, `**Picture:** ...`,
+  `**Intent:** ...`): it is drawn as sent and Cosmo is not needed. A `plan` the app wrote
+  comes back as that Markdown.
 - Pictures go as `inputImage` ... `inputImage10`, with `pictureNotes`, one note per
   picture (`["Lena, a waitress"]`).
 - It runs only in the project the app has OPEN: a `folderPath` naming another one is

@@ -45,6 +45,7 @@ import { MpiProgressBar } from '../components/Primitives/MpiProgressBar/MpiProgr
 import { MpiInput } from '../components/Primitives/MpiInput/MpiInput.js';
 import { MpiDropdown } from '../components/Primitives/MpiDropdown/MpiDropdown.js';
 import { MpiAngleGizmo } from '../components/Compounds/MpiAngleGizmo/MpiAngleGizmo.js';
+import { MpiNotesEditor } from '../components/Compounds/MpiNotesEditor/MpiNotesEditor.js';
 import { renderIcon } from './icons.js';
 import { attachMentionPicker } from './mentionPicker.js';
 import { clientLogger } from '../services/clientLogger.js';
@@ -62,7 +63,7 @@ export { ruleHolds, flowControlFieldIds } from '../data/flowsRegistry.js';
  * Types whose control already shows the label on its own face, so the wrapper must
  * not print it a second time above.
  */
-const LABEL_IN_CONTROL = new Set(['button', 'toggle']);
+const LABEL_IN_CONTROL = new Set(['button', 'toggle', 'markdown']);
 
 /**
  * The `toggle` icon when a declaration names none. Icon MODE is not optional here —
@@ -719,7 +720,8 @@ export function buildField(f, cur, onChange, unsubs, opts = {}) {
     // `<button>`, and a label wrapping a button re-fires the click — the toggle would
     // flip and flip back on one press. That type gets a plain div.
     // `angle` too: a label would forward a click on its preview into the first slider.
-    const wrap = ce(f.type === 'toggle' || f.type === 'angle' ? 'div' : 'label', { className: cls('field') });
+    // `markdown` too: its face is a button, and a click on it opens a dialog.
+    const wrap = ce(f.type === 'toggle' || f.type === 'angle' || f.type === 'markdown' ? 'div' : 'label', { className: cls('field') });
     // `inline` lays the caption and the control on ONE row — caption left, control
     // right — instead of stacking them. A `number` is what asks for it: stacked, a
     // three-digit BPM gets a full-width box with room for trillions (Fabio,
@@ -1019,6 +1021,38 @@ export function buildField(f, cur, onChange, unsubs, opts = {}) {
                 clientLogger.warn('declaredFields', `field ${f.id} declares tags but mounted no text node`);
             }
         }
+        wrap.appendChild(host);
+    } else if (f.type === 'markdown') {
+        // A long text read as a DOCUMENT (MPI-1305): Storyboard's plan was a run-on line in a
+        // box. A small button opens it in the notes editor, rendered, and Save writes it back.
+        // Disabled while empty (Fabio, 2026-10-27: it waits for the plan). `setValue` on the
+        // host is how the flow frame's programmatic write (an Enhance answer) reaches it.
+        let value = cur != null ? String(cur) : '';
+        const host = ce('div', { className: cls('field-markdown') });
+        const icon = f.icon ? renderIcon(f.icon, 'sm') : '';
+        const inst = MpiButton.mount(host, {
+            variant: 'secondary',
+            size: 'sm',
+            disabled: !value.trim(),
+        }, `${icon}<span class="mpi-btn__text">${f.label || f.id}</span>`);
+        const setValue = (v) => {
+            value = v != null ? String(v) : '';
+            inst.el.setDisabled(!value.trim());
+        };
+        Object.assign(host, { setValue });
+        inst.on('click', () => {
+            // Fresh mount per open, as the project notes do: factory.on() accumulates listeners.
+            const editor = MpiNotesEditor.mount(document.createElement('div'), {
+                title: f.title || f.label || f.id,
+                value,
+                onSave: async (next) => {
+                    setValue(next);
+                    onChange(next);
+                },
+            });
+            editor.el.show();
+        });
+        unsubs.push(() => inst?.el?.destroy?.());
         wrap.appendChild(host);
     } else if (f.type === 'voices') {
         // The voice ROSTER (MPI-664) — a cast list of any length, each row ONE dropdown.

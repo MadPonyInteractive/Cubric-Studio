@@ -44,8 +44,19 @@ sheet. `devOnly: true` until the LTX 2.5 release (umbrella MPI-1267).
   toast with "Open Remote". `busyLabel` sets the pressed text.
 - **The answer opens on "Storyboard plan:", never on `[CAST]`**: DeepInfra blanks a gemma-3 reply
   that starts with `[` (read as a tool call; tokens still billed). `tests/enhance-opener.test.cjs`.
-- The enhancer flattens its answer to one line, so `parseStoryboardPlan` splits on `[PANEL n]`
-  and `Intent:`, never on newlines. Generate with no parsable plan refuses and says to press Plan with Cosmo.
+- **The plan is a Markdown document behind View plan** (MPI-1305, Fabio 2026-10-27): the flattened
+  one-line plan in a box was unreadable. The planner's answer KEEPS its newlines
+  (`'Replace Text.replace': '\n'`, an identity pass; the graph's newline strip glued "crew
+  trailersDirector's Station" into a place named "Station") and lands through `writeAs:
+  'storyboardPlan'` (`enhancedWrites`, so hand run, agent Flow run and agent Storyboard alike) as
+  `storyboardPlanMarkdown`: `## Cast` / `## Places` / `## Objects` lists of `- **Name**: ...`,
+  then `## Panel N` with `**Picture:**` and `**Intent:**`. The `plan` field is `type: 'markdown'`
+  (declaredFields.js): a small button, disabled while the plan is empty, that opens MpiNotesEditor;
+  Save writes it back. Its freed room went to the idea box (`rows: 16`).
+- Every reader (`parseStoryboardPlan`, `recurringActors`, `panelsWithDrawn`) runs `_plain` first,
+  turning the Markdown back into `[CAST]`/`[PANEL n]` markers, so a bracket plan (an outside agent's,
+  or one saved before) parses the same. Blocks are still split on `[PANEL n]` and `Intent:`, never
+  on newlines. Generate with no parsable plan refuses and says to press Plan with Cosmo.
 - **The cast is repeated by CODE, not the planner.** Each panel is drawn alone; told to repeat
   descriptions, the 4B wrote "the same waitress" from panel 2 on. The plan opens on `[CAST] Name:
   description ...`; `parseStoryboardPlan(plan, idea)` appends the line of every cast name a panel

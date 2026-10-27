@@ -1232,7 +1232,8 @@ export const MpiBaseFlow = ComponentFactory.create({
         function _writeFieldValue(id, text) {
             const wrap = _liveFields.get(id);
             if (!wrap) return;
-            qs('.mpi-input', wrap)?.setValue?.(text);
+            // A `markdown` field (MPI-1305) has no input: its host takes the value.
+            (qs('.mpi-input', wrap) || qs('.mpi-base-flow__field-markdown', wrap))?.setValue?.(text);
         }
 
         /**
