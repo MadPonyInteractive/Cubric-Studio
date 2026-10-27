@@ -49,7 +49,8 @@ const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 const sharp = require('sharp');
 const { runFfmpeg } = require('./ffmpegBinary');
-const { extractImageThumb, imageThumbPath } = require('./ffmpegThumb');
+const { imageThumbPath } = require('./ffmpegThumb');
+const logger = require('../routes/logger');
 const { hexToRgb } = require('../js/utils/colourKeyMask.js');
 
 const FRAMES_DIRNAME = '.gif-frames';
@@ -159,7 +160,14 @@ async function writeFrame(mediaDir, buffer, hold) {
     }
     const thumbAbs = frameThumbAbsPath(mediaDir, hash);
     if (!(await fs.pathExists(thumbAbs))) {
-        await extractImageThumb(abs, path.join(dir, `${hash}.thumb.jpg`), { width: FRAME_THUMB_PX });
+        // In-process, not extractImageThumb's ffmpeg spawn (~65 ms a frame, a 200-frame GIF
+        // spent 13 s on it, P7): a frame is our own PNG, at most 4096 px, so sharp is safe.
+        // Best effort, as before: a frame with no strip thumb still builds.
+        await sharp(buffer, { limitInputPixels: false })
+            .resize({ width: FRAME_THUMB_PX, withoutEnlargement: true })
+            .webp({ quality: 82 })
+            .toFile(thumbAbs)
+            .catch(err => logger.warn('ffmpegThumb', `image thumb failed for ${abs}: ${err.message}`));
     }
     return { hash, path: abs, thumbPath: thumbAbs };
 }
