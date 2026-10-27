@@ -75,13 +75,13 @@ test('Remote rows list the connection models, recommended first', async ({}, tes
     await expect(label('#mpiSettingsLlmDescribeBackendSlot')).toHaveText('Remote');
     await expect(label('#mpiSettingsLlmEnhanceModelSlot')).toHaveText('(recommended) acme/enhance-pick', { timeout: 10000 });
     await expect(label('#mpiSettingsLlmDescribeModelSlot')).toHaveText('(recommended) acme/see-pick');
-    // MPI-912: the agent row has no "recommended": tested models on top, best score first,
-    // each with its score and cost; the pick is still the default.
-    await expect(label('#mpiSettingsAgentModelSlot')).toHaveText('acme/agent-pick');
+    // MPI-912: tested models on top, best score first, each with its score and cost. MPI-1286: the
+    // recommended agent model carries the flag (Fabio, 2026-10-27), and is still the default.
+    await expect(label('#mpiSettingsAgentModelSlot')).toHaveText('(recommended) acme/agent-pick');
     await toggle('#mpiSettingsAgentModelSlot');
     // MPI-965: scores on the current tests first, best first: ours, then the two only the community has scored; the
     // model whose only score is older comes after them.
-    await expect(openList).toHaveText(['acme/agent-pick', 'acme/community-pick', 'acme/omega-chat', 'acme/zeta-chat', 'acme/enhance-pick', 'acme/see-pick', 'acme/alpha-vision']);
+    await expect(openList).toHaveText(['(recommended) acme/agent-pick', 'acme/community-pick', 'acme/omega-chat', 'acme/zeta-chat', 'acme/enhance-pick', 'acme/see-pick', 'acme/alpha-vision']);
     // Score and cost sit under the name, beside the context window; a score from older tests says so, and the
     // community's says how many runs stand behind it. Ours beats the community's where both exist (agent-pick).
     await expect(window.locator('.mpi-dropdown__list.is-open .mpi-dropdown__option-meta')).toHaveText([
@@ -267,7 +267,7 @@ test('Benchmark this model: estimate in place, progress and Stop, the score on t
     // The user's run REPLACES our score (Fabio 2026-09-28): one number per model. zeta-chat's older run
     // still beats our older one; a score on the current tests ranks above any older one. MPI-965: the community's
     // scores sit among the current ones by score, and rank above the older ones.
-    await expect(window.locator('.mpi-dropdown__list.is-open .mpi-dropdown__option-label')).toHaveText(['acme/community-pick', 'acme/omega-chat', 'acme/agent-pick', 'acme/zeta-chat', 'acme/enhance-pick', 'acme/see-pick', 'acme/alpha-vision']);
+    await expect(window.locator('.mpi-dropdown__list.is-open .mpi-dropdown__option-label')).toHaveText(['acme/community-pick', 'acme/omega-chat', '(recommended) acme/agent-pick', 'acme/zeta-chat', 'acme/enhance-pick', 'acme/see-pick', 'acme/alpha-vision']);
     await expect(window.locator('.mpi-dropdown__list.is-open .mpi-dropdown__option-meta')).toHaveText([
       '26/28 tests (community, 3 runs) · $0.20/100 chats · 64K context',
       '24/28 tests (community, 5 runs) · $0.12/100 chats',
