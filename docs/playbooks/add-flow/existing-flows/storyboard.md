@@ -107,6 +107,11 @@ sheet. `devOnly: true` until the LTX 2.5 release (umbrella MPI-1267).
   picture and the model changes the character): its line is "Rusty is the character from image 2."
   (`kind`: character/place/object), or the user's own note words ("the grumpy hairless cat"). An
   unpictured line keeps its description, less any stale "from image N".
+- **A panel naming 3+ `[CAST]` characters ends on a headcount** (`_headcount`): "Four characters
+  are in the picture, each one whole and clearly visible: A, B, C and D." Without it FLUX.3 Klein
+  drew 3 of 4 robots in 8/8 runs (order, prop, action all ruled out); with it 4 in 7/7, though one
+  robot can still take another's head (MPI-1305 validation.md). Places, objects and a picture-only
+  line ("Picture 2 is the diner", no kind) are not counted.
 - **LoRAs: the cogwheel beside the Panel model dropdown** (`loras: true`, Fabio 2026-10-26) opens
   that model's own rack. Panels and cast pictures are plain generations on it, so the rack reaches
   them all as flat `Lora_N`: a style LoRA keeps the cast and the panels in one style.

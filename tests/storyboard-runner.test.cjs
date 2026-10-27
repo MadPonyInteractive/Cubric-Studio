@@ -320,6 +320,21 @@ test('a panel gets only the pictures it names, the user\'s and the drawn ones, n
     assert.deepStrictEqual(panelsWithDrawn('[PANEL 1] Picture: Rusty waves.', 'Picture 1 is Bolt, a robot. Picture 3 is Rusty, a rusty robot.', [], [1, 3])[0].pictures, [1]);
 });
 
+test('a panel naming three or more characters says how many and who, so none is dropped', () => {
+    // Fabio's robot crew (2026-10-27): "Cosmo, Reel and Vinyl cheer as Prism lifts the Golden
+    // Clapperboard high" drew three robots in 8 of 8 FLUX.3 Klein runs, whatever the order, the
+    // prop or the action; with the headcount line, four in 6 of 6.
+    const plan = '[CAST] Vinyl: a robot. Cosmo: a robot. Reel: a robot. Prism: a robot. [PLACES] Set: a film set. [OBJECTS] Golden Clapperboard: a gold clapperboard.'
+        + ' [PANEL 1] Picture: Cosmo, Reel and Vinyl cheer as Prism lifts the Golden Clapperboard high. Intent: a'
+        + ' [PANEL 2] Picture: Vinyl and Reel on the Set. Intent: b [PANEL 3] Picture: Cosmo, Reel and Vinyl wave. Intent: c';
+    const [p1, p2, p3] = panelsWithDrawn(plan, '', [], []);
+    assert.match(p1.prompt, / Four characters are in the picture, each one whole and clearly visible: Vinyl, Cosmo, Reel and Prism\.$/);
+    // Places and objects are not counted, and two characters need no headcount.
+    assert.doesNotMatch(p2.prompt, /characters are in the picture/);
+    assert.match(p3.prompt, / Three characters are in the picture, each one whole and clearly visible: Vinyl, Cosmo and Reel\.$/);
+    assert.strictEqual(parseStoryboardPlan(plan)[0].prompt, p1.prompt);
+});
+
 test('a pictured cast member gets no description; one whose picture is gone loses its stale number', () => {
     // Fabio, 2026-10-27: the description fights the picture and the model changes the character.
     // The user's own note is the binding; the planner's looks are not sent beside the picture.

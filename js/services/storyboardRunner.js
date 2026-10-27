@@ -145,8 +145,24 @@ function _panel({ prompt, intent }, cast, actorImages, stale = false) {
         if (n) return `${c.name} is the ${c.what || c.kind || 'character'} from image ${n}.`;
         return `${c.name} is ${stale ? c.desc.replace(_FROM_IMAGE, '') : c.desc}.`;
     };
-    return { prompt: [prompt, ...named.map(line)].join(' '), intent };
+    return { prompt: [prompt, ...named.map(line), _headcount(named)].filter(Boolean).join(' '), intent };
 }
+
+/**
+ * "Four characters are in the picture, ...: A, B, C and D." for a panel naming three or more. FLUX.3
+ * Klein drew three of four robots in 8 of 8 runs, whatever the order, the prop or the action, and
+ * all four in 6 of 6 with this line (Fabio's robot crew, MPI-1305, 2026-10-27). Only the plan's
+ * `[CAST]` counts: a picture's own line ("Picture 2 is the diner") has no kind and may be a place.
+ */
+function _headcount(named) {
+    const who = named.filter(c => c.kind === 'character').map(c => c.name);
+    if (who.length < 3) return '';
+    const count = _NUMBERS[who.length - 1] || String(who.length);
+    const list = `${who.slice(0, -1).join(', ')} and ${who[who.length - 1]}`;
+    return `${count[0].toUpperCase()}${count.slice(1)} characters are in the picture, each one whole and clearly visible: ${list}.`;
+}
+
+const _NUMBERS = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
 
 /** "from image 3" / "from the third image" in a cast line. */
 const _FROM_IMAGE = /\s*\bfrom\s+(?:image\s+\d+|the\s+\w+\s+image)\b/gi;
