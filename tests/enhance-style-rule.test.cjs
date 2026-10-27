@@ -63,3 +63,18 @@ for (const modelId of ['moss-image', 'krea2']) {
         assert.ok(!(await systemSentFor(modelId, 0)).includes('STYLE.'), 'style 0 = no rule');
     });
 }
+
+// MPI-1316 (Fabio, 2026-10-27): a reused MOSS card kept its Psychedelic Pop enhancement after
+// Anime was picked, and the prose overpowered the LoRA. The warning lived inside the Enhance
+// dialog only. A user's pick now drops an enhancement written for another style.
+test('picking a different style drops the stale enhancement; only the picker emits the event', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const read = (rel) => fs.readFileSync(path.join(__dirname, '..', rel), 'utf8');
+    const box = read('js/components/Organisms/MpiPromptBox/MpiPromptBox.js');
+    assert.match(box, /Events\.on\('promptbox:style-change', \(\) => \{\s*if \(_enhanced && \(_enhanced\.style \?\? null\) !== _styleNow\(\)\) \{\s*_enhanced = null;\s*_syncEnhancedState\(\);\s*_saveDraft\(\);/);
+    // A Reuse restores the style by remounting, not through the picker, so it never drops one.
+    const controls = read('js/components/Organisms/MpiPromptBox/PromptBoxControls.js');
+    assert.equal(controls.match(/Events\.emit\('promptbox:style-change'/g).length, 1);
+    assert.match(controls, /this\._instance\.on\('change', \(\{ index \}\) => \{[^}]*Events\.emit\('promptbox:style-change'/);
+});

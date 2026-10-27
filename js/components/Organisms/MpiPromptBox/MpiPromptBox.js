@@ -2823,6 +2823,17 @@ export const MpiPromptBox = ComponentFactory.create({
                 }
                 : null
         );
+        // MPI-1316: picking a different style drops an enhancement written for another one,
+        // back to the user's own words (Fabio, 2026-10-27). The note above sat inside the
+        // Enhance dialog, so a reused card ran Psychedelic Pop prose over the Anime LoRA.
+        // Only a user's pick emits this; a Reuse restoring the card's style does not.
+        _unsubs.push(Events.on('promptbox:style-change', () => {
+            if (_enhanced && (_enhanced.style ?? null) !== _styleNow()) {
+                _enhanced = null;
+                _syncEnhancedState();
+                _saveDraft();
+            }
+        }));
 
         // MPI-1181: the Boxes an enhancement was planned around, as a comparable key.
         function _boxKey(boxes) {
