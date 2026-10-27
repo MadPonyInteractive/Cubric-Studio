@@ -10,7 +10,7 @@ whole-prompts rule are in [SKILL.md](SKILL.md): read that first.
 | POST | `/list-projects` | Every known project with id, name, folder path |
 | POST | `/get-project` | One project's full record including `itemGroups` |
 | POST | `/create-project` | New project |
-| POST | `/update-project` | Write a project record back — body is `{folderPath, updates}` |
+| POST | `/update-project` | Write a project record back — body is `{folderPath, updates}`; answers `{success, updatedAt}` |
 | POST | `/update-project-settings` | Settings only |
 | POST | `/validate-project` | Integrity check |
 | POST | `/delete-project` | Remove a project |

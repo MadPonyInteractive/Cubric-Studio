@@ -88,4 +88,28 @@ async function projectSummary(mediaDir, findCover) {
     return value;
 }
 
-module.exports = { projectSummary, mediaStats, MEDIA_EXTS };
+/** jsonPath -> { key, head } */
+const _heads = new Map();
+
+/**
+ * The part of a project.json the landing list sends (P2): every reader of /list-projects
+ * (Landing, Add to project, the connector, MCP) uses only these; the full record, all its
+ * itemGroups, is /get-project's. Was 1.5 MB for 69 projects, re-parsed each visit. Keyed on
+ * mtime + size, with the same racy-tick rule as the cover cache. Throws when unreadable.
+ *
+ * @returns {Promise<{ id: string, name: string, createdAt: string, updatedAt: string }>}
+ */
+async function projectHead(jsonPath) {
+    const readAt = Date.now();
+    const stat = await fs.stat(jsonPath);
+    const key = `${stat.mtimeMs}:${stat.size}`;
+    const hit = _heads.get(jsonPath);
+    if (hit && hit.key === key) return hit.head;
+    const { id, name, createdAt, updatedAt } = await fs.readJson(jsonPath);
+    const head = { id, name, createdAt, updatedAt };
+    if (stat.mtimeMs > readAt - RACY_MS) _heads.delete(jsonPath);
+    else _heads.set(jsonPath, { key, head });
+    return head;
+}
+
+module.exports = { projectSummary, projectHead, mediaStats, MEDIA_EXTS };

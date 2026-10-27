@@ -49,7 +49,7 @@ const { SCHEMA_VERSION } = require('../js/migrations/projectMigrations');
 const { bakeOrientation } = require('./imageImport');
 const { prepareMaskedInput, prepareBoxedInput, stitchMaskCrop, applyMatte, uprightSize } = require('../services/engineMask');
 const { buildReferenceSheet } = require('./ingredientsSheet');
-const { projectSummary, mediaStats } = require('./projectListCache');
+const { projectSummary, projectHead, mediaStats } = require('./projectListCache');
 
 const projectJsonQueues = new Map();
 const itemMetaQueues = new Map();
@@ -888,7 +888,7 @@ router.post('/list-projects', async (req, res) => {
                 const jsonPath = path.join(root, entry, 'project.json');
                 if (!(await fs.pathExists(jsonPath))) return null;
                 try {
-                    const p = await fs.readJson(jsonPath);
+                    const p = await projectHead(jsonPath);
                     // Cover + stats from the folder-mtime cache (MPI-1058): a repeat landing
                     // visit reads no sidecars, and the rows need no /project-stats call.
                     const summary = await projectSummary(path.join(root, entry, 'Media'), findRecentProjectThumbnail);
@@ -995,7 +995,8 @@ router.post('/update-project', async (req, res) => {
             ...updates,
             updatedAt: new Date().toISOString(),
         }));
-        res.json({ success: true, project: updated });
+        // Only the stamp: every caller already holds what it sent (P2).
+        res.json({ success: true, updatedAt: updated.updatedAt });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }

@@ -524,15 +524,13 @@ export async function updateProject(updates) {
         updates,
     });
     if (result.success) {
-        // Merge updates into in-memory project. Do NOT replace with result.project
-        // because the server response reads project.json from disk where
-        // itemGroups[].history is stored as UUID strings, not hydrated objects.
-        // Overwriting here would wipe filePath/thumbPath/type from history items,
-        // causing empty gallery cards and blank history entries.
+        // Merge updates into in-memory project; the route answers only the new
+        // `updatedAt` (on disk itemGroups[].history is UUID strings, not the
+        // hydrated objects held here).
         state.currentProject = {
             ...state.currentProject,
             ...updates,
-            updatedAt: result.project?.updatedAt ?? state.currentProject.updatedAt,
+            updatedAt: result.updatedAt ?? state.currentProject.updatedAt,
         };
     }
     return state.currentProject;
