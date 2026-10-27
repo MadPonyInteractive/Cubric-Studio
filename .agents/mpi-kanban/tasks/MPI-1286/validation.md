@@ -60,7 +60,7 @@ GPU: ~13 Klein Turbo 1K images on the local 4060 Ti, ~10 min across three launch
 
 ## 2026-10-27 - re-cut 2: tag v2.1.3 -> b85d242fa (release 6 session)
 
-- Tag moved on Fabio's go; mpi-ci run 40602289786 green on all three OSes; six files in D:\CubricStudio\Vision\Builds2.1.3\ (re-cut 1 set kept as v2.1.3.recut1); CI artifacts deleted.
-- 1.5.0 -> 2.1.3 gate redone on a fresh 1.5.0 extract (D:\CVTest1.5.0-to-v2.1.3): bundle b85d242fa1d2, FIRST launch, one engine start, 0 degraded, Klein 4B t2i_004 opened (red bicycle, matches). update-evidence.json rewritten (9ab055cfe); release:check:publish passed.
-- Fabio's copy D:\CVTest2.1.2-to-v2.1.3 re-extracted from the published 2.1.2 zip, engine moved across, update applied (Applied Cubric Studio update to 2.1.3). FRESH user-data: his DeepInfra key must be re-entered; old copy kept as v2.1.2-to-v2.1.3.recut1. Start Menu shortcut re-pointed at his copy.
+- Tag moved on Fabio's go; mpi-ci run 40602289786 green on all three OSes; six files in D:\CubricStudio\Vision\Builds\v2.1.3\ (re-cut 1 set kept as v2.1.3.recut1); CI artifacts deleted.
+- 1.5.0 -> 2.1.3 gate redone on a fresh 1.5.0 extract (D:\CVTest\v1.5.0-to-v2.1.3): bundle b85d242fa1d2, FIRST launch, one engine start, 0 degraded, Klein 4B t2i_004 opened (red bicycle, matches). update-evidence.json rewritten (9ab055cfe); release:check:publish passed.
+- Fabio's copy D:\CVTest\v2.1.2-to-v2.1.3 re-extracted from the published 2.1.2 zip, engine moved across, update applied (Applied Cubric Studio update to 2.1.3). FRESH user-data: his DeepInfra key must be re-entered; old copy kept as v2.1.2-to-v2.1.3.recut1. Start Menu shortcut re-pointed at his copy.
 - Left: Fabio retests (joining clips with a real generation, calm start picture, MPI-1316 style drop, DeepSeek default), then Gate 2 and publish.
