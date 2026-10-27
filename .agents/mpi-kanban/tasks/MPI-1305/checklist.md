@@ -12,4 +12,4 @@
 - [x] A panel gets only the pictures of what it names: user pictures by note/plan line, drawn ones by mention, renumbered per panel; an unowned picture rides every panel
 - [x] A pictured cast member gets no description in that panel ("Rusty is the character from image 2")
 - [x] Tests first (2 new failing, then green) + existing expectations updated; storyboard.md updated
-- [ ] A real panel run on FLUX.3 Klein (GPU, waits on Fabio)
+- [x] A real panel run on FLUX.3 Klein (robot crew, 4 panels; references right, P4 dropped Cosmo)
