@@ -6,3 +6,10 @@
 - [ ] The idea box takes the freed height
 - [ ] Tests for the conversion and the parse round trip; lint + npm test green
 - [ ] Seen in an isolated instance; screenshot for Fabio
+
+## Follow-up: per-panel references (2026-10-27, ships in 2.1.3)
+
+- [x] A panel gets only the pictures of what it names: user pictures by note/plan line, drawn ones by mention, renumbered per panel; an unowned picture rides every panel
+- [x] A pictured cast member gets no description in that panel ("Rusty is the character from image 2")
+- [x] Tests first (2 new failing, then green) + existing expectations updated; storyboard.md updated
+- [ ] A real panel run on FLUX.3 Klein (GPU, waits on Fabio)

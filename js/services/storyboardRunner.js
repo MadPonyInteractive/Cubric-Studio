@@ -98,38 +98,66 @@ const _plain = text => String(text || '')
     .replace(/\*\*|__/g, '');
 
 /**
- * The panels once the pictures drawn before them have landed, each with the drawn pictures IT
- * gets: every character and object, but a place only in the panels that name it (Fabio,
- * 2026-10-26: the bat-cave board fed the cave to the river panels too). Each panel's "from image
- * N" counts in its OWN reference list, the user's pictures first, then its drawn ones in `drawn`
- * order, so a panel without the cave numbers the helmet one lower.
+ * The panels as they are drawn, each with only the pictures of what IT names (Fabio, 2026-10-27:
+ * his movie-set board fed five robot pictures and three drawn objects to every panel, and the
+ * robots came back merged and duplicated). A user's picture belongs to the cast member whose note
+ * says "Picture N is NAME", or whose plan line ends "from image N"; one no name owns rides every
+ * panel, as nothing says what it shows. A drawn picture rides the panels naming it. Each panel's
+ * "image N" counts in its OWN reference list, its user pictures first, then its drawn ones in
+ * `drawn` order. A panel with no picture is drawn from its words alone.
  * @param {string} text - the plan box
  * @param {string} idea - as `parseStoryboardPlan`
- * @param {Array<{name: string, kind: string}>} drawn - the pictures that landed, in reference order
- * @param {number} userPictures - how many of the user's pictures come before them
- * @returns {Array<StoryboardPanel & {drawn: number[]}>} - `drawn`: indices into `drawn`, in order
+ * @param {Array<{name: string, kind: string}>} drawn - the pictures drawn before the panels that landed, in order
+ * @param {number[]} pictures - each of the user's references' picture number (its slot, from 1), in reference order
+ * @returns {Array<StoryboardPanel & {pictures: number[], drawn: number[]}>} - indices into `pictures` and `drawn`, in order
  */
-export function panelsWithDrawn(text, idea, drawn, userPictures) {
+export function panelsWithDrawn(text, idea, drawn, pictures) {
     const plan = _plain(text);
     const cast = _cast(plan, idea);
     const names = [...cast.values()].map(c => c.name);
+    const owners = [...cast.values()].map(c => [c.name.toLowerCase(), c.picture || _imageNumber(c.desc)]).filter(([, no]) => no);
+    const owned = new Set(owners.map(([, no]) => no));
     return _blocks(plan).map((b) => {
-        const picks = drawn.map((d, i) => i).filter(i => drawn[i].kind !== 'place' || _mentions(b.prompt, drawn[i].name, names));
-        const images = Object.fromEntries(picks.map((i, k) => [drawn[i].name.toLowerCase(), userPictures + k + 1]));
-        return { ..._panel(b, cast, images), drawn: picks };
+        const wanted = new Set(owners.filter(([n]) => _mentions(b.prompt, cast.get(n).name, names)).map(([, no]) => no));
+        const mine = pictures.map((no, i) => i).filter(i => !owned.has(pictures[i]) || wanted.has(pictures[i]));
+        const picks = drawn.map((d, i) => i).filter(i => _mentions(b.prompt, drawn[i].name, names));
+        const images = {};
+        for (const [n, no] of owners) {
+            const k = mine.findIndex(i => pictures[i] === no);
+            if (k !== -1) images[n] = k + 1;
+        }
+        picks.forEach((i, k) => { images[drawn[i].name.toLowerCase()] = mine.length + k + 1; });
+        return { ..._panel(b, cast, images, true), pictures: mine, drawn: picks };
     });
 }
 
-/** One block's prompt with the line of each cast, place and object name it mentions. */
-function _panel({ prompt, intent }, cast, actorImages) {
+/**
+ * One block's prompt with the line of each cast, place and object name it mentions. One whose
+ * picture rides this panel gets NO description, only which picture is theirs: the words fight the
+ * picture and the model changes the character (Fabio, 2026-10-27). `stale`: a "from image N" left
+ * in an unpictured line goes, as its picture is not in this panel's list.
+ */
+function _panel({ prompt, intent }, cast, actorImages, stale = false) {
     const names = [...cast.values()].map(c => c.name);
     const named = [...cast.values()].filter(c => _mentions(prompt, c.name, names));
     const line = (c) => {
         const n = actorImages[c.name.toLowerCase()];
-        return `${c.name} is ${c.desc}${n ? ` from image ${n}` : ''}.`;
+        if (n) return `${c.name} is the ${c.what || c.kind || 'character'} from image ${n}.`;
+        return `${c.name} is ${stale ? c.desc.replace(_FROM_IMAGE, '') : c.desc}.`;
     };
     return { prompt: [prompt, ...named.map(line)].join(' '), intent };
 }
+
+/** "from image 3" / "from the third image" in a cast line. */
+const _FROM_IMAGE = /\s*\bfrom\s+(?:image\s+\d+|the\s+\w+\s+image)\b/gi;
+
+/** The picture number a cast line's "from image 3" / "from the third image" names, or 0. */
+function _imageNumber(desc) {
+    const m = String(desc).match(/\bfrom\s+(?:image\s+(\d+)|the\s+(\w+)\s+image)\b/i);
+    return m ? Number(m[1]) || _ORDINALS.indexOf(String(m[2]).toLowerCase()) + 1 : 0;
+}
+
+const _ORDINALS = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'];
 
 /**
  * The cast members and places with no picture that two or more panels name: each panel is
@@ -182,8 +210,10 @@ export function panelStyle(panels) {
 }
 
 /** Every cast, place and object line by lower-cased name. The plan box's line wins over the note's: it
- * carries the picture's description and the user's own edits. */
-const _cast = (plan, idea) => [..._pictureCast(idea), ..._castLines(plan)].reduce((m, c) => m.set(c.name.toLowerCase(), c), new Map());
+ * carries the picture's description and the user's own edits. The note's picture number and own
+ * words (`picture`, `what`) stay on it. */
+const _cast = (plan, idea) => [..._pictureCast(idea), ..._castLines(plan)]
+    .reduce((m, c) => m.set(c.name.toLowerCase(), { ...m.get(c.name.toLowerCase()), ...c }), new Map());
 
 /** The panels' own words: a block's `Intent:` part, and the rest less a leading `Picture:`. */
 const _blocks = plan => plan.split(/\[\s*PANEL\s*\d*\s*\]/i).slice(1).map((block) => {
@@ -242,7 +272,7 @@ function _castLines(plan) {
  * green); now every picture is described before planning and the planner's line carries that.
  */
 function _pictureCast(idea) {
-    const ord = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'];
+    const ord = _ORDINALS;
     return [...String(idea || '').matchAll(/\bpicture\s+(\d+)\s+is\s+([^,.]+?)(?:,\s*(?:an?\s+)?([^.]+))?(?:\.|$)/gi)]
         .filter(([, n]) => ord[n - 1])
         .map(([, n, name, what]) => ({
@@ -251,6 +281,8 @@ function _pictureCast(idea) {
             name: name.trim().replace(/^(the|an?)\s+/i, ''),
             // "Picture 2 is the diner." names nothing more: the line is "the diner from the second image".
             desc: `the ${(what || name).trim().replace(/^(the|an?)\s+/i, '')} from the ${ord[n - 1]} image`,
+            picture: Number(n),
+            what: (what || name).trim().replace(/^(the|an?)\s+/i, ''),
         }));
 }
 

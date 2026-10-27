@@ -31,3 +31,8 @@
 ## Waiting on Fabio
 
 - The look: screenshots in the side-session notes folder (storyboard-plan-1/2/3).
+
+## Follow-up: per-panel references (2026-10-27)
+
+- Two new tests in tests/storyboard-runner.test.cjs failed before the fix (pictures/description) and pass after; 24/24 in the suite.
+- Not verified: a real panel run on the GPU. Built per-panel reference lists are covered by the pure tests only; the dispatch wiring (_panelsWithReferences) is checked by lint/typecheck, not a live run.

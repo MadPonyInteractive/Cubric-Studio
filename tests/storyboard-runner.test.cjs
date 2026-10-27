@@ -174,7 +174,7 @@ test('the planner\'s answer becomes a Markdown plan that parses exactly as the b
         const m = storyboardPlanMarkdown(plan);
         assert.deepStrictEqual(parseStoryboardPlan(m), parseStoryboardPlan(plan));
         assert.deepStrictEqual(recurringActors(m), recurringActors(plan));
-        assert.deepStrictEqual(panelsWithDrawn(m, '', [{ name: 'Lena', kind: 'character' }], 1), panelsWithDrawn(plan, '', [{ name: 'Lena', kind: 'character' }], 1));
+        assert.deepStrictEqual(panelsWithDrawn(m, '', [{ name: 'Lena', kind: 'character' }], [1]), panelsWithDrawn(plan, '', [{ name: 'Lena', kind: 'character' }], [1]));
         assert.strictEqual(storyboardPlanMarkdown(m), m, 'converting twice changes nothing');
     }
     assert.strictEqual(storyboardPlanMarkdown('Sorry, I cannot plan that.'), 'Sorry, I cannot plan that.', 'an answer with no panel is left as it came');
@@ -249,9 +249,9 @@ test('an unpictured cast member or place two panels name recurs, characters firs
     ]);
     // A name from the user's own note is pictured even when the plan's line lacks "from image".
     assert.deepStrictEqual(recurringActors(plan.replace(' from image 1', ''), 'Picture 1 is Bix, the cat.').map(a => a.name), ['Dragon', 'Red Truck', 'Cave']);
-    // The drawn pictures' numbers land on the actor's and the place's lines.
+    // A drawn picture's number replaces the actor's and the place's description.
     const [p1] = parseStoryboardPlan(plan, '', { dragon: 2, cave: 3 });
-    assert.strictEqual(p1.prompt, 'Bix and the Dragon at the Cave. Bix is a hairless grey cat from image 1. Dragon is a huge red dragon with gold horns from image 2. Cave is a dark cave mouth from image 3.');
+    assert.strictEqual(p1.prompt, 'Bix and the Dragon at the Cave. Bix is a hairless grey cat from image 1. Dragon is the character from image 2. Cave is the place from image 3.');
 });
 
 test('objects come after characters and places, whatever their count; an [OBJECTS] line reaches the panels', () => {
@@ -260,7 +260,7 @@ test('objects come after characters and places, whatever their count; an [OBJECT
     const plan = '[CAST] Squirrel: a red squirrel in a green cape. [PLACES] Bat Cave: a vast dark cave. [OBJECTS] Gold Helmet: a dented gold helmet with a red plume. [PANEL 1] Picture: The Gold Helmet lies in the Bat Cave. Intent: a [PANEL 2] Picture: Squirrel lifts the Gold Helmet in the Bat Cave. Intent: b [PANEL 3] Picture: Squirrel wears the Gold Helmet. Intent: c';
     assert.deepStrictEqual(recurringActors(plan).map(a => [a.name, a.kind]), [['Squirrel', 'character'], ['Bat Cave', 'place'], ['Gold Helmet', 'object']]);
     assert.strictEqual(parseStoryboardPlan(plan, '', { 'gold helmet': 3 })[0].prompt,
-        'The Gold Helmet lies in the Bat Cave. Bat Cave is a vast dark cave. Gold Helmet is a dented gold helmet with a red plume from image 3.');
+        'The Gold Helmet lies in the Bat Cave. Bat Cave is a vast dark cave. Gold Helmet is the object from image 3.');
     assert.strictEqual(MAX_DRAWN_FIRST, 4);
 });
 
@@ -280,25 +280,55 @@ test('a name inside another name is no mention of it, and a name may hold "the"'
     assert.match(parseStoryboardPlan('[CAST] Grandpa Finn: an old man. [PANEL 1] Grandpa holds the kite.')[0].prompt, /Grandpa Finn is an old man\./);
 });
 
-test('a drawn place rides only the panels that name it; characters and objects ride every panel, numbered per panel', () => {
+test('a drawn picture rides only the panels that name it, numbered per panel', () => {
     // Fabio, 2026-10-26: the bat-cave board fed the cave picture to the river panels too.
     const plan = '[CAST] Squirrel: a young squirrel. [PLACES] Bat Cave Entrance: a dark cave mouth. Bat Cave Interior: a pitch-black cavern. River: a fast blue river. [OBJECTS] Gold Helmet: a gold helmet.'
         + ' [PANEL 1] Picture: Squirrel at Bat Cave Entrance. Intent: a [PANEL 2] Picture: Squirrel in Bat Cave Interior grabs the Gold Helmet. Intent: b'
         + ' [PANEL 3] Picture: Squirrel in the River wears the Gold Helmet. Intent: c';
     const drawn = [{ name: 'Squirrel', kind: 'character' }, { name: 'Bat Cave Interior', kind: 'place' }, { name: 'River', kind: 'place' }, { name: 'Gold Helmet', kind: 'object' }];
-    // One picture of the user's comes first, so the drawn ones start at image 2.
-    const [p1, p2, p3] = panelsWithDrawn(plan, '', drawn, 1);
-    // "Bat Cave Entrance" is no mention of "Bat Cave Interior": no place picture at all.
-    assert.deepStrictEqual(p1.drawn, [0, 3]);
-    assert.strictEqual(p1.prompt, 'Squirrel at Bat Cave Entrance. Squirrel is a young squirrel from image 2. Bat Cave Entrance is a dark cave mouth.');
+    // One picture of the user's that no name owns comes first in every panel, so the drawn ones start at image 2.
+    const [p1, p2, p3] = panelsWithDrawn(plan, '', drawn, [1]);
+    // "Bat Cave Entrance" is no mention of "Bat Cave Interior": no place picture at all, and no helmet.
+    assert.deepStrictEqual([p1.pictures, p1.drawn], [[0], [0]]);
+    assert.strictEqual(p1.prompt, 'Squirrel at Bat Cave Entrance. Squirrel is the character from image 2. Bat Cave Entrance is a dark cave mouth.');
     assert.deepStrictEqual(p2.drawn, [0, 1, 3]);
-    assert.strictEqual(p2.prompt, 'Squirrel in Bat Cave Interior grabs the Gold Helmet. Squirrel is a young squirrel from image 2. Bat Cave Interior is a pitch-black cavern from image 3. Gold Helmet is a gold helmet from image 4.');
+    assert.strictEqual(p2.prompt, 'Squirrel in Bat Cave Interior grabs the Gold Helmet. Squirrel is the character from image 2. Bat Cave Interior is the place from image 3. Gold Helmet is the object from image 4.');
     // Without the cave, the river is image 3 and the helmet one lower.
     assert.deepStrictEqual(p3.drawn, [0, 2, 3]);
-    assert.strictEqual(p3.prompt, 'Squirrel in the River wears the Gold Helmet. Squirrel is a young squirrel from image 2. River is a fast blue river from image 3. Gold Helmet is a gold helmet from image 4.');
+    assert.strictEqual(p3.prompt, 'Squirrel in the River wears the Gold Helmet. Squirrel is the character from image 2. River is the place from image 3. Gold Helmet is the object from image 4.');
     assert.deepStrictEqual([p1.intent, p2.intent, p3.intent], ['a', 'b', 'c']);
-    // Nothing drawn: the panels read as parseStoryboardPlan's, with no picks.
-    assert.deepStrictEqual(panelsWithDrawn(plan, '', [], 0).map(({ drawn: d, ...p }) => [d, p]), parseStoryboardPlan(plan).map(p => [[], p]));
+    // Nothing drawn and no picture: the panels read as parseStoryboardPlan's, with no picks.
+    assert.deepStrictEqual(panelsWithDrawn(plan, '', [], []).map(({ pictures: u, drawn: d, ...p }) => [u, d, p]), parseStoryboardPlan(plan).map(p => [[], [], p]));
+});
+
+test('a panel gets only the pictures it names, the user\'s and the drawn ones, numbered per panel', () => {
+    // Fabio's movie-set board (2026-10-27): five robot pictures and three drawn objects rode
+    // every panel, and the robots came back merged and duplicated.
+    const plan = '[CAST] Bolt: a silver robot with round eyes from image 1. Rusty: a rusty robot from image 3. Dragon: a red dragon. [PLACES] Set: a film set. [OBJECTS] Camera: a big camera.'
+        + ' [PANEL 1] Picture: Bolt films Rusty with the Camera. Intent: a [PANEL 2] Picture: Rusty alone on the Set. Intent: b [PANEL 3] Picture: The Dragon roars. Intent: c';
+    // Picture 2 is Spark (the note), named by no panel; picture 4 names nobody, so it rides every panel.
+    const idea = 'Picture 2 is Spark, a tiny robot.';
+    const drawn = [{ name: 'Dragon', kind: 'character' }, { name: 'Camera', kind: 'object' }];
+    const [p1, p2, p3] = panelsWithDrawn(plan, idea, drawn, [1, 2, 3, 4]);
+    assert.deepStrictEqual([p1.pictures, p1.drawn], [[0, 2, 3], [1]]);
+    assert.strictEqual(p1.prompt, 'Bolt films Rusty with the Camera. Bolt is the character from image 1. Rusty is the character from image 2. Camera is the object from image 4.');
+    assert.deepStrictEqual([p2.pictures, p2.drawn], [[2, 3], []]);
+    assert.strictEqual(p2.prompt, 'Rusty alone on the Set. Rusty is the character from image 1. Set is a film set.');
+    assert.deepStrictEqual([p3.pictures, p3.drawn], [[3], [0]]);
+    assert.strictEqual(p3.prompt, 'The Dragon roars. Dragon is the character from image 2.');
+    // A note's picture number is its slot: with slot 2 empty, "Picture 3" is the second reference.
+    assert.deepStrictEqual(panelsWithDrawn('[PANEL 1] Picture: Rusty waves.', 'Picture 1 is Bolt, a robot. Picture 3 is Rusty, a rusty robot.', [], [1, 3])[0].pictures, [1]);
+});
+
+test('a pictured cast member gets no description; one whose picture is gone loses its stale number', () => {
+    // Fabio, 2026-10-27: the description fights the picture and the model changes the character.
+    // The user's own note is the binding; the planner's looks are not sent beside the picture.
+    const plan = '[CAST] Bix: a hairless grey cat with large green ears from image 1. Lilo: a purple fox from image 2. [PANEL 1] Picture: Bix and Lilo nap. Intent: a [PANEL 2] Picture: A red sky. Intent: b';
+    const [p1, p2] = panelsWithDrawn(plan, 'Picture 1 is Bix, a grumpy hairless cat.', [], [1]);
+    assert.strictEqual(p1.prompt, 'Bix and Lilo nap. Bix is the grumpy hairless cat from image 1. Lilo is a purple fox.');
+    assert.deepStrictEqual(p1.pictures, [0]);
+    // A panel naming nobody pictured gets no reference: it is drawn from its words (t2i).
+    assert.deepStrictEqual([p2.prompt, p2.pictures, p2.drawn], ['A red sky.', [], []]);
 });
 
 test('the panels\' shared opening is the style a picture drawn before them takes', () => {

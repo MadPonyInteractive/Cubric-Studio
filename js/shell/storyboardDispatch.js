@@ -4,8 +4,8 @@
  * `storyboardRunner.js` owns the order, landing and failure rules and touches the app only
  * through the `deps` built here. Each panel is an ordinary generation on the Flow's picked
  * panel model (FLUX.3 Klein or Qwen-Image 2.1), built by
- * the SAME `buildGeneration` the agent and the routines use: `edit` with the user's pictures as
- * its references, `t2i` without. So a panel is a normal model card with its own prompt and
+ * the SAME `buildGeneration` the agent and the routines use: `edit` with the pictures of what it
+ * names as its references, `t2i` without. So a panel is a normal model card with its own prompt and
  * history, which the user edits, redoes or upscales like any other.
  *
  * `FLOW_DRIVERS` is what the Flow frame calls instead of `submitFlowGeneration` for a FlowDef
@@ -50,12 +50,25 @@ function _size(ratio, qualityTier) {
     return { ratio: '16:9', qualityTier, injectionParams: { ...WIDE_21_9[qualityTier], Ratio_Label: '21:9' } };
 }
 
-/** The user's pictures in slot order, renamed to the edit op's roles from the first. */
-function _references(mediaItems, roles) {
+/** The user's pictures in slot order, each with its picture number (its slot, from 1: the "Picture N" of its note). */
+function _pictures(mediaItems, roles) {
     return mediaItems
         .filter(m => m?.url && m.mediaType === 'image')
         .sort((a, b) => roles.indexOf(a.role) - roles.indexOf(b.role))
-        .map((m, i) => ({ role: i ? `inputImage${i + 1}` : 'inputImage', url: m.url }));
+        .map(m => ({ url: m.url, n: roles.indexOf(m.role) + 1 }));
+}
+
+/** These URLs as an edit's references, renamed to the edit op's roles from the first. */
+const _asMedia = urls => urls.map((url, i) => ({ role: i ? `inputImage${i + 1}` : 'inputImage', url }));
+
+/**
+ * The panels, each with its OWN reference list (`panelsWithDrawn`): the user's pictures and the
+ * drawn ones of what it names, nothing else. An empty list draws the panel from its words (`t2i`).
+ */
+function _panelsWithReferences(plan, idea, pictures, drawn) {
+    return panelsWithDrawn(plan, idea, drawn.map(d => d.actor), pictures.map(p => p.n))
+        .map(({ pictures: own, drawn: picks, ...p }) => ({ ...p,
+            references: _asMedia([...own.map(i => pictures[i].url), ...picks.map(i => drawn[i].url)]) }));
 }
 
 /** The selected item of a group as it stands in the open project now. */
@@ -67,13 +80,13 @@ function _refused(code, message, variant = 'warning') {
     return { ok: false, code, message };
 }
 
-function _deps(project, { flow, inputs, unit, modelId, idea, references, ratio, qualityTier, turbo }, frame) {
+function _deps(project, { flow, inputs, unit, modelId, idea, ratio, qualityTier, turbo }, frame) {
     return {
         isLoopArmed: () => state.loopArmed === true,
 
         async submit(panel, index, landing) {
-            // A panel drawn after the cast carries its own list: a place rides only the panels naming it.
-            const media = panel.references ?? references;
+            // A panel carries its own list (only the pictures of what it names); a cast picture has none.
+            const media = panel.references ?? [];
             const built = await buildGeneration({
                 modelId,
                 operation: media.length ? 'edit' : 't2i',
@@ -182,10 +195,10 @@ async function runStoryboardFlow(flow, inputs, frame) {
     const roles = flow.inputSchema.media[0].roles;
     const [modelId] = flowModelIds(flow);
     const model = MODELS.find(m => m.id === modelId);
-    const references = _references(inputs.mediaItems || [], roles);
+    const pictures = _pictures(inputs.mediaItems || [], roles);
     const max = _maxReferences(model);
-    if (references.length > max) {
-        return _refused('TOO_MANY_PICTURES', `${model?.name || modelId} takes up to ${max} pictures and this storyboard has ${references.length}. Remove ${references.length - max}, or pick FLUX.3 Klein as the panel model.`);
+    if (pictures.length > max) {
+        return _refused('TOO_MANY_PICTURES', `${model?.name || modelId} takes up to ${max} pictures and this storyboard has ${pictures.length}. Remove ${pictures.length - max}, or pick FLUX.3 Klein as the panel model.`);
     }
     const words = String(inputs.positive || '').trim();
     const title = words ? `Storyboard · ${words}` : 'Storyboard';
@@ -205,9 +218,9 @@ async function runStoryboardFlow(flow, inputs, frame) {
     // SAME dragon on the SAME ledge: up to MAX_DRAWN_FIRST, fewer when the model's free reference
     // slots run out, characters first, then places, then objects. Each is drawn in the panels' style.
     const wanted = recurringActors(inputs.plan, idea);
-    const free = max - references.length;
+    const free = max - pictures.length;
     const actors = wanted.slice(0, Math.max(0, Math.min(MAX_DRAWN_FIRST, free)));
-    if (!actors.length) return _drawPanels(panels, name, _deps(project, { ...opts, references }, frame));
+    if (!actors.length) return _drawPanels(_panelsWithReferences(inputs.plan, idea, pictures, []), name, _deps(project, opts, frame));
 
     // One actor lands as a plain card under its own name; two or more as a Cast stack. The
     // title is cut BEFORE " · Cast" goes on: cut after, a long idea lost it and the Cast stack
@@ -217,7 +230,7 @@ async function runStoryboardFlow(flow, inputs, frame) {
     const cast = await runStoryboard(actors.map(a => ({ prompt: _castPrompt(a, style), intent: `${a.name}: ${a.desc}`,
         ratio: a.kind === 'place' ? inputs.ratio : '1:1' })),
         { name: castName, sheet: false },
-        _deps(project, { ...opts, unit: 'picture', references: [] }, frame));
+        _deps(project, { ...opts, unit: 'picture' }, frame));
     if (!cast.ok) {
         // A Stop while the first cast picture was built reads as a Stop, like `_drawPanels` (MPI-1293).
         if (cast.code === 'CANCELLED') return _refused(cast.code, `${name} stopped: no panel was drawn.`, 'info');
@@ -236,13 +249,10 @@ async function runStoryboardFlow(flow, inputs, frame) {
         const drawn = out.panels.filter(r => r.item?.filePath);
         const missing = out.panels.filter(r => !r.item?.filePath).map(r => actors[r.index].name);
         if (missing.length) StatusBar.notify(`${name}: the picture of ${missing.join(', ')} failed, so the panels describe them in words.`, 'warning');
-        // The drawn pictures follow the user's in each panel's edit; a place goes only to the
-        // panels that name it, so every panel has its own reference list.
-        const panelsDrawn = panelsWithDrawn(inputs.plan, idea, drawn.map(r => actors[r.index]), references.length)
-            .map(({ drawn: picks, ...p }) => ({ ...p,
-                references: [...references, ...picks.map(i => ({ url: drawn[i].item.filePath }))]
-                    .map((r, i) => ({ role: i ? `inputImage${i + 1}` : 'inputImage', url: r.url })) }));
-        const drawing = await _drawPanels(panelsDrawn, name, _deps(project, { ...opts, references }, frame));
+        // The drawn pictures follow the user's in each panel's edit, and only the panels naming them get them.
+        const panelsDrawn = _panelsWithReferences(inputs.plan, idea, pictures,
+            drawn.map(r => ({ actor: actors[r.index], url: r.item.filePath })));
+        const drawing = await _drawPanels(panelsDrawn, name, _deps(project, opts, frame));
         return drawing.finished || { ok: false, cancelled: drawing.code === 'CANCELLED', error: drawing, panels: [] };
     }) };
 }

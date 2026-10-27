@@ -93,11 +93,20 @@ sheet. `devOnly: true` until the LTX 2.5 release (umbrella MPI-1267).
   The driver draws them (`t2i`; a character or object 1:1 on plain grey, a place empty at the video's
   ratio, both in the panels' style, `panelStyle`) into their OWN stack "<name> · Cast"
   (`sheet: false`, no overview), then queues the panels as `edit` with those pictures after the
-  user's. A drawn PLACE goes only to the panels that name it (Fabio 2026-10-26); characters and
-  objects go to every panel. `panelsWithDrawn(plan, idea, drawn, userPictures)` gives each panel its
-  picks and numbers "from image N" in THAT panel's list, and the dispatch sends `panel.references`
-  (`submit`: `panel.references ?? references`). A failed actor picture is a warning and the panels
-  describe it in words; Stop during the cast draws no panel and reads as a Stop (info), not a warning.
+  user's. A failed actor picture is a warning and the panels describe it in words; Stop during the
+  cast draws no panel and reads as a Stop (info), not a warning.
+- **A panel gets only the pictures of what it NAMES** (Fabio 2026-10-27: his movie-set board fed 5
+  robot pictures + 3 drawn objects to every panel; the robots came back merged and duplicated).
+  `panelsWithDrawn(plan, idea, drawn, pictures)` (`pictures` = each user reference's SLOT number)
+  picks per panel: a user picture owned by a name (its note's "Picture N is NAME", else the plan
+  line's "from image N" / "from the third image") rides only the panels naming it; one no name owns
+  rides every panel (nothing says what it shows); a drawn picture rides the panels naming it. Numbers
+  restart per panel, user pictures first. No picture -> `t2i`. The dispatch always sends
+  `panel.references` (`_panelsWithReferences`).
+- **A pictured name gets NO description in that panel** (Fabio 2026-10-27: the words fight the
+  picture and the model changes the character): its line is "Rusty is the character from image 2."
+  (`kind`: character/place/object), or the user's own note words ("the grumpy hairless cat"). An
+  unpictured line keeps its description, less any stale "from image N".
 - **LoRAs: the cogwheel beside the Panel model dropdown** (`loras: true`, Fabio 2026-10-26) opens
   that model's own rack. Panels and cast pictures are plain generations on it, so the rack reaches
   them all as flat `Lora_N`: a style LoRA keeps the cast and the panels in one style.
