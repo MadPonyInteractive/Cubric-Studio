@@ -35,7 +35,9 @@ test('@ names each staged picture on the multi-picture edit models', async ({}, 
 
     const pick = async (modelId) => {
       const box = window.locator(`#pb-${modelId} textarea`).first();
-      await box.click();
+      // focus, not click: the three boxes stack, and on CI's smaller window one box's chips
+      // cover the next one's textarea, so a click never lands.
+      await box.focus();
       await box.fill('');
       await window.keyboard.type('the robot from @');
       const offered = await window.locator(`#pb-${modelId} .mpi-prompt-box__ref-picker-tag`).allTextContents();
