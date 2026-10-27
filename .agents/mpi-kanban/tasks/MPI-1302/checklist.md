@@ -24,6 +24,7 @@
 - [x] D1: `_controlHost` (label row, all 17 controls) + `_mountSlider` (the 7 sliders) in PromptBoxControls.js, -262 lines; 198-case desktop snapshot identical before/after; lint + type-check, npm test 3742 pass / 0 fail, 11 PromptBox desktop specs green
 - [x] D3: services/outputCard.js (writeVideoCard, writeImageCard, writeImageRenditions moved from projects.js), 10 routes, one commit each; 12-case real-ffmpeg route snapshot identical bar the sheet's flowId/flowInputs; tests/output-card.test.cjs; lint + type-check, npm test 3744 pass / 0 fail
 - [x] D10 GIF card tail + gifEntry normalisation: writeGifCard/writeGifThumb (outputCard.js), gifEntryFrom (gifFrames.js), 5 routes; 9-case route snapshot identical; lint + type-check, npm test 3746 pass / 0 fail
-- [ ] D10 rest (scratch sweeps, ffmpeg plumbing, remote proxy, EXIF swap, lazy imports, _fail), one commit each
+- [x] D10 scratch sweeps: services/scratchSweep.js sweepOlderThan, 9 copies (e6a14214b); tests/scratch-sweep.test.cjs; lint + type-check, npm test 3753 / 0 fail
+- [ ] D10 rest (ffmpeg plumbing, remote proxy, EXIF swap, lazy imports, _fail), one commit each
 - [ ] P2, P14, P7, P12, P13
 ## Phase 3–4: see plan.md

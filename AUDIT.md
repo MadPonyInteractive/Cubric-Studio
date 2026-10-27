@@ -81,9 +81,13 @@ the 142 violations they had let through). The finding sections below are left as
   `extractImageThumb` returns (MPI-627). Proof: 9 GIF route cases identical before and after.
   Frame-hash 400 check left in the routes on purpose: it answers 400 before any work, `buildGif`'s
   own check would surface as a 500.
+- Phase 2: **D10, scratch sweeps** (`services/scratchSweep.js` `sweepOlderThan`): all nine copies
+  (deepinfra, toolResize, gifCutout, imageImport, llm zoom, projects engine scratch,
+  videoExtract, seamlessOps, tileOutlines), each keeping its age and file/dir rule. Proof: unit
+  test + the MPI-919 retention test.
 
 **Still open, suggested batches:**
-- Next: rest of **D10** (scratch sweeps, ffmpeg plumbing, remote proxy, EXIF swap, lazy imports,
+- Next: rest of **D10** (ffmpeg plumbing, remote proxy, EXIF swap, lazy imports,
   `_fail`), **P2/P14/P7/P12/P13**.
 - Needs the desktop suite or Fabio watching: **P1**, **P3**, **D7**, **D9**.
 - Needs a local profile or a Pod: **P4–P6**, **P9–P11**.

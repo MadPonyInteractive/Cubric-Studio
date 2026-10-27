@@ -2,8 +2,9 @@
 
 ## Current State
 
-- **Where it stands (2026-10-27):** Phases 1a-1d, D1, D3 and D10's GIF card tail done and pushed.
-  Next: the rest of **D10** piece by piece (scratch sweeps, ffmpeg plumbing, remote proxy, EXIF
+- **Where it stands (2026-10-27):** Phases 1a-1d, D1, D3, D10's GIF card tail and D10's scratch
+  sweeps (`services/scratchSweep.js`, e6a14214b) done and pushed.
+  Next: the rest of **D10** piece by piece (ffmpeg plumbing, remote proxy, ffprobe bypass, EXIF
   swap, lazy imports, `_fail`), one commit each, then P2/P14/P7/P12/P13. The route snapshot
   scripts are in this card's `research/` (`d3snap.cjs`, `d10snap.cjs`, diff with `d3diff.py`):
   `node research/d10snap.cjs <repo> <out.json>` before and after, then diff. In d10snap,
@@ -53,6 +54,8 @@
   12-case route snapshot identical bar the sheet's new `flowId`/`flowInputs: null`.
 - [x] D10 GIF: `writeGifCard`/`writeGifThumb` (outputCard.js), `gifEntryFrom` (gifFrames.js);
   gif.js, gifMake, gifMaker, gifCutout, gifTransform. 9-case route snapshot identical.
+- [x] D10 sweeps: `sweepOlderThan` (services/scratchSweep.js) replaces all 9 copies; a number
+  or per-name age (`null` = leave it), `only: 'file'|'dir'`. Unit test + MPI-919 test.
 
 ## Remaining Work
 
