@@ -149,6 +149,14 @@ controls. `upscale` uses 0.20, `detail` 0.30, `pid` 0.0 — pick the value your 
       type's MAX capacity = the number of `mediaInputs` slots of that type — a 2-image
       op needs **2** image slots or it gates at 1. The op then enters the radial +
       dropdown, dims (not hides) when unavailable, and Run toasts a missing mask.
+- [ ] **Two or more reference pictures = every slot carries a `tag` (MPI-1312).** Without
+      one the `@` picker never arms and the chips show a bare position — users were taught
+      `@` names a reference, and Qwen-Image 2.1, FLUX.3 and Klein all shipped without it.
+      Image ops tag `'Image n'` with `tagInProse: true`; the picker then writes the words
+      the encoder reads (`image 2`). A model whose vendor names pictures another way gets
+      a capability read by `refTagHandle` (`qwenRefTags` → `<image2>`, `atRefTags` →
+      `@image1`): look up the vendor's rewriter or prompt guide, never guess.
+      `tests/ref-tag-picker.test.cjs` fails on any model op with 2+ untagged references.
 - [ ] i2i (or any latent-space op): add `'denoise'` to `components` + a `defaults.denoise`,
       **after** tracing that the denoise node is reachable on that branch
 - [ ] `progressStages.js`: keyed by **FILE**, not op — a shared graph needs no new entry.

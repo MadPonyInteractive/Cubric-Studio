@@ -552,7 +552,8 @@ export const MpiPromptBox = ComponentFactory.create({
 
         // MPI-475: the reference tags currently staged, in strip order — what the chips
         // badge and what the `@` picker offers. Empty for any op whose slots carry no
-        // `tag`, which is every op but ref2v_ms, so the picker simply never arms there.
+        // `tag` (a one-picture op), so the picker simply never arms there. `slot` rides
+        // along because a `tagInProse` slot is written differently (refTagHandle).
         //
         // These are SLOT numbers, deliberately. MpiH3References rewrites them to the
         // ordinals ComfyUI core presents at execution time; the app must not try, because
@@ -560,10 +561,10 @@ export const MpiPromptBox = ComponentFactory.create({
         // has one is unknown until it is decoded.
         function _stagedRefTags(operation = activeOperation) {
             const bySlot = new Map(
-                _mediaSlotsForOperation(operation).filter(s => s.tag).map(s => [s.key, s.tag]));
+                _mediaSlotsForOperation(operation).filter(s => s.tag).map(s => [s.key, s]));
             if (!bySlot.size) return [];
             return _withAssignedRoles(_mediaItems, operation)
-                .map(item => ({ tag: bySlot.get(item.role), item }))
+                .map(item => ({ tag: bySlot.get(item.role)?.tag, slot: bySlot.get(item.role), item }))
                 .filter(entry => entry.tag);
         }
 
@@ -1936,7 +1937,7 @@ export const MpiPromptBox = ComponentFactory.create({
             if (!entry) return;
             const caret = textareaEl.selectionStart;
             const value = textareaEl.value;
-            const handle = refTagHandle(entry.tag, model);
+            const handle = refTagHandle(entry.tag, model, entry.slot);
             const next = `${value.slice(0, _refAt)}${handle} ${value.slice(caret)}`;
             const at = _refAt + handle.length + 1;   // past the handle and its space
             _closeRefPicker();
@@ -2862,13 +2863,13 @@ export const MpiPromptBox = ComponentFactory.create({
                 model,
                 operation: activeOperation,
                 // MPI-1006: an r2v recipe cannot see the chips, so it is told their tags.
-                references: _stagedRefTags().map(entry => refTagHandle(entry.tag, model)),
+                references: _stagedRefTags().map(entry => refTagHandle(entry.tag, model, entry.slot)),
                 // MPI-1084: and the pictures themselves, so it is told what each one shows.
-                // An edit's slots carry no tag, so its pictures go by load order: without
-                // them the FLUX.3 edit recipe read a box's text as "the first image" (MPI-1181).
+                // A one-picture op's slot carries no tag, so its picture goes by load order:
+                // without it the FLUX.3 edit recipe read a box's text as "the first image" (MPI-1181).
                 pictures: _stagedRefTags().length
                     ? _stagedRefTags().filter(entry => entry.item.mediaType === 'image')
-                        .map(entry => ({ tag: refTagHandle(entry.tag, model), url: entry.item.url }))
+                        .map(entry => ({ tag: refTagHandle(entry.tag, model, entry.slot), url: entry.item.url }))
                     : _withAssignedRoles(_mediaItems, activeOperation).filter(item => item.mediaType === 'image' && item.role && item.url)
                         .map((item, i) => ({ tag: `Image ${i + 1}`, url: item.url })),
                 // MPI-1049: No Background on, so the recipe describes no setting.

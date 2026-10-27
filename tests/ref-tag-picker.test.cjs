@@ -9,10 +9,10 @@
 const assert = require('node:assert');
 const test = require('node:test');
 
-let matchRefTagQuery, commands, filterMediaInputsForModel;
+let matchRefTagQuery, commands, filterMediaInputsForModel, refTagHandle;
 
 test.before(async () => {
-    ({ matchRefTagQuery, commands, filterMediaInputsForModel } = await import('../js/data/commandRegistry.js'));
+    ({ matchRefTagQuery, commands, filterMediaInputsForModel, refTagHandle } = await import('../js/data/commandRegistry.js'));
 });
 
 const TAGS = [{ tag: 'Picture 1' }, { tag: 'Picture 2' }, { tag: 'Video 1' }, { tag: 'Audio 1' }];
@@ -67,13 +67,14 @@ test('the caret is what counts, not the end of the value', () => {
     assert.strictEqual(matchRefTagQuery(value, value.length, TAGS), null);
 });
 
-test('the reference ops are the only tagged ops, and their tags count WITHIN a type', () => {
+test('the tagged ops are the reference ops and the multi-picture image ops', () => {
     const tagged = Object.entries(commands)
         .filter(([, cmd]) => (cmd.mediaInputs || []).some(s => s.tag))
         .map(([key]) => key)
         .sort();
     // ref2v (cloud, MPI-923) re-checked: badge and picker read `slot.tag` per active op.
-    assert.deepStrictEqual(tagged, ['ref2v', 'ref2v_ms'],
+    // MPI-1312: the image edit/control ops joined, their tags written as prose.
+    assert.deepStrictEqual(tagged, ['control', 'edit', 'kleinEdit', 'krea2Edit', 'qwenEdit', 'ref2v', 'ref2v_ms'],
         'another tagged op needs the chip badge + picker re-checked, not just a slot list');
 
     // ref2v wears the names the CLOUD model reads (Wan 3.0: "Image n" / "Video n").
@@ -125,4 +126,30 @@ test('LTX ref2v_ms: only pictures, one audio and one start-frame slot', () => {
     assert.strictEqual(startFrame.tag, undefined, 'start-frame carries no prompt tag');
     // Picture 1-9 unaffected
     assert.strictEqual(slots.filter(s => s.tag?.startsWith('Picture')).length, 9);
+});
+
+// MPI-1312: Qwen-Image 2.1, FLUX.3 and Klein took several pictures with no `@` picker at
+// all, because their slots carried no tag. This is the guard for the NEXT model: any op a
+// model offers with two or more reference slots must tag every one of them. Start and end
+// frames are not references the prompt names, so they are left out.
+test('every model op taking 2+ references tags every reference slot', async () => {
+    const { MODELS } = await import('../js/data/modelConstants/models.js');
+    const missing = [];
+    for (const model of MODELS) {
+        for (const op of model.supportedOps || []) {
+            const refs = filterMediaInputsForModel(commands[op]?.mediaInputs || [], model)
+                .filter(s => !/frame/i.test(s.key));
+            if (refs.length > 1 && refs.some(s => !s.tag)) missing.push(`${model.id} ${op}`);
+        }
+    }
+    assert.deepStrictEqual(missing, [], 'tag these slots (commandRegistry mediaInputs) so the @ picker arms');
+});
+
+test('the @ picker writes each model\'s own words for a picture', () => {
+    const prose = { tagInProse: true };
+    assert.strictEqual(refTagHandle('Image 2', { capabilities: {} }, prose), 'image 2', 'FLUX/Klein/Krea2/Qwen Edit/cloud edits');
+    assert.strictEqual(refTagHandle('Image 2', { capabilities: { qwenRefTags: true } }, prose), '<image2>', 'Qwen-Image 2.1');
+    // The reference-video forms are unchanged.
+    assert.strictEqual(refTagHandle('Picture 1', { capabilities: {} }), '<Picture 1>');
+    assert.strictEqual(refTagHandle('Image 1', { capabilities: { atRefTags: true } }), '@image1');
 });

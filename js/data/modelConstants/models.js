@@ -1992,6 +1992,9 @@ const ALL_MODELS = [
             // sampler through 'Text Encode (control subjects)' (node 148).
             depthSubject: true,
             depthSubject3: true,
+            // MPI-1312: the `@` picker writes `<image2>`, the vendor's own reference form
+            // (PE-I2I rewriter, docs/agent/models/qwen-image-2.1.md), not "image 2".
+            qwenRefTags: true,
             // MPI-1038: the upscale branch carries the "Tile Upscale" group (Use Tiles).
             tileUpscale: true,
             styleLoras: true,   // MPI-936: the rack sits after Input_Lora_6, ahead of every sampler

@@ -164,6 +164,7 @@ const I2V_HELP = {
  *   ordinal?:boolean,
  *   requiresCapability?:string,
  *   tag?:string,
+ *   tagInProse?:boolean,
  *   voiceLibrary?:'character'|'narration',
  *   planned?:boolean,
  *   compositorInput?:string
@@ -188,6 +189,11 @@ const I2V_HELP = {
  *                                              tag instead of its strip position — they diverge as
  *                                              soon as media types are mixed, because the tag
  *                                              ordinal counts within a type (MPI-475).
+ *                                              `tagInProse` (MPI-1312): nothing in the app rewrites
+ *                                              this tag, so the model reads it AS TYPED — the `@`
+ *                                              picker writes the words its encoder knows ("image 2",
+ *                                              see refTagHandle), never a `<bracket>` it does not.
+ *                                              Every image op taking 2+ pictures tags its slots.
  * @property {string[]}        [components]   - IDs of operation-specific sub-controls injected
  *                                              into MpiPromptBox's operation slot.
  *                                              Each ID maps to a component in js/components/.
@@ -390,7 +396,7 @@ export const commands = {
         requiresImages: 1,
         modelSizedInputs: true,
         mediaInputs: [
-            { key: 'inputImage', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image', required: true },
+            { key: 'inputImage', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image', required: true, tag: 'Image 1', tagInProse: true },
             // MPI-354/MPI-365: OPTIONAL subject slots — image 1 supplies the control map,
             // the rest supply WHO is posed into it. Gated on `capabilities.depthSubject`,
             // so SDXL and Chroma keep this op at exactly one image.
@@ -398,11 +404,11 @@ export const commands = {
             // natively, while Krea2's third slot was bypassed out of the graph.
             {
                 key: 'inputImage2', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_2',
-                required: false, ordinal: true, requiresCapability: 'depthSubject',
+                required: false, ordinal: true, requiresCapability: 'depthSubject', tag: 'Image 2', tagInProse: true,
             },
             {
                 key: 'inputImage3', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_3',
-                required: false, ordinal: true, requiresCapability: 'depthSubject3',
+                required: false, ordinal: true, requiresCapability: 'depthSubject3', tag: 'Image 3', tagInProse: true,
             },
         ],
         promptRequired: true,
@@ -453,9 +459,9 @@ export const commands = {
         cropsToMask: true,
         modelSizedInputs: true,
         mediaInputs: [
-            { key: 'inputImage',  mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image',   required: true,  ordinal: true },
-            { key: 'inputImage2', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_2', required: false, ordinal: true },
-            { key: 'inputImage3', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_3', required: false, ordinal: true },
+            { key: 'inputImage',  mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image',   required: true,  ordinal: true, tag: 'Image 1', tagInProse: true },
+            { key: 'inputImage2', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_2', required: false, ordinal: true, tag: 'Image 2', tagInProse: true },
+            { key: 'inputImage3', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_3', required: false, ordinal: true, tag: 'Image 3', tagInProse: true },
         ],
         promptRequired: true,
         components: ['styleSelect', 'stylization', 'customSize', 'qualityTier', 'ratio'],
@@ -523,17 +529,17 @@ export const commands = {
         // fields natively (`cloud.imageFields`); the Nano Banana family's endpoint takes ONE
         // image, so routes/deepinfra.js collages them (`referenceCollage`). Boogu never sees them.
         mediaInputs: [
-            { key: 'inputImage',  mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image',   required: true,  ordinal: true },
-            { key: 'inputImage2', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_2', required: false, ordinal: true, requiresCapability: 'multiReference' },
-            { key: 'inputImage3', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_3', required: false, ordinal: true, requiresCapability: 'multiReference' },
-            { key: 'inputImage4', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_4', required: false, ordinal: true, requiresCapability: 'multiReference' },
-            { key: 'inputImage5', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_5', required: false, ordinal: true, requiresCapability: 'multiReference8' },
-            { key: 'inputImage6', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_6', required: false, ordinal: true, requiresCapability: 'multiReference8' },
-            { key: 'inputImage7', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_7', required: false, ordinal: true, requiresCapability: 'multiReference8' },
-            { key: 'inputImage8', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_8', required: false, ordinal: true, requiresCapability: 'multiReference8' },
+            { key: 'inputImage',  mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image',   required: true,  ordinal: true, tag: 'Image 1', tagInProse: true },
+            { key: 'inputImage2', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_2', required: false, ordinal: true, requiresCapability: 'multiReference', tag: 'Image 2', tagInProse: true },
+            { key: 'inputImage3', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_3', required: false, ordinal: true, requiresCapability: 'multiReference', tag: 'Image 3', tagInProse: true },
+            { key: 'inputImage4', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_4', required: false, ordinal: true, requiresCapability: 'multiReference', tag: 'Image 4', tagInProse: true },
+            { key: 'inputImage5', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_5', required: false, ordinal: true, requiresCapability: 'multiReference8', tag: 'Image 5', tagInProse: true },
+            { key: 'inputImage6', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_6', required: false, ordinal: true, requiresCapability: 'multiReference8', tag: 'Image 6', tagInProse: true },
+            { key: 'inputImage7', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_7', required: false, ordinal: true, requiresCapability: 'multiReference8', tag: 'Image 7', tagInProse: true },
+            { key: 'inputImage8', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_8', required: false, ordinal: true, requiresCapability: 'multiReference8', tag: 'Image 8', tagInProse: true },
             // 9-10: FLUX.3 Klein (MPI-1181), through MpiFlux3References.
-            { key: 'inputImage9', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_9', required: false, ordinal: true, requiresCapability: 'multiReference10' },
-            { key: 'inputImage10', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_10', required: false, ordinal: true, requiresCapability: 'multiReference10' },
+            { key: 'inputImage9', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_9', required: false, ordinal: true, requiresCapability: 'multiReference10', tag: 'Image 9', tagInProse: true },
+            { key: 'inputImage10', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_10', required: false, ordinal: true, requiresCapability: 'multiReference10', tag: 'Image 10', tagInProse: true },
         ],
         promptRequired: true,
         // Boogu-Image-Edit's op: a whole-image instruction edit that follows the SOURCE
@@ -574,11 +580,11 @@ export const commands = {
         cropsToMask: true,
         modelSizedInputs: true,
         mediaInputs: [
-            { key: 'inputImage',  mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image',   required: true,  ordinal: true },
+            { key: 'inputImage',  mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image',   required: true,  ordinal: true, tag: 'Image 1', tagInProse: true },
             // 2nd reference image (MPI-292): optional. Empty → Input_Image_2's
             // MpiLoadImageFromPath self-gates → 1-image edit runs fine. Only this op
             // declares two image slots, so PromptBox shows the 2nd chip in edit only.
-            { key: 'inputImage2', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_2', required: false, ordinal: true },
+            { key: 'inputImage2', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_2', required: false, ordinal: true, tag: 'Image 2', tagInProse: true },
         ],
         promptRequired: true,
         // NO injectParams (MPI-365). Krea2's edit is branch 4 of the one master graph and
@@ -637,9 +643,9 @@ export const commands = {
         // are optional: an empty path makes Input_Image_2/_3's MpiLoadImageFromPath
         // self-gate, so a 1- or 2-image edit runs unchanged.
         mediaInputs: [
-            { key: 'inputImage',  mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image',   required: true,  ordinal: true },
-            { key: 'inputImage2', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_2', required: false, ordinal: true },
-            { key: 'inputImage3', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_3', required: false, ordinal: true },
+            { key: 'inputImage',  mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image',   required: true,  ordinal: true, tag: 'Image 1', tagInProse: true },
+            { key: 'inputImage2', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_2', required: false, ordinal: true, tag: 'Image 2', tagInProse: true },
+            { key: 'inputImage3', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_3', required: false, ordinal: true, tag: 'Image 3', tagInProse: true },
         ],
         promptRequired: true,
         // Its own op, NOT the shared 'edit' (that one is Boogu's: no controls, one image).
@@ -2430,12 +2436,21 @@ export function matchRefTagQuery(value, caret, tags) {
  * but one: Seedance 2.0 (`capabilities.atRefTags`, MPI-910) names references by load
  * order as `@image1` / `@video1` / `@audio1` (the Higgsfield prompt skill; ByteDance writes
  * `@Image 1`), and reads `<...>` as a SOUND EFFECT.
+ *
+ * A `tagInProse` slot (MPI-1312, the image edit/control ops) reaches the encoder as typed, so
+ * it is written the way that model's prompts name a picture: `image 2` (FLUX.2/.3, Klein,
+ * Krea2, Qwen Edit, Nano Banana's collage, Seedream), or `<image2>` on a model declaring
+ * `capabilities.qwenRefTags` (Qwen-Image 2.1, the vendor's PE-I2I rewriter form).
  * @param {string} tag  a slot tag, e.g. 'Image 1'
  * @param {object|null} [model]
+ * @param {{tagInProse?:boolean}|null} [slot]  the slot the tag came from
  * @returns {string}
  */
-export function refTagHandle(tag, model = null) {
-    return model?.capabilities?.atRefTags ? `@${tag.replace(/\s+/g, '').toLowerCase()}` : `<${tag}>`;
+export function refTagHandle(tag, model = null, slot = null) {
+    const compact = tag.replace(/\s+/g, '').toLowerCase();
+    if (model?.capabilities?.atRefTags) return `@${compact}`;
+    if (!slot?.tagInProse) return `<${tag}>`;
+    return model?.capabilities?.qwenRefTags ? `<${compact}>` : tag.toLowerCase();
 }
 
 /**
