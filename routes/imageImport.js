@@ -26,6 +26,7 @@ const path = require('path');
 const fs = require('fs-extra');
 const sharp = require('sharp');
 const logger = require('./logger');
+const { sweepOlderThan } = require('../services/scratchSweep');
 
 const router = express.Router();
 
@@ -84,17 +85,6 @@ async function bakeOrientation(file) {
     return { w: info.width, h: info.height };
 }
 
-/** Temp copies are consumed by the upload that follows; sweep anything left behind. */
-async function _sweepTmp() {
-    const names = await fs.readdir(TMP_DIR).catch(() => []);
-    const cutoff = Date.now() - TMP_MAX_AGE_MS;
-    await Promise.all(names.map(async (n) => {
-        const p = path.join(TMP_DIR, n);
-        const st = await fs.stat(p).catch(() => null);
-        if (st && st.mtimeMs < cutoff) await fs.remove(p).catch(() => {});
-    }));
-}
-
 router.post('/image-import/probe', async (req, res) => {
     const paths = Array.isArray(req.body?.paths) ? req.body.paths : null;
     if (!paths) return res.status(400).json({ success: false, error: 'paths[] required' });
@@ -112,7 +102,8 @@ router.post('/image-import/reduce', async (req, res) => {
         return res.status(400).json({ success: false, error: 'maxPixels must be a positive number' });
     }
     try {
-        await _sweepTmp();
+        // Temp copies are consumed by the upload that follows; sweep anything left behind.
+        await sweepOlderThan(TMP_DIR, TMP_MAX_AGE_MS);
         const out = await reduceImage(sourcePath, maxPixels);
         logger.info('project', `image-import reduce ${path.basename(sourcePath)} -> ${out.w}x${out.h}`);
         res.json({ success: true, ...out });

@@ -45,6 +45,7 @@ const { promisify } = require('util');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('./logger');
 const { ffmpegPath } = require('../services/ffmpegBinary');
+const { sweepOlderThan } = require('../services/scratchSweep');
 const { probeVideo } = require('../services/ffprobeVideo');
 const { writeVideoCard } = require('../services/outputCard');
 const { nextSequence } = require('./projects');
@@ -64,17 +65,6 @@ function _trimArgs(trimIn, trimOut) {
     return Number.isFinite(tIn) && Number.isFinite(tOut) && tOut > tIn
         ? ['-ss', String(tIn), '-to', String(tOut)]
         : [];
-}
-
-async function _sweep(dir) {
-    if (!(await fs.pathExists(dir))) return;
-    const now = Date.now();
-    for (const name of await fs.readdir(dir)) {
-        const abs = path.join(dir, name);
-        try {
-            if (now - (await fs.stat(abs)).mtimeMs > TEMP_MAX_AGE_MS) await fs.remove(abs);
-        } catch { /* best-effort GC */ }
-    }
 }
 
 /**
@@ -167,7 +157,7 @@ router.post('/video-extract/source', async (req, res) => {
 
         const outDir = path.join(folderPath, 'Media', TEMP_DIRNAME);
         await fs.ensureDir(outDir);
-        await _sweep(outDir);
+        await sweepOlderThan(outDir, TEMP_MAX_AGE_MS);
         const out = await encodeTrackSource({
             inputPath, trimIn, trimOut, outPath: path.join(outDir, `track_${uuidv4()}.mp4`),
         });
@@ -269,7 +259,7 @@ router.post('/video-extract/prores', async (req, res) => {
         const srcMeta = await probeVideo(inputPath) || {};
         const outDir = path.join(folderPath, 'Media', TEMP_DIRNAME);
         await fs.ensureDir(outDir);
-        await _sweep(outDir);
+        await sweepOlderThan(outDir, TEMP_MAX_AGE_MS);
         const fileName = `${path.parse(inputPath).name}_prores4444.mov`;
         const outPath = path.join(outDir, `${uuidv4()}_${fileName}`);
         await encodeProres({

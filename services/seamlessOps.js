@@ -48,6 +48,7 @@ const os    = require('os');
 const path  = require('path');
 const sharp = require('sharp');
 const { v4: uuidv4 } = require('uuid');
+const { sweepOlderThan } = require('./scratchSweep');
 
 // libvips file cache causes EBUSY on Windows when a WebP is read then deleted.
 sharp.cache({ files: 0 });
@@ -79,15 +80,8 @@ function runDirOf(runId) {
 // ── Sweep ─────────────────────────────────────────────────────────────────────
 
 /** Remove run directories older than KEEP_MS. Best-effort, never throws. */
-async function sweepScratch(now = Date.now()) {
-    const entries = await fs.readdir(SCRATCH_BASE).catch(() => []);
-    for (const name of entries) {
-        const dir = path.join(SCRATCH_BASE, name);
-        const stat = await fs.stat(dir).catch(() => null);
-        if (stat?.isDirectory() && now - stat.mtimeMs > KEEP_MS) {
-            await fs.remove(dir).catch(() => {});
-        }
-    }
+function sweepScratch(now = Date.now()) {
+    return sweepOlderThan(SCRATCH_BASE, KEEP_MS, { only: 'dir', now });
 }
 
 // ── Band math ─────────────────────────────────────────────────────────────────

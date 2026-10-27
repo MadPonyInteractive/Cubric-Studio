@@ -16,6 +16,7 @@ const path  = require('path');
 const fs    = require('fs-extra');
 const sharp = require('sharp');
 const { v4: uuidv4 } = require('uuid');
+const { sweepOlderThan } = require('./scratchSweep');
 
 // libvips holds inputs open on Windows otherwise (EBUSY on the sweep).
 sharp.cache({ files: 0 });
@@ -26,13 +27,8 @@ const TARGET_PX    = 1024 * 1024;   // what image_descriptor.json's ScaleToTotal
 const STROKE_FRAC  = 0.003;         // outline width, of the long side (4 px at the bench's 1344)
 
 /** Remove run directories older than KEEP_MS. Best-effort, never throws. */
-async function sweepScratch(now = Date.now()) {
-    const entries = await fs.readdir(SCRATCH_BASE).catch(() => []);
-    for (const name of entries) {
-        const dir = path.join(SCRATCH_BASE, name);
-        const stat = await fs.stat(dir).catch(() => null);
-        if (stat?.isDirectory() && now - stat.mtimeMs > KEEP_MS) await fs.remove(dir).catch(() => {});
-    }
+function sweepScratch(now = Date.now()) {
+    return sweepOlderThan(SCRATCH_BASE, KEEP_MS, { only: 'dir', now });
 }
 
 /**

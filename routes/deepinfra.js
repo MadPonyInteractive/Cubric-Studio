@@ -55,6 +55,7 @@ const sharp = require('sharp');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
 const { ffmpegPath, ffprobePath } = require('../services/ffmpegBinary');
+const { sweepOlderThan } = require('../services/scratchSweep');
 const router = express.Router();
 const execFileP = promisify(execFile);
 const logger = require('./logger');
@@ -90,13 +91,8 @@ const OUTPUT_DIR = path.join(os.tmpdir(), 'cubric-deepinfra');
 const OUTPUT_KEEP_MS = 24 * 60 * 60 * 1000;
 
 /** Remove scratch outputs older than OUTPUT_KEEP_MS. Best effort; never throws. */
-async function _sweepOutputs(dir = OUTPUT_DIR, now = Date.now()) {
-    const names = await fs.readdir(dir).catch(() => []);
-    for (const name of names) {
-        const file = path.join(dir, name);
-        const stat = await fs.stat(file).catch(() => null);
-        if (stat?.isFile() && now - stat.mtimeMs > OUTPUT_KEEP_MS) await fs.remove(file).catch(() => {});
-    }
+function _sweepOutputs(dir = OUTPUT_DIR, now = Date.now()) {
+    return sweepOlderThan(dir, OUTPUT_KEEP_MS, { only: 'file', now });
 }
 
 const _fail = (res, code, message, status = 200) =>

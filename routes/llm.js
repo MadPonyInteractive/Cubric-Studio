@@ -50,6 +50,7 @@
 const express = require('express');
 const path = require('path');
 const { diskPathOf } = require('../services/projectFileUrl');
+const { sweepOlderThan } = require('../services/scratchSweep');
 const fs = require('fs');
 const router = express.Router();
 const logger = require('./logger');
@@ -592,12 +593,7 @@ router.post('/llm/zoom-crop', async (req, res) => {
     }
     try {
         await fs.promises.mkdir(ZOOM_DIR, { recursive: true });
-        const now = Date.now();
-        for (const name of await fs.promises.readdir(ZOOM_DIR)) {
-            const p = path.join(ZOOM_DIR, name);
-            const st = await fs.promises.stat(p).catch(() => null);
-            if (st && now - st.mtimeMs > 3600e3) await fs.promises.unlink(p).catch(() => {});
-        }
+        await sweepOlderThan(ZOOM_DIR, 3600e3, { only: 'file' });
         const sharp = _getSharp();
         const meta = (await sharp(srcPath, { limitInputPixels: false, autoOrient: true }).metadata()).autoOrient;
         const left = Math.max(0, Math.floor(c.x * meta.width)), top = Math.max(0, Math.floor(c.y * meta.height));

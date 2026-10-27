@@ -91,6 +91,7 @@ const {
 const { fillMaskHoles } = require('../services/imageComposite');
 const { writeGifCard } = require('../services/outputCard');
 const { ffmpegPath } = require('../services/ffmpegBinary');
+const { sweepOlderThan } = require('../services/scratchSweep');
 const { nextSequence } = require('./projects');
 
 const execFileP = promisify(execFile);
@@ -112,18 +113,6 @@ const SOURCE_BACKGROUND = { r: 0, g: 0, b: 0 };
 // Self-cleaning instead of a second DELETE route: swept on every /source call
 // rather than left to grow forever if a caller never follows up.
 const TEMP_SOURCE_MAX_AGE_MS = 60 * 60 * 1000;
-
-async function sweepTempSources(dir) {
-    if (!(await fs.pathExists(dir))) return;
-    const now = Date.now();
-    for (const name of await fs.readdir(dir)) {
-        const abs = path.join(dir, name);
-        try {
-            const st = await fs.stat(abs);
-            if (now - st.mtimeMs > TEMP_SOURCE_MAX_AGE_MS) await fs.remove(abs);
-        } catch { /* best-effort GC */ }
-    }
-}
 
 /**
  * Encode `frames` (in order) into ONE lossless temp video, one video frame
@@ -301,7 +290,7 @@ router.post('/gif-cutout/source', async (req, res) => {
         }
 
         const outDir = path.join(mediaDir, TEMP_SOURCE_DIRNAME);
-        await sweepTempSources(outDir);
+        await sweepOlderThan(outDir, TEMP_SOURCE_MAX_AGE_MS);
         const { videoPath, frameCount, width, height } = await encodeFramesToSourceVideo({ mediaDir, frames, outDir });
         res.json({ success: true, videoPath, frameCount, width, height });
     } catch (err) {

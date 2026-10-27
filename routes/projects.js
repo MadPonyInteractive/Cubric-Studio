@@ -43,6 +43,7 @@ const { projectFileUrl, projectFileUrlBusted, projectFilePath, diskPathOf } = re
 const { probeVideo, probeAudio } = require('../services/ffprobeVideo');
 const { extractImageThumb, extractVideoThumb, extractVideoProxy, extractAudioWaveform, extractVideoWaveform, writeVideoDerivatives, imageThumbPath, videoProxyPath, IMAGE_RENDITION_PX, VIDEO_PROXY_HEIGHT } = require('../services/ffmpegThumb');
 const { writeImageRenditions, writeImageCard } = require('../services/outputCard');
+const { sweepOlderThan } = require('../services/scratchSweep');
 const { ffmpegPath, ffprobePath, quote } = require('../services/ffmpegBinary');
 const { muxAudioIntoVideo, mixAudioFiles } = require('../services/ffmpegMux');
 const { extractFramesFromGif, copyGifFrames, holdFrames, sweepGifFrames } = require('../services/gifFrames');
@@ -2014,15 +2015,11 @@ router.get('/engine-image', async (req, res) => {
 // 270 MB at 16K) is streamed into the project seconds after it is written, so an hour.
 const ENGINE_SCRATCH = path.join(os.tmpdir(), 'cubric-engine-inputs');
 const ENGINE_SCRATCH_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(\.png$)?/;
-async function _sweepEngineScratch(now = Date.now()) {
-    for (const name of await fs.readdir(ENGINE_SCRATCH).catch(() => [])) {
+function _sweepEngineScratch(now = Date.now()) {
+    return sweepOlderThan(ENGINE_SCRATCH, (name) => {
         const m = ENGINE_SCRATCH_RE.exec(name);
-        if (!m) continue;
-        const file = path.join(ENGINE_SCRATCH, name);
-        const stat = await fs.stat(file).catch(() => null);
-        const keep = m[1] ? 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
-        if (stat && now - stat.mtimeMs > keep) await fs.remove(file).catch(() => {});
-    }
+        return !m ? null : m[1] ? 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
+    }, { now });
 }
 
 router.post('/engine-mask', async (req, res) => {

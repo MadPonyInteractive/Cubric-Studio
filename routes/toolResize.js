@@ -27,19 +27,12 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('./logger');
 const { resizeImage, resizeImageFile, resizeVideoFile } = require('../services/resizeOps');
+const { sweepOlderThan } = require('../services/scratchSweep');
 
 /** Scratch dir for a result on its way into a project. */
 const OUTPUT_DIR = path.join(os.tmpdir(), 'cubric-tool');
 // Free to remake, unlike a paid cloud result, but the save reads it AFTER this answers.
 const OUTPUT_KEEP_MS = 60 * 60 * 1000;
-
-async function _sweepOutputs(now = Date.now()) {
-    for (const name of await fs.readdir(OUTPUT_DIR).catch(() => [])) {
-        const file = path.join(OUTPUT_DIR, name);
-        const stat = await fs.stat(file).catch(() => null);
-        if (stat?.isFile() && now - stat.mtimeMs > OUTPUT_KEEP_MS) await fs.remove(file).catch(() => {});
-    }
-}
 
 const _fail = (res, code, message, status = 200) => res.status(status).json({ ok: false, error: { code, message } });
 
@@ -51,7 +44,7 @@ router.post('/tool/resize', async (req, res) => {
     if (!await fs.pathExists(sourcePath)) return _fail(res, 'NOT_FOUND', `Source not found: ${path.basename(sourcePath)}`, 404);
 
     await fs.ensureDir(OUTPUT_DIR);
-    _sweepOutputs();
+    sweepOlderThan(OUTPUT_DIR, OUTPUT_KEEP_MS, { only: 'file' });
     const id = uuidv4();
     const ext = isVideo ? 'mp4' : 'png';
     const out = path.join(OUTPUT_DIR, `${id}.${ext}`);
