@@ -31,7 +31,7 @@ const { diskPathOf } = require('../services/projectFileUrl');
 const os      = require('os');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('./logger');
-const { ffmpegPath, runFfmpeg } = require('../services/ffmpegBinary');
+const { ffmpegPath, runFfmpeg, trimArgs } = require('../services/ffmpegBinary');
 
 // sizePreset → ffmpeg scale expression. `-2` keeps aspect + forces an even
 // dimension. 'original' skips scaling entirely.
@@ -74,10 +74,6 @@ router.post('/api/video/gif', async (req, res) => {
         const fileName = `clip_${uuidv4().slice(0, 8)}.gif`;
         outputPath = path.join(tmpDir, fileName);
 
-        const tIn  = Number(trimIn);
-        const tOut = Number(trimOut);
-        const hasTrim = Number.isFinite(tIn) && Number.isFinite(tOut) && tOut > tIn;
-
         // Build the vf chain: fps → optional scale → split for the 2-pass palette.
         // palettegen/paletteuse give far better color than a naive single pass.
         const vfParts = [`fps=${outFps}`];
@@ -87,8 +83,7 @@ router.post('/api/video/gif', async (req, res) => {
             `[0:v] ${vfBase},split [a][b];[a] palettegen [p];[b][p] paletteuse`;
 
         // Trim BEFORE -i for fast input-seek (keyframe-accurate is fine for GIF).
-        const args = ['-y'];
-        if (hasTrim) args.push('-ss', String(tIn), '-to', String(tOut));
+        const args = ['-y', ...trimArgs(trimIn, trimOut)];
         args.push(
             '-i', inputPath,
             '-filter_complex', filterComplex,

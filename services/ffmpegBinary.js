@@ -11,6 +11,7 @@
  *   ffmpegPath  — absolute path to ffmpeg binary
  *   ffprobePath — absolute path to ffprobe binary
  *   quote(p)    — shell-quote a path (handles spaces on win32)
+ *   trimArgs(in, out) — the `-ss <in> -to <out>` input seek, or [] for no valid trim
  *   runFfmpeg(args, opts) / runFfprobe(args, opts) — promisified execFile with
  *               `windowsHide` always on; `opts` is execFile's (maxBuffer, cwd, signal…)
  */
@@ -84,4 +85,13 @@ function quote(p) {
 const runFfmpeg  = (args, opts = {}) => execFileP(ffmpegPath, args, { ...opts, windowsHide: true });
 const runFfprobe = (args, opts = {}) => execFileP(ffprobePath, args, { ...opts, windowsHide: true });
 
-module.exports = { ffmpegPath, ffprobePath, quote, runFfmpeg, runFfprobe };
+/** Input seek for a trim window: put it BEFORE `-i`. No trim (or out <= in) -> []. */
+function trimArgs(trimIn, trimOut) {
+    const tIn = Number(trimIn);
+    const tOut = Number(trimOut);
+    return Number.isFinite(tIn) && Number.isFinite(tOut) && tOut > tIn
+        ? ['-ss', String(tIn), '-to', String(tOut)]
+        : [];
+}
+
+module.exports = { ffmpegPath, ffprobePath, quote, trimArgs, runFfmpeg, runFfprobe };

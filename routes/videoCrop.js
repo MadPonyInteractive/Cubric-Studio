@@ -29,7 +29,7 @@ const fs      = require('fs-extra');
 const path    = require('path');
 const { diskPathOf } = require('../services/projectFileUrl');
 const logger = require('./logger');
-const { ffmpegPath, runFfmpeg } = require('../services/ffmpegBinary');
+const { ffmpegPath, runFfmpeg, trimArgs } = require('../services/ffmpegBinary');
 const { probeVideo } = require('../services/ffprobeVideo');
 const { writeVideoCard } = require('../services/outputCard');
 const { nextSequence } = require('./projects');
@@ -93,12 +93,7 @@ router.post('/api/video/crop', async (req, res) => {
         // 4. Run ffmpeg. Apply optional temporal trim via input-seek
         // (`-ss <in> -to <out>` before `-i`) — fast + keyframe-accurate; the
         // re-encode below produces clean GOPs regardless.
-        const tIn  = Number(trimIn);
-        const tOut = Number(trimOut);
-        const hasTrim = Number.isFinite(tIn) && Number.isFinite(tOut) && tOut > tIn;
-
-        const args = ['-y'];
-        if (hasTrim) args.push('-ss', String(tIn), '-to', String(tOut));
+        const args = ['-y', ...trimArgs(trimIn, trimOut)];
         args.push(
             '-i', inputPath,
             '-vf', `crop=${cropW}:${cropH}:${cropX}:${cropY}`,

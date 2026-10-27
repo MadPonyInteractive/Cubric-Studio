@@ -22,7 +22,7 @@
 
 const fs = require('fs-extra');
 const sharp = require('sharp');
-const { runFfmpeg } = require('./ffmpegBinary');
+const { runFfmpeg, trimArgs } = require('./ffmpegBinary');
 const { probeVideo } = require('./ffprobeVideo');
 
 // Photographers load 16K stills (past sharp's 268 MP default, and the limit fires on
@@ -338,10 +338,7 @@ async function resizeVideoFile(inputPath, outPath, params, { trimIn, trimOut, si
     const src = await probeVideo(inputPath);
     if (!src?.width || !src?.height) throw new Error('could not probe source dimensions');
     const plan = planResize(src.width, src.height, params);
-    const tIn = Number(trimIn);
-    const tOut = Number(trimOut);
-    const args = ['-y'];
-    if (Number.isFinite(tIn) && Number.isFinite(tOut) && tOut > tIn) args.push('-ss', String(tIn), '-to', String(tOut));
+    const args = ['-y', ...trimArgs(trimIn, trimOut)];
     args.push('-i', inputPath, '-vf', videoFilter(plan),
         '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p');
     if (src.hasAudio) args.push('-c:a', 'aac', '-b:a', '192k');

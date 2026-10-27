@@ -42,7 +42,7 @@ const path    = require('path');
 const { diskPathOf } = require('../services/projectFileUrl');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('./logger');
-const { runFfmpeg } = require('../services/ffmpegBinary');
+const { runFfmpeg, trimArgs } = require('../services/ffmpegBinary');
 const { sweepOlderThan } = require('../services/scratchSweep');
 const { probeVideo } = require('../services/ffprobeVideo');
 const { writeVideoCard } = require('../services/outputCard');
@@ -54,22 +54,13 @@ const TEMP_MAX_AGE_MS = 60 * 60 * 1000;
 const TRACK_MAX_EDGE = 1024;
 
 
-/** The same input seek on both routes, so the tracker and the cut see the same frames. */
-function _trimArgs(trimIn, trimOut) {
-    const tIn = Number(trimIn);
-    const tOut = Number(trimOut);
-    return Number.isFinite(tIn) && Number.isFinite(tOut) && tOut > tIn
-        ? ['-ss', String(tIn), '-to', String(tOut)]
-        : [];
-}
-
 /**
  * Encode the tracker's source: trimmed, long edge <= TRACK_MAX_EDGE, one frame per frame.
  * @returns {Promise<{ videoPath: string, frameCount: number, width: number, height: number }>}
  */
 async function encodeTrackSource({ inputPath, trimIn, trimOut, outPath }) {
     const m = TRACK_MAX_EDGE;
-    const args = ['-y', ..._trimArgs(trimIn, trimOut), '-i', inputPath,
+    const args = ['-y', ...trimArgs(trimIn, trimOut), '-i', inputPath,
         '-map', '0:v:0', '-an', '-fps_mode', 'passthrough',
         '-vf', `scale=w='min(${m},iw)':h='min(${m},ih)':force_original_aspect_ratio=decrease:force_divisible_by=2`,
         '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '14', '-pix_fmt', 'yuv420p', outPath];
@@ -121,7 +112,7 @@ async function extractThroughMaskSequence(o) {
     }
     // ffmpeg's native vp9 decoder DROPS alpha; libvpx keeps it.
     const decoder = o.codec === 'vp9' ? ['-c:v', 'libvpx-vp9'] : [];
-    const args = ['-y', ..._trimArgs(o.trimIn, o.trimOut), ...decoder, '-i', o.inputPath,
+    const args = ['-y', ...trimArgs(o.trimIn, o.trimOut), ...decoder, '-i', o.inputPath,
         '-framerate', String(o.fps || '24'), '-i', path.join(o.maskDir, 'm_%05d.png'),
         '-filter_complex', graph, '-map', '[out]'];
     if (o.hasAudio) args.push('-map', '0:a:0?');
@@ -234,7 +225,7 @@ router.post('/video-extract/apply', async (req, res) => {
  */
 async function encodeProres({ inputPath, trimIn, trimOut, codec, hasAudio, outPath }) {
     const decoder = codec === 'vp9' ? ['-c:v', 'libvpx-vp9'] : [];
-    const args = ['-y', ..._trimArgs(trimIn, trimOut), ...decoder, '-i', inputPath,
+    const args = ['-y', ...trimArgs(trimIn, trimOut), ...decoder, '-i', inputPath,
         '-map', '0:v:0', '-c:v', 'prores_ks', '-profile:v', '4444', '-pix_fmt', 'yuva444p10le',
         '-vendor', 'apl0'];
     if (hasAudio) args.push('-map', '0:a:0?', '-c:a', 'pcm_s16le');

@@ -28,7 +28,7 @@ const fs      = require('fs-extra');
 const path    = require('path');
 const { diskPathOf } = require('../services/projectFileUrl');
 const logger = require('./logger');
-const { ffmpegPath, runFfmpeg } = require('../services/ffmpegBinary');
+const { ffmpegPath, runFfmpeg, trimArgs } = require('../services/ffmpegBinary');
 const { probeVideo } = require('../services/ffprobeVideo');
 const { writeVideoCard } = require('../services/outputCard');
 const { nextSequence } = require('./projects');
@@ -68,14 +68,12 @@ router.post('/api/video/reverse', async (req, res) => {
         }
         outputPath = path.join(mediaDir, finalName);
 
-        const tIn  = Number(trimIn);
-        const tOut = Number(trimOut);
-        const hasTrim = Number.isFinite(tIn) && Number.isFinite(tOut) && tOut > tIn;
+        const trim = trimArgs(trimIn, trimOut);
+        const hasTrim = trim.length > 0;
 
         // Trim BEFORE -i for fast input-seek; `reverse`/`areverse` buffer the
         // whole stream so trimming first keeps memory bounded on long clips.
-        const args = ['-y'];
-        if (hasTrim) args.push('-ss', String(tIn), '-to', String(tOut));
+        const args = ['-y', ...trim];
         args.push('-i', inputPath);
 
         const reverseVideo = mode === 'both' || mode === 'video';
