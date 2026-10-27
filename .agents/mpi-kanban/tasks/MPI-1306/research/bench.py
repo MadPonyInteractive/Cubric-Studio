@@ -55,9 +55,15 @@ def describe(path):
     return text_of(post(g), by_title(g, 'Output_prompt')).strip()
 
 
-def sheet(name, face, body, box, seed, kind, pose, clothes, positive, texts=None):
+def sheet(name, face, body, box, seed, kind, pose, clothes, positive, texts=None, keep_head=False):
     g = json.load(open(REPO + 'flow_character_sheet_from_images.json', encoding='utf-8'))
     s = lambda t, k, v: g[by_title(g, t)]['inputs'].__setitem__(k, v)
+    if keep_head:  # reference 2 = the body picture as loaded, head NOT removed
+        g[by_title(g, 'Reference 2 = body, None when empty')]['inputs']['on_true'] = [by_title(g, 'Input_Image_2'), 0]
+    g['9901'] = {'class_type': 'PreviewImage', '_meta': {'title': 'bench ref2'},
+                 'inputs': {'images': [by_title(g, 'Reference 2 = body, None when empty'), 0]}} if body else None
+    if not body:
+        del g['9901']
     for t, v in (texts or {}).items():
         s(t, 'value', v)
     s('Input_Image', 'string', stage(face))
@@ -76,6 +82,10 @@ def sheet(name, face, body, box, seed, kind, pose, clothes, positive, texts=None
     q = urllib.parse.urlencode({'filename': img['filename'], 'subfolder': img['subfolder'], 'type': img['type']})
     dst = f'{SP}/sheet_{name}.png'
     open(dst, 'wb').write(urllib.request.urlopen(f'{E}/view?{q}').read())
+    if '9901' in out and out['9901'].get('images'):
+        r2 = out['9901']['images'][0]
+        q = urllib.parse.urlencode({'filename': r2['filename'], 'subfolder': r2['subfolder'], 'type': r2['type']})
+        open(f'{SP}/ref2_{name}.png', 'wb').write(urllib.request.urlopen(f'{E}/view?{q}').read())
     prompt = text_of(out, by_title(g, 'Output_prompt'))
     open(f'{SP}/sheet_{name}.txt', 'w', encoding='utf-8').write(prompt)
     print(name, f'{time.time() - t0:.0f}s', dst, flush=True)
@@ -96,6 +106,23 @@ COPY_WB = ('Character reference sheet of the character from image 1, an establis
            'included. Where neither picture shows a part, such as the back, continue its shapes and colours plainly, '
            'adding no new details. The character is not a person: no human features, anatomy, hair or clothing that '
            'the pictures do not show. [CHARACTER PROMPT]')
+
+KEEP_WB = ('Character reference sheet of the character from image 1, an established design that must be copied '
+           'exactly, in exactly the same visual style and medium as image 1. Every shape, colour, marking, logo and '
+           'detail of the head is exactly as in image 1, in every view; only the viewing angle changes. Image 2 shows '
+           'the same character\'s whole body: copy its body, limbs, build and proportions exactly, including how '
+           'large the head is compared with the body. Where neither picture shows a part, such as the back, continue '
+           'its shapes and colours plainly, adding no new details. The character is not a person: no human features, '
+           'anatomy, hair or clothing that the pictures do not show. [CHARACTER PROMPT]')
+
+if sys.argv[1] == 'headonly':
+    face, body = M + 'imported_001.png', M + 'frame_ace45617.png'
+    box = (450, -300, 1100, 1375)
+    for seed in (42, 7):
+        sheet(f'ho_now_s{seed}', face, body, box, seed, 'OTHER', 'FRONT', '', '')
+        sheet(f'ho_keep_s{seed}', face, body, box, seed, 'OTHER', 'FRONT', '', '',
+              {'Sheet_Prompt_With_Body_Other': KEEP_WB}, keep_head=True)
+    raise SystemExit
 
 if sys.argv[1] == 'fidelity':
     robot1 = M + 'imported_002.png'
