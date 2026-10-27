@@ -85,9 +85,13 @@ the 142 violations they had let through). The finding sections below are left as
   (deepinfra, toolResize, gifCutout, imageImport, llm zoom, projects engine scratch,
   videoExtract, seamlessOps, tileOutlines), each keeping its age and file/dir rule. Proof: unit
   test + the MPI-919 retention test.
+- Phase 2: **D10, ffmpeg plumbing** (`services/ffmpegBinary.js`): `runFfmpeg`/`runFfprobe` force
+  `windowsHide` for the 17 files that each promisified `execFile` (comment kept once there);
+  `trimArgs` replaces the four `-ss/-to` copies; `muxAudioIntoVideo` uses `ffmpegMux`'s own
+  `_spawnFfmpeg`. `videoConcat`'s runner stays: it feeds stdin and parses progress.
 
 **Still open, suggested batches:**
-- Next: rest of **D10** (ffmpeg plumbing, remote proxy, EXIF swap, lazy imports,
+- Next: rest of **D10** ( remote proxy, EXIF swap, lazy imports,
   `_fail`), **P2/P14/P7/P12/P13**.
 - Needs the desktop suite or Fabio watching: **P1**, **P3**, **D7**, **D9**.
 - Needs a local profile or a Pod: **P4–P6**, **P9–P11**.
