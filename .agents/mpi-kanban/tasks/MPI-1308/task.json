@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1308",
+  "title": "Gallery card info flyout: instant, and only in info mode",
+  "description": "The hover info flyout on gallery cards (MPI-1261) waits 1.25 s and shows in any mode. Fabio: open it instantly, and only when the gallery's info-mode toggle is on.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-27T16:20:33+00:00",
+  "updated_at": "2026-10-27T16:20:47+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

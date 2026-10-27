@@ -2535,6 +2535,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
         _unsubs.push(Events.on('state:changed', ({ key }) => {
             if (key === 'galleryShowInfo') {
                 _cardMap.forEach(({ card }) => card.el.setShowInfo?.(state.galleryShowInfo));
+                if (!state.galleryShowInfo) _info.el.hide();
             } else if (key === 'gallerySort') {
                 _rerenderJustified('sort');
             } else if (key === 'gallerySizeLevel') {
@@ -2686,14 +2687,16 @@ export const MpiGalleryGrid = ComponentFactory.create({
             }
         };
 
-        // Rest on a card to see how it was made, same flyout as History (MPI-1162). 1.25 s,
-        // not History's 400 ms, so browsing the grid never trips it (MPI-1261). A stack
-        // has no single "how", and a card still generating has no entry: no flyout.
+        // Hover a card to see how it was made, same flyout as History (MPI-1162). Only in
+        // info mode, and then at once: the toggle is the opt-in, so browsing the grid with
+        // it off never trips it (MPI-1308). A stack has no single "how", and a card still
+        // generating has no entry: no flyout.
         const _info = MpiEntryInfo.mount(ce('div'));
         _unsubs.push(_info.el.watch(grid, '.mpi-gallery-grid__row-wrap', (wrap) => {
+            if (!state.galleryShowInfo) return null;
             const group = _groups.find(g => g.id === wrap.dataset.groupId);
             return group && !isStack(group) ? entryInfo(group.history?.[group.selectedIndex]) : null;
-        }, { openMs: 1250 }));
+        }, { openMs: 0 }));
 
         // ── Cleanup ──────────────────────────────────────────────────────────
         el.destroy = () => {

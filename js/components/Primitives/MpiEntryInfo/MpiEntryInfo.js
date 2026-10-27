@@ -23,7 +23,7 @@ import { ce, on, inheritAccent } from '../../../utils/dom.js';
  * Instance API (on el):
  *   el.watch(container, selector, getInfo, { openMs }) — wire hover on every `selector`
  *       inside `container`; `getInfo(rowEl)` returns an `entryInfo()` result or null (no
- *       flyout). `openMs` overrides the rest delay (the gallery waits longer, MPI-1261).
+ *       flyout). `openMs` overrides the rest delay (the gallery opens at once, MPI-1308).
  *       Returns the unwatch function.
  *   el.hide()
  */
