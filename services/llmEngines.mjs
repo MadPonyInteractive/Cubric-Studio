@@ -568,7 +568,7 @@ export const RECOMMENDED_REMOTE_MODELS = {
         // `reasoning_content` (600 chars) and the reply was clean.
         // `agentTest` (MPI-912, Fabio 2026-09-26): the agent dropdown lists every model that
         // ran `scripts/agent-test.mjs` on top, with its score and measured cost per chat, and
-        // the user chooses; no "recommended" label on the agent row. Numbers from
+        // the user chooses. The one `agent` row reads "(recommended)" there (Fabio 2026-10-27, MPI-1286). Numbers from
         // `.agents/mpi-kanban/tasks/MPI-916/validation.md` § 2f (Qwen3.6: § 4). `perChat` is USD per
         // conversation (suite cost / conversations), fixed at test time, not a live price.
         // `suiteHash` (MPI-941 Phase 12) = `agentBench.suiteHash()` of the cases it ran; a score without one,
@@ -579,16 +579,19 @@ export const RECOMMENDED_REMOTE_MODELS = {
         // Re-scored 2026-10-20 on the 55-case suite (MPI-1208 validation.md, research/bench/): runs 53, 52, 49,
         // median 52 (48 strict), billed $0.2678 / 165 chats. `perChat` is the BILLED cost from here on (DeepInfra's
         // `estimated_cost`, what the in-app benchmark reports); the old 0.0035 priced cached tokens as fresh.
-        // Default since 2026-10-20 (MPI-1208, Fabio): it ties 0731's score at 25% less and SEES pictures (`look`
+        // The 55-case scores below were run on suite e4f83ddc0bfe and re-stamped 30dd5a845c08 unrun (MPI-1281, Fabio
+        // 2026-10-24): the only change, ask-first also passing on the Options buttons, can only raise a score, so these are floors.
+        // Default again since 2026-10-27 (MPI-1286, Fabio): MiMo took ~2 min to write one video prompt and was
+        // overloaded for testers; this ties its 52/55. DeepInfra does not tag it `vision`, so on it `look` has no
+        // see: true and the agent reads the describer's words only.
+        { id: 'deepseek-ai/DeepSeek-V4-Flash-0731', jobs: ['agent'], contextWindow: 1_048_576, reasoningEffort: 'low',
+            agentTest: { passed: 52, cases: 55, runs: 3, perChat: 0.0016, suiteHash: '30dd5a845c08' } },
+        // Default 2026-10-20 to 2026-10-27 (MPI-1208, Fabio): it ties 0731's score at 25% less and SEES pictures (`look`
         // see:true) when words cannot settle it. 55 cases x3: runs 51, 53, 53 (median 53) spent a picture on every
         // plain look; after the SEE_LIMITS rewording (agentLoop.mjs) runs 53, 50, 52, median 52 (47 strict), billed
         // $0.1970 / 165 chats, and see-not-for-a-plain-description 3/3; identity 2/3. Benched with no reasoningEffort.
-        // The 55-case scores below were run on suite e4f83ddc0bfe and re-stamped 30dd5a845c08 unrun (MPI-1281, Fabio
-        // 2026-10-24): the only change, ask-first also passing on the Options buttons, can only raise a score, so these are floors.
-        { id: 'XiaomiMiMo/MiMo-V2.6-Flash', jobs: ['agent'], contextWindow: 1_048_576,
+        { id: 'XiaomiMiMo/MiMo-V2.6-Flash', jobs: [], contextWindow: 1_048_576,
             agentTest: { passed: 52, cases: 55, runs: 3, perChat: 0.0012, suiteHash: '30dd5a845c08' } },
-        { id: 'deepseek-ai/DeepSeek-V4-Flash-0731', jobs: [], contextWindow: 1_048_576, reasoningEffort: 'low',
-            agentTest: { passed: 52, cases: 55, runs: 3, perChat: 0.0016, suiteHash: '30dd5a845c08' } },
         // 55 cases x3 (MPI-1208): runs 48, 49, 47, median 48 (43 strict), billed $0.1834 / 165 chats. Sees pictures.
         { id: 'deepseek-ai/DeepSeek-V4.1-Flash-1017', jobs: [], agentTest: { passed: 48, cases: 55, runs: 3, perChat: 0.0011, suiteHash: '30dd5a845c08' } },
         // 55 cases x3 (MPI-1208): runs 46, 44, 43 (install-asks run 1 was a DeepInfra 429, rerun), median 44

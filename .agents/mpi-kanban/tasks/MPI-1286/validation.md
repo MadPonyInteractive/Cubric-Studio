@@ -50,3 +50,10 @@ GPU: ~13 Klein Turbo 1K images on the local 4060 Ti, ~10 min across three launch
 - Klein 4B t2i t2i_003.png opened: red bicycle with wicker baskets on a white brick wall, matches the prompt. (t2i_002 is an empty-prompt run: the test sent `prompt` instead of `positive`.)
 - dev_configs/update-evidence.json rewritten for 2.1.3; `npm run release:check:publish` passed.
 - Test install re-pointed the Start Menu "Cubric Studio.lnk" at D:\CVTest\v1.5.0-to-v2.1.3 (MPI-1209 trap) - fix after Fabio's own test.
+
+## DeepSeek default
+
+- 2026-10-27, Fabio: Cosmo's DeepInfra default is `deepseek-ai/DeepSeek-V4-Flash-0731` again (MiMo-V2.6-Flash took ~2 min for one video prompt, overloaded for testers); same 52/55 on the 55-case suite. `RECOMMENDED_REMOTE_MODELS.deepinfra`: `agent` moved to 0731, listed first. Users with no saved agent pick follow it; a saved MiMo pick stays.
+- The agent dropdown row now reads `(recommended) deepseek-ai/DeepSeek-V4-Flash-0731` (same prefix as the enhance/describe rows). Checked on an isolated app (own port and profile) with the live DeepInfra catalogue: trigger and first option carry the flag, MiMo second.
+- Vision: DeepInfra tags 0731 `chat, prompt_cache, reasoning`, no `vision` (MiMo, V4.1-Flash and V4.1-Flash-1017 do). On 0731 `_visionFor` is false, so `look` has no `see: true` and Cosmo only reads the describer's words (gemma-4-26B); it cannot compare two faces or judge grain itself. 2.1.2's "Cosmo can see pictures" no longer holds on the default. No workaround built.
+- Fallback after a stall: 0731 -> MiMo, MiMo -> 0731, untested -> 0731.

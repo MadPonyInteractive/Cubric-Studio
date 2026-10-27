@@ -663,9 +663,10 @@ export const MpiLlmSettings = ComponentFactory.create({
             const rec = models.filter(isRec);
             const value = saved || rec[0]?.id || '';
             if (job === 'agent') {
-                // MPI-912 (Fabio 2026-09-26): no "recommended" on the agent row. Every model
-                // that ran the agent suite goes on top with its score and measured cost, best
-                // score first, and the user chooses. The pick stays the default value.
+                // MPI-912 (Fabio 2026-09-26): every model that ran the agent suite goes on top
+                // with its score and measured cost, best score first, and the user chooses. The
+                // pick stays the default value. MPI-1286 (Fabio 2026-10-27): the default carries
+                // the same "(recommended)" prefix as the other rows.
                 // MPI-941 Phase 12 (Fabio 2026-09-28): the user's own benchmark REPLACES our score, one number
                 // per model; ours stays only while it is on the current tests and theirs is not.
                 // MPI-965: a THIRD tier, the community's (>= 3 shared runs, the median, always on the current
@@ -686,7 +687,7 @@ export const MpiLlmSettings = ComponentFactory.create({
                     });
                 const options = [
                     // In the meta, under the name: the stacked list lifts its 11ch cap (MpiLlmSettings.css).
-                    ...tested.map(m => ({ value: m.id, label: m.id, meta: _modelMeta(m, _agentTestLabel(scoreOf(m), scoreOf(m) === m.communityTest, _isOllamaCloud(m.id))) })),
+                    ...tested.map(m => ({ value: m.id, label: `${isRec(m) ? '(recommended) ' : ''}${m.id}`, meta: _modelMeta(m, _agentTestLabel(scoreOf(m), scoreOf(m) === m.communityTest, _isOllamaCloud(m.id))) })),
                     ...models.filter(m => !scoreOf(m)).map(m => ({ value: m.id, label: m.id, meta: _modelMeta(m) })),
                 ];
                 if (value && _remote?.ok && !options.some(o => o.value === value)) options.unshift({ value, label: value, meta: 'Not listed' });

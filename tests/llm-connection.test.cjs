@@ -33,7 +33,7 @@ const CATALOGUE = {
     data: [
         { id: 'zeta/chat-model', metadata: { context_length: 131072, tags: ['chat'] } },
         { id: 'black-forest-labs/FLUX-2', metadata: { tags: ['image-gen'] } },
-        { id: 'XiaomiMiMo/MiMo-V2.6-Flash', metadata: { context_length: 1048576, tags: ['chat', 'reasoning'] } },
+        { id: 'deepseek-ai/DeepSeek-V4-Flash-0731', metadata: { context_length: 1048576, tags: ['chat', 'reasoning'] } },
         { id: 'alpha/vision-model', metadata: { context_length: 65536, tags: ['chat', 'vision'] } },
     ],
 };
@@ -87,10 +87,10 @@ test('listRemoteModels: chat models only, recommended first, window and vision f
     try {
         const models = await listRemoteModels({ presetId: 'deepinfra', baseURL: `${DI_URL}/`, key: 'k1' });
         assert.equal(auth, 'Bearer k1');
-        assert.deepEqual(models.map((m) => m.id), ['XiaomiMiMo/MiMo-V2.6-Flash', 'alpha/vision-model', 'zeta/chat-model']);
-        assert.deepEqual(models[0], { id: 'XiaomiMiMo/MiMo-V2.6-Flash', contextWindow: 1048576, vision: false, tools: null, recommendedFor: ['agent'], recommendedNote: null,
+        assert.deepEqual(models.map((m) => m.id), ['deepseek-ai/DeepSeek-V4-Flash-0731', 'alpha/vision-model', 'zeta/chat-model']);
+        assert.deepEqual(models[0], { id: 'deepseek-ai/DeepSeek-V4-Flash-0731', contextWindow: 1048576, vision: false, tools: null, recommendedFor: ['agent'], recommendedNote: null,
             // MPI-912: the suite score and cost per chat ride along for the agent dropdown.
-            agentTest: RECOMMENDED_REMOTE_MODELS.deepinfra.find((r) => r.id === 'XiaomiMiMo/MiMo-V2.6-Flash').agentTest });
+            agentTest: RECOMMENDED_REMOTE_MODELS.deepinfra.find((r) => r.id === 'deepseek-ai/DeepSeek-V4-Flash-0731').agentTest });
         // `recommendedNote` says why THIS one when a job has more than one recommendation.
         // Null unless the table gives a reason - DeepSeek V4 Flash deliberately has none.
         assert.equal(models[1].vision, true);
@@ -280,7 +280,7 @@ test('MPI-965: GET /llm/connection/models merges the community score by preset a
             const by = Object.fromEntries(body.models.map((m) => [m.id, m.communityTest]));
             assert.deepEqual(by['zeta/chat-model'], { passed: 20, cases: 28, runs: 5, perChat: 0.002, suiteHash: suite });
             assert.equal(by['alpha/vision-model'], undefined, 'another preset\'s score for the same id is not this row\'s');
-            assert.equal(by['XiaomiMiMo/MiMo-V2.6-Flash'], undefined);
+            assert.equal(by['deepseek-ai/DeepSeek-V4-Flash-0731'], undefined);
             assert.deepEqual(asked, [`${BENCH}/v1/scores?suite=${suite}`]);
             // Read again: the service is asked once a day, not once a panel.
             await (await fetch(`${base}/llm/connection/models?profileId=deepinfra`)).json();

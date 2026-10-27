@@ -1553,7 +1553,7 @@ describe('(g) model and context window', () => {
     test('no pick = the connection\'s recommended agent model', async () => {
         const { loop } = await makeLoop({ engineResponses: [{ text: 'hi' }] });
         await loop.runTurn('Hello', [], null, 'auto', 'deepinfra', 't-rec');
-        assert.equal(loop._fakeEngine.calls[0].model, 'XiaomiMiMo/MiMo-V2.6-Flash');
+        assert.equal(loop._fakeEngine.calls[0].model, 'deepseek-ai/DeepSeek-V4-Flash-0731');
     });
 
     test('no pick and no recommendation = NO_MODEL, and nothing is spent', async () => {
@@ -1574,7 +1574,7 @@ describe('(g) model and context window', () => {
         const { agentFallbackModel } = await import('../services/llmEngines.mjs');
         assert.equal(agentFallbackModel('deepinfra', 'XiaomiMiMo/MiMo-V2.6-Flash'), 'deepseek-ai/DeepSeek-V4-Flash-0731');
         assert.equal(agentFallbackModel('deepinfra', 'deepseek-ai/DeepSeek-V4-Flash-0731'), 'XiaomiMiMo/MiMo-V2.6-Flash');
-        assert.equal(agentFallbackModel('deepinfra', 'vendor/untested'), 'XiaomiMiMo/MiMo-V2.6-Flash');
+        assert.equal(agentFallbackModel('deepinfra', 'vendor/untested'), 'deepseek-ai/DeepSeek-V4-Flash-0731');
         assert.equal(agentFallbackModel('ollama', 'gemma4:12b'), '');
         assert.equal(agentFallbackModel('custom', 'x'), '');
     });
