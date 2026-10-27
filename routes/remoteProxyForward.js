@@ -41,6 +41,31 @@ router.get('/remote/ws-token', async (req, res) => {
 
 // --- ComfyUI-shaped forwarding routes (renderer base-URL swap targets) ----------
 
+/**
+ * Forward to the wrapper's `/wrapper/<wrapperPath>` with the request's own method (a POST
+ * carries its JSON body) and pass the answer back as is; `what` names it in the 502 log.
+ */
+async function _forward(req, res, headers, wrapperPath, what) {
+  try {
+    const init = req.method === 'POST'
+      ? { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify(req.body || {}) }
+      : { headers };
+    const upstream = await fetch(`${proxyUrl(_mode.podId)}/wrapper/${wrapperPath}`, init);
+    await _passthrough(res, upstream);
+  } catch (err) {
+    logger.error('runpod', `proxy ${what} failed`, err);
+    res.status(502).json({ error: 'relay_failed' });
+  }
+}
+
+/** A route that is only the guard and a `_forward`. */
+function _forwardRoute(wrapperPath, what) {
+  return async (req, res) => {
+    const headers = await _guard(res);
+    if (headers) await _forward(req, res, headers, typeof wrapperPath === 'function' ? wrapperPath(req) : wrapperPath, what);
+  };
+}
+
 router.post('/proxy/prompt', async (req, res) => {
   const headers = await _guard(res);
   if (!headers) return;
@@ -50,17 +75,7 @@ router.post('/proxy/prompt', async (req, res) => {
   if (!health.ok) {
     return res.status(409).json({ error: health.block.code, message: health.block.message });
   }
-  try {
-    const upstream = await fetch(`${proxyUrl(_mode.podId)}/wrapper/prompt`, {
-      method: 'POST',
-      headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify(req.body || {}),
-    });
-    await _passthrough(res, upstream);
-  } catch (err) {
-    logger.error('runpod', 'proxy prompt failed', err);
-    res.status(502).json({ error: 'relay_failed' });
-  }
+  await _forward(req, res, headers, 'prompt', 'prompt');
 });
 
 router.get('/proxy/view', async (req, res) => {
@@ -76,42 +91,14 @@ router.get('/proxy/view', async (req, res) => {
   }
 });
 
-router.post('/proxy/interrupt', async (req, res) => {
-  const headers = await _guard(res);
-  if (!headers) return;
-  try {
-    const upstream = await fetch(`${proxyUrl(_mode.podId)}/wrapper/interrupt`, {
-      method: 'POST',
-      headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify(req.body || {}),
-    });
-    await _passthrough(res, upstream);
-  } catch (err) {
-    logger.error('runpod', 'proxy interrupt failed', err);
-    res.status(502).json({ error: 'relay_failed' });
-  }
-});
+router.post('/proxy/interrupt', _forwardRoute('interrupt', 'interrupt'));
 
 // MPI-81: restart ONLY the Pod's internal ComfyUI (rescan custom_nodes after a
 // per-model node install) — no Pod reboot. The app calls this on
 // state.comfyNeedsRestart instead of telling the user to Disconnect/Connect.
 // Ships in image v0.4.2 / wrapper 0.2.5; on an OLDER image the wrapper lacks the
 // endpoint and answers 404 → the app falls back to the manual-reconnect message.
-router.post('/proxy/restart-comfy', async (req, res) => {
-  const headers = await _guard(res);
-  if (!headers) return;
-  try {
-    const upstream = await fetch(`${proxyUrl(_mode.podId)}/wrapper/restart-comfy`, {
-      method: 'POST',
-      headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify(req.body || {}),
-    });
-    await _passthrough(res, upstream);
-  } catch (err) {
-    logger.error('runpod', 'proxy restart-comfy failed', err);
-    res.status(502).json({ error: 'relay_failed' });
-  }
-});
+router.post('/proxy/restart-comfy', _forwardRoute('restart-comfy', 'restart-comfy'));
 
 // The Pod's manifest, verbatim. `comfyui_ref` is the ONLY record of which ComfyUI
 // the running image was built from (stamped at first boot from the image's
@@ -122,62 +109,18 @@ router.post('/proxy/restart-comfy', async (req, res) => {
 // scripts/smoke-workflows.mjs, not polled -- so it forwards rather than caching
 // (_evaluatePodHealth keeps a verdict, never the manifest body). A 404 is a
 // legitimate answer: a fresh / pre-init volume has no manifest yet.
-router.get('/remote/pod/manifest', async (req, res) => {
-  const headers = await _guard(res);
-  if (!headers) return;
-  try {
-    const upstream = await fetch(`${proxyUrl(_mode.podId)}/wrapper/manifest`, { headers });
-    await _passthrough(res, upstream);
-  } catch (err) {
-    logger.error('runpod', 'proxy manifest failed', err);
-    res.status(502).json({ error: 'relay_failed' });
-  }
-});
+router.get('/remote/pod/manifest', _forwardRoute('manifest', 'manifest'));
 
-router.get('/proxy/queue', async (req, res) => {
-  const headers = await _guard(res);
-  if (!headers) return;
-  try {
-    const upstream = await fetch(`${proxyUrl(_mode.podId)}/wrapper/queue`, { headers });
-    await _passthrough(res, upstream);
-  } catch (err) {
-    logger.error('runpod', 'proxy queue snapshot failed', err);
-    res.status(502).json({ error: 'relay_failed' });
-  }
-});
+router.get('/proxy/queue', _forwardRoute('queue', 'queue snapshot'));
 
 // Completion reconciliation (MPI-152): the app polls ComfyUI /history/{prompt_id}
 // on WS reconnect to settle a gen whose terminal event was missed during the blip
 // (terminal events are broadcast=False + not replayed). Forwards to the wrapper's
 // /wrapper/history/{prompt_id} (wrapper >= 0.2.15). An empty `{}` body = the prompt
 // is not yet in history (still running); the app treats that as "keep waiting".
-router.get('/proxy/history/:promptId', async (req, res) => {
-  const headers = await _guard(res);
-  if (!headers) return;
-  try {
-    const upstream = await fetch(`${proxyUrl(_mode.podId)}/wrapper/history/${encodeURIComponent(req.params.promptId)}`, { headers });
-    await _passthrough(res, upstream);
-  } catch (err) {
-    logger.error('runpod', 'proxy history reconcile failed', err);
-    res.status(502).json({ error: 'relay_failed' });
-  }
-});
+router.get('/proxy/history/:promptId', _forwardRoute(req => `history/${encodeURIComponent(req.params.promptId)}`, 'history reconcile'));
 
-router.post('/proxy/queue', async (req, res) => {
-  const headers = await _guard(res);
-  if (!headers) return;
-  try {
-    const upstream = await fetch(`${proxyUrl(_mode.podId)}/wrapper/queue`, {
-      method: 'POST',
-      headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify(req.body || {}),
-    });
-    await _passthrough(res, upstream);
-  } catch (err) {
-    logger.error('runpod', 'proxy queue op failed', err);
-    res.status(502).json({ error: 'relay_failed' });
-  }
-});
+router.post('/proxy/queue', _forwardRoute('queue', 'queue op'));
 
 // Multipart image/mask upload — stream the raw request body to the wrapper
 // untouched (bodyParser.json ignores multipart, so req is still a readable
