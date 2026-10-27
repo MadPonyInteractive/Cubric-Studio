@@ -209,9 +209,8 @@ async function resolveDisplayImage(filePath, edge, { engine = false } = {}) {
     // A format sharp cannot read (BMP) keeps the original: the renderer decodes it, as before.
     const meta = await sharp(filePath, { limitInputPixels: false }).metadata().catch(() => null);
     if (!(meta?.width > 0 && meta?.height > 0)) return original;
-    const turned = meta.orientation >= 5;
-    original.width = turned ? meta.height : meta.width;
-    original.height = turned ? meta.width : meta.height;
+    original.width = meta.autoOrient.width;
+    original.height = meta.autoOrient.height;
     if (Math.max(original.width, original.height) <= edge) return original;
 
     const metaDir = path.join(path.dirname(filePath), '.meta');

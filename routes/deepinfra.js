@@ -265,25 +265,25 @@ const REF_MAX_BYTES = 10 * 1024 * 1024;
 async function _readReference(file, maxPixels = REF_MAX_PIXELS) {
     const bytes = await fs.readFile(file);
     const img = () => sharp(bytes, { limitInputPixels: false });
-    const { width, height, orientation } = await img().metadata();
+    const { width, height, autoOrient } = await img().metadata();
     if (!width || !height) return bytes;
     const area = width * height;
     if (area <= maxPixels && bytes.length <= REF_MAX_BYTES) return bytes;
     const scale = Math.min(1, Math.sqrt(maxPixels / area));
-    // metadata is the STORED size; EXIF 5-8 turn it a quarter, and rotate() runs first.
-    const [w, h] = orientation >= 5 ? [height, width] : [width, height];
+    // rotate() runs first, so the resize is in the upright size.
+    const { width: w, height: h } = autoOrient;
     return img().rotate()
         .resize(Math.floor(w * scale), Math.floor(h * scale), { fit: 'inside' })
         .flatten({ background: '#ffffff' })
         .jpeg({ quality: 92 }).toBuffer();
 }
 
-/** A picture's upright size (EXIF 5-8 turn it a quarter), or null when it cannot be read. */
+/** A picture's upright size (EXIF applied), or null when it cannot be read. */
 async function _uprightSize(file) {
     try {
-        const { width, height, orientation } = await sharp(file, { limitInputPixels: false }).metadata();
+        const { width, height } = (await sharp(file, { limitInputPixels: false }).metadata()).autoOrient;
         if (!width || !height) return null;
-        return orientation >= 5 ? { width: height, height: width } : { width, height };
+        return { width, height };
     } catch {
         return null;
     }

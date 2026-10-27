@@ -43,8 +43,8 @@ const OUTPUT = {
 
 /** Upright pixel size from the header. limitInputPixels off: a 16K photo is past sharp's 268 MP default. */
 async function imageSize(file) {
-    const m = await sharp(file, { limitInputPixels: false }).metadata();
-    return (m.orientation || 1) >= 5 ? { w: m.height, h: m.width } : { w: m.width, h: m.height };
+    const { width: w, height: h } = (await sharp(file, { limitInputPixels: false }).metadata()).autoOrient;
+    return { w, h };
 }
 
 /** Write `src` scaled to at most `maxPixels` (aspect kept) into the temp dir. */

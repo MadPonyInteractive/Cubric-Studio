@@ -55,10 +55,9 @@ async function buildCollage(paths) {
         ? _cell(p, HERO, HERO)
         : _cell(p, COLUMN, cellHeight))));
     // Header only: decoding image 1 just for its size cost ~800 MB of RAM on a 16K photo.
-    // EXIF orientations 5-8 are quarter turns, so the upright size swaps the sides.
-    const meta = await sharp(refs[0], { limitInputPixels: false }).metadata();
-    const turned = meta.orientation >= 5;
-    const first = { info: { width: turned ? meta.height : meta.width, height: turned ? meta.width : meta.height } };
+    // Its upright size (EXIF applied).
+    const { width, height } = (await sharp(refs[0], { limitInputPixels: false }).metadata()).autoOrient;
+    const first = { info: { width, height } };
 
     const jpeg = await sharp({
         create: { width: HERO + GUTTER + COLUMN, height: HERO, channels: 3, background: GREY },

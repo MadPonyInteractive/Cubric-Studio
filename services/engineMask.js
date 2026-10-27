@@ -52,9 +52,8 @@ function maskSource(mask) {
 
 /** Upright pixel size of an image file. */
 async function uprightSize(filePath) {
-    const meta = await sharp(filePath, BUFFER_INPUT).metadata();
-    const turned = meta.orientation >= 5;
-    return { width: turned ? meta.height : meta.width, height: turned ? meta.width : meta.height };
+    const { width, height } = (await sharp(filePath, BUFFER_INPUT).metadata()).autoOrient;
+    return { width, height };
 }
 
 /** The mask as one 8-bit channel at its own size; white = masked. */

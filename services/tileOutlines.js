@@ -43,8 +43,7 @@ async function outlineTiles(imagePath, rects) {
     await fs.ensureDir(dir);
 
     // Upright, like the engine and the describer route see it (autoOrient); never enlarged.
-    const meta = await sharp(imagePath, { limitInputPixels: false, autoOrient: true }).metadata();
-    const [w0, h0] = (meta.orientation || 1) >= 5 ? [meta.height, meta.width] : [meta.width, meta.height];
+    const { width: w0, height: h0 } = (await sharp(imagePath, { limitInputPixels: false }).metadata()).autoOrient;
     const scale = Math.min(1, Math.sqrt(TARGET_PX / (w0 * h0)));
     const w = Math.max(1, Math.round(w0 * scale));
     const h = Math.max(1, Math.round(h0 * scale));

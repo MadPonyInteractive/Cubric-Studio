@@ -223,8 +223,8 @@ function sheetPrompt(prompt, tags, names, roles, lines) {
 
 async function _uprightAspect(file) {
     // Header only, as buildCollage: a full decode of a 16K photo just for its size is ~800 MB.
-    const meta = await sharp(file, { limitInputPixels: false }).metadata();
-    return meta.orientation >= 5 ? meta.height / meta.width : meta.width / meta.height;
+    const { width, height } = (await sharp(file, { limitInputPixels: false }).metadata()).autoOrient;
+    return width / height;
 }
 
 /**
