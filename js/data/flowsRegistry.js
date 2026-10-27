@@ -584,6 +584,9 @@ const STORYBOARD_PLAN_ENHANCE_PARAMS = {
         '- Never describe a cast member\'s looks in a Picture (no species, size, colours or clothes): the cast line is added to every panel that names them, and a second description fights it.',
         '- Only what can be seen in a single still picture: camera moves, cuts, sounds, speech and feelings go in the Intent.',
         '',
+        // The picked panel model's own prompting rules (`withModelGuide`, flowEnhance.js).
+        '{{modelGuide}}',
+        '',
         'The Intent is one sentence for the person who will animate the panel: what happens in this shot and why it matters, with the camera move when there is one.',
         '',
         'Vary the shots so the panels read as an edited sequence: open wide on the place, move closer for action and feeling, and close on a shot that ends the moment. Keep every name, place, object and word the user gave. Write in English. Start with the words "Storyboard plan:", then [CAST], then [PLACES], then [OBJECTS], and stop after the last panel.',

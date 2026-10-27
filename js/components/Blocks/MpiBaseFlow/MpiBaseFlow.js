@@ -43,7 +43,7 @@ import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
 import { MpiInput } from '../../Primitives/MpiInput/MpiInput.js';
 import { MpiProgressBar } from '../../Primitives/MpiProgressBar/MpiProgressBar.js';
 import { resultTileAxes, repeatFromTiles, edgesFor } from '../../Organisms/MpiStepEdges/MpiStepEdges.js';
-import { buildField, mapDeclaredValue, readPictureSentences, pictureSentences, restoreSlotItems, isInjectionParam, disabledFieldIds, hiddenFieldIds, withEnhanceFallback, enhanceEchoTargets } from '../../../utils/declaredFields.js';
+import { buildField, mapDeclaredValue, readPictureSentences, pictureSentences, pictureNoteText, restoreSlotItems, isInjectionParam, disabledFieldIds, hiddenFieldIds, withEnhanceFallback, enhanceEchoTargets } from '../../../utils/declaredFields.js';
 import { buildLicenceRows } from '../../../utils/flowLicences.js';
 
 /**
@@ -1955,7 +1955,7 @@ export const MpiBaseFlow = ComponentFactory.create({
             const items = _pictureEntry()?.items || [];
             _allDecls.filter(f => f.type === 'pictureNotes').forEach((f) => {
                 const notes = _fieldValues[f.id];
-                if (!Array.isArray(notes) || notes.every((n, i) => items[i] || !String(n || '').trim())) return;
+                if (!Array.isArray(notes) || notes.every((n, i) => items[i] || (!pictureNoteText(n).trim() && !n?.several))) return;
                 _onFlowField(f, notes.map((n, i) => (items[i] ? n : '')));
             });
         }
@@ -1966,6 +1966,10 @@ export const MpiBaseFlow = ComponentFactory.create({
          * says "picture 2" meant nothing to a user who could no longer see picture 2 (Fabio,
          * 2026-10-25). The card's number is its tile's. The value is one note per slot;
          * `mapDeclaredValue` makes it the "Picture N is ..." sentences.
+         *
+         * Each card has a "Several characters" switch (MPI-1309): off, the picture is ONE
+         * character, and a character sheet of it is still one; on, a group. The note is then
+         * `{ text, several: true }` (`pictureSentences`).
          */
         function _buildPictureNotes(f, unsubs) {
             _prunePictureNotes();
@@ -1989,15 +1993,27 @@ export const MpiBaseFlow = ComponentFactory.create({
                 const inst = MpiInput.mount(host, {
                     type: 'text',
                     placeholder: f.placeholder || '',
-                    value: String(_fieldValues[f.id]?.[i] || ''),
+                    value: pictureNoteText(_fieldValues[f.id]?.[i]),
                 });
-                inst.on('input', ({ value }) => {
+                // One slot's note written back with the rest as they are.
+                const write = ({ text = pictureNoteText(_fieldValues[f.id]?.[i]), several = _fieldValues[f.id]?.[i]?.several === true }) => {
                     const notes = Array.from({ length: entry.group.max }, (_, k) => _fieldValues[f.id]?.[k] || '');
-                    notes[i] = value;
+                    notes[i] = several ? { text, several } : text;
                     _onFlowField(f, notes);
+                };
+                inst.on('input', ({ value }) => write({ text: value }));
+                const groupHost = ce('div', { className: 'mpi-base-flow__picture-several' });
+                const group = MpiButton.mount(groupHost, {
+                    icon: 'layers',
+                    label: 'Several characters',
+                    size: 'sm',
+                    toggleable: true,
+                    active: _fieldValues[f.id]?.[i]?.several === true,
+                    info: 'On: this picture shows several characters. Off: it shows one character, and a character sheet of it from several sides is still one.',
                 });
-                unsubs.push(() => inst?.el?.destroy?.());
-                card.append(frame, host);
+                group.on('toggle', ({ active }) => write({ several: active }));
+                unsubs.push(() => inst?.el?.destroy?.(), () => group?.el?.destroy?.());
+                card.append(frame, host, groupHost);
                 list.appendChild(card);
             });
             if (!list.childElementCount) {

@@ -155,18 +155,29 @@ export function mapDeclaredValue(f, v) {
  * what it shows: "Picture 1 is the bad guy. It shows a hairless grey cat." and, with no note,
  * "Picture 2 shows a white tiger."
  *
- * @param {Array<string|null>} notes
+ * A note switched to "Several characters" (`{ text, several: true }`, MPI-1309) also says "Picture 2
+ * has several characters in it.": off, the picture is ONE character, maybe a character sheet of it
+ * seen from several sides, and the panels say so (`storyboardRunner`).
+ *
+ * @param {Array<string|{text: string, several?: boolean}|null>} notes
  * @param {Array<string|undefined>} [looks]  what each picture shows, by slot
  * @returns {string}
  */
 export function pictureSentences(notes, looks = []) {
     return Array.from({ length: Math.max(notes.length, looks.length) }, (_, i) => {
-        const text = String(notes[i] || '').trim().replace(/[.\s]+$/, '');
+        const text = pictureNoteText(notes[i]).trim().replace(/[.\s]+$/, '');
         const look = String(looks[i] || '').trim().replace(/[.\s]+$/, '').replace(/^(An?|The)\b/, w => w.toLowerCase());
-        if (!look) return text ? `Picture ${i + 1} is ${text}.` : '';
-        return text ? `Picture ${i + 1} is ${text}. It shows ${look}.` : `Picture ${i + 1} shows ${look}.`;
+        const said = !look ? (text ? `Picture ${i + 1} is ${text}.` : '')
+            : text ? `Picture ${i + 1} is ${text}. It shows ${look}.` : `Picture ${i + 1} shows ${look}.`;
+        return [said, notes[i]?.several ? `Picture ${i + 1} ${SEVERAL}.` : ''].filter(Boolean).join(' ');
     }).filter(Boolean).join(' ');
 }
+
+/** What a picture switched to "Several characters" says after its number. */
+const SEVERAL = 'has several characters in it';
+
+/** A picture note's words, whether it is plain text or switched to several characters. */
+export const pictureNoteText = n => String((typeof n === 'object' && n ? n.text : n) || '');
 
 /**
  * A Flow media group's slots from a saved run's `mediaItems` (the frame's restore on reopen and
@@ -199,15 +210,21 @@ export function restoreSlotItems(group, mediaItems) {
  * The inverse of `pictureSentences`, for the restore paths: the frame persists what
  * `_collectInputs` sends, which is the sentences, so a reopened Flow gets text back.
  * @param {string} text
- * @returns {string[]} one note per slot
+ * @returns {Array<string|{text: string, several: true}>} one note per slot, switched on where it said so
  */
 export function readPictureSentences(text) {
     const notes = [];
-    const parts = String(text || '').split(/(?:^|\s)Picture (\d+) is /).slice(1);
+    const several = new Set();
+    const rest = String(text || '').replace(new RegExp(`\\s*\\bPicture (\\d+) ${SEVERAL}\\.`, 'g'), (m, n) => {
+        several.add(Number(n) - 1);
+        return '';
+    });
+    const parts = rest.split(/(?:^|\s)Picture (\d+) is /).slice(1);
     for (let i = 0; i < parts.length; i += 2) {
         notes[Number(parts[i]) - 1] = parts[i + 1].trim().replace(/\.$/, '');
     }
-    return Array.from(notes, n => n || '');
+    several.forEach((i) => { notes[i] = notes[i] || ''; });
+    return Array.from(notes, (n, i) => (several.has(i) ? { text: n || '', several: true } : n || ''));
 }
 
 /**

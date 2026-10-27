@@ -368,3 +368,13 @@ test('pictureSentences: the planner reads the note and what the picture shows; t
     assert.equal(pictureSentences(notes), 'Picture 1 is Sphinx, the bad guy. Picture 3 is Fox.');
     assert.deepEqual(readPictureSentences(pictureSentences(notes)), ['Sphinx, the bad guy', '', 'Fox']);
 });
+
+test('pictureSentences: a picture switched to "Several characters" says so, and reads back switched on', async () => {
+    // MPI-1309: off (the default) is one character, maybe a character sheet of it; on is a group.
+    const { pictureSentences, readPictureSentences, pictureNoteText } = await esm('js/utils/declaredFields.js');
+    const notes = ['Cosmo, the director', { text: 'the crew', several: true }, { text: '', several: true }];
+    const said = pictureSentences(notes, ['a pink robot', 'four robots']);
+    assert.equal(said, 'Picture 1 is Cosmo, the director. It shows a pink robot. Picture 2 is the crew. It shows four robots. Picture 2 has several characters in it. Picture 3 has several characters in it.');
+    assert.deepEqual(readPictureSentences(pictureSentences(notes)), ['Cosmo, the director', { text: 'the crew', several: true }, { text: '', several: true }]);
+    assert.deepEqual(notes.map(pictureNoteText), ['Cosmo, the director', 'the crew', '']);
+});

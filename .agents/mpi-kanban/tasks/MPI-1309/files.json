@@ -1,0 +1,13 @@
+{
+ "schema": "mpi-kanban/task-files/v1",
+ "files": [
+  "js/services/storyboardRunner.js",
+  "js/utils/declaredFields.js",
+  "js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js",
+  "tests/storyboard-runner.test.cjs",
+  "docs/playbooks/add-flow/existing-flows/storyboard.md",
+  "js/services/flowEnhance.js",
+  "js/data/flowsRegistry.js",
+  "js/shell/storyboardDispatch.js"
+ ]
+}

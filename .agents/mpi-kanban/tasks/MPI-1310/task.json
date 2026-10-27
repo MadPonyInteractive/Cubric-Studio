@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1310",
+  "title": "Storyboard: a Style field (default realistic) and a Review Plan button",
+  "description": "Fabio 2026-10-27. (1) Style field, default Realistic: the APP puts the style on every panel and cast picture, the planner writes none, so a style change needs no re-plan; the picture describer stops naming an art style (its 'pixel art'/'anime'/'3D' cast lines clashed with '2D flat cartoon' on the robot board). (2) Review Plan button beside Plan with Cosmo: the idea at plan time is stored; editing the idea no longer wipes a Cosmo plan (MpiBaseFlow _setFlowField does today); Review sends the planner the current plan (with the user's edits) plus the diff of the idea (and panel count), it answers only the changed sections, code merges them; disabled with no plan or no change; reachable by Cosmo. Measure and report a Review press vs a Plan press price/time. Look of the field and button = Fabio's call (pick offered: dropdown under Video shape; smaller Review Plan button beside Plan with Cosmo). Optional later: reuse drawn cast pictures whose line did not change.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-10-27T16:41:59+00:00",
+  "updated_at": "2026-10-27T16:41:59+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

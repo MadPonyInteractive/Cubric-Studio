@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1309", "at": "2026-10-27T16:41:59+00:00", "actor": "Storyboard Improvements 4", "column": "todo", "title": "Storyboard: a character sheet is one character - per-picture 'several characters' switch and per-model reference wording"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1309", "at": "2026-10-27T16:42:49+00:00", "actor": "Storyboard Improvements 4", "from": "todo", "to": "doing", "reason": "Storyboard Improvements 4 takes it"}

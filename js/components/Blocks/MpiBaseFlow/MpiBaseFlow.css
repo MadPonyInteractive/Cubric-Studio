@@ -381,6 +381,8 @@
     color: var(--ink-1);
     background: var(--surface-bar);
 }
+/* MPI-1309: the card's "Several characters" switch, full width under the note. */
+.mpi-base-flow__picture-several .mpi-ibtn { width: 100%; }
 .mpi-base-flow__pictures-empty {
     grid-column: 1 / -1;
     font-size: var(--t-sm);

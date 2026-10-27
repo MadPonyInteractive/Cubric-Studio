@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1309",
+  "title": "Storyboard: a character sheet is one character - per-picture 'several characters' switch and per-model reference wording",
+  "description": "Fabio 2026-10-27: panel 1 of his robot-crew board drew six robots from five references. The plan and prompt were right (five named, headcount line); each reference is a Character Sheet showing the robot three times. Cropping the sheet is rejected (he uses sheets because a single front view loses the side and back). Fix by prompting: tell the panel model each picture is ONE character seen from several sides, in the wording each panel model wants (FLUX.3 Klein per BFL's guide, Qwen-Image 2.1 its own). In step 2 (Your pictures) each picture gets a switch 'Several characters': off (default) = one character, possibly a sheet; on = a group picture. Test-first, bench on the local GPU (free).",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-27T16:41:59+00:00",
+  "updated_at": "2026-10-27T16:42:49+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

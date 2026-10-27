@@ -29,6 +29,8 @@ import { resolveMediaUrl } from '../utils/mediaActions.js';
 import { getFlowById, flowModelIds, ruleHolds, flowMediaCtx } from '../data/flowsRegistry.js';
 import { mapDeclaredValue, hiddenFieldIds, isInjectionParam } from '../utils/declaredFields.js';
 import { storyboardPlanMarkdown } from './storyboardRunner.js';
+import { MODELS } from '../data/modelConstants/models.js';
+import { resolveRecipe } from '../data/recipes/registry.js';
 
 /**
  * Every field an enhance declaration writes into.
@@ -289,7 +291,7 @@ export async function runEnhanceDecl(d, source, { flowId } = {}) {
     const started = Date.now();
     const result = await enhanceFlow({
         prompt: source,
-        injectionParams: d.injectionParams,
+        injectionParams: withModelGuide(d.injectionParams, flowModelIds(flowId)[0]),
         modelId: d.model || null,
         onAgent: d.runsOn === 'agent',
     });
@@ -302,6 +304,32 @@ export async function runEnhanceDecl(d, source, { flowId } = {}) {
             `${name} enhance failed on ${result.backend || backendPreference()}: ${result.error || 'no answer'}`);
     }
     return result;
+}
+
+/** Where a system prompt takes the picked model's guide (`withModelGuide`), on its own paragraph. */
+export const MODEL_GUIDE = '{{modelGuide}}';
+
+/**
+ * A system prompt holding `MODEL_GUIDE` with that marker replaced by how the Flow's picked model
+ * reads a picture prompt: its Enhancer recipe's `t2v` structure and don'ts (Fabio, 2026-10-27:
+ * Storyboard's planner writes every panel's Picture for FLUX.3 Klein or Qwen-Image 2.1, which
+ * want different prose). A model with no recipe drops the marker's paragraph; params with no
+ * marker come back as they are.
+ * @param {Object} params - a declaration's `injectionParams`
+ * @param {string} [modelId] - the Flow's picked model
+ * @returns {Object}
+ */
+export function withModelGuide(params, modelId) {
+    const sys = params?.Input_System_Prompt;
+    if (typeof sys !== 'string' || !sys.includes(MODEL_GUIDE)) return params;
+    const model = MODELS.find(m => m.id === modelId);
+    const recipe = model ? resolveRecipe(model.enhanceRecipe ?? model.type) : null;
+    const mode = recipe?.modes?.t2v;
+    const guide = mode ? [
+        `The panel model is ${recipe.displayName}. Write the words of every Picture the way it reads a prompt; where this clashes with the rules above (length, the cast, the place names, no looks for a cast member), the rules above win:`,
+        ...mode.structureOrder, ...mode.donts,
+    ].map((s, i) => (i ? `- ${s}` : s)).join('\n') : '';
+    return { ...params, Input_System_Prompt: guide ? sys.replace(MODEL_GUIDE, guide) : sys.replace(`\n\n${MODEL_GUIDE}`, '') };
 }
 
 /** An agent-facing refusal: what the enhancer said, plus where the user fixes it. */

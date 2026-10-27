@@ -346,6 +346,26 @@ test('a pictured cast member gets no description; one whose picture is gone lose
     assert.deepStrictEqual([p2.prompt, p2.pictures, p2.drawn], ['A red sky.', [], []]);
 });
 
+test('the planner is told how the picked panel model reads a picture prompt, from that model\'s own recipe', async () => {
+    // Fabio, 2026-10-27: the planner (Cosmo's model) writes every Picture, so it gets the panel
+    // model's prompting guide, as the Enhancer does for that model.
+    const { withModelGuide } = await esm('js/services/flowEnhance.js');
+    const { getFlowById } = await esm('js/data/flowsRegistry.js');
+    const d = getFlowById('storyboard').steps[0].fields.find(f => f.id === 'enhance');
+    const sys = id => withModelGuide(d.injectionParams, id).Input_System_Prompt;
+    for (const [id, name, first] of [['flux3-klein', 'FLUX.3 Klein', 'Medium and style first'], ['qwen-image-2-1', 'Qwen-Image 2.1', 'Opening sentence: medium']]) {
+        const s = sys(id);
+        assert.match(s, new RegExp(`The panel model is ${name.replace('.', '\\.')}\\.`));
+        assert.ok(s.includes(`- ${first}`), `${id}: its recipe's structure`);
+        assert.ok(s.indexOf('The panel model is') < s.lastIndexOf('<|im_end|>'), `${id}: inside the system turn`);
+        assert.doesNotMatch(s, /\{\{modelGuide\}\}/);
+    }
+    // A model with no recipe gets the planner's own rules only; a declaration with no marker is untouched.
+    assert.doesNotMatch(sys('no-such-model'), /The panel model is|\{\{modelGuide\}\}/);
+    const plain = { Input_System_Prompt: 'rewrite this' };
+    assert.strictEqual(withModelGuide(plain, 'flux3-klein'), plain);
+});
+
 test('the panels\' shared opening is the style a picture drawn before them takes', () => {
     const p = s => ({ prompt: s });
     assert.strictEqual(panelStyle([p('3D-animated cartoon film still, wide shot, the Cave'), p('3D-animated cartoon film still, close-up, Bix')]), '3D-animated cartoon film still');

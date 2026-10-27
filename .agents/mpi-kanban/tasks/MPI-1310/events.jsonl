@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1310", "at": "2026-10-27T16:41:59+00:00", "actor": "Storyboard Improvements 4", "column": "todo", "title": "Storyboard: a Style field (default realistic) and a Review Plan button"}
