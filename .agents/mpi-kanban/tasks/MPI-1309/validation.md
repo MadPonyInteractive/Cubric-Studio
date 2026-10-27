@@ -20,6 +20,20 @@ Counts from 800 px contact sheets, +-1. Conclusion: no wording stops it; ~15 rob
 references beat one sentence. Prism (camera head, in a scene full of cameras) duplicates most. Leg length
 (Fabio's report) was mostly short in these runs; D did not visibly change it.
 
+## Bench 2: Qwen-Image 2.1 edit, same panel (2026-10-27, Storyboard Improvements 5)
+
+Same 7 references uncropped, bench 1's D wording in Qwen's voice (`<image1>`..`<image7>` tags), 1K 16:9,
+seeds 101-404, ~100 s each (edit_021-024 in the bench project).
+
+| Model | Exactly 5 robots | Fault |
+|---|---|---|
+| Qwen-Image 2.1 edit | 0/4 | 7-8 robots every seed, Prism 3-4 times, parts mixed across robots (Prism eye + Vinyl headphones), back-view twins, Lingo missing in 3/4 |
+
+Worse than FLUX.3. The front+back crop arm (edit_017-020) is WITHDRAWN: Fabio 2026-10-27, never crop a
+character sheet, not even to test; the views beyond the front give the model each character's depth.
+Wording (bench 1), a different model (bench 2) and cropping are all out: the fix has to change how the
+panel is drawn.
+
 ## Landed (tests pass, not live-checked)
 
 - `withModelGuide` (flowEnhance.js): the Storyboard planner's system prompt gets the picked panel model's

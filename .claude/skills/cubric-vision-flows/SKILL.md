@@ -78,6 +78,9 @@ not a failure.
 
 ### Storyboard: one ask, a stack of panels
 
+Source runs only for now (dev-gated again 2026-10-27, MPI-1309): a released app answers it
+as an unknown Flow.
+
 `storyboard` turns an idea into numbered panel pictures, ONE stack in story order with
 each panel's intent as its card note, plus a numbered sheet. It is the one Flow whose
 run is many jobs (MPI-1286), so it answers once, when the last panel has ended:

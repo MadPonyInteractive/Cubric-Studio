@@ -41,8 +41,6 @@ export const RELEASE_NOTES = {
   '2.1.3': {
     version: '2.1.3',
     whatIsNew: [
-      '**Storyboard, a new Flow.** Describe a video idea, add pictures of your characters and places if you have them, and Cosmo plans the shots for you to edit before anything is drawn. Characters, places and things you gave no picture of are drawn first, as pictures in their own Cast stack you can reuse, so every panel shows the same one. Each panel lands in one stack, in story order, with a note on what happens, plus a numbered sheet. Runs on FLUX.3 Klein or Qwen-Image 2.1.',
-      '**Ask Cosmo for a storyboard.** Say "make me a storyboard of ..." and Cosmo plans and draws it into the project you have open. An agent connected over MCP can do the same.',
       '**MOSS-Image.** A new text-to-image model that writes exact lettering on signs and posters, with a fast Turbo mode, Boxes, and a style picker with previews that Enhance writes for. It also edits, inpaints, details and upscales your pictures.',
       '**Singularity H3.** A fine-tune of MiniMax H3 Reference by WarmBloodAban that tears less and handles fast action better. Same references and prompts, its own 19.5 GB download. Video Edit can run on either.',
       '**MiniMax H3: Fast Motion, more detail, more speed.** H3 Reference has a Fast Motion button for launches, chases and fights. Enhance now writes down what each attached person or object wears and carries, so the clip keeps it. Both H3 models run faster.',

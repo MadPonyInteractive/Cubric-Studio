@@ -3090,11 +3090,13 @@ const ALL_FLOWS = [
     {
         // MPI-1231: an idea in words, plus optional pictures of the cast and places, becomes a
         // STACK of panel cards in story order, each with its intent line as the card note, and a
-        // numbered overview sheet. Ships in 2.1.3 (MPI-1286, Fabio 2026-10-27).
+        // numbered overview sheet. Dev-gated again and out of 2.1.3 (Fabio 2026-10-27): character
+        // sheets in one panel draw extra copies of the characters (MPI-1309, MPI-1313).
         // No graph and no op of its own: `driver` hands Generate to `js/shell/storyboardDispatch.js`,
         // which runs every panel as an ordinary generation on the picked panel model (edit with
         // pictures, t2i without), so each panel is a normal card the user can edit like any other.
         id: 'storyboard',
+        devOnly: true,
         driver: 'storyboard',
         title: 'Storyboard',
         preview: 'flow-storyboard.webp',

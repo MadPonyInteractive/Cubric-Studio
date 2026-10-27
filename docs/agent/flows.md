@@ -139,6 +139,7 @@ Only a band by each edge changes, so a big shape crossing an edge (a marble vein
 
 ## Storyboard
 
+Source runs only for now: a released app has no Storyboard Flow, so there never offer it.
 Turns an idea into numbered panel pictures for a video: one stack in story order, each panel's note saying what happens in the shot, plus a numbered sheet of the whole board. For "make me a storyboard of ...", or the first step of a longer video the user will animate panel by panel.
 `positive` is the idea in the user's words; `panelCount` 3 to 12 (4 to 6 for a calm moment, 10 to 12 for fast action, one panel per cut); `ratio` the video's shape. Pictures of characters or places go as `inputImage`, `inputImage2` ... with `pictureNotes`, one note per picture ("Lena, a waitress"). Leave `plan` empty: the app describes the pictures, plans on your model and draws. It lands only in the project the app has open, and takes minutes: say it started.
 

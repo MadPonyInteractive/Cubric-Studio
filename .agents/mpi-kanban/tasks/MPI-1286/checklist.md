@@ -2,6 +2,11 @@
 
 Storyboard ships in 2.1.3 in place of Multi-angle (Fabio, 2026-10-27).
 
+**REVERSED later 2026-10-27 (Fabio, Storyboard Improvements 5): Storyboard is OUT of 2.1.3 and dev-gated again** -
+character sheets in one panel draw extra copies (MPI-1309, MPI-1313). `devOnly: true` is back, both Storyboard
+bullets and the headline mention are gone from `docs/releases/2026-10-27-v2.1.3.md` and `releaseNotes.js`, and
+`docs/agent/flows.md` + the cubric-vision-flows skill say source runs only. 2.1.3 is no longer held by it.
+
 - [x] Cosmo and MCP run the Storyboard Flow: the app plans when no plan is sent, then the board lands as one stack
 - [x] Live ask in words, from Cosmo and from an outside agent over MCP: both PASS 2026-10-27 (validation.md), ~$0.01 DeepInfra
 - [x] `docs/agent/flows.md` paragraph + MCP calling note in `.claude/skills/cubric-vision-flows/SKILL.md`
