@@ -47,7 +47,7 @@ test('@ names each staged picture on the multi-picture edit models', async ({}, 
     };
 
     expect(await pick('qwen-image-2-1')).toEqual({ offered: ['Image 1', 'Image 2'], prompt: 'the robot from <image2> ' });
-    expect(await pick('flux3-klein')).toEqual({ offered: ['Image 1', 'Image 2'], prompt: 'the robot from image 2 ' });
+    expect(await pick('flux3-klein')).toEqual({ offered: ['Image 1', 'Image 2'], prompt: 'the robot from the second image ' });
     expect(await pick('klein-9b')).toEqual({ offered: ['Image 1', 'Image 2'], prompt: 'the robot from image 2 ' });
   } finally {
     await closeApp(app);

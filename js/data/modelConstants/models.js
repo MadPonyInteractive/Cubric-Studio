@@ -2151,6 +2151,9 @@ const ALL_MODELS = [
         capabilities: {
             multiStage: false, audio: false,
             negativePrompt: true,   // live on base (cfg 3.5); Turbo hides it
+            // MPI-1312: the `@` picker writes "the first image", BFL's own form (its prompt
+            // upsampler names references by ordinal, never "image 1").
+            ordinalRefTags: true,
             styleLoras: false,
             batch: false,
             turboToggle: true,

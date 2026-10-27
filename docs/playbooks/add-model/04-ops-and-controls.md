@@ -154,8 +154,10 @@ controls. `upscale` uses 0.20, `detail` 0.30, `pid` 0.0 — pick the value your 
       `@` names a reference, and Qwen-Image 2.1, FLUX.3 and Klein all shipped without it.
       Image ops tag `'Image n'` with `tagInProse: true`; the picker then writes the words
       the encoder reads (`image 2`). A model whose vendor names pictures another way gets
-      a capability read by `refTagHandle` (`qwenRefTags` → `<image2>`, `atRefTags` →
-      `@image1`): look up the vendor's rewriter or prompt guide, never guess.
+      a capability read by `refTagHandle` (`qwenRefTags` → `<image2>`, `ordinalRefTags` →
+      `the second image`, `atRefTags` → `@image1`): look up the vendor's rewriter or
+      prompt guide, never guess. A model that reads NO reference (MOSS-Image: no `edit`)
+      gets no tags — offering `@` there would promise something it ignores.
       `tests/ref-tag-picker.test.cjs` fails on any model op with 2+ untagged references.
 - [ ] i2i (or any latent-space op): add `'denoise'` to `components` + a `defaults.denoise`,
       **after** tracing that the denoise node is reachable on that branch

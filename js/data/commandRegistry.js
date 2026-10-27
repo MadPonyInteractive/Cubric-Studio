@@ -2438,9 +2438,10 @@ export function matchRefTagQuery(value, caret, tags) {
  * `@Image 1`), and reads `<...>` as a SOUND EFFECT.
  *
  * A `tagInProse` slot (MPI-1312, the image edit/control ops) reaches the encoder as typed, so
- * it is written the way that model's prompts name a picture: `image 2` (FLUX.2/.3, Klein,
- * Krea2, Qwen Edit, Nano Banana's collage, Seedream), or `<image2>` on a model declaring
- * `capabilities.qwenRefTags` (Qwen-Image 2.1, the vendor's PE-I2I rewriter form).
+ * it is written the way that model's prompts name a picture: `image 2` (FLUX.2, Klein,
+ * Krea2, Qwen Edit, Nano Banana's collage, Seedream), `<image2>` on a model declaring
+ * `capabilities.qwenRefTags` (Qwen-Image 2.1, the vendor's PE-I2I rewriter form), or
+ * `the second image` on `capabilities.ordinalRefTags` (FLUX.3, BFL's upsampler form).
  * @param {string} tag  a slot tag, e.g. 'Image 1'
  * @param {object|null} [model]
  * @param {{tagInProse?:boolean}|null} [slot]  the slot the tag came from
@@ -2450,8 +2451,12 @@ export function refTagHandle(tag, model = null, slot = null) {
     const compact = tag.replace(/\s+/g, '').toLowerCase();
     if (model?.capabilities?.atRefTags) return `@${compact}`;
     if (!slot?.tagInProse) return `<${tag}>`;
-    return model?.capabilities?.qwenRefTags ? `<${compact}>` : tag.toLowerCase();
+    if (model?.capabilities?.qwenRefTags) return `<${compact}>`;
+    const n = Number(tag.match(/\d+$/)?.[0]);
+    if (model?.capabilities?.ordinalRefTags && REF_ORDINALS[n - 1]) return `the ${REF_ORDINALS[n - 1]} image`;
+    return tag.toLowerCase();
 }
+const REF_ORDINALS = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'];
 
 /**
  * Capability-gates a slot list for a given model. The shared video ops

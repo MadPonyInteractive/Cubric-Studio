@@ -149,6 +149,8 @@ test('the @ picker writes each model\'s own words for a picture', () => {
     const prose = { tagInProse: true };
     assert.strictEqual(refTagHandle('Image 2', { capabilities: {} }, prose), 'image 2', 'FLUX/Klein/Krea2/Qwen Edit/cloud edits');
     assert.strictEqual(refTagHandle('Image 2', { capabilities: { qwenRefTags: true } }, prose), '<image2>', 'Qwen-Image 2.1');
+    assert.strictEqual(refTagHandle('Image 2', { capabilities: { ordinalRefTags: true } }, prose), 'the second image', 'FLUX.3');
+    assert.strictEqual(refTagHandle('Image 10', { capabilities: { ordinalRefTags: true } }, prose), 'the tenth image', 'FLUX.3 slot 10');
     // The reference-video forms are unchanged.
     assert.strictEqual(refTagHandle('Picture 1', { capabilities: {} }), '<Picture 1>');
     assert.strictEqual(refTagHandle('Image 1', { capabilities: { atRefTags: true } }), '@image1');
