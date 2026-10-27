@@ -6,6 +6,10 @@
 > archival `docs/releases/YYYY-MM-DD-v<newVersion>.md`, then clear this file
 > back to the header.
 >
+> **Cleared 2026-10-27 at the 2.1.3 bump (MPI-1286).** Every item was folded into
+> `RELEASE_NOTES['2.1.3']` and `docs/releases/2026-10-27-v2.1.3.md`, cut short and merged where they
+> belonged together, plus MPI-1239, MPI-1249 (MOSS styles), MPI-1294 and AUDIT B1 straight from their commits.
+>
 > **Cleared 2026-10-21 at the 2.1.2 bump (MPI-1210).** Every item was folded into
 > `RELEASE_NOTES['2.1.2']` and `docs/releases/2026-10-21-v2.1.2.md`, plus MPI-1216, MPI-1220, MPI-1221,
 > MPI-1223 to MPI-1226, MPI-1228, MPI-1229, MPI-1234, MPI-1236 and MPI-1238 straight from their commits.
@@ -51,65 +55,3 @@
 > or three times inside one unreleased version reads like user-visible history but
 > never shipped, and the entry is then simply false. Full gate:
 > `.claude/skills/mpi-release/references/copy-review.md` § Gate 0.
-
-## Important
-
-- LTX 2.3 now comes in one version, the faster Balanced one. The High version is retired: it looked no better in our tests. If you only had High, install LTX 2.3 again in Models; High's 39 GB file is cleared the next time you uninstall a model (MPI-1095).
-- LTX quality steps moved up one size. Medium is now 1216x704 (what High used to be), Low and Very Low are the old Medium and Low, and a new High of 1536x896 sits above. The old Very Low is gone. A clip on the same setting now comes out sharper and takes longer (MPI-1095).
-- The NVIDIA PiD Upscaler is licensed by NVIDIA for research or evaluation only, so it is not for commercial work. Installing it now shows the licence first, and its tile in Models carries the non-commercial flag. If you already have it, use the SDXL models' upscale for work you sell or do for a client (MPI-1250).
-
-## New
-
-- Roster: one new Flow, Storyboard.
-- **Storyboard, a new Flow.** Describe a video idea, add pictures of your characters and places if you have them, and Cosmo writes a plan of the shots you can edit before anything is drawn. Each panel lands as a picture in one stack, in story order, with a note on what happens, plus a numbered sheet of the whole board. Characters, places or things you gave no picture of that come back in several panels (up to four) are drawn once first, so they stay the same. Runs on FLUX.3 Klein or Qwen-Image 2.1 (not for commercial use), with the LoRA cog wheel; planning needs Cosmo connected (MPI-1231).
-- Ask Cosmo for a storyboard ("make me a storyboard of ...") and it runs the Storyboard Flow for you, plan and panels, into the project you have open. An outside agent connected over MCP can do the same (MPI-1286).
-- Every Flow has a mascot peeking in while it works: Lingo while a prompt is written, Cosmo while it plans, then Prism for pictures, Reel and Vinyl for video and Vinyl for sound (MPI-1292).
-- Rest the mouse on a gallery card for a moment and its info card opens, as in a card's history: model, time taken, date, prompt and notes, now with the ratio, Turbo, style, denoise, the LoRAs used, and the graphics card, VRAM and RAM it ran on (MPI-1261).
-- Cosmo knows every entry of the card you have open, so "do it again" redoes the one it worked on, and a redo after a masked edit uses the same mask. When it upscales or details a picture another model made, it asks which model should redraw it, the maker in its own style first (MPI-1262).
-- Before a Use Tiles upscale, Cosmo shows each tile size with how many tiles it makes, and runs the one you click (MPI-1260).
-- When Cosmo's language model stalls, the chat offers to switch to the other tested model (MPI-1277).
-- The message after installing a model with new engine parts has a Restart engine button, to load them now (MPI-1247).
-- New model: MOSS-Image, a text-to-image model that writes exact lettering on signs and posters, with a fast Turbo mode and Boxes for placing things. It also does image-to-image, inpaint, detail and upscale on your pictures (MPI-1243).
-- Boxes can now read a picture for you, to make a new one laid out the same way (a magazine cover, a poster). Right-click a card and pick Create boxes: each thing in the picture gets its own named box, with what it is and any lettering written out, the shape follows the picture, and the prompt is replaced by a caption for the whole scene. Drop a picture on the prompt box meanwhile and it switches mode as usual; back on text to image the layout picture is there again with its boxes, and Remove picture in the Boxes panel takes it away for good. Works on MOSS-Image and FLUX.3 Klein (MPI-1253).
-- Use Tiles is redone: pick a Tile size (smaller tiles, more detail), and Describe each tile (on by default) names what fills each tile in a few words before the upscale, so grass is redrawn as grass. People and faces get their own gentle passes and are never described, so they keep their look. Use Grid is gone: Use Tiles replaces it, and an old Use Grid setting opens as Use Tiles (MPI-1232).
-- Control has a Custom size button on every model that has it (SDXL, Illustrious, Pony, Chroma, Krea 2, FLUX.2 Klein, Qwen Edit and Qwen-Image 2.1): turn it on and pick a ratio and size, and the picture comes out at exactly that size, with the first picture's shape centred in it and the sides filled in (MPI-1271).
-- Qwen-Image 2.1's Control takes up to two more pictures: the first still gives the pose, depth, scribble or edges, and the others give the person or thing drawn into it, instead of describing them in the prompt (MPI-1269).
-- Stacks can be reordered: in the Stack workspace, hold a picture in the strip and drag it to a new place. The stack's cover in the gallery follows the new first picture (MPI-1268).
-- Right-click a stack and pick Create Sheet to lay its pictures out on one sheet, numbered in stack order. Whole pictures (on by default) keeps every picture uncropped in an even grid, and the sheet's shape is picked from portrait or landscape ratios (MPI-1268).
-- The gallery Filter has a Stacks switch under Only: turn it on to see just your stacks. It appears once the project has a stack (MPI-1282).
-- MiniMax H3 Reference has a Fast Motion button next to Turbo. Turn it on for fast action (a launch, a chase, a fight) and the motion is drawn at full size instead of from a half-size draft, so it smears less. Up to Medium it is one pass, so Preview is off; Cosmo turns it on by itself for fast scenes (MPI-1285).
-- MiniMax H3 Reference and Singularity H3: Enhance now looks at each person, animal or object you attach and opens the prompt with what it shows (hair, eyes, clothes, shoes, jewellery, anything carried, tattoos), so the model keeps those details through the clip (MPI-1283).
-- Both MiniMax H3 models run faster: in our tests a 3-second clip took about a quarter less time on MiniMax H3, and about a tenth less on MiniMax H3 Reference (MPI-1285).
-- New model: Singularity H3, a fine-tune of MiniMax H3 Reference by WarmBloodAban that tears less and handles fast action better. It takes the same references and prompts, and is its own 19.5 GB download. MiniMax H3 Reference stays as it was. The Video Edit Flow can run on either; H3 Reference is the recommended pick, as it copies the video's moves closest, and on Singularity H3 the new person can move their own way (MPI-1284).
-- Video Edit at sizes above 768p draws the movement at 768p first, then enlarges it and sharpens it at your size in a short second pass, the way MiniMax H3 Reference's Fast Motion does. A 1.6-second clip at 960 took about 13 minutes on a 16 GB card (MPI-1284).
-- When an update is ready, the Dev updates panel (the bell) shows an "Update to v…" button at the top, naming the version the posts below talk about (MPI-1242).
-- When the app is minimised during a generation, the floating Latents window fills the bar under each picture with the run's progress, the same percent as the status bar (MPI-1296).
-- The Model picker has the same filter row as the Models and Flows pages: Source shows only your Local models or only Cloud ones, and the app remembers your choice next time, even after a restart. A search box sits beside it (MPI-1303).
-- Every Flow and model description is easier to read: short paragraphs, with the key points in bold, in the Flow Library, the Models drawer and on the Flow's first screen. The tips under each Flow step got the same treatment (MPI-1298).
-
-## Fixes
-
-- The Model picker now lists featured models first, the same order as the Model Library, and MOSS-Image is featured (MPI-1245).
-- The child-safety check reads more wording: plural body words and clothing "pulled aside" now get the picture looked at (MPI-1241). It also no longer refuses adult nudity on Control with Depth, Canny or Scribble from a photo of an adult: it looks at the picture you gave it, face included, instead of the grey map made from it, where an adult's outline could pass for a child's (MPI-1297).
-- Cosmo now tells you how many tiles a Use Tiles upscale runs, up to the number the status bar counts (MPI-1237).
-- Video Edit's Swap the person no longer turns the new person's back to the camera at the end of a clip when the person in the video never turns away (MPI-1284).
-- Cosmo makes FLUX.3 Klein pictures on Turbo, the fast setting, and switches to the slower base model only when you ask for more quality or more natural skin (MPI-1278).
-- Cosmo now edits pictures on the best editor you have installed (Qwen-Image 2.1, then FLUX.3 Klein, then Klein 9B), instead of passing over the top two for photo edits (MPI-1279).
-- Cosmo tells you what it is making the moment it starts, instead of after the picture has landed (MPI-1280).
-- Flow steps with a drawing area (Crop, Cut-out, Place, Paint, Edges) open at full width at once, instead of widening a pixel at a time for a few seconds (MPI-1255).
-- Installing a model that brings new engine parts no longer restarts the engine on your computer before your next generation. It restarts when you first use a model that needs them, so models can download while you keep working (MPI-1272).
-- Less noise in the log: the mascot freeze warnings now appear only with speed diagnostics on, and a RunPod connect that stops early no longer logs a false freeze (MPI-1255).
-- Renaming a card in Show info mode: you can see what you type with the mouse still on the card (MPI-1289).
-- Compare labels each side with the card's name, not the file name (MPI-1290).
-- AMD and Intel Arc graphics cards are recognised again on current Windows 11. The check relied on a Windows tool that newer versions no longer include, so these computers were given the NVIDIA engine instead of their own (MPI-1304).
-- One press of Stop in a Flow stops everything that Flow started, including jobs still waiting in the queue (MPI-1293).
-- Repair engine fixes an engine that will not start because a crash left one of its add-on files empty: it fetches that add-on again (MPI-1274).
-- When the child-safety check could not look at a picture, the message now says why (a timeout, a busy service, an unreadable frame) (MPI-1273).
-- Cosmo's tiled upscale opens the picture's history, so you see the latents as it works (MPI-1256).
-- A click plays a maximised video again; only Space did (MPI-1251).
-- The Picture and Start frame tags above the prompt box's picture chips read clearly over any picture (MPI-1252).
-- The prompt box's mascot slides up and back down instead of fading, and no longer lands on the video controls (MPI-1295).
-- A tool setting changed just before you switch tools, change page or open another project is kept, in the project it was made in (AUDIT B2).
-- A GIF preview marks itself out of date when you change a setting while it is still building (AUDIT).
-- An audio card's length never reads "0:60": 59.6 seconds shows 1:00 (AUDIT B3).
-- Krea 2 NSFW is no longer featured in the Model Library (MPI-1270).
