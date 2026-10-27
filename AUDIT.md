@@ -92,10 +92,15 @@ the 142 violations they had let through). The finding sections below are left as
 - Phase 2: **D10, ffprobe bypass**: the `/project-media/:projectId/extract` crop now reads
   `probeVideo`'s upright size (it cropped a rotated phone clip wrong, or 500'd past the frame).
   `deepinfra.js` `_mediaSeconds` stays: it wants the container length of video OR audio.
+- Phase 2: **D10, remote proxy**: the seven `/proxy` forwards run through `_forward`/`_forwardRoute`
+  (`remoteProxyForward.js`); mocked-fetch drive byte-identical. `remoteModels._authHeaders` stays
+  (two tests stub `remoteProxy.getRemoteMode` through it; `remoteHeaders.js` documents it).
+- Phase 2: **D10, EXIF swap**: all eight read sharp's `metadata().autoOrient` (37-input equivalence
+  check, 0 mismatches). **Lazy imports**: connector's `_corpus()` only; the `engines()`/trash/
+  `_getSharp` caches and the five `_fail` one-liners are left (no saving; trash is a test seam).
 
 **Still open, suggested batches:**
-- Next: rest of **D10** ( remote proxy, EXIF swap, lazy imports,
-  `_fail`), **P2/P14/P7/P12/P13**.
+- Next: **P2/P14/P7/P12/P13**.
 - Needs the desktop suite or Fabio watching: **P1**, **P3**, **D7**, **D9**.
 - Needs a local profile or a Pod: **P4–P6**, **P9–P11**.
 

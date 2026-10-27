@@ -5,8 +5,8 @@
 - **Where it stands (2026-10-27):** Phases 1a-1d, D1, D3, D10's GIF card tail and D10's scratch
   sweeps (`services/scratchSweep.js`, e6a14214b) and ffmpeg plumbing (`runFfmpeg`/`runFfprobe`/
   `trimArgs` in `services/ffmpegBinary.js`) done and pushed.
-  Next: the rest of **D10** piece by piece (remote proxy, ffprobe bypass, EXIF
-  swap, lazy imports, `_fail`), one commit each, then P2/P14/P7/P12/P13. The route snapshot
+  D10 is finished (ffprobe, proxy, EXIF, lazy imports: see Completed).
+  Next: P2/P14/P7/P12/P13, one commit each. The route snapshot
   scripts are in this card's `research/` (`d3snap.cjs`, `d10snap.cjs`, diff with `d3diff.py`):
   `node research/d10snap.cjs <repo> <out.json>` before and after, then diff. In d10snap,
   `/gif/preview` must run before an update (`/gif/entry` update sweeps unreferenced frames).
@@ -61,6 +61,9 @@
   mux on `_spawnFfmpeg`. The MPI-637 scan (`windows-hide-spawn.test.cjs`) still covers the helper.
 - [x] D10 ffprobe (924b0e15e): extract route crops on `probeVideo`'s upright dims (rotated-clip
   bug); `_mediaSeconds` kept (container length, video or audio). The route has no in-app caller.
+- [x] D10 proxy (883092079) `_forward`/`_forwardRoute`; EXIF (416a5ddb8) `metadata().autoOrient`;
+  lazy (651182d34) connector `_corpus()` only. Left on purpose: `remoteModels._authHeaders`,
+  `engines()`/trash/`_getSharp` caches, `_fail` x5 (reasons in AUDIT.md Status). **D10 is done.**
 
 ## Remaining Work
 

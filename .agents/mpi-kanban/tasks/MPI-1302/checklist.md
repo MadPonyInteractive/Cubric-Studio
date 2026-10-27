@@ -27,6 +27,8 @@
 - [x] D10 scratch sweeps: services/scratchSweep.js sweepOlderThan, 9 copies (e6a14214b); tests/scratch-sweep.test.cjs; lint + type-check, npm test 3753 / 0 fail
 - [x] D10 ffmpeg plumbing: runFfmpeg/runFfprobe (63f0bc913), trimArgs (7ca19c480), mux runner (44313f32b); lint + type-check, npm test 3753 / 0 fail, mux smoke
 - [x] D10 ffprobe bypass: extract route on probeVideo (924b0e15e), rotated-clip crop fixed; scratch route drive (plain 320x180/160x90 unchanged, rotated 180x320/90x160), lint + type-check, npm test 3753 / 0 fail
-- [ ] D10 rest ( remote proxy, EXIF swap, lazy imports, _fail), one commit each
+- [x] D10 remote proxy: _forward/_forwardRoute, 7 routes (883092079); mocked-fetch 17-case drive byte-identical; npm test 3753 / 0 fail
+- [x] D10 EXIF swap: 8 sites on metadata().autoOrient (416a5ddb8); 37-input equivalence 0 mismatches, image-orientation test green
+- [x] D10 lazy imports: connector _corpus() (651182d34), /connector/knowledge 200 with 73 entries; engines/trash/_getSharp and _fail x5 left on purpose (AUDIT Status)
 - [ ] P2, P14, P7, P12, P13
 ## Phase 3–4: see plan.md
