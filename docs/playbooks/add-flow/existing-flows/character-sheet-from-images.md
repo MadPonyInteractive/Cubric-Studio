@@ -49,6 +49,13 @@ width and cut off a mascot's ears (MPI-1306).
   without it the back came out headless 2/2, as image 2 is the body with its head removed. Bench: qwen3-vl
   4B describer 22/22 (six mascot pictures OTHER, five people incl. anime PERSON, twice each); sheets 4/4
   with heads; graph patch and bench in `tasks/MPI-1306/research/`.
+  **With a body picture, image 1 is an "established design that must be copied exactly"; image 2 gives
+  ONLY the build and proportions, "never its markings, logos or details"** (`ship_copy.py`). A mascot's
+  body picture is often a different render of it: with "the body comes from image 2" the sheet blended the
+  two and redrew the chest "C" as a hexagon nut (Fabio's 3 runs, reproduced); with this wording the "C"
+  held 4/4 seeds and a change in words (antennas) still landed. Legs can still run long (2 of 4).
+  Without a body picture a face box cut at the chest makes the model invent a tall humanoid body; the
+  same "copy exactly" wording did not fix that, so `Sheet_Prompt_No_Body_Other` is unchanged.
 - **Turned or not.** Fabio: the close-up is ALWAYS three-quarter — a frontal one leaves the video model to
   invent the turn. A turned picture is copied (turn and expression kept); a frontal one is turned by the
   prompt. The describer answers FRONT / TURNED; the graph checks the text for "turned". Asked on the BOX

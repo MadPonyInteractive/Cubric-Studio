@@ -1412,7 +1412,7 @@
   },
   "97": {
     "inputs": {
-      "value": "Character reference sheet of the character from image 1, in exactly the same visual style and medium as image 1. The head comes only from image 1, with exactly its shape, colours and features. The body comes from image 2, which shows the character's body with its head removed: put the head from image 1 on that body in every view, the back view included, keeping exactly the body's shape, colours, parts and proportions from image 2. The character is not a person: draw only the shapes the two pictures show, with no human features, anatomy, hair or clothing that they do not show. [CHARACTER PROMPT]"
+      "value": "Character reference sheet of the character from image 1, an established design that must be copied exactly, in exactly the same visual style and medium as image 1. Every shape, colour, marking, logo and detail is exactly as in image 1, in every view; only the viewing angle changes. Image 2 shows the same character's body with its head removed: use it only for the body's build and proportions, never for its markings, logos or details. Put the head from image 1 on that body in every view, the back view included. Where neither picture shows a part, such as the back, continue its shapes and colours plainly, adding no new details. The character is not a person: no human features, anatomy, hair or clothing that the pictures do not show. [CHARACTER PROMPT]"
     },
     "class_type": "PrimitiveStringMultiline",
     "_meta": {

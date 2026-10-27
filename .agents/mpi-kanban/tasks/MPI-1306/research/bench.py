@@ -55,9 +55,11 @@ def describe(path):
     return text_of(post(g), by_title(g, 'Output_prompt')).strip()
 
 
-def sheet(name, face, body, box, seed, kind, pose, clothes, positive):
+def sheet(name, face, body, box, seed, kind, pose, clothes, positive, texts=None):
     g = json.load(open(REPO + 'flow_character_sheet_from_images.json', encoding='utf-8'))
     s = lambda t, k, v: g[by_title(g, t)]['inputs'].__setitem__(k, v)
+    for t, v in (texts or {}).items():
+        s(t, 'value', v)
     s('Input_Image', 'string', stage(face))
     s('Input_Image_2', 'string', stage(body))
     for k, v in zip(('x', 'y', 'width', 'height'), box):
@@ -79,6 +81,42 @@ def sheet(name, face, body, box, seed, kind, pose, clothes, positive):
     print(name, f'{time.time() - t0:.0f}s', dst, flush=True)
     return prompt
 
+
+COPY_NB = ('Character reference sheet of the character from image 1, an established design that must be copied '
+           'exactly, in exactly the same visual style and medium as image 1. Every shape, colour, proportion, '
+           'marking, logo and detail is exactly as in image 1, in every view; only the viewing angle changes. Where '
+           'image 1 does not show a part, such as the back, continue its shapes and colours plainly, adding no new '
+           'details. The character is not a person: no human features, anatomy, hair or clothing that image 1 does '
+           'not show. [CHARACTER PROMPT]')
+COPY_WB = ('Character reference sheet of the character from image 1, an established design that must be copied '
+           'exactly, in exactly the same visual style and medium as image 1. Every shape, colour, marking, logo and '
+           'detail is exactly as in image 1, in every view; only the viewing angle changes. Image 2 shows the same '
+           'character\'s body with its head removed: use it only for the body\'s build and proportions, never for '
+           'its markings, logos or details. Put the head from image 1 on that body in every view, the back view '
+           'included. Where neither picture shows a part, such as the back, continue its shapes and colours plainly, '
+           'adding no new details. The character is not a person: no human features, anatomy, hair or clothing that '
+           'the pictures do not show. [CHARACTER PROMPT]')
+
+if sys.argv[1] == 'fidelity':
+    robot1 = M + 'imported_002.png'
+    body = M + 'resize_6232d917.png'
+    box = (338, -315, 1309, 1637)
+    seed = 3492343714
+    CL = 'a pink jumpsuit with a white patch and black logo'
+    sheet('fid_A_body_now', robot1, body, box, seed, 'OTHER', 'FRONT', CL, '')
+    sheet('fid_B_nobody_now', robot1, None, box, seed, 'OTHER', 'FRONT', '', '')
+    sheet('fid_C_nobody_copy', robot1, None, box, seed, 'OTHER', 'FRONT', '', '',
+          {'Sheet_Prompt_No_Body_Other': COPY_NB})
+    if len(sys.argv) > 2:
+        T = {'Sheet_Prompt_With_Body_Other': COPY_WB}
+        sheet('fid_D_s42', robot1, body, box, 42, 'OTHER', 'FRONT', CL, '', T)
+        sheet('fid_D_s7', robot1, body, box, 7, 'OTHER', 'FRONT', CL, '', T)
+        sheet('fid_D_antenna', robot1, body, (219, 76, 1477, 1846), 3481096268, 'OTHER', 'FRONT', CL,
+              'A black antenna over each ear', T)
+        raise SystemExit
+    sheet('fid_D_body_copy', robot1, body, box, seed, 'OTHER', 'FRONT', CL, '',
+          {'Sheet_Prompt_With_Body_Other': COPY_WB})
+    raise SystemExit
 
 if sys.argv[1] == 'describe':
     pics = [M + f'imported_00{i}.png' for i in range(1, 6)] + [M + 'resize_6232d917.png'] + [
