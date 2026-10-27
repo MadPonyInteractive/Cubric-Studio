@@ -116,34 +116,46 @@ async function _pastFfmpegPictureLimit(inputPath) {
 }
 
 async function extractImageThumb(inputPath, outPath, { width = IMAGE_RENDITION_PX.small } = {}) {
-    const webpPath = imageThumbPath(outPath, { width });
+    return (await extractImageThumbs(inputPath, outPath, [width]))[0];
+}
+
+/**
+ * Several widths of one still from ONE decode: a single ffmpeg run that splits the frame
+ * (P12 — the small + large renditions were two spawns, two decodes). Paths as
+ * `imageThumbPath`, in `widths` order; all null when it fails.
+ */
+async function extractImageThumbs(inputPath, outPath, widths) {
+    const webpPaths = widths.map(width => imageThumbPath(outPath, { width }));
     try {
         if (await _pastFfmpegPictureLimit(inputPath)) {
             // rotate(): ffmpeg honours EXIF orientation, so this branch must too.
-            await sharp(inputPath, { limitInputPixels: false })
-                .rotate()
-                .resize({ width, withoutEnlargement: true })
-                .webp({ quality: 82 })
-                .toFile(webpPath);
-            return webpPath;
+            for (const [i, width] of widths.entries()) {
+                await sharp(inputPath, { limitInputPixels: false })
+                    .rotate()
+                    .resize({ width, withoutEnlargement: true })
+                    .webp({ quality: 82 })
+                    .toFile(webpPaths[i]);
+            }
+            return webpPaths;
         }
-        const args = [
-            '-y',
-            '-i', inputPath,
-            // Downscale only — never upscale a small source ('force_original...'
-            // guards the min); -2 keeps height even for the yuva420p chroma
-            // subsampling libwebp uses.
-            '-vf', `scale='min(${width},iw)':-2`,
-            '-frames:v', '1',
-            '-c:v', 'libwebp',
-            '-quality', '82',
-            webpPath,
-        ];
+        // Downscale only — never upscale a small source ('force_original...' guards the
+        // min); -2 keeps height even for the yuva420p chroma subsampling libwebp uses.
+        const scale = width => `scale='min(${width},iw)':-2`;
+        const args = ['-y', '-i', inputPath];
+        if (widths.length === 1) {
+            args.push('-vf', scale(widths[0]), '-frames:v', '1', '-c:v', 'libwebp', '-quality', '82', webpPaths[0]);
+        } else {
+            const split = `[0:v]split=${widths.length}${widths.map((_, i) => `[s${i}]`).join('')}`;
+            args.push('-filter_complex', [split, ...widths.map((w, i) => `[s${i}]${scale(w)}[t${i}]`)].join(';'));
+            for (const i of widths.keys()) {
+                args.push('-map', `[t${i}]`, '-frames:v', '1', '-c:v', 'libwebp', '-quality', '82', webpPaths[i]);
+            }
+        }
         await runFfmpeg(args, { maxBuffer: 4 * 1024 * 1024 });
-        return webpPath;
+        return webpPaths;
     } catch (err) {
         logger.warn('ffmpegThumb', `image thumb failed for ${inputPath}: ${err.message}`);
-        return null;
+        return widths.map(() => null);
     }
 }
 
@@ -352,6 +364,7 @@ async function writeVideoDerivatives(inputPath, metaDir, id, { sourceWidth, sour
 module.exports = {
     extractVideoThumb,
     extractImageThumb,
+    extractImageThumbs,
     extractAudioWaveform,
     extractVideoProxy,
     writeVideoDerivatives,

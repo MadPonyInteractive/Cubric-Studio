@@ -18,7 +18,7 @@ const fs = require('fs-extra');
 const { v4: uuidv4 } = require('uuid');
 const { projectFileUrlBusted } = require('./projectFileUrl');
 const { probeVideo } = require('./ffprobeVideo');
-const { extractImageThumb, writeVideoDerivatives, IMAGE_RENDITION_PX } = require('./ffmpegThumb');
+const { extractImageThumb, extractImageThumbs, writeVideoDerivatives, IMAGE_RENDITION_PX } = require('./ffmpegThumb');
 const { buildGif, builtGifDimensions } = require('./gifFrames');
 
 /**
@@ -57,12 +57,11 @@ function outputSidecar({ id, type, outputPath, operation }) {
  */
 async function writeImageRenditions(inputPath, metaDir, id, metaContent, sourceWidth) {
     const base = path.join(metaDir, `${id}.thumb.jpg`);
-    const small = await extractImageThumb(inputPath, base);
+    const withLarge = !(sourceWidth > 0) || sourceWidth > IMAGE_RENDITION_PX.large;
+    const [small, large] = await extractImageThumbs(inputPath, base,
+        withLarge ? [IMAGE_RENDITION_PX.small, IMAGE_RENDITION_PX.large] : [IMAGE_RENDITION_PX.small]);
     if (small) metaContent.thumbPath = `/project-file?path=${encodeURIComponent(small)}`;
-    if (!(sourceWidth > 0) || sourceWidth > IMAGE_RENDITION_PX.large) {
-        const large = await extractImageThumb(inputPath, base, { width: IMAGE_RENDITION_PX.large });
-        if (large) metaContent.thumbPathLg = `/project-file?path=${encodeURIComponent(large)}`;
-    }
+    if (large) metaContent.thumbPathLg = `/project-file?path=${encodeURIComponent(large)}`;
     return metaContent;
 }
 
