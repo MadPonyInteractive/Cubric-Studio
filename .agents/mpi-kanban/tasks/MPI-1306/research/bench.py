@@ -119,9 +119,64 @@ if sys.argv[1] == 'headonly':
     face, body = M + 'imported_001.png', M + 'frame_ace45617.png'
     box = (450, -300, 1100, 1375)
     for seed in (42, 7):
-        sheet(f'ho_now_s{seed}', face, body, box, seed, 'OTHER', 'FRONT', '', '')
+        if not os.path.exists(f'{SP}/sheet_ho_now_s{seed}.png'):
+            sheet(f'ho_now_s{seed}', face, body, box, seed, 'OTHER', 'FRONT', '', '')
         sheet(f'ho_keep_s{seed}', face, body, box, seed, 'OTHER', 'FRONT', '', '',
               {'Sheet_Prompt_With_Body_Other': KEEP_WB}, keep_head=True)
+    raise SystemExit
+
+# Fabio: a mascot's close-up comes out a full body at three-quarters. Its head is half its height, so
+# "head and upper body" is nearly all of it: ask for the head alone, filling the half, the body cut off.
+HEAD_CU = ('The right half of the image is filled by a close-up of the character\'s head alone, turned 45 degrees '
+           'toward the left side of the image so its front and one side both show, the head so large that it fills '
+           'most of the right half, cut off just below where the head meets the body, the legs, feet and most of '
+           'the body out of frame, with the same features and expression as image 1, nothing added that image 1 '
+           'does not show, sharp and clear, the whole head inside the frame.')
+
+# Round 2. HEAD_CU gave a floating head 3/4; KEEP_WB brought back the hexagon "C" 2/2 (picture 2's logo is drawn
+# small and loose). Image 1 wins on every part it shows; image 2 gives build plus the parts image 1 lacks.
+MERGE_WB = ('Character reference sheet of the character from image 1, an established design that must be copied '
+            'exactly, in exactly the same visual style and medium as image 1. Every part image 1 shows keeps exactly '
+            'its shapes, colours, markings, logos and details from image 1, in every view; only the viewing angle '
+            'changes. Image 2 shows the same character\'s whole body: copy its build, limbs and proportions exactly, '
+            'including how large the head is compared with the body, and take from it only the details of parts '
+            'image 1 does not show. Where neither picture shows a part, such as the back, continue its shapes and '
+            'colours plainly, adding no new details. The character is not a person: no human features, anatomy, '
+            'hair or clothing that the pictures do not show. [CHARACTER PROMPT]')
+CHEST_CU = ('The right half of the image is filled by a close-up of the character\'s head and the top of its chest, '
+            'turned 45 degrees toward the left side of the image so its front and one side both show, the head large '
+            'and filling most of the right half, the picture cut off across the chest, the legs, feet and lower body '
+            'out of frame, with the same features and expression as image 1, nothing added that image 1 does not '
+            'show, sharp and clear, the whole head inside the frame.')
+
+if sys.argv[1] == 'closeup2':
+    g = json.load(open(REPO + 'flow_character_sheet_from_images.json', encoding='utf-8'))
+    old = g[by_title(g, 'Sheet_Prompt_Other')]['inputs']['value']
+    layout = old[:old.index('The right half')] + CHEST_CU + ' ' + old[old.index('The left half'):]
+    T = {'Sheet_Prompt_With_Body_Other': MERGE_WB, 'Sheet_Prompt_Other': layout}
+    for seed in (42, 7):
+        sheet(f'cu2_lingo_s{seed}', M + 'imported_001.png', M + 'frame_ace45617.png', (450, -300, 1100, 1375),
+              seed, 'OTHER', 'FRONT', '', '', T)
+    for seed in (3492343714, 42):
+        sheet(f'cu2_C_s{seed}', M + 'imported_002.png', M + 'resize_6232d917.png', (338, -315, 1309, 1637),
+              seed, 'OTHER', 'FRONT', '', '', T)
+    raise SystemExit
+
+if sys.argv[1] == 'closeup':
+    face, body = M + 'imported_001.png', M + 'frame_ace45617.png'
+    box = (450, -300, 1100, 1375)
+    g = json.load(open(REPO + 'flow_character_sheet_from_images.json', encoding='utf-8'))
+    old = g[by_title(g, 'Sheet_Prompt_Other')]['inputs']['value']
+    a = old.index('The right half'); b = old.index('The left half')
+    layout = old[:a] + HEAD_CU + ' ' + old[b:]
+    for seed in (42, 7):
+        sheet(f'cu_keep_s{seed}', face, body, box, seed, 'OTHER', 'FRONT', '', '',
+              {'Sheet_Prompt_With_Body_Other': KEEP_WB, 'Sheet_Prompt_Other': layout}, keep_head=True)
+    # KEEP_WB copies the body from picture 2 again: does the chest "C" hold (iteration 3's hexagon)?
+    robot1, cbody, cbox = M + 'imported_002.png', M + 'resize_6232d917.png', (338, -315, 1309, 1637)
+    for seed in (3492343714, 42):
+        sheet(f'cu_C_s{seed}', robot1, cbody, cbox, seed, 'OTHER', 'FRONT', '', '',
+              {'Sheet_Prompt_With_Body_Other': KEEP_WB, 'Sheet_Prompt_Other': layout}, keep_head=True)
     raise SystemExit
 
 if sys.argv[1] == 'fidelity':

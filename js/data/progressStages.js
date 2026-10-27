@@ -145,6 +145,12 @@ export const PROGRESS_STAGES = Object.freeze({
     // runs, 2026-07-18); Quality swaps the accelerator LoRA for the raw UNET but keeps the
     // same single sampler, so the count is structural rather than per-tier.
     'qwen_edit.json':            Object.freeze({ single: 1 }),
+    // Character Sheet from Images (MPI-1306) — ONE KSampler, its "Model Initializing" on the
+    // same bar; SAM3, the VAE and the text encoder print none. Counted on Fabio's runs in
+    // app.log (2026-10-27). The describers run before it as their own jobs, not inside it.
+    // A "Stage 1 with no latents" before the sheet's own bar was an agent bench posting
+    // straight to the app's engine: stdout bars are engine-wide, its previews went elsewhere.
+    'flow_character_sheet_from_images.json': Object.freeze({ single: 1 }),
     // Qwen-Image 2.1 (MPI-936) — NO ENTRY, deliberately: Klein's one-file-seven-ops shape.
     // Counted on the bench (websocket progress restarts, the app's own feed): t2i, edit,
     // i2i, inpaint (LanPaint) and detail = 1 bar; control = 2 (annotator + sampler);

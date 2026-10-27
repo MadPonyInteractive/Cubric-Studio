@@ -54,6 +54,14 @@ width and cut off a mascot's ears (MPI-1306).
   body picture is often a different render of it: with "the body comes from image 2" the sheet blended the
   two and redrew the chest "C" as a hexagon nut (Fabio's 3 runs, reproduced); with this wording the "C"
   held 4/4 seeds and a change in words (antennas) still landed. Legs can still run long (2 of 4).
+  **For OTHER, image 2 goes in WHOLE: no head removal** (node 103, a lazy `MpiIfElse` on "not a person?"
+  in front of Reference 2, so the head detection on picture 2 does not run). SAM3 took a mascot's neck and most of its torso with the
+  head, and with a head-only box the sheet drew a human mannequin with hips and long legs (Lingo, 2/2
+  seeds, `research/headonly.jpg`). The wording is now "every part image 1 shows keeps its details from
+  image 1; image 2 gives build, limbs, proportions, head-to-body size, and the details of parts image 1
+  does not show" (`ship_round2.py`). Cost: the "C" robot (whole body in image 1) drew the hexagon 1 of 2.
+  OTHER's close-up says "head and the top of its chest ... cut off across the chest": "head and upper
+  body" read as the whole mascot (its head is half its height), "head alone" gave a floating head 3/4.
   Without a body picture a face box cut at the chest makes the model invent a tall humanoid body; the
   same "copy exactly" wording did not fix that, so `Sheet_Prompt_No_Body_Other` is unchanged.
 - **Turned or not.** Fabio: the close-up is ALWAYS three-quarter — a frontal one leaves the video model to
