@@ -110,13 +110,15 @@ async function _getDeps() {
     if (!_depsMod) _depsMod = await import('../js/data/modelConstants/dependencies.js');
     return _depsMod.DEPS;
 }
-async function _getCorpusEntries() {
+async function _corpus() {
     if (!_corpusMod) _corpusMod = await import('../services/agentCorpus.mjs');
-    return _corpusMod.listCorpus();
+    return _corpusMod;
+}
+async function _getCorpusEntries() {
+    return (await _corpus()).listCorpus();
 }
 async function _getGuideIds() {
-    if (!_corpusMod) _corpusMod = await import('../services/agentCorpus.mjs');
-    return _corpusMod.guideIdsByModel();
+    return (await _corpus()).guideIdsByModel();
 }
 let _commandsMod = null;
 /**
