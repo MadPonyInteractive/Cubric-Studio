@@ -44,17 +44,7 @@ function muxAudioIntoVideo(videoPath, audioPath, outPath) {
         '-shortest',
         outPath,
     ];
-    return new Promise((resolve, reject) => {
-        logger.info('project', `ffmpeg mux: ${ffmpegPath} ${args.join(' ')}`);
-        const proc = spawn(ffmpegPath, args, { windowsHide: true });
-        let stderrBuf = '';
-        proc.stderr.on('data', (d) => { stderrBuf += d.toString(); if (stderrBuf.length > 8000) stderrBuf = stderrBuf.slice(-8000); });
-        proc.on('error', (err) => reject(err));
-        proc.on('close', (code) => {
-            if (code === 0) return resolve();
-            reject(new Error(`ffmpeg mux exited ${code}: ${stderrBuf.slice(-600)}`));
-        });
-    });
+    return _spawnFfmpeg(args, 'mux');
 }
 
 /**
