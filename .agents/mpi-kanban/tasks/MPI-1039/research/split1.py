@@ -77,7 +77,9 @@ def files(outputs, kind):
             for o in outputs.values() for f in o.get(kind, [])]
 
 
-def qwen_graph(prompt, tag, steps=4, cuts=(2, 3), image='mpi1039_split_person.png', peek=None):
+def qwen_graph(prompt, tag, steps=4, cuts=(2, 3), image='mpi1039_split_person.png', peek=None, angle=0.9, start=0):
+    # start = first step: > 0 noises the input picture's own latent only to that sigma (img2img), so its camera
+    # holds part way - can a height move land between the LoRA's fixed stops?
     # peek = (latent file, cut): one Euler jump from the hand-off sigma straight to 0 = the model's x0 guess at that
     # step (what a live preview shows) - can a short run already tell where the camera landed?
     sig = q_sigmas(steps)
@@ -85,7 +87,7 @@ def qwen_graph(prompt, tag, steps=4, cuts=(2, 3), image='mpi1039_split_person.pn
         '1': ('UNETLoader', {'unet_name': 'qwen_image_edit_2511_int8_convrot.safetensors', 'weight_dtype': 'default'}),
         '2': ('LoraLoaderModelOnly', {'model': ['1', 0], 'strength_model': 1.0,
                                       'lora_name': LIGHTNING[steps]}),
-        '3': ('LoraLoaderModelOnly', {'model': ['2', 0], 'strength_model': 0.9,
+        '3': ('LoraLoaderModelOnly', {'model': ['2', 0], 'strength_model': angle,
                                       'lora_name': 'qwen\\qwen-image-edit-2511-multiple-angles-lora.safetensors'}),
         '4': ('ModelSamplingAuraFlow', {'model': ['3', 0], 'shift': 2.5}),
         '5': ('CFGNorm', {'model': ['4', 0], 'strength': 1.0}),
@@ -108,7 +110,7 @@ def qwen_graph(prompt, tag, steps=4, cuts=(2, 3), image='mpi1039_split_person.pn
         g['50'] = ('VAEDecode', {'samples': ['30', 0], 'vae': ['7', 0]})
         g['51'] = ('SaveImage', {'images': ['50', 0], 'filename_prefix': f'mpi1039_split/{tag}_peek{peek[1]}'})
         return {k: {'class_type': c, 'inputs': i} for k, (c, i) in g.items()}
-    bounds = [0, *cuts, steps]
+    bounds = [start, *cuts, steps]
     prev, chunks = ['11', 0], list(zip(bounds, bounds[1:]))
     for i, (lo, hi) in enumerate(chunks):
         sid, nid = f'2{i}', f'3{i}'
@@ -290,12 +292,16 @@ def main(stage):
         print('krea2k', files(submit(krea_graph(None, cut, 'two', tag, steps=6, start=up_start,
                                                 up='mpi1039_split_up.png')), 'images')[0])
         return
-    elif stage == 'hop':  # hop <tag> <in_image> <cut|0> <words>: one Qwen 8-step camera hop from any input picture.
+    elif stage == 'hop':  # hop <tag> <in_image> <cut|0> <words> [angle LoRA strength, 0.9] [start step, 0] [seed, 111]: one Qwen 8-step camera hop from any input picture.
         # cut 0 = full picture, copied to input/mpi1039_split_<tag>.png for the next hop; else the hand-off latent
         # for `raw <tag-target>` (Fabio: an impossible camera spot, e.g. low in front behind a bed, fails - go to
         # eye level first, then rotate)
         tag, image, cut, words = sys.argv[2], sys.argv[3], int(sys.argv[4]), sys.argv[5]
-        outs = submit(qwen_graph(words, tag, 8, (cut,) if cut else (), image))
+        angle = float(sys.argv[6]) if len(sys.argv) > 6 else 0.9
+        start = int(sys.argv[7]) if len(sys.argv) > 7 else 0
+        global SEED
+        SEED = int(sys.argv[8]) if len(sys.argv) > 8 else SEED
+        outs = submit(qwen_graph(words, tag, 8, (cut,) if cut else (), image, angle=angle, start=start))
         img = files(outs, 'images')[0]
         print('qwen', img, flush=True)
         if cut:

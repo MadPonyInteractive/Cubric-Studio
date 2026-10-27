@@ -44,7 +44,8 @@ Maybe a zoom slider, ONLY if a zoom bench passes and it stays easy to use; untes
 Sheets in `research/sheets/`; Fabio judges which model + wording holds identity and moves the camera.
 
 ## Current State
-2026-10-27 (Multi-Angle 44) LATEST: outdoor end-view round done (validation.md "OUTDOOR END-VIEW ROUND"): Qwen angle LoRA yaw words turn the subject IN PLACE (background never orbits), high-angle is a real camera move, low-angle is ignored. Fabio accepted turn-in-place for now. Indoor re-test DONE (validation.md "INDOOR END-VIEW ROUND"): end-view words reach front/side/back indoors in one move; high works; low-camera results carry blocky leg patches; front views add a bikini top. Krea finish on the indoor front CLEANS the patches and holds the view (validation.md). Hop loop BUILT (research/loop1.py) and run once (validation.md "HOP LOOP round 1"): mechanics work, but the describer read a high camera as eye level and the loop accepted it. Two-picture height check FAILED (MOVED 5/13, biased to 'down'; validation.md). MoGe floor pitch (research/pitch.py) reads height 13/13 for free (validation.md). Wired into loop1 and re-run (lp2): gate right 4/4, but NOT LANDED - eye-level words never move the camera down from high (or up from low), and chained raw-Qwen hops degrade (validation.md "HOP LOOP round 2"). Then "low-angle" from the high picture: +29.5 -> -15.7, comes down but overshoots - height moves are big fixed jumps, eye level lies between stops. Next (free): angle-LoRA STRENGTH sweep on one height hop (0.9 now; try 0.6 / 0.4) to see if the jump shrinks to land eye level, MoGe-measured. Open too: Qwen adds a top on front views. Finish stays locked (Raw 18 + skin + Turbo upscale).
+2026-10-27 (Multi-Angle 45) LATEST: Flow stays devOnly; Fabio releases (LTX 2.5) without it and research goes on. Angle-LoRA strength 0.9/0.6/0.4 all land +28..+30 from -24.9 (no smaller jump); partial-noise hop (start step 1 or 2 of 8) returns a COPY - the move is all-or-nothing on the full-noise first step. Both continuous Qwen knobs are dead for eye level (validation.md "ANGLE-LoRA STRENGTH SWEEP", "PARTIAL-NOISE HOP"). Seeds 111/222/333 land +29/+28/+32 (seed 333 also missed the turn) - no seed-retry route either. `split1.py hop` takes [strength] [start step] [seed] args now. Fabio then (same day): combine the proven techniques so no cell is greyed out -> plan.md "NEW APPROACH" (route planner over proven moves). Next = its phase A bench, awaiting Fabio's go.
+2026-10-27 (Multi-Angle 44): outdoor end-view round done (validation.md "OUTDOOR END-VIEW ROUND"): Qwen angle LoRA yaw words turn the subject IN PLACE (background never orbits), high-angle is a real camera move, low-angle is ignored. Fabio accepted turn-in-place for now. Indoor re-test DONE (validation.md "INDOOR END-VIEW ROUND"): end-view words reach front/side/back indoors in one move; high works; low-camera results carry blocky leg patches; front views add a bikini top. Krea finish on the indoor front CLEANS the patches and holds the view (validation.md). Hop loop BUILT (research/loop1.py) and run once (validation.md "HOP LOOP round 1"): mechanics work, but the describer read a high camera as eye level and the loop accepted it. Two-picture height check FAILED (MOVED 5/13, biased to 'down'; validation.md). MoGe floor pitch (research/pitch.py) reads height 13/13 for free (validation.md). Wired into loop1 and re-run (lp2): gate right 4/4, but NOT LANDED - eye-level words never move the camera down from high (or up from low), and chained raw-Qwen hops degrade (validation.md "HOP LOOP round 2"). Then "low-angle" from the high picture: +29.5 -> -15.7, comes down but overshoots - height moves are big fixed jumps, eye level lies between stops. Next (free): angle-LoRA STRENGTH sweep on one height hop (0.9 now; try 0.6 / 0.4) to see if the jump shrinks to land eye level, MoGe-measured. Open too: Qwen adds a top on front views. Finish stays locked (Raw 18 + skin + Turbo upscale).
 2026-10-23: stage 1 (face) + stage 2 (full-body orbit) DONE on FLUX.3 Turbo 1K - results, recipe, pass rates
 in validation.md. Driver `research/angles.py` (modes: fast vN, body bN, b4, b5, b6, best, b6sheet); results
 in `research/out/*.json`, sheets in `research/sheets/`, cards in project "FLUX3 Flow Bench".
@@ -660,7 +661,51 @@ keeps a turned pick at the start height. Tests 38/38, npm test green, lint clean
 SIDE STUDY PARKED (Fabio 2026-10-26): Qwen Edit 2511 + fal angle LoRA as a camera-orbit mode, card MPI-1301 - the scene
 swings with the camera (12/18) but Qwen image quality is the blocker and a FLUX.3 detail pass made it worse; this
 card's FLUX.3 route stays.
+## NEW APPROACH (Fabio 2026-10-27, Multi-Angle 45): a ROUTE PLANNER over proven moves - no greyed-out cell
+Fabio: "we more or less know how to achieve every angle - combine the proven techniques"; the user must never meet
+"this angle is not available at this zoom". Stops: 8 turns x 3 heights (low / level / high) x the zoom ladder, from
+ANY matched start (step 2 "Match your picture" stays). Today `multiAnglePlan`/`multiAngleChoices` refuse whole
+families (`_fromHeightPlan` "runs alone", "not benched", cross-sides, front hi -> lo, zoom off its benched rungs).
+SHAPE: the planner stops asking "is this pick benched?" and asks "which chain of proven MOVES gets from the start
+state (turn, height, rung) to the pick?" - a shortest path over a small table of edges, each edge = one pass with its
+model, ref and words, each carrying the evidence that proved it. Ties go to fewer passes, then to alternating models
+(FLUX-on-FLUX freezes, r52/r59; raw Qwen-on-Qwen compounds artefacts, split1 hop 3).
+THE MOVE TABLE (what is proven, by technique):
+- T1 FLUX.3 turn, level start, doll ref (r24-40, r54-55 non-FLUX inputs). Misses: cross-sides from a rear start
+  (tq_fl from tq_br 0/4 r70; rear-left from frame-right photos r56).
+- T2 FLUX.3 turn STAYING at a low/high start, plain doll + STAY words (r70 48/48; Fabio front lo/pr_r lo PASS).
+- T3 Qwen 2511 + angle LoRA END-VIEW words, any start, keeps the height (outdoor + indoor rounds 2026-10-27: front,
+  side, back, front 3/4 in one move from rear 3/4; front from a LOW start). Fills T1/T2's cross-sides holes. Turns
+  in place (accepted). Adds a top on front views (open).
+- H1 Qwen 2.1 height on a level picture, any turn (r29-40, r66 46/46); FLUX.3 for front high (r7/r23).
+- H2 FLUX.3 toLevel + the eye-level picture as image 3, FRONT low/high start -> level (r70 8/8).
+- H3 Qwen 2511 LoRA "elevated"/"high-angle": low/level -> high (+28..+32, today); "low-angle": high -> low (-16).
+- Z  zoom words, FLUX.3/Qwen alternating (r41-49, r51): full rung set on the FRONT; hs/far on most turns.
+- F  Krea2 finish (Raw 18 + skin + Turbo upscale, locked 2026-10-26): cleans Qwen patches, holds the view; ~8 min.
+THE ONE MISSING EDGE: a TURNED low/high start -> eye level (FLUX.3 toLevel lifts only to hip, Fabio edit_009; Qwen
+2.1 0/12 r68; LoRA height is fixed jumps, today's sweep). Every other cell is a chain of proven edges.
+CANDIDATE DETOUR (to bench): turned lo/hi --T3 front (keeps height)--> front lo/hi --H2 (+pic)--> front level
+--T3 or T1 target turn (level)--> [H1 if the pick is another height] --F finish. Alternates Qwen/FLUX.3/Qwen. Same
+trick for zoom: rungs missing on a turned view route THROUGH the front (all rungs) and turn afterwards (face-close
+turns passed stage 1 on FLUX.3).
+RISKS: 3-4 passes per stop costs likeness (stage 2 b6: "two edits max") -> bench whether the F finish with the
+ORIGINAL picture as the identity ref restores it; time (F ~8 min on 16 GB); H2 needs the eye-level picture (without
+it untested); the angle LoRA + Krea2 raw are not app models yet (`/mpi-add-model`: dep entry, R2, licence check).
+LIKENESS (Fabio 2026-10-27): likeness comes from the Flow's OPTIONAL CHARACTER SHEET input. Every model takes more
+than one reference, so the VERY LAST pass of every chain picks the character sheet up as a likeness ref (bench it in
+phase A next to the detour; without a sheet, the original picture is the fallback ref).
+PHASES:
+A. Bench the missing edge + the last-pass character-sheet likeness (free, local GPU, one at a time, full-size pairs): Fabio's bedroom
+   case + one outdoor + one anime start, both lo and hi. Pass = MoGe pitch level (|p| < 8) + view right + likeness.
+B. Write the move table as data (`js/data/flowPrompts/multiAngle.js`: edges with model/ref/words/evidence), the
+   planner = shortest chain; `multiAngleChoices` offers every stop. Unit tests pin the chain for every
+   start x pick (8x3 starts x 8x3 picks x rungs).
+C. App models: Qwen 2511 angle LoRA + Krea2 finish as ops the runner can queue (each pass its own queue row).
+D. Live run on own app:isolated, Fabio's eye test on his pictures, then UNRELEASED entry; Flow stays devOnly until then.
+
 ## Remaining Work
+- [ ] NEW APPROACH phase A: bench the turned-lo/hi -> eye-level detour + identity finish
+- [ ] Phases B-D (route planner, app models, live run)
 - [ ] Stage 1 (face, 9 runs) + Fabio's eye test
 - [ ] Stage 2 full body, stage 3 rooms
 - [x] Decide: Flow or not - spec APPROVED 2026-10-25
