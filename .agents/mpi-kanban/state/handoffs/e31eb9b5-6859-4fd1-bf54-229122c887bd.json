@@ -1,0 +1,62 @@
+{
+  "schema": "mpi-kanban/handoff/v1",
+  "id": "e31eb9b5-6859-4fd1-bf54-229122c887bd",
+  "generated_at": "2026-10-27T00:26:30Z",
+  "status": "open",
+  "from_session": ".agents/mpi-kanban/state/sessions/5f27caa6-7faa-4a1a-9a37-63f24244cdd3.json",
+  "session": {
+    "name": "Cubric Studio improvements 5: MPI-1302 D10 sweeps + ffmpeg plumbing",
+    "branch": "master"
+  },
+  "goal": {
+    "original": "Work through the rest of AUDIT.md (repo root) phase by phase on card MPI-1302, handing off between phases when context gets high.",
+    "status": "in_progress",
+    "summary": "D10 scratch sweeps (services/scratchSweep.js sweepOlderThan, 9 copies) and D10 ffmpeg plumbing (runFfmpeg/runFfprobe/trimArgs in services/ffmpegBinary.js, 17 files; mux on ffmpegMux's _spawnFfmpeg) are done and pushed (last code commit 44313f32b, docs bde8dc7a7). Next: D10 ffprobe bypass, then remote proxy, EXIF swap, lazy imports, _fail."
+  },
+  "plan": {
+    "file": ".agents/mpi-kanban/tasks/MPI-1302/plan.md",
+    "completed": [
+      "Phases 1a-1d, D1, D3, D10 GIF card tail (earlier sessions)",
+      "D10 scratch sweeps: sweepOlderThan (e6a14214b)",
+      "D10 ffmpeg plumbing: runFfmpeg/runFfprobe (63f0bc913), trimArgs (7ca19c480), mux runner (44313f32b)"
+    ],
+    "pending": [
+      "D10 ffprobe bypass x2: deepinfra.js _mediaSeconds (format=duration, may be audio) and projects.js /project-media/:projectId/extract (raw width/height for the crop) now call runFfprobe directly; probeVideo swaps w/h for rotated video, so check whether the extract crop wants raw or upright dims before switching",
+      "D10 remote proxy forward x7 + remoteModels _authHeaders (engine/Pod path: behaviour-identical, mocked fetch)",
+      "D10 EXIF swap x8 (uprightSize), lazy-import caches, _fail envelope x5",
+      "Then P2, P14, P7, P12, P13; Phase 3 (user-ux) P1, P3, D7, D9; Phase 4 P4-P6, P9-P11"
+    ]
+  },
+  "task_card": {
+    "id": "MPI-1302",
+    "title": "AUDIT follow-up: the cleanup, duplication and speed findings PR #12 left open",
+    "column": "doing",
+    "workspace": ".agents/mpi-kanban/tasks/MPI-1302/",
+    "links": {
+      "plan": "plan.md",
+      "checklist": "checklist.md",
+      "validation": "validation.md"
+    }
+  },
+  "next_action": {
+    "description": "Continue D10 (AUDIT.md section D10) with the ffprobe bypass: re-check deepinfra.js _mediaSeconds and the projects.js extract route's runFfprobe dimensions call, decide whether services/ffprobeVideo.js (probeVideo/probeAudio, rotation-aware) fits each without changing behaviour, claim the files, prove it (route snapshot or targeted test) + npm run lint + npm test, commit with research/commit_mine.py, push, update AUDIT.md Status + checklist. Then remote proxy, EXIF swap, lazy imports, _fail, then P2, P14, P7, P12, P13.",
+    "command": "mpi-continue"
+  },
+  "context": {
+    "key_decisions": [
+      "Fabio wants MPI-1302 done in sequence, one session at a time, no parallel batch; hand off between phases.",
+      ".claude/rules/ files are never edited without Fabio's explicit OK.",
+      "Only a real match is merged: videoConcat's spawn runner was left alone (stdin + progress parsing + own error text), gifMaker keeps its own trim (gets a validated {in,out})."
+    ],
+    "constraints": [
+      "Shared tree: commit with python .agents/mpi-kanban/tasks/MPI-1302/research/commit_mine.py . <msgfile> MPI-1302 <files...>, then git push origin HEAD:refs/heads/master.",
+      "Claim files before editing: state/files/<sid8>-mpi1302-<item>.json + active_file_claims in state/index.json (guard-claim blocks unclaimed writes; heredocs are blocked, write scripts to the scratchpad and run them by path). Old needs_verification records on routes/projects.js (MPI-623/1014/1094/1205) are stale.",
+      "tests/windows-hide-spawn.test.cjs source-scans every child_process call and promisify alias for windowsHide: new ffmpeg calls go through runFfmpeg/runFfprobe. Number(null) is 0, so trimArgs(null, 3) seeks 0-3 (unchanged behaviour)."
+    ],
+    "files_to_read_first": [
+      ".agents/mpi-kanban/tasks/MPI-1302/plan.md",
+      "AUDIT.md"
+    ]
+  },
+  "resume_prompt": "Read .agents/mpi-kanban/state/handoffs/e31eb9b5-6859-4fd1-bf54-229122c887bd.json and continue card MPI-1302 (in doing) with mpi-continue. AUDIT.md phases 1a-1d, D1, D3, D10's GIF card tail, scratch sweeps (services/scratchSweep.js) and ffmpeg plumbing (runFfmpeg/runFfprobe/trimArgs in services/ffmpegBinary.js) are pushed. Next is D10's ffprobe bypass (mind probeVideo's rotation swap), then remote proxy, EXIF swap, lazy imports, _fail, one commit each, then P2/P14/P7/P12/P13 per plan.md. Commit with the card's research/commit_mine.py, claim every file before editing."
+}

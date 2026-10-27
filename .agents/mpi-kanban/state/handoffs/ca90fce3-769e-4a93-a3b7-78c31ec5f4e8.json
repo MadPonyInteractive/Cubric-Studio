@@ -2,7 +2,7 @@
   "schema": "mpi-kanban/handoff/v1",
   "id": "ca90fce3-769e-4a93-a3b7-78c31ec5f4e8",
   "generated_at": "2026-10-27T00:25:00Z",
-  "status": "open",
+  "status": "resolved",
   "from_session": ".agents/mpi-kanban/state/sessions/c735842e-a2d4-4ba0-87a7-51c7ffdabd03.json",
   "session": {
     "name": "Cubric Studio improvements 4: MPI-1302 D3 + D10 GIF",
