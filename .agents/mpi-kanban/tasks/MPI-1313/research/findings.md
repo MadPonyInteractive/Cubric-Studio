@@ -50,6 +50,18 @@ Wire it after 2.1.3. UI explored, not decided:
 - The row's slot shows the picture's thumbnail/number; an empty slot = no reference (today's behaviour).
 Bug found while testing: a new box's name field sticks open -> MPI-1314 (2.1.4).
 
+## The design Fabio chose (2026-10-27) - build THIS, it replaces A/B above
+
+- No numbered slots, no picture slot beside the name.
+- Clicking a box's NAME in the list SELECTS that row (today it cites `<name>` into the prompt: drop
+  that - the prompt box already reaches every box with `@`). The selected row gets a different
+  background colour (Fabio liked that in the sketch: obvious which entry is being worked on).
+- With a row selected, the existing + above the prompt box adds a picture TO THAT BOX.
+- The box's picture shows as a thumbnail UNDER that row's "What goes here" field, the same width as
+  the field, with an X on it to remove it. Clicking the thumbnail opens the pop-up gallery to pick
+  another picture.
+- No row selected: + behaves as today (a plain reference).
+
 ## When resumed (after 2.1.3)
 
 1. Bench T without looks in the descs (box + name only), same panel, 4 seeds.
