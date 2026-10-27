@@ -92,6 +92,7 @@ NOT mechanically split these):
 | **Resize** (image + video, NO engine: sharp / ffmpeg in our server, the KJ-node maths as one planner, the `tool` head + fourth lane, the live preview route, why the graphs went) | [resize.md](resize.md) |
 | **Model Library UI** (usable-vs-installed, featured, install-button gates, tile patching) | [model-library.md](model-library.md) |
 | **Per-component behavioral contracts** (PromptBox, MpiToast, MpiPopup, MpiInput, …) | [component-contracts.md](component-contracts.md) |
+| **The `@` picker** (the app's one reference symbol: prompt-box references + Box names, Flow field `tags`, the shared matcher, what a pick writes per model, the gates and the Flow gap) | [at-picker.md](at-picker.md) |
 | **Video player** (frame-accurate hybrid: `<video>` plays / mediabunny canvas owns paused-step; color matrix rule; frame-index coordinate law; sub-range loop) | [video-player.md](video-player.md) |
 | Flows (Flow Library + Flow overlays; add-a-flow procedure) | [playbooks/add-flow/README.md](playbooks/add-flow/README.md) |
 | **Flow packages** (third-party Flows as data-only folders in `user_flows/`: manifest format, allowed ids, the title law the validator enforces, the no-markup rule, drop install / Refresh, the linter) | [flow-packages.md](flow-packages.md) |

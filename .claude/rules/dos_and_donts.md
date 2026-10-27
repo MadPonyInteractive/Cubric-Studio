@@ -198,6 +198,28 @@ Then it shipped with NO progress at all, and Fabio had to ask for the sweep in a
   (per op, per mode) and restored when the user goes back. Keep an explicit remove for "gone for
   good". A refusal toast that names a button to go find is the fallback, never the first design.
 
+## 🔗 `@` is the app's one reference symbol (Fabio, 2026-10-27)
+
+Wherever a user types text that names a thing the run will USE (a picture they staged, a box
+they drew, a fixed tag the graph reads such as Song's section tags), typing `@` lists those
+names and a pick writes the tag in. It is the only way a text box references anything: never a
+different trigger (`#`, `/`, `[[`), never a hint telling the user to type brackets by hand,
+never a picker built from scratch.
+
+- **One matcher, two popups.** `matchRefTagQuery` (`js/data/commandRegistry.js`) decides what a
+  half-typed `@` matches. The prompt box keeps its own popup (staged references + Box names,
+  positive prompt only); every other text box uses `attachMentionPicker`
+  (`js/utils/mentionPicker.js`), and a declared Flow field asks for it with `tags`. Contract:
+  [`docs/at-picker.md`](../../docs/at-picker.md).
+- **Offer only what the run reads, written the way it reads it.** A model's references go
+  through `refTagHandle` (`image 2`, `<image2>`, `the second image`, `@image1`); a Song section
+  is square-bracketed. A name the graph strips or the model ignores is a no-op the user follows
+  for nothing: the first Lyrics picker shipped exactly that (MPI-664), and a model that reads no
+  reference gets no `@` at all (MOSS-Image).
+- **Gates.** A model op with 2+ references fails `tests/ref-tag-picker.test.cjs` without tags
+  (MPI-1312). Nothing tests a Flow: its checklist line in
+  `docs/playbooks/add-flow/README.md` is the only gate.
+
 ## 🐧 New OS-touching code carries darwin and linux branches (MPI-947)
 
 Before writing any path, installer, CLI lookup or file-type assumption, write the `darwin` and

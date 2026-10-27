@@ -143,6 +143,7 @@ an order, and do not pre-read sections you haven't reached.
 | Pod hot-store has **no size gate** — everything ≥0.1 GB stages; the only per-file skip is a file bigger than pod VRAM. Nothing to ask the user | 02 |
 | `progressStages.js` bar counts **must be counted live** per run mode. Never guess | 02 |
 | Injection **silently skips** a param whose `Input_*` title matches no node (hid `Input_Is_i2i` + `Input_Batch` for 4 sessions) | 04 |
+| **`@` is the app's ONE reference symbol.** An op taking 2+ reference pictures tags every slot so `@` names them, in the words the vendor's prompts use (`refTagHandle`; look up the vendor's rewriter, never guess). A model that reads no reference gets no tags. Qwen-Image 2.1, FLUX.3 and Klein shipped without; `tests/ref-tag-picker.test.cjs` now fails it (MPI-1312) | 04 |
 | Style-LoRA set ⇒ assert `len(MpiPromptList.options) == number of style LoRAs`. A missing trigger line is a silent half-application | 05 |
 | Style rack ⇒ ship `styleLoraImages` (index-aligned with `styleLoraLabels`, index 0 = no-style baseline) — one gen per style from the SAME prompt. Misalignment shows the wrong picture for the style the user gets | 05 |
 | **A model that works in the Prompt Box is invisible to Cosmo.** It picks by rank and `name` (`description` is never sent; tier siblings share one name), prompts from the guide of the model's ENHANCER RECIPE (a reused recipe = a shared guide that may never mention it), and knows a new op by name only where `MASKED_OPS` / `ONE_AREA_OPS` list it. Nothing fails | 07 |

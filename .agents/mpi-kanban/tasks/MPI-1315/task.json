@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1315",
+  "title": "Docs: @ is the app's one reference symbol - rule, playbooks, skills, PromptBox contract",
+  "description": "Write down that @ is the universal way to reference things (pictures, boxes, tags) in dos_and_donts, the add-flow checklist, both add skills and the PromptBox contract.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-27T21:01:38+00:00",
+  "updated_at": "2026-10-27T21:05:54+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
