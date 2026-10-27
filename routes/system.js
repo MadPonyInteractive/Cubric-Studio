@@ -22,14 +22,25 @@ const { COMFY_DIR, getComfyRepoRel, resolveDownloadConfig } = require('./platfor
 
 // ── VRAM Helper ───────────────────────────────────────────────────────────────
 
+// /system/stats polls every 2 s (P13). The GPU detection (memoised per session) found
+// nvidia-smi or it did not, so another vendor gets the zeros without a spawn; a failed
+// detection still asks nvidia-smi. One answer serves every caller inside the TTL.
+const VRAM_TTL_MS = 1500;
+let _vram = null;   // { at, promise }
+
 async function getVramStats() {
-    return new Promise((resolve) => {
+    const config = await resolveDownloadConfig().catch(() => null);
+    if (config && config.gpu?.vendor !== 'nvidia') return { total: 0, used: 0 };
+    if (_vram && Date.now() - _vram.at < VRAM_TTL_MS) return _vram.promise;
+    const promise = new Promise((resolve) => {
         execFile('nvidia-smi', ['--query-gpu=memory.total,memory.used', '--format=csv,noheader,nounits'], { windowsHide: true }, (err, stdout) => {
             if (err || !stdout) return resolve({ total: 0, used: 0 });
             const [total, used] = stdout.split(',').map(s => parseInt(s.trim(), 10));
             resolve({ total: total || 0, used: used || 0 });
         });
     });
+    _vram = { at: Date.now(), promise };
+    return promise;
 }
 
 function openFolderViaMainProcess(folderPath) {
