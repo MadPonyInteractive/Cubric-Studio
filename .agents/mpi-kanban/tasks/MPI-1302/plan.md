@@ -4,12 +4,13 @@
 
 - **Where it stands (2026-10-27):** Phases 1a-1d, D1, D3 and D10's GIF card tail done and pushed.
   Next: the rest of **D10** piece by piece (scratch sweeps, ffmpeg plumbing, remote proxy, EXIF
-  swap, lazy imports, `_fail`), one commit each, then P2/P14/P7/P12/P13. GIF routes have their
-  own snapshot script (`d10snap.cjs`, scratchpad): `/gif/preview` must run before an update
-  (`/gif/entry` update sweeps unreferenced frames).
+  swap, lazy imports, `_fail`), one commit each, then P2/P14/P7/P12/P13. The route snapshot
+  scripts are in this card's `research/` (`d3snap.cjs`, `d10snap.cjs`, diff with `d3diff.py`):
+  `node research/d10snap.cjs <repo> <out.json>` before and after, then diff. In d10snap,
+  `/gif/preview` must run before an update (`/gif/entry` update sweeps unreferenced frames).
 - Backend route refactors are proven with a throwaway script that mounts the routers on a temp
-  project, drives each route on real ffmpeg output and dumps sidecar + response (D3's is
-  `d3snap.cjs` in the session scratchpad): normalise ids/dates/mtime busts, diff key-order-blind. `npm run lint` now ends with the
+  project, drives each route on real ffmpeg output and dumps sidecar + response
+  (`research/d3snap.cjs`): normalise ids/dates/mtime busts, diff key-order-blind. `npm run lint` now ends with the
   type-check; a new file under `js/utils/` must start with `// @ts-check` and pass it.
 - A behaviour-preserving frontend refactor is proven with a throwaway desktop spec that
   snapshots DOM + values + emitted events before and after (D1's lives in the session

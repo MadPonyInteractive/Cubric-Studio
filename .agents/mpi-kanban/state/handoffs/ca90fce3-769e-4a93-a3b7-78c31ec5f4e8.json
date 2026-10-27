@@ -1,0 +1,62 @@
+{
+  "schema": "mpi-kanban/handoff/v1",
+  "id": "ca90fce3-769e-4a93-a3b7-78c31ec5f4e8",
+  "generated_at": "2026-10-27T00:25:00Z",
+  "status": "open",
+  "from_session": ".agents/mpi-kanban/state/sessions/c735842e-a2d4-4ba0-87a7-51c7ffdabd03.json",
+  "session": {
+    "name": "Cubric Studio improvements 4: MPI-1302 D3 + D10 GIF",
+    "branch": "master"
+  },
+  "goal": {
+    "original": "Work through the rest of AUDIT.md (repo root) phase by phase on card MPI-1302, handing off between phases when context gets high.",
+    "status": "in_progress",
+    "summary": "D3 (services/outputCard.js: writeVideoCard, writeImageCard, 10 routes) and D10's GIF card tail (writeGifCard/writeGifThumb, gifEntryFrom, 5 GIF routes) are done and pushed (last code commit a6c62669c). Next is the rest of D10, piece by piece."
+  },
+  "plan": {
+    "file": ".agents/mpi-kanban/tasks/MPI-1302/plan.md",
+    "completed": [
+      "Phases 1a-1d, D1 (earlier sessions)",
+      "D3: services/outputCard.js, 5 video + 5 still routes, 12-case route snapshot identical bar the sheet's flowId/flowInputs (6037ec6cc..62276ab0c)",
+      "D10 GIF card tail + gifEntry normalisation, 9-case route snapshot identical (afb9b9791..ac2395457)"
+    ],
+    "pending": [
+      "D10 rest, one commit each: age-based scratch sweeps x9, ffmpeg plumbing (promisify(execFile) x13, trim args x4, spawn wrappers x3), remote proxy forward x7 + remoteModels _authHeaders, ffprobe bypass x2, EXIF swap x8, lazy-import caches, _fail envelope x5",
+      "Then P2, P14, P7, P12, P13 - each with the audit's GPU-free check",
+      "Phase 3 (user-ux): P1, P3, D7, D9",
+      "Phase 4 (user-ux): P4-P6, P9-P11"
+    ]
+  },
+  "task_card": {
+    "id": "MPI-1302",
+    "title": "AUDIT follow-up: the cleanup, duplication and speed findings PR #12 left open",
+    "column": "doing",
+    "workspace": ".agents/mpi-kanban/tasks/MPI-1302/",
+    "links": {
+      "plan": "plan.md",
+      "checklist": "checklist.md",
+      "validation": "validation.md"
+    }
+  },
+  "next_action": {
+    "description": "Continue D10 (AUDIT.md section D10) with the pieces left: re-check each location first (line numbers drift), claim the files, extract the shared helper, prove it with a before/after route snapshot (research/d3snap.cjs / d10snap.cjs pattern) + npm run lint + npm test, commit each piece with research/commit_mine.py, push, update AUDIT.md Status + checklist. Remote proxy, trash and mux are engine/Pod paths: keep them behaviour-identical. Then P2, P14, P7, P12, P13.",
+    "command": "mpi-continue"
+  },
+  "context": {
+    "key_decisions": [
+      "Fabio wants MPI-1302 done in sequence, one session at a time, no parallel batch; hand off between phases.",
+      ".claude/rules/ files are never edited without Fabio's explicit OK.",
+      "Card writers live in services/outputCard.js (never in routes/projects.js: the route sequences the filename with nextSequence and passes outputPath, so the service never requires a route and the route's catch can remove a half-written output)."
+    ],
+    "constraints": [
+      "Shared tree: commit with python .agents/mpi-kanban/tasks/MPI-1302/research/commit_mine.py . <msgfile> MPI-1302 <files...>, then git push origin HEAD:refs/heads/master. A small python driver with a COMMITS list makes per-route commits fast.",
+      "Claim files before editing: state/files/<sid8>-mpi1302-<item>.json, status \"claimed\", listed in active_file_claims in state/index.json. guard-claim blocks shell variables in paths and heredocs: use the Edit/Write tools and literal paths.",
+      "Audit counts overstate: D3's '~15 routes' were 10; re-count before designing a helper. Old needs_verification records on routes/projects.js (MPI-1094/1205/1014) are stale."
+    ],
+    "files_to_read_first": [
+      ".agents/mpi-kanban/tasks/MPI-1302/plan.md",
+      "AUDIT.md"
+    ]
+  },
+  "resume_prompt": "Read .agents/mpi-kanban/state/handoffs/ca90fce3-769e-4a93-a3b7-78c31ec5f4e8.json and continue card MPI-1302 (in doing) with mpi-continue. AUDIT.md phases 1a-1d, D1, D3 and D10's GIF card tail are pushed (services/outputCard.js holds every tool-output card writer). Next is the rest of D10 piece by piece (scratch sweeps, ffmpeg plumbing, remote proxy, ffprobe bypass, EXIF swap, lazy imports, _fail), one commit each, proven with the before/after route snapshot scripts in the card's research/ folder, then P2/P14/P7/P12/P13 per plan.md. Commit with the card's research/commit_mine.py, claim every file before editing."
+}
