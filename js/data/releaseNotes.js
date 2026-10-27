@@ -71,6 +71,7 @@ export const RELEASE_NOTES = {
       '**Flow steps with a drawing area open at full width at once,** instead of widening a pixel at a time.',
       '**Files with % in the name** (100%.png) can be cropped, trimmed, reversed, combined and made into GIFs. They used to fail or read as missing.',
       '**A click plays a maximised video again;** only Space did.',
+      '**Character Sheet from Images draws robots and mascots as themselves,** not as people: no human clothes or ears, their own build, a head-and-chest close-up, and a face box that can cover a square picture.',
       '**Small fixes.** Renaming a card in Show info mode shows what you type. Compare labels each side with the card\'s name. The picture chip tags read clearly over any picture. The prompt box\'s mascot slides instead of fading and stays off the video controls. A tool setting changed just before you switch away is kept. A GIF preview marks itself out of date when you change a setting. An audio card never reads "0:60". Less noise in the log.',
     ],
     breakingChanges: [],
