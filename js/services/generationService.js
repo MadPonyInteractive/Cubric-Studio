@@ -25,7 +25,7 @@ import { state } from '../state.js';
 import { clientLogger } from './clientLogger.js';
 import { truncateCardName } from '../utils/displayHelpers.js';
 import { activeGenerations } from './activeGenerations.js';
-import { extractFilenameFromPath, extractAbsPath, resolveMediaUrl } from '../utils/mediaActions.js';
+import { extractAbsPath, resolveMediaUrl, deleteMediaFiles } from '../utils/mediaActions.js';
 import { getCommand, getCommandMediaInputs, getFilePrefix } from '../data/commandRegistry.js';
 import { getFlowById } from '../data/flowsRegistry.js';
 import { pluginForOperation } from '../data/pluginsRegistry.js';
@@ -1211,25 +1211,8 @@ async function _addGroupsToClosedProject(project, groups) {
 async function _deleteSavedItems(items) {
     const project = state.currentProject;
     if (!project?.id || !project?.folderPath) return;
-    for (const item of items || []) {
-        const filename = extractFilenameFromPath(item?.filePath);
-        if (!filename || !item?.id) continue;
-        try {
-            const res = await fetch(
-                `/project-media/${project.id}/${encodeURIComponent(filename)}?folderPath=${encodeURIComponent(project.folderPath)}&itemId=${encodeURIComponent(item.id)}`,
-                { method: 'DELETE' }
-            );
-            if (!res.ok) {
-                clientLogger.warn('generationService', 'orphan output cleanup returned non-ok status', {
-                    status: res.status,
-                    itemId: item.id,
-                    filename,
-                });
-            }
-        } catch (err) {
-            clientLogger.warn('generationService', 'orphan output cleanup failed', err);
-        }
-    }
+    const ok = await deleteMediaFiles(project, (items || []).filter(item => item?.id));
+    if (!ok.every(Boolean)) clientLogger.warn('generationService', 'orphan output cleanup left files behind');
 }
 
 /**

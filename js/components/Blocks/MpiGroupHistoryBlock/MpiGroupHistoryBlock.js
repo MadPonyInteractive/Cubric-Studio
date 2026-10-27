@@ -59,7 +59,7 @@ import { clientLogger } from '../../../services/clientLogger.js';
 import { hasNoEngine } from '../../../services/engineGate.js';
 import { qs, gid, on } from '../../../utils/dom.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
-import { extractFilenameFromPath, extractAbsPath, resolveMediaUrl, downloadMediaFiles } from '../../../utils/mediaActions.js';
+import { extractFilenameFromPath, extractAbsPath, resolveMediaUrl, downloadMediaFiles, deleteMediaFiles } from '../../../utils/mediaActions.js';
 import { describeItem } from '../../../utils/describeAction.js';
 import { resolveActiveModel, setSelectedModelId, getSelectedOp, setSelectedOp } from '../../../utils/modelHelpers.js';
 import { updateGroup, addGroup, removeGroup, applyPromptReuseSettings, removeFromStack, reorderStack, stepStackVersions, stackGroups } from '../../../services/projectService.js';
@@ -1774,10 +1774,12 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                 dialog.destroy?.();
                 const members = _stackMembers().filter(m => ids.includes(m.id));
                 let deleted = 0;
+                const ok = await deleteMediaFiles(state.currentProject, members.flatMap(m => m.history));
+                let at = 0;
                 for (const m of members) {
                     // A card goes only when every file went, as in the Gallery's delete.
-                    const ok = await Promise.all(m.history.map(_deleteItemFile));
-                    if (!ok.every(Boolean)) continue;
+                    const mine = ok.slice(at, at += m.history.length);
+                    if (!mine.every(Boolean)) continue;
                     await removeGroup(m.id);
                     deleted++;
                 }
@@ -3594,34 +3596,6 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             }
         }
 
-        /**
-         * Delete one history entry's media file (and its sidecar) from the project.
-         * @returns {Promise<boolean>} true when the server deleted it
-         */
-        async function _deleteItemFile(item) {
-            const project = state.currentProject;
-            const filename = extractFilenameFromPath(item?.filePath);
-            if (!project?.folderPath || !filename) return false;
-            try {
-                const res = await fetch(
-                    `/project-media/${project.id}/${encodeURIComponent(filename)}?folderPath=${encodeURIComponent(project.folderPath)}&itemId=${encodeURIComponent(item.id)}`,
-                    { method: 'DELETE' }
-                );
-                if (!res.ok) {
-                    clientLogger.warn('MpiGroupHistoryBlock', 'delete media returned non-ok status', {
-                        status: res.status,
-                        itemId: item.id,
-                        filename,
-                    });
-                    return false;
-                }
-                return true;
-            } catch (err) {
-                clientLogger.warn('MpiGroupHistoryBlock', 'delete media failed:', err);
-                return false;
-            }
-        }
-
         async function _performHistoryDelete(indices) {
             if (!indices.length) return;
             historyList.el.exitSelectMode();
@@ -3630,11 +3604,9 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             const project = state.currentProject;
             let deletedIndices = sorted;
             if (project?.folderPath) {
-                deletedIndices = [];
-                for (const idx of sorted) {
-                    const item = _group.history[idx];
-                    if (item && await _deleteItemFile(item)) deletedIndices.push(idx);
-                }
+                const present = sorted.filter(idx => _group.history[idx]);
+                const ok = await deleteMediaFiles(project, present.map(idx => _group.history[idx]));
+                deletedIndices = present.filter((_, i) => ok[i]);
             }
             if (!deletedIndices.length) return;
 

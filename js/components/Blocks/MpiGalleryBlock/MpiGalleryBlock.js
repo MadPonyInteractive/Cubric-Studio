@@ -32,7 +32,7 @@ import { Events } from '../../../events.js';
 import { openFlowFromReuse } from '../../../services/flowService.js';
 import { qs, gid, on } from '../../../utils/dom.js';
 import { navigate, PAGE_LANDING, PAGE_GROUP_HISTORY, PAGE_SCENE } from '../../../router.js';
-import { extractFilenameFromPath, extractAbsPath, downloadMediaFiles, resolveMediaUrl } from '../../../utils/mediaActions.js';
+import { extractFilenameFromPath, extractAbsPath, downloadMediaFiles, resolveMediaUrl, deleteMediaFiles } from '../../../utils/mediaActions.js';
 import { describeItem } from '../../../utils/describeAction.js';
 import { resolveActiveModel, setSelectedModelId, getSelectedModelId, getSelectedOp, setSelectedOp, getLastSelectedMediaType, MODEL_MEDIA_TYPES } from '../../../utils/modelHelpers.js';
 import { truncateCardName } from '../../../utils/displayHelpers.js';
@@ -1233,33 +1233,14 @@ export const MpiGalleryBlock = ComponentFactory.create({
             }
             grid.el.setGroups([..._leadingGroups(), ..._visibleProjectGroups()]);
 
+            // One request for every file of every selected card; a card whose files
+            // did not all go stays in the grid.
+            const files = g.flatMap(group => group.history.filter(item => extractFilenameFromPath(item.filePath)));
+            const ok = await deleteMediaFiles(project, files);
+            const failed = new Set(files.filter((_, i) => !ok[i]));
             const deletedGroups = [];
             for (const group of g) {
-                let groupDeleted = true;
-                for (const item of group.history) {
-                    const fp = item.filePath;
-                    if (!fp) continue;
-                    const filename = extractFilenameFromPath(fp);
-                    if (!filename) continue;
-                    try {
-                        const res = await fetch(
-                            `/project-media/${project.id}/${encodeURIComponent(filename)}?folderPath=${encodeURIComponent(project.folderPath)}&itemId=${encodeURIComponent(item.id)}`,
-                            { method: 'DELETE' }
-                        );
-                        if (!res.ok) {
-                            groupDeleted = false;
-                            clientLogger.warn('MpiGalleryBlock', 'delete file returned non-ok status', {
-                                status: res.status,
-                                itemId: item.id,
-                                filename,
-                            });
-                        }
-                    } catch (err) {
-                        groupDeleted = false;
-                        clientLogger.warn('MpiGalleryBlock', 'delete file failed:', err);
-                    }
-                }
-                if (groupDeleted) deletedGroups.push(group);
+                if (!group.history.some(item => failed.has(item))) deletedGroups.push(group);
                 else if (group?.id) _deletingGroupIds.delete(group.id);
             }
 

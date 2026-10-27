@@ -36,7 +36,7 @@ test('deleting an item sweeps its scene records and leaves every other item alon
         for (const f of [`${ID}.json`, ...SCENE_FILES(ID), `${OTHER}.json`, ...SCENE_FILES(OTHER)]) {
             await fs.writeFile(path.join(metaDir, f), 'x');
         }
-        removeItemThumbs(metaDir, ID);
+        await removeItemThumbs(metaDir, ID);
         assert.deepEqual((await fs.readdir(metaDir)).sort(), [`${ID}.json`, `${OTHER}.json`, ...SCENE_FILES(OTHER)].sort());
     } finally {
         await fs.remove(metaDir);

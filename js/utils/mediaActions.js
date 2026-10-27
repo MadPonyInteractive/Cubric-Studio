@@ -147,24 +147,39 @@ export async function downloadMediaFiles(project, items) {
 }
 
 /**
- * Delete media files for the given items from a project.
- * Calls DELETE /project-media/:projectId/:filename for each item.
+ * Delete items' media files and sidecars from a project in ONE request
+ * (POST /project-media/:projectId/delete-batch): the server lists `.meta` and sweeps the
+ * GIF frame store once for the whole set, not once per card (AUDIT P3).
  * @param {Object} project — state.currentProject
  * @param {Array<{filePath: string, id?: string}>} items — items whose files to delete
+ * @returns {Promise<boolean[]>} per item, in order: true when the server deleted it. An
+ *   item with no filename, or a failed request, is false.
  */
 export async function deleteMediaFiles(project, items) {
-    if (!project) return;
-    for (const item of items) {
-        const filename = extractFilenameFromPath(item.filePath);
-        if (!filename) continue;
-        try {
-            const idParam = item.id ? `&itemId=${encodeURIComponent(item.id)}` : '';
-            await fetch(
-                `/project-media/${project.id}/${encodeURIComponent(filename)}?folderPath=${encodeURIComponent(project.folderPath)}${idParam}`,
-                { method: 'DELETE' }
-            );
-        } catch (err) {
-            clientLogger.warn('mediaActions', 'delete file failed:', err);
+    const sent = items.map(item => ({ filename: extractFilenameFromPath(item?.filePath), itemId: item?.id }));
+    const ok = sent.map(() => false);
+    const batch = sent.filter(s => s.filename);
+    if (!project?.folderPath || !batch.length) return ok;
+    try {
+        const res = await fetch(`/project-media/${project.id}/delete-batch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ folderPath: project.folderPath, items: batch }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+            clientLogger.warn('mediaActions', 'delete returned non-ok status', { status: res.status, error: data.error });
+            return ok;
         }
+        const results = data.results || [];
+        let r = 0;
+        for (let i = 0; i < sent.length; i++) {
+            if (!sent[i].filename) continue;
+            ok[i] = results[r++]?.ok === true;
+            if (!ok[i]) clientLogger.warn('mediaActions', 'delete failed', sent[i]);
+        }
+    } catch (err) {
+        clientLogger.warn('mediaActions', 'delete failed:', err);
     }
+    return ok;
 }

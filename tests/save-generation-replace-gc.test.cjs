@@ -1,18 +1,20 @@
 'use strict';
 
-// MPI-976 — save-generation's GC could delete a card that another request was rewriting.
+// MPI-976 — the orphan-sidecar GC could delete a card that another request was rewriting.
+// The GC ran inside every save-generation then; since AUDIT P1 it is `sweepOrphanSidecars`,
+// run at project open, and a generation can still land in a project while it opens.
 //
 // Two routes rewrite a sidecar IN PLACE: a preview->final Continue (save-generation with
 // `replaceItemId`) and a GIF update (`/gif/entry` mode 'update'). Each writes the new
-// sidecar at the SAME id, then deletes the previous media file. Another save's GC reads a
-// sidecar, then checks its media: read the OLD sidecar, let the rewrite land and drop the
-// old media, then check it — the media is "gone", so the GC removed the NEW sidecar and
-// every thumb with it. The card vanished on reload.
+// sidecar at the SAME id, then deletes the previous media file. The GC reads a sidecar,
+// then checks its media: read the OLD sidecar, let the rewrite land and drop the old
+// media, then check it — the media is "gone", so the GC removed the NEW sidecar and every
+// thumb with it. The card vanished on reload.
 //
 // fs-extra is one shared module object, so patching `pathExists` / `remove` on it forces
 // that exact interleave: the GC's check of the old media starts the rewrite and waits for
 // the old media to be deleted; the rewrite is then held right there, still in flight,
-// until the GC's save has answered.
+// until the sweep has finished.
 
 const assert = require('node:assert/strict');
 const test = require('node:test');
@@ -55,24 +57,18 @@ async function harness() {
     return { root, mediaDir, metaDir, png, post, viewUrl, close };
 }
 
-const plainSave = (h) => h.post('/project/save-generation', {
-    folderPath: h.root,
-    comfyViewUrl: h.viewUrl('removeBackground_001.png'),
-    itemId: 'bbbbbbbb-0000-0000-0000-000000000976',
-    operation: 'removeBackground',
-    mediaType: 'image',
-});
+const { sweepOrphanSidecars } = require('../routes/projects.js');
 
 /**
- * Run a plain save whose GC meets `prevMedia` mid-rewrite: its check of that file starts
+ * Run the sweep so it meets `prevMedia` mid-rewrite: its check of that file starts
  * `rewrite()`, waits until the rewrite has deleted it, and only then answers. The rewrite
- * stays parked inside that delete until the save has responded.
+ * stays parked inside that delete until the sweep has finished.
  */
 async function saveDuringRewrite(h, prevMedia, rewrite) {
     const { pathExists, remove } = fs;
     const prev = path.normalize(prevMedia);
     let raced = false;
-    let saveDone;
+    let sweepDone;
     let rewriteDone;
     let prevGone;
     const gone = new Promise(r => { prevGone = r; });
@@ -88,15 +84,14 @@ async function saveDuringRewrite(h, prevMedia, rewrite) {
         const out = await remove(p);
         if (path.normalize(String(p)) === prev) {
             prevGone();
-            await saveDone.catch(() => {});
+            await sweepDone.catch(() => {});
         }
         return out;
     };
     try {
-        saveDone = plainSave(h);
-        const saved = await saveDone;
-        assert.equal(saved.success, true, JSON.stringify(saved));
-        assert.ok(raced, 'interleave not forced: the GC never checked the rewritten item\'s old media');
+        sweepDone = sweepOrphanSidecars(h.root);
+        await sweepDone;
+        assert.ok(raced,'interleave not forced: the GC never checked the rewritten item\'s old media');
         return await rewriteDone;
     } finally {
         fs.pathExists = pathExists;
@@ -113,7 +108,7 @@ async function assertCardIntact(h, id) {
     return meta;
 }
 
-test('a preview->final replace survives another save\'s GC', { timeout: 60000 }, async () => {
+test('a preview->final replace survives the orphan sweep', { timeout: 60000 }, async () => {
     const h = await harness();
     try {
         const id = 'aaaaaaaa-0000-0000-0000-000000000976';
@@ -143,7 +138,7 @@ test('a preview->final replace survives another save\'s GC', { timeout: 60000 },
     }
 });
 
-test('a GIF update survives another save\'s GC', { timeout: 60000 }, async () => {
+test('a GIF update survives the orphan sweep', { timeout: 60000 }, async () => {
     const h = await harness();
     try {
         const id = 'cccccccc-0000-0000-0000-000000000976';
@@ -176,15 +171,14 @@ test('a GIF update survives another save\'s GC', { timeout: 60000 }, async () =>
 // MPI-977 — every sidecar write truncates the file, then writes it, so a GC read in between
 // sees an empty file. The GC used to call an unreadable sidecar orphaned and delete it; every
 // route outside save-generation (a new GIF, a crop, an upload) was exposed.
-test('a sidecar caught mid-write survives another save\'s GC', { timeout: 60000 }, async () => {
+test('a sidecar caught mid-write survives the orphan sweep', { timeout: 60000 }, async () => {
     const h = await harness();
     try {
         const id = 'dddddddd-0000-0000-0000-000000000977';
         await fs.writeFile(path.join(h.metaDir, `${id}.thumb.webp`), 'x');
         await fs.writeFile(path.join(h.metaDir, `${id}.json`), '');
 
-        const saved = await plainSave(h);
-        assert.equal(saved.success, true, JSON.stringify(saved));
+        await sweepOrphanSidecars(h.root);
 
         assert.ok(await fs.pathExists(path.join(h.metaDir, `${id}.json`)), 'a sidecar mid-write was deleted as an orphan');
         assert.ok(await fs.pathExists(path.join(h.metaDir, `${id}.thumb.webp`)), 'its thumb was deleted');

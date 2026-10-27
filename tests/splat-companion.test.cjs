@@ -52,7 +52,7 @@ test('deleting an item sweeps its splat and leaves every other item alone', asyn
         ];
         for (const f of files) await fs.writeFile(path.join(metaDir, f), 'x');
 
-        removeItemThumbs(metaDir, ID);
+        await removeItemThumbs(metaDir, ID);
         const left = (await fs.readdir(metaDir)).sort();
 
         // The sidecar is removed by the caller, not by this sweep.

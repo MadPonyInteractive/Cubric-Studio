@@ -111,12 +111,14 @@ const DERIVATIVE_RE = /^(.*)\.(?:thumb|proxy|splat|wave|scene)\..+$/;
  *  sidecar it has no `filePath`, and save-generation's GC deleted it as an orphan. */
 const isSidecarFile = (f) => f.endsWith('.json') && !DERIVATIVE_RE.test(f);
 
-function removeItemThumbs(metaDir, id) {
-    let entries;
-    try { entries = fs.readdirSync(metaDir); } catch (_) { return; }
+/** `entries` is a listing of `metaDir` the caller already has (a batch delete lists once). */
+async function removeItemThumbs(metaDir, id, entries = null) {
+    if (!entries) {
+        try { entries = await fs.readdir(metaDir); } catch (_) { return; }
+    }
     for (const f of entries) {
         if (DERIVATIVE_RE.exec(f)?.[1] !== id) continue;
-        try { fs.removeSync(path.join(metaDir, f)); }
+        try { await fs.remove(path.join(metaDir, f)); }
         catch (e) { logger.warn('project', 'thumb remove failed', e.message); }
     }
 }
@@ -1177,89 +1179,138 @@ router.post('/project/cleanup-assets', async (req, res) => {
 
 // ── Media Library ─────────────────────────────────────────────────────────────
 
+/**
+ * Delete one item: its sidecar, every derivative it owns and its media file. Returns
+ * `{ status, body }` for the route to send.
+ *
+ * Does NOT sweep the GIF frame store: that sweep reads every sidecar in the project, so
+ * running it per item made a bulk delete O(items x sidecars) (AUDIT P3). The caller sweeps
+ * once, after the last item. `metaEntries` is one `.meta` listing for a whole batch.
+ */
+async function deleteProjectItem(folderPath, filename, itemId, metaEntries = null) {
+    if (!filename || path.basename(filename) !== filename) {
+        return { status: 400, body: { success: false, error: 'bad filename' } };
+    }
+    const mediaDir = path.join(folderPath, 'Media');
+    const filePath = path.join(mediaDir, filename);
+    let sidecarFilePath = null; // itemId's own filePath, for the delete guard below
+
+    // Delete the UUID-based .meta/<uuid>.json if itemId is provided, and every
+    // companion derivative the id owns (video poster + image renditions) with
+    // it. `removeItemThumbs` sweeps by prefix, so it covers a sidecar that is
+    // missing or lacks thumbPath (older sidecars + crash recovery) without a
+    // separate fallback list.
+    if (itemId) {
+        const metaDir = path.join(mediaDir, '.meta');
+        const uuidMetaPath = path.join(metaDir, `${itemId}.json`);
+        let hasSupportAssets = false;
+        if (await fs.pathExists(uuidMetaPath)) {
+            try {
+                const sidecar = await fs.readJson(uuidMetaPath);
+                sidecarFilePath = sidecar?.filePath || null;
+                hasSupportAssets = sidecar?.stage === 'preview'
+                    || Array.isArray(sidecar?.previewAssets?.snapshots)
+                    || Array.isArray(sidecar?.generationSettings?.mediaItems);
+            } catch (_) { /* non-fatal */ }
+            await fs.remove(uuidMetaPath);
+        }
+        await removeItemThumbs(metaDir, itemId, metaEntries);
+
+        // Support-asset cleanup: drop any saved stage-1 latent owned by this
+        // item. Latents stay per-item (STAGE-2 support, not reuse media,
+        // non-deterministic → no dedup benefit) so deleting a preview frees its
+        // latent — that is correct (MPI-227 scope boundary).
+        const latentPath = path.join(mediaDir, '.latents', `${itemId}.latent`);
+        if (hasSupportAssets && await fs.pathExists(latentPath)) {
+            try { await fs.remove(latentPath); }
+            catch (e) { logger.warn('project', 'preview latent remove failed', e.message); }
+        }
+        // MPI-227: preview-assets are now a content-addressed, deduped, PERMANENT
+        // store — a frame may be shared by many cards (reuse), so card-delete must
+        // NOT touch it. The old per-item `.preview-assets/<itemId>/` folder delete
+        // (the reuse-404 root, MPI-225 band-aided) is removed. Only the manual
+        // Cleanup command wipes the flat store.
+    }
+
+    // Guard: only unlink the on-disk file when it still belongs to THIS
+    // item. Sequenced names (i2v_001.mp4, combined_001.mp4…) get re-minted
+    // after a delete, so a later item can own the same filename while an
+    // earlier history entry still references it. Deleting by filename alone
+    // then orphans that other entry (missing sidecar → gallery 404). If the
+    // itemId's sidecar was still present above we captured its filePath;
+    // when it points elsewhere, skip the file unlink and only clean meta.
+    let ownsFile = true;
+    if (itemId && sidecarFilePath) {
+        const owned = diskPathOf(sidecarFilePath);
+        if (owned && path.normalize(owned) !== path.normalize(filePath)) {
+            ownsFile = false;
+            logger.warn('project', `delete: itemId ${itemId} sidecar points at ${path.basename(owned)}, not ${filename} — skipping file unlink to avoid orphaning another entry`);
+        }
+    }
+
+    // Delete the legacy filename-based .meta/ sidecar
+    const legacyMetaPath = filePath + '.json';
+    if (ownsFile && await fs.pathExists(filePath)) {
+        await fs.remove(filePath);
+        if (await fs.pathExists(legacyMetaPath)) await fs.remove(legacyMetaPath);
+        return { status: 200, body: { success: true, message: 'Permanently deleted' } };
+    } else if (itemId) {
+        // File already gone — still OK if we cleaned up the meta
+        return { status: 200, body: { success: true, message: 'Meta cleaned up' } };
+    }
+    return { status: 404, body: { success: false, error: 'File not found' } };
+}
+
+// MPI-768: UNLIKE preview-assets, a GIF's frame store is swept on every delete — free any
+// frame no remaining sidecar in this project (archived included) still references.
+// sweepGifFrames is a no-op read before it touches anything when this project never had a
+// `.gif-frames` dir. Once per request, after the last item (see deleteProjectItem).
 router.delete('/project-media/:projectId/:filename', async (req, res) => {
     try {
         const { folderPath, itemId } = req.query;
-        const { filename } = req.params;
         if (!folderPath) return res.status(400).json({ success: false, error: 'folderPath required' });
-
-        const mediaDir = path.join(folderPath, 'Media');
-        const filePath = path.join(mediaDir, filename);
-        let sidecarFilePath = null; // itemId's own filePath, for the delete guard below
-
-        // Delete the UUID-based .meta/<uuid>.json if itemId is provided, and every
-        // companion derivative the id owns (video poster + image renditions) with
-        // it. `removeItemThumbs` sweeps by prefix, so it covers a sidecar that is
-        // missing or lacks thumbPath (older sidecars + crash recovery) without a
-        // separate fallback list.
-        if (itemId) {
-            const metaDir = path.join(mediaDir, '.meta');
-            const uuidMetaPath = path.join(metaDir, `${itemId}.json`);
-            let hasSupportAssets = false;
-            if (await fs.pathExists(uuidMetaPath)) {
-                try {
-                    const sidecar = await fs.readJson(uuidMetaPath);
-                    sidecarFilePath = sidecar?.filePath || null;
-                    hasSupportAssets = sidecar?.stage === 'preview'
-                        || Array.isArray(sidecar?.previewAssets?.snapshots)
-                        || Array.isArray(sidecar?.generationSettings?.mediaItems);
-                } catch (_) { /* non-fatal */ }
-                await fs.remove(uuidMetaPath);
-            }
-            removeItemThumbs(metaDir, itemId);
-
-            // Support-asset cleanup: drop any saved stage-1 latent owned by this
-            // item. Latents stay per-item (STAGE-2 support, not reuse media,
-            // non-deterministic → no dedup benefit) so deleting a preview frees its
-            // latent — that is correct (MPI-227 scope boundary).
-            const latentPath = path.join(mediaDir, '.latents', `${itemId}.latent`);
-            if (hasSupportAssets && await fs.pathExists(latentPath)) {
-                try { await fs.remove(latentPath); }
-                catch (e) { logger.warn('project', 'preview latent remove failed', e.message); }
-            }
-            // MPI-227: preview-assets are now a content-addressed, deduped, PERMANENT
-            // store — a frame may be shared by many cards (reuse), so card-delete must
-            // NOT touch it. The old per-item `.preview-assets/<itemId>/` folder delete
-            // (the reuse-404 root, MPI-225 band-aided) is removed. Only the manual
-            // Cleanup command wipes the flat store.
-
-            // MPI-768: UNLIKE preview-assets, a GIF's frame store is swept on every
-            // delete — free any frame no remaining sidecar in this project (archived
-            // included) still references. sweepGifFrames is a no-op read before it
-            // touches anything when this project never had a `.gif-frames` dir.
-            await sweepGifFrames(mediaDir);
-        }
-
-        // Guard: only unlink the on-disk file when it still belongs to THIS
-        // item. Sequenced names (i2v_001.mp4, combined_001.mp4…) get re-minted
-        // after a delete, so a later item can own the same filename while an
-        // earlier history entry still references it. Deleting by filename alone
-        // then orphans that other entry (missing sidecar → gallery 404). If the
-        // itemId's sidecar was still present above we captured its filePath;
-        // when it points elsewhere, skip the file unlink and only clean meta.
-        let ownsFile = true;
-        if (itemId && sidecarFilePath) {
-            const owned = diskPathOf(sidecarFilePath);
-            if (owned && path.normalize(owned) !== path.normalize(filePath)) {
-                ownsFile = false;
-                logger.warn('project', `delete: itemId ${itemId} sidecar points at ${path.basename(owned)}, not ${filename} — skipping file unlink to avoid orphaning another entry`);
-            }
-        }
-
-        // Delete the legacy filename-based .meta/ sidecar
-        const legacyMetaPath = filePath + '.json';
-        if (ownsFile && await fs.pathExists(filePath)) {
-            await fs.remove(filePath);
-            if (await fs.pathExists(legacyMetaPath)) await fs.remove(legacyMetaPath);
-            res.json({ success: true, message: 'Permanently deleted' });
-        } else if (itemId) {
-            // File already gone — still OK if we cleaned up the meta
-            res.json({ success: true, message: 'Meta cleaned up' });
-        } else {
-            res.status(404).json({ success: false, error: 'File not found' });
-        }
+        const out = await deleteProjectItem(folderPath, req.params.filename, itemId);
+        if (itemId) await sweepGifFrames(path.join(folderPath, 'Media'));
+        res.status(out.status).json(out.body);
     } catch (err) {
         logger.error('project', 'delete failed', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+/**
+ * POST /project-media/:projectId/delete-batch
+ * Body: { folderPath, items: [{ filename, itemId }] }
+ * Response: { success, results: [{ itemId, ok }] }, in the order sent.
+ *
+ * Every card of a multi-select delete in one request: `.meta` is listed once and the GIF
+ * frame store swept once, instead of both per card (AUDIT P3). An item that fails is
+ * `ok: false` and the rest carry on, so a caller can keep the cards that were not deleted.
+ */
+router.post('/project-media/:projectId/delete-batch', async (req, res) => {
+    try {
+        const { folderPath, items } = req.body;
+        if (!folderPath || !Array.isArray(items)) {
+            return res.status(400).json({ success: false, error: 'folderPath and items required' });
+        }
+        const mediaDir = path.join(folderPath, 'Media');
+        let metaEntries = null;
+        try { metaEntries = await fs.readdir(path.join(mediaDir, '.meta')); } catch (_) { /* no .meta yet */ }
+
+        const results = [];
+        for (const { filename, itemId } of items) {
+            try {
+                const out = await deleteProjectItem(folderPath, filename, itemId, metaEntries);
+                results.push({ itemId, ok: out.status === 200 });
+            } catch (err) {
+                logger.warn('project', `delete-batch: ${filename} failed: ${err.message}`);
+                results.push({ itemId, ok: false });
+            }
+        }
+        if (items.some(i => i.itemId)) await sweepGifFrames(mediaDir);
+        res.json({ success: true, results });
+    } catch (err) {
+        logger.error('project', 'delete-batch failed', err);
         res.status(500).json({ success: false, error: err.message });
     }
 });
@@ -2192,8 +2243,8 @@ router.post('/project-media/:projectId/extract', async (req, res) => {
  *
  * Downloads a ComfyUI output image from its view URL, saves it to
  * Media/<operation>_NNN.ext under the project folder, writes a UUID-keyed
- * sidecar to Media/.meta/<uuid>.json, and garbage-collects orphaned
- * sidecars (meta files whose media file no longer exists).
+ * sidecar to Media/.meta/<uuid>.json. Orphaned sidecars are swept at project
+ * open (`sweepOrphanSidecars`), not here.
  *
  * Body:
  *   folderPath    {string}  — absolute project folder path
@@ -2214,6 +2265,56 @@ router.post('/project-media/:projectId/extract', async (req, res) => {
 // media after found it gone and deleted the NEW sidecar with every thumb. The GC below
 // never deletes an id in this set. Per process, which is every writer of a project.
 const itemsInFlight = new Set();
+
+/**
+ * Drop sidecars whose media file is gone, and their derivatives with them. Runs once per
+ * project open (`/migrate-project`), after the response.
+ *
+ * It ran on EVERY save-generation until AUDIT P1: a serial read + stat per sidecar, so a
+ * 5,000-card project paid ~3 s per landed image, and a stack batch paid it N times. The
+ * reconciler already drops the sidecar of a card whose media is missing; this catches a
+ * sidecar no card lists.
+ *
+ * NEVER sweep a derivative for having no sidecar (MPI-975): every writer lays an item's
+ * thumbs BEFORE its sidecar. The delete paths take an item's derivatives with it; Manual
+ * Cleanup sweeps the rest.
+ */
+async function sweepOrphanSidecars(folderPath) {
+    const mediaDir = path.join(folderPath, 'Media');
+    const metaDir = path.join(mediaDir, '.meta');
+    let entries;
+    try { entries = await fs.readdir(metaDir); } catch (_) { return 0; }
+    let removed = 0;
+    for (const sc of entries) {
+        if (!isSidecarFile(sc)) continue;
+        const baseName = sc.slice(0, -5); // strip .json
+        const metaFilePath = path.join(metaDir, sc);
+        let mediaPath = null;
+
+        // diskPathOf (stops at `&`), NOT a greedy `path=(.+)$`: freshly-written outputs
+        // carry a `&v=<mtime>` cache-bust suffix, and the greedy match folded that into the
+        // path → pathExists() false → a live sidecar deleted (card vanishes on reload).
+        try {
+            const metaContent = await fs.readJson(metaFilePath);
+            if (metaContent.filePath) mediaPath = diskPathOf(metaContent.filePath);
+        } catch (_) {
+            // Unreadable is NOT orphaned (MPI-977): every writer truncates, then writes,
+            // so this is usually a sidecar caught mid-write by another route.
+            continue;
+        }
+        if (!mediaPath) mediaPath = path.join(mediaDir, baseName);
+
+        // The in-flight check comes AFTER the await: that is the moment a same-id rewrite
+        // may have deleted the media this read pointed at (MPI-976). A generation can land
+        // in a project while it opens, so the guard is needed here too.
+        if (!(await fs.pathExists(mediaPath)) && !itemsInFlight.has(baseName)) {
+            await fs.remove(metaFilePath);
+            await removeItemThumbs(metaDir, baseName);
+            removed++;
+        }
+    }
+    return removed;
+}
 
 router.post('/project/save-generation', async (req, res) => {
     let inFlightId = null;
@@ -2519,57 +2620,6 @@ router.post('/project/save-generation', async (req, res) => {
                 }
             }
         }
-
-        // Garbage-collect orphaned sidecars + companion thumbs: drop sidecars whose
-        // media file is gone, and their derivatives with them.
-        // NEVER sweep a derivative for having no sidecar (MPI-975). Every writer lays
-        // an item's thumbs BEFORE its sidecar, so a save landing mid-way through
-        // another one (a stack batch saves N at once) deleted that item's fresh
-        // `.thumb.webp` and left its card a broken image. The delete paths already
-        // take an item's derivatives with it; Manual Cleanup sweeps the rest.
-        try {
-            const entries = await fs.readdir(metaDir);
-
-            for (const sc of entries) {
-                if (!isSidecarFile(sc)) continue;
-                const baseName = sc.slice(0, -5); // strip .json
-
-                // Skip the meta file we just created
-                if (baseName === id) continue;
-
-                const metaFilePath = path.join(metaDir, sc);
-                let mediaPath = null;
-
-                // Try to read the meta file to get the actual media file path.
-                // Use diskPathOf (stops at `&`) NOT a greedy
-                // `path=(.+)$`: freshly-written outputs carry a `&v=<mtime>`
-                // cache-bust suffix, and the greedy match folded that into the
-                // path → pathExists() false → the GC wrongly deleted a live
-                // sidecar (missing sidecar → gallery 404, card vanishes on reload).
-                try {
-                    const metaContent = await fs.readJson(metaFilePath);
-                    if (metaContent.filePath) mediaPath = diskPathOf(metaContent.filePath);
-                } catch (_) {
-                    // Unreadable is NOT orphaned (MPI-977): every writer truncates, then
-                    // writes, so this is usually a sidecar caught mid-write by another
-                    // route. Project open and Manual Cleanup skip one too.
-                    continue;
-                }
-
-                // If we couldn't determine the media path from meta, assume filename-based
-                if (!mediaPath) {
-                    mediaPath = path.join(mediaDir, baseName);
-                }
-
-                // Only delete if the referenced media file doesn't exist. The in-flight
-                // check comes AFTER the await: that is the moment a rewrite may have
-                // deleted the media this read pointed at (MPI-976).
-                if (!(await fs.pathExists(mediaPath)) && !itemsInFlight.has(baseName)) {
-                    await fs.remove(metaFilePath);
-                    removeItemThumbs(metaDir, baseName);
-                }
-            }
-        } catch (_) { /* GC failure is non-fatal */ }
 
         const relativePath = `Media/${filename}`;
         res.json({
@@ -3282,10 +3332,10 @@ router.post('/project/extract-media', async (req, res) => {
  * Query: path=<absolute path>
  * Response: { exists: boolean }
  */
-router.get('/file-exists', (req, res) => {
+router.get('/file-exists', async (req, res) => {
     const { path: filePath } = req.query;
     if (!filePath) return res.json({ exists: false });
-    res.json({ exists: fs.existsSync(filePath) });
+    res.json({ exists: await fs.pathExists(filePath) });
 });
 
 /**
@@ -3294,16 +3344,18 @@ router.get('/file-exists', (req, res) => {
  * Query: id=<uuid>, folderPath=<project folder path>
  * Response: JSON object from the meta file, or 404
  */
-router.get('/load-meta', (req, res) => {
+router.get('/load-meta', async (req, res) => {
     const { id, folderPath } = req.query;
     if (!id || !folderPath) return res.status(400).json({ error: 'Missing params' });
 
     const normalizedFolderPath = path.normalize(folderPath);
     const metaPath = path.join(normalizedFolderPath, 'Media', '.meta', `${id}.json`);
-    if (!fs.existsSync(metaPath)) return res.status(404).json({ error: 'Not found' });
-
+    let text;
+    try { text = await fs.readFile(metaPath, 'utf8'); } catch {
+        return res.status(404).json({ error: 'Not found' });
+    }
     try {
-        res.json(JSON.parse(fs.readFileSync(metaPath, 'utf8')));
+        res.json(JSON.parse(text));
     } catch {
         res.status(500).json({ error: 'Parse error' });
     }
@@ -3432,8 +3484,8 @@ router.delete('/delete-meta', async (req, res) => {
     // Remove companion video first-frame thumb referenced by the sidecar
     // (thumbPath) before unlinking the sidecar. Fallback to the conventional
     // `<id>.thumb.jpg` path for older sidecars / missing thumbPath.
-    if (fs.existsSync(metaPath)) fs.removeSync(metaPath);
-    removeItemThumbs(metaDir, id);
+    await fs.remove(metaPath);
+    await removeItemThumbs(metaDir, id);
     // MPI-768: same sweep hook as DELETE /project-media/:projectId/:filename —
     // this path deletes a sidecar too, so a GIF's frames can be freed here.
     await sweepGifFrames(mediaDir);
@@ -3467,6 +3519,9 @@ router.post('/migrate-project', async (req, res) => {
             logger.warn('project', `preview-assets migration failed (non-fatal): ${err.message}`);
         }
         res.json({ success: true, project: migrated });
+        sweepOrphanSidecars(folderPath)
+            .then((n) => { if (n) logger.info('project', `open: removed ${n} orphaned sidecar(s)`); })
+            .catch((err) => logger.warn('project', `orphan-sidecar sweep failed (non-fatal): ${err.message}`));
     } catch (err) {
         logger.error('project', 'migrate-project error', err);
         res.status(500).json({ success: false, error: err.message });
@@ -3597,6 +3652,7 @@ module.exports.migratePreviewAssetsStore = migratePreviewAssetsStore;
 module.exports.DERIVATIVE_RE = DERIVATIVE_RE;
 module.exports.removeItemThumbs = removeItemThumbs;
 module.exports.itemsInFlight = itemsInFlight;
+module.exports.sweepOrphanSidecars = sweepOrphanSidecars;
 module.exports.resolveDisplayImage = resolveDisplayImage;
 module.exports.projectThumbFor = projectThumbFor;
 module.exports.cleanupRebuildableAssets = cleanupRebuildableAssets;
