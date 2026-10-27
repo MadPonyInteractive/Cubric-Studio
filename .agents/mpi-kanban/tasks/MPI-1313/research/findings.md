@@ -39,6 +39,17 @@ Upstream USERGUIDE (github.com/OpenMOSS/MOSS-Image) layout items have `label, ca
 image field; a reference-capable fine-tune is only announced. So refs-on-boxes is FLUX.3 only for now;
 MOSS can only describe the subject in the box's caption.
 
+## Fabio's verdict and the UI (2026-10-27)
+
+Fabio: proven - references can be used for boxes (the longer legs are a prompt matter, not this card).
+Wire it after 2.1.3. UI explored, not decided:
+- A (Fabio's idea): pick a box row, then press the prompt box's existing + (the Boxes panel covers the
+  gallery, so the + is the only way in): the picture is added AND tied to that box.
+- B: a small picture slot on every row (between name and desc) that picks one of the prompt's
+  current pictures, or None. A and B combine: B shows/changes the tie, A is the shortcut.
+- The row's slot shows the picture's thumbnail/number; an empty slot = no reference (today's behaviour).
+Bug found while testing: a new box's name field sticks open -> MPI-1314 (2.1.4).
+
 ## When resumed (after 2.1.3)
 
 1. Bench T without looks in the descs (box + name only), same panel, 4 seeds.
