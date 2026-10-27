@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1307",
+  "title": "Character Sheet from Images: four-legged creatures (a tiger, a lion)",
+  "description": "Later version. The OTHER layout (Sheet_Prompt_Other) assumes a biped: two full-body STANDING views, front and back, 'from the top of its head to its feet', plus a head-and-chest close-up. A four-legged animal (a tiger, a lion) is likely stood up on two legs, or drawn as a foreshortened front/back that shows little of the body; an animal model sheet is normally a SIDE view. Untested so far. MPI-1306 made robots and mascots work (picture 2 kept whole, head-and-chest close-up, PERSON/OTHER describer); Fabio confirmed 2026-10-27 and found that typing the build in Changes ('short tiny legs, boxy') helps. Idea: a third describer answer (four-legged) with its own layout: side view on all fours, back or front, and a three-quarter head close-up; bench it first on a tiger and a lion picture. Bench script and graph-twin patches in tasks/MPI-1306/research/ show the pattern.",
+  "column": "done",
+  "maturity": "rejected",
+  "status": "done",
+  "created_at": "2026-10-27T16:11:33+00:00",
+  "updated_at": "2026-10-27T16:13:25+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
