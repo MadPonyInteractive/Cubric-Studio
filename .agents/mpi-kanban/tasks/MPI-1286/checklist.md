@@ -9,4 +9,4 @@ Storyboard ships in 2.1.3 in place of Multi-angle (Fabio, 2026-10-27).
 - [x] Held Storyboard note folded into UNRELEASED § New, roster line kept
 - [x] Changelog true to every user-visible change since v2.1.2 (cards with feat/fix commits missing from UNRELEASED)
 - [x] lint + npm test green (3760 tests, 0 failed), pushed
-- [ ] Version bump + release: Fabio's call, after Cubric Studio improvements 7 lands its two AUDIT items
+- [ ] Version bump + release: bump pushed a9b4b778a (approved); NEXT tag v2.1.3 on Fabio's go, artifacts, install test, Gate 2, publish
