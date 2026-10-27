@@ -185,7 +185,7 @@ so; do not fall back to the whole project, or "what I can see" silently becomes 
 | DELETE | `/project-media/:projectId/:filename` | Delete one file |
 | POST | `/project-media/:projectId/upload` | Add media |
 | POST | `/project-media/:projectId/update-meta` | Edit a media item's metadata |
-| POST | `/project-media/:projectId/extract` | Extract a frame |
+| POST | `/project-media/:projectId/extract` | Cut a clip to MP4 (`startTime`, `duration`, normalised `crop` of the upright frame) |
 | GET | `/project-media/:projectId/validate-preview-assets` | Check preview assets |
 | GET | `/project-file?path=<urlencoded absolute path>` | Serve any project file |
 

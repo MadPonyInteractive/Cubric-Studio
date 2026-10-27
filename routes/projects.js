@@ -42,7 +42,7 @@ const { probeVideo, probeAudio } = require('../services/ffprobeVideo');
 const { extractImageThumb, extractVideoThumb, extractVideoProxy, extractAudioWaveform, extractVideoWaveform, writeVideoDerivatives, imageThumbPath, videoProxyPath, IMAGE_RENDITION_PX, VIDEO_PROXY_HEIGHT } = require('../services/ffmpegThumb');
 const { writeImageRenditions, writeImageCard } = require('../services/outputCard');
 const { sweepOlderThan } = require('../services/scratchSweep');
-const { ffmpegPath, quote, runFfmpeg, runFfprobe } = require('../services/ffmpegBinary');
+const { ffmpegPath, quote, runFfmpeg } = require('../services/ffmpegBinary');
 const { muxAudioIntoVideo, mixAudioFiles } = require('../services/ffmpegMux');
 const { extractFramesFromGif, copyGifFrames, holdFrames, sweepGifFrames } = require('../services/gifFrames');
 const { SCHEMA_VERSION } = require('../js/migrations/projectMigrations');
@@ -2140,15 +2140,9 @@ router.post('/project-media/:projectId/extract', async (req, res) => {
             return res.status(400).json({ success: false, error: 'Source file not found: ' + inputPath });
         }
 
-        // 1. Get source dimensions using ffprobe
-        const { stdout: dimensions } = await runFfprobe([
-            '-v', 'error',
-            '-select_streams', 'v:0',
-            '-show_entries', 'stream=width,height',
-            '-of', 'csv=s=x:p=0',
-            inputPath,
-        ]);
-        const [srcW, srcH] = dimensions.trim().split('x').map(Number);
+        // 1. Source dimensions as DISPLAYED: ffmpeg auto-rotates before the crop filter, so a
+        // rotated phone clip's coded pair would crop the wrong region (or past the frame).
+        const { width: srcW, height: srcH } = (await probeVideo(inputPath)) || {};
 
         if (!srcW || !srcH) throw new Error('Could not determine source dimensions');
 
