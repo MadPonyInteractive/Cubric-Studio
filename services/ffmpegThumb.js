@@ -29,8 +29,6 @@
  */
 
 const path = require('path');
-const { execFile } = require('child_process');
-const { promisify } = require('util');
 const sharp = require('sharp');
 // libvips keeps up to 20 decoded inputs OPEN in its op cache, and on Windows an open
 // WebP cannot be deleted or overwritten (EBUSY; JPEG and PNG are released). Every image
@@ -38,14 +36,8 @@ const sharp = require('sharp');
 // does on every open, so a WebP card stayed locked against delete. Process-wide on
 // purpose: the op cache itself stays, only the file handles go.
 sharp.cache({ files: 0 });
-const { ffmpegPath } = require('./ffmpegBinary');
+const { runFfmpeg } = require('./ffmpegBinary');
 const logger = require('../routes/logger');
-
-// windowsHide on EVERY execFileP call below: the forked server.js owns no console,
-// so a console-subsystem ffmpeg/ffprobe gets its own conhost - a terminal that flashes
-// open on the user's desktop. /backfill-media-derivatives fires one per missing
-// rendition, so a project open popped ~20 of them (MPI-651, the tail of MPI-637).
-const execFileP = promisify(execFile);
 
 /**
  * A video's poster frame, on the SAME rendition ladder as an image (MPI-689).
@@ -72,7 +64,7 @@ async function extractVideoThumb(inputPath, outPath, { atSeconds = 0, width = IM
             '-quality', '82',
             webpPath,
         ];
-        await execFileP(ffmpegPath, args, { maxBuffer: 4 * 1024 * 1024, windowsHide: true });
+        await runFfmpeg(args, { maxBuffer: 4 * 1024 * 1024 });
         return webpPath;
     } catch (err) {
         logger.warn('ffmpegThumb', `thumb extract failed for ${inputPath}: ${err.message}`);
@@ -147,7 +139,7 @@ async function extractImageThumb(inputPath, outPath, { width = IMAGE_RENDITION_P
             '-quality', '82',
             webpPath,
         ];
-        await execFileP(ffmpegPath, args, { maxBuffer: 4 * 1024 * 1024, windowsHide: true });
+        await runFfmpeg(args, { maxBuffer: 4 * 1024 * 1024 });
         return webpPath;
     } catch (err) {
         logger.warn('ffmpegThumb', `image thumb failed for ${inputPath}: ${err.message}`);
@@ -204,7 +196,7 @@ async function extractAudioWaveform(inputPath, outPath, { width = AUDIO_WAVEFORM
             '-lossless', '1',
             webpPath,
         ];
-        await execFileP(ffmpegPath, args, { maxBuffer: 4 * 1024 * 1024, windowsHide: true });
+        await runFfmpeg(args, { maxBuffer: 4 * 1024 * 1024 });
         return webpPath;
     } catch (err) {
         logger.warn('ffmpegThumb', `audio waveform failed for ${inputPath}: ${err.message}`);
@@ -309,7 +301,7 @@ async function extractVideoProxy(inputPath, outPath, { sourceHeight } = {}) {
             '-movflags', '+faststart',
             proxyPath,
         ];
-        await execFileP(ffmpegPath, args, { maxBuffer: 4 * 1024 * 1024, windowsHide: true });
+        await runFfmpeg(args, { maxBuffer: 4 * 1024 * 1024 });
         return proxyPath;
     } catch (err) {
         logger.warn('ffmpegThumb', `video proxy failed for ${inputPath}: ${err.message}`);

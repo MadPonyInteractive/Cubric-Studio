@@ -27,16 +27,8 @@
  *   audio/no-audio sets, future LTX audio output).
  */
 
-const { execFile } = require('child_process');
-const { promisify } = require('util');
-const { ffprobePath } = require('./ffmpegBinary');
+const { runFfprobe } = require('./ffmpegBinary');
 const logger = require('../routes/logger');
-
-// windowsHide on EVERY execFileP call below: the forked server.js owns no console,
-// so a console-subsystem ffmpeg/ffprobe gets its own conhost - a terminal that flashes
-// open on the user's desktop. /backfill-media-derivatives fires one per missing
-// rendition, so a project open popped ~20 of them (MPI-651, the tail of MPI-637).
-const execFileP = promisify(execFile);
 
 /**
  * Display rotation in degrees, normalised to 0/90/180/270. ffprobe reports it two
@@ -60,7 +52,7 @@ async function probeVideo(inputPath) {
             '-show_format',
             inputPath,
         ];
-        const { stdout } = await execFileP(ffprobePath, args, { maxBuffer: 4 * 1024 * 1024, windowsHide: true });
+        const { stdout } = await runFfprobe(args, { maxBuffer: 4 * 1024 * 1024 });
         const data = JSON.parse(stdout);
 
         const vStream = (data.streams || []).find(s => s.codec_type === 'video');
@@ -124,7 +116,7 @@ async function probeAudio(inputPath) {
             '-show_format',
             inputPath,
         ];
-        const { stdout } = await execFileP(ffprobePath, args, { maxBuffer: 4 * 1024 * 1024, windowsHide: true });
+        const { stdout } = await runFfprobe(args, { maxBuffer: 4 * 1024 * 1024 });
         const data = JSON.parse(stdout);
 
         const aStream = (data.streams || []).find(s => s.codec_type === 'audio');

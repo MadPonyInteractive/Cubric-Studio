@@ -22,12 +22,8 @@
 
 const fs = require('fs-extra');
 const sharp = require('sharp');
-const { execFile } = require('child_process');
-const { promisify } = require('util');
-const { ffmpegPath } = require('./ffmpegBinary');
+const { runFfmpeg } = require('./ffmpegBinary');
 const { probeVideo } = require('./ffprobeVideo');
-
-const execFileP = promisify(execFile);
 
 // Photographers load 16K stills (past sharp's 268 MP default, and the limit fires on
 // metadata() too - MPI-925). autoOrient: the panel shows the picture upright (MPI-959).
@@ -352,7 +348,7 @@ async function resizeVideoFile(inputPath, outPath, params, { trimIn, trimOut, si
     else args.push('-an');
     args.push(outPath);
     try {
-        await execFileP(ffmpegPath, args, { maxBuffer: 8 * 1024 * 1024, windowsHide: true, signal });
+        await runFfmpeg(args, { maxBuffer: 8 * 1024 * 1024, signal });
     } catch (err) {
         await fs.remove(outPath).catch(() => {});
         throw err;

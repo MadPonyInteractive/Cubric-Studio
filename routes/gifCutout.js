@@ -76,8 +76,6 @@ const router = express.Router();
 const fs = require('fs-extra');
 const path = require('path');
 const os = require('os');
-const { execFile } = require('child_process');
-const { promisify } = require('util');
 const sharp = require('sharp');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('./logger');
@@ -90,11 +88,9 @@ const {
 } = require('../services/gifFrames');
 const { fillMaskHoles } = require('../services/imageComposite');
 const { writeGifCard } = require('../services/outputCard');
-const { ffmpegPath } = require('../services/ffmpegBinary');
+const { runFfmpeg } = require('../services/ffmpegBinary');
 const { sweepOlderThan } = require('../services/scratchSweep');
 const { nextSequence } = require('./projects');
-
-const execFileP = promisify(execFile);
 
 // Where /gif-cutout/source lands its temp track-source videos — inside the
 // project so remote staging and any future manual inspection both find it
@@ -149,13 +145,13 @@ async function encodeFramesToSourceVideo({ mediaDir, frames, outDir }) {
         await fs.writeFile(path.join(tmpDir, 'list.txt'), listLines.join('\n') + '\n');
 
         const outAbsPath = path.join(outDir, `${uuidv4()}.mkv`);
-        await execFileP(ffmpegPath, [
+        await runFfmpeg([
             '-y', '-r', String(SOURCE_ENCODE_FPS), '-f', 'concat', '-safe', '0', '-i', 'list.txt',
             // bgr0: 4:4:4, no chroma subsampling, so ffv1 never rounds an odd
             // width/height to even — measured on a real 101x77 source.
             '-c:v', 'ffv1', '-pix_fmt', 'bgr0',
             outAbsPath,
-        ], { cwd: tmpDir, windowsHide: true, maxBuffer: 16 * 1024 * 1024 });
+        ], { cwd: tmpDir, maxBuffer: 16 * 1024 * 1024 });
 
         return { videoPath: outAbsPath, frameCount: frames.length, width, height };
     } finally {

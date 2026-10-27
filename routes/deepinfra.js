@@ -52,12 +52,9 @@ const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
 const sharp = require('sharp');
-const { execFile } = require('child_process');
-const { promisify } = require('util');
-const { ffmpegPath, ffprobePath } = require('../services/ffmpegBinary');
+const { runFfmpeg, runFfprobe } = require('../services/ffmpegBinary');
 const { sweepOlderThan } = require('../services/scratchSweep');
 const router = express.Router();
-const execFileP = promisify(execFile);
 const logger = require('./logger');
 const { ask } = require('./forkBridge');
 const { MODELS } = require('../js/data/modelConstants/models.js');
@@ -348,8 +345,7 @@ const NOT_BILLED = 'Nothing was sent, so nothing was billed.';
 
 /** A media file's length in seconds, from its container. Throws when ffprobe cannot read it. */
 async function _mediaSeconds(file) {
-    const { stdout } = await execFileP(ffprobePath,
-        ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file], { windowsHide: true });
+    const { stdout } = await runFfprobe(['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file]);
     const s = Number(String(stdout).trim());
     if (!Number.isFinite(s)) throw new Error('no duration');
     return s;
@@ -362,8 +358,7 @@ async function _mediaSeconds(file) {
  */
 async function _faststart(file) {
     const out = path.join(os.tmpdir(), `cubric-relay-${crypto.randomUUID()}${path.extname(file).toLowerCase()}`);
-    await execFileP(ffmpegPath, ['-v', 'error', '-y', '-i', file, '-c', 'copy', '-movflags', '+faststart', out],
-        { windowsHide: true });
+    await runFfmpeg(['-v', 'error', '-y', '-i', file, '-c', 'copy', '-movflags', '+faststart', out]);
     return out;
 }
 

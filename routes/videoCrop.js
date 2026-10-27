@@ -28,19 +28,11 @@ const router  = express.Router();
 const fs      = require('fs-extra');
 const path    = require('path');
 const { diskPathOf } = require('../services/projectFileUrl');
-const { execFile } = require('child_process');
-const { promisify } = require('util');
 const logger = require('./logger');
-const { ffmpegPath } = require('../services/ffmpegBinary');
+const { ffmpegPath, runFfmpeg } = require('../services/ffmpegBinary');
 const { probeVideo } = require('../services/ffprobeVideo');
 const { writeVideoCard } = require('../services/outputCard');
 const { nextSequence } = require('./projects');
-
-// windowsHide on EVERY execFileP call below: the forked server.js owns no console,
-// so a console-subsystem ffmpeg/ffprobe gets its own conhost - a terminal that flashes
-// open on the user's desktop. /backfill-media-derivatives fires one per missing
-// rendition, so a project open popped ~20 of them (MPI-651, the tail of MPI-637).
-const execFileP = promisify(execFile);
 
 
 router.post('/api/video/crop', async (req, res) => {
@@ -120,7 +112,7 @@ router.post('/api/video/crop', async (req, res) => {
         args.push(outputPath);
 
         logger.info('project', `video-crop ffmpeg: ${ffmpegPath} ${args.join(' ')}`);
-        await execFileP(ffmpegPath, args, { maxBuffer: 8 * 1024 * 1024, windowsHide: true });
+        await runFfmpeg(args, { maxBuffer: 8 * 1024 * 1024 });
 
         // 5. Write .meta/<uuid>.json sidecar + derivatives; item + group for addGroup()
         const { item, group } = await writeVideoCard({

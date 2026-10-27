@@ -40,18 +40,14 @@ const router  = express.Router();
 const fs      = require('fs-extra');
 const path    = require('path');
 const { diskPathOf } = require('../services/projectFileUrl');
-const { execFile } = require('child_process');
-const { promisify } = require('util');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('./logger');
-const { ffmpegPath } = require('../services/ffmpegBinary');
+const { runFfmpeg } = require('../services/ffmpegBinary');
 const { sweepOlderThan } = require('../services/scratchSweep');
 const { probeVideo } = require('../services/ffprobeVideo');
 const { writeVideoCard } = require('../services/outputCard');
 const { nextSequence } = require('./projects');
 const { resolveMaskBufferInput } = require('./gifCutout');
-
-const execFileP = promisify(execFile);
 
 const TEMP_DIRNAME = '.video-extract-tmp';
 const TEMP_MAX_AGE_MS = 60 * 60 * 1000;
@@ -77,7 +73,7 @@ async function encodeTrackSource({ inputPath, trimIn, trimOut, outPath }) {
         '-map', '0:v:0', '-an', '-fps_mode', 'passthrough',
         '-vf', `scale=w='min(${m},iw)':h='min(${m},ih)':force_original_aspect_ratio=decrease:force_divisible_by=2`,
         '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '14', '-pix_fmt', 'yuv420p', outPath];
-    await execFileP(ffmpegPath, args, { maxBuffer: 8 * 1024 * 1024, windowsHide: true });
+    await runFfmpeg(args, { maxBuffer: 8 * 1024 * 1024 });
     const meta = await probeVideo(outPath) || {};
     return { videoPath: outPath, frameCount: meta.frameCount || 0, width: meta.width || 0, height: meta.height || 0 };
 }
@@ -139,7 +135,7 @@ async function extractThroughMaskSequence(o) {
     }
     args.push(o.outPath);
     logger.info('project', `video-extract ffmpeg: ${args.join(' ')}`);
-    await execFileP(ffmpegPath, args, { maxBuffer: 8 * 1024 * 1024, windowsHide: true });
+    await runFfmpeg(args, { maxBuffer: 8 * 1024 * 1024 });
 }
 
 router.post('/video-extract/source', async (req, res) => {
@@ -243,7 +239,7 @@ async function encodeProres({ inputPath, trimIn, trimOut, codec, hasAudio, outPa
         '-vendor', 'apl0'];
     if (hasAudio) args.push('-map', '0:a:0?', '-c:a', 'pcm_s16le');
     args.push(outPath);
-    await execFileP(ffmpegPath, args, { maxBuffer: 8 * 1024 * 1024, windowsHide: true });
+    await runFfmpeg(args, { maxBuffer: 8 * 1024 * 1024 });
 }
 
 router.post('/video-extract/prores', async (req, res) => {

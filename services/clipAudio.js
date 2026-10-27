@@ -11,12 +11,8 @@
 
 const path = require('path');
 const { randomUUID } = require('crypto');
-const { execFile } = require('child_process');
-const { promisify } = require('util');
-const { ffmpegPath } = require('./ffmpegBinary');
+const { runFfmpeg } = require('./ffmpegBinary');
 const { probeVideo } = require('./ffprobeVideo');
-
-const execFileP = promisify(execFile);
 
 const PIECE_S = 60;
 const TAIL_S = 0.5;  // a last piece shorter than this is the container's rounding, not speech
@@ -32,8 +28,8 @@ async function cutAudio(file, dir) {
     const pieces = [];
     for (let start = 0; start === 0 || start < probe.duration - TAIL_S; start += PIECE_S) {
         const out = path.join(dir, `${randomUUID()}.wav`);
-        await execFileP(ffmpegPath, ['-v', 'error', '-ss', String(start), '-t', String(PIECE_S), '-i', file,
-            '-vn', '-ac', '1', '-ar', '16000', '-c:a', 'pcm_s16le', '-y', out], { windowsHide: true });
+        await runFfmpeg(['-v', 'error', '-ss', String(start), '-t', String(PIECE_S), '-i', file,
+            '-vn', '-ac', '1', '-ar', '16000', '-c:a', 'pcm_s16le', '-y', out]);
         pieces.push({ path: out, start });
     }
     return pieces;

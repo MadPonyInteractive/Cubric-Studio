@@ -48,17 +48,13 @@ const router = express.Router();
 const fs = require('fs-extra');
 const path = require('path');
 const os = require('os');
-const { execFile } = require('child_process');
-const { promisify } = require('util');
 const sharp = require('sharp');
 const logger = require('./logger');
 const { frameAbsPath, frameExists } = require('../services/gifFrames');
 const { parseFill } = require('../services/imageCrop');
-const { ffmpegPath } = require('../services/ffmpegBinary');
+const { runFfmpeg } = require('../services/ffmpegBinary');
 const { writeVideoCard } = require('../services/outputCard');
 const { nextSequence } = require('./projects');
-
-const execFileP = promisify(execFile);
 
 // Fixed output rate (plan MPI-773). Each concat-list entry is exactly one
 // frame at this rate — the same "constant rate, one list entry per source
@@ -182,11 +178,11 @@ router.post('/gif/to-video', async (req, res) => {
         const finalName = await nextSequence(folderPath, mediaOutDir, 'gifToVideo', 'mp4');
         outputPath = path.join(mediaOutDir, finalName);
 
-        await execFileP(ffmpegPath, [
+        await runFfmpeg([
             '-y', '-r', String(OUTPUT_FPS), '-f', 'concat', '-safe', '0', '-i', 'list.txt',
             '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p',
             outputPath,
-        ], { cwd: tmpDir, windowsHide: true, maxBuffer: 16 * 1024 * 1024 });
+        ], { cwd: tmpDir, maxBuffer: 16 * 1024 * 1024 });
 
         // No trim-bar waveform (MPI-829): a GIF has no audio stream, which is why
         // `hasAudio` is hard-false, and that keeps the card writer from spending an

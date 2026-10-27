@@ -46,15 +46,11 @@ const fs = require('fs-extra');
 const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
-const { execFile } = require('child_process');
-const { promisify } = require('util');
 const { v4: uuidv4 } = require('uuid');
 const sharp = require('sharp');
-const { ffmpegPath } = require('./ffmpegBinary');
+const { runFfmpeg } = require('./ffmpegBinary');
 const { extractImageThumb, imageThumbPath } = require('./ffmpegThumb');
 const { hexToRgb } = require('../js/utils/colourKeyMask.js');
-
-const execFileP = promisify(execFile);
 
 const FRAMES_DIRNAME = '.gif-frames';
 const FRAME_THUMB_PX = 160;          // strip thumbnail width (MPI-769)
@@ -177,9 +173,8 @@ async function extractFramesFromGif(gifAbsPath, mediaDir, hold) {
     const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'gif-extract-'));
     try {
         const pattern = path.join(tmpDir, 'f_%05d.png');
-        await execFileP(ffmpegPath,
-            ['-y', '-i', gifAbsPath, '-fps_mode', 'passthrough', pattern],
-            { windowsHide: true, maxBuffer: 16 * 1024 * 1024 });
+        await runFfmpeg(['-y', '-i', gifAbsPath, '-fps_mode', 'passthrough', pattern],
+            { maxBuffer: 16 * 1024 * 1024 });
 
         const files = (await fs.readdir(tmpDir)).filter(f => f.endsWith('.png')).sort();
         if (!files.length) throw new Error(`gif extract produced no frames: ${gifAbsPath}`);
@@ -411,7 +406,7 @@ async function buildGif(entry, mediaDir, outAbsPath) {
         const filterComplex = `[0:v] ${preFilter},split [a][b];[a] palettegen=${paletteFlags} [p];[b][p] paletteuse`;
 
         const naivePath = path.join(tmpDir, 'naive.gif');
-        await execFileP(ffmpegPath, [
+        await runFfmpeg([
             '-y', '-r', String(BUILD_FPS), '-f', 'concat', '-safe', '0', '-i', listPath,
             '-filter_complex', filterComplex,
             // Transparent build: every frame is a full, independent picture that
@@ -421,7 +416,7 @@ async function buildGif(entry, mediaDir, outAbsPath) {
             ...(edgeColour ? ['-gifflags', '-offsetting-transdiff'] : []),
             '-loop', String(rawLoop),
             naivePath,
-        ], { cwd: tmpDir, windowsHide: true, maxBuffer: 16 * 1024 * 1024 });
+        ], { cwd: tmpDir, maxBuffer: 16 * 1024 * 1024 });
 
         const naiveBuf = await fs.readFile(naivePath);
         const delays = frames.map(f => Math.max(MIN_DELAY_HUNDREDTHS, Math.round(Number(f.delay) || MIN_DELAY_HUNDREDTHS)));

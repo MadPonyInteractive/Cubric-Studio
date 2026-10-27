@@ -19,13 +19,9 @@
  */
 
 const path = require('path');
-const { execFile } = require('child_process');
-const { promisify } = require('util');
 const sharp = require('sharp');
-const { ffmpegPath } = require('./ffmpegBinary');
+const { runFfmpeg } = require('./ffmpegBinary');
 const { probeVideo } = require('./ffprobeVideo');
-
-const execFileP = promisify(execFile);
 
 const VIEW_PX = 1024;       // a still's long edge
 const SHEET_CELL_PX = 512;  // one frame's width in the sheet; 3 across is 1536, near a vision model's own cap
@@ -59,11 +55,11 @@ const spread = (list, n) => (list.length <= n ? list : Array.from({ length: n },
  * shot shorter than a slice. A still clip comes back as fewer frames than asked.
  */
 async function _scenePick(file, lo, hi, n) {
-    const { stdout } = await execFileP(ffmpegPath, [
+    const { stdout } = await runFfmpeg([
         '-v', 'error', '-i', file, '-an', '-sn',
         '-vf', `select='between(n\\,${lo}\\,${hi - 1})',scale=${THUMB}:${THUMB}:flags=area,format=gray`,
         '-fps_mode', 'passthrough', '-f', 'rawvideo', '-',
-    ], { encoding: 'buffer', maxBuffer: 1024 * 1024 * 1024, windowsHide: true });
+    ], { encoding: 'buffer', maxBuffer: 1024 * 1024 * 1024 });
     const size = THUMB * THUMB;
     const got = Math.floor(stdout.length / size);
     if (!got) throw new Error(`no frames came out of "${path.basename(file)}"`);
@@ -142,11 +138,11 @@ async function viewFile(file, { frames = 6, from, to, scene = false, separate = 
     const select = `select='${idx.map((k) => `eq(n\\,${k})`).join('+')}'`;
     if (separate) {
         // One strip, one frame per row, then cut apart: one ffmpeg run, whatever the count.
-        const { stdout } = await execFileP(ffmpegPath, [
+        const { stdout } = await runFfmpeg([
             '-v', 'error', '-i', file,
             '-vf', `${select},scale=w='min(${VIEW_PX},iw)':h='min(${VIEW_PX},ih)':force_original_aspect_ratio=decrease:force_divisible_by=2,tile=1x${idx.length}`,
             '-frames:v', '1', '-c:v', 'png', '-f', 'image2pipe', '-',
-        ], { encoding: 'buffer', maxBuffer: 256 * 1024 * 1024, windowsHide: true });
+        ], { encoding: 'buffer', maxBuffer: 256 * 1024 * 1024 });
         if (!stdout?.length) throw new Error(`no frames came out of "${path.basename(file)}"`);
         const { width: w, height: stripH } = await sharp(stdout, { limitInputPixels: false }).metadata();
         const h = stripH / idx.length;
@@ -159,7 +155,7 @@ async function viewFile(file, { frames = 6, from, to, scene = false, separate = 
     }
     const columns = n <= 4 ? 2 : n <= 9 ? 3 : 4;
     const rows = Math.ceil(n / columns);
-    const { stdout } = await execFileP(ffmpegPath, [
+    const { stdout } = await runFfmpeg([
         '-v', 'error',
         '-i', file,
         '-vf', `${select},scale=${SHEET_CELL_PX}:-2,tile=${columns}x${rows}:padding=4:color=black`,
@@ -168,7 +164,7 @@ async function viewFile(file, { frames = 6, from, to, scene = false, separate = 
         // seeking back, which a pipe allows only inside its 32 KB buffer, so any real sheet
         // came out with a zero-size header that nothing decodes. sharp encodes the webp.
         '-c:v', 'png', '-f', 'image2pipe', '-',
-    ], { encoding: 'buffer', maxBuffer: 64 * 1024 * 1024, windowsHide: true });
+    ], { encoding: 'buffer', maxBuffer: 64 * 1024 * 1024 });
     if (!stdout?.length) throw new Error(`no frames came out of "${path.basename(file)}"`);
     return {
         kind: 'video', data: await sharp(stdout).webp({ quality: 82 }).toBuffer(), mimeType: 'image/webp',

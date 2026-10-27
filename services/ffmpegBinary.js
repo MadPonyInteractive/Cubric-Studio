@@ -11,10 +11,16 @@
  *   ffmpegPath  — absolute path to ffmpeg binary
  *   ffprobePath — absolute path to ffprobe binary
  *   quote(p)    — shell-quote a path (handles spaces on win32)
+ *   runFfmpeg(args, opts) / runFfprobe(args, opts) — promisified execFile with
+ *               `windowsHide` always on; `opts` is execFile's (maxBuffer, cwd, signal…)
  */
 
 const path = require('path');
 const fs   = require('fs');
+const { execFile } = require('child_process');
+const { promisify } = require('util');
+
+const execFileP = promisify(execFile);
 
 function _resolvePackaged(name) {
     // Packaged Electron exposes process.resourcesPath. Server.js runs as a
@@ -71,4 +77,11 @@ function quote(p) {
     return `"${String(p).replace(/"/g, '\\"')}"`;
 }
 
-module.exports = { ffmpegPath, ffprobePath, quote };
+// windowsHide on every call: the forked server.js owns no console, so a console-subsystem
+// ffmpeg/ffprobe gets its own conhost - a terminal that flashes open on the user's desktop.
+// /backfill-media-derivatives fires one per missing rendition, so a project open popped ~20
+// of them (MPI-651, the tail of MPI-637). Set here so no caller can forget it (AUDIT D10).
+const runFfmpeg  = (args, opts = {}) => execFileP(ffmpegPath, args, { ...opts, windowsHide: true });
+const runFfprobe = (args, opts = {}) => execFileP(ffprobePath, args, { ...opts, windowsHide: true });
+
+module.exports = { ffmpegPath, ffprobePath, quote, runFfmpeg, runFfprobe };

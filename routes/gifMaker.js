@@ -65,16 +65,12 @@ const fs = require('fs-extra');
 const path = require('path');
 const { diskPathOf } = require('../services/projectFileUrl');
 const os = require('os');
-const { execFile } = require('child_process');
-const { promisify } = require('util');
 const sharp = require('sharp');
 const logger = require('./logger');
 const { holdFrames, writeFrame, MIN_DELAY_HUNDREDTHS } = require('../services/gifFrames');
 const { writeGifCard } = require('../services/outputCard');
-const { ffmpegPath } = require('../services/ffmpegBinary');
+const { runFfmpeg } = require('../services/ffmpegBinary');
 const { nextSequence } = require('./projects');
-
-const execFileP = promisify(execFile);
 
 // Same enum MpiToolOptionsGif's dropdown and videoGif.js's SCALE_FILTERS use.
 // Each entry names which axis the preset FIXES and to what value — 'NxAuto'
@@ -134,7 +130,7 @@ async function _extractFramesAtFps(mediaDir, sourceAbsPath, fps, trim, hold) {
         const args = ['-y'];
         if (trim) args.push('-ss', String(trim.in), '-to', String(trim.out));
         args.push('-i', sourceAbsPath, '-vf', `fps=${fps}`, '-pix_fmt', 'rgba', pattern);
-        await execFileP(ffmpegPath, args, { windowsHide: true, maxBuffer: 16 * 1024 * 1024 });
+        await runFfmpeg(args, { maxBuffer: 16 * 1024 * 1024 });
 
         const files = (await fs.readdir(tmpDir)).filter(f => f.endsWith('.png')).sort();
         if (!files.length) {

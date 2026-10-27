@@ -529,9 +529,8 @@ async function _frameZero(file) {
   const folder = parts.slice(0, media).join(path.sep);
   const tmp = path.join(os.tmpdir(), `cubric-frame-${randomUUID()}.png`);
   try {
-    const { ffmpegPath } = require('../services/ffmpegBinary');
-    await require('node:util').promisify(execFile)(ffmpegPath,
-      ['-v', 'error', '-i', file, '-frames:v', '1', '-y', tmp], { windowsHide: true, timeout: 60_000 });
+    const { runFfmpeg } = require('../services/ffmpegBinary');
+    await runFfmpeg(['-v', 'error', '-i', file, '-frames:v', '1', '-y', tmp], { timeout: 60_000 });
     const placed = await _appPost(`/project-media/agent/place-preview-asset?folderPath=${encodeURIComponent(folder)}`,
       { dataUrl: tmp, ext: '.png' });
     if (!placed?.success || !placed.filePath) throw new Error(placed?.error || 'the frame could not be staged');

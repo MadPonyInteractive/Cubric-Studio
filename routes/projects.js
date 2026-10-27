@@ -32,9 +32,7 @@ const fs     = require('fs-extra');
 const path   = require('path');
 const os     = require('os');
 const crypto = require('crypto');
-const util = require('util');
 const sharp = require('sharp');
-const { execFile } = require('child_process');
 const logger = require('./logger');
 const { v4: uuidv4 } = require('uuid');
 const { getProjectsRoot, streamDownload, stripImageMetadata, readProjectPathsRegistry, addProjectPathToRegistry, removeProjectPathFromRegistry, readHiddenProjects, setProjectHidden, readFavouriteProjects, setProjectFavourite } = require('./shared');
@@ -44,7 +42,7 @@ const { probeVideo, probeAudio } = require('../services/ffprobeVideo');
 const { extractImageThumb, extractVideoThumb, extractVideoProxy, extractAudioWaveform, extractVideoWaveform, writeVideoDerivatives, imageThumbPath, videoProxyPath, IMAGE_RENDITION_PX, VIDEO_PROXY_HEIGHT } = require('../services/ffmpegThumb');
 const { writeImageRenditions, writeImageCard } = require('../services/outputCard');
 const { sweepOlderThan } = require('../services/scratchSweep');
-const { ffmpegPath, ffprobePath, quote } = require('../services/ffmpegBinary');
+const { ffmpegPath, quote, runFfmpeg, runFfprobe } = require('../services/ffmpegBinary');
 const { muxAudioIntoVideo, mixAudioFiles } = require('../services/ffmpegMux');
 const { extractFramesFromGif, copyGifFrames, holdFrames, sweepGifFrames } = require('../services/gifFrames');
 const { SCHEMA_VERSION } = require('../js/migrations/projectMigrations');
@@ -55,7 +53,6 @@ const { projectSummary, mediaStats } = require('./projectListCache');
 
 const projectJsonQueues = new Map();
 const itemMetaQueues = new Map();
-const execFilePromise = util.promisify(execFile);
 const RECENT_THUMBNAIL_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'mp4', 'webm']);
 const RECENT_THUMBNAIL_EXCLUDED_OPERATIONS = new Set(['frame-drop', 'frame-capture']);
 
@@ -1923,10 +1920,10 @@ router.post('/project-media/:projectId/frames-to-video', async (req, res) => {
         for (let i = 0; i < frames.length; i++) {
             await fs.copy(path.join(store, `${frames[i]}.png`), path.join(tmpDir, `f_${String(i).padStart(5, '0')}.png`));
         }
-        await execFilePromise(ffmpegPath, [
+        await runFfmpeg([
             '-y', '-framerate', String(fps), '-i', 'f_%05d.png',
             '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '10', '-pix_fmt', 'yuv444p', 'out.mp4',
-        ], { cwd: tmpDir, windowsHide: true, maxBuffer: 16 * 1024 * 1024 });
+        ], { cwd: tmpDir, maxBuffer: 16 * 1024 * 1024 });
         const placed = await placeContentAsset(path.join(tmpDir, 'out.mp4'), '.mp4', mediaDir, folderPath);
         await Promise.all([...new Set(frames)].map(f => fs.remove(path.join(store, `${f}.png`))));
         res.json({ success: true, ...placed });
@@ -2144,13 +2141,13 @@ router.post('/project-media/:projectId/extract', async (req, res) => {
         }
 
         // 1. Get source dimensions using ffprobe
-        const { stdout: dimensions } = await execFilePromise(ffprobePath, [
+        const { stdout: dimensions } = await runFfprobe([
             '-v', 'error',
             '-select_streams', 'v:0',
             '-show_entries', 'stream=width,height',
             '-of', 'csv=s=x:p=0',
             inputPath,
-        ], { windowsHide: true });
+        ]);
         const [srcW, srcH] = dimensions.trim().split('x').map(Number);
 
         if (!srcW || !srcH) throw new Error('Could not determine source dimensions');
@@ -2185,7 +2182,7 @@ router.post('/project-media/:projectId/extract', async (req, res) => {
         ];
 
         logger.info('project', `ffmpeg: ${quote(ffmpegPath)} ${ffmpegArgs.map(quote).join(' ')}`);
-        await execFilePromise(ffmpegPath, ffmpegArgs, { windowsHide: true });
+        await runFfmpeg(ffmpegArgs);
 
         res.json({ success: true, filePath: outputPath, filename });
     } catch (err) {
