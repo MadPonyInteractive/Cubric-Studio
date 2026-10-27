@@ -55,5 +55,3 @@
 > or three times inside one unreleased version reads like user-visible history but
 > never shipped, and the entry is then simply false. Full gate:
 > `.claude/skills/mpi-release/references/copy-review.md` § Gate 0.
-
-- **Card info opens at once, in info mode.** Hovering a gallery card shows its info card straight away, and only while the gallery info toggle (I) is on. It closes the moment you leave the card and never blocks the card next to it. (MPI-1308)

@@ -49,7 +49,7 @@ export const RELEASE_NOTES = {
       '**Custom size in Control.** On every model that has Control, turn on Custom size, pick a ratio and size, and the picture comes out at exactly that size.',
       '**Control on Qwen-Image 2.1 takes your subject from a picture,** as it already does on FLUX.2 Klein, Krea 2 and Qwen Edit: picture 1 gives the pose, depth, scribble or edges, and a second (and third) picture is who or what is drawn into it.',
       '**Stacks you can arrange.** Drag a picture in the Stack workspace to reorder it. Right-click a stack and pick Create Sheet for one numbered sheet of it. The gallery Filter has a Stacks switch.',
-      '**Card info on hover.** Rest the mouse on a gallery card and its info card opens: model, time, prompt and notes, plus the ratio, Turbo, LoRAs and the graphics card it ran on.',
+      '**Card info on hover.** With card info on (I), hover a gallery card and its info card opens at once: model, time, prompt and notes, plus the ratio, Turbo, LoRAs and the graphics card it ran on. It closes the moment you leave the card.',
       '**Cosmo knows more of your card.** "Do it again" redoes the entry it worked on, with the same mask. Before a Use Tiles upscale it shows each tile size to click, and when its language model stalls it offers the other tested one.',
       '**A mascot in every Flow while it works:** Lingo writing, Cosmo planning, Prism for pictures, Reel and Vinyl for video, Vinyl for sound. They slide in and out instead of popping.',
       '**The Model picker has a Source filter and a search box,** like the Models and Flows pages, and remembers your choice.',
