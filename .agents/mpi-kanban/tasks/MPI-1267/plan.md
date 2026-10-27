@@ -69,3 +69,5 @@ keeps its decided design and research and sits under MPI-1134 (Story). MPI-1266'
 
 The umbrella closes when its last member does; its `validation.md` then records the release that
 carried it and that every gate came off together.
+
+**Left the umbrella 2026-10-27 (Fabio, same day it joined):** MPI-1316 (stale enhanced prompt on a style change) is fixed in the 2.1.3 re-cut (MPI-1286) instead.

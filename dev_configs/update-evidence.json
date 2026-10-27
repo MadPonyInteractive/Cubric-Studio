@@ -1,19 +1,19 @@
 {
-  "at": "2026-10-21T19:20:00Z",
-  "toVersion": "2.1.2",
+  "at": "2026-10-27T21:40:00Z",
+  "toVersion": "2.1.3",
   "fromVersion": "1.5.0",
   "bundleFromVersion": null,
   "oldestServedVersion": "1.5.0",
-  "oldestServedReason": "Every 1.4.x applier aborts on the memory-mapped icudtl.dat (UNKNOWN, fixed in 1.5.0), measured on a 1.4.2 copy at the 2.0.0 release (MPI-595). 2.1.2 ships the same FULL bundle shape, so the line holds. From 2.1.2 the release body no longer carries the pre-1.5.0 'take the full zip' section (Fabio, 2026-10-21: no install below 1.5.0 remains).",
+  "oldestServedReason": "Every 1.4.x applier aborts on the memory-mapped icudtl.dat (UNKNOWN, fixed in 1.5.0), measured on a 1.4.2 copy at the 2.0.0 release (MPI-595). 2.1.3 ships the same FULL bundle shape, so the line holds. No install below 1.5.0 remains (Fabio, 2026-10-21).",
   "platform": "win32",
-  "bundle": "CubricStudio-windows-x64-update-v2.1.2.zip",
-  "bundleBuildHash": "40c077e03c96",
-  "source": "D:\\CVTest\\CubricVision-v1.5.0-to-v2.1.2 (fresh extract of the PUBLISHED 1.5.0 Windows zip D:\\CVTest\\dl\\CubricVision-windows-x64-v1.5.0.zip, BUILD_HASH 43b22c407b61 = tag v1.5.0; 1.5.0-era user-data/ copied in from D:\\CVTest\\CubricVision-v1.5.0, caches excluded; engine/ copied read-only from the dev engine C:\\AI\\Mpi\\Cubric-Vision\\engine (0.42.1, pip-cache excluded, 28.5 GB, model root M:\\CubricModels); APP_DOCUMENTS = D:\\CVTest\\docs-v2.1.2-test seeded with a 'Cubric Vision' folder holding one 1.5.0-era project (schema 4))",
+  "bundle": "CubricStudio-windows-x64-update-v2.1.3.zip",
+  "bundleBuildHash": "55f8b45f4166",
+  "source": "D:\\CVTest\\v1.5.0-to-v2.1.3 (fresh extract of the PUBLISHED 1.5.0 Windows zip D:\\CVTest\\dl\\CubricVision-windows-x64-v1.5.0.zip; 1.5.0-era user-data/ copied in from D:\\CVTest\\CubricVision-v1.5.0, caches excluded; engine/ copied from the dev engine C:\\AI\\Mpi\\Cubric-Vision\\engine (0.42.1, pip-cache excluded, 28.5 GB, model root M:\\CubricModels); APP_DOCUMENTS = D:\\CVTest\\docs-v2.1.3-test seeded with a 'Cubric Vision' folder holding the schema-4 '1.5.0 Local Test' project)",
   "userDataSurvived": true,
-  "userDataNote": "Applied with the install's own update-from-zip.bat: 'Applied Cubric Vision update to 2.1.2', manifest toVersion 2.1.2 fromVersion null, BUILD_HASH 40c077e03c96; CubricVision.exe moved aside to CubricVision.exe.old, CubricStudio.exe present. The rollback set (508 files) holds 0 user-data files. After the run and a clean close, 18 of 29 user-data files byte-identical; the 11 others are Chromium runtime state rewritten by any launch (DIPS, DIPS-wal, SharedStorage-wal, Local Storage/Session Storage leveldb logs, Preferences, Network Persistent State). Scratch Documents 'Cubric Vision' renamed to 'Cubric Studio'; /connector/projects listed only the seeded project, at its renamed path. The app moved its own engine (no /engine/upgrade or /comfy/start from the test): one 'Starting ComfyUI background process...', curated pip pass stamped, 0 IMPORT FAILED, no degraded, ComfyUI-MpiNodes and comfyui_ultimatesdupscale loaded, system_stats comfyui_version 0.42.1. The engine was already 0.42.1, so this run does not exercise an engine version move (2.1.1's run did, 0.34.0 -> 0.42.1).",
+  "userDataNote": "Applied with the install's own update-from-zip.bat: 'Applied Cubric Vision update to 2.1.3', manifest toVersion 2.1.3 fromVersion null, buildInfo 55f8b45f4166 = tag v2.1.3; CubricVision.exe moved aside to CubricVision.exe.old, CubricStudio.exe present. The rollback set update\\rollback\\2026-10-27T21-02-59-819Z holds 0 user-data files. Scratch Documents 'Cubric Vision' renamed to 'Cubric Studio'; /connector/projects listed only the seeded project, at its renamed path, and its 1.5.0-era card t2i_001 and sidecar are intact. The first launch (21:11) quit at 21:28 before any engine start (Fabio closed the window); the relaunch at 21:29 was the first engine start after the update. The app moved its own engine (no /engine/upgrade or /comfy/start from the test): one 'Starting ComfyUI background process...', curated pip pass ran, 0 IMPORT FAILED, no degraded, :48188 owned by D:\\CVTest\\v1.5.0-to-v2.1.3\\engine\\...\\python_embeded\\python.exe, system_stats comfyui_version 0.42.1. The engine was already 0.42.1, so this run does not exercise an engine version move.",
   "generation": {
     "ok": true,
-    "artifact": "D:\\CVTest\\docs-v2.1.2-test\\Cubric Studio\\Projects\\Update Test 2.1.2\\Media\\t2i_002.png",
-    "note": "FLUX.2 Klein 4B t2i 1088x896 over /connector/generate (folderPath) on the FIRST launch after the update, 29.2 s under the GPU lease, Fabio's app closed so 3000/48188 were free. SDXL Realistic (2.1.1's model) was refused OP_UNAVAILABLE first: its weights are not in M:\\CubricModels, nothing ran. Opened it: a red bicycle with two black wicker baskets against a white brick wall in low sun, matches the prompt (a 4B model quirk doubles the saddle and handlebars)."
+    "artifact": "D:\\CVTest\\docs-v2.1.3-test\\Cubric Studio\\Projects\\1.5.0 Local Test\\Media\\t2i_003.png",
+    "note": "FLUX.2 Klein 4B t2i 1088x896 over /connector/generate (folderPath) under the GPU lease. The first request (t2i_002, 200 s incl. engine start, 20.8 s generation) sent the prompt as 'prompt' instead of 'positive', so it ran on an empty prompt and drew a fantasy statue - a test-side mistake, the engine path was real. Rerun with 'positive': t2i_003, 7.3 s. Opened it: a red bicycle with two black wicker baskets against a white brick wall in low afternoon sun, matches the prompt."
   }
 }

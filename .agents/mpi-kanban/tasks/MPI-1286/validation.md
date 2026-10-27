@@ -43,3 +43,10 @@ Rig traps hit on the way (not app defects):
 
 Spend: about $0.01 DeepInfra (Cosmo turns $0.0071 measured, three planner calls on MiMo-V2.6-Flash).
 GPU: ~13 Klein Turbo 1K images on the local 4060 Ti, ~10 min across three launches.
+
+## 2026-10-27 - 1.5.0 -> 2.1.3 update gate (release 4 session)
+
+- Gate test on D:\CVTest\v1.5.0-to-v2.1.3 (FULL bundle, buildInfo 55f8b45f4166 = tag v2.1.3): first engine start after the update came from the app itself, one start, 0 degraded, 0 IMPORT FAILED, :48188 = this install's own python, ComfyUI 0.42.1.
+- Klein 4B t2i t2i_003.png opened: red bicycle with wicker baskets on a white brick wall, matches the prompt. (t2i_002 is an empty-prompt run: the test sent `prompt` instead of `positive`.)
+- dev_configs/update-evidence.json rewritten for 2.1.3; `npm run release:check:publish` passed.
+- Test install re-pointed the Start Menu "Cubric Studio.lnk" at D:\CVTest\v1.5.0-to-v2.1.3 (MPI-1209 trap) - fix after Fabio's own test.

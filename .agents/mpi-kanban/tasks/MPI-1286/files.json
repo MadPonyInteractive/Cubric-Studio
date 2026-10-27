@@ -13,6 +13,12 @@
     "tests/agent-flow-handover.test.cjs",
     "tests/storyboard-agent.test.cjs",
     "tests/storyboard-runner.test.cjs",
-    ".agents/mpi-kanban/tasks/MPI-1267/plan.md"
+    ".agents/mpi-kanban/tasks/MPI-1267/plan.md",
+    "services/llmEngines.mjs",
+    "tests/agent-loop.test.cjs",
+    "tests/llm-connection.test.cjs",
+    "docs/agent/models/minimax-h3.md",
+    "js/data/releaseNotes.js",
+    "dev_configs/update-evidence.json"
   ]
 }

@@ -15,3 +15,13 @@ bullets and the headline mention are gone from `docs/releases/2026-10-27-v2.1.3.
 - [x] Changelog true to every user-visible change since v2.1.2 (cards with feat/fix commits missing from UNRELEASED)
 - [x] lint + npm test green (3760 tests, 0 failed), pushed
 - [ ] Version bump + release: bump pushed a9b4b778a (approved); NEXT tag v2.1.3 on Fabio's go, artifacts, install test, Gate 2, publish
+
+## Re-cut 2.1.3 (Fabio 2026-10-27, from his own test of the built v2.1.3)
+
+v2.1.3 (55f8b45f4) passed the 1.5.0 gate but is NOT published. Fabio found three Cosmo/prompt issues and wants them in 2.1.3. Do NOT move the tag until he says (he keeps testing and may add more).
+
+- [ ] Cosmo default = DeepSeek-V4-Flash-0731 with a visible RECOMMENDED flag on its row (services/llmEngines.mjs RECOMMENDED_REMOTE_MODELS.deepinfra: move `jobs: ['agent']` off MiMo-V2.6-Flash, table order is preference; tests agent-loop 1556/1575-1577, llm-connection 91). MiMo too slow (~2 min for one H3 prompt) and overloaded for the photographer tester's use. Users with no saved pick follow it automatically (_resolveModel); 0731 likely does not see pictures - say so in the note
+- [ ] Fast Motion rule (docs/agent/models/minimax-h3.md § Settings): Cosmo set fastMotion=true on a talking scene with a background explosion and never said so. Rule: what counts is how fast the subjects/camera MOVE, not how dramatic the scene; and the one-line "turned it on" is mandatory
+- [ ] MPI-1316: changing the style drops a stale enhanced prompt (pulled from the LTX 2.5 umbrella into 2.1.3)
+- [ ] Release-note line(s) for the above: Fabio approves the wording (releaseNotes.js edit breaks the approval hash)
+- [ ] lint + npm test, push, then on Fabio's go: move tag v2.1.3, rebuild, re-download, redo the 1.5.0 gate + update-evidence.json, Fabio retests the 2.1.2 copy (re-extract it), Gate 2, publish
