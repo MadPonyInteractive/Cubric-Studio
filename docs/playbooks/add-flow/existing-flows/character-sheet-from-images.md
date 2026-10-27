@@ -33,10 +33,22 @@
 The portrait COPIES picture 1, so its shape must be the portrait panel's: a non-4:5 picture came back
 stretched 7%. The step locks 4:5; the graph ALSO widens any box to 4:5 round its centre (`MpiFromBox` ->
 four `MpiMath` -> `MpiBox` -> `MpiBoxCrop pad`), so a box of another shape still lands right. A 0 x 0 box
-(none) passes the whole picture through.
+(none) passes the whole picture through. The step's overflow room is sized from its ratio
+(`MpiStepBox._syncOverlaySize`): sized for a square, a 4:5 box on a square picture stopped at 0.8 of its
+width and cut off a mascot's ears (MPI-1306).
 
-## The describer, twice (flowEnhance.js § describe)
+## The describer, three times (flowEnhance.js § describe)
 
+- **Person or not (MPI-1306).** `Input_Character_Kind`, asked on the BOX: PERSON or OTHER. Every person
+  sentence (the ear, cheek, chin, hair, the clothes caption, "arms against the thighs") turned a boxy robot
+  mascot into a person in "a pink jumpsuit" with an ear. OTHER takes `Sheet_Prompt_*_Other` (shapes,
+  colours, parts and proportions; "not a person: no human features, anatomy, hair or clothing the pictures
+  do not show") and drops the clothes caption; the turn question is ignored. Blank (no describer: the
+  Sheet Editor's child rebuild, a raw call) and PERSON keep the person wording byte for byte. The back view
+  needs the head NAMED ("in every view, the back view included", "from the top of its head to its feet"):
+  without it the back came out headless 2/2, as image 2 is the body with its head removed. Bench: qwen3-vl
+  4B describer 22/22 (six mascot pictures OTHER, five people incl. anime PERSON, twice each); sheets 4/4
+  with heads; graph patch and bench in `tasks/MPI-1306/research/`.
 - **Turned or not.** Fabio: the close-up is ALWAYS three-quarter — a frontal one leaves the video model to
   invent the turn. A turned picture is copied (turn and expression kept); a frontal one is turned by the
   prompt. The describer answers FRONT / TURNED; the graph checks the text for "turned". Asked on the BOX

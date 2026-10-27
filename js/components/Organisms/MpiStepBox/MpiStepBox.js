@@ -208,15 +208,16 @@ export const MpiStepBox = ComponentFactory.create({
             if (_allowOverflow) {
                 // The stage margin is the ONLY thing bounding how big the box may get
                 // (cropTool._maxNorm reads it back off the canvas), so the margin IS
-                // the policy: pad each axis out to the media's LONGEST edge, and a
-                // square box can always reach that edge. On this portrait that is the
-                // difference between boxing the face and boxing head + hair + neck —
-                // a square capped at the WIDTH cannot include either.
-                // Square media pads to nothing but the handle slack, which is correct:
-                // there the box already covers everything at 1:1.
-                const longest = Math.max(rect.width, rect.height);
-                const padX = Math.round((longest - rect.width) / 2) + HANDLE_SLACK;
-                const padY = Math.round((longest - rect.height) / 2) + HANDLE_SLACK;
+                // the policy: pad until a box of the step's RATIO can cover the whole
+                // media. On a portrait that is the difference between boxing the face
+                // and boxing head + hair + neck — a square capped at the WIDTH cannot
+                // include either. Sized for a square only, a 4:5 box on square media
+                // topped out at 0.8 of its width and cut off a mascot's ears (MPI-1306).
+                // No ratio pads as for a square (the longest edge), as before.
+                const ratio = step.ratio || 1;
+                const coverH = Math.max(rect.height, rect.width / ratio);
+                const padX = Math.round((coverH * ratio - rect.width) / 2) + HANDLE_SLACK;
+                const padY = Math.round((coverH - rect.height) / 2) + HANDLE_SLACK;
                 stageEl.style.padding = `${padY}px ${padX}px`;
             }
             const w = _allowOverflow ? stageEl.clientWidth : Math.round(rect.width);

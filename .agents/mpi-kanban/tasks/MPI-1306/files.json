@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["js/components/Organisms/MpiStepBox/MpiStepBox.js", "js/data/flowsRegistry.js", "comfy_workflows/flow_character_sheet_from_images.json", "comfy_workflows/raw/flow_character_sheet_from_images.json", "docs/playbooks/add-flow/existing-flows/character-sheet-from-images.md"] }

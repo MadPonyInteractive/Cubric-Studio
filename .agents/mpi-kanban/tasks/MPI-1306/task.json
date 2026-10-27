@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1306",
+  "title": "Character Sheet from Images: non-human characters come out human, and the 4:5 face box cannot cover a square picture",
+  "description": "Robot mascot drawn as a person in a jumpsuit with an ear (clothes caption + three-quarter wording assume a human); the box step's overflow room is sized for a square box, so a 4:5 box tops out at 0.8 of a square picture's width.",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-10-27T10:43:34+00:00",
+  "updated_at": "2026-10-27T11:07:12+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

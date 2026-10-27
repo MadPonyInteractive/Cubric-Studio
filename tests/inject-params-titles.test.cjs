@@ -253,7 +253,7 @@ test('Character Sheet from Images carries every title its op, box and describer 
         const have = titlesOf(file);
         for (const title of [
             'input_image', 'input_box', 'input_image_2', 'input_positive', 'input_seed',
-            'input_face_pose', 'input_body_clothes',
+            'input_face_pose', 'input_body_clothes', 'input_character_kind',
         ]) {
             assert.ok(have.has(title), `${file} must carry a node titled "${title}"`);
         }

@@ -1,8 +1,8 @@
 {
   "id": "68dae931-3a13-4c5b-bfd0-c04a9c8c9d63",
   "revision": 0,
-  "last_node_id": 93,
-  "last_link_id": 131,
+  "last_node_id": 102,
+  "last_link_id": 147,
   "nodes": [
     {
       "id": 1,
@@ -1087,7 +1087,8 @@
           "name": "STRING",
           "type": "STRING",
           "links": [
-            29
+            29,
+            144
           ],
           "slot_index": 0
         }
@@ -1141,7 +1142,7 @@
           "name": "output",
           "type": "*",
           "links": [
-            30
+            145
           ],
           "slot_index": 0
         }
@@ -1173,7 +1174,7 @@
         {
           "name": "string_a",
           "type": "STRING",
-          "link": 30,
+          "link": 147,
           "widget": {
             "name": "string_a"
           }
@@ -1334,7 +1335,8 @@
           "links": [
             47,
             49,
-            52
+            52,
+            135
           ],
           "slot_index": 4
         }
@@ -2111,7 +2113,7 @@
           "name": "output",
           "type": "*",
           "links": [
-            56
+            137
           ],
           "slot_index": 0
         }
@@ -2234,7 +2236,7 @@
           "name": "output",
           "type": "*",
           "links": [
-            57
+            141
           ],
           "slot_index": 0
         }
@@ -2266,7 +2268,7 @@
         {
           "name": "string_a",
           "type": "STRING",
-          "link": 56,
+          "link": 139,
           "widget": {
             "name": "string_a"
           }
@@ -2274,7 +2276,7 @@
         {
           "name": "string_b",
           "type": "STRING",
-          "link": 57,
+          "link": 143,
           "widget": {
             "name": "string_b"
           }
@@ -4769,6 +4771,399 @@
         "Node name for S&R": "MpiFromBox"
       },
       "widgets_values": null
+    },
+    {
+      "id": 94,
+      "type": "MpiText",
+      "pos": [
+        -380,
+        -40
+      ],
+      "size": [
+        300,
+        100
+      ],
+      "flags": {},
+      "order": 194,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "Text",
+          "type": "STRING",
+          "links": [
+            132
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiText"
+      },
+      "widgets_values": [
+        ""
+      ],
+      "title": "Input_Character_Kind"
+    },
+    {
+      "id": 95,
+      "type": "MpiTextContains",
+      "pos": [
+        -60,
+        -40
+      ],
+      "size": [
+        240,
+        80
+      ],
+      "flags": {},
+      "order": 195,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "link": 132
+        }
+      ],
+      "outputs": [
+        {
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "links": [
+            138,
+            142,
+            146
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiTextContains"
+      },
+      "widgets_values": [
+        "other"
+      ],
+      "title": "character is not a person?"
+    },
+    {
+      "id": 96,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        600,
+        -2300
+      ],
+      "size": [
+        420,
+        160
+      ],
+      "flags": {},
+      "order": 196,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            134
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "PrimitiveStringMultiline"
+      },
+      "widgets_values": [
+        "Character reference sheet of the character from image 1, in exactly the same visual style and medium as image 1, with exactly its shapes, colours, parts and proportions. The character is not a person: draw only the shapes image 1 shows, with no human features, anatomy, hair or clothing that image 1 does not show, and give it a body in the same shapes and style. [CHARACTER PROMPT]"
+      ],
+      "title": "Sheet_Prompt_No_Body_Other"
+    },
+    {
+      "id": 97,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        600,
+        -2050
+      ],
+      "size": [
+        420,
+        160
+      ],
+      "flags": {},
+      "order": 197,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            133
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "PrimitiveStringMultiline"
+      },
+      "widgets_values": [
+        "Character reference sheet of the character from image 1, in exactly the same visual style and medium as image 1. The head comes only from image 1, with exactly its shape, colours and features. The body comes from image 2, which shows the character's body with its head removed: put the head from image 1 on that body in every view, the back view included, keeping exactly the body's shape, colours, parts and proportions from image 2. The character is not a person: draw only the shapes the two pictures show, with no human features, anatomy, hair or clothing that they do not show. [CHARACTER PROMPT]"
+      ],
+      "title": "Sheet_Prompt_With_Body_Other"
+    },
+    {
+      "id": 98,
+      "type": "MpiIfElse",
+      "pos": [
+        1060,
+        -2300
+      ],
+      "size": [
+        240,
+        80
+      ],
+      "flags": {},
+      "order": 198,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "true",
+          "type": "*",
+          "link": 133
+        },
+        {
+          "name": "false",
+          "type": "*",
+          "link": 134
+        },
+        {
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "link": 135,
+          "widget": {
+            "name": "boolean"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "*",
+          "links": [
+            136
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiIfElse"
+      },
+      "widgets_values": [
+        true
+      ],
+      "title": "Sheet_Prompt_Select_Other (has body?)"
+    },
+    {
+      "id": 99,
+      "type": "MpiIfElse",
+      "pos": [
+        1220,
+        -1900
+      ],
+      "size": [
+        240,
+        80
+      ],
+      "flags": {},
+      "order": 199,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "true",
+          "type": "*",
+          "link": 136
+        },
+        {
+          "name": "false",
+          "type": "*",
+          "link": 137
+        },
+        {
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "link": 138,
+          "widget": {
+            "name": "boolean"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "*",
+          "links": [
+            139
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiIfElse"
+      },
+      "widgets_values": [
+        true
+      ],
+      "title": "Sheet_Prompt_Select (not a person?)"
+    },
+    {
+      "id": 100,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        600,
+        -760
+      ],
+      "size": [
+        420,
+        160
+      ],
+      "flags": {},
+      "order": 200,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            140
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "PrimitiveStringMultiline"
+      },
+      "widgets_values": [
+        "A single continuous image containing three views of the same character arranged side by side in one unbroken frame, the two full-body views on the left and the close-up on the right, the grey background flowing continuously behind all three, the same character in every view with identical shapes, colours and details. The right half of the image is filled by a close-up of the character's head and upper body, turned 45 degrees toward the left side of the image so its front and one side both show, with the same features and expression as image 1, nothing added that image 1 does not show, sharp and clear, the whole head inside the frame. The left half holds two narrow full-body standing views of equal width, one seen from the front and one from directly behind, each showing the whole character from the top of its head to its feet, in a neutral relaxed standing pose with the character's own proportions, generous headroom. Plain smooth grey seamless studio background. Extremely even frontal illumination, soft open shadows, uniform brightness from edge to edge."
+      ],
+      "title": "Sheet_Prompt_Other"
+    },
+    {
+      "id": 101,
+      "type": "MpiIfElse",
+      "pos": [
+        1220,
+        -1280
+      ],
+      "size": [
+        240,
+        80
+      ],
+      "flags": {},
+      "order": 201,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "true",
+          "type": "*",
+          "link": 140
+        },
+        {
+          "name": "false",
+          "type": "*",
+          "link": 141
+        },
+        {
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "link": 142,
+          "widget": {
+            "name": "boolean"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "*",
+          "links": [
+            143
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiIfElse"
+      },
+      "widgets_values": [
+        true
+      ],
+      "title": "Sheet_Prompt_Select (not a person?) layout"
+    },
+    {
+      "id": 102,
+      "type": "MpiIfElse",
+      "pos": [
+        540,
+        -540
+      ],
+      "size": [
+        240,
+        80
+      ],
+      "flags": {},
+      "order": 202,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "true",
+          "type": "*",
+          "link": 144
+        },
+        {
+          "name": "false",
+          "type": "*",
+          "link": 145
+        },
+        {
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "link": 146,
+          "widget": {
+            "name": "boolean"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "*",
+          "links": [
+            147
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiIfElse"
+      },
+      "widgets_values": [
+        true
+      ],
+      "title": "caption only for a person"
     }
   ],
   "links": [
@@ -5005,14 +5400,6 @@
       "STRING"
     ],
     [
-      30,
-      25,
-      0,
-      26,
-      0,
-      "*"
-    ],
-    [
       31,
       14,
       0,
@@ -5211,22 +5598,6 @@
       48,
       2,
       "BOOLEAN"
-    ],
-    [
-      56,
-      45,
-      0,
-      49,
-      0,
-      "*"
-    ],
-    [
-      57,
-      48,
-      0,
-      49,
-      1,
-      "*"
     ],
     [
       58,
@@ -5811,6 +6182,134 @@
       74,
       3,
       "INT"
+    ],
+    [
+      132,
+      94,
+      0,
+      95,
+      0,
+      "STRING"
+    ],
+    [
+      133,
+      97,
+      0,
+      98,
+      0,
+      "STRING"
+    ],
+    [
+      134,
+      96,
+      0,
+      98,
+      1,
+      "STRING"
+    ],
+    [
+      135,
+      28,
+      4,
+      98,
+      2,
+      "BOOLEAN"
+    ],
+    [
+      136,
+      98,
+      0,
+      99,
+      0,
+      "*"
+    ],
+    [
+      137,
+      45,
+      0,
+      99,
+      1,
+      "*"
+    ],
+    [
+      138,
+      95,
+      0,
+      99,
+      2,
+      "BOOLEAN"
+    ],
+    [
+      139,
+      99,
+      0,
+      49,
+      0,
+      "*"
+    ],
+    [
+      140,
+      100,
+      0,
+      101,
+      0,
+      "STRING"
+    ],
+    [
+      141,
+      48,
+      0,
+      101,
+      1,
+      "*"
+    ],
+    [
+      142,
+      95,
+      0,
+      101,
+      2,
+      "BOOLEAN"
+    ],
+    [
+      143,
+      101,
+      0,
+      49,
+      1,
+      "*"
+    ],
+    [
+      144,
+      24,
+      0,
+      102,
+      0,
+      "STRING"
+    ],
+    [
+      145,
+      25,
+      0,
+      102,
+      1,
+      "*"
+    ],
+    [
+      146,
+      95,
+      0,
+      102,
+      2,
+      "BOOLEAN"
+    ],
+    [
+      147,
+      102,
+      0,
+      26,
+      0,
+      "*"
     ]
   ],
   "groups": [

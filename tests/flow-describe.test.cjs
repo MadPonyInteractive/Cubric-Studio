@@ -201,19 +201,23 @@ test('Character Sheet from Images: the turn is asked on the BOXED face, the clot
     const BODY = { role: 'image2', mediaType: 'image', url: '/project-file?path=C%3A%2Fp%2FMedia%2Fbody.png' };
     const box1 = { x: -20, y: 10, width: 400, height: 500 };
 
-    assert.deepEqual(fe.describeAsks(flow, { box1 }, [FACE]).map(d => d.to), ['Input_Face_Pose']);
-    assert.deepEqual(fe.describeAsks(flow, { box1 }, [FACE, BODY]).map(d => d.to), ['Input_Face_Pose', 'Input_Body_Clothes']);
+    assert.deepEqual(fe.describeAsks(flow, { box1 }, [FACE]).map(d => d.to), ['Input_Character_Kind', 'Input_Face_Pose']);
+    assert.deepEqual(fe.describeAsks(flow, { box1 }, [FACE, BODY]).map(d => d.to), ['Input_Character_Kind', 'Input_Face_Pose', 'Input_Body_Clothes']);
 
     const crops = [];
     const asked = [];
     const deps = {
-        describe: async (a) => { asked.push(a.imagePath); return { ok: true, text: a.imagePath.endsWith('crop.png') ? 'TURNED' : 'No clothing.' }; },
+        describe: async (a) => {
+            asked.push(a.imagePath);
+            if (!a.imagePath.endsWith('crop.png')) return { ok: true, text: 'No clothing.' };
+            return { ok: true, text: a.question.includes('PERSON or OTHER') ? 'PERSON' : 'TURNED' };
+        },
         boxCrop: async (url, box, project) => { crops.push([url, box, project.folderPath]); return 'C:/p/Media/.preview/crop.png'; },
     };
     const res = await fe.describeFlowRun(flow, { injectionParams: { box1 }, mediaItems: [FACE, BODY] }, { id: 'p1', folderPath: 'C:/p' }, deps);
-    assert.deepEqual(res, { ok: true, injectionParams: { Input_Face_Pose: 'TURNED', Input_Body_Clothes: 'No clothing.' } });
-    assert.deepEqual(crops, [[FACE.url, box1, 'C:/p']], 'the face is cropped to its box; the body is described whole');
-    assert.deepEqual(asked, ['C:/p/Media/.preview/crop.png', BODY.url]);
+    assert.deepEqual(res, { ok: true, injectionParams: { Input_Character_Kind: 'PERSON', Input_Face_Pose: 'TURNED', Input_Body_Clothes: 'No clothing.' } });
+    assert.ok(crops.length && crops.every(c => c[0] === FACE.url && c[1] === box1), 'the face is cropped to its box; the body is described whole');
+    assert.deepEqual(asked.filter(p => !p.endsWith('crop.png')), [BODY.url]);
 
     // No box (an agent that measured none): the whole picture is described.
     crops.length = 0;
@@ -224,11 +228,15 @@ test('Character Sheet from Images: the turn is asked on the BOXED face, the clot
     for (const file of ['flow_character_sheet_from_images.json']) {
         const g = JSON.parse(fs.readFileSync(repo(`comfy_workflows/${file}`), 'utf8'));
         const byTitle = new Map(Object.values(g).map(n => [n._meta?.title, n]));
-        for (const to of ['Input_Face_Pose', 'Input_Body_Clothes']) {
+        for (const to of ['Input_Character_Kind', 'Input_Face_Pose', 'Input_Body_Clothes']) {
             assert.equal(byTitle.get(to)?.class_type, 'MpiText', `${file} ${to}`);
             assert.equal(byTitle.get(to).inputs.string, '', `${file} ${to} ships blank`);
         }
         assert.ok(Object.values(g).some(n => n.class_type === 'MpiTextContains' && n.inputs.words === 'turned'), file);
+        // OTHER reads off the kind answer; blank (no describer) stays on the person wording (MPI-1306).
+        const other = byTitle.get('character is not a person?');
+        assert.equal(other?.inputs.words, 'other', file);
+        assert.equal(other.inputs.text[0], Object.keys(g).find(k => g[k]._meta?.title === 'Input_Character_Kind'), file);
     }
 });
 

@@ -1799,7 +1799,12 @@ const ALL_FLOWS = [
         // turn, anything else turns the head; `Input_Body_Clothes` becomes the caption, and
         // "no clothing" the nude one. The turn is asked on the BOX: on a whole torso shot the
         // describer called a turned head FRONT (batch 14a).
+        // `Input_Character_Kind` OTHER (a robot, a mascot, an animal) swaps every human word in the
+        // graph's prompt (ear, chin, hair, clothes) for shape words and drops the clothes caption: a
+        // boxy robot came back a person in "a pink jumpsuit" with an ear (MPI-1306). Blank is a person.
         describe: [
+            { to: 'Input_Character_Kind', media: 'image1', crop: 'box1',
+                ask: 'Is this character a human or human-like person (a man, a woman, a child, an elf, an anime or cartoon person), or something else (a robot, an animal, a creature, a mascot, an object)? Reply with one word: PERSON or OTHER.' },
             { to: 'Input_Face_Pose', media: 'image1', crop: 'box1',
                 ask: 'Look only at the person\'s head. Is the face pointing straight at the camera, or is the head turned to one side (a three-quarter or profile view)? Reply with one word: FRONT or TURNED.' },
             { to: 'Input_Body_Clothes', media: 'image2',
