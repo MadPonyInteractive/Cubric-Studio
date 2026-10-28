@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["routes/eventStream.js", "routes/projects.js", "js/shell/projectUI.js", "tests/projects-changed-event.test.cjs"] }

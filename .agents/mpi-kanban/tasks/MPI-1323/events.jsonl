@@ -1,0 +1,3 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1323", "at": "2026-10-28T22:31:11+00:00", "actor": "claude", "column": "todo", "title": "Landing: a project an agent creates, or a card it lands in a closed project, shows without leaving the home screen"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1323", "at": "2026-10-28T22:31:24+00:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio: yes, fix it"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1323", "at": "2026-10-28T22:35:47+00:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Shipped 7a52eb415; tests + live isolated check pass"}
