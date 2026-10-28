@@ -7,4 +7,4 @@
 - [x] History / Scene / 360 / landing keep the slide-over; over a Flow the gallery falls back to it (MPI-822)
 - [x] Fabio follow-up: the accent rule before "N ASSETS" is gone; a queue toggle sits after the info toggle
 - [x] lint + `npm test` green (3790 pass); desktop specs flow-queue-hotkey (now asserts the dock geometry), queue-flash, scene-queue-hotkey pass
-- [ ] Fabio: look-and-feel pass in the real app
+- [x] Fabio: look-and-feel pass in the real app ("Looks freaking fabulastic", 2026-10-28)
