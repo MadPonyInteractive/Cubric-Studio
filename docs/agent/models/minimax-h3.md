@@ -26,7 +26,7 @@ guide:
   `ref2v_ms` with the still as its first frame, not `i2v_ms`: their words say what the clip
   does, the model name says which card runs it. Run it without a warning; they chose. A
   name holds for the clip it was named for: the next clip picks again from its task.
-- A clip the user will join to another (a scene before or after it): `i2v_ms` with both
+- A clip set before, after or between the user's clips is a join, a "pre-scene" too: `i2v_ms` with both
   frames, never `ref2v_ms`, whichever model made the other clip. Leading into a clip, its
   opening frame is the `endFrame`; the system prompt's Joining rule says how to get the
   `startFrame` and what to write between them.
@@ -74,7 +74,8 @@ Plain text, no markdown, these parts in this order:
 6. `non_diegetic_music:` a score only the audience hears, or `N/A`. `N/A` is how you stop
    an invented drone.
 7. A constraint line, last: rendering faults only (text, subtitles, logos, watermarks,
-   cartoon or CG look, dissolves, flicker). **Only** is load bearing, and it is the line
+   dissolves, flicker; a cartoon or CG look only when the clip should look photographic,
+   never on an anime, cartoon or 3D look). **Only** is load bearing, and it is the line
    that tempts you when a re-run has to fix something: there is no negative channel here,
    so anything you put on it is read as scene content. "no camera roll" asks for a camera
    roll. See "Say what is there" below.

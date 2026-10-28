@@ -193,6 +193,30 @@ const DANCER_LOOK = said('A young woman with long straight blonde hair dances al
 const NEW_PERSON = { id: 'att_person', name: 'new-person.png', filePath: 'C:/Temp/cubric-agent/attachments/att_person.png' };
 const NEW_PERSON_LOOK = said('Full-body photo of a tall woman with short curly red hair and freckles, in a green bomber jacket, black trousers and boots, standing in a park.');
 const NO_VIDEO_EDIT = { ...MODELS, flows: MODELS.flows.filter((f) => f.id !== 'video-edit') };
+// MPI-1286: two dragged H3 clips to join, the crash clip opening on the girls before the crash.
+const CHAT = { id: 'ref2v_002.mp4', name: 'ref2v_002.mp4', filePath: `${PROJECT.folderPath}/Media/ref2v_002.mp4`,
+    reference: true, mediaType: 'video', itemId: 'item_c', groupId: 'grp_c' };
+const CRASH = { id: 'ref2v_001.mp4', name: 'ref2v_001.mp4', filePath: `${PROJECT.folderPath}/Media/ref2v_001.mp4`,
+    reference: true, mediaType: 'video', itemId: 'item_x', groupId: 'grp_x' };
+const CHAT_LOOK = said('Anime style. Two schoolgirls in navy uniforms sit on a bench in a sunny park eating ice cream and laughing, the girl with long black hair on the left, the girl with a short brown bob on the right. They stand up and start walking toward the park gate.');
+const CRASH_LOOK = said('Anime style. Two schoolgirls in navy uniforms stand on a sunny shopping street, long black hair on the left, short brown bob on the right. Behind them a car slams into a parked van and bursts into flames; they spin round and scream as smoke rolls over the street.');
+const CALM_LOOK = said('Anime style. Two schoolgirls in navy uniforms stand chatting on a calm sunny shopping street, long black hair on the left, short brown bob on the right. Parked cars and a van behind them, nothing happening.');
+/** MPI-1286: the video generate is a join on minimax-h3 i2v_ms ending on the crash clip. The
+ *  pre-scene's calm start picture is an edit OF the crash clip first, so that one is skipped. */
+const gradeJoin = (run, start) => {
+    const ok = calledAll(run, 'generate').filter((c) => c.result?.ok && c.args.modelId);
+    const join = ok.find((c) => modelById(c.args.modelId)?.type === 'video' && (c.args.media || []).some((m) => m.image === CRASH.id));
+    if (!join) return [`never sent ${CRASH.id} to a video generate: ran ${ok.map((c) => ranWhat(c.args)).join(', ') || 'nothing'}`];
+    const { modelId, operation, media = [] } = join.args;
+    const f = [];
+    if (modelId !== 'minimax-h3' || operation !== 'i2v_ms') f.push(`joined on ${modelId}/${operation}, not minimax-h3/i2v_ms`);
+    const end = media.find((m) => m.role === 'endFrame');
+    if (end?.image !== CRASH.id || end.frame === 'last') f.push(`endFrame is ${JSON.stringify(end || null)}, not ${CRASH.id}'s first frame`);
+    const first = media.find((m) => m.role === 'startFrame');
+    if (!first) f.push('no startFrame');
+    else if (start && (first.image !== start.id || first.frame !== 'last')) f.push(`startFrame is ${JSON.stringify(first)}, not ${start.id} with frame "last"`);
+    return f;
+};
 // MPI-1086: which of the three character Flows. A face-only picture, and the bench's sheet as the
 // describer reads it (a shirt in it, so "the shirt" names something there).
 const FACE = { id: 'att_face', name: 'IMG_8802.JPG', filePath: 'C:/Temp/cubric-agent/attachments/att_face.jpg' };
@@ -309,7 +333,9 @@ function fakeTools({ models = MODELS, look = LOOKS.fox, noGuides = false, notes 
         // `imagePath` — an `image` id never reaches here.
         look: async (args) => {
             record.looks.push(args);
-            const chosen = look?.ok ? look : (look[args.imagePath] || Object.values(look)[0]);
+            // A clip's look reads the contact sheet `fakeViewFile` wrote: its bytes are the clip's path.
+            const sheetOf = () => { try { return fs.readFileSync(args.imagePath, 'utf8'); } catch { return null; } };
+            const chosen = look?.ok ? look : (look[args.imagePath] || look[sheetOf()] || Object.values(look)[0]);
             return structuredClone(chosen);
         },
         // A card's kept description (agentTools.storedLook / storeLook), in memory. The loop reads
@@ -1070,6 +1096,32 @@ const CASES = [
             return failures;
         },
     },
+    // ── MPI-1286 (Fabio, live 2026-10-28): "a pre-scene for this video" ran a reference op with
+    // its own crash, "a calm lead-in rather than a join". Both flips uninstall the frame model.
+    {
+        id: 'join-pre-scene',
+        title: 'a pre-scene for a clip is a join: minimax-h3 i2v_ms ending on that clip',
+        setup: {
+            models: setInstalled((m) => m.id === 'minimax-h3', true),
+            // The calm start picture, edited: without it the edit read back as the crash, and the
+            // model redid it to STEP_LIMIT (first live run, 0/3).
+            attachments: [CRASH], look: { [CRASH.filePath]: CRASH_LOOK, [RESULT_PATH]: CALM_LOOK },
+            turns: ['Can you do a pre-scene for this video? I want everything to be calm and they\'re talking to each other. The one on the left tells the other one, "You know what? You need to watch this film I watched last night. It\'s called Final Destination 4." The one on the right says, "What? You watch that kind of stuff?" and then the car crash happens.'],
+        },
+        flip: { models: setInstalled((m) => m.id === 'minimax-h3', false) },
+        check: (run) => gradeJoin(run, null),
+    },
+    {
+        id: 'join-between',
+        title: 'a scene between two clips: minimax-h3 i2v_ms from A\'s last frame to B\'s first',
+        setup: {
+            models: setInstalled((m) => m.id === 'minimax-h3', true),
+            attachments: [CHAT, CRASH], look: { [CHAT.filePath]: CHAT_LOOK, [CRASH.filePath]: CRASH_LOOK },
+            turns: ['Make a scene that goes between these two videos so I can join them into one.'],
+        },
+        flip: { models: setInstalled((m) => m.id === 'minimax-h3', false) },
+        check: (run) => gradeJoin(run, CHAT),
+    },
     // ── MPI-1086: which of the three character Flows ──
     {
         id: 'sheet-from-words',
@@ -1371,9 +1423,16 @@ const settle = () => new Promise((r) => setTimeout(r, 50));
  * `setupLoop` hands the loop the fork bridge, so the user's saved connection and key answer);
  * `profileId` names the connection.
  */
+/**
+ * MPI-1286 — a clip's contact sheet with no ffprobe: the bench's clips are not on disk, so the
+ * real sampler failed every video look and the model never learned what a clip shows. The
+ * "sheet" is the clip's own path, which the fake `look` maps back to that clip's fixture.
+ */
+const fakeViewFile = async (absPath) => ({ data: Buffer.from(absPath), times: [0, 1, 2, 3, 4, 5], duration: 6, columns: 3, hasAudio: false });
+
 export async function converse(setup, { loopOptions, setupLoop, profileId, model }) {
     const { tools, record } = fakeTools(setup);
-    const loop = new AgentLoop({ ...loopOptions, tools });
+    const loop = new AgentLoop({ viewFile: fakeViewFile, ...loopOptions, tools });
     setupLoop?.(loop);
     const events = [];
     loop.addSubscriber({

@@ -528,8 +528,23 @@ const _isUnfinishedFile = (file) => String(file || '').trim().toLowerCase() === 
  * full answer itself (`_rememberGuides`), so the guide gate and the box gate still
  * bite without the model carrying the ids.
  */
+/**
+ * MPI-1286 (Fabio, 2026-10-28) — what each video op DOES, said where the model chooses. Op codes
+ * alone never said that `i2v_ms` lands on an exact end frame and `ref2v_ms` does not, and slots
+ * were learned only from describe_model on the model ALREADY picked: Singularity H3 has no end
+ * frame, so a pre-scene never met its clip. Taught once here, not as a rule per wording.
+ */
+export const VIDEO_OPS = 'Image to video (i2v): start frame alone, the clip opens on exactly that picture, keeping who and what is in it. Start + end frame: it opens on one and lands exactly on the other; the only way to meet another clip cleanly at a cut, so a clip before, after or between the user\'s clips takes them (app:joining-clips). End frame alone: the clip builds up to exactly that picture, e.g. people walking into the shot; here it still needs a start frame: that picture with them edited out ("the street is empty, they walk in"). Reference to video (ref2v): pictures, clips and sound for who and what is in it and how they move or sound; a picture cited as the first frame often opens it, not always, and only when the prompt does not describe it. Text to video (t2v): words only. A clip as a picture is its first frame, frame "last" its last; any other frame is the user\'s Create snapshot.';
+
+/** A video op's media slots in a word each: the frames by name, the rest by kind. */
+const _takes = (media) => [...new Set((media || []).map((r) => (
+    r.role === 'startFrame' || r.role === 'inputStartFrame' ? 'start frame'
+        : r.role === 'endFrame' ? 'end frame'
+            : { image: 'pictures', video: 'clips', audio: 'sound' }[r.type])).filter(Boolean))];
+
 export function compactCatalogue(list) {
     if (!list?.ok) return list;
+    const hasVideo = (list.models || []).some((m) => m.type === 'video');
     // MPI-916: `best: true` on the lowest-ranked op per task that is installed, runs on this
     // machine and is free. With ranks 1-2 not installed, cheaper models took rank 5 over
     // rank 3; reading one flag is not arithmetic they can get wrong.
@@ -549,6 +564,7 @@ export function compactCatalogue(list) {
         engine: list.engine,
         hardware: list.hardware,
         detail: `describe_model with an id for its params, media, fields and guides.${list.tools?.length ? ' tools run with no modelId: generate with operation and fields, never a prompt; cards runs one over many.' : ''} A miss moves to the next rank for the task, never the same op again.`,
+        ...(hasVideo ? { videoOps: VIDEO_OPS } : {}),
         models: (list.models || []).map((m) => {
             // Most models write ONE note and hang it on every op ("anime and stylised art,
             // not photography", six times). Said once about the model, it reads the same and
@@ -574,6 +590,7 @@ export function compactCatalogue(list) {
                     ...(o.rank ? { rank: o.rank } : {}),
                     ...(isBest(m, o) ? { best: true } : {}),
                     ...(o.note && !shared ? { note: o.note } : {}),
+                    ...(m.type === 'video' && _takes(o.media).length ? { takes: _takes(o.media) } : {}),
                 })),
             };
         }),

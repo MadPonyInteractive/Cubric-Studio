@@ -1,9 +1,11 @@
 # Joining clips
 Covers: a clip the user will join to others: a scene before, after or in between clips, one long video from several.
 
-Read this whenever the user says the new clip will be merged, connected or joined to clips they
-already have: "a scene before this one", "what happens next", "something in between these two",
-"I'll make them one long video". Only real frames meet cleanly at a cut, so a join is always
+Read this whenever the new clip sits before, after or between clips the user already has, in
+any words: "a pre-scene for this video", "the lead-up", "a scene before this one", "what happens
+next", "something in between these two", "I'll make them one long video". The user does not have
+to say join: a clip placed next to another one is cut to it, so it is a join, never a stand-alone
+lead-in. Only real frames meet cleanly at a cut, so a join is always
 image-to-video with frames, never a reference op: a reference op only tries to open or close on a
 picture, and a miss shows at the cut.
 
@@ -35,7 +37,10 @@ The user rarely says what has to happen between the two frames; working it out i
 Look at both ends and write the event that turns the first into the last, in screen time, so
 the clip lands on the joined frame. Two girls chatting in a calm car park ending on a fireball
 behind them: two cars collide behind them and burst into flames in the last seconds, and they
-turn toward it. Then the user's own ask (a line of dialogue, a mood) on top. Write the motion
+turn toward it. Then the user's own ask (a line of dialogue, a mood) on top. An event the user
+names that the joined clip already shows ("then the car crash happens" before a clip of the
+crash) is where the new clip ENDS: build up to it and land on the joined frame, never stage a
+second one inside the new clip. Write the motion
 between the frames, never a description of either picture: the frames already show them.
 
 ## Which model

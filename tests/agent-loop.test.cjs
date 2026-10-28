@@ -2227,7 +2227,9 @@ describe('(i) the catalogue diet', () => {
         assert.ok(!text.includes('Expression'), "a Flow's fields are gone from the list");
         // The LIST must halve; the header's fixed `detail` line (MPI-941 Phase 9 added the
         // retry-rank rule to it) is not the list, and a 2-model fixture is too small to absorb it.
-        const listText = JSON.stringify({ ...short, detail: '' });
+        // MPI-1286: so is the fixed `videoOps` legend, carried whenever a video model is listed.
+        assert.ok(/end frame/i.test(short.videoOps || ''), 'a list with a video model carries the video ops legend');
+        const listText = JSON.stringify({ ...short, detail: '', videoOps: '' });
         assert.ok(listText.length < JSON.stringify(catalogue).length / 2, `the list did not shrink (${listText.length} chars)`);
 
         const [one, big] = short.models;
