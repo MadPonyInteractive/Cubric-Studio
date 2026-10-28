@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-27T23:50:00Z",
+  "at": "2026-10-28T03:25:00Z",
   "toVersion": "2.1.3",
   "fromVersion": "1.5.0",
   "bundleFromVersion": null,
@@ -7,13 +7,13 @@
   "oldestServedReason": "Every 1.4.x applier aborts on the memory-mapped icudtl.dat (UNKNOWN, fixed in 1.5.0), measured on a 1.4.2 copy at the 2.0.0 release (MPI-595). 2.1.3 ships the same FULL bundle shape, so the line holds. No install below 1.5.0 remains (Fabio, 2026-10-21).",
   "platform": "win32",
   "bundle": "CubricStudio-windows-x64-update-v2.1.3.zip",
-  "bundleBuildHash": "b85d242fa1d2",
-  "source": "D:\\CVTest\\v1.5.0-to-v2.1.3 (re-cut 2: fresh extract of the PUBLISHED 1.5.0 Windows zip D:\\CVTest\\dl\\CubricVision-windows-x64-v1.5.0.zip; 1.5.0-era user-data/ copied in from D:\\CVTest\\CubricVision-v1.5.0, caches and logs excluded; engine/ moved over from the re-cut 1 gate copy (0.42.1, model root M:\\CubricModels); APP_DOCUMENTS = D:\\CVTest\\docs-v2.1.3-test seeded with a 'Cubric Vision' folder holding the schema-4 '1.5.0 Local Test' project)",
+  "bundleBuildHash": "885d428d4352",
+  "source": "D:\\CVTest\\v1.5.0-to-v2.1.3 (re-cut 3: fresh extract of the PUBLISHED 1.5.0 Windows zip D:\\CVTest\\dl\\CubricVision-windows-x64-v1.5.0.zip; 1.5.0-era user-data/ copied in from D:\\CVTest\\CubricVision-v1.5.0, caches and logs excluded; engine/ moved over from the re-cut 2 gate copy (0.42.1, model root M:\\CubricModels); APP_DOCUMENTS = D:\\CVTest\\docs-v2.1.3-test seeded with a 'Cubric Vision' folder holding the schema-4 '1.5.0 Local Test' project; CUBRIC_PORT 3077 so the user's :3000 stayed free)",
   "userDataSurvived": true,
-  "userDataNote": "Applied with the install's own applier (update\\apply-update.cjs run by its CubricVision.exe as node, the two lines update-from-zip.bat runs): 'Applied Cubric Vision update to 2.1.3', bundle manifest platform win32 toVersion 2.1.3 fromVersion null, buildInfo b85d242fa1d2 = tag v2.1.3; CubricVision.exe moved aside to CubricVision.exe.old, CubricStudio.exe present; rollback set update\\rollback\\2026-10-27T23-40-44-631Z. Scratch Documents 'Cubric Vision' renamed to 'Cubric Studio'; /connector/projects listed only the seeded project, at its renamed path. FIRST launch after the update (23:43): the app moved its own engine (no /engine/upgrade or /comfy/start from the test): one 'Starting ComfyUI background process...', 0 degraded, 0 IMPORT FAILED, :48188 owned by D:\\CVTest\\v1.5.0-to-v2.1.3\\engine\\ComfyUI_windows_portable\\python_embeded\\python.exe, system_stats comfyui_version 0.42.1. The engine was already 0.42.1, so this run does not exercise an engine version move.",
+  "userDataNote": "Applied with the install's own applier (update\\apply-update.cjs run by its CubricVision.exe as node, the two lines update-from-zip.bat runs): 'Applied Cubric Vision update to 2.1.3', bundle manifest platform win32 toVersion 2.1.3 fromVersion null, buildInfo 885d428d4352 = tag v2.1.3; CubricVision.exe moved aside to CubricVision.exe.old, CubricStudio.exe present; rollback set update\\rollback\\2026-10-28T03-17-29-285Z. Scratch Documents 'Cubric Vision' renamed to 'Cubric Studio'; /connector/projects listed only the seeded project, at its renamed path. FIRST launch after the update: the app moved its own engine (no /engine/upgrade or /comfy/start from the test): one 'Starting ComfyUI background process...', 0 degraded, 0 IMPORT FAILED, :48188 owned by D:\\CVTest\\v1.5.0-to-v2.1.3\\engine\\ComfyUI_windows_portable\\python_embeded\\python.exe, system_stats comfyui_version 0.42.1. The engine was already 0.42.1, so this run does not exercise an engine version move.",
   "generation": {
     "ok": true,
     "artifact": "D:\\CVTest\\docs-v2.1.3-test\\Cubric Studio\\Projects\\1.5.0 Local Test\\Media\\t2i_004.png",
-    "note": "FLUX.2 Klein 4B t2i 1088x896 over /connector/generate (folderPath, positive) under the GPU lease, on the first launch: 169 s incl. engine start, 15.6 s generation. The test's first call came 10 s after launch, before the window listened, and got APP_UNAVAILABLE (test timing, not a defect). Opened it: a red bicycle with two black wicker baskets against a white brick wall in low afternoon sun, matches the prompt."
+    "note": "FLUX.2 Klein 4B t2i 1088x896 over /connector/generate (folderPath, positive) under the GPU lease, on the first launch: 15.7 s generation. Opened it: a red bicycle with two black wicker baskets against a white brick wall in low afternoon sun, matches the prompt."
   }
 }

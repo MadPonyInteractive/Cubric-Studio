@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1317", "at": "2026-10-28T02:59:05+00:00", "actor": "2.1.3 release 8", "column": "todo", "title": "Cosmo: a join with no frame model installed falls back to a reference op"}

@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1317",
+  "title": "Cosmo: a join with no frame model installed falls back to a reference op",
+  "description": "Found on the 2.1.3 bench (MPI-1286, join-pre-scene --bite, 2026-10-28): with minimax-h3 uninstalled, Cosmo made two krea2 edits and then ran H3 Reference ref2v_ms for the pre-scene, the exact fault 2.1.3 fixed. docs/agent/joining-clips.md 'Which model' says: no frame op in the family -> another installed op with an endFrame (LTX 2.3 / Wan 2.2) with a one-line look warning, or offer install_model. Fabio 2026-10-28: fix AFTER 2.1.3. Done = a bench case (services/agentBench.mjs) where minimax-h3 is missing and LTX or Wan i2v is installed grades the join on that op with the warning, plus one where nothing has an endFrame grades an install offer; both 3/3 live, with a bite.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-10-28T02:59:05+00:00",
+  "updated_at": "2026-10-28T02:59:05+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

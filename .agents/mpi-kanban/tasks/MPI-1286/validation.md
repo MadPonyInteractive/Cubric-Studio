@@ -64,3 +64,10 @@ GPU: ~13 Klein Turbo 1K images on the local 4060 Ti, ~10 min across three launch
 - 1.5.0 -> 2.1.3 gate redone on a fresh 1.5.0 extract (D:\CVTest\v1.5.0-to-v2.1.3): bundle b85d242fa1d2, FIRST launch, one engine start, 0 degraded, Klein 4B t2i_004 opened (red bicycle, matches). update-evidence.json rewritten (9ab055cfe); release:check:publish passed.
 - Fabio's copy D:\CVTest\v2.1.2-to-v2.1.3 re-extracted from the published 2.1.2 zip, engine moved across, update applied (Applied Cubric Studio update to 2.1.3). FRESH user-data: his DeepInfra key must be re-entered; old copy kept as v2.1.2-to-v2.1.3.recut1. Start Menu shortcut re-pointed at his copy.
 - Left: Fabio retests (joining clips with a real generation, calm start picture, MPI-1316 style drop, DeepSeek default), then Gate 2 and publish.
+
+## 2026-10-28 - re-cut 3: tag v2.1.3 -> 885d428d4 (release 8 session)
+
+- Bench (Fabio OK'd each spend): join-pre-scene 3/3, join-between 3/3, --bite both bite. Fixes in 885d428d4: bare media ref refused by its shape; model id as flowId refused naming modelId; MAX_STEPS 16 -> 20; H3 guide example without "no cartoon or CG rendering"; joining-clips.md names clip B's FIRST frame. Bench spend this session $0.0901 billed, total $0.1685.
+- Tag moved on Fabio's go; mpi-ci run 40623986346 green on all three OSes; six files in D:\CubricStudio\Vision\Builds\v2.1.3\ (re-cut 2 set kept as v2.1.3.recut2); CI artifacts deleted.
+- 1.5.0 -> 2.1.3 gate redone on a fresh 1.5.0 extract (old copy kept as v1.5.0-to-v2.1.3.recut2, docs as docs-v2.1.3-test.recut2): bundle 885d428d4352, FIRST launch on CUBRIC_PORT 3077, one engine start, 0 degraded, 0 IMPORT FAILED, Klein 4B t2i_004 opened (red bicycle, matches). update-evidence.json rewritten; release:check:publish passed.
+- NOT done: Fabio's copy D:\CVTest\v2.1.2-to-v2.1.3 is still on the re-cut 2 build. Next session: keep it as .recut2, re-extract the published 2.1.2 zip, move the engine across, apply the re-cut 3 update bundle, re-point the Start Menu shortcut (he must re-enter his DeepInfra key). Then Fabio generates both join scenarios for real (build gate), Gate 2, publish.
