@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1319",
+  "title": "Updates are small deltas again; a skipped version gets a full-download button",
+  "description": "UMBRELLA: MPI-559 (App install, first run and updates). Fabio 2026-10-28: an update the same size as the full install (2.1.3: 521 MB vs 535 MB on Windows) is not acceptable. Users update from the last version, and slow connections suffer. \n\nWANT: each release ships a real DELTA update bundle again (fromVersion = the previous release), built from restamped release-baselines/. In the app, when the user presses Update: if their installed version is exactly the delta's fromVersion, apply it as now. If they skipped a release (installed is older than fromVersion), do NOT download the bundle; show 'This update isn't safe. Please download the full most recent version.' with a Download button to the latest full build for their platform, in place of Update.\n\nWHY THIS UNDOES A RECORDED DECISION: release-baselines/README.md 'Current baselines' says every release ships a FULL bundle 'by decision (Fabio, 2026-10-05, MPI-1026)', written in commit 30ea77df6 during the 2.0.1 release. Fabio does not remember making it (2026-10-28). It followed from 'one release per change, from master' (users skip versions; the in-app Update always takes the LATEST bundle; a delta strands anyone more than one behind, MPI-709). This card replaces that trade-off with skip detection, so the README entry, the mpi-release skill (.claude/skills/mpi-release/SKILL.md: 'Every release ships a FULL update bundle', 'release-baselines/ holds no *.json', Step 9 'nothing to restamp') and docs/versioning.md must change with it.\n\nKNOW BEFORE DESIGNING: every applier since 1.5.0 already refuses a delta whose fromVersion is not the installed version (assertBundleApplies, scripts/portable/apply-update.cjs), so a skipped install is refused, not corrupted. But installs at 2.1.3 and older do not have the new check: they would download the delta and only then fail. So the first release that ships a delta must come AFTER a release carrying this check, or the release body must tell older installs to download the full zip. The app needs to learn the bundle's fromVersion BEFORE downloading it (asset name, a small manifest asset, or the previous release tag from the GitHub API). update-evidence.json and release:check:publish assume a FULL bundle (oldestServedVersion); their delta branch must be re-read. Related, larger design: MPI-1027 (download only the changed files); decide whether this card supersedes it.\n\nDONE WHEN: a release's update bundle is a delta from the previous release; a one-behind install updates in place from it; a two-behind install shows the message and the Download button and never downloads the delta; mpi-release, release-baselines/README.md and docs/versioning.md describe the new flow.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-10-28T19:46:02+00:00",
+  "updated_at": "2026-10-28T19:46:02+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
