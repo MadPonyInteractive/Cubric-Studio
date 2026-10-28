@@ -68,6 +68,17 @@ test('the placeholder matches the shape agentDispatch already builds', () => {
     for (const src of [flow, agent]) assert.match(src, /isGenerating: true,/);
 });
 
+test('a flow that injects no size gives its placeholder none, so the Cue row shows none', () => {
+    // MPI-1286: `_buildQueueDisplay` reads the placeholder's size when the job injects none, so
+    // a guessed 1024 labelled a 16:9 Extend Video "1:1 · 1024x1024" in the queue panel.
+    const src = read('js/services/flowService.js');
+    const build = src.slice(src.indexOf('const placeholderGroup = {'), src.indexOf('const opts = {'));
+    assert.match(build, /width:\s+Number\(config\.injectionParams\.Width\)\s+\|\| 0,/);
+    assert.match(build, /height: Number\(config\.injectionParams\.Height\) \|\| 0,/);
+    assert.match(read('js/services/generationService.js'), /opts\.placeholderGroup\?\.width \|\| 0/,
+        'the Cue row still falls back to the placeholder, so the placeholder must not guess');
+});
+
 test('exactly one preview player owns a flow run\'s frames', () => {
     // previewClipPlayer's invariant: AT MOST ONE player per generation may set
     // ownsFrames, or one revokes blobs the other is still looping. A flow run is

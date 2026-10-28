@@ -586,16 +586,18 @@ export function submitFlowGeneration(flowOrId, { runPass = null, ...inputs } = {
     // resolves by tempId, the gallery by its placeholder, neither keyed on the other.
     //
     // Same shape agentDispatch builds for a model gen. `Generating...` is the name the
-    // grid renders while `isGenerating` is true. Size comes from what the flow injects
-    // and otherwise falls back like every other placeholder — the real item replaces it.
+    // grid renders while `isGenerating` is true. Size comes from what the flow injects;
+    // a flow that injects none (Extend Video sizes from its source clip) says 0, "unknown",
+    // as agentDispatch's placeholder does. A guessed 1024 here was read by the Cue row as
+    // the job's size and labelled a 16:9 extend "1:1 · 1024x1024".
     const placeholderGroup = {
         id: tempId,
         type: flow.mediaType || 'image',
         name: 'Generating...',
         history: [],
         selectedIndex: 0,
-        width:  Number(config.injectionParams.Width)  || 1024,
-        height: Number(config.injectionParams.Height) || 1024,
+        width:  Number(config.injectionParams.Width)  || 0,
+        height: Number(config.injectionParams.Height) || 0,
         isGenerating: true,
     };
 
