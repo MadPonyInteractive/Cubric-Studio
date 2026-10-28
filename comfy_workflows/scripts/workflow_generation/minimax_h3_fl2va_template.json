@@ -60,7 +60,7 @@
         0
       ],
       "conditioning": [
-        "528",
+        "548",
         0
       ]
     },
@@ -109,7 +109,7 @@
         0
       ],
       "latent_image": [
-        "472",
+        "548",
         1
       ]
     },
@@ -705,86 +705,6 @@
       "title": "Mpi If Else"
     }
   },
-  "472": {
-    "inputs": {
-      "clip": [
-        "252",
-        1
-      ],
-      "vae": [
-        "121",
-        0
-      ],
-      "first_frame": [
-        "217",
-        0
-      ],
-      "last_frame": [
-        "219",
-        0
-      ],
-      "prompt": [
-        "232",
-        0
-      ],
-      "width": [
-        "509",
-        0
-      ],
-      "height": [
-        "510",
-        0
-      ],
-      "length": [
-        "213",
-        0
-      ]
-    },
-    "class_type": "MpiH3ImageToVideo",
-    "_meta": {
-      "title": "Mpi H3 Image To Video"
-    }
-  },
-  "485": {
-    "inputs": {
-      "clip": [
-        "252",
-        1
-      ],
-      "vae": [
-        "121",
-        0
-      ],
-      "first_frame": [
-        "217",
-        0
-      ],
-      "last_frame": [
-        "219",
-        0
-      ],
-      "prompt": [
-        "232",
-        0
-      ],
-      "width": [
-        "493",
-        0
-      ],
-      "height": [
-        "497",
-        0
-      ],
-      "length": [
-        "213",
-        0
-      ]
-    },
-    "class_type": "MpiH3ImageToVideo",
-    "_meta": {
-      "title": "Mpi H3 Image To Video"
-    }
-  },
   "493": {
     "inputs": {
       "math_expression": "floor(floor(a / 16) * 16 * b / 32 + 0.5) * 32",
@@ -934,30 +854,6 @@
       "title": "Mpi Clear Vram"
     }
   },
-  "527": {
-    "inputs": {
-      "passthrough": [
-        "485",
-        0
-      ]
-    },
-    "class_type": "MpiClearVram",
-    "_meta": {
-      "title": "Mpi Clear Vram"
-    }
-  },
-  "528": {
-    "inputs": {
-      "passthrough": [
-        "472",
-        0
-      ]
-    },
-    "class_type": "MpiClearVram",
-    "_meta": {
-      "title": "Mpi Clear Vram"
-    }
-  },
   "530": {
     "inputs": {
       "source": [
@@ -1076,8 +972,8 @@
         0
       ],
       "conditioning": [
-        "527",
-        0
+        "550",
+        2
       ]
     },
     "class_type": "BasicGuider",
@@ -1140,6 +1036,142 @@
     "class_type": "BlockSparseAttention",
     "_meta": {
       "title": "sol-attn"
+    }
+  },
+  "544": {
+    "inputs": {
+      "passthrough": [
+        "546",
+        0
+      ]
+    },
+    "class_type": "MpiClearVram",
+    "_meta": {
+      "title": "Mpi Clear Vram"
+    }
+  },
+  "546": {
+    "inputs": {
+      "any_1": [
+        "551",
+        0
+      ],
+      "any_2": [
+        "551",
+        1
+      ],
+      "any_3": [
+        "566",
+        0
+      ]
+    },
+    "class_type": "MpiPacker",
+    "_meta": {
+      "title": "Mpi Packer"
+    }
+  },
+  "548": {
+    "inputs": {
+      "pack": [
+        "544",
+        0
+      ]
+    },
+    "class_type": "MpiUnpacker",
+    "_meta": {
+      "title": "Mpi Unpacker"
+    }
+  },
+  "550": {
+    "inputs": {
+      "pack": [
+        "544",
+        0
+      ]
+    },
+    "class_type": "MpiUnpacker",
+    "_meta": {
+      "title": "Mpi Unpacker"
+    }
+  },
+  "551": {
+    "inputs": {
+      "clip": [
+        "252",
+        1
+      ],
+      "vae": [
+        "121",
+        0
+      ],
+      "first_frame": [
+        "217",
+        0
+      ],
+      "last_frame": [
+        "219",
+        0
+      ],
+      "prompt": [
+        "232",
+        0
+      ],
+      "width": [
+        "509",
+        0
+      ],
+      "height": [
+        "510",
+        0
+      ],
+      "length": [
+        "213",
+        0
+      ]
+    },
+    "class_type": "MpiH3ImageToVideo",
+    "_meta": {
+      "title": "Mpi H3 Image To Video"
+    }
+  },
+  "566": {
+    "inputs": {
+      "clip": [
+        "252",
+        1
+      ],
+      "vae": [
+        "121",
+        0
+      ],
+      "first_frame": [
+        "217",
+        0
+      ],
+      "last_frame": [
+        "219",
+        0
+      ],
+      "prompt": [
+        "232",
+        0
+      ],
+      "width": [
+        "493",
+        0
+      ],
+      "height": [
+        "497",
+        0
+      ],
+      "length": [
+        "213",
+        0
+      ]
+    },
+    "class_type": "MpiH3ImageToVideo",
+    "_meta": {
+      "title": "Mpi H3 Image To Video"
     }
   }
 }

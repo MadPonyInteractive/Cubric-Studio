@@ -175,13 +175,17 @@ sits in the high-sigma region where per-step change always clears `reuse_thresho
 Stage 2 is the low-sigma region it exists for. Two samplers cannot be given separate
 cache instances, because they share one guider.
 
-## H3 Reference: ONE VRAM clear, after BOTH reference encodes (2026-10-06, MPI-1029)
+## Both H3 graphs: ONE VRAM clear, after BOTH encodes (MPI-1029 r2va 2026-10-06, MPI-1286 fl2va 2026-10-28)
 
 `minimax_h3_r2va.json` encodes the references twice by design (`Input_Refs` for stage 1,
-`Refine_Refs` for the refine). One `MpiClearVram` takes an `MpiPacker` of both encodes and
-runs before any sampler. **Never one clear per encode:** that evicts the 25 GB text encoder
-between the two forwards, the second reads it from disk again, and on Windows that read is
-where comfy-aimdo died with error 1450 (`HostBuffer.read_file_slice failed`).
+`Refine_Refs` for the refine), and `minimax_h3_fl2va.json` runs two `MpiH3ImageToVideo`
+(stage-1 size, refine size). In both, one `MpiClearVram` takes an `MpiPacker` of both encodes
+(plus the stage-1 latent) and runs before any sampler. **Never one clear per encode:** that
+evicts the 25 GB text encoder between the two forwards, the second reads it from disk again,
+and on Windows that read is where comfy-aimdo died with error 1450
+(`HostBuffer.read_file_slice failed`). fl2va kept the per-encode clears until MPI-1286 and
+crashed there on pre-scenes. The `MemoryError` printed beside it is aimdo's log callback
+failing AFTER the read failed, not the cause.
 
 Checking a run in `app.log`: count `Requested to load MiniMaxH3TEModel_` per `got prompt`
 (one = the encoder stayed loaded). The `... 25140MB Staged` line prints on EVERY encode,
