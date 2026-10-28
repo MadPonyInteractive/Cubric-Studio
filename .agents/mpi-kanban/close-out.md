@@ -6,62 +6,22 @@ about.
 
 Pointers, not auto-edits: print one `Your call:` line per affected file, write
 it only on a yes, and do not wait - same discipline as the rest of close-out
-since pack 1.6.0. If nothing drifted, say so in one line.
+since pack 1.6.0. If nothing drifted, say so in one line. **One exception: the release-notes line below is written, not asked.**
 
 > Was `.claude/skills/mpi-end/SKILL.md` until 2026-08-09. That wrapper's other
 > halves — the coordination scope gate, the knowledge-healing pass, and the
 > `validating`-is-not-a-parking-space rule — now ship inside `mpi-end-session`
 > (§ 0, § 3, § 6), so only the project half survives here.
 
-## Overtaken cards (do NOT skip — it costs one command)
+## The release-notes line FIRST (do NOT skip)
 
-```bash
-python scripts/overtaken-cards.py
-```
-
-Lists `todo` cards whose id appears in a commit dated after the card's own
-`updated_at`. Each is a candidate for "already done under a different card id". A
-mention is not proof — read the commit before closing anything, and close only with
-the user's yes.
-
-Why this is here and not covered by the `validating` rule: that rule catches a card
-YOU worked and did not close. This catches the other shape — a card sitting untouched
-in `todo` whose work lands inside someone else's commit. Nobody is holding it, so
-nobody gets asked. Found twice on 2026-08-09: **MPI-456**, whose WAN `_stage2` twins
-were deleted by MPI-452's `ea9164c7`, and **MPI-488**, fixed upstream by the
-Mpi-Kanban plugin. Both had been sitting in `todo` with the work already finished.
-
-## The run on this session's last CODE commit is green (do NOT skip)
-
-```bash
-gh run list --branch master --workflow tests.yml --limit 5 --json headSha,status,conclusion,url
-```
-
-`--workflow tests.yml` is required: without it the list fills with the scheduled
-"Red master watch" runs and your commit's run is not in the top five (2026-09-29).
-
-Find the run for your last pushed code commit. `in_progress` → `gh run watch <id>`
-(~13 min of wall time, zero tokens). `failure` → it is yours now, whichever spec it
-names: fix it, push the fix `--no-verify`, watch again. **A card does not move to
-`done` on a red run of its own commit.** MPI-811 closed on Fabio's live check while
-its own spec was red — it passes on any dev box and fails on a runner with no weights
-(MPI-818, 2026-09-19) — and eleven pushes stacked on that red. The push gate lets a
-docs-only close commit through by design; this is the check that gate cannot make.
-
-**`.husky/pre-push` enforces it (MPI-819).** A push that moves a card to `done` is refused
-while the card's own code commit is unjudged, in flight, or brought NEW failing specs. It
-blames by spec set, so a close during someone else's red still goes through - if it blocks
-you, the red is yours. Code and close in one push is refused too: the message hands you
-the `git push origin <sha>:master` that sends the code alone. That escape needs the close in
-its OWN commit: a commit carrying both the code and the `done` move can never pass, because
-CI must judge that very commit first (MPI-924, 2026-09-25). `.husky/pre-commit` refuses that
-commit before it exists (MPI-1022, 2026-10-05), so commit the code with the card still in
-`doing`, and the close on its own once CI is green.
-
-## Release-awareness check (do NOT skip)
+**Fabio, 2026-10-28: a user-facing change goes into `docs/releases/UNRELEASED.md` at
+close-out, written by the closing agent.** This step sits first because close-outs read
+this file with `head -60` or `head -80`, and at line 79 it was never reached: MPI-1320
+shipped the docked gallery queue with no line. Read the rest of this file whole too.
 
 Diff THIS session's changes (working tree, or the session's commit(s) if the
-commit step already ran) and ask, per the kind of work that landed:
+commit step already ran) and ask:
 
 ### Resolve WHICH file first: run `gh release list | head -3`
 
@@ -81,8 +41,10 @@ three days after v1.2.0 was published.
 Did this session add a user-facing change (new feature, fixed bug, behaviour
 change) that belongs in the next release notes? OR does an EXISTING entry now
 contradict what shipped — a feature reverted, renamed, replaced, or descoped? If
-either, propose the edit to `UNRELEASED.md` (right section: `importantChanges` /
-`whatIsNew` / `fixes`) as a `Your call:` line and write it only on a yes. Stale changelog notes ship silently
+either, **write the edit to `UNRELEASED.md` yourself** (one or two lines, the shape of the
+entries already there) and show the line in your report, so Fabio can correct it there.
+Not a `Your call:` line: those went unanswered when a session was archived, and the line
+never got written (MPI-1320, 2026-10-28). Stale changelog notes ship silently
 — this step exists because a reverted "Wan 2.2 model split" note nearly shipped
 after the model was merged back to one.
 
@@ -131,6 +93,55 @@ the feature lands; later polish before release is not news, because the user mee
 first time they try the feature. (2026-09-26, MPI-940: folded "a Stop in the first 3 s costs
 nothing, every cloud model batches up to four" into the unreleased cloud-models entry. Fabio:
 unnecessary — cloud models have never reached a user.)
+
+## Overtaken cards (do NOT skip — it costs one command)
+
+```bash
+python scripts/overtaken-cards.py
+```
+
+Lists `todo` cards whose id appears in a commit dated after the card's own
+`updated_at`. Each is a candidate for "already done under a different card id". A
+mention is not proof — read the commit before closing anything, and close only with
+the user's yes.
+
+Why this is here and not covered by the `validating` rule: that rule catches a card
+YOU worked and did not close. This catches the other shape — a card sitting untouched
+in `todo` whose work lands inside someone else's commit. Nobody is holding it, so
+nobody gets asked. Found twice on 2026-08-09: **MPI-456**, whose WAN `_stage2` twins
+were deleted by MPI-452's `ea9164c7`, and **MPI-488**, fixed upstream by the
+Mpi-Kanban plugin. Both had been sitting in `todo` with the work already finished.
+
+## The run on this session's last CODE commit is green (do NOT skip)
+
+```bash
+gh run list --branch master --workflow tests.yml --limit 5 --json headSha,status,conclusion,url
+```
+
+`--workflow tests.yml` is required: without it the list fills with the scheduled
+"Red master watch" runs and your commit's run is not in the top five (2026-09-29).
+
+Find the run for your last pushed code commit. `in_progress` → `gh run watch <id>`
+(~13 min of wall time, zero tokens). `failure` → it is yours now, whichever spec it
+names: fix it, push the fix `--no-verify`, watch again. **A card does not move to
+`done` on a red run of its own commit.** MPI-811 closed on Fabio's live check while
+its own spec was red — it passes on any dev box and fails on a runner with no weights
+(MPI-818, 2026-09-19) — and eleven pushes stacked on that red. The push gate lets a
+docs-only close commit through by design; this is the check that gate cannot make.
+
+**`.husky/pre-push` enforces it (MPI-819).** A push that moves a card to `done` is refused
+while the card's own code commit is unjudged, in flight, or brought NEW failing specs. It
+blames by spec set, so a close during someone else's red still goes through - if it blocks
+you, the red is yours. Code and close in one push is refused too: the message hands you
+the `git push origin <sha>:master` that sends the code alone. That escape needs the close in
+its OWN commit: a commit carrying both the code and the `done` move can never pass, because
+CI must judge that very commit first (MPI-924, 2026-09-25). `.husky/pre-commit` refuses that
+commit before it exists (MPI-1022, 2026-10-05), so commit the code with the card still in
+`doing`, and the close on its own once CI is green.
+
+## Release-awareness check (do NOT skip)
+
+The release-notes line is the first step above. The rest, per the kind of work that landed:
 
 ### Versioning
 

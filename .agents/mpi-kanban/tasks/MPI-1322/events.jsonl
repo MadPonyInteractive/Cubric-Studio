@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1322", "at": "2026-10-28T21:36:12+00:00", "actor": "claude", "column": "todo", "title": "Close-out writes the UNRELEASED line itself, and the step sits first in close-out.md"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1322", "at": "2026-10-28T21:36:25+00:00", "actor": "claude", "from": "todo", "to": "doing"}
