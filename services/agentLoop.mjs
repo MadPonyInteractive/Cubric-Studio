@@ -3492,6 +3492,7 @@ ${knowledgeIndex}`.trim();
                         ranOn = toolStatus === 'done' && parsed?.ok === true && (!!parsed.started || toolName === 'write_memory');
                     } catch { /* not JSON */ }
                     started &&= ranOn;
+                    if (refused) _logRefused(toolName, args, resultText);
                     if (!refused) lastRefused = null;
                     else if (callKey !== lastRefused?.key) lastRefused = { key: callKey, result: JSON.parse(resultText) };
                     // A click the app then refused (a field missing) is the model's to fix (MPI-1005).
@@ -3965,6 +3966,22 @@ function _logLook(ref, text, cached) {
         logger.info('agent', `look ${cached ? 'CACHED' : 'FRESH'} ${ref?.kind || 'image'} ${name}: `
             + `${one.slice(0, LOOK_LOG_CHARS)}${one.length > LOOK_LOG_CHARS ? '…' : ''}`);
     }).catch(() => { /* a log line never costs a look */ });
+}
+
+/**
+ * MPI-1286 — ONE line per tool call the app refused (`ok:false`), with its code and reason.
+ * Fabio's run on 2026-10-28 showed "Generation not started" and nothing on disk said why:
+ * an agent-side refusal never reaches the connector, so only this line records it. The
+ * args are the model's own call, cut short. Never throws: a log line must not cost a turn.
+ */
+const REFUSED_LOG_CHARS = 400;
+function _logRefused(toolName, args, resultText) {
+    import('../routes/logger.js').then(({ default: logger }) => {
+        const err = JSON.parse(resultText)?.error || {};
+        const call = JSON.stringify(args || {});
+        logger.warn('agent', `refused ${toolName} ${err.code || '?'}: ${String(err.message || '').slice(0, REFUSED_LOG_CHARS)}`
+            + ` | args ${call.slice(0, REFUSED_LOG_CHARS)}${call.length > REFUSED_LOG_CHARS ? '…' : ''}`);
+    }).catch(() => { /* a log line never costs a turn */ });
 }
 
 /**
