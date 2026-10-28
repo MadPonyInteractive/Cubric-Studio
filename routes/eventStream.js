@@ -13,7 +13,8 @@
  * subscriber set exactly as its old per-channel route did, and every channel already
  * writes whole `event: name\ndata: ...\n\n` frames in one write, so frames never
  * interleave. Event names are unique across channels (job, agent:*, bench:*,
- * concat:*, download:*, upload:*, engine:*, comfy:needs-restart/restarted).
+ * concat:*, download:*, upload:*, engine:*, comfy:needs-restart/restarted), plus the
+ * channel-less `projects:changed` that `broadcast()` sends to every stream.
  *
  * The per-channel routes stay for callers that want one channel (the connector tests
  * stand in for the renderer on /connector/jobs/stream); the app opens only this one.
@@ -40,8 +41,23 @@ function serveChannel(attach) {
     };
 }
 
+// Every open /events/stream, for events that belong to no channel (MPI-1323).
+const _clients = new Set();
+
+/**
+ * Tell every open renderer something changed on the server: one whole frame per write,
+ * like every channel's. A dead socket is dropped, never retried.
+ */
+function broadcast(name, data = {}) {
+    const frame = `event: ${name}\ndata: ${JSON.stringify(data)}\n\n`;
+    for (const res of _clients) {
+        try { res.write(frame); } catch { _clients.delete(res); }
+    }
+}
+
 router.get('/events/stream', (req, res) => {
     openSse(res);
+    _clients.add(res);
     // Required at request time: these modules require this one for serveChannel.
     const detaches = [
         require('./connector').attachJobs,
@@ -50,8 +66,12 @@ router.get('/events/stream', (req, res) => {
         require('./downloadManager').attachEvents,
     ].map((attach) => attach(res));
     res.write('event: connected\ndata: {}\n\n');
-    req.on('close', () => detaches.forEach((detach) => detach()));
+    req.on('close', () => {
+        _clients.delete(res);
+        detaches.forEach((detach) => detach());
+    });
 });
 
 module.exports = router;
 module.exports.serveChannel = serveChannel;
+module.exports.broadcast = broadcast;

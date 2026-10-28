@@ -50,6 +50,7 @@ const { bakeOrientation } = require('./imageImport');
 const { prepareMaskedInput, prepareBoxedInput, stitchMaskCrop, applyMatte, uprightSize } = require('../services/engineMask');
 const { buildReferenceSheet } = require('./ingredientsSheet');
 const { projectSummary, projectHead, mediaStats } = require('./projectListCache');
+const { broadcast } = require('./eventStream');
 
 const projectJsonQueues = new Map();
 const itemMetaQueues = new Map();
@@ -843,6 +844,9 @@ router.post('/create-project', async (req, res) => {
         // A project previously hidden at this exact path (removed from Landing, then
         // its folder cleared by hand) would otherwise make this new one invisible.
         await setProjectHidden(project.folderPath, false);
+        // An agent creates projects too (/connector/create-project): the landing on screen
+        // learns of it here, not on its next visit (MPI-1323).
+        broadcast('projects:changed', { folderPath: project.folderPath });
         res.json({ success: true, project });
     } catch (err) {
         logger.error('project', 'create-project error', err);
@@ -2985,6 +2989,9 @@ router.post('/project-groups', async (req, res) => {
                 updatedAt: new Date().toISOString(),
             };
         });
+        // A card landed in a project the app does not have open: its landing row's cover,
+        // count and order moved (MPI-1323).
+        broadcast('projects:changed', { folderPath });
         res.json({ success: true, added: groups.length });
     } catch (err) {
         logger.error('project', 'project-groups add error', err);

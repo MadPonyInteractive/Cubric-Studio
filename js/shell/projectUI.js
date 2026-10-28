@@ -29,6 +29,7 @@ import { MpiAbout }      from '../components/Compounds/LandingPages/MpiAbout/Mpi
 import { MpiDevUpdates } from '../components/Organisms/MpiDevUpdates/MpiDevUpdates.js';
 import { startDevUpdates } from '../services/devUpdatesService.js';
 import { recheckUpdate } from '../services/updateChecker.js';
+import { onStream } from '../services/eventStream.js';
 import { StatusBar } from './statusBar.js';
 import { escapeHtml } from '../utils/string.js';
 import { renderIcon } from '../utils/icons.js';
@@ -202,6 +203,19 @@ export function initProjectUI() {
     }
   }
 
+  // ── MPI-1323: a project changed on the server (an agent created one, or landed a
+  // card in a closed one). The list loaded only on arrival, so it stayed stale until
+  // the user left and came back. A burst of cards reloads once; off the landing,
+  // navigation reloads on the way back.
+  let refreshTimer = null;
+  // initProjectUI runs once — app-lifetime, nothing to unsubscribe.
+  onStream('projects:changed', () => {
+    clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(() => {
+      if (state.currentPage === PAGE_LANDING) loadProjectGrid({ quiet: true });
+    }, 500);
+  });
+
   // ── MPI-774: standalone agent chat on landing page ─────────────────────────
   const agentSlot = gid('landingAgentSlot');
   if (agentSlot) {
@@ -226,13 +240,15 @@ async function handleProjectDrop(folderPath) {
 
 /**
  * Loads and renders the projects as Stage picker rows.
+ * @param {{quiet?: boolean}} [opts] quiet: keep the current rows up until the new list
+ *   arrives (a refresh while the user is looking), instead of the loading spinner.
  */
-export async function loadProjectGrid() {
+export async function loadProjectGrid({ quiet = false } = {}) {
   if (!projectGrid) return;
   // Cancel any in-flight per-row stats fetches from the previous render.
   if (_statsBatchAC) _statsBatchAC.abort();
   const ac = _statsBatchAC = new AbortController();
-  projectGrid.innerHTML = '<div class="mpi-landing__loading"><div class="spinner"></div></div>';
+  if (!quiet) projectGrid.innerHTML = '<div class="mpi-landing__loading"><div class="spinner"></div></div>';
   try {
     const projects = await listProjects();
     Events.emit('projects:listed', { projects });
