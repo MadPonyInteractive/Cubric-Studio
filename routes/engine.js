@@ -15,7 +15,7 @@ const path = require('path');
 const { SYS_DEPS_PATH, checkUniversalWorkflowDepsStatus, processState, stopComfyUI, getDefaultModelsRoot, resolveModelsRoot, getCustomRoot, resolveComfyPath, getUniversalWorkflowDeps, runPipCommand, NODE_COMMIT_MARKER, curatedDepsMarkerPath, writeExtraModelPathsYaml } = require('./shared');
 const logger = require('./logger');
 const { broadcastEngineEvent, FileDownloader, startUniversalWorkflowInstall, finishCustomNodeInstall } = require('./downloadManager');
-const { COMFY_DIR, COMFY_VENV_DIR, COMFY_VERSION, TORCH_MAC, getPythonBin, getComfyPath, resolveDownloadConfig, resolveUvBin, getEngineRoot } = require('./platformEngine');
+const { COMFY_DIR, COMFY_VENV_DIR, COMFY_VERSION, TORCH_MAC, getPythonBin, getComfyPath, resolveDownloadConfig, resolveUvBin, getEngineRoot, readEngineTorchVendor, wrongEngineBuildReason } = require('./platformEngine');
 const { ensureGit } = require('./gitProvision');
 const { beginEngineJob } = require('./engineJobs');
 const { spawn, execFile } = require('child_process');
@@ -760,11 +760,16 @@ router.get('/engine/version-check', async (req, res) => {
             }
         }
 
+        // A current engine built for the wrong card still needs the upgrade: it is the
+        // gate that installs the right build before anything launches it (MPI-1318).
+        const wrongBuild = installedVersion !== null ? await _installedWrongBuildReason() : null;
+        if (wrongBuild) logger.warn('engine', `Engine needs replacing: ${wrongBuild}`);
+
         res.json({
             installed: installedVersion,
             required: requiredVersion,
             needsInstall: installedVersion === null,
-            needsUpgrade: installedVersion !== null && installedVersion !== requiredVersion,
+            needsUpgrade: installedVersion !== null && (installedVersion !== requiredVersion || !!wrongBuild),
         });
     } catch (e) {
         logger.error('system', 'Version check failed', e);
@@ -1114,7 +1119,13 @@ async function _fullReinstallReason() {
     if (!(await fs.pathExists(getPythonBin(ENGINE_ROOT)))) return 'the engine python is missing';
     if (!(await fs.pathExists(getComfyPath(ENGINE_ROOT, 'comfyui_version.py')))) return 'the ComfyUI tree is incomplete';
     if (!(await fs.pathExists(getComfyPath(ENGINE_ROOT, '.git')))) return 'ComfyUI is not a git checkout';
-    return null;
+    return _installedWrongBuildReason();
+}
+
+/** wrongEngineBuildReason() for the installed engine and this machine's detected card. */
+async function _installedWrongBuildReason() {
+    const { gpu } = await resolveDownloadConfig();   // cached after first detect
+    return wrongEngineBuildReason(gpu && gpu.vendor, await readEngineTorchVendor(getPythonBin(ENGINE_ROOT)));
 }
 
 /**

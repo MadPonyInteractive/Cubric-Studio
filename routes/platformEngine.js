@@ -216,14 +216,14 @@ function selectNvidiaBuild(gpuName, cudaVersion) {
 }
 
 /**
- * The CUDA version the INSTALLED engine's torch was built for, read off its
- * `torch-<ver>+cuNNN.dist-info` folder (`cu130` → "13.0"). Ground truth for what the
- * driver must support: the build that was downloaded, whatever selected it.
+ * The local build tag of the INSTALLED engine's torch, read off its
+ * `torch-<ver>+<tag>.dist-info` folder (`cu130`, `rocm7.1`, `xpu`). Ground truth for
+ * what the engine can drive: the build that was downloaded, whatever selected it.
  * Windows embeds site-packages beside python.exe; a uv venv keeps it under lib/.
  * @param {string} pythonPath  getPythonBin() result
- * @returns {Promise<string|null>} null for a CPU/ROCm/MPS torch or an unreadable engine
+ * @returns {Promise<string|null>} null for an untagged torch or an unreadable engine
  */
-async function readEngineTorchCuda(pythonPath) {
+async function _readEngineTorchTag(pythonPath) {
     const fs = require('fs').promises;
     const binDir = path.dirname(pythonPath);
     const candidates = [path.join(binDir, 'Lib', 'site-packages')];
@@ -233,11 +233,53 @@ async function readEngineTorchCuda(pythonPath) {
     }
     for (const dir of candidates) {
         for (const name of await fs.readdir(dir).catch(() => [])) {
-            const m = name.match(/^torch-[^+]+\+cu(\d+)(\d)\.dist-info$/);
-            if (m) return `${m[1]}.${m[2]}`;
+            const m = name.match(/^torch-[^+]+\+([^-]+)\.dist-info$/);
+            if (m) return m[1].toLowerCase();
         }
     }
     return null;
+}
+
+/**
+ * The CUDA version the installed engine's torch was built for (`cu130` → "13.0").
+ * @param {string} pythonPath  getPythonBin() result
+ * @returns {Promise<string|null>} null for a CPU/ROCm/XPU/MPS torch or an unreadable engine
+ */
+async function readEngineTorchCuda(pythonPath) {
+    const m = ((await _readEngineTorchTag(pythonPath)) || '').match(/^cu(\d+)(\d)$/);
+    return m ? `${m[1]}.${m[2]}` : null;
+}
+
+/**
+ * The GPU vendor the installed engine's torch was built for: `cuNNN` → nvidia,
+ * `rocm…` → amd, `xpu` → intel.
+ * @param {string} pythonPath  getPythonBin() result
+ * @returns {Promise<string|null>} null for a CPU/MPS torch, an unknown tag or an unreadable engine
+ */
+async function readEngineTorchVendor(pythonPath) {
+    const tag = await _readEngineTorchTag(pythonPath);
+    if (!tag) return null;
+    if (/^cu\d/.test(tag)) return 'nvidia';
+    if (tag.startsWith('rocm')) return 'amd';
+    if (tag.startsWith('xpu')) return 'intel';
+    return null;
+}
+
+const VENDOR_NAMES = { nvidia: 'NVIDIA', amd: 'AMD', intel: 'Intel Arc' };
+
+/**
+ * Why the installed engine cannot use this machine's graphics card, or null when it can
+ * (or either side is unknown). Before MPI-1304 every AMD / Intel Arc machine on current
+ * Windows 11 was handed the NVIDIA engine; fixing detection alone then launched that CUDA
+ * torch in GPU mode on a card it cannot drive. Only installing the right build fixes a
+ * wrong one, so this is a reason for the full reinstall (MPI-1318).
+ * @param {string|null} gpuVendor     resolveDownloadConfig().gpu.vendor
+ * @param {string|null} engineVendor  readEngineTorchVendor()
+ * @returns {string|null}
+ */
+function wrongEngineBuildReason(gpuVendor, engineVendor) {
+    if (!VENDOR_NAMES[gpuVendor] || !VENDOR_NAMES[engineVendor] || gpuVendor === engineVendor) return null;
+    return `the engine is built for ${VENDOR_NAMES[engineVendor]} cards and this computer has an ${VENDOR_NAMES[gpuVendor]} card`;
 }
 
 // Minimum Windows driver branch per CUDA major, for the message only (NVIDIA's
@@ -455,6 +497,8 @@ module.exports = {
     resolveDownloadConfig,
     selectNvidiaBuild,
     readEngineTorchCuda,
+    readEngineTorchVendor,
+    wrongEngineBuildReason,
     driverTooOldReason,
     gpuArch,
     resolveUvBin,
