@@ -437,6 +437,7 @@ function fakeTools({ models = MODELS, look = LOOKS.fox, noGuides = false, notes 
         cutoutGif: async (body) => gifDone('cutout', body, { groupId: 'grp_1', type: 'gif' }),
         gifToVideo: async (body) => gifDone('to-video', body, { groupId: 'grp_v1', type: 'video' }),
         makeSheet: async (body) => gifDone('sheet', body, { groupId: 'grp_sh1', type: 'image' }),
+        combineVideos: async (body) => gifDone('combine', body, { groupId: 'grp_v2', type: 'video' }),
         // Local models, so nothing bills; a paid case swaps this for the price it wants asked about.
         quoteGeneration: async () => ({ ok: true, output: { billed: false } }),
         // Every fake generate has settled before the model's next step, so nothing is ever in flight.

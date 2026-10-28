@@ -435,6 +435,6 @@ test('MPI-1106: cutout runs its masks through the generation queue, then applies
 test('GIF_HANDLERS names exactly the capabilities the routes dispatch', () => {
     assert.deepEqual(
         Object.keys(gifJobs.GIF_HANDLERS).sort(),
-        ['gif.cutout', 'gif.edit', 'gif.make', 'gif.to-video', 'sheet.make'],   // sheet.make: MPI-1099
+        ['gif.cutout', 'gif.edit', 'gif.make', 'gif.to-video', 'sheet.make', 'video.combine'],   // sheet.make: MPI-1099; video.combine: MPI-1286
     );
 });

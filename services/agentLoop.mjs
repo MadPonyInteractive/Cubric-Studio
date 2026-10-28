@@ -329,7 +329,7 @@ export const TOOL_DEFS = [
         function: {
             name: 'gif',
             // MPI-1125: four GIF tools and make_sheet in one; each action's settings are app:gifs.
-            description: 'GIFs, picture sheets and combined videos from gallery cards: make a GIF from stills or a clip, edit one (speed, trim, loop, colours, size, crop), cut its subject out onto transparency, turn one into a video, pack stills into one sheet (character sheet, mood board), or join video cards end to end into one video. Read app:gifs first.',
+            description: 'GIFs and picture sheets from gallery cards: make a GIF from stills or a clip, edit one (speed, trim, loop, colours, size, crop), cut its subject out onto transparency, turn one into a video, pack stills into one sheet (character sheet, mood board), or join clips into one video. Read app:gifs first.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -496,7 +496,7 @@ const COMPACT_SHARE_BIG = 0.20;
 const COMPACT_SHARE = 0.50;
 
 const TYPED_MID_TURN = '[Typed just now, while you were working on this turn. Read it before your next step: if it says to stop, wait or leave something for later, start nothing more of that work and say what you stopped; anything already running keeps going unless they asked to cancel it.]';
-const OUT_OF_ROUNDS ='You are out of tool calls for this turn. In plain words, tell the user what you did, what is still running, and what is left to do. They can reply to continue.';
+const OUT_OF_ROUNDS = 'You are out of tool calls for this turn. In plain words, tell the user what you did, what is still running, and what is left to do. They can reply to continue.';
 
 // How long a `generate` waits to see whether its dispatch is REFUSED before reporting
 // it started. A refusal is validation — the route answers over loopback in milliseconds,
