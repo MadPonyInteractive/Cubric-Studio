@@ -361,6 +361,31 @@ test('the gif tool`s sheet action sends the item ids of the cards on show, and t
     assert.ok(loop._groups.has('g-sheet'), 'the agent may rename the sheet it made');
 });
 
+// MPI-1286: the gallery's video Combine for Cosmo, on the same road; the clips stay cards.
+test('the gif tool`s combine action sends the video item ids in order, and the result is a card the agent made', async (t) => {
+    const { AgentLoop } = await esm('services/agentLoop.mjs');
+    const cards = await esm('services/agentCards.mjs');
+    const { root, file } = makeProject(t);
+    const sent = [];
+    const combinedUrl = url(file('combined_001.mp4'));
+    const loop = new AgentLoop({ tools: {
+        listCards: async (folderPath, groupId, limit) => ({ ok: true, ...(groupId ? await cards.readCard(folderPath, groupId) : await cards.listCards(folderPath, { limit })) }),
+        combineVideos: async (body) => { sent.push(body); return { ok: true, output: { itemId: 'item-comb', groupId: 'g-comb', type: 'video', filePath: combinedUrl } }; },
+    } });
+    const project = { folderPath: root, name: 'Cowgirl on a Bull' };
+    const run = async (tool, args) => JSON.parse(await loop._executeTool(tool, args, 't1', project));
+    const combine = (videos) => run('gif', { action: 'combine', videos });
+    loop._readIds.add('app:gifs');
+
+    assert.equal((await combine(['i2v_006.mp4'])).error.code, 'BAD_REQUEST', 'one clip is nothing to join');
+    assert.equal((await combine(['i2v_006.mp4', 'i2v_006.mp4'])).error.code, 'NOT_A_CARD');
+    await run('list_cards', {});
+    const made = await combine(['i2v_006.mp4', 'i2v_006.mp4']);
+    assert.deepEqual(sent, [{ itemIds: ['item-clip', 'item-clip'] }]);
+    assert.equal(made.output.filePath, combinedUrl);
+    assert.ok(loop._groups.has('g-comb'), 'the agent may rename the video it made');
+});
+
 test('a clip`s sidecar gives its length and its start frame; a file with no sidecar gives neither (MPI-1017)', async (t) => {
     const { file } = makeProject(t);
     const cards = await esm('services/agentCards.mjs');

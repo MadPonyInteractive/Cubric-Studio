@@ -125,6 +125,18 @@ router.post('/connector/sheet/make', async (req, res) => {
 });
 
 /**
+ * POST /connector/video/combine — MPI-1286: two or more video cards joined end to end into
+ * ONE new video card, the gallery's video Combine. `{ itemIds: [>= 2] }`, in play order.
+ */
+router.post('/connector/video/combine', async (req, res) => {
+  const { itemIds } = req.body || {};
+  if (!Array.isArray(itemIds) || itemIds.length < 2 || !itemIds.every(_isId)) {
+    return _bad(res, 'body.itemIds must be an array of two or more item ids.');
+  }
+  return _run(res, 'video.combine', { itemIds });
+});
+
+/**
  * POST /connector/gif/edit — a new entry on the SAME card (history, not a new card).
  *
  * `{ itemId }` plus at least one of:

@@ -324,6 +324,11 @@ export async function makeSheet(body) {
     return _post('/connector/sheet/make', body);
 }
 
+/** POST /connector/video/combine — MPI-1286: video cards joined end to end into one new video card. */
+export async function combineVideos(body) {
+    return _post('/connector/video/combine', body);
+}
+
 /**
  * GET /connector/memory[/:file]?folderPath= — the project's agent notes: the index
  * `{ ok, notes }`, or one note `{ ok, file, text }`.

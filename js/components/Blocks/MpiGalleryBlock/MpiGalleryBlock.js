@@ -427,6 +427,7 @@ export const MpiGalleryBlock = ComponentFactory.create({
                     modelId:         null,
                     pixelDimensions: ext.pixelDimensions || { w: 0, h: 0 },
                     thumbPath:       ext.thumbPath ?? null,
+                    wavePath:        ext.wavePath ?? null,
                     fps:             ext.fps ?? 0,
                     duration:        ext.duration ?? 0,
                     frameCount:      ext.frameCount ?? 0,

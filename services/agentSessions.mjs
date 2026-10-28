@@ -60,6 +60,7 @@ export class AgentSessions {
             sessionKey: key,
             broadcast: (event, data) => this.broadcast(event, data),
             onProjectOpened: (source, project, turn) => this._projectOpened(source, project, turn),
+            takeTyped: () => this._takeTyped(key),
         });
         this._setupLoop(loop);
         this._loops.set(key, loop);
@@ -93,6 +94,18 @@ export class AgentSessions {
         // MPI-1005: typing instead of clicking answers a review card ("change verse 2"). Left
         // up, the card would hold the turn, and this message behind it, until a click.
         if (answersCard) loop.confirm(pc.confirmId, 'replied');
+    }
+
+    /**
+     * MPI-1286 (Fabio, live 2026-10-28): "we'll do it next session", typed while a join was
+     * being set up, waited behind the turn, and the turn submitted the video first. The
+     * running turn takes what was typed in ITS OWN conversation before its next model call.
+     * Text only: an attachment needs the turn start's staging and registration.
+     */
+    _takeTyped(key) {
+        const typed = this._queued.filter((t) => t.held && !t.attachments?.length && projectKey(t.project?.folderPath) === key);
+        if (typed.length) this._queued = this._queued.filter((t) => !typed.includes(t));
+        return typed;
     }
 
     /**

@@ -123,7 +123,10 @@ async function _landNewCard(raw, { factory = createImageItem, type = 'image' } =
         operation: raw.operation || null,
         displayName: truncateCardName(raw.displayName || ''),
         pixelDimensions: raw.pixelDimensions || { w: 0, h: 0 },
-        ...(type === 'image' ? { gif: raw.gif || null } : { duration: raw.duration || 0, fps: raw.fps || 0 }),
+        ...(type === 'image' ? { gif: raw.gif || null } : {
+            duration: raw.duration || 0, fps: raw.fps || 0, frameCount: raw.frameCount || 0,
+            hasAudio: raw.hasAudio ?? false, wavePath: raw.wavePath ?? null,   // a combine's sound (MPI-1286)
+        }),
     });
     const group = appendToHistory(createItemGroup(type, { name: item.displayName }), item);
     await addGroup(group);
@@ -355,6 +358,19 @@ async function makeSheet(input) {
 }
 
 /**
+ * `video.combine` (MPI-1286) — the gallery's video Combine for an agent: two or more video
+ * cards, in order, joined end to end into ONE new video card, over the same `/combine-videos`.
+ */
+async function combineVideos(input) {
+    const project = _project();
+    for (const id of input.itemIds) {
+        if (_findItem(id).item.type !== 'video') throw new JobError('NOT_A_VIDEO', `Item "${id}" is not a video. Combine joins video cards only.`);
+    }
+    const data = await _post('/combine-videos', { folderPath: project.folderPath, itemIds: input.itemIds });
+    return _done(await _landNewCard(data.item, { factory: createVideoItem, type: 'video' }));
+}
+
+/**
  * MPI-1104: the Transfers row each CPU-only verb shows while it runs. `gif.cutout` is not
  * here: its masks are GPU work, so only its encode and apply steps get rows, above.
  */
@@ -363,6 +379,7 @@ const CPU_ROW_LABELS = {
     'gif.edit': 'Editing a GIF',
     'gif.to-video': 'GIF to video',
     'sheet.make': 'Making a sheet',
+    'video.combine': 'Combining videos',
 };
 
 /** Capability -> handler. `agentDispatch.js` adapts these onto the job relay. */
@@ -372,6 +389,7 @@ export const GIF_HANDLERS = {
     'gif.cutout': cutoutGif,
     'gif.to-video': gifToVideo,
     'sheet.make': makeSheet,
+    'video.combine': combineVideos,
 };
 
 /**
@@ -383,7 +401,7 @@ export async function runGifJob(capability, input) {
     try {
         const run = () => GIF_HANDLERS[capability](input || {});
         // MPI-1105: the flash takes the RESULT's colour - a video for to-video, an image otherwise.
-        const mediaType = capability === 'gif.to-video' ? 'video' : 'image';
+        const mediaType = capability === 'gif.to-video' || capability === 'video.combine' ? 'video' : 'image';
         return await (CPU_ROW_LABELS[capability] ? runCpuJob(CPU_ROW_LABELS[capability], run, { mediaType }) : run());
     } catch (err) {
         if (err instanceof JobError) return _fail(err.code, err.message);

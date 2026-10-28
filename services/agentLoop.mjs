@@ -329,13 +329,14 @@ export const TOOL_DEFS = [
         function: {
             name: 'gif',
             // MPI-1125: four GIF tools and make_sheet in one; each action's settings are app:gifs.
-            description: 'GIFs and picture sheets from gallery cards: make a GIF from stills or a clip, edit one (speed, trim, loop, colours, size, crop), cut its subject out onto transparency, turn one into a video, or pack stills into one sheet (character sheet, mood board). Read app:gifs first.',
+            description: 'GIFs, picture sheets and combined videos from gallery cards: make a GIF from stills or a clip, edit one (speed, trim, loop, colours, size, crop), cut its subject out onto transparency, turn one into a video, pack stills into one sheet (character sheet, mood board), or join video cards end to end into one video. Read app:gifs first.',
             parameters: {
                 type: 'object',
                 properties: {
                     action: { type: 'string', enum: Object.keys(GIF_ACTIONS) },
                     images: { type: 'array', items: { type: 'string' }, description: 'make, sheet: card refs, in order.' },
                     video: { type: 'string', description: 'make: one video card ref.' },
+                    videos: { type: 'array', items: { type: 'string' }, description: 'combine: video card refs, in play order.' },
                     gif: { type: 'string', description: 'edit, cutout, to_video: a GIF card ref.' },
                     settings: { type: 'object', description: 'Everything else, as app:gifs names it.' },
                 },
@@ -494,7 +495,8 @@ const BIG_WINDOW = 1_000_000;
 const COMPACT_SHARE_BIG = 0.20;
 const COMPACT_SHARE = 0.50;
 
-const OUT_OF_ROUNDS = 'You are out of tool calls for this turn. In plain words, tell the user what you did, what is still running, and what is left to do. They can reply to continue.';
+const TYPED_MID_TURN = '[Typed just now, while you were working on this turn. Read it before your next step: if it says to stop, wait or leave something for later, start nothing more of that work and say what you stopped; anything already running keeps going unless they asked to cancel it.]';
+const OUT_OF_ROUNDS ='You are out of tool calls for this turn. In plain words, tell the user what you did, what is still running, and what is left to do. They can reply to continue.';
 
 // How long a `generate` waits to see whether its dispatch is REFUSED before reporting
 // it started. A refusal is validation — the route answers over loopback in milliseconds,
@@ -687,8 +689,9 @@ export class AgentLoop {
      * @param {function} [opts.viewFile] (absPath, {frames}) => {kind, data, ...} overrides cardView.viewFile
      *        (MPI-941 Phase 4's clip sampling for `look`).
      */
-    constructor({ tools, resolveEndpoint, lookupContextWindow, lookupVision, sessionKey = '', broadcast, onProjectOpened, viewFile } = {}) {
+    constructor({ tools, resolveEndpoint, lookupContextWindow, lookupVision, sessionKey = '', broadcast, onProjectOpened, viewFile, takeTyped } = {}) {
         this._tools = tools || realTools;
+        this._takeTyped = takeTyped || (() => []); // messages typed mid-turn (MPI-1286)
         this._viewFile = viewFile || _viewClipFile;
         this._resolveEndpointOverride = resolveEndpoint || null;
         this._lookupContextWindowOverride = lookupContextWindow || null;
@@ -3004,6 +3007,13 @@ ${knowledgeIndex}`.trim();
                 }
                 return this._gif(this._tools.makeSheet, { itemIds: images }, rest, true);
             }
+            case 'gif:combine': {
+                const { videos, ...rest } = args;
+                if (!Array.isArray(videos) || videos.length < 2) {
+                    return JSON.stringify({ ok: false, error: { code: 'BAD_REQUEST', message: 'videos needs two or more video cards, in play order.' } });
+                }
+                return this._gif(this._tools.combineVideos, { itemIds: videos }, rest, true);
+            }
             case 'cancel_generation': {
                 // Only what THIS conversation started and has not settled. The id is never
                 // trusted further than that map: a made-up one reaches nothing.
@@ -3571,6 +3581,20 @@ ${knowledgeIndex}`.trim();
                     break;
                 }
 
+                // MPI-1286: what the user typed while this round ran is read before the next
+                // step, not after the turn ends. Another round, even after a start line: the
+                // message may be "stop" or "leave it for later".
+                const typed = this._takeTyped();
+                if (typed.length) {
+                    this._wakeStreak = 0;
+                    for (const t of typed) {
+                        this._messages.push({ role: 'user', content: `${TYPED_MID_TURN}\n${t.text}` });
+                        this._historyEntry('user', { text: t.text, attachments: [] });
+                    }
+                    steps++;
+                    continue;
+                }
+
                 // MPI-1280: the user has heard what started and every call of the round is running.
                 // Another round would only narrate it again, ~35 s later on a long chat. The memory
                 // reminder the generate carried is read next turn (a wake, or the user's message).
@@ -4065,7 +4089,7 @@ function _toolLabel(toolName, args) {
         case 'mark_card':      return args.mark === 'none' ? 'Clearing a card mark' : 'Marking a card';
         case 'gif':
             return { make: 'Making a GIF', edit: 'Editing a GIF', cutout: 'Cutting out the subject',
-                to_video: 'Turning a GIF into a video', sheet: 'Making a sheet' }[args.action] || 'Working on a GIF';
+                to_video: 'Turning a GIF into a video', sheet: 'Making a sheet', combine: 'Combining videos' }[args.action] || 'Working on a GIF';
         case 'read_memory': {
             const kind = args.scope === 'global' ? 'global' : 'project';
             return args.file ? `Reading a ${kind} note` : `Reading ${kind} notes`;

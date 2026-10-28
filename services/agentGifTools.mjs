@@ -62,6 +62,11 @@ export const GIF_ACTIONS = {
             longEdge: `one of ${SHEET_SIZES.join(', ')}. Default 2048.`,
         },
     },
+    combine: {
+        does: 'Join 2+ video cards end to end, in order, into ONE new video card. Every clip stays its own card, the join clip too, so the user can redo the join or combine again. A join clip goes between the two clips it joins: clip A, the join, clip B.',
+        refs: { videos: 'Refs of two or more video cards, in play order.' },
+        settings: {},
+    },
 };
 
 /** `app:gifs`: what each action does and takes, from GIF_ACTIONS. */
