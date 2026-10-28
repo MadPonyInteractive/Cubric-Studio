@@ -24,7 +24,7 @@ Two new models, MOSS-Image and Singularity H3. Boxes made from a picture, a redo
 - **Type @ to name a picture on every edit model.** With two or more pictures added on Qwen-Image 2.1, FLUX.3 Klein, FLUX.2 Klein, Krea 2, Qwen Edit or a cloud editor, @ lists them and writes each one the way that model reads it ("image 2", "the second image").
 - **Stacks you can arrange.** Drag a picture in the Stack workspace to reorder it. Right-click a stack and pick Create Sheet for one numbered sheet of it. The gallery Filter has a Stacks switch.
 - **Card info on hover.** With card info on (I), hover a gallery card and its info card opens at once: model, time, prompt and notes, plus the ratio, Turbo, LoRAs and the graphics card it ran on. It closes the moment you leave the card.
-- **Cosmo joins clips.** Ask for a scene before, after or between two clips, and Cosmo starts from the last frame of one and ends on the first frame of the next. It stays in the clips' own model family and makes up the moment that links them. "What happens next" runs Extend Video, so the clip carries on with its sound. Afterwards Cosmo offers to combine the clips into one video, and every clip stays its own card.
+- **Cosmo joins clips.** Ask for a scene before, after or between two clips, and Cosmo starts from the last frame of one and ends on the first frame of the next. It stays in the clips' own model family and makes up the moment that links them. After a joining scene, Cosmo offers to combine the clips into one video, and every clip stays its own card. "What happens next" runs Extend Video instead, so the clip carries on in one piece, with its sound.
 - **Cosmo knows more of your card.** "Do it again" redoes the entry it worked on, with the same mask. Before a Use Tiles upscale it shows each tile size to click, and when its language model stalls it offers the other tested one.
 - **A mascot in every Flow while it works:** Lingo writing, Cosmo planning, Prism for pictures, Reel and Vinyl for video, Vinyl for sound. They slide in and out instead of popping.
 - **The Model picker has a Source filter and a search box,** like the Models and Flows pages, and remembers your choice.
@@ -42,7 +42,7 @@ Two new models, MOSS-Image and Singularity H3. Boxes made from a picture, a redo
 - **Cosmo picks better.** FLUX.3 Klein pictures on Turbo unless you ask for more quality, edits on the best editor you have installed, says what it is making the moment it starts, and counts Use Tiles tiles right.
 - **Cosmo's tiled upscale opens the picture's history,** so you see the latents as it works.
 - **Cosmo reads a message you type while it works,** so "stop" or "save that for later" lands before its next step, not after it.
-- **A job Cosmo runs that fails no longer opens a failure window.** Cosmo tells you in the chat, tries once more, and stops if it fails again.
+- **A job Cosmo runs that fails no longer opens a failure window.** Cosmo tells you in the chat, may try once more, and stops after a second failure.
 - **The child-safety check asks again once when the image describer's server has a hiccup,** instead of refusing the run.
 - **Combined videos show their sound waveform** on the card.
 - **Extend Video's row in the queue no longer reads "1:1 · 1024x1024"** on a wide clip.
@@ -58,7 +58,7 @@ Two new models, MOSS-Image and Singularity H3. Boxes made from a picture, a redo
 
 ## Updating
 
-The update zip updates any install from 1.5.0 on, in place. If your install is older than 1.5.0, download the full zip below instead.
+The update zip is made for installs from 1.5.0 on, and updates them in place (tested from a 1.5.0 install, see Platform support below). If your install is older than 1.5.0, download the full zip below instead.
 
 ## First launch
 
