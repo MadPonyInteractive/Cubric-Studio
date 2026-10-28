@@ -59,7 +59,7 @@ export const RELEASE_NOTES = {
       '**Small helpers.** A Restart engine button after installing a model with new engine parts. An "Update to v…" button in the bell when an update is ready. The minimised Latents window shows each run\'s progress.',
     ],
     fixes: [
-      '**AMD and Intel Arc cards are recognised again on current Windows 11.** These computers were given the NVIDIA engine instead of their own.',
+      '**AMD and Intel Arc cards are recognised again on current Windows 11.** These computers were given the NVIDIA engine instead of their own, which ran everything on the processor. If that happened to you, the app now replaces that engine with the right one when it starts. Your models stay.',
       '**Installing a model no longer restarts the engine before your next generation.** It restarts when you first use a model that needs the new parts.',
       '**Repair engine fixes an engine that will not start** because a crash left one of its add-on files empty.',
       '**One press of Stop in a Flow stops everything it started,** including jobs still waiting in the queue.',
