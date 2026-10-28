@@ -55,3 +55,5 @@
 > or three times inside one unreleased version reads like user-visible history but
 > never shipped, and the entry is then simply false. Full gate:
 > `.claude/skills/mpi-release/references/copy-review.md` § Gate 0.
+
+- **Dev updates reach you mid-session.** A new post pops up as a notice while you work, and View changes opens it, with the Update button there when a new version is out. (MPI-1321)
