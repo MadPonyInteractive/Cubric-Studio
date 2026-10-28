@@ -31,10 +31,15 @@ test('reconcileAcked: first run seeds all but the newest 3; later drops ids that
 test('the bell: 3 unread on a fresh install, acknowledge, new post, offline', async () => {
     const svc = await import('../js/services/devUpdatesService.js');
     const { state } = await import('../js/state.js');
+    const { Events } = await import('../js/events.js');
+    // MPI-1321: posts that land after the boot fetch are announced (the shell toasts them).
+    const arrived = [];
+    Events.on('dev-updates:arrived', ({ posts }) => arrived.push(posts.map((p) => p.id)));
 
     serve(feed(20));
     await svc.refreshDevUpdates();
     assert.deepStrictEqual(state.devUpdates.map((p) => p.id), ['100', '99', '98']);
+    assert.deepStrictEqual(arrived, [], 'the boot fetch is the bell, never a toast');
 
     svc.acknowledgeDevUpdate('99');
     assert.deepStrictEqual(state.devUpdates.map((p) => p.id), ['100', '98']);
@@ -43,6 +48,9 @@ test('the bell: 3 unread on a fresh install, acknowledge, new post, offline', as
     serve([{ id: '101', at: '2026-10-12T11:00:00Z', text: 'new', images: [] }, ...feed(19)]);
     await svc.refreshDevUpdates();
     assert.deepStrictEqual(state.devUpdates.map((p) => p.id), ['101', '100', '98']);
+    assert.deepStrictEqual(arrived, [['101']], 'only the new post is announced');
+    await svc.refreshDevUpdates();
+    assert.deepStrictEqual(arrived, [['101']], 'the same feed again announces nothing');
     const acked = JSON.parse(store.get('mpi_dev_updates_acked'));
     assert.ok(acked.every((id) => Number(id) >= 82), 'ids that left the feed are pruned');
 

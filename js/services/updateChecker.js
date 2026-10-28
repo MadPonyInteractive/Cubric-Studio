@@ -81,6 +81,17 @@ async function _checkForUpdate() {
     return info;
 }
 
+/**
+ * Ask again mid-session, with no popup (MPI-1321): a post announcing a release lands
+ * while the app is open, and the Dev updates panel's Update button reads
+ * getPendingUpdate(). A failed re-check keeps what the last one found.
+ */
+export function recheckUpdate() {
+    const prev = getPendingUpdate();
+    _pending = _resolveUpdate(getIpc()).catch(() => null).then((info) => info || prev);
+    return _pending;
+}
+
 /** The fetch + semver compare. `{current, latest}` when newer, else null. */
 async function _resolveUpdate(ipc) {
     // ponytail: dev-only escape hatch to exercise the real dialog + mute in a build

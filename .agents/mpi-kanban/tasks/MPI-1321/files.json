@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/task-files/v1", "files": ["js/services/devUpdatesService.js", "js/services/updateChecker.js", "js/shell/projectUI.js", "js/events.js", "tests/dev-updates.test.cjs", "docs/shell.md"]}

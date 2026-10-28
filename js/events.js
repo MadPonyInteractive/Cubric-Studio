@@ -197,6 +197,7 @@ export const Events = new EventBus();
  * Slide-over events:
  * 'slide-over:open'       { title, component, extraClasses?, panelId? }  - open a right slide-over panel
  * 'slide-over:toggle'     { title, component, extraClasses?, panelId? }  - toggle a right slide-over panel
+ * 'dev-updates:arrived'   { posts: Object[] }                      - unread dev-update posts that landed after the boot fetch (devUpdatesService, MPI-1321); projectUI toasts them
  *
  * Queue panel events:
  * 'generation-queue:open'     â€”                                  â€” open the Cue queue (the gallery docks it, MPI-1320; elsewhere the slide-over)

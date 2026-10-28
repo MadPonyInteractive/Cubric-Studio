@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1321",
+  "title": "Dev updates reach a user mid-session: a toast with View changes",
+  "description": "Fabio 2026-10-28: a post (e.g. a release announcement) only showed on the landing bell, so a user in a project never saw it. The feed now polls every 15 min; a post that arrives during the session fires a toast whose one button, View changes, goes to the landing page and opens the Dev updates panel. The app-update check reruns on that arrival so the panel's Update button is current.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-28T20:56:21+00:00",
+  "updated_at": "2026-10-28T20:56:39+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1321", "at": "2026-10-28T20:56:21+00:00", "actor": "claude", "column": "todo", "title": "Dev updates reach a user mid-session: a toast with View changes"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1321", "at": "2026-10-28T20:56:39+00:00", "actor": "claude", "from": "todo", "to": "doing"}

@@ -7,7 +7,7 @@
 
 import { listProjects, createProject, deleteProject, openProject, addProjectByFolder } from '../services/projectService.js';
 import { fetchStats } from '../services/projectStatsService.js';
-import { navigate, PAGE_GALLERY } from '../router.js';
+import { navigate, PAGE_GALLERY, PAGE_LANDING } from '../router.js';
 import { Events } from '../events.js';
 import { state } from '../state.js';
 import { clientLogger } from '../services/clientLogger.js';
@@ -28,6 +28,9 @@ import { MpiHotkeys } from '../components/Compounds/LandingPages/mpi-hotkeys/mpi
 import { MpiAbout }      from '../components/Compounds/LandingPages/MpiAbout/MpiAbout.js';
 import { MpiDevUpdates } from '../components/Organisms/MpiDevUpdates/MpiDevUpdates.js';
 import { startDevUpdates } from '../services/devUpdatesService.js';
+import { recheckUpdate } from '../services/updateChecker.js';
+import { StatusBar } from './statusBar.js';
+import { escapeHtml } from '../utils/string.js';
 import { renderIcon } from '../utils/icons.js';
 import { MpiAgentChat } from '../components/Compounds/MpiAgentChat/MpiAgentChat.js';
 import '../components/Compounds/MpiSlideOver/MpiSlideOver.js';
@@ -108,6 +111,24 @@ export function initProjectUI() {
     Events.onState('devUpdates', paintBadge);
     on(bell, 'click', () => Events.emit('slide-over:open', { title: 'Dev updates', component: MpiDevUpdates }));
     navSlot.appendChild(bell);
+    // MPI-1321 — the bell is out of sight inside a project, so a post that lands
+    // mid-session toasts. View changes goes home and opens the panel; the update
+    // re-check runs first so the panel's Update button names the new version.
+    // eslint-disable-next-line mpi/require-destroy-on-events -- app-lifetime, like the bell
+    Events.on('dev-updates:arrived', ({ posts }) => {
+      recheckUpdate();
+      const headline = (posts[0].text || '').split('\n').map((l) => l.replace(/[*_#>`]/g, '').trim()).find(Boolean) || 'New post';
+      const message = posts.length > 1 ? `${posts.length} new dev updates` : `Dev update: ${escapeHtml(headline)}`;
+      StatusBar.notify(message, 'info', 15000, {
+        action: {
+          text: 'View changes',
+          onClick: () => {
+            if (state.currentPage !== PAGE_LANDING) navigate(PAGE_LANDING);
+            Events.emit('slide-over:open', { title: 'Dev updates', component: MpiDevUpdates });
+          },
+        },
+      });
+    });
     startDevUpdates();
   }
 

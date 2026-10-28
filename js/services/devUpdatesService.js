@@ -15,6 +15,7 @@
  */
 
 import { state } from '../state.js';
+import { Events } from '../events.js';
 import { Storage } from '../core/storage.js';
 import { clientLogger } from './clientLogger.js';
 
@@ -22,10 +23,14 @@ export const DEV_UPDATES_URL = 'https://updates.cubric.studio/v1/posts';
 export const DISCORD_INVITE_URL = 'https://discord.gg/WX7tDFSVmY';
 
 const FIRST_RUN_UNREAD = 3;
-const POLL_MS = 30 * 60 * 1000; // the Worker caches 10 minutes, so this is the real delay
+// The Worker caches 10 minutes, so a post reaches an open app within ~25 (MPI-1321).
+const POLL_MS = 15 * 60 * 1000;
 
 let _posts = [];
 let _timer = null;
+// Ids this run has already fetched; null until the first fetch lands, so the boot
+// fetch (the bell's job) never counts as an arrival.
+let _known = null;
 
 /**
  * The acknowledged ids, reconciled against the feed. `null` (never fetched) seeds
@@ -58,6 +63,11 @@ export async function refreshDevUpdates() {
         return;
     }
     _publish(reconcileAcked(_posts, Storage.getDevUpdatesAcked()));
+    // MPI-1321 — inside a project the bell is out of sight, so a post that lands
+    // mid-session is announced; the shell toasts it.
+    const arrived = _known ? state.devUpdates.filter((p) => !_known.has(p.id)) : [];
+    _known = new Set(_posts.map((p) => p.id));
+    if (arrived.length) Events.emit('dev-updates:arrived', { posts: arrived });
 }
 
 export function acknowledgeDevUpdate(id) {
