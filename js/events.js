@@ -199,7 +199,7 @@ export const Events = new EventBus();
  * 'slide-over:toggle'     { title, component, extraClasses?, panelId? }  - toggle a right slide-over panel
  *
  * Queue panel events:
- * 'generation-queue:open'     â€”                                  â€” open the Cue queue slide-over
+ * 'generation-queue:open'     â€”                                  â€” open the Cue queue (the gallery docks it, MPI-1320; elsewhere the slide-over)
  * 'queue:added'               { mediaType? }                     - a job entered the queue (a Cue generation or a Transfers CPU job); MpiQueueFlash flashes the right edge (MPI-1105)
  * 'generation-queue:changed'  { running, pending, items, depth }  â€” in-app Cue queue snapshot changed
  *

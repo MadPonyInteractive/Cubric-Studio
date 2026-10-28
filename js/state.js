@@ -167,9 +167,9 @@ const _state = {
                                     // and re-mounted PromptBoxes (survives workspace nav).
                                     // Session-only — resets on app restart.
     queueDocked: false,             // MPI-1320: the gallery's docked Cue is open. Written by
-                                    // bindQueueDock (Q, the toolbar toggle, the status bar,
-                                    // the flash, its close button); kept across gallery
-                                    // visits. Session-only.
+                                    // bindQueueDock (Q, the flash's `generation-queue:open`,
+                                    // its close button) and the gallery toolbar toggle; kept
+                                    // across gallery visits. Session-only.
     agentSettingsPinned: false,     // MPI-774 Phase 7: the parameters popup is OPEN in agent
                                     // mode, which means the USER owns the model, the op and
                                     // the settings for the agent's generations; the agent
