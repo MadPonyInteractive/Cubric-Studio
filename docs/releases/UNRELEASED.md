@@ -56,4 +56,5 @@
 > never shipped, and the entry is then simply false. Full gate:
 > `.claude/skills/mpi-release/references/copy-review.md` § Gate 0.
 
+- **The queue docks beside the gallery.** In the gallery it opens as a right-hand panel that moves the gallery aside instead of covering it, with a toggle in the gallery toolbar, and stays open as you come and go. (MPI-1320)
 - **Dev updates reach you mid-session.** A new post pops up as a notice while you work, and View changes opens it, with the Update button there when a new version is out. (MPI-1321)
