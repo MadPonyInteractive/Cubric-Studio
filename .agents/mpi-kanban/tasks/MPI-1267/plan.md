@@ -24,6 +24,7 @@ none of them removes a gate. Decision record: memory `project_keyframes_storyboa
 
 | Card | What | Depends on |
 |---|---|---|
+| **MPI-1319** | **FIRST (Fabio, 2026-10-28).** Updates are small deltas again; an install that skipped a version gets "This update isn't safe. Please download the full most recent version." + a Download button. Joined from MPI-559 | - |
 | MPI-1266 | LTX 2.5 Stage 2: 2.5 in the existing LTX Flows, 2.5-only Flows, second download route (HF), `high` tier measure, Fabio's raw review + recipe validation, and finally `devOnly` off | - |
 | MPI-1268 | Stacks: reorder members in the Stack workspace + right-click Create Sheet (numbered, stack order). NOT gated (Fabio): ships in the next bug-fix release once it passes | - |
 | MPI-1231 | Storyboard Flow: idea + character/place pictures -> a stack of panel cards with intent lines as notes + the numbered overview. Users make their own videos from the panels | MPI-1268 (Create Sheet) |
@@ -37,6 +38,9 @@ keeps its decided design and research and sits under MPI-1134 (Story). MPI-1266'
 
 ## Phase order
 
+0. **MPI-1319 first (Fabio, 2026-10-28).** Installs on 2.1.3 and older do not have the skipped-version
+   check, so the release that CARRIES it still ships a full bundle; deltas start with the release
+   after it (see the card). Plan that before cutting the LTX 2.5 release.
 1. **In parallel:** MPI-1266 (model + existing Flows) and MPI-1268 (stacks). Disjoint files; one
    writer at a time on `flowsRegistry.js` (MPI-1266's Flow swaps vs MPI-1231's new Flow).
    MPI-1185 (PiD 1.5) can run any time beside them; its bench touches no member's files, but its
