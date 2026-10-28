@@ -490,7 +490,10 @@ async function _asCurrentBody(body) {
  * picture the clip was made from when its sidecar names one (`agentCards.startFrameOf`, full
  * size), else frame 0, put in the project's content-addressed store like any staged input.
  * A media item with `frame: 'last'` stands for the clip's LAST frame instead: a clip that
- * continues from it starts there (docs/agent/joining-clips.md). Any other frame is the
+ * continues from it starts there (docs/agent/joining-clips.md). A clip in an `endFrame` slot is
+ * always its REAL frame 0, never its start picture: a scene that ends there must meet the clip as
+ * it plays, and a clip drifts from its picture (MPI-1286: a join met clip B with a colour shift,
+ * because the end frame was B's source picture). Any other frame is the
  * user's to pick (the video viewer's Create snapshot): nothing here can know which one is
  * meant. A clip this cannot read goes on unchanged, and the renderer
  * refuses it by name (`resolveAgentMedia`) instead of sending an mp4 as a picture (MPI-979).
@@ -506,7 +509,7 @@ async function _firstFrames(media, operation, model) {
     if (!file || !path.isAbsolute(file) || !isVideoFile(file) || !pictures.has(m.role)) return m;
     const last = m.frame === 'last';
     try {
-      const start = last ? null : await (await _cards()).startFrameOf(file);
+      const start = last || m.role === 'endFrame' ? null : await (await _cards()).startFrameOf(file);
       const { frame: _picked, ...item } = m;
       return { ...item, url: start ? `/project-file?path=${encodeURIComponent(start)}` : await _frameOf(file, last) };
     } catch (err) {
