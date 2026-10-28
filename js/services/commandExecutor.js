@@ -1853,7 +1853,8 @@ export function runCommand(payload) {
             // media, pick another LoRA); a generic dialog stacked on those would read as
             // two separate failures. Post-dispatch has had this fall-through all along —
             // this is its pre-dispatch twin, and it reuses the same formatter.
-            if (!reported) {
+            // An agent's run gets no dialog: the agent is told and says it in the chat.
+            if (!reported && !payload.byAgent) {
                 const { title, message } = _formatWorkflowError(err?.message, payload.modelId);
                 Events.emit('ui:error', { title, message });
             }
@@ -3060,8 +3061,13 @@ export function runCommand(payload) {
                 return;
             }
             clientLogger.error('comfy', `Workflow failed: ${workingPayload.operation} / ${workingPayload.modelId}`, err);
-            const { title, message } = _formatWorkflowError(err.message, workingPayload.modelId);
-            Events.emit('ui:error', { title, message });
+            // An agent's run gets no dialog: the agent is told, may retry once, and says it
+            // in the chat. The queue row still ends failed. A blocking dialog over an
+            // attempt the agent was already retrying read as a crash (Fabio, 2026-10-28).
+            if (!payload.byAgent) {
+                const { title, message } = _formatWorkflowError(err.message, workingPayload.modelId);
+                Events.emit('ui:error', { title, message });
+            }
             exec.onError?.(err);
         } finally {
             await _cleanupTrimmedVideoInputs(tempTrimInputPaths);

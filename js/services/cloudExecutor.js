@@ -285,7 +285,7 @@ export function runCloudCommand(payload) {
                 // The model saying no is its answer, not a fault: a toast, never the error
                 // dialog with its log and GitHub buttons (MPI-1221).
                 Events.emit('ui:warning', { message: userMessage });
-            } else {
+            } else if (!payload.byAgent) {
                 Events.emit('ui:error', { title: 'Cloud generation failed', message: userMessage });
             }
             Events.emit('tool:indeterminate', { tool: 'groupHistory', id: payload.genId ?? null, active: false });

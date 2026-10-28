@@ -4723,43 +4723,23 @@ describe('(v) a vision model sees the picture only when it asks', () => {
 });
 
 // ---------------------------------------------------------------------------
-// MPI-1286 — a clip in a frame slot is upscaled first; an engine failure is retried once
+// MPI-1286 — a clip in a frame slot goes as it is; an engine failure is retried once
 // ---------------------------------------------------------------------------
 
-describe('MPI-1286 frame upscale and retry guards', () => {
+describe('MPI-1286 clip frames and the retry guard', () => {
     const project = { folderPath: '/project', name: 'Test' };
     const join = (media) => ({ modelId: 'minimax-h3', operation: 'i2v_ms', prompt: 'They talk, then a crash', media });
 
-    // Live 2026-10-28: a pre-scene sent ref2v_001.mp4 (a reference clip, no start picture) straight
-    // to endFrame, and the app decoded its first frame unsharpened.
-    test('a clip in a frame slot is refused until it is upscaled, unless its start picture is sent', async () => {
+    // Fabio live 2026-10-28: an upscaled frame shifted the join's colours more than the clip's own
+    // decoded frame, so the upscale step was dropped. A clip goes in a frame slot as it is.
+    test('a clip in a frame slot is sent as it is, first or last frame', async () => {
         const { loop, tools } = await makeLoop();
         loop._images.set('ref2v_001.mp4', { path: '/project/Media/ref2v_001.mp4', itemId: 'i1', groupId: 'g1' });
-        loop._images.set('i2v_001.mp4', { path: '/project/Media/i2v_001.mp4', itemId: 'i2', groupId: 'g2' });
-        loop._startFrameOf = async (file) => (file.endsWith('i2v_001.mp4') ? '/project/Media/start.png' : null);
         const send = async (media) => JSON.parse(await loop._executeTool('generate', join(media), 't', project));
 
         const first = await send([{ role: 'endFrame', image: 'ref2v_001.mp4' }]);
-        assert.equal(first.error?.code, 'FRAME_NOT_UPSCALED', JSON.stringify(first));
-        assert.match(first.error.message, /operation "imageUpscale".*factor: 1\.5/);
-        const last = await send([{ role: 'startFrame', image: 'i2v_001.mp4', frame: 'last' }]);
-        assert.equal(last.error?.code, 'FRAME_NOT_UPSCALED', 'a last frame is always decoded');
-        assert.match(last.error.message, /frame: "last"/);
-        assert.equal(tools.calls.generate.length, 0, 'nothing ran');
-
-        // A clip made from a picture sends that picture: no upscale needed.
-        const ok = await send([{ role: 'endFrame', image: 'i2v_001.mp4' }]);
-        assert.notEqual(ok.error?.code, 'FRAME_NOT_UPSCALED', JSON.stringify(ok));
-    });
-
-    test('the frame upscale itself skips the app:upscaling read', async () => {
-        const { loop, tools } = await makeLoop();
-        loop._readIds.delete('app:upscaling');
-        loop._images.set('ref2v_001.mp4', { path: '/project/Media/ref2v_001.mp4', itemId: 'i1', groupId: 'g1' });
-        const out = JSON.parse(await loop._executeTool('generate', { operation: 'imageUpscale',
-            media: [{ role: 'inputImage', image: 'ref2v_001.mp4' }], fields: { upscaler: '4x-NMKD-Siax', factor: 1.5 }, wait: true }, 't', project));
-        assert.notEqual(out.error?.code, 'KNOWLEDGE_NOT_READ', JSON.stringify(out));
-        assert.equal(tools.calls.generate.length, 1);
+        const last = await send([{ role: 'startFrame', image: 'ref2v_001.mp4', frame: 'last' }]);
+        assert.equal(tools.calls.generate.length, 2, JSON.stringify([first, last]));
     });
 
     // Live 2026-10-28: error 1450 woke the agent three times and it resent the same H3 job each time.

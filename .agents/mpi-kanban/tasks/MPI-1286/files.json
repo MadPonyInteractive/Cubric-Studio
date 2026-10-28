@@ -33,6 +33,9 @@
     "docs/agent/models/ltx-2.3.md",
     "docs/agent/models/ltx-2.5.md",
     "docs/agent/models/wan-2.2.md",
-    "tests/connector-agent-tools.test.cjs"
+    "tests/connector-agent-tools.test.cjs",
+    "js/services/cloudExecutor.js",
+    "tests/agent-run-no-dialog.test.cjs",
+    "tests/lane-settle-on-bail.test.cjs"
   ]
 }

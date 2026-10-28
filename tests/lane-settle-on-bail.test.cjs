@@ -127,7 +127,8 @@ test('_failBail reports the failure by default, and logs unconditionally', () =>
     );
     assert.match(
         body,
-        /if \(!reported\)[\s\S]*Events\.emit\('ui:error'/,
+        // An agent's run is the one exception: the agent is told and says it in the chat (MPI-1286).
+        /if \(!reported(?: && !payload\.byAgent)?\)[\s\S]*Events\.emit\('ui:error'/,
         'a bail that is not already reported must surface a dialog — a silent settle frees the lane '
         + 'but still leaves the card gone with no explanation, which is what was reported live',
     );

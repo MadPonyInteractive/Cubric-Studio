@@ -37,8 +37,7 @@ import { MAX_NOTES } from './agentMemory.mjs';
 import { agentToolOp } from '../js/shell/agentToolOps.js';
 import { viewFile as _viewClipFile } from './cardView.js';
 import { GIF_ACTIONS } from './agentGifTools.mjs';
-import { madeWith, startFrameOf } from './agentCards.mjs';
-import { isVideoFile } from '../js/utils/file.js';
+import { madeWith } from './agentCards.mjs';
 import { MODELS } from '../js/data/modelConstants/models.js';
 import { modelShowsStyleRack } from '../js/data/commandRegistry.js';
 
@@ -455,15 +454,13 @@ const _failKey = (args) => `${args.flowId || args.modelId || ''}\n${args.operati
 const _retryNote = (fails) => (fails >= MAX_ENGINE_FAILS
     ? ' It has now failed twice: do not send it again. Tell the user in one line what failed, quoting the error, and ask what to do, ending on [options: Try again | Something else].'
     : ' You may send it once more; if that fails too, stop and tell the user.');
-// The frame slots a join fills (docs/agent/joining-clips.md). A clip there is decoded to a picture.
-const FRAME_ROLES = new Set(['startFrame', 'endFrame']);
 
 // Max tool ROUNDS in one user turn (a round is one model reply, however many calls it
 // carries). 8 was exactly one still -> look -> animate chain with no round left to say so
 // (Fabio, 2026-09-20): every generate costs about four — settings, guide, generate, look.
 // 16 -> 20 (MPI-1286): a pre-scene join was two generates (an invented start picture, then
 // the clip) plus reading the clip, the cards and app:joining-clips, and ran out of rounds.
-// Now it is at most a frame upscale (a tool, no look) and the clip; 20 stays as headroom.
+// Now it is the clip alone; 20 stays as headroom.
 export const MAX_STEPS = 20;
 
 // Sent with the one call made after the last round, and never kept in the conversation.
@@ -552,7 +549,7 @@ const _isUnfinishedFile = (file) => String(file || '').trim().toLowerCase() === 
  * were learned only from describe_model on the model ALREADY picked: Singularity H3 has no end
  * frame, so a pre-scene never met its clip. Taught once here, not as a rule per wording.
  */
-export const VIDEO_OPS = 'Image to video (i2v): start frame alone, the clip opens on exactly that picture, keeping who and what is in it. Start + end frame: it opens on one and lands exactly on the other; the only way to meet another clip cleanly at a cut, so a clip before, after or between the user\'s clips takes them (app:joining-clips). End frame alone (no start frame): the clip builds up to exactly that picture, e.g. people walking into the shot, or a scene leading into the user\'s clip; never make a start picture for it. Reference to video (ref2v): pictures, clips and sound for who and what is in it and how they move or sound; a picture cited as the first frame often opens it, not always, and only when the prompt does not describe it. Text to video (t2v): words only. A clip as a picture is its first frame, frame "last" its last; any other frame is the user\'s Create snapshot. A frame decoded from a clip goes through imageUpscale before a frame slot (app:joining-clips).';
+export const VIDEO_OPS = 'Image to video (i2v): start frame alone, the clip opens on exactly that picture, keeping who and what is in it. Start + end frame: it opens on one and lands exactly on the other; the only way to meet another clip cleanly at a cut, so a clip before, after or between the user\'s clips takes them (app:joining-clips). End frame alone (no start frame): the clip builds up to exactly that picture, e.g. people walking into the shot, or a scene leading into the user\'s clip; never make a start picture for it. Reference to video (ref2v): pictures, clips and sound for who and what is in it and how they move or sound; a picture cited as the first frame often opens it, not always, and only when the prompt does not describe it. Text to video (t2v): words only. A clip as a picture is its first frame, frame "last" its last; any other frame is the user\'s Create snapshot.';
 
 /** A video op's media slots in a word each: the frames by name, the rest by kind. */
 const _takes = (media) => [...new Set((media || []).map((r) => (
@@ -760,7 +757,6 @@ export class AgentLoop {
         this._ops = new Map();    // "modelId\nop" -> that op's entry (media slots, params), from list_models
         this._runs = new Set();   // "modelId\nop" installed, free and runnable here (the model card, MPI-1262)
         this._madeWith = madeWith; // what made a project file, off its sidecar (tests replace it)
-        this._startFrameOf = startFrameOf; // the picture a clip was made from, or null (tests replace it)
         this._boxed = new Set();   // image paths a `look` with box: true measured (the box gate)
         this._overBoxed = new Map(); // image path -> measures whose square was too big for a head
         this._gateWaiting = null;  // knowledge id a refused generate waits on this turn (MPI-916)
@@ -2447,23 +2443,10 @@ ${knowledgeIndex}`.trim();
                 if ((this._engineFails.get(_failKey(args)) || 0) >= MAX_ENGINE_FAILS) {
                     return JSON.stringify({ ok: false, error: { code: 'REPEATED_FAILURE', message: `Nothing was generated: ${args.flowId || `${args.modelId || ''} ${args.operation || ''}`.trim()} has failed twice since the user last wrote, so another try is theirs to ask for. Tell the user in one line what failed, quoting the error, and ask what to do, ending on [options: Try again | Something else].` } });
                 }
-                // MPI-1286 (Fabio, 2026-10-28): a frame decoded from a clip is soft and carries its
-                // compression, and joining-clips.md saying "upscale it first" did not stop a
-                // pre-scene sending the clip straight to endFrame. A clip made from a picture sends
-                // that picture (connector `_firstFrames`), so only its first frame passes as it is.
-                for (const m of Array.isArray(args.media) ? args.media : []) {
-                    const ref = FRAME_ROLES.has(m?.role) ? this._resolveImage(m.image) : null;
-                    if (!ref || !isVideoFile(ref.path)) continue;
-                    const last = m.frame === 'last';
-                    if (!last && await this._startFrameOf(ref.path).catch(() => null)) continue;
-                    return JSON.stringify({ ok: false, error: { code: 'FRAME_NOT_UPSCALED', message: `Nothing was generated: "${m.image}" in ${m.role} is a clip, so its ${last ? 'last' : 'first'} frame would be decoded, soft and compressed. Upscale it first with the imageUpscale tool: generate with operation "imageUpscale", media [{ role: "inputImage", image: "${m.image}"${last ? ', frame: "last"' : ''} }], fields { upscaler: "4x-NMKD-Siax" for a realistic picture or "4x-AnimeSharp" for anime, cartoon or flat art, factor: 1.5 }, wait: true. Then send this generate again with the upscaled card in ${m.role}.` } });
-                }
                 // MPI-1053: the plain imageUpscale is best: true for the upscale task, and live it
                 // ran for "bigger AND more detail" with every route written in its own note. The
-                // read beats the flag: once per conversation, before a batch is offered. A frame taken
-                // from a clip is the join's own step (above), not a route the user picks: no read.
-                const clipFrame = (args.media || []).some((m) => isVideoFile(this._resolveImage(m?.image)?.path || ''));
-                if (!args.flowId && UPSCALE_OPS.has(args.operation) && !clipFrame && !this._readIds.has('app:upscaling')) {
+                // read beats the flag: once per conversation, before a batch is offered.
+                if (!args.flowId && UPSCALE_OPS.has(args.operation) && !this._readIds.has('app:upscaling')) {
                     this._gateWaiting = 'app:upscaling';
                     return JSON.stringify({ ok: false, error: { code: 'KNOWLEDGE_NOT_READ', message: 'Nothing was generated: read read_knowledge "app:upscaling" first, then send the route it gives for what the user asked.' } });
                 }

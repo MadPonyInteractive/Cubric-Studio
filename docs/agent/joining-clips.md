@@ -23,17 +23,10 @@ picture, and a miss shows at the cut.
 - The ends come from the clips, never from the user's words: "these two videos" are A and B in
   the order the user gives them, or the order they were made when they give none.
 
-## Upscale a frame taken from a clip
+## Send the clip's own frame
 
-A frame decoded from a video is soft and carries its compression. Before it goes in a frame
-slot, run the `imageUpscale` tool on the clip (with `frame: "last"` for its last frame):
-`upscaler` `4x-NMKD-Siax` for a realistic picture, `4x-AnimeSharp` for anime, cartoon or flat
-art, factor 1.5 (2 adds artefacts). Then send the upscaled card as the frame. Never repaint or
-edit the frame: the cut only meets cleanly on the clip's own picture. The app refuses a decoded
-clip frame in `startFrame` or `endFrame` until you do (FRAME_NOT_UPSCALED).
-
-The one exception: clip B's FIRST frame when list_cards shows it was made from a picture. Send
-clip B as it is: the app sends that original picture, already sharper than any decoded frame.
+Send the clip itself in the frame slot. Never upscale, repaint or edit the frame first: an
+upscale shifts its colours, and the cut only meets cleanly on the clip's own picture.
 
 ## A scene before a clip: the end frame alone
 
