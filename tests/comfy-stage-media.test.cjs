@@ -43,7 +43,7 @@ test('a project file is hardlinked into input/mpi_staged and reused', async () =
 
     assert.equal(path.dirname(staged), path.join(INPUT, 'mpi_staged'));
     assert.match(path.basename(staged), /^[0-9a-f]{16}\.png$/, 'hashed name, lower-case extension');
-    assert.equal(fs.statSync(staged).ino, fs.statSync(src).ino, 'same file on disk — a link, not a copy');
+    assert.equal(fs.statSync(staged, { bigint: true }).ino, fs.statSync(src, { bigint: true }).ino, 'same file on disk — a link, not a copy');
 
     assert.equal(await stageMediaFile(src, INPUT), staged, 'a re-run reuses the staged file');
     assert.equal(fs.readdirSync(path.join(INPUT, 'mpi_staged')).length, 1);
@@ -67,7 +67,8 @@ test('a file that cannot be linked (another volume) is copied whole', async () =
     try {
         const staged = await stageMediaFile(src, INPUT);
         assert.equal(fs.readFileSync(staged, 'utf8'), 'frames');
-        assert.notEqual(fs.statSync(staged).ino, fs.statSync(src).ino, 'a copy, not a link');
+        // bigint: NTFS file ids pass 2^53, and as Numbers two different files can round equal.
+        assert.notEqual(fs.statSync(staged, { bigint: true }).ino, fs.statSync(src, { bigint: true }).ino, 'a copy, not a link');
         assert.deepEqual(fs.readdirSync(path.dirname(staged)).filter((f) => f.endsWith('.part')), [],
             'no half-written file left behind');
     } finally {
