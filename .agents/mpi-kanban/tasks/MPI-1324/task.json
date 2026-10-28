@@ -4,10 +4,10 @@
   "title": "Five Flows free VRAM before their output (MpiClearVram)",
   "description": "LTX Foley, LTX Extend, Pano360, Transcribe and Voice Changer had no MpiClearVram, so their models stayed resident after a run. Add one MpiClearVram passthrough just before each output node (Fabio, 2026-10-28), in raw/ and resynced.",
   "column": "doing",
-  "maturity": "in-progress",
+  "maturity": "validating",
   "status": "active",
   "created_at": "2026-10-28T23:03:56+00:00",
-  "updated_at": "2026-10-28T23:04:17+00:00",
+  "updated_at": "2026-10-28T23:14:45+00:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",
