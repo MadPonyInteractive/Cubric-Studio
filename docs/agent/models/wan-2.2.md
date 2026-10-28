@@ -19,7 +19,7 @@ Both cards resolve to the same enhancer recipe, `wan-2.2`, and that recipe only 
 - Ratios (per op, from `connector-models.json`): `wan-22`'s `i2v_ms` and `wan22-5b`'s `t2v`/`i2v` all offer the same four: `1:1`, `9:16`, `16:9`, `21:9`.
 - Quality tiers (same source): `wan-22` `i2v_ms`: `very_low, low, medium, high, very_high`. `wan22-5b` `t2v` and `i2v`: `low, medium, high` only (720p is its whole band, no draft or upscale extremes). Auto opens on `medium` for every op on both cards.
 - Turbo is `false` on every op of both cards, and neither offers a style picker. Both already ship pre-distilled workflows (`wan-22` runs the SmoothMix v2 two-stage sigma schedule, `wan22-5b` bakes in a 4-step Turbo LoRA), so there is nothing to toggle.
-- Media roles. `wan-22` `i2v_ms`: `startFrame` (required), `endFrame` (optional, a real second keyframe, not just a hint). `wan22-5b` `t2v`: no media. `wan22-5b` `i2v`: `startFrame` only; unlike its bigger sibling, this card has no end-frame slot at all.
+- Media roles. `wan-22` `i2v_ms`: `startFrame`, `endFrame` (at least one; `endFrame` is a real keyframe, not just a hint, and alone the clip builds up to it). `wan22-5b` `t2v`: no media. `wan22-5b` `i2v`: `startFrame` only; unlike its bigger sibling, this card has no end-frame slot at all.
 - `wan-22` renders at 16fps; tell the user it benefits from interpolation afterward for smooth motion. `wan22-5b` runs at 24fps.
 - Both cards run a distilled, step-reduced workflow, and the recipe's own notes already treat the negative box as inert in that regime (CFG=1, Lightning-style). Say what you don't want as a positive statement inside the prompt.
 

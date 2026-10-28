@@ -2847,6 +2847,9 @@ export function runCommand(payload) {
             // remote model auto-upload (model already local). Defaults to the remote
             // engine so normal runs are unaffected.
             await getEngine(workingPayload.forceLocal === true).runWorkflow(workflow, params, onMessage, {
+                // A text helper (describe, enhance, dictation) must never unload the model
+                // the user is working with (Fabio, 2026-10-28).
+                freesOtherModels: COMMANDS[workingPayload.operation]?.outputKind !== 'text',
                 beforePromptSubmit: async ({ serverReady }) => {
                     await _restagePreviewLatentAfterRemoteRestart(workingPayload, serverReady);
                 },

@@ -216,6 +216,38 @@ export function partialValidationError(nodeErrors, isRemote) {
         + `${reason?.message || 'invalid input'}${reason?.details ? `: ${reason.details}` : ''}`);
 }
 
+/** The model files (unet / checkpoint / text encoder / VAE) the last local generation loaded. */
+let _lastLocalWeights = null;
+
+/**
+ * Frees the local engine when a generation brings a different model family: no model file
+ * shared with the last generation. Live 2026-10-28 (MPI-1286): Krea 2 Edit left ~18 GB
+ * staged in RAM — ComfyUI's Windows pin eviction waits for <512 MB free — and MiniMax H3's
+ * 25 GB text encoder then failed its disk read with Windows error 1450
+ * (`HostBuffer.read_file_slice failed`). Sharing any file (stage 1 -> stage 2, H3 Reference
+ * -> Singularity H3 on one encoder) keeps everything loaded; LoRAs and upscalers do not
+ * count. `/free` with free_memory also resets ComfyUI's node cache, which is what holds the
+ * old loaders' weights; the engine applies it before it takes the next prompt off the queue.
+ * Text-output helpers (describe, enhance, dictation) never pass `freesOtherModels`.
+ */
+async function _freeOtherModelFamily(workflow) {
+    const wanted = new Set(MODEL_FILE_INPUTS);
+    const weights = new Set();
+    for (const node of Object.values(workflow || {})) {
+        for (const [key, value] of Object.entries(node?.inputs || {})) {
+            if (wanted.has(key) && typeof value === 'string' && value) weights.add(value);
+        }
+    }
+    if (!weights.size) return;
+    const last = _lastLocalWeights;
+    _lastLocalWeights = weights;
+    if (!last || [...weights].some(w => last.has(w))) return;
+    clientLogger.info('comfy', `New model family: freeing ${[...last].join(', ')} before loading ${[...weights].join(', ')}`);
+    await fetch('/comfy/unload', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ deep: true }),
+    }).catch(() => null);
+}
+
 /**
  * Builds one ComfyUI engine instance. Two are created at module load:
  * `remoteEngine` (`alwaysLocal:false`) and `localEngine` (`alwaysLocal:true`).
@@ -2001,6 +2033,7 @@ function createEngine({ engine, alwaysLocal }) {
                 // cleared HERE, as a local job starts, not after every take. An idle LLM beside a
                 // generation pushes it over PCIe (MPI-14: sub-10 s render -> 3 min). A Pod has its own GPU.
                 if (isLocalRun) await fetch('/llm/ollama/unload', { method: 'POST' }).catch(() => null);
+                if (isLocalRun && opts.freesOtherModels) await _freeOtherModelFamily(workflow);
                 const req = await fetch(`${this.httpBase()}/prompt`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },

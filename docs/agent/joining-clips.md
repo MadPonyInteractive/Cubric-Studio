@@ -13,7 +13,7 @@ picture, and a miss shows at the cut.
 
 | The new clip | `startFrame` | `endFrame` |
 |---|---|---|
-| Leads INTO clip B (a scene before it) | the same shot before the change (below) | clip B, sent as a picture |
+| Leads INTO clip B (a scene before it) | none (below) | clip B, sent as a picture |
 | FOLLOWS clip A (what happens next) | clip A with `frame: "last"` | none, or the shot after the change |
 | Goes BETWEEN clip A and clip B | clip A with `frame: "last"` | clip B, sent as a picture |
 
@@ -23,13 +23,24 @@ picture, and a miss shows at the cut.
 - The ends come from the clips, never from the user's words: "these two videos" are A and B in
   the order the user gives them, or the order they were made when they give none.
 
-## The missing end
+## Upscale a frame taken from a clip
 
-A clip leading into another needs a start picture too, and the joined frame often shows
-something the new clip must not start with: a fire, a wreck, a person who has just walked in.
-Make that start picture first: one whole-picture edit of the joined frame that removes it
-("the same shot, the car park calm: no fire, no smoke, no wrecked cars"), then run the clip from
-that picture to the joined frame. Say in one line that you made it and why.
+A frame decoded from a video is soft and carries its compression. Before it goes in a frame
+slot, run the `imageUpscale` tool on the clip (with `frame: "last"` for its last frame):
+`upscaler` `4x-NMKD-Siax` for a realistic picture, `4x-AnimeSharp` for anime, cartoon or flat
+art, factor 2. Then send the upscaled card as the frame. Never repaint or edit the frame:
+the cut only meets cleanly on the clip's own picture.
+
+The one exception: clip B's FIRST frame when list_cards shows it was made from a picture. Send
+clip B as it is: the app sends that original picture, already sharper than any decoded frame.
+
+## A scene before a clip: the end frame alone
+
+A clip leading into another runs on `i2v_ms` with clip B in `endFrame` and NO `startFrame`.
+The model builds the shot up to B's first frame from the prompt; you never make a start
+picture for it. Only when the user hands you a picture to open on does it go in `startFrame`.
+Ask for 3 seconds or more: a shorter clip has no room to travel toward its last frame and
+looks like it starts on it.
 
 ## Fill the gap
 

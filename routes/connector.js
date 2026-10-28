@@ -148,19 +148,26 @@ router.commandRegistry = _getCommandRegistry;
 function mediaRolesFor(registry, op, model) {
   const slots = registry?.COMMANDS?.[op]?.mediaInputs || [];
   // A `planned` slot (MPI-1101) is filled by the app's pass planner: not the caller's to send.
-  return registry.filterMediaInputsForModel(slots, model || null).filter((i) => !i.planned).map((i) => ({
-    role: i.key,
-    type: i.mediaType,
-    required: !!i.required,
-    ...(i.tag ? { tag: i.tag } : {}),
-    ...(ROLE_USE[i.key] ? { use: ROLE_USE[i.key] } : {}),
-  }));
+  const kept = registry.filterMediaInputsForModel(slots, model || null).filter((i) => !i.planned);
+  return kept.map((i) => {
+    // `satisfiedBy` (i2v_ms startFrame): required only when the named slot is empty, so
+    // the agent reads it as optional and learns the rule from `orRole`.
+    const or = i.satisfiedBy && kept.some((o) => o.key === i.satisfiedBy) ? i.satisfiedBy : null;
+    return {
+      role: i.key,
+      type: i.mediaType,
+      required: !!i.required && !or,
+      ...(or ? { orRole: or } : {}),
+      ...(i.tag ? { tag: i.tag } : {}),
+      ...(ROLE_USE[i.key] ? { use: ROLE_USE[i.key] } : {}),
+    };
+  });
 }
 
 /** What a frame slot DOES, where the role name alone reads like "an image of the subject". */
 const ROLE_USE = {
   startFrame: 'The clip opens on this exact picture. A character sheet, turnaround or collage is not a first frame: send it to a reference-to-video op (ref2v_*) as a reference, or tell the user no installed model has one.',
-  endFrame: 'The clip ends on this exact picture.',
+  endFrame: 'The clip ends on this exact picture. Sent without a startFrame, the clip builds up to it from nothing given: a scene leading into another clip ends on that clip\'s first frame this way.',
   // MPI-1060: LTX ref2v_ms start-frame slot. Unlike startFrame (i2v_ms), this sits on
   // the reference op itself — so a character sheet goes in Picture 1..N, and only a
   // single desired opening frame goes here.

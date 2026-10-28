@@ -233,7 +233,10 @@ test('list_models ops carry their media roles, gated per model the way the Promp
     // The shared video ops declare an audio slot; only a model that takes audio gets it.
     assert.deepEqual(roles('t2v_ms', 'minimax-h3'), [], 'H3 fl2va makes sound but takes none');
     assert.deepEqual(roles('t2v_ms', 'ltx-23-balanced'), ['inputAudio'], 'LTX takes reference audio');
-    assert.deepEqual(mediaRolesFor(registry, 'i2v_ms', findModelDef('minimax-h3')).filter((r) => r.required).map((r) => r.role), ['startFrame']);
+    // An end frame alone fills i2v_ms (MPI-1286): the start frame reads optional, with its alternative named.
+    const i2v = mediaRolesFor(registry, 'i2v_ms', findModelDef('minimax-h3'));
+    assert.deepEqual(i2v.filter((r) => r.required).map((r) => r.role), []);
+    assert.equal(i2v.find((r) => r.role === 'startFrame').orRole, 'endFrame');
 
     const ref = mediaRolesFor(registry, 'ref2v_ms', findModelDef('minimax-h3-ref2va'));
     assert.deepEqual(ref.slice(0, 2), [

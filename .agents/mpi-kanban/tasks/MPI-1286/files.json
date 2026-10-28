@@ -22,6 +22,17 @@
     "dev_configs/update-evidence.json",
     "services/agentLoop.mjs",
     "js/components/MpiLlmSettings.js",
-    "js/components/Organisms/MpiPromptBox/MpiPromptBox.js"
+    "js/components/Organisms/MpiPromptBox/MpiPromptBox.js",
+    "js/data/commandRegistry.js",
+    "js/data/generationControls.js",
+    "routes/connector.js",
+    "docs/agent/joining-clips.md",
+    "tests/agent-generation-relay.test.cjs",
+    "js/services/comfyController.js",
+    "js/services/commandExecutor.js",
+    "docs/agent/models/ltx-2.3.md",
+    "docs/agent/models/ltx-2.5.md",
+    "docs/agent/models/wan-2.2.md",
+    "tests/connector-agent-tools.test.cjs"
   ]
 }

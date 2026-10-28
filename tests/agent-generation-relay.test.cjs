@@ -425,6 +425,19 @@ test('media comes back in DECLARED slot order, whatever order the caller sent', 
   ]);
 });
 
+test('i2v_ms takes an end frame alone, and still refuses no frame at all', () => {
+  // Fabio 2026-10-28: a pre-scene lands on the next clip's first frame. The agent path
+  // fills required slots by role, so it refused this and Cosmo invented a start picture.
+  for (const id of ['minimax-h3', 'wan-22']) {
+    const model = findModelDef(id);
+    assert.ok(model, `${id} must exist for this test to mean anything`);
+    const r = resolveAgentMedia('i2v_ms', model, [{ role: 'endFrame', url: '/b_first.png' }]);
+    assert.equal(r.ok, true, id);
+    assert.deepEqual(r.mediaItems.map((m) => m.role), ['endFrame']);
+    assert.equal(resolveAgentMedia('i2v_ms', model, []).code, 'MEDIA_REQUIRED', id);
+  }
+});
+
 test('a bad media entry is a named BAD_REQUEST, never a silent drop', () => {
   const klein = findModelDef('klein-9b');
   const unknown = resolveAgentMedia('kleinEdit', klein, [{ role: 'image1', url: '/a.png' }]);

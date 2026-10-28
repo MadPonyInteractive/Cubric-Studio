@@ -938,8 +938,11 @@ export function resolveAgentMedia(operation, model, media = [], { allowEmpty = f
     // `findMissingMediaSlot` also accepts any item of the slot's type, which suits an
     // unroled PromptBox chip; on this path it let a lone `inputImage2` through, and
     // ordinal injection then made the REFERENCE the picture being edited (caught live).
-    // A `planned` slot is the app's to fill (MPI-1101), never the caller's.
-    const missing = !allowEmpty && slots.find(s => s.required !== false && !s.planned && !mediaItems.some(item => item.role === s.key));
+    // A `planned` slot is the app's to fill (MPI-1101), never the caller's. A slot with
+    // `satisfiedBy` is also filled when that named slot is (i2v_ms: an end frame alone).
+    const filled = key => mediaItems.some(item => item.role === key);
+    const missing = !allowEmpty && slots.find(s => s.required !== false && !s.planned && !filled(s.key)
+        && !(s.satisfiedBy && slots.some(o => o.key === s.satisfiedBy) && filled(s.satisfiedBy)));
     if (missing) {
         return _err('MEDIA_REQUIRED', `"${operation}" needs ${missing.mediaType} in its "${missing.key}" slot.`);
     }

@@ -911,8 +911,13 @@ export const commands = {
         modelSizedInputs: true,
         // Audio slot is model-capability-gated (see t2v_ms note). WAN gets only
         // the two image frame slots; LTX additionally accepts the audio slot.
+        // `satisfiedBy`: an end frame alone fills the start slot's requirement. Every
+        // i2v_ms graph (H3, LTX 2.3/2.5, Wan 2.2) loads both frames with block_if_empty
+        // off, and the PromptBox role pill (MPI-466) already sends end-only runs. The
+        // agent path fills required slots BY ROLE, so without this it refused a pre-scene
+        // that lands on the next clip's first frame.
         mediaInputs: [
-            { key: 'startFrame', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Start_Frame', required: true },
+            { key: 'startFrame', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Start_Frame', required: true, satisfiedBy: 'endFrame' },
             { key: 'endFrame', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_End_Frame', required: false },
             { key: 'inputAudio', mediaType: 'audio', title: 'Input_audio', required: false },
         ],

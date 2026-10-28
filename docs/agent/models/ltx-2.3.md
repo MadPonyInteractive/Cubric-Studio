@@ -79,7 +79,7 @@ A wide shot from behind frames Maya on the mountain trail as she adjusts the sho
 - Ratios (per op, from `connector-models.json`): identical across `t2v_ms` and `i2v_ms`: `1:1`, `9:16`, `16:9`, `21:9`.
 - Quality tiers (same source): identical across all ops: `very_low, low, medium, high, very_high, 2k, 4k`. Auto opens on `medium`.
 - Turbo is `false` on every op, and there is no style picker. The shipped workflow is already an 8-step, CFG-1 distilled build, so there is nothing to toggle.
-- Media roles. `t2v_ms`: `inputAudio` (optional). `i2v_ms`: `startFrame` (required), `endFrame` (optional), `inputAudio` (optional). `ref2v_ms`: `inputImage` .. `inputImage9` (= Picture 1-9; with none it is plain text to video, so send at least one), `inputStartFrame` (optional), `inputAudio` (optional).
+- Media roles. `t2v_ms`: `inputAudio` (optional). `i2v_ms`: `startFrame`, `endFrame` (at least one; `endFrame` alone builds up to it), `inputAudio` (optional). `ref2v_ms`: `inputImage` .. `inputImage9` (= Picture 1-9; with none it is plain text to video, so send at least one), `inputStartFrame` (optional), `inputAudio` (optional).
 - `inputAudio` is more than a reference track: staging it can drive lip-sync or a transferred voice identity, chosen elsewhere in the UI, not by you. Either way, expect the supplied clip's real content to often come through rather than exactly what you wrote; word the Audio Integration sentence to match what's actually in the file when you know it.
 - There is no working negative box on this distilled build. The recipe already treats every constraint as inline, positive prose: say what you don't want as a positive statement in the paragraph.
 

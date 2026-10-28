@@ -446,9 +446,9 @@ const MAX_WAKES_IN_A_ROW = 3;
 // Max tool ROUNDS in one user turn (a round is one model reply, however many calls it
 // carries). 8 was exactly one still -> look -> animate chain with no round left to say so
 // (Fabio, 2026-09-20): every generate costs about four — settings, guide, generate, look.
-// 16 -> 20 (MPI-1286): a pre-scene join is two generates (the calm start picture, then the
-// clip) plus reading the clip, the cards and app:joining-clips — 16 rounds with no room for
-// one refused call, and the bench ran out on the closing words after both had started.
+// 16 -> 20 (MPI-1286): a pre-scene join was two generates (an invented start picture, then
+// the clip) plus reading the clip, the cards and app:joining-clips, and ran out of rounds.
+// Now it is at most a frame upscale (a tool, no look) and the clip; 20 stays as headroom.
 export const MAX_STEPS = 20;
 
 // Sent with the one call made after the last round, and never kept in the conversation.
@@ -537,7 +537,7 @@ const _isUnfinishedFile = (file) => String(file || '').trim().toLowerCase() === 
  * were learned only from describe_model on the model ALREADY picked: Singularity H3 has no end
  * frame, so a pre-scene never met its clip. Taught once here, not as a rule per wording.
  */
-export const VIDEO_OPS = 'Image to video (i2v): start frame alone, the clip opens on exactly that picture, keeping who and what is in it. Start + end frame: it opens on one and lands exactly on the other; the only way to meet another clip cleanly at a cut, so a clip before, after or between the user\'s clips takes them (app:joining-clips). End frame alone: the clip builds up to exactly that picture, e.g. people walking into the shot; here it still needs a start frame: that picture with them edited out ("the street is empty, they walk in"). Reference to video (ref2v): pictures, clips and sound for who and what is in it and how they move or sound; a picture cited as the first frame often opens it, not always, and only when the prompt does not describe it. Text to video (t2v): words only. A clip as a picture is its first frame, frame "last" its last; any other frame is the user\'s Create snapshot.';
+export const VIDEO_OPS = 'Image to video (i2v): start frame alone, the clip opens on exactly that picture, keeping who and what is in it. Start + end frame: it opens on one and lands exactly on the other; the only way to meet another clip cleanly at a cut, so a clip before, after or between the user\'s clips takes them (app:joining-clips). End frame alone (no start frame): the clip builds up to exactly that picture, e.g. people walking into the shot, or a scene leading into the user\'s clip; never make a start picture for it. Reference to video (ref2v): pictures, clips and sound for who and what is in it and how they move or sound; a picture cited as the first frame often opens it, not always, and only when the prompt does not describe it. Text to video (t2v): words only. A clip as a picture is its first frame, frame "last" its last; any other frame is the user\'s Create snapshot. A frame decoded from a clip goes through imageUpscale before a frame slot (app:joining-clips).';
 
 /** A video op's media slots in a word each: the frames by name, the rest by kind. */
 const _takes = (media) => [...new Set((media || []).map((r) => (

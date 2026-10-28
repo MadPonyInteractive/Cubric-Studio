@@ -38,7 +38,7 @@ Then the LOOK, woven through those sentences, not added at the end: cinematic, f
 ## Adapting what the user asked for
 
 - **Only what is in the frame.** Naming something outside the shot pulls it in: an off-screen listener walked into 6 of 10 clips in one user's tests (HF LTX-2.5 #92). Write where someone looks, not who they look at; the light on a face, not the lamp out of shot.
-- **`i2v_ms`: open on the start frame.** 2.5's own image-to-video rewriter starts the caption by describing the first frame exactly (subject, clothing, setting, light, framing), then plays the action from it as one continuous take, no cuts. The opposite of the 2.3 advice. If an end frame is staged, the last beat arrives on it.
+- **`i2v_ms`: open on the start frame.** 2.5's own image-to-video rewriter starts the caption by describing the first frame exactly (subject, clothing, setting, light, framing), then plays the action from it as one continuous take, no cuts. The opposite of the 2.3 advice. If an end frame is staged, the last beat arrives on it. With an end frame alone there is no first frame to describe: write the build-up and land on the end frame.
 - **Several shots only when asked.** If the user wants cuts: 2-4 shots in one paragraph, each transition named (hard cut, match cut, dissolve), each shot restating its framing and who is in it, and whether the sound carries over.
 - **Camera wording drifts in i2v.** "Static" held about half the time and "very slow push-in" overshot in one user's tests (HF #84): state a static camera plainly, and give every move an end point.
 - No legible text, no chaotic physics (fights, pile-ups): unreliable here too.

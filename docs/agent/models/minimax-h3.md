@@ -26,10 +26,10 @@ guide:
   `ref2v_ms` with the still as its first frame, not `i2v_ms`: their words say what the clip
   does, the model name says which card runs it. Run it without a warning; they chose. A
   name holds for the clip it was named for: the next clip picks again from its task.
-- A clip set before, after or between the user's clips is a join, a "pre-scene" too: `i2v_ms` with both
-  frames, never `ref2v_ms`, whichever model made the other clip. Leading into a clip, its
-  opening frame is the `endFrame`; the system prompt's Joining rule says how to get the
-  `startFrame` and what to write between them.
+- A clip set before, after or between the user's clips is a join, a "pre-scene" too: `i2v_ms`
+  with frames, never `ref2v_ms`, whichever model made the other clip. Leading into a clip, its
+  opening frame is the `endFrame` and there is no `startFrame`; app:joining-clips says what to
+  write between them.
 
 ## Settings
 
@@ -45,7 +45,7 @@ guide:
   pixels: go a tier higher, or frame closer, before blaming the prompt.
 - Ratios: `16:9`, `9:16`, `1:1`, `21:9`. The clip length comes from the project's
   settings, so write enough action to fill it and no more than fits.
-- Media roles. `i2v_ms`: `startFrame` (required), `endFrame` (optional).
+- Media roles. `i2v_ms`: `startFrame`, `endFrame`, at least one (`endFrame` alone builds up to it).
   `ref2v_ms`: `inputImage` ... `inputImage9` are `<Picture 1>` ... `<Picture 9>`,
   `inputVideo` ... `inputVideo3` are `<Video 1>` ... `<Video 3>`, and `inputAudio` ...
   `inputAudio3` are `<Audio 1>` ... `<Audio 3>`, in that order.
