@@ -1,8 +1,8 @@
 {
   "id": "a1b2c3d4-0000-4000-8000-ltxv2vextend",
   "revision": 0,
-  "last_node_id": 60,
-  "last_link_id": 123,
+  "last_node_id": 63,
+  "last_link_id": 127,
   "nodes": [
     {
       "id": 2,
@@ -1666,14 +1666,14 @@
           "localized_name": "images",
           "name": "images",
           "type": "IMAGE",
-          "link": 75
+          "link": 124
         },
         {
           "localized_name": "audio",
           "name": "audio",
           "shape": 7,
           "type": "AUDIO",
-          "link": 76
+          "link": 125
         },
         {
           "localized_name": "fps",
@@ -4210,6 +4210,173 @@
       "widgets_values": [
         "a if a>0.001 else 0.001"
       ]
+    },
+    {
+      "flags": {},
+      "order": 48,
+      "mode": 0,
+      "type": "MpiClearVram",
+      "pos": [
+        2805.815176558978,
+        723.8180452154907
+      ],
+      "size": [
+        220,
+        26
+      ],
+      "inputs": [
+        {
+          "localized_name": "passthrough",
+          "name": "passthrough",
+          "shape": 7,
+          "type": "*",
+          "link": 126
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "passthrough",
+          "name": "passthrough",
+          "type": "*",
+          "links": [
+            127
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiClearVram"
+      },
+      "id": 61
+    },
+    {
+      "flags": {},
+      "order": 48,
+      "mode": 0,
+      "type": "MpiPacker",
+      "pos": [
+        2545.815176558978,
+        723.8180452154907
+      ],
+      "size": [
+        200,
+        120
+      ],
+      "inputs": [
+        {
+          "localized_name": "any_1",
+          "name": "any_1",
+          "shape": 7,
+          "type": "*",
+          "link": 75
+        },
+        {
+          "localized_name": "any_2",
+          "name": "any_2",
+          "shape": 7,
+          "type": "*",
+          "link": 76
+        },
+        {
+          "localized_name": "any_3",
+          "name": "any_3",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        },
+        {
+          "localized_name": "any_4",
+          "name": "any_4",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        },
+        {
+          "localized_name": "any_5",
+          "name": "any_5",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "pack",
+          "name": "pack",
+          "type": "MPI_PACK",
+          "links": [
+            126
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiPacker"
+      },
+      "id": 62
+    },
+    {
+      "flags": {},
+      "order": 48,
+      "mode": 0,
+      "type": "MpiUnpacker",
+      "pos": [
+        2805.815176558978,
+        783.8180452154907
+      ],
+      "size": [
+        200,
+        120
+      ],
+      "inputs": [
+        {
+          "localized_name": "pack",
+          "name": "pack",
+          "type": "MPI_PACK",
+          "link": 127
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "any_1",
+          "name": "any_1",
+          "type": "*",
+          "links": [
+            124
+          ]
+        },
+        {
+          "localized_name": "any_2",
+          "name": "any_2",
+          "type": "*",
+          "links": [
+            125
+          ]
+        },
+        {
+          "localized_name": "any_3",
+          "name": "any_3",
+          "type": "*",
+          "links": null
+        },
+        {
+          "localized_name": "any_4",
+          "name": "any_4",
+          "type": "*",
+          "links": null
+        },
+        {
+          "localized_name": "any_5",
+          "name": "any_5",
+          "type": "*",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiUnpacker"
+      },
+      "id": 63
     }
   ],
   "links": [
@@ -4713,7 +4880,7 @@
       75,
       43,
       2,
-      46,
+      62,
       0,
       "IMAGE"
     ],
@@ -4721,7 +4888,7 @@
       76,
       45,
       0,
-      46,
+      62,
       1,
       "AUDIO"
     ],
@@ -5012,6 +5179,38 @@
       55,
       0,
       "FLOAT"
+    ],
+    [
+      124,
+      63,
+      0,
+      46,
+      0,
+      "IMAGE"
+    ],
+    [
+      125,
+      63,
+      1,
+      46,
+      1,
+      "AUDIO"
+    ],
+    [
+      126,
+      62,
+      0,
+      61,
+      0,
+      "MPI_PACK"
+    ],
+    [
+      127,
+      61,
+      0,
+      63,
+      0,
+      "MPI_PACK"
     ]
   ],
   "groups": [

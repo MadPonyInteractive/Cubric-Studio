@@ -1,8 +1,8 @@
 {
   "id": "4d3f16be-12cd-471d-a55d-2de9f9f0e1af",
   "revision": 0,
-  "last_node_id": 71,
-  "last_link_id": 87,
+  "last_node_id": 72,
+  "last_link_id": 88,
   "nodes": [
     {
       "id": 1,
@@ -151,7 +151,7 @@
       },
       "widgets_values": [
         "krea-2\\extra\\krea2_turbo_distill_r128.safetensors",
-        1.0
+        1
       ]
     },
     {
@@ -399,7 +399,7 @@
       },
       "widgets_values": [
         "krea-2\\360\\krea2_t2i_360_erp_lora_v1.safetensors",
-        1.0
+        1
       ]
     },
     {
@@ -582,10 +582,10 @@
         12345,
         "fixed",
         10,
-        1.0,
+        1,
         "er_sde",
         "simple",
-        1.0
+        1
       ]
     },
     {
@@ -845,7 +845,7 @@
         12345,
         "fixed",
         10,
-        1.0,
+        1,
         "er_sde",
         "simple",
         0.55
@@ -987,11 +987,11 @@
         2048,
         1024,
         1,
-        70.0,
-        0.0,
-        0.0,
+        70,
         0,
-        2.0,
+        0,
+        0,
+        2,
         10,
         0.55,
         "#000000"
@@ -1236,7 +1236,7 @@
       },
       "widgets_values": [
         "krea-2\\360\\krea2_oedit_360_erp_outpaint_lora_v1.safetensors",
-        1.0
+        1
       ]
     },
     {
@@ -1475,7 +1475,7 @@
         "Node name for S&R": "MickmumpitzPanoKrea2Reference"
       },
       "widgets_values": [
-        8.0
+        8
       ]
     },
     {
@@ -1620,7 +1620,7 @@
         "Node name for S&R": "MickmumpitzPanoKrea2Reference"
       },
       "widgets_values": [
-        8.0
+        8
       ]
     },
     {
@@ -1707,7 +1707,7 @@
         "Node name for S&R": "MickmumpitzPanoKrea2Reference"
       },
       "widgets_values": [
-        8.0
+        8
       ]
     },
     {
@@ -1755,7 +1755,7 @@
         "Node name for S&R": "MickmumpitzPanoKrea2Reference"
       },
       "widgets_values": [
-        8.0
+        8
       ]
     },
     {
@@ -1853,10 +1853,10 @@
         12345,
         "fixed",
         10,
-        1.0,
+        1,
         "er_sde",
         "simple",
-        1.0
+        1
       ]
     },
     {
@@ -1950,7 +1950,7 @@
         "Node name for S&R": "MickmumpitzPanoHarmonizeBoundary"
       },
       "widgets_values": [
-        1.0,
+        1,
         8,
         800,
         true
@@ -2041,9 +2041,9 @@
         "Node name for S&R": "MpiWrapSoften"
       },
       "widgets_values": [
-        12.0,
+        12,
         48,
-        6.0
+        6
       ]
     },
     {
@@ -2262,7 +2262,7 @@
         12345,
         "fixed",
         10,
-        4.0,
+        4,
         "euler",
         "simple",
         0.45
@@ -2416,7 +2416,7 @@
         {
           "name": "images",
           "type": "IMAGE",
-          "link": 87
+          "link": 88
         }
       ],
       "outputs": [
@@ -2431,6 +2431,44 @@
         "Node name for S&R": "PreviewImage"
       },
       "widgets_values": []
+    },
+    {
+      "flags": {},
+      "order": 54,
+      "mode": 0,
+      "type": "MpiClearVram",
+      "pos": [
+        1880,
+        1780
+      ],
+      "size": [
+        220,
+        26
+      ],
+      "inputs": [
+        {
+          "localized_name": "passthrough",
+          "name": "passthrough",
+          "shape": 7,
+          "type": "*",
+          "link": 87
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "passthrough",
+          "name": "passthrough",
+          "type": "*",
+          "links": [
+            88
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiClearVram"
+      },
+      "id": 72
     }
   ],
   "links": [
@@ -3125,6 +3163,14 @@
     [
       87,
       70,
+      0,
+      72,
+      0,
+      "*"
+    ],
+    [
+      88,
+      72,
       0,
       71,
       0,

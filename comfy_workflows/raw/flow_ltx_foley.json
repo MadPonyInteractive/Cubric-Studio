@@ -1,8 +1,8 @@
 {
   "id": "a1b2c3d4-0000-4000-8000-ltxv2vfoley",
   "revision": 0,
-  "last_node_id": 123,
-  "last_link_id": 97,
+  "last_node_id": 124,
+  "last_link_id": 98,
   "nodes": [
     {
       "id": 2,
@@ -3311,7 +3311,7 @@
           "name": "audio",
           "shape": 7,
           "type": "AUDIO",
-          "link": 93
+          "link": 98
         },
         {
           "localized_name": "fps",
@@ -4221,6 +4221,44 @@
       ],
       "color": "#432",
       "bgcolor": "#653"
+    },
+    {
+      "flags": {},
+      "order": 57,
+      "mode": 0,
+      "type": "MpiClearVram",
+      "pos": [
+        3659.4010666275517,
+        1432.94282726752
+      ],
+      "size": [
+        220,
+        26
+      ],
+      "inputs": [
+        {
+          "localized_name": "passthrough",
+          "name": "passthrough",
+          "shape": 7,
+          "type": "*",
+          "link": 93
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "passthrough",
+          "name": "passthrough",
+          "type": "*",
+          "links": [
+            98
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiClearVram"
+      },
+      "id": 124
     }
   ],
   "links": [
@@ -4868,8 +4906,8 @@
       93,
       42,
       0,
-      46,
-      1,
+      124,
+      0,
       "AUDIO"
     ],
     [
@@ -4903,6 +4941,14 @@
       114,
       0,
       "*"
+    ],
+    [
+      98,
+      124,
+      0,
+      46,
+      1,
+      "AUDIO"
     ]
   ],
   "groups": [],
