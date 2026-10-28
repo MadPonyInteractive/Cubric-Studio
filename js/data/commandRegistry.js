@@ -167,7 +167,8 @@ const I2V_HELP = {
  *   tagInProse?:boolean,
  *   voiceLibrary?:'character'|'narration',
  *   planned?:boolean,
- *   compositorInput?:string
+ *   compositorInput?:string,
+ *   satisfiedBy?:string
  * }>}                         [mediaInputs] - Named media slots injected by Comfy node title.
  *                                              `planned` (MPI-1101): the app's pass planner fills the slot on
  *                                              every pass (Make seamless's window mask), so a CALLER never sends
