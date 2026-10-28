@@ -446,7 +446,10 @@ const MAX_WAKES_IN_A_ROW = 3;
 // Max tool ROUNDS in one user turn (a round is one model reply, however many calls it
 // carries). 8 was exactly one still -> look -> animate chain with no round left to say so
 // (Fabio, 2026-09-20): every generate costs about four — settings, guide, generate, look.
-export const MAX_STEPS = 16;
+// 16 -> 20 (MPI-1286): a pre-scene join is two generates (the calm start picture, then the
+// clip) plus reading the clip, the cards and app:joining-clips — 16 rounds with no room for
+// one refused call, and the bench ran out on the closing words after both had started.
+export const MAX_STEPS = 20;
 
 // Sent with the one call made after the last round, and never kept in the conversation.
 const MEMORY_NUDGE = 'Nothing is noted this turn. If the user stated a goal, a character, a look or a decision, save it with write_memory now; nothing to keep, ignore this.';
@@ -2398,6 +2401,23 @@ ${knowledgeIndex}`.trim();
                     // says creating one is the agent's job. A concrete tool result beats a prompt
                     // rule every time, so the result now names the call that fixes it.
                     return JSON.stringify({ ok: false, error: { code: 'NO_PROJECT', message: 'Nothing was generated: no project is open. Call create_project now, named after what you are making — it opens what it makes — then send this same generate again. Do not ask the user to open or create one; that is your job.' } });
+                }
+                // MPI-1286: a bare ref (`media: "ref2v_001.mp4"`) was read as no media at all, and
+                // the slot refusal told the model "your call passed none", so it sent the same
+                // string again. Every media reader below takes a list; say so with its own value.
+                if (args.media !== undefined && !Array.isArray(args.media)) {
+                    return JSON.stringify({ ok: false, error: { code: 'BAD_REQUEST', message: `Nothing was generated: media is a list of { role, image }, and your call sent ${JSON.stringify(args.media)}. Send it again as media: [{ role: "<the slot>", image: "<the ref>" }]; describe_model lists the roles each op takes.` } });
+                }
+                // MPI-1286: `flowId: "minimax-h3"` with an operation, live on the bench. The app
+                // answers "No Flow" and points at install_model, which the model cannot act on.
+                if (args.flowId && !args.modelId) {
+                    const id = String(args.flowId);
+                    if (!this._flowTitles.has(id) && !this._modelNames.has(id)) {
+                        try { this._rememberGuides(await this._tools.listModels()); } catch { /* the app still refuses it */ }
+                    }
+                    if (!this._flowTitles.has(id) && this._modelNames.has(id)) {
+                        return JSON.stringify({ ok: false, error: { code: 'BAD_REQUEST', message: `Nothing was generated: "${id}" is a model, not a Flow. Send it again with modelId: "${id}" and its operation, and no flowId.` } });
+                    }
                 }
                 // MPI-1053: the plain imageUpscale is best: true for the upscale task, and live it
                 // ran for "bigger AND more detail" with every route written in its own note. The

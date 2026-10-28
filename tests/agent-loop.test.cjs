@@ -2332,6 +2332,38 @@ describe('(i) the catalogue diet', () => {
         assert.equal(tools.calls.generate.length, 2, 'the empty call never reached the app');
     });
 
+    // MPI-1286: a bare ref read as "your call passed none", and the model sent the same string again.
+    test('generate: media sent as a bare ref is refused by its shape, naming what was sent', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            call('g1', 'generate', { modelId: 'vid', operation: 'i2v', prompt: 'a horse', media: 'att_1' }),
+            { text: 'ok' },
+        ] });
+        await loop.runTurn('animate it', [], project, 'auto', 'deepinfra', 't-media-shape');
+
+        const [bare] = toolResults(loop);
+        assert.equal(bare.error.code, 'BAD_REQUEST');
+        assert.match(bare.error.message, /media is a list of \{ role, image \}/);
+        assert.match(bare.error.message, /"att_1"/, 'names the value it got');
+        assert.doesNotMatch(bare.error.message, /passed none/);
+        assert.equal(tools.calls.generate.length, 0, 'it never reached the app');
+    });
+
+    // MPI-1286: a model id sent as flowId reached the app, which answered "No Flow".
+    test('generate: a model id sent as flowId is refused, naming modelId', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            call('g1', 'generate', { flowId: 'vid', operation: 'i2v', prompt: 'a horse' }),
+            { text: 'ok' },
+        ] });
+        tools.listModels = async () => ({ ok: true, models: [{ id: 'vid', name: 'Vid', type: 'video', installed: true, guides: [], ops: [{ op: 'i2v', installed: true, media: [] }] }], flows: [] });
+        await loop.runTurn('animate it', [], project, 'auto', 'deepinfra', 't-model-as-flow');
+
+        const [asFlow] = toolResults(loop);
+        assert.equal(asFlow.error.code, 'BAD_REQUEST');
+        assert.match(asFlow.error.message, /"vid" is a model, not a Flow/);
+        assert.match(asFlow.error.message, /modelId: "vid"/);
+        assert.equal(tools.calls.generate.length, 0, 'it never reached the app');
+    });
+
     // Fabio, live 2026-09-19: he asked for his LANDSCAPE still to be animated, named no ratio,
     // and the model put it on 9:16 — it never called look, so it never had a size to compare.
     // The choice is code's now, and the prompt lost the arithmetic that did not work anyway.

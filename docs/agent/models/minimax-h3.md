@@ -173,7 +173,7 @@ Rainy city street look: low to the ground, wet asphalt mirroring a grey sky, mut
 The camera travels beside it at gutter height, trucking right at the boat's speed.
 overall_soundscape: Water gurgling along the curb, drips falling from an awning, a car rolling slowly past on the wet road.
 non_diegetic_music: N/A
-No text, subtitles, logos or watermarks, no cartoon or CG rendering, no slow motion.
+No text, subtitles, logos or watermarks, no slow motion.
 ```
 
 ## When a result disappoints

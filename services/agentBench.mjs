@@ -215,6 +215,9 @@ const gradeJoin = (run, start) => {
     const first = media.find((m) => m.role === 'startFrame');
     if (!first) f.push('no startFrame');
     else if (start && (first.image !== start.id || first.frame !== 'last')) f.push(`startFrame is ${JSON.stringify(first)}, not ${start.id} with frame "last"`);
+    // Both clips are anime: the H3 guide's "no cartoon or CG" is for photographic clips only,
+    // and live it was copied onto this one from the guide's own example (Fabio, re-cut 2).
+    if (/cartoon|\bCG\b/i.test(join.args.prompt || '')) f.push('the prompt bans a cartoon or CG look on an anime clip');
     return f;
 };
 // MPI-1086: which of the three character Flows. A face-only picture, and the bench's sheet as the

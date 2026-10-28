@@ -39,7 +39,8 @@ the clip lands on the joined frame. Two girls chatting in a calm car park ending
 behind them: two cars collide behind them and burst into flames in the last seconds, and they
 turn toward it. Then the user's own ask (a line of dialogue, a mood) on top. An event the user
 names that the joined clip already shows ("then the car crash happens" before a clip of the
-crash) is where the new clip ENDS: build up to it and land on the joined frame, never stage a
+crash) is where the new clip ENDS: build up to it and land on clip B's FIRST frame, sent as it
+is, never with `frame: "last"` (that is where B finishes, past the event), and never stage a
 second one inside the new clip. Write the motion
 between the frames, never a description of either picture: the frames already show them.
 
