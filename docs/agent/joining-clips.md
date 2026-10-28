@@ -28,8 +28,9 @@ picture, and a miss shows at the cut.
 A frame decoded from a video is soft and carries its compression. Before it goes in a frame
 slot, run the `imageUpscale` tool on the clip (with `frame: "last"` for its last frame):
 `upscaler` `4x-NMKD-Siax` for a realistic picture, `4x-AnimeSharp` for anime, cartoon or flat
-art, factor 2. Then send the upscaled card as the frame. Never repaint or edit the frame:
-the cut only meets cleanly on the clip's own picture.
+art, factor 1.5 (2 adds artefacts). Then send the upscaled card as the frame. Never repaint or
+edit the frame: the cut only meets cleanly on the clip's own picture. The app refuses a decoded
+clip frame in `startFrame` or `endFrame` until you do (FRAME_NOT_UPSCALED).
 
 The one exception: clip B's FIRST frame when list_cards shows it was made from a picture. Send
 clip B as it is: the app sends that original picture, already sharper than any decoded frame.

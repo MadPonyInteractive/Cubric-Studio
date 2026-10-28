@@ -37,7 +37,8 @@ import { MAX_NOTES } from './agentMemory.mjs';
 import { agentToolOp } from '../js/shell/agentToolOps.js';
 import { viewFile as _viewClipFile } from './cardView.js';
 import { GIF_ACTIONS } from './agentGifTools.mjs';
-import { madeWith } from './agentCards.mjs';
+import { madeWith, startFrameOf } from './agentCards.mjs';
+import { isVideoFile } from '../js/utils/file.js';
 import { MODELS } from '../js/data/modelConstants/models.js';
 import { modelShowsStyleRack } from '../js/data/commandRegistry.js';
 
@@ -443,6 +444,20 @@ const BATCH_CONFIRM_ABOVE = 5;
 // The knob, not a law of nature: raise it if three ever proves too few.
 const MAX_WAKES_IN_A_ROW = 3;
 
+// MPI-1286 — how many times one model op may fail on the engine before a further try waits on
+// the user. Live 2026-10-28 an H3 error 1450 woke the agent three times and it resent the same
+// job each time (the wake bound above was the only stop): one retry, then it is the user's call.
+const MAX_ENGINE_FAILS = 2;
+// A job that ran and failed (agentDispatch `onError` / an empty run); every other code is a refusal before it ran.
+const ENGINE_FAIL_CODES = new Set(['RUNTIME_ERROR', 'NO_OUTPUT']);
+const _failKey = (args) => `${args.flowId || args.modelId || ''}\n${args.operation || ''}`;
+/** What a failed run adds to its note about sending it again: once, then stop. */
+const _retryNote = (fails) => (fails >= MAX_ENGINE_FAILS
+    ? ' It has now failed twice: do not send it again. Tell the user in one line what failed, quoting the error, and ask what to do, ending on [options: Try again | Something else].'
+    : ' You may send it once more; if that fails too, stop and tell the user.');
+// The frame slots a join fills (docs/agent/joining-clips.md). A clip there is decoded to a picture.
+const FRAME_ROLES = new Set(['startFrame', 'endFrame']);
+
 // Max tool ROUNDS in one user turn (a round is one model reply, however many calls it
 // carries). 8 was exactly one still -> look -> animate chain with no round left to say so
 // (Fabio, 2026-09-20): every generate costs about four — settings, guide, generate, look.
@@ -745,12 +760,14 @@ export class AgentLoop {
         this._ops = new Map();    // "modelId\nop" -> that op's entry (media slots, params), from list_models
         this._runs = new Set();   // "modelId\nop" installed, free and runnable here (the model card, MPI-1262)
         this._madeWith = madeWith; // what made a project file, off its sidecar (tests replace it)
+        this._startFrameOf = startFrameOf; // the picture a clip was made from, or null (tests replace it)
         this._boxed = new Set();   // image paths a `look` with box: true measured (the box gate)
         this._overBoxed = new Map(); // image path -> measures whose square was too big for a head
         this._gateWaiting = null;  // knowledge id a refused generate waits on this turn (MPI-916)
         this._masked = false;      // this turn's open card has a painted mask (the masking gate)
         this._lookWasCached = false; // did the look just served read the card's kept text? (MPI-870)
         this._wakeStreak = 0;      // consecutive wake turns with nothing typed in between (MPI-870)
+        this._engineFails = new Map(); // model\nop -> engine failures since the user last typed (MPI-1286)
 
         // SSE subscribers
         this._subscribers = new Set();
@@ -983,6 +1000,7 @@ export class AgentLoop {
         this._boxed.clear();
         this._overBoxed.clear();
         this._wakeStreak = 0;
+        this._engineFails.clear();
         try { await this._tools.discardAttachments(staged); } catch { /* non-fatal */ }
     }
 
@@ -1688,6 +1706,13 @@ export class AgentLoop {
             if (args[k] !== undefined) body[k] = args[k];
         }
         return body;
+    }
+
+    /** Counts one engine failure of this model op since the user last typed, and returns the count (MPI-1286). */
+    _engineFail(args) {
+        const n = (this._engineFails.get(_failKey(args)) || 0) + 1;
+        this._engineFails.set(_failKey(args), n);
+        return n;
     }
 
     /**
@@ -2419,10 +2444,26 @@ ${knowledgeIndex}`.trim();
                         return JSON.stringify({ ok: false, error: { code: 'BAD_REQUEST', message: `Nothing was generated: "${id}" is a model, not a Flow. Send it again with modelId: "${id}" and its operation, and no flowId.` } });
                     }
                 }
+                if ((this._engineFails.get(_failKey(args)) || 0) >= MAX_ENGINE_FAILS) {
+                    return JSON.stringify({ ok: false, error: { code: 'REPEATED_FAILURE', message: `Nothing was generated: ${args.flowId || `${args.modelId || ''} ${args.operation || ''}`.trim()} has failed twice since the user last wrote, so another try is theirs to ask for. Tell the user in one line what failed, quoting the error, and ask what to do, ending on [options: Try again | Something else].` } });
+                }
+                // MPI-1286 (Fabio, 2026-10-28): a frame decoded from a clip is soft and carries its
+                // compression, and joining-clips.md saying "upscale it first" did not stop a
+                // pre-scene sending the clip straight to endFrame. A clip made from a picture sends
+                // that picture (connector `_firstFrames`), so only its first frame passes as it is.
+                for (const m of Array.isArray(args.media) ? args.media : []) {
+                    const ref = FRAME_ROLES.has(m?.role) ? this._resolveImage(m.image) : null;
+                    if (!ref || !isVideoFile(ref.path)) continue;
+                    const last = m.frame === 'last';
+                    if (!last && await this._startFrameOf(ref.path).catch(() => null)) continue;
+                    return JSON.stringify({ ok: false, error: { code: 'FRAME_NOT_UPSCALED', message: `Nothing was generated: "${m.image}" in ${m.role} is a clip, so its ${last ? 'last' : 'first'} frame would be decoded, soft and compressed. Upscale it first with the imageUpscale tool: generate with operation "imageUpscale", media [{ role: "inputImage", image: "${m.image}"${last ? ', frame: "last"' : ''} }], fields { upscaler: "4x-NMKD-Siax" for a realistic picture or "4x-AnimeSharp" for anime, cartoon or flat art, factor: 1.5 }, wait: true. Then send this generate again with the upscaled card in ${m.role}.` } });
+                }
                 // MPI-1053: the plain imageUpscale is best: true for the upscale task, and live it
                 // ran for "bigger AND more detail" with every route written in its own note. The
-                // read beats the flag: once per conversation, before a batch is offered.
-                if (!args.flowId && UPSCALE_OPS.has(args.operation) && !this._readIds.has('app:upscaling')) {
+                // read beats the flag: once per conversation, before a batch is offered. A frame taken
+                // from a clip is the join's own step (above), not a route the user picks: no read.
+                const clipFrame = (args.media || []).some((m) => isVideoFile(this._resolveImage(m?.image)?.path || ''));
+                if (!args.flowId && UPSCALE_OPS.has(args.operation) && !clipFrame && !this._readIds.has('app:upscaling')) {
                     this._gateWaiting = 'app:upscaling';
                     return JSON.stringify({ ok: false, error: { code: 'KNOWLEDGE_NOT_READ', message: 'Nothing was generated: read read_knowledge "app:upscaling" first, then send the route it gives for what the user asked.' } });
                 }
@@ -2754,6 +2795,7 @@ ${knowledgeIndex}`.trim();
                     // A refused setting is the one failure the short catalogue can cause, so the
                     // note says where the accepted values are rather than leaving a second guess.
                     const paramMiss = /^(INVALID_|UNKNOWN_PARAM|MEDIA_REQUIRED)/.test(r?.error?.code || '');
+                    const fails = !ok && ENGINE_FAIL_CODES.has(r?.error?.code) ? this._engineFail(args) : 0;
                     // A TEXT result (the Transcribe Flow, MPI-1071) makes no card: the note carries
                     // the words themselves, and the subtitles file when there is one.
                     const textOnly = ok && typeof r.output?.text === 'string' && !r.output?.filePath;
@@ -2761,7 +2803,7 @@ ${knowledgeIndex}`.trim();
                         ? `[Finished, no card. The text: ${r.output.text}${r.output.srtPath ? ` Subtitles file: ${r.output.srtPath}` : ''}]`
                         : ok
                         ? `[Generation finished: card ${r.output?.groupId}, ${r.output?.type} ${r.output?.filePath}${r.output?.pixelDimensions ? `, ${r.output.pixelDimensions.w}x${r.output.pixelDimensions.h}` : ''}]`
-                        : `[Generation failed: ${r?.error?.code || 'ERROR'}: ${r?.error?.message || 'no reason given'}${paramMiss ? ` Call describe_model with "${args.flowId || args.modelId}" for the values it accepts.` : ''}]`);
+                        : `[Generation failed: ${r?.error?.code || 'ERROR'}: ${r?.error?.message || 'no reason given'}${paramMiss ? ` Call describe_model with "${args.flowId || args.modelId}" for the values it accepts.` : fails ? _retryNote(fails) : ''}]`);
 
                     // Auto-look at image results (brief item 10). A batch item never gets here:
                     // one call over fifty cards must not cost fifty vision calls (MPI-870). Nor
@@ -2801,7 +2843,7 @@ ${knowledgeIndex}`.trim();
                     this._trackUnfinished(askedIn, args, 'RUNTIME_ERROR');
                     this._emit('agent:result', { toolCallId, ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } });
                     this._historyEntry('result', { toolCallId, ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } });
-                    this._notes.push(`[Generation failed: RUNTIME_ERROR: ${err.message}]`);
+                    this._notes.push(`[Generation failed: RUNTIME_ERROR: ${err.message}${_retryNote(this._engineFail(args))}]`);
                     this._maybeDrained();
                 };
 
@@ -3160,7 +3202,7 @@ ${knowledgeIndex}`.trim();
         // actually typed clears it. Reset BEFORE the turn runs — a wake that dispatches a
         // generation must see its own predecessor's count, not a cleared one.
         if (wake) this._wakeStreak = (this._wakeStreak || 0) + 1;
-        else this._wakeStreak = 0;
+        else { this._wakeStreak = 0; this._engineFails.clear(); }
         // MPI-1226: a message typed now means the user is watching whatever is still running.
         // Marked before any wait for the GPU, or a job landing during it would be looked at.
         if (!wake) for (const id of this._inflight.keys()) this._watched.add(id);

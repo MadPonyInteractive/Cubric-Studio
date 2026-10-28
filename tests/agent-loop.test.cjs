@@ -4721,3 +4721,75 @@ describe('(v) a vision model sees the picture only when it asks', () => {
         assert.equal(imageParts(loop._messages).length, 0);
     });
 });
+
+// ---------------------------------------------------------------------------
+// MPI-1286 — a clip in a frame slot is upscaled first; an engine failure is retried once
+// ---------------------------------------------------------------------------
+
+describe('MPI-1286 frame upscale and retry guards', () => {
+    const project = { folderPath: '/project', name: 'Test' };
+    const join = (media) => ({ modelId: 'minimax-h3', operation: 'i2v_ms', prompt: 'They talk, then a crash', media });
+
+    // Live 2026-10-28: a pre-scene sent ref2v_001.mp4 (a reference clip, no start picture) straight
+    // to endFrame, and the app decoded its first frame unsharpened.
+    test('a clip in a frame slot is refused until it is upscaled, unless its start picture is sent', async () => {
+        const { loop, tools } = await makeLoop();
+        loop._images.set('ref2v_001.mp4', { path: '/project/Media/ref2v_001.mp4', itemId: 'i1', groupId: 'g1' });
+        loop._images.set('i2v_001.mp4', { path: '/project/Media/i2v_001.mp4', itemId: 'i2', groupId: 'g2' });
+        loop._startFrameOf = async (file) => (file.endsWith('i2v_001.mp4') ? '/project/Media/start.png' : null);
+        const send = async (media) => JSON.parse(await loop._executeTool('generate', join(media), 't', project));
+
+        const first = await send([{ role: 'endFrame', image: 'ref2v_001.mp4' }]);
+        assert.equal(first.error?.code, 'FRAME_NOT_UPSCALED', JSON.stringify(first));
+        assert.match(first.error.message, /operation "imageUpscale".*factor: 1\.5/);
+        const last = await send([{ role: 'startFrame', image: 'i2v_001.mp4', frame: 'last' }]);
+        assert.equal(last.error?.code, 'FRAME_NOT_UPSCALED', 'a last frame is always decoded');
+        assert.match(last.error.message, /frame: "last"/);
+        assert.equal(tools.calls.generate.length, 0, 'nothing ran');
+
+        // A clip made from a picture sends that picture: no upscale needed.
+        const ok = await send([{ role: 'endFrame', image: 'i2v_001.mp4' }]);
+        assert.notEqual(ok.error?.code, 'FRAME_NOT_UPSCALED', JSON.stringify(ok));
+    });
+
+    test('the frame upscale itself skips the app:upscaling read', async () => {
+        const { loop, tools } = await makeLoop();
+        loop._readIds.delete('app:upscaling');
+        loop._images.set('ref2v_001.mp4', { path: '/project/Media/ref2v_001.mp4', itemId: 'i1', groupId: 'g1' });
+        const out = JSON.parse(await loop._executeTool('generate', { operation: 'imageUpscale',
+            media: [{ role: 'inputImage', image: 'ref2v_001.mp4' }], fields: { upscaler: '4x-NMKD-Siax', factor: 1.5 }, wait: true }, 't', project));
+        assert.notEqual(out.error?.code, 'KNOWLEDGE_NOT_READ', JSON.stringify(out));
+        assert.equal(tools.calls.generate.length, 1);
+    });
+
+    // Live 2026-10-28: error 1450 woke the agent three times and it resent the same H3 job each time.
+    test('an engine failure may be retried once; the third try waits on the user', async () => {
+        const { loop, tools } = await makeLoop();
+        // Past EARLY_REFUSAL_MS (1000): a failure inside it is a refusal before the job queued.
+        tools.generate = async () => { await new Promise((r) => setTimeout(r, 1100)); return { ok: false, error: { code: 'RUNTIME_ERROR', message: 'HostBuffer.read_file_slice failed' } }; };
+        const fox = { modelId: 'test-model', operation: 't2i', prompt: 'A fox', wait: true };
+        const send = async () => JSON.parse(await loop._executeTool('generate', fox, 't', project));
+
+        await send();
+        assert.match(loop._notes.at(-1), /You may send it once more/);
+        await send();
+        assert.match(loop._notes.at(-1), /failed twice: do not send it again/);
+        const third = await send();
+        assert.equal(third.error?.code, 'REPEATED_FAILURE');
+        assert.equal(loop._engineFails.get('test-model\nt2i'), 2, 'the refused try is not a run');
+
+        // Another op is not held back by this one's failures, and a typed message clears the count.
+        const other = JSON.parse(await loop._executeTool('generate', { ...fox, operation: 'i2v' }, 't', project));
+        assert.notEqual(other.error?.code, 'REPEATED_FAILURE');
+        await loop.runTurn('try again', [], project, 'auto', 'deepinfra', 't2');
+        assert.equal(loop._engineFails.size, 0);
+    });
+
+    test('a refusal before the run is not an engine failure', async () => {
+        const { loop, tools } = await makeLoop();
+        tools.generate = async () => { await new Promise((r) => setTimeout(r, 1100)); return { ok: false, error: { code: 'MODEL_NOT_INSTALLED', message: 'not installed' } }; };
+        for (let i = 0; i < 3; i++) await loop._executeTool('generate', { modelId: 'test-model', operation: 't2i', prompt: 'A fox', wait: true }, 't', project);
+        assert.equal(loop._engineFails.size, 0);
+        assert.doesNotMatch(loop._notes.at(-1), /send it once more/);
+    });
+});
