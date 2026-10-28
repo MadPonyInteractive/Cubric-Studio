@@ -39,8 +39,8 @@
   "4": {
     "inputs": {
       "source": [
-        "3",
-        1
+        "7",
+        0
       ]
     },
     "class_type": "PreviewAny",
@@ -77,6 +77,18 @@
     "class_type": "MpiIfElse",
     "_meta": {
       "title": "Audio or video"
+    }
+  },
+  "7": {
+    "inputs": {
+      "passthrough": [
+        "3",
+        1
+      ]
+    },
+    "class_type": "MpiClearVram",
+    "_meta": {
+      "title": "Mpi Clear Vram"
     }
   }
 }

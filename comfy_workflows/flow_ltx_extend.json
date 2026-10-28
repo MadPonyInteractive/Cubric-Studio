@@ -697,12 +697,12 @@
       "use_audio": true,
       "truncate_to_audio": false,
       "images": [
-        "43",
-        2
+        "63",
+        0
       ],
       "audio": [
-        "45",
-        0
+        "63",
+        1
       ],
       "fps": [
         "17",
@@ -916,6 +916,46 @@
     "class_type": "MpiMath",
     "_meta": {
       "title": "preroll (min 1ms)"
+    }
+  },
+  "61": {
+    "inputs": {
+      "passthrough": [
+        "62",
+        0
+      ]
+    },
+    "class_type": "MpiClearVram",
+    "_meta": {
+      "title": "Mpi Clear Vram"
+    }
+  },
+  "62": {
+    "inputs": {
+      "any_1": [
+        "43",
+        2
+      ],
+      "any_2": [
+        "45",
+        0
+      ]
+    },
+    "class_type": "MpiPacker",
+    "_meta": {
+      "title": "Mpi Packer"
+    }
+  },
+  "63": {
+    "inputs": {
+      "pack": [
+        "61",
+        0
+      ]
+    },
+    "class_type": "MpiUnpacker",
+    "_meta": {
+      "title": "Mpi Unpacker"
     }
   }
 }

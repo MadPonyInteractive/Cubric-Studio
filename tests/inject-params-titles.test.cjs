@@ -649,7 +649,10 @@ test('the Transcribe Flow takes an audio or a video and captures the SRT (MPI-10
     const idOf = t => Object.keys(graph).find(k => graph[k]._meta?.title?.toLowerCase() === t);
     // Output_prompt reads MpiSpeechToText's SECOND output, `srt`: the renderer derives the
     // plain text from it. Slot 0 (`text`) here would leave the .srt with nothing to write.
-    const out = graph[idOf('output_prompt')].inputs.source;
+    // It reads it THROUGH an MpiClearVram passthrough, so the model leaves VRAM before the output (MPI-1324).
+    const clear = graph[idOf('output_prompt')].inputs.source;
+    assert.strictEqual(graph[clear[0]].class_type, 'MpiClearVram');
+    const out = graph[clear[0]].inputs.passthrough;
     assert.strictEqual(graph[out[0]].class_type, 'MpiSpeechToText');
     assert.strictEqual(out[1], 1, `${file}: Output_prompt must read the srt output (slot 1)`);
     // The audio wins when it loaded, else the video: an MpiIfElse forked on Input_Audio's

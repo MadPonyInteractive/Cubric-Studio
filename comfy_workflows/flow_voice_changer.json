@@ -56,13 +56,25 @@
     "inputs": {
       "filename_prefix": "audio/VoiceChanger",
       "audio": [
-        "4",
+        "6",
         0
       ]
     },
     "class_type": "SaveAudio",
     "_meta": {
       "title": "Output_Audio"
+    }
+  },
+  "6": {
+    "inputs": {
+      "passthrough": [
+        "4",
+        0
+      ]
+    },
+    "class_type": "MpiClearVram",
+    "_meta": {
+      "title": "Mpi Clear Vram"
     }
   }
 }

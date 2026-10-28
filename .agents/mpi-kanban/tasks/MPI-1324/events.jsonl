@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1324", "at": "2026-10-28T23:03:56+00:00", "actor": "claude", "column": "todo", "title": "Five Flows free VRAM before their output (MpiClearVram)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1324", "at": "2026-10-28T23:04:17+00:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started."}
