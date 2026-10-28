@@ -1,0 +1,60 @@
+{
+  "schema": "mpi-kanban/handoff/v1",
+  "id": "fc02db0d-d50a-40c0-a430-59dbd69dee9d",
+  "generated_at": "2026-10-28T10:33:00Z",
+  "status": "open",
+  "from_session": ".agents/mpi-kanban/state/sessions/38b820b2-d03b-447a-9187-b74028fb4170.json",
+  "session": { "name": "2.1.3 release 11: H3 fl2va error-1450 root cause found (MPI-1029 fix never applied to fl2va)", "branch": "master" },
+  "goal": {
+    "original": "Release 2.1.3 without breaking the ~3,000 users who downloaded 2.1.2.",
+    "status": "in_progress",
+    "summary": "Release held. Root cause of the H3 Windows error 1450 crash found: the first/last-frame graph (minimax_h3_fl2va, op i2v_ms) still has one MpiClearVram per encode (528 after 472, 527 after 485), so the 25 GB Qwen3-VL TE is evicted between the stage-1 and refine encodes and re-read from disk - the read that fails. MPI-1029 (3e7ae7dad, 2026-10-06) fixed this in r2va only. Fabio approved applying the fix to fl2va, in the RAW template too."
+  },
+  "plan": {
+    "file": null,
+    "completed": [
+      "Fabio's npm start test (2026-10-28 ~10:04-10:24 UTC, log %APPDATA%\\Cubric Studio\\logs\\app.log - NOT the repo's logs/): Krea 2 -> H3 'New model family: freeing ...' fired and H3 ran (check 3 pass); describe/transcribe caused no unload (check 4 pass); the two cancels were Fabio's own messages, not Cosmo circling",
+      "Pre-scene test FAILED: H3 i2v_ms hit error 1450 three times (TE load), Cosmo retried the same RUNTIME_ERROR 4 times, skipped imageUpscale (gave the ref2v clip straight to i2v_ms, app decoded the frame itself), and chose 12 s then 10 s",
+      "Regression hunt (3 read-only agents + log timeline): engine identical to 2026-10-26 (ComfyUI 0.42.1, torch 2.13.0+cu130, aimdo 0.5.6, pinned 26124) when H3 ran 10x clean - all ref2va. MPI-1302 AUDIT commits cleared (no engine-path change). Sparse attention (sol-attn, 2026-10-25) identical on fl2va and r2va and sits on the model path, not the TE. Proof: today's log shows 'Requested to load MiniMaxH3TEModel_' twice per fl2va prompt; every 1450 hit during a TE load",
+      "915d85dae pushed: services/agentLoop.mjs _logRefused - one '[agent] refused <tool> <code>: <message> | args ...' WARN line per ok:false tool result. npm test 3778/0, lint+typecheck clean"
+    ],
+    "pending": [
+      "Apply MPI-1029's shape to fl2va: read `git show 3e7ae7dad -- comfy_workflows/minimax_h3_r2va.json` for how r2va did it (MpiPacker 873 of both encodes -> ONE MpiClearVram 875 before any sampler; Singularity graph has the same). In fl2va remove the per-encode clears 527/528 and route 472+485 through one pack->clear, so the TE stays loaded across both encodes. Fabio said 'just remove the Clear VRAM nodes' - keep ONE clear before the sampler unless r2va shows otherwise (it frees the TE before the 20 GB DiT loads)",
+      "Edit comfy_workflows/raw/minimax_h3_fl2va_template.json FIRST (Fabio: else his next raw-file load reverts it), then sync the runtime graph via the add-model playbook's template->runtime split (docs/playbooks/add-model/), never hand-edit the runtime only. Keep injection node ids valid (js/data/models* minimax-h3 i2v_ms)",
+      "Verify: workflow/injection tests, npm test + lint; then Fabio retests a pre-scene on npm start: log must show 'Requested to load MiniMaxH3TEModel_' ONCE per prompt and no error=1450",
+      "Cosmo fixes still open: stop after one retry on the same RUNTIME_ERROR and tell the user; the clip-frame imageUpscale step was skipped (agent passed the clip to i2v_ms endFrame and the app decoded it - decide whether the app path should refuse a clip in a frame slot or Cosmo's knowledge must force imageUpscale); pre-scene duration 12/10 s too long",
+      "Reconsider _freeOtherModelFamily (e028447bc): may be unnecessary once fl2va is fixed - judge with Fabio, do not remove silently",
+      "Then: the 'Generation failed' modal for agent jobs Cosmo retries; re-cut 5 only after Fabio passes everything"
+    ]
+  },
+  "task_card": {
+    "id": "MPI-1286",
+    "title": "2.1.3 release readiness: MOSS-Image, Singularity H3 and the Storyboard Flow",
+    "column": "doing",
+    "workspace": ".agents/mpi-kanban/tasks/MPI-1286/",
+    "links": { "plan": null, "checklist": ".agents/mpi-kanban/tasks/MPI-1286/checklist.md", "validation": ".agents/mpi-kanban/tasks/MPI-1286/validation.md" }
+  },
+  "next_action": {
+    "description": "Apply MPI-1029's one-clear fix to the H3 fl2va graph: raw template comfy_workflows/raw/minimax_h3_fl2va_template.json first, then sync the runtime comfy_workflows/minimax_h3_fl2va.json, so the 25 GB text encoder is read once per prompt; test, push, and have Fabio retest a pre-scene on npm start.",
+    "command": "mpi-continue"
+  },
+  "context": {
+    "key_decisions": [
+      "Fabio 2026-10-28: apply the fix in a fresh session, to the RAW template as well as the runtime graph",
+      "Fabio 2026-10-28: Cosmo's refusals must be logged so Cosmo can be improved (done, 915d85dae)",
+      "Fabio's rules stand: test on npm start from master, fix until Cosmo does the job without circling, only then re-cut"
+    ],
+    "constraints": [
+      "npm start logs to %APPDATA%\\Cubric Studio\\logs\\app.log (the repo's logs/ is test output). Read it, never drive or curl :3000",
+      "MPI-1029 was Fabio's own template edit; its proof line is 'Requested to load MiniMaxH3TEModel_ once per prompt (was twice)' - use the same proof",
+      "Heredocs/backticks in inline scripts are blocked by guard-shell: write scripts with Write and run by path; claim files before editing (guard-claim)"
+    ],
+    "files_to_read_first": [
+      "comfy_workflows/minimax_h3_fl2va.json (nodes 472, 485, 527, 528)",
+      "git show 3e7ae7dad (MPI-1029 r2va fix)",
+      "docs/models/h3/performance.md (lines ~180-190)",
+      "docs/playbooks/add-model/ (template -> runtime sync)"
+    ]
+  },
+  "resume_prompt": "Read .agents/mpi-kanban/state/handoffs/fc02db0d-d50a-40c0-a430-59dbd69dee9d.json and use mpi-continue on MPI-1286 (2.1.3 release, in doing, NOT published). The H3 Windows error-1450 crash is the MPI-1029 bug left in the first/last-frame graph: minimax_h3_fl2va has one MpiClearVram per encode (528 after 472, 527 after 485), so the 25 GB text encoder is re-read between encodes. Apply MPI-1029's fix (one clear on a pack of both encodes, as in r2va commit 3e7ae7dad) to comfy_workflows/raw/minimax_h3_fl2va_template.json first, then sync the runtime graph, test, push, and have Fabio retest a pre-scene on npm start (proof: TE loads once per prompt, no error=1450). Cosmo's retry loop, skipped frame upscale and long pre-scene durations are still open."
+}
