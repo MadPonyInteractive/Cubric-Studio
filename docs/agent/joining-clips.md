@@ -72,8 +72,8 @@ between the frames, never a description of either picture: the frames already sh
 ## Combine them
 
 An Extend Video result is already one clip. Once a join clip has landed and the user is happy with it, offer to combine the clips into
-one video: the `gif` tool's `combine` action (read app:gifs), clips in play order (A, the join,
-B). Every clip stays its own card, so a join the user wants changed is redone and combined
+one video, ending the offer on `[options: Combine them | Keep them apart]`, and wait. On Combine:
+the `gif` tool's `combine` action (read app:gifs), clips in play order (A, the join, B). Every clip stays its own card, so a join the user wants changed is redone and combined
 again.
 
 ## Keyframes
