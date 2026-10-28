@@ -1222,7 +1222,7 @@ export async function enlargedCrop(imagePath, crop) {
  * @param {object} [a.group]      owning group, for the ComfyUI queue context
  * @param {boolean} [a.queued]    endpoint only: run it as a queue job (see above)
  * @param {boolean} [a.greedy]    with a question: greedy decoding (`GREEDY_DESCRIBE`; endpoint: temperature 0)
- * @returns {Promise<{ok:boolean, via:'comfy'|'endpoint', text?:string, model?:string, errorCode?:string, error?:string, cancelled?:boolean}>}
+ * @returns {Promise<{ok:boolean, via:'comfy'|'endpoint', text?:string, model?:string, errorCode?:string, status?:number, error?:string, cancelled?:boolean}>}
  *          Never rejects. On failure: `error` is a human-readable message. `via` names the
  *          backend that ran, so a caller can point at the right place to fix it.
  */
@@ -1275,7 +1275,9 @@ export async function describeImage({ imagePath, question, crop, scope, group, q
                 const msg = (typeof body.error === 'object' ? body.error?.message : body.error)
                     || 'The description failed.';
                 const code = (typeof body.error === 'object' ? body.error?.code : undefined);
-                return { ok: false, via: 'endpoint', ...(code ? { errorCode: code } : {}), error: msg };
+                // The provider's HTTP status, so a caller can tell a server hiccup from a refusal.
+                const status = (typeof body.error === 'object' ? body.error?.status : undefined);
+                return { ok: false, via: 'endpoint', ...(code ? { errorCode: code } : {}), ...(status ? { status } : {}), error: msg };
             }
             return { ...body, via: 'endpoint' };
         } catch (err) {

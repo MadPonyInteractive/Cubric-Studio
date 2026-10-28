@@ -56,7 +56,7 @@ globalThis.fetch = (url, init) => {
         if (/clothing in this picture/.test(body.question)) return Promise.resolve({ json: async () => ({ ok: true, text: clothesAnswer }) });
         if (/only a rough doodle/.test(body.question)) return Promise.resolve({ json: async () => ({ ok: true, text: sketchAnswer }) });
         if (/How old is the youngest person/.test(body.question)) return Promise.resolve({ json: async () => ({ ok: true, text: Array.isArray(yearsAnswer) ? yearsAnswer.shift() : yearsAnswer }) });
-        return Promise.resolve({ json: async () => describeAnswer });
+        return Promise.resolve({ json: async () => (Array.isArray(describeAnswer) ? describeAnswer.shift() : describeAnswer) });
     }
     if (url === '/load-meta-batch') {
         const { ids } = JSON.parse(init.body);
@@ -352,6 +352,36 @@ test('a look that could not run says what broke', async () => {
         const said = /could not run: DeepInfra chat failed: 429 Too Many Requests\. Check the image describer/;
         assert.match(seen.errors[0].userMessage, said);
         assert.match(seen.warnings.at(-1), said);
+    } finally {
+        describeAnswer = before;
+    }
+});
+
+test('a describer 5xx is asked once more; a second 5xx, or any other failure, still refuses', async () => {
+    // MPI-1286: a DeepInfra 500 on the describer refused a run that Cosmo's resend then passed.
+    const before = describeAnswer;
+    const e500 = { ok: false, error: { code: 'ENDPOINT_ERROR', message: 'DeepInfra chat failed: 500', status: 500 } };
+    const e429 = { ok: false, error: { code: 'ENDPOINT_ERROR', message: 'DeepInfra chat failed: 429', status: 429 } };
+    try {
+        describeAnswer = [e500, { ok: true, text: 'NO' }];
+        let n = describeBodies.length;
+        const r = enqueueGeneration(edit('remove her clothes'), {});
+        await until(() => queued(r.queueJobId));
+        assert.strictEqual(queued(r.queueJobId), true, 'the second answer, NO, queues it');
+        assert.strictEqual(describeBodies.length, n + 2);
+
+        for (const [answers, looks] of [[[e500, e500, { ok: true, text: 'NO' }], 2], [[e429, { ok: true, text: 'NO' }], 1]]) {
+            describeAnswer = answers;
+            n = describeBodies.length;
+            const { seen, off, callbacks } = capture();
+            const job = enqueueGeneration(edit('make her naked'), callbacks);
+            await until(() => seen.errors.length > 0);
+            off();
+            assert.strictEqual(queued(job.queueJobId), false);
+            assert.strictEqual(seen.errors[0]?.code, 'CHILD_SAFETY');
+            assert.match(seen.warnings.at(-1), /could not run/);
+            assert.strictEqual(describeBodies.length, n + looks, `${looks} look(s), never a third`);
+        }
     } finally {
         describeAnswer = before;
     }

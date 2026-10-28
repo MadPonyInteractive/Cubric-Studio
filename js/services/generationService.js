@@ -761,8 +761,17 @@ async function _pictureVerdicts(config, llm, pictures, clips, refs, video) {
     const project = config._originProject;
     // The first reason a look could not run, carried into the refusal (MPI-1273).
     let failed = null;
+    // A provider 5xx is asked ONCE more (MPI-1286: a DeepInfra 500 refused a dressed adult's clip,
+    // and Cosmo's resend went through). Anything else, and a second 5xx, stands as no answer.
+    const see = async (args) => {
+        if (!llm) return null;
+        const r = await llm.describeImage(args);
+        if (r?.ok || !(r?.status >= 500)) return r;
+        clientLogger.warn('generationService', `[childSafety] describer ${r.status}, asking once more: ${r.error}`);
+        return llm.describeImage(args);
+    };
     const describe = async (url, question) => {
-        const r = llm ? await llm.describeImage({ imagePath: url, question }) : null;
+        const r = await see({ imagePath: url, question });
         if (!r?.ok) {
             failed ??= r?.error || 'the language models did not load';
             return null;
@@ -792,7 +801,7 @@ async function _pictureVerdicts(config, llm, pictures, clips, refs, video) {
     // An age YES whose guess (`YEARS_QUESTION`) is ADULT_YEARS or more is no YES: a picture that is
     // not a doodle, and each frame of a clip (Fabio 2026-10-19: an adult anime clip refused in Video Edit).
     const guessedAdult = async (url) => {
-        const r = llm ? await llm.describeImage({ imagePath: url, question: YEARS_QUESTION }) : null;
+        const r = await see({ imagePath: url, question: YEARS_QUESTION });
         const guess = r?.ok ? parseYears(r.text) : null;
         if (guess === null || guess < ADULT_YEARS) return false;
         clientLogger.info('generationService', `[childSafety] guessed ${guess}: an adult, the words decide`);
@@ -805,8 +814,7 @@ async function _pictureVerdicts(config, llm, pictures, clips, refs, video) {
     const pictureAge = async (url) => {
         const minor = await describe(url, AGE_QUESTION);
         if (minor !== true) return minor;
-        const look = (question) => (llm ? llm.describeImage({ imagePath: url, question }) : null);
-        const sketch = await look(SKETCH_QUESTION);
+        const sketch = await see({ imagePath: url, question: SKETCH_QUESTION });
         if (sketch?.ok && parseSketchAnswer(sketch.text)) {
             clientLogger.info('generationService', '[childSafety] a rough doodle: no age in it, the words decide');
             return false;
