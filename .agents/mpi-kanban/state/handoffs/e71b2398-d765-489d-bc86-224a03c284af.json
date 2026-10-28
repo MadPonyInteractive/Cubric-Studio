@@ -1,0 +1,60 @@
+{
+  "schema": "mpi-kanban/handoff/v1",
+  "id": "e71b2398-d765-489d-bc86-224a03c284af",
+  "generated_at": "2026-10-28T10:05:49Z",
+  "status": "open",
+  "from_session": ".agents/mpi-kanban/state/sessions/638f647a-58cf-48a6-9811-bfa5ea00dc7b.json",
+  "session": { "name": "2.1.3 release 10: pre-scene fixes on master, awaiting Fabio's npm start test", "branch": "master" },
+  "goal": {
+    "original": "Release 2.1.3 without breaking the ~3,000 users who downloaded 2.1.2.",
+    "status": "in_progress",
+    "summary": "Release held on Fabio's pre-scene test. Fixes are on master (e028447bc + b40c1a388, pushed): agent i2v_ms takes an end frame alone, Cosmo upscales any frame decoded from a clip with the imageUpscale tool before a frame slot, and a local generation of a different model family frees the engine first (the H3 error-1450 crash). Fabio is testing on `npm start` from master and reports in the fresh session. Fabio's rule: fix until Cosmo does the job without going in circles, only then re-cut."
+  },
+  "plan": {
+    "file": null,
+    "completed": [
+      "Crash root cause: Windows error 1450 (aimdo xfer_file_read_at) while staging H3's 25 GB TE with Krea 2's ~18 GB still in RAM. ComfyUI 0.42.1 evicts pins on Windows only under 512 MB free or swap >= 5%; aimdo 0.5.6 does not retry. Same error as MPI-1029. Not reproduced on a second engine (nondeterministic, GPU was Fabio's)",
+      "comfyController `_freeOtherModelFamily`: before a LOCAL run whose unet/ckpt/clip/vae files share none with the last generation's, POST /comfy/unload {deep:true} (ComfyUI /free unload_models + free_memory, which resets the node cache). commandExecutor passes `freesOtherModels: outputKind !== 'text'`, so imageDescribe/promptEnhance/speechTranscribe never unload or reset the 'last' set. Detection/automask call sites do not pass it",
+      "End frame alone: i2v_ms startFrame `satisfiedBy: 'endFrame'` (commandRegistry + typedef); resolveAgentMedia honours it; connector mediaRolesFor reports startFrame required:false + orRole:'endFrame'; endFrame use text says alone it builds up to the picture",
+      "Cosmo knowledge: VIDEO_OPS (services/agentLoop.mjs) no longer says end-frame-alone needs a start picture, and adds 'a frame decoded from a clip goes through imageUpscale'; docs/agent/joining-clips.md pre-scene = endFrame only, new section 'Upscale a frame taken from a clip' (Siax realistic, AnimeSharp cartoon, x2; exception: clip B first frame when made from a picture sends that picture); minimax-h3/ltx-2.3/ltx-2.5/wan-2.2 role lines updated",
+      "npm test 3778 pass 0 fail; npm run lint (eslint + typecheck) clean; pushed",
+      "Fabio asked whether Cosmo has a video model preference list: it already exists in js/data/modelConstants/modelPriority.js in his exact order (H3, LTX 2.5, LTX 2.3, Wan 2.2, Wan 5B). Nothing to change"
+    ],
+    "pending": [
+      "Read Fabio's npm start test report. His four checks: (1) pre-scene before the explosion clip: no Krea picture, H3 i2v with endFrame only, 3 s+; (2) 'what happens next': imageUpscale of the clip's last frame then i2v from that card; (3) Krea 2 then H3: RAM bar drops, logs/app.log shows 'New model family: freeing ...'; (4) enhance or describe mid-work: no 'New model family' line, no reload",
+      "Fix whatever he reports, retest on npm start; loop until Cosmo does it without circling",
+      "The 'Generation failed' modal for an agent job Cosmo then retried by itself: find where agent jobs raise it and agree with Fabio how a recovered failure shows (queue row / agent row, not a modal)",
+      "Only after Fabio passes everything: re-cut 5 (tag v2.1.3 on the new commit, mpi-ci, 1.5.0 gate, his copy D:\\CVTest\\v2.1.2-to-v2.1.3), Gate 2, publish",
+      "Still open from before: between-clips join test, MPI-1316 style drop, DeepSeek default; post-2.1.3 cards Fabio agreed in words: image-models ops legend; log agent-side generate refusals; MPI-1317 exists"
+    ]
+  },
+  "task_card": {
+    "id": "MPI-1286",
+    "title": "2.1.3 release readiness: MOSS-Image, Singularity H3 and the Storyboard Flow",
+    "column": "doing",
+    "workspace": ".agents/mpi-kanban/tasks/MPI-1286/",
+    "links": { "plan": null, "checklist": ".agents/mpi-kanban/tasks/MPI-1286/checklist.md", "validation": ".agents/mpi-kanban/tasks/MPI-1286/validation.md" }
+  },
+  "next_action": {
+    "description": "Wait for Fabio's npm start test report on the pre-scene fixes (end frame alone, frame upscale, model-family unload), then fix what he reports and have him retest. No re-cut until he passes it.",
+    "command": "mpi-continue"
+  },
+  "context": {
+    "key_decisions": [
+      "Fabio 2026-10-28: fixes are tested on `npm start` from master; fix until Cosmo does the job without circling; only then cut a release, however long it takes",
+      "Fabio 2026-10-28: a new model unloads the previous one, but a describe or prompt-enhance on ComfyUI must never unload the model being worked with",
+      "Fabio 2026-10-28: Cosmo never invents or edits a frame; he picks the frame from the clip and model-upscales it (Siax realism, AnimeSharp cartoon) before feeding the video model"
+    ],
+    "constraints": [
+      "Fabio's npm start is his live app on :3000: read its log on disk (logs/app.log in the repo for npm start), never drive or curl it. Your own instance: `npm run app:isolated`",
+      "A peer session (2d5a9678) went live during handoff: guard-claim blocks edits to unclaimed files, so claim before editing (state/files record + index active_file_claims)",
+      "Heredocs and backticks inside double-quoted inline scripts are blocked by guard-shell: write scripts with the Write tool and run by path; docs/agent/models/minimax-h3.md is at the 200-line cap (agent-corpus test)"
+    ],
+    "files_to_read_first": [
+      ".agents/mpi-kanban/tasks/MPI-1286/validation.md (last section)",
+      "docs/agent/joining-clips.md",
+      "js/services/comfyController.js (_freeOtherModelFamily)"
+    ]
+  },
+  "resume_prompt": "Read .agents/mpi-kanban/state/handoffs/e71b2398-d765-489d-bc86-224a03c284af.json and use mpi-continue on MPI-1286 (2.1.3 release, in doing, NOT published). Fixes are pushed on master: the agent's i2v_ms takes an end frame alone (a pre-scene ends on the next clip's first frame, no invented start picture), Cosmo model-upscales any frame decoded from a clip before using it, and a local generation of a different model family frees the engine first (the H3 Windows error 1450 crash), never for describe/enhance/dictation. Fabio is testing on npm start and will report; fix what he finds, retest, and only then re-cut 5."
+}
