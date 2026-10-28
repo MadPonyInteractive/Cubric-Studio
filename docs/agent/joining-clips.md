@@ -14,7 +14,7 @@ picture, and a miss shows at the cut.
 | The new clip | `startFrame` | `endFrame` |
 |---|---|---|
 | Leads INTO clip B (a scene before it) | none (below) | clip B, sent as a picture |
-| FOLLOWS clip A (what happens next) | clip A with `frame: "last"` | none, or the shot after the change |
+| FOLLOWS clip A (what happens next) | Extend Video first (below); else clip A with `frame: "last"` | none, or the shot after the change |
 | Goes BETWEEN clip A and clip B | clip A with `frame: "last"` | clip B, sent as a picture |
 
 - A clip in a picture slot is its first frame (the picture it was made from when it has one), so
@@ -27,6 +27,14 @@ picture, and a miss shows at the cut.
 
 Send the clip itself in the frame slot. Never upscale, repaint or edit the frame first: an
 upscale shifts its colours, and the cut only meets cleanly on the clip's own picture.
+
+## What happens next: Extend Video
+
+A clip that FOLLOWS clip A is the Extend Video Flow (`flowId: "ltx-extend"`): clip A in `video1`,
+what happens next in `positive`, the seconds to add in `Input_Duration`. It carries on from A's
+real last frame, sound and all, and lands ONE card holding A plus the new seconds, so there is
+nothing to combine after it. Only when `list_models` shows the Flow not installed, make the
+after-scene with frames above (clip A with `frame: "last"`) and offer to combine it.
 
 ## A scene before a clip: the end frame alone
 
@@ -63,7 +71,7 @@ between the frames, never a description of either picture: the frames already sh
 
 ## Combine them
 
-Once the join clip has landed and the user is happy with it, offer to combine the clips into
+An Extend Video result is already one clip. Once a join clip has landed and the user is happy with it, offer to combine the clips into
 one video: the `gif` tool's `combine` action (read app:gifs), clips in play order (A, the join,
 B). Every clip stays its own card, so a join the user wants changed is redone and combined
 again.
