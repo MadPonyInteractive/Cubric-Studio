@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1320",
+  "title": "Gallery: the Cue queue docks as a right panel that pushes the gallery",
+  "description": "Fabio 2026-10-28: in the gallery the queue is a docked right panel like the agent panel (starts under the topbar, pushes gallery, prompt box and controls). History workspaces keep the slide-over.",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-10-28T20:19:12+00:00",
+  "updated_at": "2026-10-28T20:26:27.760213+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

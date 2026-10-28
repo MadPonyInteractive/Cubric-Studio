@@ -47,6 +47,7 @@ export const MpiGalleryToolbar = ComponentFactory.create({
             <div class="mpi-gallery-toolbar__filter-slot"></div>
             <div class="mpi-gallery-toolbar__archive-slot"></div>
             <div class="mpi-gallery-toolbar__info-slot"></div>
+            <div class="mpi-gallery-toolbar__queue-slot"></div>
         </div>
     `,
 
@@ -114,6 +115,14 @@ export const MpiGalleryToolbar = ComponentFactory.create({
         });
         infoBtn.on('click', () => { state.galleryShowInfo = !state.galleryShowInfo; });
 
+        // ── Queue toggle (MPI-1320) — the docked Cue; Q writes the same state ───
+        const _queueTip = (on) => on ? 'Hide the queue (Q)' : 'Show the queue (Q)';
+        const queueBtn = MpiButton.mount(qs('.mpi-gallery-toolbar__queue-slot', el), {
+            icon: 'layers', size: 'sm', toggleable: true,
+            active: state.queueDocked, info: _queueTip(state.queueDocked),
+        });
+        queueBtn.on('click', () => { state.queueDocked = !state.queueDocked; });
+
         // ── Reflect state (hotkeys, SHOW ALL and the panel write it too) ────────
         _unsubs.push(Events.on('state:changed', ({ key }) => {
             if (key === 'gallerySizeLevel') {
@@ -124,6 +133,9 @@ export const MpiGalleryToolbar = ComponentFactory.create({
             } else if (key === 'galleryShowInfo') {
                 infoBtn.el.setActive(state.galleryShowInfo);
                 infoBtn.el.setAttribute('data-info', _infoTip(state.galleryShowInfo));
+            } else if (key === 'queueDocked') {
+                queueBtn.el.setActive(state.queueDocked);
+                queueBtn.el.setAttribute('data-info', _queueTip(state.queueDocked));
             } else if (key === 'gallerySort') {
                 archiveBtn.el.setActive(_isArchived());
                 archiveBtn.el.setAttribute('data-info', _archiveTip(_isArchived()));

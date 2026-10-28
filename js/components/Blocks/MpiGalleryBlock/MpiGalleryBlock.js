@@ -20,7 +20,7 @@ import { recordAudioIntoProject } from '../MpiAudioRecorder/MpiAudioRecorder.js'
 import { hasNoEngine } from '../../../services/engineGate.js';
 import { MpiModelSettings } from '../../Compounds/MpiModelSettings/MpiModelSettings.js';
 import { MpiModelPicker } from '../../Compounds/MpiModelPicker/MpiModelPicker.js';
-import { bindQueueSlideOver } from '../../../shell/queueSlideOver.js';
+import { bindQueueDock } from '../../../shell/queueSlideOver.js';
 import { MpiReusePromptDialog } from '../../Compounds/MpiReusePromptDialog/MpiReusePromptDialog.js';
 import { MpiNotesEditor } from '../../Compounds/MpiNotesEditor/MpiNotesEditor.js';
 import { MpiAddToProject } from '../../Compounds/MpiAddToProject/MpiAddToProject.js';
@@ -115,7 +115,7 @@ export const MpiGalleryBlock = ComponentFactory.create({
 
         let groups = state.currentProject?.itemGroups || [];
 
-        _unsubs.push(...bindQueueSlideOver());
+        _unsubs.push(...bindQueueDock());
 
         // ── Rehydrate any in-flight gallery generations ───────────────────────
         const _myGenIds = new Set();

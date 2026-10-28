@@ -3,7 +3,8 @@ const { test, expect } = require('@playwright/test');
 const { launchApp, closeApp } = require('./launch');
 
 /**
- * MPI-822 — Q opens the Cue slide-over from INSIDE an open Flow.
+ * MPI-822 — Q opens the Cue slide-over from INSIDE an open Flow (the gallery under it docks the
+ * Cue instead, MPI-1320; a Flow stashes the dock, so over one it is the slide-over again).
  *
  * The flow frame can stack runs now, so the queue panel is the only place a
  * pending flow run can be seen or stopped. Fabio, first app pass: "pressing Q
@@ -99,12 +100,40 @@ test('Q opens the Cue slide-over from inside an open flow', async ({}, testInfo)
         await window.waitForSelector('.mpi-gallery-block', { timeout: 30000 });
 
         // ── Q in the GALLERY first: the baseline the flow case is measured against ──
+        // MPI-1320: the gallery DOCKS the Cue (#queue-panel-mount), it never slides over.
+        const probeDock = () => window.evaluate(() => {
+            const dock = document.querySelector('#queue-panel-mount');
+            const r = dock.getBoundingClientRect();
+            const agent = document.querySelector('#agent-panel-mount').getBoundingClientRect();
+            const content = document.querySelector('#workspace-content').getBoundingClientRect();
+            const toggle = document.querySelector('.mpi-gallery-toolbar__queue-slot .mpi-btn');
+            return {
+                open: dock.classList.contains('queue-panel-mount--open'),
+                hasPanel: !!dock.querySelector('.mpi-queue-panel'),
+                slideOver: !!document.querySelector('.mpi-slide-over--queue'),
+                top: Math.round(r.top), agentTop: Math.round(agent.top),
+                left: Math.round(r.left), width: Math.round(r.width),
+                contentRight: Math.round(content.right),
+                toggleActive: toggle?.classList.contains('is-active') ?? null,
+            };
+        });
         await window.keyboard.press('q');
-        await settle(window);
-        const inGallery = await probeQueuePanel(window);
+        await window.waitForTimeout(500);
+        const docked = await probeDock();
         await window.keyboard.press('q');
-        await settle(window);
-        const galleryClosed = await probeQueuePanel(window);
+        await window.waitForTimeout(500);
+        const undocked = await probeDock();
+        console.log('[MPI-1320] docked   :', JSON.stringify(docked));
+        console.log('[MPI-1320] undocked :', JSON.stringify(undocked));
+        expect(docked.open, 'Q must dock the Cue in the gallery').toBe(true);
+        expect(docked.slideOver, 'the gallery never opens the slide-over').toBe(false);
+        expect(docked.hasPanel).toBe(true);
+        expect(docked.top, 'the dock starts where the agent panel does').toBe(docked.agentTop);
+        expect(docked.width).toBeGreaterThan(200);
+        expect(docked.contentRight, 'the gallery ends where the dock begins').toBe(docked.left);
+        expect(docked.toggleActive, 'the toolbar toggle lights with the dock').toBe(true);
+        expect(undocked.open).toBe(false);
+        expect(undocked.toggleActive).toBe(false);
 
         // ── Open a flow through the real shell path ────────────────────────────
         const flowId = await window.evaluate(async () => {
@@ -146,17 +175,12 @@ test('Q opens the Cue slide-over from inside an open flow', async ({}, testInfo)
         const afterSecondOverlay = await probeQueuePanel(window);
 
         console.log('[MPI-822] flow:', flowId);
-        console.log('[MPI-822] gallery Q#1  :', JSON.stringify(inGallery));
-        console.log('[MPI-822] gallery Q#2  :', JSON.stringify(galleryClosed));
         console.log('[MPI-822] flow    Q#1  :', JSON.stringify(firstPress));
         console.log('[MPI-822] flow    Q#2  :', JSON.stringify(secondPress));
         console.log('[MPI-822] library      :', JSON.stringify(libraryOpened));
         console.log('[MPI-822] after 2nd ov :', JSON.stringify(afterSecondOverlay));
         console.log('[MPI-822] consoleErrors:', JSON.stringify(consoleErrors));
         console.log('[MPI-822] pageErrors   :', JSON.stringify(pageErrors));
-
-        // Baseline: the bind works at all.
-        expect(inGallery.present, 'Q must open the Cue panel in the gallery').toBe(true);
 
         // The card's contract: one press, inside the flow, opens it — visible and on top.
         expect(firstPress.flowPresent, 'the flow must still be open').toBe(true);

@@ -173,14 +173,14 @@ export const MpiProjectName = ComponentFactory.create({
         // which is what keeps the stats pinned right on group-history.
         const toolbarSlot = ce('div', { className: 'mpi-project-name__toolbar' });
 
-        // ── Stats (right-aligned: rule + count + label · size) ─────────────────
+        // ── Stats (right-aligned: count + label · size) ────────────────────────
+        // MPI-1320: the accent rule before them gave its place to the gallery's queue toggle.
         const statsEl = ce('div', { className: 'mpi-project-name__stats' });
-        const statsRule  = ce('span', { className: 'mpi-project-name__stats-rule', 'aria-hidden': 'true' });
         const statsCount = ce('span', { className: 'mpi-project-name__stats-count' });
         const statsLabel = ce('span', { className: 'mpi-project-name__stats-label' });
         const statsSep   = ce('span', { className: 'mpi-project-name__stats-sep', textContent: '·', 'aria-hidden': 'true' });
         const statsSize  = ce('span', { className: 'mpi-project-name__stats-size' });
-        statsEl.append(statsRule, statsCount, statsLabel, statsSep, statsSize);
+        statsEl.append(statsCount, statsLabel, statsSep, statsSize);
 
         let _statsCount = Number(props.statsCount) || 0;
         let _statsBytes = Number(props.statsBytes) || 0;

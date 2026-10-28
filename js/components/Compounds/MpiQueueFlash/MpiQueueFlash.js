@@ -57,7 +57,7 @@ export const MpiQueueFlash = ComponentFactory.create({
         }));
 
         _unsubs.push(Events.on('queue:added', ({ mediaType } = {}) => {
-            if (qs('.mpi-slide-over--queue[aria-expanded="true"]')) return;
+            if (qs('.mpi-slide-over--queue[aria-expanded="true"], .queue-panel-mount--open')) return;
             el.dataset.subject = SUBJECTS.has(mediaType) ? mediaType : 'image';
             // Restart the animation when a second job lands mid-flash.
             el.classList.remove('mpi-queue-flash--on');

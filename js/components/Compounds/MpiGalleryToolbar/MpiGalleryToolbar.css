@@ -62,7 +62,8 @@
 
 .mpi-gallery-toolbar__filter-slot,
 .mpi-gallery-toolbar__archive-slot,
-.mpi-gallery-toolbar__info-slot {
+.mpi-gallery-toolbar__info-slot,
+.mpi-gallery-toolbar__queue-slot {
     display: flex;
     align-items: center;
     flex: none;

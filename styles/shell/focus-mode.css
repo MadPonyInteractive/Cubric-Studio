@@ -38,11 +38,16 @@ body.mpi-focus-mode #prompt-box-mount {
  * nobody could read. */
 body.mpi-focus-mode:not(.page-landing) .main-area {
     --agent-panel-open-w: 0px;
+    --queue-panel-open-w: 0px; /* the gallery's docked Cue (MPI-1320), same reasoning */
 }
 
 body.mpi-focus-mode:not(.page-landing) #agent-panel-mount.agent-panel-mount--open {
     /* box-sizing is border-box, so at width 0 this 1px would still paint a hairline. */
     border-right-width: 0;
+}
+
+body.mpi-focus-mode:not(.page-landing) #queue-panel-mount.queue-panel-mount--open {
+    border-left-width: 0;
 }
 
 body.mpi-focus-mode #shell-info-bar {

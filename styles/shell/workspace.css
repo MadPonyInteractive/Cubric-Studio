@@ -109,7 +109,7 @@
 
 /* Everything in the column starts right of the open panel. */
 .main-area > :is(#workspace-content, #prompt-box-mount, #controls-mount) {
-  transition: margin-left var(--t-base) var(--ease);
+  transition: margin-left var(--t-base) var(--ease), margin-right var(--t-base) var(--ease);
 }
 
 .main-area:has(> .agent-panel-mount--open) > :is(#workspace-content, #prompt-box-mount, #controls-mount) {
@@ -123,6 +123,44 @@
 
 #agent-panel-mount > .mpi-resize-handle {
   right: 0;
+}
+
+/* ── Queue Panel Mount — the gallery's docked Cue, right (MPI-1320) ─────────── */
+/* The agent panel's mirror: same top (under the floating topbar) and bottom (the status bar),
+ * so it never covers the topbar's controls, and the column ends left of it. Fixed width, no
+ * drag: one custom property, set once, so nothing restyles while it is open. Only the gallery
+ * opens it (bindQueueDock); elsewhere the Cue is a slide-over. */
+.main-area {
+  --queue-panel-open-w: min(460px, 35%);
+}
+
+#queue-panel-mount {
+  position: absolute;
+  top: 52px;
+  bottom: 32px;
+  right: 0;
+  width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-left: 0 solid var(--line-soft);
+  background: var(--surface-1);
+  box-sizing: border-box;
+  transition: width var(--t-base) var(--ease);
+}
+
+#queue-panel-mount.queue-panel-mount--open {
+  width: var(--queue-panel-open-w);
+  border-left-width: 1px;
+}
+
+#queue-panel-mount > .mpi-queue-panel {
+  flex: 1;
+  min-height: 0;
+}
+
+.main-area:has(> .queue-panel-mount--open) > :is(#workspace-content, #prompt-box-mount, #controls-mount) {
+  margin-right: var(--queue-panel-open-w);
 }
 
 /* ── Tool Container ─────────────────────────────────────────────────────────── */

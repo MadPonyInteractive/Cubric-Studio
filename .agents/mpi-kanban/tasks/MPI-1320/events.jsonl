@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1320", "at": "2026-10-28T20:19:12+00:00", "actor": "claude", "column": "todo", "title": "Gallery: the Cue queue docks as a right panel that pushes the gallery"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1320", "at": "2026-10-28T20:19:32+00:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started."}

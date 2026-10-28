@@ -216,13 +216,6 @@
     font-variant-numeric: tabular-nums;
 }
 
-.mpi-project-name__stats-rule {
-    width: 48px;
-    height: 1px;
-    background: var(--accent-heat);
-    margin-right: 0.5rem;
-}
-
 .mpi-project-name__stats-count,
 .mpi-project-name__stats-label,
 .mpi-project-name__stats-size {

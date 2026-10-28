@@ -5,7 +5,7 @@
 
 import { state } from './state.js';
 import { APP_CONFIG } from '../dev_configs/app_config.js';
-import { onNavigate, PAGE_LANDING } from './router.js';
+import { onNavigate, PAGE_GALLERY, PAGE_LANDING } from './router.js';
 import { syncModelInstalled, MODELS, installedForOtherArch, getDriftedNodeDeps } from './data/modelRegistry.js';
 import { loadAll as loadAssets } from './services/assetService.js';
 import { loadUserFlows } from './services/userFlowService.js';
@@ -191,7 +191,10 @@ export async function initShell() {
 
   // MPI-1105: the right-edge "queue took a job" flash. App lifetime, no teardown.
   // Open queue: the one Cue panel payload, so the SAME panel id opens from any page.
-  MpiQueueFlash.mount(document.body.appendChild(ce('div'))).on('open', () => Events.emit('slide-over:open', QUEUE_PANEL));
+  // MPI-1320: the gallery docks it instead (bindQueueDock answers `generation-queue:open`).
+  MpiQueueFlash.mount(document.body.appendChild(ce('div'))).on('open', () => (state.currentPage === PAGE_GALLERY
+    ? Events.emit('generation-queue:open')
+    : Events.emit('slide-over:open', QUEUE_PANEL)));
   // Q toggles Cue on the projects page too. The workspace Blocks bind their own Q
   // (bindQueueSlideOver), so this answers only where no Block is mounted.
   Hotkeys.bind('queue.toggle', () => {
