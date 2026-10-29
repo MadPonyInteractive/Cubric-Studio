@@ -6379,7 +6379,7 @@
     },
     {
       "id": 459,
-      "type": "ToBasicPipe",
+      "type": "MpiToBasicPipe",
       "pos": [
         5526.863219422827,
         3044.9750382322673
@@ -6428,9 +6428,9 @@
         }
       ],
       "properties": {
-        "cnr_id": "comfyui-impact-pack",
-        "ver": "429d0159ad429e64d2b3916e6e7be9c22d025c3c",
-        "Node name for S&R": "ToBasicPipe"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "5e37b3831a578d7327402ed2a737caa51a631b68",
+        "Node name for S&R": "MpiToBasicPipe"
       }
     },
     {
@@ -9701,7 +9701,7 @@
     },
     {
       "id": 415,
-      "type": "MaskDetailerPipe",
+      "type": "MpiMaskDetailerPipe",
       "pos": [
         6073.6190734354195,
         2995.140622820585
@@ -9799,9 +9799,9 @@
       ],
       "title": "MaskDetailer",
       "properties": {
-        "cnr_id": "comfyui-impact-pack",
-        "ver": "8.22.2",
-        "Node name for S&R": "MaskDetailerPipe",
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "5e37b3831a578d7327402ed2a737caa51a631b68",
+        "Node name for S&R": "MpiMaskDetailerPipe",
         "ue_properties": {
           "widget_ue_connectable": {
             "seed": true,
@@ -11948,7 +11948,7 @@
     },
     {
       "id": 674,
-      "type": "ToBasicPipe",
+      "type": "MpiToBasicPipe",
       "pos": [
         5526.863219422827,
         5745.886788388043
@@ -11999,9 +11999,9 @@
         }
       ],
       "properties": {
-        "cnr_id": "comfyui-impact-pack",
-        "ver": "429d0159ad429e64d2b3916e6e7be9c22d025c3c",
-        "Node name for S&R": "ToBasicPipe"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "5e37b3831a578d7327402ed2a737caa51a631b68",
+        "Node name for S&R": "MpiToBasicPipe"
       }
     },
     {
@@ -12380,7 +12380,7 @@
     },
     {
       "id": 684,
-      "type": "ImpactMakeTileSEGS",
+      "type": "MpiMakeTileSEGS",
       "pos": [
         6824.51177476026,
         5686.266541295082
@@ -12437,9 +12437,9 @@
         }
       ],
       "properties": {
-        "cnr_id": "comfyui-impact-pack",
-        "ver": "429d0159ad429e64d2b3916e6e7be9c22d025c3c",
-        "Node name for S&R": "ImpactMakeTileSEGS"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "5e37b3831a578d7327402ed2a737caa51a631b68",
+        "Node name for S&R": "MpiMakeTileSEGS"
       },
       "widgets_values": [
         1024,
@@ -12460,7 +12460,7 @@
     },
     {
       "id": 685,
-      "type": "DetailerForEachPipe",
+      "type": "MpiDetailerForEachPipe",
       "pos": [
         7274.51177476026,
         5686.266541295082
@@ -12576,9 +12576,9 @@
       ],
       "title": "Tile detailer",
       "properties": {
-        "cnr_id": "comfyui-impact-pack",
-        "ver": "429d0159ad429e64d2b3916e6e7be9c22d025c3c",
-        "Node name for S&R": "DetailerForEachPipe"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "5e37b3831a578d7327402ed2a737caa51a631b68",
+        "Node name for S&R": "MpiDetailerForEachPipe"
       },
       "widgets_values": [
         1024,
@@ -13462,7 +13462,7 @@
     },
     {
       "id": 705,
-      "type": "UltralyticsDetectorProvider",
+      "type": "MpiUltralyticsDetectorProvider",
       "pos": [
         6824.51177476026,
         6166.266541295082
@@ -13492,9 +13492,9 @@
         }
       ],
       "properties": {
-        "cnr_id": "comfyui-impact-subpack",
-        "ver": "50c7b71a6a224734cc9b21963c6d1926816a97f1",
-        "Node name for S&R": "UltralyticsDetectorProvider"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "5e37b3831a578d7327402ed2a737caa51a631b68",
+        "Node name for S&R": "MpiUltralyticsDetectorProvider"
       },
       "widgets_values": [
         "bbox/person_yolov8n-seg.pt"
@@ -13505,7 +13505,7 @@
     },
     {
       "id": 706,
-      "type": "BboxDetectorSEGS",
+      "type": "MpiBboxDetectorSEGS",
       "pos": [
         7124.51177476026,
         6166.266541295082
@@ -13547,9 +13547,9 @@
         }
       ],
       "properties": {
-        "cnr_id": "comfyui-impact-pack",
-        "ver": "429d0159ad429e64d2b3916e6e7be9c22d025c3c",
-        "Node name for S&R": "BboxDetectorSEGS"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "5e37b3831a578d7327402ed2a737caa51a631b68",
+        "Node name for S&R": "MpiBboxDetectorSEGS"
       },
       "widgets_values": [
         0.5,
@@ -13568,7 +13568,7 @@
     },
     {
       "id": 707,
-      "type": "DetailerForEachPipe",
+      "type": "MpiDetailerForEachPipe",
       "pos": [
         7424.51177476026,
         6166.266541295082
@@ -13654,9 +13654,9 @@
       ],
       "title": "People detailer",
       "properties": {
-        "cnr_id": "comfyui-impact-pack",
-        "ver": "429d0159ad429e64d2b3916e6e7be9c22d025c3c",
-        "Node name for S&R": "DetailerForEachPipe"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "5e37b3831a578d7327402ed2a737caa51a631b68",
+        "Node name for S&R": "MpiDetailerForEachPipe"
       },
       "widgets_values": [
         1024,
@@ -13705,7 +13705,7 @@
     },
     {
       "id": 708,
-      "type": "UltralyticsDetectorProvider",
+      "type": "MpiUltralyticsDetectorProvider",
       "pos": [
         6824.51177476026,
         6646.266541295082
@@ -13735,9 +13735,9 @@
         }
       ],
       "properties": {
-        "cnr_id": "comfyui-impact-subpack",
-        "ver": "50c7b71a6a224734cc9b21963c6d1926816a97f1",
-        "Node name for S&R": "UltralyticsDetectorProvider"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "5e37b3831a578d7327402ed2a737caa51a631b68",
+        "Node name for S&R": "MpiUltralyticsDetectorProvider"
       },
       "widgets_values": [
         "bbox/face_yolov8n.pt"
@@ -13748,7 +13748,7 @@
     },
     {
       "id": 709,
-      "type": "BboxDetectorSEGS",
+      "type": "MpiBboxDetectorSEGS",
       "pos": [
         7124.51177476026,
         6646.266541295082
@@ -13789,9 +13789,9 @@
         }
       ],
       "properties": {
-        "cnr_id": "comfyui-impact-pack",
-        "ver": "429d0159ad429e64d2b3916e6e7be9c22d025c3c",
-        "Node name for S&R": "BboxDetectorSEGS"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "5e37b3831a578d7327402ed2a737caa51a631b68",
+        "Node name for S&R": "MpiBboxDetectorSEGS"
       },
       "widgets_values": [
         0.5,
@@ -13810,7 +13810,7 @@
     },
     {
       "id": 710,
-      "type": "DetailerForEachPipe",
+      "type": "MpiDetailerForEachPipe",
       "pos": [
         7424.51177476026,
         6646.266541295082
@@ -13903,9 +13903,9 @@
       ],
       "title": "Face detailer",
       "properties": {
-        "cnr_id": "comfyui-impact-pack",
-        "ver": "429d0159ad429e64d2b3916e6e7be9c22d025c3c",
-        "Node name for S&R": "DetailerForEachPipe"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "5e37b3831a578d7327402ed2a737caa51a631b68",
+        "Node name for S&R": "MpiDetailerForEachPipe"
       },
       "widgets_values": [
         1024,
@@ -13992,7 +13992,7 @@
     },
     {
       "id": 712,
-      "type": "ImpactSEGSLabelAssign",
+      "type": "MpiSEGSLabelAssign",
       "pos": [
         7184.51177476026,
         5586.266541295082
@@ -14030,9 +14030,9 @@
         }
       ],
       "properties": {
-        "cnr_id": "comfyui-impact-pack",
-        "ver": "429d0159ad429e64d2b3916e6e7be9c22d025c3c",
-        "Node name for S&R": "ImpactSEGSLabelAssign"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "5e37b3831a578d7327402ed2a737caa51a631b68",
+        "Node name for S&R": "MpiSEGSLabelAssign"
       },
       "widgets_values": [
         ""
@@ -14043,7 +14043,7 @@
     },
     {
       "id": 713,
-      "type": "SegsToCombinedMask",
+      "type": "MpiSegsToCombinedMask",
       "pos": [
         7184.51177476026,
         5746.266541295082
@@ -14073,14 +14073,14 @@
         }
       ],
       "properties": {
-        "cnr_id": "comfyui-impact-pack",
-        "ver": "429d0159ad429e64d2b3916e6e7be9c22d025c3c",
-        "Node name for S&R": "SegsToCombinedMask"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "5e37b3831a578d7327402ed2a737caa51a631b68",
+        "Node name for S&R": "MpiSegsToCombinedMask"
       }
     },
     {
       "id": 714,
-      "type": "ImpactDilateMask",
+      "type": "MpiDilateMask",
       "pos": [
         7184.51177476026,
         5816.266541295082
@@ -14110,9 +14110,9 @@
         }
       ],
       "properties": {
-        "cnr_id": "comfyui-impact-pack",
-        "ver": "429d0159ad429e64d2b3916e6e7be9c22d025c3c",
-        "Node name for S&R": "ImpactDilateMask"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "5e37b3831a578d7327402ed2a737caa51a631b68",
+        "Node name for S&R": "MpiDilateMask"
       },
       "widgets_values": [
         30
@@ -14160,7 +14160,7 @@
     },
     {
       "id": 716,
-      "type": "ImpactSegsAndMask",
+      "type": "MpiSegsAndMask",
       "pos": [
         7504.51177476026,
         5686.266541295082
@@ -14195,9 +14195,9 @@
         }
       ],
       "properties": {
-        "cnr_id": "comfyui-impact-pack",
-        "ver": "429d0159ad429e64d2b3916e6e7be9c22d025c3c",
-        "Node name for S&R": "ImpactSegsAndMask"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "5e37b3831a578d7327402ed2a737caa51a631b68",
+        "Node name for S&R": "MpiSegsAndMask"
       }
     },
     {

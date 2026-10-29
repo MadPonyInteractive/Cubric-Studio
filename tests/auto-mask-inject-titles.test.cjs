@@ -120,8 +120,8 @@ test('the retired SAM 1 points plumbing is gone', () => {
     // SAM 1 is deliberately KEPT for the segment-branch refine — assert it, so a
     // future cleanup pass cannot quietly delete the loader the detector depends on.
     const wf = JSON.parse(fs.readFileSync(WORKFLOW, 'utf8'));
-    const sam1 = Object.entries(wf).find(([, n]) => n.class_type === 'SAMLoader');
-    assert.ok(sam1, 'SAMLoader (SAM 1) was removed — the segment branch still needs it');
+    const sam1 = Object.entries(wf).find(([, n]) => n.class_type === 'MpiSAMLoader');
+    assert.ok(sam1, 'MpiSAMLoader (SAM 1) was removed — the segment branch still needs it');
     const refiner = Object.values(wf).find(n => n.inputs?.sam_model_opt?.[0] === sam1[0]);
     assert.ok(refiner, 'SAM 1 is loaded but no longer refines anything');
 });

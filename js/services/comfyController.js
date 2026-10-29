@@ -1904,13 +1904,13 @@ function createEngine({ engine, alwaysLocal }) {
         const PATH_INPUT_RE = /^lora_\d+$/;
         const _healToSlash = _needsPathHeal(this._alwaysLocal);
         // MPI-246: some nodes build their own enum with hardcoded '/' regardless of
-        // OS — Impact Pack's UltralyticsDetectorProvider lists 'bbox/face_yolov8n.pt'
+        // OS — MpiUltralyticsDetectorProvider (Impact Subpack's, ported) lists 'bbox/face_yolov8n.pt'
         // with a forward slash on Windows too. The Windows-local '/'→'\\' heal below
         // corrupts that into 'bbox\\face_yolov8n.pt' → value_not_in_list. Exclude
         // model_name for these node types (harmless in the '\\'→'/' direction too,
         // their value never has backslashes). folder_paths-backed loaders
-        // (UpscaleModelLoader, SAMLoader, etc.) still get the OS-separator heal.
-        const SLASH_ONLY_NODE_TYPES = new Set(['UltralyticsDetectorProvider']);
+        // (UpscaleModelLoader, MpiSAMLoader, etc.) still get the OS-separator heal.
+        const SLASH_ONLY_NODE_TYPES = new Set(['MpiUltralyticsDetectorProvider']);
         // Windows-local: the inverse. A user LoRA name persisted during a Pod
         // (Linux) session carries '/', but this engine's ComfyUI lists with '\\'
         // → value_not_in_list on reuse. Flip '/'→'\\' so the separator matches the

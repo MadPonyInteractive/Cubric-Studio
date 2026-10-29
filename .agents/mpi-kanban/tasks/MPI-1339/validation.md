@@ -12,3 +12,17 @@
 - Calls `DifferentialDiffusion.execute` directly (correct for core v0.42.1).
 - Not run: real SDXL/Klein end to end on GPU -> the fixed-seed before/after.
 - Noticed: tileDescribe.js cleanTileName does not strip `{} <> __`, which Impact used to expand.
+
+## Phase 2 (2026-10-29) - swap, A/B pending
+- MpiNodes 5e37b38 (pushed): detailer mappings merged in __init__.py, README section, changelog line.
+- Scratch engine (bench, CPU) with Impact packs EXCLUDED: all 16 Mpi nodes register, YOLO + SAM lists fill.
+  Required inputs and outputs match Impact's per object_info; only unported optional sockets differ
+  (hooks, refiner pipe, scheduler_func, segm detector) and no graph wires them.
+- Swap: 590 names in 35 files, cnr_id/ver set to MpiNodes 5e37b38 in raw/. JS: comfyController
+  SLASH_ONLY_NODE_TYPES, commandExecutor LOADER_CLASS_TYPES, progressAggregator detailer kinds, 3 tests.
+  "# of detected SEGS" log still matches routes/comfy.js (case-insensitive regex).
+- Deps: node_lock pin + both Impact entries out, nodesDeps.js note, models.js 16 lines, python_deps.in
+  -dill -piexif -segment-anything (compile --check OK, .txt diff = those 3), ultralytics commented.
+- lint OK; npm test 3802 pass / 0 fail. Audit: Impact packs 0 nodes. UNRELEASED.md names the removed classes.
+- PENDING: fixed-seed A/B `research/ab/run_ab.sh <scratch>` under gpu_lease (SDXL detail, SDXL tiles,
+  auto-mask box, auto-mask SAM3 text; before = HEAD graphs in <scratch>/before). Expect identical pixels.

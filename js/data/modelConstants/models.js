@@ -130,7 +130,6 @@ const ALL_MODELS = [
             // MPI-365: MaskDetailerPipe/To-FromBasicPipe were always needed by the detail
             // op and were never declared — latent until the master template made every
             // node submit-validated on EVERY run, which turns the gap fatal.
-            'ComfyUI-Impact-Pack',
             'comfyui-kjnodes',          // ImageResizeKJv2 — the i2i resize
             // AIO_Preprocessor x4: DepthAnythingV2 / Openpose / Scribble / CannyEdge.
             // Canny and Scribble are weightless filters; OpenPose auto-downloads its
@@ -208,7 +207,6 @@ const ALL_MODELS = [
             // MPI-365: MaskDetailerPipe/To-FromBasicPipe were always needed by the detail
             // op and were never declared — latent until the master template made every
             // node submit-validated on EVERY run, which turns the gap fatal.
-            'ComfyUI-Impact-Pack',
             'comfyui-kjnodes',          // ImageResizeKJv2 — the i2i resize
             // AIO_Preprocessor x4: DepthAnythingV2 / Openpose / Scribble / CannyEdge.
             // Canny and Scribble are weightless filters; OpenPose auto-downloads its
@@ -290,7 +288,6 @@ const ALL_MODELS = [
             // MPI-365: MaskDetailerPipe/To-FromBasicPipe were always needed by the detail
             // op and were never declared — latent until the master template made every
             // node submit-validated on EVERY run, which turns the gap fatal.
-            'ComfyUI-Impact-Pack',
             'comfyui-kjnodes',          // ImageResizeKJv2 — the i2i resize
             // AIO_Preprocessor x4: DepthAnythingV2 / Openpose / Scribble / CannyEdge.
             // Canny and Scribble are weightless filters; OpenPose auto-downloads its
@@ -372,7 +369,6 @@ const ALL_MODELS = [
             // MPI-365: MaskDetailerPipe/To-FromBasicPipe were always needed by the detail
             // op and were never declared — latent until the master template made every
             // node submit-validated on EVERY run, which turns the gap fatal.
-            'ComfyUI-Impact-Pack',
             'comfyui-kjnodes',          // ImageResizeKJv2 — the i2i resize
             // AIO_Preprocessor x4: DepthAnythingV2 / Openpose / Scribble / CannyEdge.
             // Canny and Scribble are weightless filters; OpenPose auto-downloads its
@@ -455,7 +451,6 @@ const ALL_MODELS = [
             // MPI-365: MaskDetailerPipe/To-FromBasicPipe were always needed by the detail
             // op and were never declared — latent until the master template made every
             // node submit-validated on EVERY run, which turns the gap fatal.
-            'ComfyUI-Impact-Pack',
             'comfyui-kjnodes',          // ImageResizeKJv2 — the i2i resize
             // AIO_Preprocessor x4: DepthAnythingV2 / Openpose / Scribble / CannyEdge.
             // Canny and Scribble are weightless filters; OpenPose auto-downloads its
@@ -578,7 +573,6 @@ const ALL_MODELS = [
             'RES4LYF',
             'ComfyUI-MpiNodes',
             'ComfyUI-UltimateSDUpscale',
-            'ComfyUI-Impact-Pack',           // MaskDetailerPipe (detail op)
             'comfyui_controlnet_aux',        // DepthAnythingV2Preprocessor (+ its own weight)
         ],
     },
@@ -662,7 +656,6 @@ const ALL_MODELS = [
             'RES4LYF',
             'ComfyUI-MpiNodes',
             'ComfyUI-UltimateSDUpscale',
-            'ComfyUI-Impact-Pack',           // MaskDetailerPipe (detail op)
             'comfyui_controlnet_aux',        // DepthAnythingV2Preprocessor (+ its own weight)
         ],
     },
@@ -811,7 +804,6 @@ const ALL_MODELS = [
             'RES4LYF',                   // ClownsharKSampler_Beta (both stages)
             'ComfyUI-MpiNodes',
             'comfyui-kjnodes',           // ImageResizeKJv2, ResizeImageMaskNode
-            'ComfyUI-Impact-Pack',       // MaskDetailerPipe, To/FromBasicPipe
             'ComfyUI-UltimateSDUpscale',
             'ComfyUI-Krea2-ControlNet',
             'comfyui_controlnet_aux',
@@ -943,7 +935,6 @@ const ALL_MODELS = [
             'RES4LYF',
             'ComfyUI-MpiNodes',
             'comfyui-kjnodes',
-            'ComfyUI-Impact-Pack',
             'ComfyUI-UltimateSDUpscale',
             'ComfyUI-Krea2-ControlNet',
             'comfyui_controlnet_aux',
@@ -1127,7 +1118,6 @@ const ALL_MODELS = [
             '4x-NMKD-Siax',                  // shared engineAsset (upscale op)
             'ComfyUI-MpiNodes',              // 20 Mpi* classes incl. MpiStyleSelector/Loras
             'comfyui-kjnodes',               // ImageResizeKJv2, GrowMaskWithBlur
-            'ComfyUI-Impact-Pack',           // MaskDetailerPipe, ToBasicPipe
             'ComfyUI-UltimateSDUpscale',     // UltimateSDUpscale (upscale op)
             'comfyui-inpaint-cropandstitch', // InpaintCropImproved/StitchImproved (still one pair)
             'comfyui_controlnet_aux',        // DepthAnythingV2Preprocessor (+ its own weight)
@@ -1261,7 +1251,6 @@ const ALL_MODELS = [
             '4x-NMKD-Siax',                  // shared engineAsset (upscale op)
             'ComfyUI-MpiNodes',
             'comfyui-kjnodes',
-            'ComfyUI-Impact-Pack',
             'ComfyUI-UltimateSDUpscale',
             'comfyui-inpaint-cropandstitch',
             'comfyui_controlnet_aux',
@@ -1311,7 +1300,6 @@ const ALL_MODELS = [
             'vae-flux-ae',            // shared — already on R2, zero upload
             'ComfyUI-MpiNodes',
             'comfyui-kjnodes',        // SetNode/GetNode
-            'ComfyUI-Impact-Pack',    // To/FromBasicPipe
             'comfyui-inpaint-cropandstitch', // InpaintCropImproved/StitchImproved (localised edit)
         ],
     },
@@ -1348,7 +1336,6 @@ const ALL_MODELS = [
             'vae-flux-ae',
             'ComfyUI-MpiNodes',
             'comfyui-kjnodes',
-            'ComfyUI-Impact-Pack',
             'comfyui-inpaint-cropandstitch', // localised edit — MPI-428
         ],
     },
@@ -2112,7 +2099,6 @@ const ALL_MODELS = [
             'ComfyUI-MpiNodes',
             'comfyui-kjnodes',            // ImageResizeKJv2 - the i2i resize
             'ComfyUI-UltimateSDUpscale',
-            'ComfyUI-Impact-Pack',        // MPI-1038 Tile Upscale group: ImpactMakeTileSEGS, ToBasicPipe, DetailerForEachPipe
             'comfyui_controlnet_aux',     // AIO_Preprocessor x4, as SDXL's
             'comfyui-inpaint-cropandstitch', // masked edit, inpaint, detail
             'LanPaint',                   // LanPaint_KSampler - masked edit + inpaint
@@ -2255,7 +2241,6 @@ const ALL_MODELS = [
             '4x-NMKD-Siax',
             'ComfyUI-MpiNodes',              // MpiFlux3References (ten reference slots)
             'comfyui-kjnodes',               // ImageResizeKJv2
-            'ComfyUI-Impact-Pack',           // MaskDetailerPipe, tile upscale group
             'ComfyUI-UltimateSDUpscale',
             'comfyui-inpaint-cropandstitch', // masked edit, inpaint, detail
             'LanPaint',                      // inpaint
@@ -2359,7 +2344,6 @@ const ALL_MODELS = [
             '4x-NMKD-Siax',
             'ComfyUI-MpiNodes',
             'comfyui-kjnodes',
-            'ComfyUI-Impact-Pack',
             'ComfyUI-UltimateSDUpscale',
             'comfyui-inpaint-cropandstitch',
             'LanPaint',

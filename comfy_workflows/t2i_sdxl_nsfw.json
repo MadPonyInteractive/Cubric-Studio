@@ -473,7 +473,7 @@
         0
       ]
     },
-    "class_type": "ToBasicPipe",
+    "class_type": "MpiToBasicPipe",
     "_meta": {
       "title": "ToBasicPipe"
     }
@@ -501,7 +501,7 @@
         1
       ]
     },
-    "class_type": "ToBasicPipe",
+    "class_type": "MpiToBasicPipe",
     "_meta": {
       "title": "ToBasicPipe"
     }
@@ -533,7 +533,7 @@
         0
       ]
     },
-    "class_type": "FromBasicPipe",
+    "class_type": "MpiFromBasicPipe",
     "_meta": {
       "title": "FromBasicPipe"
     }
@@ -1096,7 +1096,7 @@
         0
       ]
     },
-    "class_type": "MaskDetailerPipe",
+    "class_type": "MpiMaskDetailerPipe",
     "_meta": {
       "title": "MaskDetailer (SDXL)"
     }
@@ -1260,7 +1260,7 @@
         0
       ]
     },
-    "class_type": "FromBasicPipe",
+    "class_type": "MpiFromBasicPipe",
     "_meta": {
       "title": "FromBasicPipe"
     }
@@ -1354,7 +1354,7 @@
         0
       ]
     },
-    "class_type": "FromBasicPipe",
+    "class_type": "MpiFromBasicPipe",
     "_meta": {
       "title": "FromBasicPipe"
     }
@@ -1472,7 +1472,7 @@
         0
       ]
     },
-    "class_type": "FromBasicPipe",
+    "class_type": "MpiFromBasicPipe",
     "_meta": {
       "title": "FromBasicPipe"
     }
@@ -1529,7 +1529,7 @@
         0
       ]
     },
-    "class_type": "ImpactMakeTileSEGS",
+    "class_type": "MpiMakeTileSEGS",
     "_meta": {
       "title": "Make Tile SEGS"
     }
@@ -1580,7 +1580,7 @@
         0
       ]
     },
-    "class_type": "DetailerForEachPipe",
+    "class_type": "MpiDetailerForEachPipe",
     "_meta": {
       "title": "Tile detailer"
     }
@@ -1675,7 +1675,7 @@
     "inputs": {
       "model_name": "bbox/person_yolov8n-seg.pt"
     },
-    "class_type": "UltralyticsDetectorProvider",
+    "class_type": "MpiUltralyticsDetectorProvider",
     "_meta": {
       "title": "UltralyticsDetectorProvider"
     }
@@ -1696,7 +1696,7 @@
         0
       ]
     },
-    "class_type": "BboxDetectorSEGS",
+    "class_type": "MpiBboxDetectorSEGS",
     "_meta": {
       "title": "BBOX Detector (SEGS)"
     }
@@ -1735,7 +1735,7 @@
         0
       ]
     },
-    "class_type": "DetailerForEachPipe",
+    "class_type": "MpiDetailerForEachPipe",
     "_meta": {
       "title": "People detailer"
     }
@@ -1744,7 +1744,7 @@
     "inputs": {
       "model_name": "bbox/face_yolov8n.pt"
     },
-    "class_type": "UltralyticsDetectorProvider",
+    "class_type": "MpiUltralyticsDetectorProvider",
     "_meta": {
       "title": "UltralyticsDetectorProvider"
     }
@@ -1765,7 +1765,7 @@
         0
       ]
     },
-    "class_type": "BboxDetectorSEGS",
+    "class_type": "MpiBboxDetectorSEGS",
     "_meta": {
       "title": "BBOX Detector (SEGS)"
     }
@@ -1807,7 +1807,7 @@
         0
       ]
     },
-    "class_type": "DetailerForEachPipe",
+    "class_type": "MpiDetailerForEachPipe",
     "_meta": {
       "title": "Face detailer"
     }
@@ -1832,7 +1832,7 @@
         0
       ]
     },
-    "class_type": "ImpactSEGSLabelAssign",
+    "class_type": "MpiSEGSLabelAssign",
     "_meta": {
       "title": "SEGS Assign (label)"
     }
@@ -1844,7 +1844,7 @@
         0
       ]
     },
-    "class_type": "SegsToCombinedMask",
+    "class_type": "MpiSegsToCombinedMask",
     "_meta": {
       "title": "SEGS to MASK (combined)"
     }
@@ -1857,7 +1857,7 @@
         0
       ]
     },
-    "class_type": "ImpactDilateMask",
+    "class_type": "MpiDilateMask",
     "_meta": {
       "title": "Dilate Mask"
     }
@@ -1885,7 +1885,7 @@
         0
       ]
     },
-    "class_type": "ImpactSegsAndMask",
+    "class_type": "MpiSegsAndMask",
     "_meta": {
       "title": "Pixelwise(SEGS & MASK)"
     }

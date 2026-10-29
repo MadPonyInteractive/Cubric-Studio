@@ -22,7 +22,7 @@
     "ComfyUI-MpiNodes": {
       "source": "git-commit",
       "repo": "MadPonyInteractive/ComfyUi-MpiNodes",
-      "commit": "291bf3decce14021e371352f97717ceab801ec57",
+      "commit": "5e37b3831a578d7327402ed2a737caa51a631b68",
       "filename": "ComfyUI-MpiNodes",
       "installRequirements": false
     },
@@ -32,13 +32,6 @@
       "commit": "a044ac7b2a33565343ddc75283c94a41371b4352",
       "filename": "ComfyUI-PainterI2Vadvanced",
       "installRequirements": false
-    },
-    "ComfyUI-Impact-Pack": {
-      "source": "git-commit",
-      "repo": "ltdrdata/ComfyUI-Impact-Pack",
-      "commit": "429d0159ad429e64d2b3916e6e7be9c22d025c3c",
-      "filename": "comfyui-impact-pack",
-      "installRequirements": true
     },
     "comfyui-kjnodes": {
       "source": "git-commit",
@@ -73,13 +66,6 @@
       "repo": "Fannovel16/ComfyUI-Frame-Interpolation",
       "commit": "26545cc2dd95bc3d27f056016300673bdeee78f5",
       "filename": "comfyui-frame-interpolation",
-      "installRequirements": true
-    },
-    "ComfyUI-Impact-Subpack": {
-      "source": "git-commit",
-      "repo": "ltdrdata/ComfyUI-Impact-Subpack",
-      "commit": "50c7b71a6a224734cc9b21963c6d1926816a97f1",
-      "filename": "ComfyUI-Impact-Subpack",
       "installRequirements": true
     },
     "RES4LYF": {

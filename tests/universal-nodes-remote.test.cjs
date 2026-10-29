@@ -48,7 +48,7 @@ for (const id of ['comfyui-inpaint-cropandstitch', 'ComfyUI-MpiNodes']) {
 
 // Baked packs ride the image. Asking the wrapper to volume-install one is the MPI-244 bug.
 for (const id of ['comfyui_controlnet_aux', 'ComfyUI-LTXVideo', 'RES4LYF',
-    'ComfyUI-Impact-Pack', 'comfyui-kjnodes', 'ComfyUI-Frame-Interpolation', 'ComfyUI-Impact-Subpack']) {
+    'comfyui-kjnodes', 'ComfyUI-Frame-Interpolation']) {
     assert.ok(!ids.has(id),
         `${id} is installRequirements:true (BAKED into the Pod image) and must NOT be volume-installed`);
 }

@@ -1,6 +1,27 @@
 {
   "files": [
     "C:/AI/Mpi/ComfyUi-MpiNodes/detailer/**",
-    "C:/AI/Mpi/ComfyUi-MpiNodes/tests/test_detailer*.py"
+    "C:/AI/Mpi/ComfyUi-MpiNodes/tests/test_detailer*.py",
+    "C:/AI/Mpi/ComfyUi-MpiNodes/__init__.py",
+    "C:/AI/Mpi/ComfyUi-MpiNodes/.comfyignore",
+    "C:/AI/Mpi/ComfyUi-MpiNodes/detailer/",
+    "comfy_workflows/",
+    "dev_configs/node_lock.json",
+    "dev_configs/python_deps.in",
+    "dev_configs/python_deps.txt",
+    "js/data/modelConstants/models.js",
+    "js/data/modelConstants/nodesDeps.js",
+    "js/services/comfyController.js",
+    "js/services/commandExecutor.js",
+    "js/services/progressAggregator.js",
+    "js/data/progressStages.js",
+    "routes/comfy.js",
+    "routes/projects.js",
+    "js/data/commandRegistry.js",
+    "js/components/Organisms/MpiToolOptionsMaskDetect/MpiToolOptionsMaskDetect.js",
+    "tests/",
+    "docs/releases/UNRELEASED.md",
+    ".agents/mpi-kanban/tasks/MPI-1339/",
+    ".agents/mpi-kanban/tasks/MPI-1344/"
   ]
 }

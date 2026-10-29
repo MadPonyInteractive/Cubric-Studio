@@ -26,11 +26,10 @@
 #   cu130 trio and enforces it with PIP_CONSTRAINT. The compile excludes them with
 #   --no-emit-package so this file can never move a user's torch.
 #
-# git+https://github.com/facebookresearch/sam2 — declared by ComfyUI-Impact-Pack.
-#   Dropped on every platform since MPI-387: pip shells out to `git clone` for it, no
-#   portable engine ships git, and it failed 100% of clean installs. It backs Impact-Pack
-#   sampling nodes we never exercise; we ship SAM 1 (`sam-vit-b`) as the Impact segment
-#   refiner (MPI-380).
+# git+https://github.com/facebookresearch/sam2 — was declared by ComfyUI-Impact-Pack, which
+#   left the engine in MPI-1339. Dropped on every platform since MPI-387: pip shells out to
+#   `git clone` for it and no portable engine ships git. We ship SAM 1 (`sam-vit-b`) as the
+#   segment refiner (MPI-380), vendored in MpiNodes detailer/ — so no segment-anything pip.
 #
 # cupy / cupy-wheel — declared by ComfyUI-Frame-Interpolation's install.py. Dropped.
 #   Measured 2026-08-04: cupy is ABSENT from the live engine, taichi too, and the node
@@ -81,15 +80,16 @@ pillow==12.3.0
 kornia==0.8.2
 einops==0.8.2
 transformers[timm]==5.13.0
+# ultralytics — MpiNodes' MpiUltralyticsDetectorProvider loads the YOLO .pt detectors with it
+# (pickled ultralytics model objects); MpiNodes declares no requirements, so keep it here (MPI-1339).
 ultralytics==8.4.78
-dill==0.4.1
 color-matcher==0.6.0
 mss==10.2.0
 
 # opencv — ONE variant, deliberately.
 # Three nodes declared three different distributions that all install into the same
 # `cv2` namespace: opencv-python (comfyui_controlnet_aux, RES4LYF),
-# opencv-python-headless (Impact-Pack, Impact-Subpack, kjnodes) and
+# opencv-python-headless (kjnodes; Impact-Pack and Impact-Subpack until MPI-1339) and
 # opencv-contrib-python (Frame-Interpolation). pipPins forced TWO of them at once, so
 # which cv2 an engine ended up with was last-writer-wins. The contrib+headless build is
 # a superset of all three and is the right choice for a non-GUI engine.
@@ -136,7 +136,6 @@ importlib_metadata
 mediapipe>=0.8.0
 ninja~=1.11.1.4
 omegaconf
-piexif
 protobuf
 python-dateutil
 pywavelets
@@ -158,7 +157,6 @@ resampy
 s3tokenizer
 safetensors
 scikit-learn
-segment-anything
 # sentencepiece — the Gemma-3 tokenizer MelodramaBox's text encoder loads (MPI-607).
 sentencepiece>=0.1.99
 soundfile

@@ -1688,7 +1688,7 @@ const LOADER_CLASS_TYPES = new Set([
     'DiffusionModelLoader',
     'CLIPLoader', 'DualCLIPLoader',
     'VAELoader',
-    'SAMLoader',
+    'MpiSAMLoader',
     'UpscaleModelLoader',
     'LoraLoader', 'LoraLoaderModelOnly',
     'MpiLoraModel', 'MpiLoraModelClip',

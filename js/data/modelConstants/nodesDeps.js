@@ -66,18 +66,11 @@ export const nodesDeps = {
     // is off unless a prompt asks for it, which the app never does). imageio-ffmpeg stays
     // in python_deps.in for MpiSaveVideo. A user's leftover folder keeps loading, harmless,
     // until the next engine upgrade sets it aside (_findDeprecatedNodes, routes/engine.js).
-    'ComfyUI-Impact-Pack': {
-        id: 'ComfyUI-Impact-Pack',
-        name: 'ComfyUI Impact Pack',
-        type: 'custom_nodes',
-        filename: 'comfyui-impact-pack',
-        url: lockUrl('ComfyUI-Impact-Pack'),
-        installRequirements: true,
-        // requirements.txt is UNPINNED (numpy, scipy, transformers, opencv-python-headless,
-        // scikit-image, matplotlib, …). Nothing resolves it any more (MPI-413): both engines
-        // install the curated dev_configs/python_deps.in set, which pins every one of those.
-        size: '5MB',
-    },
+    // ComfyUI-Impact-Pack and ComfyUI-Impact-Subpack are NOT here (MPI-1339): the 16 nodes
+    // we used are ported into MpiNodes as Mpi* (detailer/, NOTICE.md there) and every shipped
+    // graph names those. ultralytics stays in python_deps.in for MpiUltralyticsDetectorProvider.
+    // A user's leftover folders keep loading, harmless, until the next engine upgrade sets
+    // them aside (_findDeprecatedNodes, routes/engine.js).
     'comfyui-kjnodes': {
         id: 'comfyui-kjnodes',
         name: 'ComfyUI KJNodes',
@@ -136,18 +129,6 @@ export const nodesDeps = {
         // contrib+headless build. torch/torchvision/einops/tqdm are engine-managed or
         // baked. cupy is dropped on purpose; python_deps.in carries the measurement.
         size: '37.4MB',
-    },
-    'ComfyUI-Impact-Subpack': {
-        id: 'ComfyUI-Impact-Subpack',
-        name: 'ComfyUI Impact Subpack',
-        type: 'custom_nodes',
-        filename: 'ComfyUI-Impact-Subpack',
-        url: lockUrl('ComfyUI-Impact-Subpack'),
-        installRequirements: true,
-        // Unpinned reqs (matplotlib, ultralytics>=8.3.162, numpy, opencv-python-headless,
-        // dill) — all pinned exactly in the curated dev_configs/python_deps.in set,
-        // ultralytics included (it floats a minor upstream).
-        size: '172KB',
     },
     // RES4LYF (ClownShark sampler family + ReChromaPatcher). Used by Chroma. All
     // custom_nodes are now universal (MPI-222) — installs with the engine and never

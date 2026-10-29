@@ -101,7 +101,7 @@
         0
       ]
     },
-    "class_type": "FromBasicPipe",
+    "class_type": "MpiFromBasicPipe",
     "_meta": {
       "title": "FromBasicPipe"
     }
@@ -222,7 +222,7 @@
         0
       ]
     },
-    "class_type": "ToBasicPipe",
+    "class_type": "MpiToBasicPipe",
     "_meta": {
       "title": "High"
     }
@@ -342,7 +342,7 @@
         0
       ]
     },
-    "class_type": "ToBasicPipe",
+    "class_type": "MpiToBasicPipe",
     "_meta": {
       "title": "Balanced"
     }

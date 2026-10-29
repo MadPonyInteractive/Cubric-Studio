@@ -75,11 +75,8 @@ export function buildWeightMap(workflow) {
             kind   = 'vhs';
 
         } else if (
-            classType === 'MaskDetailerPipe' ||
-            classType === 'FaceDetailer' ||
-            classType === 'DetailerForEach' ||
-            classType === 'DetailerForEachDebug' ||
-            classType === 'DetailerForEachPipe'
+            classType === 'MpiMaskDetailerPipe' ||
+            classType === 'MpiDetailerForEachPipe'
         ) {
             // One sampler pass per detected segment (detail area). Step-emitting;
             // the segment count comes at runtime from "# of Detected SEGS: N".

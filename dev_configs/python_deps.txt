@@ -64,8 +64,6 @@ decorator==5.3.1
     # via librosa
 diffusers==0.39.0
     # via -r dev_configs/python_deps.in
-dill==0.4.1
-    # via -r dev_configs/python_deps.in
 distlib==0.4.3
     # via virtualenv
 docutils==0.23
@@ -278,8 +276,6 @@ packaging==26.2
     #   pooch
     #   scikit-image
     #   transformers
-piexif==1.1.3
-    # via -r dev_configs/python_deps.in
 pillow==12.3.0
     # via
     #   -r dev_configs/python_deps.in
@@ -402,8 +398,6 @@ scipy==1.18.0
     #   scikit-image
     #   scikit-learn
     #   trimesh
-segment-anything==1.0
-    # via -r dev_configs/python_deps.in
 sentencepiece==0.2.2
     # via -r dev_configs/python_deps.in
 setuptools==80.10.2
@@ -511,7 +505,7 @@ zipp==4.1.0
 # transitive requirements removed on purpose. Without --no-deps pip re-derives them.
 #
 # engine-owned torch stack:
-#   cuda-bindings, cuda-pathfinder, cuda-toolkit, nvidia-cublas, nvidia-cuda-cupti, nvidia-cuda-nvrtc, nvidia-cuda-runtime, nvidia-cudnn-cu13, nvidia-cufft, nvidia-cufile, nvidia-curand, nvidia-cusolver, nvidia-cusparse, nvidia-cusparselt-cu13, nvidia-nccl-cu13, nvidia-nvjitlink, nvidia-nvshmem-cu13, nvidia-nvtx, triton
+#   cuda-bindings, cuda-pathfinder, cuda-toolkit, nvidia-cublas, nvidia-cuda-cccl, nvidia-cuda-cupti, nvidia-cuda-nvrtc, nvidia-cuda-runtime, nvidia-cudnn-cu13, nvidia-cufft, nvidia-cufile, nvidia-cusolver, nvidia-cusparse, nvidia-cusparselt-cu13, nvidia-nccl-cu13, nvidia-nvjitlink, nvidia-nvshmem-cu13, nvidia-nvtx, triton
 # duplicate cv2 — unified to opencv-contrib-python-headless:
 #   opencv-contrib-python, opencv-python, opencv-python-headless
 #

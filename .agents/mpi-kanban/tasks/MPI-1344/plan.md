@@ -131,6 +131,9 @@ baseline-vs-now numbers in `validation.md`.
   fixed inputs. NOT registered, NOT committed. Per-card detail: each card's validation.md.
 
 ## Plan Drift
+- 2026-10-29: MPI-1339 .comfyignore needed nothing (it already ignores /tests/). Before/after
+  runs on a G:\ComfyUi bench scratch engine on 48199 (has both packs + linked MpiNodes), not app:isolated
+  (its engine is the user's 48188 at the old pin).
 - 2026-10-29: the opencv conflict named in the audit was already fixed by MPI-413; pip
   wins are measured in `python_deps.in` lines, not per-pack requirements.
 - 2026-10-29: startup time is not a goal (see baseline); goals are installs and breakage.
@@ -144,15 +147,15 @@ baseline-vs-now numbers in `validation.md`.
   clown/ (or its replacement) must register it too.
 
 ## Current State
-Phase 1 done. In ComfyUi-MpiNodes, the ports for MPI-1339 (detailer/), MPI-1341 (kj/) and
-MPI-1342 (pano/ stems/ rife/) are on disk with their tests (test_detailer*, test_kj*,
-test_pano/stems/rife), all green, NOT registered. MPI-1338 and MPI-1340 closed rejected
-(packs stay). MPI-1337 done. Next: Phase 2 serially, MPI-1339, MPI-1342, MPI-1341 (per-card
-notes in validation.md): register in __init__.py (from .detailer import ...), add the new tests to
-.comfyignore, /mpi-nodes-sync pin, swap class_types, drop the pack, fixed-seed before/after,
-release note naming the removed classes. MPI-1341 also re-exports the paid Head Swap package.
-Gotcha: MpiNodes tests use sys.path.append (root json.py shadows stdlib json). Before/after
-renders CAN use app:isolated on the shared engine; only "the pack is gone" needs the scratch engine.
+Phase 2, MPI-1339 (Impact) code is DONE, its fixed-seed A/B is NOT run yet. MpiNodes 5e37b38
+registers detailer/ (pushed); node_lock pins it and drops Impact-Pack/Subpack; 590 class_types
+swapped in 35 comfy_workflows files (shipped, raw/, workflow_generation/); JS name sites, 16
+models.js dep lines, nodesDeps.js, python_deps (-dill -piexif -segment-anything) done; lint +
+npm test green; audit shows 0 Impact nodes. Next: run the A/B
+(`MPI-1339/research/ab/run_ab.sh` under gpu_lease, see MPI-1339 validation.md), then MPI-1342,
+then MPI-1341. Gotcha: the GPU is shared with H3 benches (MPI-1348, MPI-1336) - queue via
+gpu_lease.py with a long --timeout. The user's open app must restart to reinstall MpiNodes at
+the new pin, or detail/upscale/auto-mask fail on its engine (Mpi* nodes missing).
 
 ## Remaining Work
 - Phase 1, Phase 2, Phase 3 as above. The Pod's lock copy (`mpi-ci`) syncs at the next

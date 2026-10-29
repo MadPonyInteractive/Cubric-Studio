@@ -24,7 +24,7 @@
         0
       ]
     },
-    "class_type": "SEGSPreview",
+    "class_type": "MpiSEGSPreview",
     "_meta": {
       "title": "SEGSPreview"
     }
@@ -33,7 +33,7 @@
     "inputs": {
       "model_name": "bbox/face_yolov8n.pt"
     },
-    "class_type": "UltralyticsDetectorProvider",
+    "class_type": "MpiUltralyticsDetectorProvider",
     "_meta": {
       "title": "sams"
     }
@@ -62,7 +62,7 @@
         0
       ]
     },
-    "class_type": "ImpactSimpleDetectorSEGS",
+    "class_type": "MpiSimpleDetectorSEGS",
     "_meta": {
       "title": "Simple Detector (SEGS)"
     }
@@ -72,7 +72,7 @@
       "model_name": "sam_vit_b_01ec64.pth",
       "device_mode": "AUTO"
     },
-    "class_type": "SAMLoader",
+    "class_type": "MpiSAMLoader",
     "_meta": {
       "title": "SAMLoader (Impact)"
     }
@@ -97,7 +97,7 @@
         0
       ]
     },
-    "class_type": "ImpactSimpleDetectorSEGS",
+    "class_type": "MpiSimpleDetectorSEGS",
     "_meta": {
       "title": "Simple Detector (SEGS)"
     }
@@ -174,7 +174,7 @@
         0
       ]
     },
-    "class_type": "ImpactSEGSToMaskList",
+    "class_type": "MpiSEGSToMaskList",
     "_meta": {
       "title": "SEGS to Mask List"
     }
@@ -231,7 +231,7 @@
         0
       ]
     },
-    "class_type": "MaskToSEGS",
+    "class_type": "MpiMaskToSEGS",
     "_meta": {
       "title": "back to SEGS (combined - one part per run)"
     }
@@ -355,7 +355,7 @@
         0
       ]
     },
-    "class_type": "MaskToSEGS",
+    "class_type": "MpiMaskToSEGS",
     "_meta": {
       "title": "per-object SEGS (one chip per detection)"
     }

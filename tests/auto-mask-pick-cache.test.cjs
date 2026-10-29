@@ -55,11 +55,11 @@ test('masks and thumbs come off the SAME SEGS list', () => {
     // because the counts still match.
     const [outImage] = byTitle('Output_image');
     const toMaskList = upstream(upstream(outImage, 'images'), 'mask');
-    assert.strictEqual(API[toMaskList].class_type, 'ImpactSEGSToMaskList');
+    assert.strictEqual(API[toMaskList].class_type, 'MpiSEGSToMaskList');
 
     const [outDetected] = byTitle('Output_Detected');
     const preview = upstream(upstream(outDetected, 'images'), 'list_input');
-    assert.strictEqual(API[preview].class_type, 'SEGSPreview');
+    assert.strictEqual(API[preview].class_type, 'MpiSEGSPreview');
 
     assert.strictEqual(
         upstream(toMaskList, 'segs'), upstream(preview, 'segs'),

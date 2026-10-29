@@ -504,7 +504,7 @@
     },
     {
       "id": 290,
-      "type": "ToBasicPipe",
+      "type": "MpiToBasicPipe",
       "pos": [
         -3393.6510359604986,
         3937.591384293769
@@ -556,9 +556,9 @@
       ],
       "title": "Balanced",
       "properties": {
-        "cnr_id": "comfyui-impact-pack",
-        "ver": "8.22.0",
-        "Node name for S&R": "ToBasicPipe",
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "5e37b3831a578d7327402ed2a737caa51a631b68",
+        "Node name for S&R": "MpiToBasicPipe",
         "ue_properties": {
           "widget_ue_connectable": {},
           "version": "7.1",
@@ -568,7 +568,7 @@
     },
     {
       "id": 143,
-      "type": "ToBasicPipe",
+      "type": "MpiToBasicPipe",
       "pos": [
         -3390.568682676598,
         3755.3235849026432
@@ -620,9 +620,9 @@
       ],
       "title": "High",
       "properties": {
-        "cnr_id": "comfyui-impact-pack",
-        "ver": "8.22.0",
-        "Node name for S&R": "ToBasicPipe",
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "5e37b3831a578d7327402ed2a737caa51a631b68",
+        "Node name for S&R": "MpiToBasicPipe",
         "ue_properties": {
           "widget_ue_connectable": {},
           "version": "7.1",
@@ -804,7 +804,7 @@
     },
     {
       "id": 77,
-      "type": "FromBasicPipe",
+      "type": "MpiFromBasicPipe",
       "pos": [
         -5058.686705356305,
         4724.814089241118
@@ -869,9 +869,9 @@
         }
       ],
       "properties": {
-        "cnr_id": "comfyui-impact-pack",
-        "ver": "8.22.0",
-        "Node name for S&R": "FromBasicPipe",
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "5e37b3831a578d7327402ed2a737caa51a631b68",
+        "Node name for S&R": "MpiFromBasicPipe",
         "ue_properties": {
           "widget_ue_connectable": {},
           "version": "7.1",

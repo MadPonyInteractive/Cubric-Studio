@@ -1,0 +1,1608 @@
+{
+ "missing_pack_dirs": [],
+ "packs": {
+  "ComfyUI-LTXVideo": {
+   "installRequirements": true,
+   "py_lines": 14672,
+   "requirements": [
+    "diffusers",
+    "einops",
+    "huggingface_hub>=0.25.2",
+    "kornia",
+    "ninja~=1.11.1.4",
+    "transformers[timm]>=4.50.0"
+   ],
+   "types": {
+    "GuiderParameters": [
+     "flow_ltx_foley"
+    ],
+    "LTXAddVideoICLoRAGuide": [
+     "ltx25_i2v_t2v",
+     "ltx_i2v_t2v_int8"
+    ],
+    "LTXICLoRALoaderModelOnly": [
+     "ltx25_i2v_t2v",
+     "ltx_i2v_t2v_int8"
+    ],
+    "LTXVNormalizingSampler": [
+     "ltx25_i2v_t2v",
+     "ltx_i2v_t2v_int8"
+    ],
+    "LTXVSetAudioVideoMaskByTime": [
+     "flow_ltx_foley"
+    ]
+   },
+   "ambiguous": {}
+  },
+  "ComfyUI-MpiNodes": {
+   "installRequirements": false,
+   "py_lines": 20141,
+   "requirements": null,
+   "types": {
+    "MpiAnyChecker": [
+     "flow_video_edit",
+     "flux3_t2i",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "ltx25_i2v_t2v",
+     "ltx_i2v_t2v_int8",
+     "moss_t2i"
+    ],
+    "MpiAnySwitch": [
+     "boogu_edit_balanced",
+     "boogu_edit_high",
+     "flow_character_sheet",
+     "flow_object_stamp",
+     "nvidia_pid",
+     "qwen_edit",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic"
+    ],
+    "MpiAnySwitch10": [
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "flow_video_edit",
+     "flux3_t2i",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "moss_t2i",
+     "qwen_edit",
+     "qwen_image_2_1",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic"
+    ],
+    "MpiAudioRange": [
+     "flow_h3_extend",
+     "flow_video_edit"
+    ],
+    "MpiAudioSplice": [
+     "flow_h3_extend"
+    ],
+    "MpiBboxDetectorSEGS": [
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "flux3_t2i",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "moss_t2i",
+     "qwen_image_2_1",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic"
+    ],
+    "MpiBlockIfEmptyList": [
+     "img_auto_mask"
+    ],
+    "MpiBlocker": [
+     "flow_stems",
+     "qwen_edit"
+    ],
+    "MpiBoolean": [
+     "ltx_i2v_t2v_int8"
+    ],
+    "MpiBooleanCompare": [
+     "boogu_edit_balanced",
+     "boogu_edit_high",
+     "flow_character_sheet_edit",
+     "flow_character_sheet_edit_qwen",
+     "flux3_t2i",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "ltx25_i2v_t2v",
+     "ltx_i2v_t2v_int8",
+     "moss_t2i",
+     "qwen_edit",
+     "qwen_image_2_1",
+     "wan22_i2v"
+    ],
+    "MpiBooleanInvert": [
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "flux3_t2i",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "moss_t2i",
+     "qwen_image_2_1",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic",
+     "wan22_i2v"
+    ],
+    "MpiBox": [
+     "flow_character_sheet",
+     "flow_character_sheet_edit",
+     "flow_character_sheet_edit_qwen",
+     "flow_character_sheet_from_images",
+     "flow_character_sheet_headless",
+     "flow_draw_it_in",
+     "flow_object_stamp"
+    ],
+    "MpiBoxCrop": [
+     "flow_character_sheet",
+     "flow_character_sheet_edit",
+     "flow_character_sheet_edit_qwen",
+     "flow_character_sheet_from_images",
+     "flow_character_sheet_headless"
+    ],
+    "MpiBoxMask": [
+     "flow_character_sheet_edit",
+     "flow_draw_it_in",
+     "flow_object_stamp"
+    ],
+    "MpiClamp": [
+     "flow_ltx_extend"
+    ],
+    "MpiClearVram": [
+     "boogu_edit_balanced",
+     "boogu_edit_high",
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "flow_character_sheet",
+     "flow_character_sheet_edit",
+     "flow_character_sheet_edit_qwen",
+     "flow_character_sheet_from_images",
+     "flow_character_sheet_headless",
+     "flow_draw_it_in",
+     "flow_h3_extend",
+     "flow_ltx_extend",
+     "flow_ltx_foley",
+     "flow_make_seamless",
+     "flow_minimax_music",
+     "flow_object_stamp",
+     "flow_outpaint",
+     "flow_pano360",
+     "flow_scribble",
+     "flow_stems",
+     "flow_transcribe",
+     "flow_video_edit",
+     "flow_voice_changer",
+     "flux3_t2i",
+     "image_descriptor",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "ltx25_i2v_t2v",
+     "ltx_i2v_t2v_int8",
+     "ltx_video_upscale",
+     "minimax_h3_fl2va",
+     "minimax_h3_r2va",
+     "minimax_h3_r2va_singularity",
+     "moss_t2i",
+     "qwen3vl_4b_prompt_enhancer",
+     "qwen_edit",
+     "qwen_image_2_1",
+     "stable_audio_3",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic",
+     "video_interpolate",
+     "video_upscale",
+     "wan22_i2v",
+     "wan5b_i2v",
+     "wan5b_t2v"
+    ],
+    "MpiCompare": [
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "flow_character_sheet_edit",
+     "flow_minimax_music",
+     "flux3_t2i",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "moss_t2i",
+     "qwen_edit",
+     "scene_convert",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic"
+    ],
+    "MpiConditioningReroute": [
+     "ltx25_i2v_t2v",
+     "ltx_i2v_t2v_int8"
+    ],
+    "MpiConvert": [
+     "flow_h3_extend",
+     "flow_minimax_music",
+     "minimax_h3_fl2va",
+     "minimax_h3_r2va",
+     "minimax_h3_r2va_singularity",
+     "video_interpolate"
+    ],
+    "MpiCrop": [
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "nvidia_pid"
+    ],
+    "MpiDetailerForEachPipe": [
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "flux3_t2i",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "moss_t2i",
+     "qwen_image_2_1",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic"
+    ],
+    "MpiDilateMask": [
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "flux3_t2i",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "moss_t2i",
+     "qwen_image_2_1",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic"
+    ],
+    "MpiFloat": [
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "flow_character_sheet_edit",
+     "flow_character_sheet_edit_qwen",
+     "flow_ltx_foley",
+     "flow_make_seamless",
+     "flow_minimax_music",
+     "flux3_t2i",
+     "image_upscale",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "ltx25_i2v_t2v",
+     "ltx_i2v_t2v_int8",
+     "ltx_video_upscale",
+     "minimax_h3_fl2va",
+     "moss_t2i",
+     "nvidia_pid",
+     "qwen_image_2_1",
+     "seedvr2_image",
+     "seedvr2_video",
+     "stable_audio_3",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic",
+     "video_interpolate",
+     "video_upscale",
+     "wan22_i2v"
+    ],
+    "MpiFlux3References": [
+     "flux3_t2i",
+     "moss_t2i"
+    ],
+    "MpiFromBasicPipe": [
+     "boogu_edit_balanced",
+     "boogu_edit_high",
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "flow_character_sheet",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic"
+    ],
+    "MpiFromBox": [
+     "flow_character_sheet",
+     "flow_character_sheet_edit",
+     "flow_character_sheet_edit_qwen",
+     "flow_character_sheet_from_images",
+     "flow_character_sheet_headless"
+    ],
+    "MpiFromCheckpoint": [
+     "wan22_i2v"
+    ],
+    "MpiGradeBack": [
+     "flux3_t2i"
+    ],
+    "MpiGradeMatch": [
+     "flow_video_edit"
+    ],
+    "MpiGridDimensions": [
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "flux3_t2i",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "moss_t2i",
+     "qwen_image_2_1",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic"
+    ],
+    "MpiH3EncodeAV": [
+     "flow_h3_extend"
+    ],
+    "MpiH3ImageToVideo": [
+     "flow_h3_extend",
+     "minimax_h3_fl2va"
+    ],
+    "MpiH3Length": [
+     "flow_h3_extend",
+     "minimax_h3_fl2va",
+     "minimax_h3_r2va",
+     "minimax_h3_r2va_singularity"
+    ],
+    "MpiH3MaskedPrefix": [
+     "flow_h3_extend"
+    ],
+    "MpiH3References": [
+     "flow_video_edit",
+     "minimax_h3_r2va",
+     "minimax_h3_r2va_singularity"
+    ],
+    "MpiIfElse": [
+     "boogu_edit_balanced",
+     "boogu_edit_high",
+     "chatterbox_tts",
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "flow_character_sheet",
+     "flow_character_sheet_edit",
+     "flow_character_sheet_edit_qwen",
+     "flow_character_sheet_from_images",
+     "flow_h3_extend",
+     "flow_ltx_extend",
+     "flow_ltx_foley",
+     "flow_minimax_music",
+     "flow_pano360",
+     "flow_transcribe",
+     "flow_video_edit",
+     "flux3_t2i",
+     "image_upscale",
+     "img_auto_mask",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "ltx25_i2v_t2v",
+     "ltx_i2v_t2v_int8",
+     "minimax_h3_fl2va",
+     "minimax_h3_r2va",
+     "minimax_h3_r2va_singularity",
+     "moss_t2i",
+     "qwen_edit",
+     "qwen_image_2_1",
+     "remove_background",
+     "scene_convert",
+     "seedvr2_video",
+     "stable_audio_3",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic",
+     "video_upscale",
+     "wan22_i2v",
+     "wan5b_i2v",
+     "wan5b_t2v"
+    ],
+    "MpiIfElseInverted": [
+     "flow_character_sheet_edit",
+     "flow_character_sheet_edit_qwen",
+     "flow_character_sheet_from_images"
+    ],
+    "MpiInt": [
+     "boogu_edit_balanced",
+     "boogu_edit_high",
+     "chatterbox_tts",
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "flow_character_sheet",
+     "flow_character_sheet_edit",
+     "flow_character_sheet_edit_qwen",
+     "flow_character_sheet_from_images",
+     "flow_draw_it_in",
+     "flow_h3_extend",
+     "flow_ltx_extend",
+     "flow_ltx_foley",
+     "flow_make_seamless",
+     "flow_minimax_music",
+     "flow_object_stamp",
+     "flow_outpaint",
+     "flow_pano360",
+     "flow_scribble",
+     "flow_video_edit",
+     "flow_voice_changer",
+     "flux3_t2i",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "ltx25_i2v_t2v",
+     "ltx_i2v_t2v_int8",
+     "ltx_video_upscale",
+     "minimax_h3_fl2va",
+     "minimax_h3_r2va",
+     "minimax_h3_r2va_singularity",
+     "moss_t2i",
+     "nvidia_pid",
+     "qwen3vl_4b_prompt_enhancer",
+     "qwen_edit",
+     "qwen_image_2_1",
+     "scene_path_video",
+     "seedvr2_image",
+     "seedvr2_video",
+     "stable_audio_3",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic",
+     "wan22_i2v",
+     "wan5b_i2v",
+     "wan5b_t2v"
+    ],
+    "MpiLatentUpscale": [
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic"
+    ],
+    "MpiListRange": [
+     "ltx25_i2v_t2v",
+     "ltx_i2v_t2v_int8",
+     "wan22_i2v"
+    ],
+    "MpiLoadAudioUpload": [
+     "chatterbox_tts",
+     "flow_ltx_foley",
+     "flow_stems",
+     "flow_transcribe",
+     "flow_voice_changer",
+     "ltx25_i2v_t2v",
+     "ltx_i2v_t2v_int8",
+     "minimax_h3_r2va",
+     "minimax_h3_r2va_singularity",
+     "speech_to_text"
+    ],
+    "MpiLoadImage": [
+     "(js:js/utils/cloudEditGraph.js)",
+     "boogu_edit_balanced",
+     "boogu_edit_high",
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "flow_character_sheet_edit",
+     "flow_character_sheet_edit_qwen",
+     "flow_character_sheet_from_images",
+     "flow_character_sheet_headless",
+     "flow_draw_it_in",
+     "flow_make_seamless",
+     "flow_object_stamp",
+     "flow_outpaint",
+     "flow_pano360",
+     "flow_scribble",
+     "flow_video_edit",
+     "flux3_t2i",
+     "image_descriptor",
+     "image_upscale",
+     "img_auto_mask",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "ltx25_i2v_t2v",
+     "ltx_i2v_t2v_int8",
+     "minimax_h3_fl2va",
+     "minimax_h3_r2va",
+     "minimax_h3_r2va_singularity",
+     "moss_t2i",
+     "nvidia_pid",
+     "qwen_edit",
+     "qwen_image_2_1",
+     "remove_background",
+     "scene_convert",
+     "seedvr2_image",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic",
+     "wan22_i2v",
+     "wan5b_i2v",
+     "wan5b_t2v"
+    ],
+    "MpiLoadVideoUpload": [
+     "flow_h3_extend",
+     "flow_ltx_extend",
+     "flow_ltx_foley",
+     "flow_video_edit",
+     "gif_cutout_birefnet",
+     "gif_cutout_sam3",
+     "ltx_video_upscale",
+     "minimax_h3_r2va",
+     "minimax_h3_r2va_singularity",
+     "scene_path_video",
+     "seedvr2_video",
+     "video_interpolate",
+     "video_upscale"
+    ],
+    "MpiLoraModel": [
+     "boogu_edit_balanced",
+     "boogu_edit_high",
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "flow_character_sheet",
+     "flow_character_sheet_edit",
+     "flow_character_sheet_edit_qwen",
+     "flow_character_sheet_from_images",
+     "flow_draw_it_in",
+     "flow_h3_extend",
+     "flow_ltx_foley",
+     "flow_object_stamp",
+     "flow_scribble",
+     "flow_video_edit",
+     "flux3_t2i",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "ltx_i2v_t2v_int8",
+     "minimax_h3_fl2va",
+     "minimax_h3_r2va",
+     "minimax_h3_r2va_singularity",
+     "moss_t2i",
+     "qwen_edit",
+     "qwen_image_2_1",
+     "wan22_i2v"
+    ],
+    "MpiLoraModelClip": [
+     "Model Merger",
+     "flow_h3_extend",
+     "flow_ltx_extend",
+     "flow_ltx_foley",
+     "flow_video_edit",
+     "ltx25_i2v_t2v",
+     "ltx_i2v_t2v_int8",
+     "ltx_video_upscale",
+     "minimax_h3_fl2va",
+     "minimax_h3_r2va",
+     "minimax_h3_r2va_singularity",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic",
+     "wan5b_i2v",
+     "wan5b_t2v"
+    ],
+    "MpiMakeTileSEGS": [
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "flux3_t2i",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "moss_t2i",
+     "qwen_image_2_1",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic"
+    ],
+    "MpiMaskBbox": [
+     "flow_character_sheet",
+     "flow_character_sheet_edit",
+     "flow_character_sheet_edit_qwen",
+     "flow_character_sheet_from_images",
+     "flow_character_sheet_headless"
+    ],
+    "MpiMaskDetailerPipe": [
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "flux3_t2i",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "moss_t2i",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic"
+    ],
+    "MpiMaskFillHoles": [
+     "flow_character_sheet",
+     "flow_character_sheet_edit",
+     "flow_character_sheet_edit_qwen",
+     "flow_character_sheet_from_images",
+     "flow_character_sheet_headless"
+    ],
+    "MpiMaskSquareBbox": [
+     "boogu_edit_balanced",
+     "boogu_edit_high",
+     "flow_character_sheet_edit",
+     "flow_character_sheet_edit_qwen",
+     "flow_draw_it_in",
+     "flow_make_seamless",
+     "flow_object_stamp",
+     "flow_video_edit",
+     "flux3_t2i",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "moss_t2i",
+     "qwen_edit",
+     "qwen_image_2_1",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic"
+    ],
+    "MpiMaskToSEGS": [
+     "img_auto_mask"
+    ],
+    "MpiMath": [
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "flow_character_sheet",
+     "flow_character_sheet_edit",
+     "flow_character_sheet_edit_qwen",
+     "flow_character_sheet_from_images",
+     "flow_character_sheet_headless",
+     "flow_draw_it_in",
+     "flow_h3_extend",
+     "flow_ltx_extend",
+     "flow_ltx_foley",
+     "flow_object_stamp",
+     "flow_video_edit",
+     "flux3_t2i",
+     "image_upscale",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "ltx25_i2v_t2v",
+     "ltx_i2v_t2v_int8",
+     "ltx_video_upscale",
+     "minimax_h3_fl2va",
+     "minimax_h3_r2va",
+     "minimax_h3_r2va_singularity",
+     "moss_t2i",
+     "qwen_edit",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic",
+     "video_interpolate",
+     "video_upscale"
+    ],
+    "MpiNormalizeValue": [
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "flow_ltx_foley",
+     "ltx25_i2v_t2v",
+     "ltx_i2v_t2v_int8",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic",
+     "wan22_i2v"
+    ],
+    "MpiPacker": [
+     "flow_ltx_extend",
+     "ltx25_i2v_t2v",
+     "ltx_i2v_t2v_int8",
+     "minimax_h3_fl2va",
+     "minimax_h3_r2va",
+     "minimax_h3_r2va_singularity",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic",
+     "wan22_i2v"
+    ],
+    "MpiPanoDepth": [
+     "scene_convert"
+    ],
+    "MpiReroute": [
+     "boogu_edit_balanced",
+     "boogu_edit_high",
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "flow_character_sheet",
+     "flux3_t2i",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "ltx25_i2v_t2v",
+     "ltx_i2v_t2v_int8",
+     "moss_t2i",
+     "qwen_edit",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic"
+    ],
+    "MpiSAMLoader": [
+     "img_auto_mask"
+    ],
+    "MpiSEGSLabelAssign": [
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "flux3_t2i",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "moss_t2i",
+     "qwen_image_2_1",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic"
+    ],
+    "MpiSEGSPreview": [
+     "img_auto_mask"
+    ],
+    "MpiSEGSToMaskList": [
+     "img_auto_mask"
+    ],
+    "MpiSaveVideo": [
+     "flow_h3_extend",
+     "flow_ltx_extend",
+     "flow_ltx_foley",
+     "flow_video_edit",
+     "ltx25_i2v_t2v",
+     "ltx_i2v_t2v_int8",
+     "ltx_video_upscale",
+     "minimax_h3_fl2va",
+     "minimax_h3_r2va",
+     "minimax_h3_r2va_singularity",
+     "scene_path_video",
+     "seedvr2_video",
+     "video_interpolate",
+     "video_upscale",
+     "wan22_i2v",
+     "wan5b_i2v",
+     "wan5b_t2v"
+    ],
+    "MpiScaledDimensions": [
+     "nvidia_pid"
+    ],
+    "MpiSegsAndMask": [
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "flux3_t2i",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "moss_t2i",
+     "qwen_image_2_1",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic"
+    ],
+    "MpiSegsToCombinedMask": [
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "flux3_t2i",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "moss_t2i",
+     "qwen_image_2_1",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic"
+    ],
+    "MpiSimpleBoolean": [
+     "boogu_edit_balanced",
+     "boogu_edit_high",
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "flow_character_sheet",
+     "flow_character_sheet_edit",
+     "flow_character_sheet_edit_qwen",
+     "flow_character_sheet_from_images",
+     "flow_h3_extend",
+     "flow_ltx_foley",
+     "flow_minimax_music",
+     "flow_video_edit",
+     "flux3_t2i",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "ltx25_i2v_t2v",
+     "ltx_i2v_t2v_int8",
+     "minimax_h3_fl2va",
+     "minimax_h3_r2va",
+     "minimax_h3_r2va_singularity",
+     "moss_t2i",
+     "qwen_edit",
+     "qwen_image_2_1",
+     "seedvr2_video",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic",
+     "wan5b_i2v",
+     "wan5b_t2v"
+    ],
+    "MpiSimpleDetectorSEGS": [
+     "img_auto_mask"
+    ],
+    "MpiSpeechToText": [
+     "flow_transcribe",
+     "speech_to_text"
+    ],
+    "MpiStageLatents": [
+     "ltx25_i2v_t2v",
+     "ltx_i2v_t2v_int8",
+     "minimax_h3_fl2va",
+     "minimax_h3_r2va",
+     "minimax_h3_r2va_singularity",
+     "wan22_i2v"
+    ],
+    "MpiString": [
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw"
+    ],
+    "MpiStyleLoras": [
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "moss_t2i",
+     "qwen_edit",
+     "qwen_image_2_1"
+    ],
+    "MpiStyleSelector": [
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "moss_t2i",
+     "qwen_edit",
+     "qwen_image_2_1"
+    ],
+    "MpiText": [
+     "boogu_edit_balanced",
+     "boogu_edit_high",
+     "chatterbox_tts",
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "flow_character_sheet",
+     "flow_character_sheet_edit",
+     "flow_character_sheet_edit_qwen",
+     "flow_character_sheet_from_images",
+     "flow_draw_it_in",
+     "flow_h3_extend",
+     "flow_ltx_extend",
+     "flow_ltx_foley",
+     "flow_make_seamless",
+     "flow_minimax_music",
+     "flow_object_stamp",
+     "flow_outpaint",
+     "flow_pano360",
+     "flow_scribble",
+     "flow_video_edit",
+     "flux3_t2i",
+     "img_auto_mask",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "ltx25_i2v_t2v",
+     "ltx_i2v_t2v_int8",
+     "ltx_video_upscale",
+     "minimax_h3_fl2va",
+     "minimax_h3_r2va",
+     "minimax_h3_r2va_singularity",
+     "moss_t2i",
+     "nvidia_pid",
+     "qwen3vl_4b_prompt_enhancer",
+     "qwen_edit",
+     "qwen_image_2_1",
+     "scene_path_video",
+     "stable_audio_3",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic",
+     "wan22_i2v",
+     "wan5b_i2v",
+     "wan5b_t2v"
+    ],
+    "MpiTextContains": [
+     "flow_character_sheet_from_images",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "stable_audio_3"
+    ],
+    "MpiTinyVaeLoader": [
+     "flow_h3_extend",
+     "flow_video_edit",
+     "minimax_h3_fl2va",
+     "minimax_h3_r2va",
+     "minimax_h3_r2va_singularity"
+    ],
+    "MpiToBasicPipe": [
+     "boogu_edit_balanced",
+     "boogu_edit_high",
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "flow_character_sheet",
+     "flux3_t2i",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "moss_t2i",
+     "qwen_image_2_1",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic"
+    ],
+    "MpiToChekPoint": [
+     "wan22_i2v"
+    ],
+    "MpiUltralyticsDetectorProvider": [
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "flux3_t2i",
+     "img_auto_mask",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "moss_t2i",
+     "qwen_image_2_1",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic"
+    ],
+    "MpiUnpacker": [
+     "flow_ltx_extend",
+     "ltx25_i2v_t2v",
+     "ltx_i2v_t2v_int8",
+     "minimax_h3_fl2va",
+     "minimax_h3_r2va",
+     "minimax_h3_r2va_singularity",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic",
+     "wan22_i2v"
+    ],
+    "MpiUpscaleModelScale": [
+     "image_upscale",
+     "video_upscale"
+    ],
+    "MpiVideoSamplingPreview": [
+     "flow_h3_extend",
+     "flow_ltx_extend",
+     "flow_ltx_foley",
+     "flow_video_edit",
+     "ltx25_i2v_t2v",
+     "ltx_i2v_t2v_int8",
+     "minimax_h3_fl2va",
+     "minimax_h3_r2va",
+     "minimax_h3_r2va_singularity"
+    ],
+    "MpiWanMaskedVideo": [
+     "scene_path_video"
+    ],
+    "MpiWanSeconds": [
+     "ltx25_i2v_t2v",
+     "ltx_i2v_t2v_int8",
+     "wan22_i2v",
+     "wan5b_i2v",
+     "wan5b_t2v"
+    ],
+    "MpiWindowedSampler": [
+     "flow_video_edit",
+     "minimax_h3_fl2va",
+     "minimax_h3_r2va",
+     "minimax_h3_r2va_singularity"
+    ],
+    "MpiWrapCrop": [
+     "scene_convert"
+    ],
+    "MpiWrapPad": [
+     "scene_convert"
+    ],
+    "MpiWrapSoften": [
+     "flow_pano360"
+    ]
+   },
+   "ambiguous": {}
+  },
+  "ComfyUI-PainterI2Vadvanced": {
+   "installRequirements": false,
+   "py_lines": 166,
+   "requirements": null,
+   "types": {
+    "PainterI2VAdvanced": [
+     "wan22_i2v"
+    ]
+   },
+   "ambiguous": {}
+  },
+  "comfyui-kjnodes": {
+   "installRequirements": true,
+   "py_lines": 22781,
+   "requirements": [
+    "pillow>=10.3.0",
+    "color-matcher",
+    "matplotlib",
+    "mss",
+    "opencv-python-headless"
+   ],
+   "types": {
+    "ColorMatch": [
+     "flow_draw_it_in",
+     "flow_object_stamp"
+    ],
+    "GetImageRangeFromBatch": [
+     "flow_h3_extend",
+     "flow_ltx_extend",
+     "flow_ltx_foley",
+     "flow_video_edit"
+    ],
+    "GrowMaskWithBlur": [
+     "img_auto_mask"
+    ],
+    "ImageBatchExtendWithOverlap": [
+     "flow_ltx_extend"
+    ],
+    "ImageBatchMulti": [
+     "flow_h3_extend"
+    ],
+    "ImageResizeKJv2": [
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "flow_h3_extend",
+     "flow_ltx_extend",
+     "flow_ltx_foley",
+     "flow_video_edit",
+     "flux3_t2i",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "ltx25_i2v_t2v",
+     "ltx_i2v_t2v_int8",
+     "ltx_video_upscale",
+     "moss_t2i",
+     "qwen_edit",
+     "qwen_image_2_1",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic",
+     "wan22_i2v",
+     "wan5b_i2v",
+     "wan5b_t2v"
+    ],
+    "LTX2_NAG": [
+     "ltx25_i2v_t2v",
+     "ltx_i2v_t2v_int8"
+    ],
+    "LTXVAudioVideoMask": [
+     "flow_ltx_extend"
+    ],
+    "LoraExtractKJ": [
+     "Model Merger"
+    ],
+    "VAELoaderKJ": [
+     "flow_ltx_extend",
+     "flow_ltx_foley",
+     "ltx25_i2v_t2v",
+     "ltx_i2v_t2v_int8",
+     "ltx_video_upscale"
+    ]
+   },
+   "ambiguous": {}
+  },
+  "ComfyUI-GGUF": {
+   "installRequirements": true,
+   "py_lines": 1925,
+   "requirements": [
+    "gguf>=0.13.0",
+    "sentencepiece",
+    "protobuf"
+   ],
+   "types": {
+    "UnetLoaderGGUF": [
+     "scene_path_video"
+    ]
+   },
+   "ambiguous": {}
+  },
+  "ComfyUI-UltimateSDUpscale": {
+   "installRequirements": false,
+   "py_lines": 3516,
+   "requirements": null,
+   "types": {
+    "UltimateSDUpscale": [
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "flux3_t2i",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "moss_t2i",
+     "qwen_image_2_1",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic"
+    ]
+   },
+   "ambiguous": {}
+  },
+  "ComfyUI-Frame-Interpolation": {
+   "installRequirements": true,
+   "py_lines": 25156,
+   "requirements": null,
+   "types": {
+    "RIFE VFI": [
+     "video_interpolate"
+    ]
+   },
+   "ambiguous": {}
+  },
+  "RES4LYF": {
+   "installRequirements": true,
+   "py_lines": 69775,
+   "requirements": [
+    "opencv-python",
+    "matplotlib",
+    "pywavelets",
+    "numpy>=1.26.4"
+   ],
+   "types": {
+    "ClownModelLoader": [
+     "chroma_hyper_t2i",
+     "chroma_t2i"
+    ],
+    "ClownsharKSampler_Beta": [
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "flow_character_sheet",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw"
+    ],
+    "Image Crop Location Exact": [
+     "flow_character_sheet",
+     "flow_character_sheet_edit",
+     "flow_character_sheet_edit_qwen",
+     "flow_character_sheet_from_images",
+     "flow_character_sheet_headless"
+    ]
+   },
+   "ambiguous": {}
+  },
+  "ComfyUI-Krea2-ControlNet": {
+   "installRequirements": false,
+   "py_lines": 712,
+   "requirements": null,
+   "types": {
+    "Krea2ControlApply": [
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw"
+    ],
+    "Krea2ControlImageEncode": [
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw"
+    ],
+    "Krea2ControlLoRALoader": [
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw"
+    ]
+   },
+   "ambiguous": {}
+  },
+  "comfyui_controlnet_aux": {
+   "installRequirements": true,
+   "py_lines": 99422,
+   "requirements": [
+    "torch",
+    "importlib_metadata",
+    "huggingface_hub",
+    "scipy",
+    "opencv-python",
+    "filelock",
+    "numpy",
+    "Pillow",
+    "einops",
+    "torchvision",
+    "pyyaml",
+    "scikit-image",
+    "python-dateutil",
+    "mediapipe>=0.8.0",
+    "fvcore",
+    "yapf",
+    "omegaconf",
+    "ftfy",
+    "addict",
+    "yacs",
+    "yapf",
+    "trimesh[easy]",
+    "albumentations",
+    "scikit-learn",
+    "matplotlib",
+    "onnxruntime-gpu"
+   ],
+   "types": {
+    "AIO_Preprocessor": [
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "qwen_edit",
+     "qwen_image_2_1",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic"
+    ],
+    "DepthAnythingV2Preprocessor": [
+     "chroma_hyper_t2i",
+     "chroma_t2i",
+     "klein_9b_t2i",
+     "klein_t2i"
+    ],
+    "OpenposePreprocessor": [
+     "qwen_edit"
+    ]
+   },
+   "ambiguous": {}
+  },
+  "comfyui-krea2edit": {
+   "installRequirements": false,
+   "py_lines": 441,
+   "requirements": null,
+   "types": {
+    "Krea2EditGroundedEncode": [
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw"
+    ],
+    "Krea2EditModelPatch": [
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw"
+    ]
+   },
+   "ambiguous": {}
+  },
+  "comfyui-inpaint-cropandstitch": {
+   "installRequirements": false,
+   "py_lines": 1677,
+   "requirements": null,
+   "types": {
+    "InpaintCropImproved": [
+     "boogu_edit_balanced",
+     "boogu_edit_high",
+     "flow_character_sheet_edit",
+     "flow_draw_it_in",
+     "flow_make_seamless",
+     "flow_object_stamp",
+     "flow_video_edit",
+     "flux3_t2i",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "moss_t2i",
+     "qwen_edit",
+     "qwen_image_2_1",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic"
+    ],
+    "InpaintStitchImproved": [
+     "boogu_edit_balanced",
+     "boogu_edit_high",
+     "flow_character_sheet_edit",
+     "flow_draw_it_in",
+     "flow_make_seamless",
+     "flow_object_stamp",
+     "flow_video_edit",
+     "flux3_t2i",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "moss_t2i",
+     "qwen_edit",
+     "qwen_image_2_1",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic"
+    ]
+   },
+   "ambiguous": {}
+  },
+  "LanPaint": {
+   "installRequirements": false,
+   "py_lines": 3023,
+   "requirements": null,
+   "types": {
+    "LanPaint_ImageDecode": [
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic"
+    ],
+    "LanPaint_ImageEncode": [
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic"
+    ],
+    "LanPaint_KSampler": [
+     "flow_character_sheet_edit",
+     "flow_make_seamless",
+     "flux3_t2i",
+     "klein_9b_t2i",
+     "klein_t2i",
+     "krea2_t2i_nsfw",
+     "krea2_t2i_sfw",
+     "moss_t2i",
+     "qwen_image_2_1",
+     "t2i_ill_anime",
+     "t2i_ill_anime_beauty",
+     "t2i_pony_mix",
+     "t2i_sdxl_nsfw",
+     "t2i_sdxl_realistic"
+    ]
+   },
+   "ambiguous": {}
+  },
+  "ComfyUI_Fill-ChatterBox": {
+   "installRequirements": true,
+   "py_lines": 10355,
+   "requirements": [
+    "numpy",
+    "resampy",
+    "librosa",
+    "s3tokenizer",
+    "transformers",
+    "diffusers",
+    "omegaconf",
+    "conformer",
+    "safetensors",
+    "soundfile"
+   ],
+   "types": {
+    "FL_ChatterboxMultilingualTTS": [
+     "chatterbox_tts"
+    ],
+    "FL_ChatterboxTTS": [
+     "chatterbox_tts"
+    ],
+    "FL_ChatterboxVC": [
+     "flow_voice_changer"
+    ]
+   },
+   "ambiguous": {}
+  },
+  "audio-separation-nodes-comfyui": {
+   "installRequirements": false,
+   "py_lines": 1044,
+   "requirements": [
+    "librosa>=0.10.2,<1",
+    "torchaudio>=2.3.0",
+    "numpy",
+    "moviepy"
+   ],
+   "types": {
+    "AudioSeparation": [
+     "flow_stems"
+    ]
+   },
+   "ambiguous": {}
+  },
+  "ComfyUI-MelodramaBox": {
+   "installRequirements": true,
+   "py_lines": 19558,
+   "requirements": [
+    "huggingface_hub>=0.24",
+    "safetensors>=0.4",
+    "soundfile>=0.12",
+    "torchaudio",
+    "numpy",
+    "einops>=0.7",
+    "transformers>=4.53",
+    "accelerate>=0.25.0",
+    "sentencepiece>=0.1.99",
+    "resemble-perth",
+    "gguf-connector>=3.6",
+    "bitsandbytes>=0.45.0; platform_system != \"Darwin\""
+   ],
+   "types": {},
+   "ambiguous": {}
+  },
+  "ComfyUI-Mickmumpitz-Nodes": {
+   "installRequirements": false,
+   "py_lines": 10881,
+   "requirements": [
+    "numpy>=1.21.0",
+    "Pillow>=9.0.0",
+    "opencv-python>=4.5.0",
+    "ultralytics>=8.0.0"
+   ],
+   "types": {
+    "MickmumpitzPanoHarmonizeBoundary": [
+     "flow_pano360"
+    ],
+    "MickmumpitzPanoKrea2Reference": [
+     "flow_pano360"
+    ],
+    "MickmumpitzPanoRollHorizontal": [
+     "flow_pano360"
+    ],
+    "MickmumpitzPanoSeamMask": [
+     "flow_pano360"
+    ],
+    "MickmumpitzPanoWarp": [
+     "flow_pano360"
+    ]
+   },
+   "ambiguous": {}
+  },
+  "ComfyUI-Krea2-Ostris-Edit": {
+   "installRequirements": false,
+   "py_lines": 550,
+   "requirements": null,
+   "types": {
+    "Krea2OstrisEditModelPatch": [
+     "flow_pano360"
+    ],
+    "TextEncodeKrea2OstrisEdit": [
+     "flow_pano360"
+    ]
+   },
+   "ambiguous": {}
+  },
+  "Comfyui_Minimax_h3_latent_Upscaler": {
+   "installRequirements": false,
+   "py_lines": 1873,
+   "requirements": null,
+   "types": {
+    "MinimaxH3LatentUpscaler3D": [
+     "flow_video_edit",
+     "minimax_h3_fl2va",
+     "minimax_h3_r2va",
+     "minimax_h3_r2va_singularity"
+    ]
+   },
+   "ambiguous": {}
+  },
+  "CORE": {
+   "installRequirements": null,
+   "py_lines": null,
+   "requirements": null,
+   "types": 129,
+   "ambiguous": {
+    "CFGGuider": [
+     "CORE",
+     "ComfyUI-MelodramaBox"
+    ],
+    "KSampler": [
+     "CORE",
+     "LanPaint"
+    ],
+    "SaveImage": [
+     "CORE",
+     "RES4LYF"
+    ]
+   }
+  },
+  "UNKNOWN": {
+   "installRequirements": null,
+   "py_lines": null,
+   "requirements": null,
+   "types": {},
+   "ambiguous": {}
+  }
+ }
+}
