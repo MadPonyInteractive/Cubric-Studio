@@ -35,7 +35,7 @@ import { fixedDurationFor } from '../../../data/modelConstants/deepinfraPricing.
 // are shared with `js/shell/agentDispatch.js`'s named-param resolver via this
 // ONE module, so an agent submit can never silently resolve a different tier
 // than this control shows (see generationControls.js's own module comment).
-import { resolveEffectiveQualityTier, resolveThreeLayerDefault, modelTakesBoxes, denoiseDefaultFor, modelShowsTiles, TILE_SIZES } from '../../../data/generationControls.js';
+import { resolveEffectiveQualityTier, resolveThreeLayerDefault, modelTakesBoxes, denoiseDefaultFor, modelShowsTiles, TILE_SIZES, DURATION_MIN, DURATION_MAX } from '../../../data/generationControls.js';
 import { MODELS } from '../../../data/modelConstants/models.js';
 
 // ── Scope helpers ─────────────────────────────────────────────────────────────
@@ -89,8 +89,9 @@ function _resolveDefault(ctrl, controlId, opts) {
     return resolveThreeLayerDefault(controlId, opts.model, opts.opName, ctrl.defaultValue);
 }
 
-/** The app's own duration range, for a model that publishes none of its own. */
-const APP_DURATION_BOUNDS = { min: 1, max: 30 };
+/** The app's own duration range, for a model that publishes none of its own. The same two
+ *  numbers bound the agent path, so they live in generationControls.js (MPI-1349). */
+const APP_DURATION_BOUNDS = { min: DURATION_MIN, max: DURATION_MAX };
 
 /**
  * The seconds this model will actually accept (MPI-879).
@@ -102,7 +103,9 @@ const APP_DURATION_BOUNDS = { min: 1, max: 30 };
  * the length that ran, with the price tag quoting the clamped figure the slider disagreed
  * with. Bounding the CONTROL is what makes the two agree.
  *
- * A local model has no published range and keeps the app's 1..30.
+ * A local model has no published range and keeps the app's 1..15. A published range is
+ * capped at that same 15 (MPI-1349): Wan 3.0 publishes 2-30 and gets 2..15. Longer clips
+ * are Infinite Video's (MPI-1336), never a longer slider.
  *
  * A FIXED-LENGTH model collapses to one second count (MPI-880). Veo 3.1 publishes no
  * duration field at all: the clip comes back 8 s whatever is asked for, so the range is
@@ -118,7 +121,9 @@ export function durationBoundsFor(model) {
     if (!endpointId) return APP_DURATION_BOUNDS;
     const fixed = fixedDurationFor(endpointId);
     if (fixed) return { min: fixed, max: fixed };
-    return durationRangeFor(endpointId) || APP_DURATION_BOUNDS;
+    const published = durationRangeFor(endpointId);
+    if (!published) return APP_DURATION_BOUNDS;
+    return { min: published.min, max: Math.min(published.max, APP_DURATION_BOUNDS.max) };
 }
 
 function _emitUpdate(ctrl, opts, key, value) {
@@ -665,7 +670,7 @@ export const PROMPT_BOX_CONTROLS = {
      * modelSettings[modelId].duration.
      *
      * The range is the PICKED model's, via `durationBoundsFor` — a local model keeps the
-     * app's 1..30, a cloud model gets the provider's own bounds (MPI-879).
+     * app's 1..15, a cloud model gets the provider's own bounds (MPI-879).
      *
      * A FIXED-LENGTH model (Veo 3.1) gets NO slider at all: the label row alone, reading
      * "Duration  8 s" (MPI-880). A control that cannot change anything is the defect, so
@@ -1839,7 +1844,7 @@ export const PROMPT_BOX_CONTROLS = {
 
     /**
      * Stable Audio 3's length in seconds (`Input_Duration`). Its OWN control, not
-     * `duration`: that one is the video slider — shared scope, 1..30, "Video length" —
+     * `duration`: that one is the video slider — shared scope, 1..15, "Video length" —
      * and an audio clip runs to 190 s.
      */
     audioLength: {

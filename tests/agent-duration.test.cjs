@@ -68,13 +68,22 @@ test('the project`s saved duration wins over the default, and an explicit ask wi
     // This is the pinned-panel path: the panel's own value is what runs (MPI-774 Phase 7).
 });
 
+test('a saved length over the 15 s cap runs at 15, not at the default (MPI-1349)', () => {
+    // 20 was a legal slider value before the cap. The slider opens it at 15, so the agent
+    // path must run 15 too, never fall back to the 3 s default the user did not pick.
+    const op = CLIP_OPS[0];
+    assert.equal(DURATION_MAX, 15);
+    const project = { shared: { video: { duration: 20 } } };
+    assert.equal(resolveNamedParams(project, H3, op, {}).injectionParams.Input_Duration, 15);
+});
+
 test('duration is refused on an op that makes a still, and out of range', () => {
     const stillOps = (H3.supportedOps || []).filter((op) => !modelShowsDuration(H3, op));
     for (const op of stillOps) {
         assert.equal(resolveNamedParams(null, H3, op, { duration: 5 }).code, 'INVALID_DURATION', op);
     }
     const op = CLIP_OPS[0];
-    for (const bad of [0, 31, -1, '5', null, NaN]) {
+    for (const bad of [0, 16, 31, -1, '5', null, NaN]) {
         assert.equal(resolveNamedParams(null, H3, op, { duration: bad }).code, 'INVALID_DURATION',
             `duration ${JSON.stringify(bad)} must be refused`);
     }

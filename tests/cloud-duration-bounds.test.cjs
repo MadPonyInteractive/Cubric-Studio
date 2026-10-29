@@ -13,7 +13,7 @@
  * Three claims:
  *   1. A cloud model's bounds are the provider's own, for every shipped cloud video
  *      model — the four ranges differ and none of them is 1..30 by accident.
- *   2. A model with no published range keeps the app's 1..30. That is local models, and
+ *   2. A model with no published range keeps the app's 1..15 (30 until MPI-1349). That is local models, and
  *      Veo 3.1, which has no `duration` field at all.
  *   3. The bounds reach the mounted slider and the injected value, not just the helper.
  */
@@ -53,7 +53,9 @@ test('every shipped cloud video model is bounded by its own published range', as
     for (const model of cloudVideo) {
         const published = durationRangeFor(model.cloud.endpointId);
         if (!published) continue;                       // Veo — covered below
-        assert.deepEqual(durationBoundsFor(model), published, `${model.id} is not bounded by its own range`);
+        // Capped at the app's 15 (MPI-1349), never above what the provider allows.
+        const want = { min: published.min, max: Math.min(published.max, 15) };
+        assert.deepEqual(durationBoundsFor(model), want, `${model.id} is not bounded by its own range`);
         bounded++;
     }
     assert.ok(bounded >= 3, `expected at least three bounded models, got ${bounded}`);
@@ -65,9 +67,17 @@ test('a local video model keeps the app range', async () => {
     const { durationBoundsFor } = await CONTROLS();
     const local = (await MODELS()).find(m => m.mediaType === 'video' && !m.provider);
     assert.ok(local, 'fixture guard: a local video model still ships');
-    assert.deepEqual(durationBoundsFor(local), { min: 1, max: 30 });
+    assert.deepEqual(durationBoundsFor(local), { min: 1, max: 15 });
     // And no model at all — the control mounts before a pick in the demo/legacy path.
-    assert.deepEqual(durationBoundsFor(undefined), { min: 1, max: 30 });
+    assert.deepEqual(durationBoundsFor(undefined), { min: 1, max: 15 });
+});
+
+test('Wan 3.0 publishes 2-30 and its slider stops at 15 (MPI-1349)', async () => {
+    const { durationBoundsFor } = await CONTROLS();
+    const { durationRangeFor } = await SIZING();
+    const wan = await byId('wan3-cloud');
+    assert.deepEqual(durationRangeFor(wan.cloud.endpointId), { min: 2, max: 30 }, 'fixture guard: Wan still publishes 2-30');
+    assert.deepEqual(durationBoundsFor(wan), { min: 2, max: 15 });
 });
 
 test('Veo 3.1 publishes no duration field, so it is fixed at the 8 s it returns', async () => {
@@ -105,7 +115,7 @@ test('an out-of-range value is clamped into the picked model\'s range on the way
     assert.deepEqual(ctrl.getInjectionParams.call({ ...ctrl, value: 2, _bounds: bounds }), { Input_Duration: 4 });
     assert.deepEqual(ctrl.getInjectionParams.call({ ...ctrl, value: 8, _bounds: bounds }), { Input_Duration: 8 });
     // Spread without `_bounds` — the shape control-snapshot-injection.test.cjs uses.
-    assert.deepEqual(ctrl.getInjectionParams.call({ ...ctrl, value: 30 }), { Input_Duration: 30 });
+    assert.deepEqual(ctrl.getInjectionParams.call({ ...ctrl, value: 30 }), { Input_Duration: 15 });
 });
 
 test('the mounted slider takes its min and max from the bounds, not from constants', () => {

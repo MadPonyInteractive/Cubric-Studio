@@ -2,6 +2,7 @@
 import { findClosestRatio, getModelRatios, qualityTiersFor, usesOrientation, usesQualityTier, clampQualityTier } from './ratios.js';
 import { getCommand, getCommandDefault, getCommandMediaInputs } from '../data/commandRegistry.js';
 import { PROMPT_CONTROL_DEFAULTS } from '../data/promptControlDefaults.js';
+import { DURATION_MIN, DURATION_MAX } from '../data/generationControls.js';
 import { retiredFlow, retiredFlowControls } from '../data/retiredFlows.js';
 
 function _clone(value) {
@@ -524,9 +525,10 @@ export function buildPromptReuseSettings(payload = {}, model = {}) {
     // actual length: derived ops (extend/videoUpscale/interpolate) have no
     // Duration param, and their item.duration is the COMBINED output length
     // (e.g. a 21s extend chain), which would wrongly drive the next generation.
-    // Absent param → component default, same as every other control.
+    // Absent param → component default, same as every other control. Clamped to the
+    // slider's own range, so a 20 s clip made before the 15 s cap reuses at 15 (MPI-1349).
     const duration = _number(params.Duration);
-    if (duration != null) sharedUpdates.duration = Math.min(30, Math.max(1, Math.round(duration)));
+    if (duration != null) sharedUpdates.duration = Math.min(DURATION_MAX, Math.max(DURATION_MIN, Math.round(duration)));
     else if (_hasComponent(components, 'duration')) sharedUpdates.duration = PROMPT_CONTROL_DEFAULTS.duration;
 
     const motion = _number(params.Motion_Intensity);

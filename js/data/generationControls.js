@@ -248,7 +248,7 @@ export function namedParamsFor(model, operation) {
         turbo: !!resolveTurboControlId(model),
         styles: modelShowsStyleRack(model, operation) ? [...model.styleLoraLabels] : [],
         // Seconds, on a clip op only (MPI-820). Advertised as a RANGE, not a list: the
-        // slider is 1-30 and H3 snaps whatever it is given onto its own frame grid, so a
+        // slider is 1-15 and H3 snaps whatever it is given onto its own frame grid, so a
         // list of legal values would be a different list per model type and wrong anyway.
         // Sound & Music takes its length as `duration` too, on its own 1-190 range (MPI-1012).
         duration: getCommandComponents(operation).includes('audioLength')
@@ -445,9 +445,13 @@ const _isValidDenoise = (v) => typeof v === 'number' && Number.isFinite(v) && v 
 
 // ── duration (MPI-820) ───────────────────────────────────────────────────────
 
-/** Video length bounds, matching the PromptBox slider so both paths share one contract. */
+/** Video length bounds. The PromptBox slider reads these same two, so both paths share one
+ *  contract. 15, not 30 (Fabio, 2026-10-29): it is the top of H3's trained range (362
+ *  frames, ~15.1 s), and anything longer is Infinite Video's job (MPI-1336), which
+ *  chains short windows instead of stretching one. The cap holds on cloud models too,
+ *  under whatever the provider publishes (`durationBoundsFor`). */
 export const DURATION_MIN = 1;
-export const DURATION_MAX = 30;
+export const DURATION_MAX = 15;
 
 // H3's frame grid, mirrored from the node that actually applies it:
 // `ComfyUi-MpiNodes/h3.py` § snap_h3_frames / MpiH3Length. Duplicated across a
@@ -675,7 +679,7 @@ export function resolveNamedParams(project, model, operation, named = {}) {
     if (components.includes('audioLength')) {
         // Sound & Music's length (MPI-1012). Asked for as `duration`, the word anyone uses,
         // but it is the audioLength control: 1..190 s, per model, never the video slider's
-        // shared 1..30. Exact, so there is nothing to report back beyond the ask.
+        // shared 1..15. Exact, so there is nothing to report back beyond the ask.
         if (durationWanted !== undefined && !(typeof durationWanted === 'number' && Number.isFinite(durationWanted)
             && durationWanted >= AUDIO_LENGTH.min && durationWanted <= AUDIO_LENGTH.max)) {
             return _err('INVALID_DURATION', `duration must be a number of seconds between ${AUDIO_LENGTH.min} and ${AUDIO_LENGTH.max}.`);
@@ -693,8 +697,10 @@ export function resolveNamedParams(project, model, operation, named = {}) {
             duration = durationWanted;
         } else {
             const saved = getSharedSettings(project || {}, _mediaTypeOf(model)).duration;
-            duration = typeof saved === 'number' && isValidDuration(saved)
-                ? saved
+            // A saved length is clamped, not dropped: a 20 saved before the cap (MPI-1349)
+            // runs at 15, the same number the slider opens at, rather than at the default.
+            duration = typeof saved === 'number' && Number.isFinite(saved)
+                ? Math.min(DURATION_MAX, Math.max(DURATION_MIN, Math.round(saved)))
                 : resolveThreeLayerDefault('duration', model, operation, PROMPT_CONTROL_DEFAULTS.duration);
         }
         injectionParams.Input_Duration = duration;

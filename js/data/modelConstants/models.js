@@ -2846,7 +2846,7 @@ const ALL_MODELS = [
         // otherwise); negativePrompt: false keeps the audio-negative stop it would arm
         // off, as on minimax-h3-ref2va. endFrame shows i2v's optional last frame.
         capabilities: { negativePrompt: false, batch: false, audio: true, endFrame: true },
-        description: '**Wan 3.0** on your own DeepInfra key: the hosted Wan, **up to 30 seconds a clip**.\n\n'
+        description: '**Wan 3.0** on your own DeepInfra key: the hosted Wan, **up to 15 seconds a clip**.\n\n'
             + 'Priced per second and per tier: **$0.05/s at 480p, $0.10/s at 720p, $0.20/s at 1080p**, so five seconds at 1080p is about $1.00. Dropping a tier genuinely halves it.',
         workflows: {},
     },
