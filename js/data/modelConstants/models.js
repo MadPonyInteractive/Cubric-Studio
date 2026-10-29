@@ -1711,7 +1711,7 @@ const ALL_MODELS = [
             // Both strength gates are gone — the arm is an MpiIfElse switch at strength 1.0
             // — so the old 1.0-vs-0.75 harmonisation warning no longer applies.
             // Installing both models downloads two turbo LoRAs (1.82GB each).
-            'minimax-h3-ref2va-turbo-8step',
+            'minimax-h3-ref2va-turbo-8step-v11',
             // Same upscaler node + weight as fl2va (MPI-687) — shared, one download.
             'Comfyui_Minimax_h3_latent_Upscaler',
             'minimax-h3-latent-upscaler',
@@ -1752,7 +1752,7 @@ const ALL_MODELS = [
             'h3-qwen3vl-32b-clip',
             'vae-minimax-h3-video-int8',
             'vae-minimax-h3-audio',
-            'minimax-h3-ref2va-turbo-8step',
+            'minimax-h3-ref2va-turbo-8step-v11',
             'Comfyui_Minimax_h3_latent_Upscaler',
             'minimax-h3-latent-upscaler',
             'taeh3-decoder',

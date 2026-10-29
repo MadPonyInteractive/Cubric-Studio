@@ -86,6 +86,12 @@ audio description** — which is the axis H3 breaks on first, so it is the one w
 **It is a v0.1 on purpose.** lightx2v shipped v1.0 for fl2v only; no ref2v v1.0 existed on
 2026-08-30. If one appears, retest — every v1.0 tried that day beat its v0.1.
 
+**Now ref2v 8-step v1.1 768p at 8 stage-1 steps (MPI-1347, 2026-10-29)**, after the 8-step
+v1.0 768p at 10 (MPI-687, 2026-09-04). Benched on the Singularity graph, Fast Motion ON, one
+seed: v1.0 at 10 beat v1.1 at 10, ref2v 4-step v1.0 at 8 (softest) and v0.1 at 8, but the
+user picked v1.1 at **8** over it. Bench Fast Motion ON: OFF draws stage 1 at half size, so
+faces at the wide end become a seed lottery. Clips + table: the card's `research/results.md`.
+
 ### Two methodology findings from this adoption, both of which cost runs
 
 **1. Clip length is a confound, and it reversed conclusions.** Every short A/B run at ~1s

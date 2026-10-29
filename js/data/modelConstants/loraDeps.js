@@ -157,6 +157,8 @@ export const loraDeps = {
         bytes: 1956193000,
         sha256: '08cfe946033af7d27719b964b6e0a0e50c32138daabbd6ce4137e23df6bf9980',
     },
+    // ── DEPRECATED (MPI-1347): replaced by minimax-h3-ref2va-turbo-8step-v11 below. Kept
+    // so the orphan sweep can still reclaim it from users who already downloaded it.
     'minimax-h3-ref2va-turbo-8step': {
         id: 'minimax-h3-ref2va-turbo-8step',
         name: 'MiniMax H3 Reference Turbo LoRA (8-step v1.0)',
@@ -167,6 +169,21 @@ export const loraDeps = {
         size: '1.82GB',
         bytes: 1956193000,
         sha256: '6a56f41ab4229c9dd845b9501bbd475ee57e112d846cf2e819d534a1ae928c5a',
+    },
+    // lightx2v's ref2v 8-step v1.1 (published 2026-10-20), run at 8 stage-1 steps. Benched
+    // against v1.0 at 10 on the shipped Singularity graph, Fast Motion on (MPI-1347
+    // research/results.md): the user picked v1.1 at 8; at 10 steps they still preferred v1.0.
+    // Hash verified against the HF LFS oid before upload, as above.
+    'minimax-h3-ref2va-turbo-8step-v11': {
+        id: 'minimax-h3-ref2va-turbo-8step-v11',
+        name: 'MiniMax H3 Reference Turbo LoRA (8-step v1.1)',
+        origin: 'lightx2v/Minimax-h3-Turbo (Apache-2.0)',
+        filename: 'loras/minimax-h3/minimax_h3_ref2v_turbo_8step_v1.1_768p_comfyui_bf16.safetensors',
+        url: 'https://models.cubric.studio/vision/models/loras/minimax-h3/minimax_h3_ref2v_turbo_8step_v1.1_768p_comfyui_bf16.safetensors',
+        mirrorUrl: 'https://huggingface.co/lightx2v/Minimax-h3-Turbo/resolve/main/minimax_h3_ref2v_turbo_8step_v1.1_768p_comfyui_bf16.safetensors',
+        size: '1.82GB',
+        bytes: 1956193000,
+        sha256: 'e56863a7524e0300729cbb7b64cc8b548d90698c1abbf7d83898b0122fbe1e81',
     },
     // akatz-ai's Character Swap LoRA (MPI-1036), a dep of the Video Edit FLOW, not of any
     // model. Trained on the exact ref2va transformer we ship (their base-model sha256 =

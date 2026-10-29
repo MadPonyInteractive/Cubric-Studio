@@ -567,7 +567,7 @@
   },
   "537": {
     "inputs": {
-      "lora_name": "minimax-h3\\minimax_h3_ref2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors",
+      "lora_name": "minimax-h3\\minimax_h3_ref2v_turbo_8step_v1.1_768p_comfyui_bf16.safetensors",
       "strength_model": 1,
       "model": [
         "521",
@@ -649,7 +649,7 @@
   "560": {
     "inputs": {
       "scheduler": "beta",
-      "steps": 10,
+      "steps": 8,
       "denoise": 1,
       "model": [
         "891",

@@ -5895,11 +5895,11 @@
         "Node name for S&R": "MpiLoraModel"
       },
       "widgets_values": [
-        "minimax-h3\\minimax_h3_ref2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors",
+        "minimax-h3\\minimax_h3_ref2v_turbo_8step_v1.1_768p_comfyui_bf16.safetensors",
         1
       ],
       "widgets_values_named": {
-        "lora_name": "minimax-h3\\minimax_h3_ref2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors",
+        "lora_name": "minimax-h3\\minimax_h3_ref2v_turbo_8step_v1.1_768p_comfyui_bf16.safetensors",
         "strength_model": 1
       }
     },
@@ -6884,12 +6884,12 @@
       },
       "widgets_values": [
         "beta",
-        10,
+        8,
         1
       ],
       "widgets_values_named": {
         "scheduler": "beta",
-        "steps": 10,
+        "steps": 8,
         "denoise": 1
       }
     },

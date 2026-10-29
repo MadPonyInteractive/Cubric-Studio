@@ -74,7 +74,8 @@ def run(base, clips, path):
     ok = entry["status"].get("status_str") == "success"
     secs = (msgs["execution_success"]["timestamp"] - msgs["execution_start"]["timestamp"]) / 1000 if ok else 0
     size, saved = 0, ""
-    out = entry.get("outputs", {}).get("610", {})  # Output_Video only, never the preview
+    video = next(k for k, n in prompt.items() if n.get("_meta", {}).get("title") == "Output_Video")
+    out = entry.get("outputs", {}).get(video, {})  # Output_Video only, never the preview
     for item in out.get("gifs", []) + out.get("videos", []) + out.get("images", []):
         if item["filename"].endswith(".mp4"):
             q = urllib.parse.urlencode({"filename": item["filename"], "subfolder": item.get("subfolder", ""),
