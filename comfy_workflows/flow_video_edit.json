@@ -269,7 +269,7 @@
   },
   "30": {
     "inputs": {
-      "math_expression": "floor((a - 5) / 17) * 17 + 5",
+      "math_expression": "22 if a <= 22 else ceil((a - 5) / 17) * 17 + 5",
       "a": [
         "10",
         3
@@ -277,14 +277,14 @@
     },
     "class_type": "MpiMath",
     "_meta": {
-      "title": "Frames on the H3 grid (17k+5)"
+      "title": "Frames on the H3 grid (17k+5, at least 22)"
     }
   },
   "31": {
     "inputs": {
       "start_index": 0,
       "images": [
-        "10",
+        "311",
         0
       ],
       "num_frames": [
@@ -348,7 +348,7 @@
     "inputs": {
       "start": 0,
       "audio": [
-        "33",
+        "314",
         0
       ],
       "fps": [
@@ -1254,6 +1254,10 @@
         "210",
         0
       ],
+      "ref_video_audio_1": [
+        "303",
+        0
+      ],
       "prompt": [
         "149",
         0
@@ -1452,13 +1456,13 @@
         0
       ],
       "num_frames": [
-        "30",
-        0
+        "10",
+        3
       ]
     },
     "class_type": "GetImageRangeFromBatch",
     "_meta": {
-      "title": "Drop the lead-in"
+      "title": "Drop the lead-in and the pad"
     }
   },
   "130": {
@@ -1472,7 +1476,7 @@
         0
       ],
       "audio": [
-        "35",
+        "33",
         0
       ]
     },
@@ -2168,6 +2172,10 @@
         "60",
         0
       ],
+      "ref_video_audio_1": [
+        "303",
+        0
+      ],
       "prompt": [
         "149",
         0
@@ -2314,6 +2322,234 @@
     "class_type": "MpiMath",
     "_meta": {
       "title": "Source side the crop covers"
+    }
+  },
+  "300": {
+    "inputs": {
+      "math_expression": "a / b",
+      "a": [
+        "36",
+        0
+      ],
+      "b": [
+        "10",
+        2
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Lead-in seconds"
+    }
+  },
+  "301": {
+    "inputs": {
+      "sample_rate": 44100,
+      "channels": 2,
+      "duration": [
+        "300",
+        0
+      ]
+    },
+    "class_type": "EmptyAudio",
+    "_meta": {
+      "title": "Lead-in silence"
+    }
+  },
+  "302": {
+    "inputs": {
+      "direction": "after",
+      "audio1": [
+        "301",
+        0
+      ],
+      "audio2": [
+        "35",
+        0
+      ]
+    },
+    "class_type": "AudioConcat",
+    "_meta": {
+      "title": "Silence + clip audio"
+    }
+  },
+  "303": {
+    "inputs": {
+      "true": [
+        "302",
+        0
+      ],
+      "false": [
+        "35",
+        0
+      ],
+      "boolean": [
+        "45",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "lead-in ? silence + clip audio : clip audio"
+    }
+  },
+  "305": {
+    "inputs": {
+      "math_expression": "a - b",
+      "a": [
+        "30",
+        0
+      ],
+      "b": [
+        "10",
+        3
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Pad frames"
+    }
+  },
+  "306": {
+    "inputs": {
+      "math_expression": "a > 0",
+      "a": [
+        "305",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Pad?"
+    }
+  },
+  "307": {
+    "inputs": {
+      "math_expression": "a - 1",
+      "a": [
+        "10",
+        3
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Clip last frame index"
+    }
+  },
+  "308": {
+    "inputs": {
+      "length": 1,
+      "image": [
+        "10",
+        0
+      ],
+      "batch_index": [
+        "307",
+        0
+      ]
+    },
+    "class_type": "ImageFromBatch",
+    "_meta": {
+      "title": "Clip last frame"
+    }
+  },
+  "309": {
+    "inputs": {
+      "image": [
+        "308",
+        0
+      ],
+      "amount": [
+        "305",
+        0
+      ]
+    },
+    "class_type": "RepeatImageBatch",
+    "_meta": {
+      "title": "Last frame, held to the grid"
+    }
+  },
+  "310": {
+    "inputs": {
+      "image1": [
+        "10",
+        0
+      ],
+      "image2": [
+        "309",
+        0
+      ]
+    },
+    "class_type": "ImageBatch",
+    "_meta": {
+      "title": "Clip + held last frame"
+    }
+  },
+  "311": {
+    "inputs": {
+      "true": [
+        "310",
+        0
+      ],
+      "false": [
+        "10",
+        0
+      ],
+      "boolean": [
+        "306",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "pad ? clip + held frame : clip"
+    }
+  },
+  "312": {
+    "inputs": {
+      "math_expression": "a / b + 1",
+      "a": [
+        "305",
+        0
+      ],
+      "b": [
+        "10",
+        2
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Pad seconds (+1 s)"
+    }
+  },
+  "313": {
+    "inputs": {
+      "sample_rate": 44100,
+      "channels": 2,
+      "duration": [
+        "312",
+        0
+      ]
+    },
+    "class_type": "EmptyAudio",
+    "_meta": {
+      "title": "Pad silence"
+    }
+  },
+  "314": {
+    "inputs": {
+      "direction": "after",
+      "audio1": [
+        "33",
+        0
+      ],
+      "audio2": [
+        "313",
+        0
+      ]
+    },
+    "class_type": "AudioConcat",
+    "_meta": {
+      "title": "Clip audio + pad silence"
     }
   }
 }
