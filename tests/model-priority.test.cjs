@@ -24,8 +24,8 @@ const RANKED = [
     ['t2v', [['minimax-h3', 't2v_ms'], ['ltx-25', 't2v_ms'], ['ltx-23-balanced', 't2v_ms'], ['wan22-5b', 't2v']]],
     ['i2v', [['minimax-h3', 'i2v_ms'], ['ltx-25', 'i2v_ms'], ['ltx-23-balanced', 'i2v_ms'], ['wan-22', 'i2v_ms'],
         ['wan22-5b', 'i2v']]],
-    // MPI-1332 (Fabio 2026-10-29): Qwen-Image 2.1 and FLUX.3 Klein second and third, the rest as they were.
-    ['t2i', [['krea2', 't2i'], ['qwen-image-2-1', 't2i'], ['flux3-klein', 't2i'], ['klein-9b', 't2i'],
+    // MPI-1332 (Fabio 2026-10-29): Qwen-Image 2.1 and FLUX.3 Klein second and third, MOSS fourth (MPI-1346).
+    ['t2i', [['krea2', 't2i'], ['qwen-image-2-1', 't2i'], ['flux3-klein', 't2i'], ['moss-image', 't2i'], ['klein-9b', 't2i'],
         ['chroma-flash', 't2i'], ['chroma-hyper', 't2i'], ['klein-4b', 't2i'], ['sdxl-realistic', 't2i']]],
     // MPI-1060: LTX added at rank 2 (H3 stays rank 1); the High tier at 3 retired with its card (MPI-1095).
     ['ref2v', [['minimax-h3-ref2va', 'ref2v_ms'], ['minimax-h3-singularity', 'ref2v_ms'], ['ltx-25', 'ref2v_ms'], ['ltx-23-balanced', 'ref2v_ms']]],
@@ -49,9 +49,9 @@ test('the order is the one Fabio gave (2026-09-18)', () => {
 
 test('an image task takes the shared order, filtered by the models that declare it', () => {
     // chroma has no inpaint, so it drops out of inpaint instead of needing its own list.
-    assert.equal(opPriority('chroma-flash', 't2i').rank, 5);
+    assert.equal(opPriority('chroma-flash', 't2i').rank, 6);
     assert.equal(opPriority('chroma-flash', 'inpaint'), null, 'chroma declares no inpaint op');
-    assert.equal(opPriority('klein-4b', 'inpaint').rank, 5, 'klein-4b moves up where chroma is absent');
+    assert.equal(opPriority('klein-4b', 'inpaint').rank, 6, 'klein-4b moves up where chroma is absent');
 });
 
 // MPI-904 (Fabio live, 2026-09-27): "upscale every card marked with a dot" took Krea 2's upscale,
@@ -103,12 +103,12 @@ test('krea2 is the best skin detail at low denoise; chroma-flash keeps the chara
         assert.match(note, /"high skin detail, visible pores"/, op);
         assert.doesNotMatch(note, /the pick for realistic skin detail/, op);
     }
-    assert.equal(opPriority('chroma-flash', 'detail').rank, 5);
-    assert.equal(opPriority('chroma-flash', 'upscale').rank, 6);
+    assert.equal(opPriority('chroma-flash', 'detail').rank, 6);
+    assert.equal(opPriority('chroma-flash', 'upscale').rank, 7);
 
     // chroma-hyper is untouched: no new note, same rank right after Flash on both tasks.
     assert.doesNotMatch(opPriority('chroma-hyper', 'detail').note, /denoise changes the character/);
-    assert.equal(opPriority('chroma-hyper', 'detail').rank, 6);
+    assert.equal(opPriority('chroma-hyper', 'detail').rank, 7);
 });
 
 test('a one-image editor names the editors that take a second picture, and they do (MPI-944)', () => {

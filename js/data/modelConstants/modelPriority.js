@@ -40,16 +40,17 @@ const IMAGE_TASKS = ['t2i', 'i2i', 'control', 'inpaint', 'upscale', 'detail'];
  * they are not FOR photography, and the note is what makes the agent pick one on purpose.
  */
 const IMAGE_ORDER = [
-    // MPI-1332 (Fabio 2026-10-29): Krea 2, Qwen-Image 2.1, FLUX.3 Klein, then the rest as they were.
+    // MPI-1332 (Fabio 2026-10-29): Krea 2, Qwen-Image 2.1, FLUX.3 Klein, then the rest as they were;
+    // MPI-1346 (same day, "MOSS is actually quite good"): MOSS 4th, before Klein 9B.
     'krea2',
     'qwen-image-2-1',
     'flux3-klein',
+    'moss-image',    // MPI-1243: no edit; its note says what it is for
     'klein-9b',
     'chroma-flash',
     'chroma-hyper',
     'klein-4b',
     'sdxl-realistic',
-    'moss-image',    // MPI-1243, provisional: no edit; its note says what it is for
     'ill-anime',
     'ill-anime-beauty',
     'pony-mix',
