@@ -509,6 +509,11 @@ const OUT_OF_ROUNDS = 'You are out of tool calls for this turn. In plain words, 
 // happen, and this constant is the knob if the trade ever reads wrong.
 const EARLY_REFUSAL_MS = 1000;
 
+// MPI-1329 (Fabio, 2026-10-29): what a started download tells the agent to say. Nothing wakes
+// it when the download ends, so it promised "I'll run the hat edit as soon as it's downloaded"
+// and sat idle. It hands the next step to the user instead.
+const DOWNLOAD_HANDBACK = 'Tell them it is downloading and ask them to let you know when it has finished, and you will carry on then. Do not say you will carry on by yourself: nothing tells you when it ends.';
+
 // MPI-1127 (Fabio, 2026-10-13): Cosmo never installs the engine. The shared NO_ENGINE text
 // names install_engine, an outside agent's tool, so Cosmo's copy says what the user does.
 const cosmoNoEngine = (r) => (r?.error?.code === 'NO_ENGINE'
@@ -3726,7 +3731,7 @@ ${knowledgeIndex}`.trim();
                     installed: false,
                     message: `The user pressed Yes. ${pc.modelName} is downloading now (it shows in the app's downloads) and is not installed until that finishes.`
                         + (pc.licence ? ' A licence screen opens in the app first: the download starts only once they accept it there.' : '')
-                        + ' Tell them so.',
+                        + ` ${DOWNLOAD_HANDBACK}`,
                 }));
                 return { ok: true };
             }
@@ -3742,7 +3747,7 @@ ${knowledgeIndex}`.trim();
                 installed,
                 message: installed
                     ? `The user pressed Yes and ${pc.modelName} is now installed.`
-                    : `The user pressed Yes. ${pc.modelName} is downloading now (it shows in the app's downloads) and is not installed until that finishes. Tell them it is downloading.`,
+                    : `The user pressed Yes. ${pc.modelName} is downloading now (it shows in the app's downloads) and is not installed until that finishes. ${DOWNLOAD_HANDBACK}`,
             }));
         } catch (err) {
             pc.resolve(JSON.stringify({ ok: false, error: { code: 'INSTALL_ERROR', message: err.message } }));

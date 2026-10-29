@@ -256,7 +256,8 @@ describe('(a) install gate', () => {
 
     // MPI-774 Phase 4: the install is a started download; the re-read decides what the model is told.
     test('after Yes the model is told what the re-read says: installed, or still downloading', async () => {
-        for (const [installed, said] of [[false, /pressed Yes\. Test Model is downloading now/], [true, /pressed Yes and Test Model is now installed/]]) {
+        // MPI-1329: nothing wakes the agent when a download ends, so it asks the user to say so.
+        for (const [installed, said] of [[false, /pressed Yes\. Test Model is downloading now.*let you know when it has finished/], [true, /pressed Yes and Test Model is now installed/]]) {
             const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [
                 { text: '', toolCalls: [{ id: 'tc-1', type: 'function', function: { name: 'install_model', arguments: '{"modelId":"test-model"}' } }] },
                 { text: 'ok' },
@@ -4262,7 +4263,7 @@ describe('MPI-892 — handing a Flow over', () => {
         await turn;
         assert.deepEqual(tools.calls.installFlow[1], { flowId: 'minimax-music', start: true });
         assert.equal(tools.calls.installModel.length, 0);
-        assert.match(toolResults(loop)[0].message, /downloading now.*licence screen/);
+        assert.match(toolResults(loop)[0].message, /downloading now.*licence screen.*let you know when it has finished/);
     });
 
     test('No on a Flow card starts nothing', async () => {
