@@ -4,7 +4,7 @@
  * A small always-on-top OS window that shows live latent previews while the app
  * is minimized. Pure consumer of the MPI-269 preview:frame bus, forwarded from
  * the main renderer over IPC (a separate BrowserWindow has its own empty Events
- * bus, and blob: URLs don't cross documents — the renderer sends data URLs).
+ * bus, and blob: URLs don't cross documents — the renderer sends the JPEG bytes).
  *
  * The window aggregates one tile per active generation (local + remote side by
  * side). Width tracks the tile count (right edge pinned so it grows leftward).
@@ -145,10 +145,17 @@ function spendTile(lane, genId, dataUrl) {
   win.webContents.send('float-latent:spend', { lane, genId, dataUrl });
 }
 
-/** Paint a frame into a lane's tile. */
-function frame(lane, genId, dataUrl, seq) {
+/** Feed one latent frame (JPEG bytes) to a lane's tile; `clip` is the run's
+ *  {rate,length} or null. The window paces and loops it itself (MPI-1345). */
+function frame(lane, genId, bytes, clip) {
   if (!win || win.isDestroyed()) return;
-  win.webContents.send('float-latent:frame', { lane, genId, dataUrl, seq });
+  win.webContents.send('float-latent:frame', { lane, genId, bytes, clip });
+}
+
+/** New sampler stage: drop the lane's current clip window. */
+function resetClip(lane, genId, clip) {
+  if (!win || win.isDestroyed()) return;
+  win.webContents.send('float-latent:reset', { lane, genId, clip });
 }
 
 /** Fill a lane's footer with its run's progress (0–1). genId guards ownership
@@ -185,4 +192,4 @@ function close() {
   tiles = [];
 }
 
-module.exports = { addTile, frame, progress, finalize, spendTile, removeTile, close, isOpen };
+module.exports = { addTile, frame, resetClip, progress, finalize, spendTile, removeTile, close, isOpen };

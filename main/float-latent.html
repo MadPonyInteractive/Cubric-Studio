@@ -85,7 +85,16 @@
 <script>
   const { ipcRenderer } = require('electron');
   const tilesEl = document.getElementById('tiles');
-  const tiles = new Map(); // lane ('local'/'remote') -> { el, img, empty, cap, txt, fill, seq, done, overlay, owner }
+  const tiles = new Map(); // lane ('local'/'remote') -> { el, img, empty, cap, txt, fill, done, overlay, owner, player }
+
+  // The shared latent consumer (js/services/previewClipPlayer.js, MPI-571) runs HERE,
+  // not in the app's renderer (MPI-1345). This window is up exactly while the app is
+  // minimised, and a minimised app window is a HIDDEN page: Chromium clamps its timers
+  // to 1s and, after 5 minutes, to about once a minute — so a loop paced over there
+  // reached this tile as one frame per sampler step. This window is visible, so its
+  // timer keeps the clip's real rate. The app forwards each frame's bytes once.
+  let createPlayer = null;
+  import('../js/services/previewClipPlayer.js').then((m) => { createPlayer = m.createPreviewClipPlayer; });
 
   function makeTile(lane, genId, title) {
     const el = document.createElement('div');
@@ -107,7 +116,25 @@
     el.appendChild(cap);
     el.addEventListener('click', () => ipcRenderer.send('float-latent:restore'));
     tilesEl.appendChild(el);
-    tiles.set(lane, { el, img: null, empty, cap, txt, fill, seq: -1, done: false, overlay: null, owner: genId });
+    tiles.set(lane, { el, img: null, empty, cap, txt, fill, done: false, overlay: null, owner: genId, player: null });
+  }
+
+  // The tile's own player. It OWNS its frames: the blob URLs are minted here from the
+  // forwarded bytes, so nothing else can revoke them.
+  function playerOf(t) {
+    if (!t.player && createPlayer) {
+      t.player = createPlayer({
+        paint: (url) => { ensureImg(t).src = url; },
+        canPaint: () => !t.done,
+        ownsFrames: true,
+      });
+    }
+    return t.player;
+  }
+
+  function stopPlayer(t) {
+    t.player?.stop();
+    t.player = null;
   }
 
   function setProgress(t, value) {
@@ -116,12 +143,12 @@
 
   // Reset an existing tile back to a live "waiting" state — used when the next
   // queued item on the same lane reuses this tile. Clears the frozen frame, any
-  // Done overlay, and the seq gate so fresh frames paint again. Takes ownership
-  // for the new gen so a late spend/finalize from the previous item is ignored.
+  // Done overlay, and the previous item's loop so fresh frames paint again. Takes
+  // ownership for the new gen so a late spend/finalize from the previous item is ignored.
   function resetTile(t, genId, title) {
     t.owner = genId;
     t.done = false;
-    t.seq = -1;
+    stopPlayer(t);
     if (t.overlay) { t.overlay.remove(); t.overlay = null; }
     t.el.classList.remove('done');
     if (t.img) { t.img.remove(); t.img = null; }
@@ -153,16 +180,6 @@
     setProgress(t, value);
   });
 
-  // ponytail: still one <img> swap per frame, and it stays that way. Clip pacing
-  // and looping live in the RENDERER (floatLatentBridge -> previewClipPlayer, the
-  // one shared consumer, MPI-571), which loops on cheap blob URLs and lets the
-  // existing per-lane throttle sample the loop. So the tile now MOVES on a video
-  // run without this window learning anything about clips, and without re-encoding
-  // a 56-frame clip to base64 on every sampler step.
-  //
-  // `seq` here is the BRIDGE's own counter, not the bus's. A looping player replays
-  // earlier frames, so a forwarded bus seq would go backwards and the newer-only
-  // guard below would freeze the tile on frame 1 — the exact bug this fixed.
   function ensureImg(t) {
     if (!t.img) {
       t.img = document.createElement('img');
@@ -172,13 +189,25 @@
     return t.img;
   }
 
-  ipcRenderer.on('float-latent:frame', (_e, { lane, genId, dataUrl, seq }) => {
+  // One bus frame, as JPEG bytes, in arrival order. `clip` is the run's {rate,length}
+  // (null = a still run), re-sent with every frame like every other consumer gets it.
+  ipcRenderer.on('float-latent:frame', (_e, { lane, genId, bytes, clip }) => {
     const t = tiles.get(lane);
-    if (!t || !dataUrl || t.done) return; // ignore late frames once finalized
+    if (!t || !bytes || t.done) return; // ignore late frames once finalized
     if (genId && t.owner && genId !== t.owner) return; // stale frame from prev item
-    if (typeof seq === 'number' && seq <= t.seq) return; // drop stale
-    t.seq = typeof seq === 'number' ? seq : t.seq;
-    ensureImg(t).src = dataUrl;
+    const url = URL.createObjectURL(new Blob([bytes], { type: 'image/jpeg' }));
+    const player = playerOf(t);
+    if (player) player.push(url, clip || null);
+    else ensureImg(t).src = url; // the module is still loading: the first frame only
+  });
+
+  // A new sampler stage (MPI-167): drop the current clip window so stages don't
+  // concatenate into one growing loop.
+  ipcRenderer.on('float-latent:reset', (_e, { lane, genId, clip }) => {
+    const t = tiles.get(lane);
+    if (!t || t.done) return;
+    if (genId && t.owner && genId !== t.owner) return;
+    t.player?.reset(clip || null);
   });
 
   // Gen finished → freeze the tile on its final result and keep it up so the user
@@ -190,6 +219,8 @@
     if (!t) return;
     if (genId && t.owner && genId !== t.owner) return; // lane already advanced
     t.done = true;
+    // Stopping frees the loop's blobs; the <img> keeps the frame it already decoded.
+    stopPlayer(t);
     if (dataUrl) ensureImg(t).src = dataUrl;
     t.el.classList.add('done');
     t.txt.textContent = 'Click to open';
@@ -218,6 +249,7 @@
     if (!t) return;
     if (genId && t.owner && genId !== t.owner) return; // lane already advanced to next item
     t.done = true; // gate late frames; no overlay/caption change
+    stopPlayer(t);
     if (dataUrl) ensureImg(t).src = dataUrl;
   });
 
@@ -225,6 +257,7 @@
     const t = tiles.get(lane);
     if (!t) return;
     if (genId && t.owner && genId !== t.owner) return; // stale remove from prev item
+    stopPlayer(t);
     t.el.remove(); tiles.delete(lane);
   });
 

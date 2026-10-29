@@ -25,3 +25,15 @@
 
 A real video run with the app minimised: the Latents tile keeps looping every step and is
 captioned with the model's name, not "Generating".
+
+## Round 2 (2026-10-29): Fabio eye-test FAILED, then fixed
+
+Fabio: tile still froze, changing once per step. Real root: the loop ran in the APP renderer,
+which is HIDDEN while minimised. Electron probe: minimise() -> visibilityState hidden, a 41ms
+interval ticked ~10/10s (not ~240), for 4.5 min. Fix: the player runs in main/float-latent.html
+(visible window, ownsFrames on its own blob URLs); the bridge forwards each frame's bytes once,
+in order, with clip meta, plus a queued float-latent:reset; seeds a mid-step open with the
+current clip. Evidence: tests/float-latent-bridge.test.cjs green; driving the real
+float-latent.html in Electron with an 8-frame burst cycled 8 distinct frames in 2s, caption
+Singularity H3, frozen after finalize. Related suites 19/19, eslint clean.
+Remaining: Fabio restarts the app (main-process change) and minimises during a video run.

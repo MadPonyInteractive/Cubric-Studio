@@ -1,1 +1,1 @@
-{"schema":"mpi-kanban/task-files/v1","files":["js/shell/floatLatentBridge.js","docs/preview-bus.md","tests/float-latent-bridge.test.cjs"]}
+{"schema":"mpi-kanban/task-files/v1","files":["js/shell/floatLatentBridge.js","docs/preview-bus.md","tests/float-latent-bridge.test.cjs","main.js","main/float-latent.html","main/floatLatentWindow.cjs"]}

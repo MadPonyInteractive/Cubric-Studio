@@ -99,39 +99,41 @@ sampler step* and then froze.
 | gallery card (`MpiGalleryGrid`) | the correct ring — this module IS its ring, extracted | uses the player |
 | Flow result pane (`MpiBaseFlow`) | `<img>.src` per frame on arrival → burst replay, then a freeze | uses the player |
 | Group History (`MpiGroupHistoryBlock`) | `if (isVideo) return` — nothing at all on a video run | uses the player; the video branch paints `MpiVideoViewer.setLatentPreview()` |
-| float window (`floatLatentBridge`) | forwarded only the NEWEST frame under a throttle → one still frame | player runs in the BRIDGE on blob URLs; the throttle samples the loop |
+| float window (`floatLatentBridge`) | forwarded only the NEWEST frame under a throttle → one still frame | player runs in the FLOAT WINDOW; the bridge forwards each frame's bytes once (MPI-1345) |
 
-The float window is the shape to copy for any **cross-document** consumer: pace in the
-renderer where the blobs are cheap, and let the existing throttle sample the loop.
-Playing the clip in the other window instead would mean base64-encoding a 56-frame clip
-per sampler step, which is the RAM flood `FRAME_MIN_MS` exists to prevent. Its `seq`
-is the **bridge's own counter**, not the bus's — a looping player replays earlier
-frames, so a forwarded bus `seq` runs backwards and a newer-only guard freezes the tile
-on frame 1.
+The float window is the shape to copy for any **cross-document** consumer: **pace where
+the surface is visible.** The bridge reads each frame's bytes as it arrives (while the
+URL is certainly live) and sends them once, in order, with the run's clip meta; the
+float window mints its own blob URLs and runs the player with `ownsFrames: true`. Bytes,
+not data URLs — no base64, and each frame crosses once rather than once per loop pass.
+The first version (MPI-571) paced the loop in the app's renderer and sampled it over IPC;
+see the throttling note below for why that froze.
 
 **`ownsFrames`: at most one player per generation may set it.** See Blob ownership
 below — two owners means one revokes frames the other is still looping. The three
 in-renderer surfaces are mutually exclusive by scope (`scope: 'gallery'` mounts a
 placeholder card, `groupHistory` mounts the History viewer, and a Flow run mounts no
-gallery placeholder at all — MPI-306), so each owns its own. The float bridge forwards
-every run regardless of scope, overlaps all three, and therefore must not own. It
-defaults to false: a consumer that should have owned leaks a bounded amount, one that
-should not have owned silently breaks another surface.
+gallery placeholder at all — MPI-306), so each owns its own. The float window's player
+owns ITS OWN copies (blob URLs minted in that document from the forwarded bytes), so it
+never touches the app's frames. The bridge holds bus URLs only to seed a window opened
+mid-step, and skips any a retainer has freed.
 
 **A non-owning consumer needs `generation:preview-reset` MORE than an owner does, not
 less.** The reset listener in the snippet above is not optional bookkeeping: the owners
 REVOKE the whole window on a stage reset, so a consumer that holds those same URLs and
 skips the event goes on painting dead blobs until enough new frames push them out of
 its ring — a `fetch()` rejection per frame and a stuttering surface. The float bridge
-shipped without that listener and was the only consumer it could hurt (`ae8d6149`).
+shipped without that listener (`ae8d6149`); it now forwards the reset to the window,
+queued behind that lane's in-flight frames so it cannot overtake them.
 
-**Background timer throttling is NOT a hazard here — measured, do not re-chase.** The
-float window's pacing runs on a `setInterval` in the MAIN renderer, which is hidden
-exactly when that window is up, so Chromium's 1s hidden clamp and its 5-minute
-intensive tier look like the obvious suspects. Neither applies: an Electron window
-minimised on Windows keeps `document.visibilityState === 'visible'`, and a 125ms
-interval ticked 80/80 per 10s while visible, while minimised, and again after 5m20s
-minimised.
+**A minimised app window IS throttled — measured 2026-10-29, MPI-1345.** This note
+used to say the opposite ("visibilityState stays 'visible', 80/80 ticks"), and the float
+window's loop was built on it. On this Electron, a `BrowserWindow.minimize()`d page
+reports `visibilityState: 'hidden'` at once, and a 41ms interval (the 24fps loop) ticked
+~10 times per 10s instead of ~240, with ~1s gaps, for the whole 7.5-minute probe; so a
+loop paced there reaches another window as roughly one frame per sampler step. Never
+pace anything the user watches while minimised in the app's renderer — pace it in the
+visible window.
 
 ## Broken-frame gate (why you never receive garbage)
 

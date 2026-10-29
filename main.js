@@ -1147,8 +1147,11 @@ app.on('ready', () => {
   ipcMain.on('float-latent:add-tile', (_e, { lane, genId, title } = {}) => {
     if (mainWindow && lane) floatLatent.addTile(mainWindow, lane, genId, title);
   });
-  ipcMain.on('float-latent:frame', (_e, { lane, genId, dataUrl, seq } = {}) => {
-    if (lane) floatLatent.frame(lane, genId, dataUrl, seq);
+  ipcMain.on('float-latent:frame', (_e, { lane, genId, bytes, clip } = {}) => {
+    if (lane) floatLatent.frame(lane, genId, bytes, clip);
+  });
+  ipcMain.on('float-latent:reset', (_e, { lane, genId, clip } = {}) => {
+    if (lane) floatLatent.resetClip(lane, genId, clip);
   });
   ipcMain.on('float-latent:progress', (_e, { lane, genId, value } = {}) => {
     if (lane) floatLatent.progress(lane, genId, value);
