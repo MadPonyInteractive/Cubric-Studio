@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1327",
+  "title": "Cosmo: a words-only clip runs on an installed H3 reference model, not a MiniMax H3 install",
+  "description": "Live on a Pod with only Singularity H3: a talking-head text-to-video ask got a 21.4 GB MiniMax H3 install offer. ref2v_ms with no references is a plain t2v run (docs/models/h3/ref2va.md), but list_models never said so, and installedKin skipped Singularity (no modelFamily).",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-29T01:32:16+00:00",
+  "updated_at": "2026-10-29T01:32:35+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

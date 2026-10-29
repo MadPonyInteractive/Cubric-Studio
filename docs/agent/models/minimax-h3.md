@@ -9,14 +9,15 @@ guide:
   3 audio clips steer who and what appears; a clip given as `<Video 1>` and asked for the
   same motion and sound with one change comes back edited, its own soundtrack kept, speech
   included. Keeping the picture and changing the sound is the Add Foley Flow instead).
-- `minimax-h3-singularity` (Singularity H3): `ref2v_ms` exactly as `minimax-h3-ref2va`, the
-  same references, settings and prompts, on a community fine-tune of its weights with less
-  tearing on fast action. `minimax-h3-ref2va` stays the default; take this one when the user
-  names it, or offer it when a fast-action clip from H3 Reference tore.
+- `minimax-h3-singularity` (Singularity H3): `ref2v_ms` exactly as `minimax-h3-ref2va` (same
+  references, settings, prompts) on a community fine-tune that tears less on fast action. H3
+  Reference stays the default; take this one when the user names it or H3 Reference tore.
 
 ## Pick it when
 
 - The clip needs sound, and the user wants it in one pass.
+- Words only, no `t2v_ms` installed: `ref2v_ms` with no references is plain text to video on
+  either reference model. Run it there; never offer the MiniMax H3 download for it.
 - A character or place must stay the same across clips: use `ref2v_ms` with their
   reference pictures.
 - A still should come alive: `i2v_ms` with that still as the first frame. No `i2v_ms`
@@ -191,10 +192,9 @@ No text, subtitles, logos or watermarks, no slow motion.
 
 ## Sources
 
-- MiniMax's own prompt-writing skill, `github.com/MiniMax-AI/MiniMax-H3`,
-  `.claude/skills/h3-prompt-writing/` (read 2026-08-17; locations and claims in
-  `docs/recipes/research/minimax-h3/sources.md`).
+- MiniMax's prompt-writing skill, `github.com/MiniMax-AI/MiniMax-H3` `.claude/skills/h3-prompt-writing/`
+  (read 2026-08-17; locations and claims in `docs/recipes/research/minimax-h3/sources.md`).
 - The enhancer recipe `js/data/recipes/minimax-h3.recipe.js`.
-- `docs/models/h3/` (the model card, `ref2va.md` for reference slots).
+- `docs/models/h3/` (the model card; `ref2va.md` for reference slots and the no-reference run).
 - Mad Pony's H3 western production findings, 2026-08-11 to 2026-08-17 (reference-to-video
   only, so the `t2v_ms` and `i2v_ms` advice rests on the vendor's guide).

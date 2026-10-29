@@ -49,6 +49,20 @@ test('an uninstalled family member names the installed one and its ops', () => {
 test('nothing installed in the family, or no family, adds nothing', () => {
     const h3 = getModelById('minimax-h3');
     getModelById('minimax-h3-ref2va').installed = false;
+    getModelById('minimax-h3-singularity').installed = false;
     assert.equal(installedKin(h3), '');
     assert.equal(installedKin({ id: 'x', name: 'X' }), '');
+});
+
+// MPI-1327, live 2026-10-29: a Pod holding only Singularity H3 (no `modelFamily`, the tier
+// letter) got the 21 GB MiniMax H3 offer for a words-only clip.
+test('a member with no modelFamily is kin by its type', () => {
+    const h3 = getModelById('minimax-h3');
+    const sing = getModelById('minimax-h3-singularity');
+    assert.equal(sing.modelFamily, undefined);
+    getModelById('minimax-h3-ref2va').installed = false;
+    sing.installed = true;
+    assert.match(installedKin(h3), /Singularity H3 \("minimax-h3-singularity": ref2v_ms\)/);
+    assert.equal(installedKin(getModelById('sdxl-realistic')), '', 'no family on either side stays no kin');
+    sing.installed = false;
 });

@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1327", "at": "2026-10-29T01:32:16+00:00", "actor": "9fe49532-2c32-4f4e-b98a-9afbeb65ec4b", "column": "todo", "title": "Cosmo: a words-only clip runs on an installed H3 reference model, not a MiniMax H3 install"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1327", "at": "2026-10-29T01:32:35+00:00", "actor": "9fe49532-2c32-4f4e-b98a-9afbeb65ec4b", "from": "todo", "to": "doing"}

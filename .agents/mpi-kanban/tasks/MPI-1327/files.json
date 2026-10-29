@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/task-files/v1", "files": ["js/data/modelConstants/modelPriority.js", "js/shell/agentDispatch.js", "tests/agent-installed-kin.test.cjs", "docs/agent/models/minimax-h3.md", "docs/releases/UNRELEASED.md", ".agents/mpi-kanban/tasks/MPI-1327/"]}

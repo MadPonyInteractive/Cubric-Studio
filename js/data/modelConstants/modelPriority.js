@@ -135,9 +135,11 @@ const NOTES = {
     // Fabio 2026-10-04: with no i2v installed, "just use MiniMax H3 reference" was told the
     // free model that animates this picture was missing, and offered installs and paid clips.
     // The clip edit is measured (MPI-1033 bench): soundtrack back at 0.96, speech and hoofbeats.
-    'minimax-h3-ref2va:ref2v_ms': 'free and local: with no i2v op installed, or when the user names it, it is the route for "animate this picture", not an install. It also edits a clip: given it as <Video 1> and asked for the same motion and sound with one change, the clip comes back changed with its own soundtrack, speech included. Keeping the picture and changing the sound is not this op: that is the Add Foley Flow, sound effects only',
+    // MPI-1327 (live 2026-10-29, a Pod with only Singularity H3): a words-only talking head got
+    // a 21 GB MiniMax H3 install offer. No references at all is a plain t2v run (h3/ref2va.md).
+    'minimax-h3-ref2va:ref2v_ms': 'free and local: with no references at all it is a plain text-to-video run, so with no t2v op installed a words-only clip runs here, not an install. With no i2v op installed, or when the user names it, it is the route for "animate this picture", not an install. It also edits a clip: given it as <Video 1> and asked for the same motion and sound with one change, the clip comes back changed with its own soundtrack, speech included. Keeping the picture and changing the sound is not this op: that is the Add Foley Flow, sound effects only',
     // MPI-1284: same references, same graph as H3 Reference, a community fine-tune of its DiT.
-    'minimax-h3-singularity:ref2v_ms': 'a fine-tune of MiniMax H3 Reference: the same references and prompts, with less tearing on fast action. H3 Reference stays the default; take this one when the user names it, or when a fast-action clip from H3 Reference tore',
+    'minimax-h3-singularity:ref2v_ms': 'a fine-tune of MiniMax H3 Reference: the same references and prompts, with less tearing on fast action, and with no references at all a plain text-to-video run. H3 Reference stays the default; take this one when the user names it, when a fast-action clip from H3 Reference tore, or when it is the H3 that is installed',
     // MPI-1060: LTX uses the Ingredients IC-LoRA sheet approach. One line per picture in
     // the prompt (Picture n + a description), then the scene; the app composes the sheet.
     // No video references, one optional audio clip. Start frame optional.

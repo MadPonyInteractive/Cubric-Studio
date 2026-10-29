@@ -672,13 +672,19 @@ export function opUnavailable(model, operation) {
  * Reference installed and able to animate the picture. The user named a family, the id was
  * one member of it, and nothing named the member that was there.
  *
+ * A model with no `modelFamily` (that field drives the tier letter) joins the family of its
+ * `type` (MPI-1327): Singularity H3 carries none, so a Pod holding only it got the offer.
+ *
  * @param {object} model
- * @returns {string} '' when no other model of its `modelFamily` has an installed op
+ * @returns {string} '' when no other model of its family has an installed op
  */
 export function installedKin(model) {
-    if (!model?.modelFamily) return '';
+    if (!model) return '';
+    const isKin = (m) => (model.modelFamily
+        ? m.modelFamily === model.modelFamily || (!m.modelFamily && m.type === model.type)
+        : !!m.modelFamily && m.type === model.type);
     const kin = MODELS
-        .filter(m => m.id !== model.id && m.modelFamily === model.modelFamily)
+        .filter(m => m.id !== model.id && isKin(m))
         .map(m => ({ m, ops: (m.supportedOps || []).filter(op => isOperationInstalled(m, op)) }))
         .filter(k => k.ops.length);
     if (!kin.length) return '';
