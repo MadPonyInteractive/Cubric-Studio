@@ -121,3 +121,97 @@ approach."*
 3. Same clip, three ways to pick the region: Ultralytics face, Ultralytics person/hand,
    SAM3 by text (via the adapter). Compare how steady the box is and the result.
 4. Pick the best approach, then build the Flow.
+
+## 2026-10-29 - the SAM3 adapter, read from the pack's code
+
+Second video: The Ai Blueprint, "MiniMax H3 Face Refinement in ComfyUI | Fix Oily Skin & Identity
+Drift", 2026-10-14, 9 min - https://www.youtube.com/watch?v=UAdBqy5Y2l4. Same pack (still v1.1.2,
+553 stars), used as a refine pass after a normal two-pass H3 render to cut oily skin shine (the
+presenter's estimate: 50-70% less). Code read from a clone of the pack's `nodes.py`.
+
+### The seam is `face_pick` - no fork of the tracker needed
+
+`H3 Face Track + Crop` takes an optional `face_pick` (type `H3FACEPICK`). When it is wired the node
+**skips its own detector** and reads the boxes from it (`nodes.py:1312-1346`). It is a plain dict:
+
+```
+{"version": 1, "frames": B, "src_size": (W, H),
+ "boxes": [[[x0,y0,x1,y1], ...] per frame],   # empty list = nothing seen this frame
+ "confs": [[c, ...] per frame],
+ "segments": [(start, end), ...],             # shots; [(0, B)] for one shot
+ "picks": [{"segment": (a, b), "frame": f, "box": i} | {"segment": (a, b), "absent": True}],
+ "detector": str, "confidence": float, ...}
+```
+
+`frames` and `src_size` must match the images exactly (it raises otherwise). Everything after the
+boxes - the centre/size smoothing, gap interpolation, the fade-out on lost frames, the canvas,
+Per-Frame Denoise, Stitch Back - only reads boxes and `transform`, never "face". So the whole
+any-region change is **one new MpiNodes node**:
+
+1. `SAM3_VideoTrack` (core ComfyUI, `comfy_extras/nodes_sam3.py:260`; GIF cut-out already ships it)
+   - prompted by text ("hand", "left foot") or by `initial_mask` from a click on frame 0. It keeps
+   one id per object across frames.
+2. `SAM3_TrackToMask` with `object_indices` = the one object -> `MASK [B,H,W]`.
+3. **New node: mask -> `H3FACEPICK`.** Per frame: bbox of the mask, **squared on its longer side**
+   (the tracker sizes the crop as `crop_factor` x box HEIGHT, so a foot or forearm lying flat would
+   be under-cropped). Empty mask = empty box list, so the pack's own gap fill and fade-out handle a
+   hidden hand. One segment per shot, one pick per segment with `box: 0`.
+4. Tracker with `identity_track` **off** (its identity check is insightface, face-only; SAM3
+   already holds the object id). The `detector` widget is inert with a pick wired.
+
+### Paste shape - Fabio, 2026-10-29
+
+*"For hands and feet, usually boxes are better than a precise mask. Even for a face, it probably
+needs a little bit of growth in the mask."*
+
+- **Hands, feet: a feathered box.** Stitch Back with no `masks` input pastes the detected rect
+  (`paste_region`), grown by `mask_dilation` and blurred by `feather` (~24 for a rect).
+- **Face: the SAM3 mask, grown.** Wire it to Stitch Back's `masks`, which wants it in CANVAS space,
+  so the adapter (or a second small node) crops it with the same `transform` the images got. Grow
+  it with `mask_dilation`, feather small (4-8, the author's SAM figure).
+- Either way the mask comes from the INPUT footage, never the refined output (finding above).
+
+### This versus Video Edit's still square (the 2026-10-29 Noticed line in brief.md)
+
+Video Edit's masked route uses ONE still square, the union of every frame, and its doc says why:
+a moving box drifted, and *"a mask pays only on a small part that stays put"*
+(`docs/playbooks/add-flow/existing-flows/video-edit.md` lines 77-87). **Hands and feet are the parts
+that travel**, so the union square goes big and loses the resolution the detailer exists for. The
+pack's crop moves, but smoothed (centre 21 frames, size 51) and pasted back with a sub-pixel warp,
+which is the opposite of the drift Video Edit measured. Bench question: on a moving hand, does the
+smoothed moving crop hold without drift, where the still union square loses detail? A part that
+stays put (a face in a talking head) can keep Video Edit's still square.
+
+### Port, do not install
+
+The pack's `requirements.txt` pulls `ultralytics`, `insightface` and `scenedetect`. Code imports the
+first two lazily, so the SAM3 path never runs them, but installing the pack still installs them, and
+insightface's `buffalo_l` weights are non-commercial. MIT lets us port Track + Crop, Inject Video
+Latent, Per-Frame Denoise and Stitch Back into MpiNodes with credit - in line with the engine-diet
+umbrella (MPI-1344). Keep `scenedetect` optional the way the pack does.
+
+### Other notes from the video
+
+- **The detector missing the face means no refine, silently** (6:56): skin-seg YOLO missed a face
+  and the run looked like it did nothing. SAM3 by text is less likely to miss; the bench should still
+  check the track preview before judging a result.
+- Refine settings shown: 8 steps, euler, simple (beta and er_sde also suggested), Per-Frame Denoise
+  `denoise_multiplier_small_face` 1.00 / `large_face` 0.35, `face_px_small` 30 / `large` 120,
+  `smooth_frames` 9; canvas 768x768 manual, crop_factor 2.5. Refine prompt carries a
+  "retention_analysis" line (identity kept, only shine removed). A hand pass needs its own prompt
+  naming the part.
+- LoRA stack on his render: turbo + `fal/MiniMax-H3-Realism-People-LoRA` (r34l1sm, 1.0) +
+  prithivMLmods Facial-Realism + Alissonerdx `minimax_h3_lms_v1.0_r64` (sharpen, 0.55). fal was
+  already REJECTED in MPI-1135 Phase 1d as a first-frame-replacing render LoRA; untested as a
+  low-denoise crop refiner. ICY Realism H3 (Civitai) offered as an alternative.
+- One object = one full H3 pass at the canvas size; two hands far apart = two chained runs (feed run
+  1's stitched output as run 2's base), or one box when they are close.
+
+### Bench order, revised
+
+1. Port nothing yet: install the pack on the bench, plus a throwaway mask -> `H3FACEPICK` node.
+2. One clip with a moving hand: SAM3 "hand" -> moving smoothed crop, feathered box paste,
+   against Video Edit's still union square on the same clip. Watch for flicker, drift, seams.
+3. A talking head: face via SAM3 with a grown mask vs the box paste.
+4. GO -> port into MpiNodes, then the Flow on the Video Edit route with the moving crop as its
+   region step.

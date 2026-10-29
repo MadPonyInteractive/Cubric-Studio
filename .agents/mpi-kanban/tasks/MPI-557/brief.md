@@ -1260,3 +1260,4 @@ model (LTX v2v lost B2) or close as rejected. Fabio's call.
 ## Noticed
 
 - 2026-10-29 (Fabio, from MPI-1335/MPI-1331): Video Edit's masked route (SAM3 square, InpaintCropImproved, H3 renders the crop, stitch back) is the detailer's mechanism. Video Edit sizes the crop from the source for SPEED (nodes 230/63); a detailer does the opposite, upscaling the crop to the selected resolution to add detail. Build the detailer on that route.
+- 2026-10-29 (Fabio): hands, feet and anything else, picked with SAM3. Paste a feathered BOX for hands/feet, the SAM3 mask GROWN for a face. The adapter is one node (SAM3 mask -> the FaceRefine tracker's `face_pick` boxes); a part that travels needs the pack's moving smoothed crop, not Video Edit's still union square. Design + revised bench order: research-h3-facerefine.md § 2026-10-29.
