@@ -2408,6 +2408,15 @@ ${knowledgeIndex}`.trim();
                     // MPI-1229: a cloud model has no weights; not installed means no API key (as the MCP twin says).
                     return JSON.stringify({ ok: false, error: { code: 'NOTHING_TO_DOWNLOAD', message: `Nothing to install: ${m.name || args.modelId} runs in the cloud, so nothing downloads. It runs once the user adds their API key in Settings: tell them so.` } });
                 } else {
+                    // MPI-1332 (Fabio, live 2026-10-29): a picture asked for with Klein 9B and
+                    // Qwen-Image 2.1 installed got "Install Krea 2? 19.5 GB" — the Model rule lets
+                    // a note match ("realism") pick another op, and nothing said it must be one
+                    // that is here. A model the user never named installs only when no installed
+                    // op it could run here does the same tasks.
+                    const fit = this._installedFit(list, m);
+                    if (fit && !this._userNamed(m)) {
+                        return JSON.stringify({ ok: false, error: { code: 'INSTALLED_FITS', message: `Nothing was installed: ${fit.name} is installed and does the same job (${fit.task}). Use the installed op with best: true for the task. Offer ${m.name || args.modelId} only if the user names it.` } });
+                    }
                     card = { modelName: m.name || args.modelId, downloadGb: m.missingDownloadGb ?? null };
                 }
 
@@ -3072,6 +3081,36 @@ ${knowledgeIndex}`.trim();
             default:
                 return JSON.stringify({ ok: false, error: { code: 'UNKNOWN_TOOL', message: `Unknown tool: ${toolName}` } });
         }
+    }
+
+    /**
+     * MPI-1332: an installed model that already does every task `m` is ranked for, the way
+     * `compactCatalogue` picks `best` (installed, runs here, free). Null when `m` would add a
+     * task nothing installed does, or is ranked for none (an unranked model is never blocked).
+     */
+    _installedFit(list, m) {
+        const tasks = [...new Set((m.ops || []).filter((o) => o.task && o.rank && !o.paid).map((o) => o.task))];
+        if (!tasks.length) return null;
+        let fit = null;
+        for (const task of tasks) {
+            const other = (list.models || []).find((x) => x.id !== m.id && x.fit?.runs !== false
+                && (x.ops || []).some((o) => o.task === task && o.rank && !o.paid && (o.installed ?? x.installed) === true));
+            if (!other) return null;
+            fit ||= { name: other.name || other.id, task };
+        }
+        return fit;
+    }
+
+    /**
+     * MPI-1332: whether anything the user typed in this chat names `m` — "krea2", "Krea 2", or
+     * the name without its version ("Krea"): users drop it, and a false yes only shows a card.
+     */
+    _userNamed(m) {
+        const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const said = norm(this._messages.filter((x) => x.role === 'user').map((x) => (
+            typeof x.content === 'string' ? x.content : (x.content || []).map((p) => p.text || '').join(' '))).join(' '));
+        return [m.name, m.id].flatMap((n) => [norm(n), norm(n).replace(/\d+[a-z]?$/, '')])
+            .some((n) => n.length >= 4 && said.includes(n));
     }
 
     // -------------------------------------------------------------------------

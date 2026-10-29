@@ -332,6 +332,43 @@ describe('(a) install gate', () => {
         assert.equal(result.error.code, 'ALREADY_INSTALLED');
     });
 
+    // MPI-1332 (Fabio, live 2026-10-29): with Klein 9B and Qwen-Image 2.1 installed, a picture
+    // from a video frame got "Install Krea 2? 19.5 GB". Named by the user, it still gets its card.
+    const KREA_LIST = {
+        ok: true, flows: [], models: [
+            { id: 'krea2', name: 'Krea 2', installed: false, missingDownloadGb: 19.5, ops: [{ op: 't2i', task: 't2i', rank: 1 }, { op: 'i2i', task: 'i2i', rank: 1 }] },
+            { id: 'klein-9b', name: 'Klein 9B', installed: true, ops: [{ op: 't2i', task: 't2i', rank: 3 }, { op: 'i2i', task: 'i2i', rank: 3 }] },
+        ],
+    };
+    test('an un-named model whose tasks an installed model does gets INSTALLED_FITS, and no card', async () => {
+        const engineResponses = [
+            { text: '', toolCalls: [{ id: 'tc-1', type: 'function', function: { name: 'install_model', arguments: '{"modelId":"krea2"}' } }] },
+            { text: 'Klein 9B is here.' },
+        ];
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses });
+        tools.listModels = async () => KREA_LIST;
+        await loop.runTurn('Make an image of a demon on fire from this frame', [], null, 'auto', 'deepinfra', 'turn-fits');
+
+        assert.ok(!fakeRes.events.some((e) => e.event === 'agent:confirm'), 'no card when an installed model does the job');
+        const result = JSON.parse(loop._messages.find((m) => m.role === 'tool' && m.tool_call_id === 'tc-1').content);
+        assert.equal(result.error.code, 'INSTALLED_FITS');
+        assert.match(result.error.message, /Klein 9B/);
+    });
+
+    test('a model the user names still gets its install card with an installed model doing the job', async () => {
+        const engineResponses = [
+            { text: '', toolCalls: [{ id: 'tc-1', type: 'function', function: { name: 'install_model', arguments: '{"modelId":"krea2"}' } }] },
+            { text: 'Not installed.' },
+        ];
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses });
+        tools.listModels = async () => KREA_LIST;
+        const turn = loop.runTurn('Make it with Krea', [], null, 'auto', 'deepinfra', 'turn-named');
+        const confirmEvt = await waitForEvent(fakeRes, (e) => e.event === 'agent:confirm');
+        assert.ok(confirmEvt, 'a named model gets its card');
+        await loop.confirm(confirmEvt.data.confirmId, false);
+        await turn;
+    });
+
     // MPI-1229: a cloud model with no key has nothing to download; its card read "0.0 GB" and a
     // Yes was answered "already installed". The key is the user's errand.
     test('a cloud model with no key gets NOTHING_TO_DOWNLOAD naming the key, and no card', async () => {

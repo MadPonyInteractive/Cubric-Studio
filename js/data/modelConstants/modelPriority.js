@@ -40,15 +40,16 @@ const IMAGE_TASKS = ['t2i', 'i2i', 'control', 'inpaint', 'upscale', 'detail'];
  * they are not FOR photography, and the note is what makes the agent pick one on purpose.
  */
 const IMAGE_ORDER = [
+    // MPI-1332 (Fabio 2026-10-29): Krea 2, Qwen-Image 2.1, FLUX.3 Klein, then the rest as they were.
     'krea2',
+    'qwen-image-2-1',
+    'flux3-klein',
     'klein-9b',
     'chroma-flash',
     'chroma-hyper',
     'klein-4b',
     'sdxl-realistic',
-    'flux3-klein',   // MPI-1181, provisional: below Fabio's order until benched against it
     'moss-image',    // MPI-1243, provisional: no edit; its note says what it is for
-    'qwen-image-2-1',
     'ill-anime',
     'ill-anime-beauty',
     'pony-mix',
@@ -130,8 +131,9 @@ const NOTES = {
     // Alpha survives t2i and edit only: every other op repaints an opaque source and returns RGB.
     // MPI-1049 (Fabio 2026-10-10): a no-background ask that names no model may come here, or be
     // offered as a choice beside another model + removeBackground, the way options usually are.
-    'qwen-image-2-1:t2i': 'the only model here that generates a transparent background: send transparent: true and describe the subject alone. For a "no background" picture with no model named, use it or offer it beside another model followed by removeBackground. Research or evaluation use only: the images are not for commercial use, so never the default',
-    'qwen-image-2-1': 'Research or evaluation use only: the images are not for commercial use, so never the default',
+    'qwen-image-2-1:t2i': 'the only model here that generates a transparent background: send transparent: true and describe the subject alone. For a "no background" picture with no model named, use it or offer it beside another model followed by removeBackground. Research or evaluation use only: say so when the user mentions selling or client work',
+    // MPI-1332 (Fabio 2026-10-29): rank 2 for realism; "never the default" made the rank a dead letter.
+    'qwen-image-2-1': 'realism. Research or evaluation use only: the images are not for commercial use, so say so when the user mentions selling or client work',
     // Fabio 2026-10-04: with no i2v installed, "just use MiniMax H3 reference" was told the
     // free model that animates this picture was missing, and offered installs and paid clips.
     // The clip edit is measured (MPI-1033 bench): soundtrack back at 0.96, speech and hoofbeats.
