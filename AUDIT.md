@@ -115,9 +115,12 @@ the 142 violations they had let through). The finding sections below are left as
   **D7** `managers/layerShared.js` mixin: the stroke box (mask, paint, composite), one-shot undo
   pair, Adjust session and Fill-hole lookup (mask, paint) live once; Composite keeps its own
   whole-layer `_recordUndo` (05fd3b1fc, `tests/layer-shared.test.cjs`, Fabio checked).
+  **D9** Gallery and History share one copy of Reuse (`promptReuseApply.js`), the file-drag
+  overlay (`dom.js` `wireFileDragOverlay`, also the landing page and Flow Library), the model
+  picker (`mountBlockModelPicker`) and the Stop bridge (`genOwnership.js`); model and op
+  choice stay per Block (b6432abff, `tests/gen-ownership.test.cjs`, Fabio checked).
 
 **Still open, suggested batches:**
-- After the 2.1.3 cut (Fabio, 2026-10-27): **D9**, then Phase 4.
 - Needs a local profile or a Pod: **P4–P6**, **P9–P11**.
 
 **Notes for whoever picks it up:** lint now runs with `--max-warnings=0` and the two path rules
