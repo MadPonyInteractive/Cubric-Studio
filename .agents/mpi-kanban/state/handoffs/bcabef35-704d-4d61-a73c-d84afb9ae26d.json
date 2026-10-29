@@ -1,0 +1,61 @@
+{
+  "schema": "mpi-kanban/handoff/v1",
+  "id": "bcabef35-704d-4d61-a73c-d84afb9ae26d",
+  "generated_at": "2026-10-27T08:50:00Z",
+  "status": "resolved",
+  "from_session": ".agents/mpi-kanban/state/sessions/ee55e5bc-97bd-413a-b862-65031becd8c9.json",
+  "session": {
+    "name": "Cubric Studio improvements 7 - MPI-1302 Phase 3 P1 + P3 (save sweep, batch delete)",
+    "branch": "master"
+  },
+  "goal": {
+    "original": "Work through the AUDIT.md follow-up findings PR #12 left open, phase by phase",
+    "status": "in_progress",
+    "summary": "P1 (orphan-sidecar sweep moved from save-generation to project open) and P3 (one delete-batch request per multi-delete, async fs) are pushed (f6e4fe8f2) and checked by Fabio; AUDIT Status + checklist ticked (a06c79b2d). D7, D9 and Phase 4 were held back until 2.1.3 (the MOSS release) is out."
+  },
+  "plan": {
+    "file": ".agents/mpi-kanban/tasks/MPI-1302/plan.md",
+    "completed": [
+      "Phases 1a-1d, Phase 2 (see plan.md Completed)",
+      "P1 + P3 (f6e4fe8f2, Fabio checked; ticks a06c79b2d)"
+    ],
+    "pending": [
+      "Phase 3 rest: D7 (canvas layer managers' shared undo/adjust/stroke-box code), D9 (Gallery vs History reuse, drop overlay, model picker, gen ownership)",
+      "Phase 4: P4-P6, P9-P11 (local profile or a Pod)"
+    ]
+  },
+  "task_card": {
+    "id": "MPI-1302",
+    "title": "AUDIT follow-up: the cleanup, duplication and speed findings PR #12 left open",
+    "column": "doing",
+    "workspace": ".agents/mpi-kanban/tasks/MPI-1302/",
+    "links": {
+      "plan": ".agents/mpi-kanban/tasks/MPI-1302/plan.md",
+      "checklist": ".agents/mpi-kanban/tasks/MPI-1302/checklist.md",
+      "validation": ".agents/mpi-kanban/tasks/MPI-1302/validation.md"
+    }
+  },
+  "next_action": {
+    "description": "First confirm 2.1.3 is released (git tag v2.1.3 exists); if not, stop and tell Fabio. Then continue Phase 3 of MPI-1302 with D7: read AUDIT.md D7 and docs/masking-undo.md, re-check the locations in js/components/Primitives/MpiCanvas/managers/, claim the files, extract the shared code with a node test against a fake 2D context, desktop-suite proof on your own port (tests/desktop/launch.js, never :3000), npm run lint + npm test, commit with research/commit_mine.py, push, and stop for Fabio's eye-test (brush feel + Ctrl+Z). Then D9, then Phase 4.",
+    "command": "mpi-continue"
+  },
+  "context": {
+    "key_decisions": [
+      "Fabio 2026-10-27: 2.1.3 ships with P1 + P3 only and Storyboard instead of Multi-angle; D7/D9/Phase 4 after the cut",
+      "Fabio wants MPI-1302 in sequence, one item at a time, a handoff between phases; only a real match is merged"
+    ],
+    "constraints": [
+      "Shared tree with live peers: commit with python .agents/mpi-kanban/tasks/MPI-1302/research/commit_mine.py . <msgfile> MPI-1302 <files...>, push with git push origin HEAD:refs/heads/master; guard-claim needs the claim file listed in state/index.json active_file_claims before any edit",
+      "AUDIT.md is CRLF and guard-shell blocks heredocs: edit via a Write-tool script (see the session scratchpad tick.py pattern: normalise to LF, replace, restore CRLF)",
+      "A throwaway desktop spec goes in tests/desktop/ only while it runs (claimed), then out; the Gallery delete confirm is getByRole('button', { name: 'Delete', exact: true }), not .mpi-modal-backdrop"
+    ],
+    "files_to_read_first": [
+      "AUDIT.md",
+      ".agents/mpi-kanban/tasks/MPI-1302/plan.md",
+      "docs/masking-undo.md",
+      "docs/testing.md"
+    ]
+  },
+  "resume_prompt": "Read .agents/mpi-kanban/state/handoffs/bcabef35-704d-4d61-a73c-d84afb9ae26d.json and use mpi-continue to continue card MPI-1302 (AUDIT follow-up). P1 and P3 are done, pushed and checked by Fabio. Wait until 2.1.3 is released (tag v2.1.3), then do D7, then D9, then Phase 4 (P4-P6, P9-P11), one item at a time with a desktop-suite proof on your own port and Fabio's eye-test on anything visible.",
+  "resolved_by": ".agents/mpi-kanban/state/handoffs/1c090b35-e0e9-4261-a856-d049ab82fde2.json"
+}

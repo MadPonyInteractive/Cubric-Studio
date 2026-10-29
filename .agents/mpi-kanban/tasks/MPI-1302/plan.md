@@ -7,8 +7,9 @@
   `trimArgs` in `services/ffmpegBinary.js`) done and pushed.
   Phase 2 is finished (D10 + P2/P14/P7/P12/P13: see Completed). P1 + P3 pushed (f6e4fe8f2),
   Fabio checked it; AUDIT.md Status + checklist ticked.
-  Fabio 2026-10-27: the MOSS release (2.1.3) goes out this afternoon with P1 + P3 only; D7, D9
-  and Phase 4 (P4-P6, P9-P11) are for the NEXT release - do not start them before the cut. The route snapshot
+  **2026-10-29:** 2.1.3 is tagged. D7 committed (05fd3b1fc, `managers/layerShared.js` mixin +
+  `tests/layer-shared.test.cjs`), waiting on Fabio's eye-test (brush feel + Ctrl+Z on mask, paint,
+  composite); tick AUDIT/checklist only after his "1". Next: D9, then Phase 4. The route snapshot
   scripts are in this card's `research/` (`d3snap.cjs`, `d10snap.cjs`, diff with `d3diff.py`):
   `node research/d10snap.cjs <repo> <out.json>` before and after, then diff. In d10snap,
   `/gif/preview` must run before an update (`/gif/entry` update sweeps unreferenced frames).
@@ -74,6 +75,12 @@
   `deleteMediaFiles` for all four delete callers; async fs in `removeItemThumbs`, `/delete-meta`,
   `/load-meta`, `/file-exists`. 5,000 sidecars: save 2,936 -> 62 ms, delete 50 cards 118 s -> 2.3 s
   (bench + throwaway desktop spec in the session scratchpad, not committed).
+- [x] D7 (05fd3b1fc, eye-test pending): `layerShared.js` — `strokeBoxMethods` (all three layers),
+  `oneShotUndoMethods` + `adjustMethods({pad, source})` (mask, paint; adds `_findHoles()`), mixed
+  in with `Object.assign(X.prototype, ...)` so call sites are unchanged. Composite keeps its own
+  `_recordUndo` (`record()`). Node test drives the real prototypes on a fake 2D context; 5
+  mutations caught. Throwaway desktop spec (pointer strokes, Fill, Adjust, undo/redo exact pixels
+  on all three layers) + 12 canvas/mask specs green, then deleted.
 
 ## Remaining Work
 

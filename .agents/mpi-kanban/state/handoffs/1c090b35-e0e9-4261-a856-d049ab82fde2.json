@@ -1,0 +1,60 @@
+{
+  "schema": "mpi-kanban/handoff/v1",
+  "id": "1c090b35-e0e9-4261-a856-d049ab82fde2",
+  "generated_at": "2026-10-29T20:17:50.147920+00:00",
+  "status": "open",
+  "from_session": ".agents/mpi-kanban/state/sessions/3c3d8be2-0abe-4a83-a386-d4ccac78a20a.json",
+  "session": {
+    "name": "Cubric Studio improvements 8 - MPI-1302 Phase 3 D7 (canvas layer shared code)",
+    "branch": "master"
+  },
+  "goal": {
+    "original": "Work through the AUDIT.md follow-up findings PR #12 left open, phase by phase",
+    "status": "in_progress",
+    "summary": "2.1.3 is tagged. D7 pushed (05fd3b1fc): managers/layerShared.js mixin holds the stroke box (mask, paint, composite), one-shot undo pair, Adjust session and Fill hole lookup (mask, paint); node test on a fake 2D context + throwaway desktop proof green. Waiting on Fabio's eye-test before ticking."
+  },
+  "plan": {
+    "file": ".agents/mpi-kanban/tasks/MPI-1302/plan.md",
+    "completed": [
+      "Phases 1a-1d, Phase 2, P1 + P3 (see plan.md Completed)",
+      "D7 code + tests + doc (05fd3b1fc), eye-test pending"
+    ],
+    "pending": [
+      "D7 ticks after Fabio's '1'",
+      "D9",
+      "Phase 4: P4-P6, P9-P11 (local profile or a Pod)"
+    ]
+  },
+  "task_card": {
+    "id": "MPI-1302",
+    "title": "AUDIT follow-up: the cleanup, duplication and speed findings PR #12 left open",
+    "column": "doing",
+    "workspace": ".agents/mpi-kanban/tasks/MPI-1302/",
+    "links": {
+      "plan": ".agents/mpi-kanban/tasks/MPI-1302/plan.md",
+      "checklist": ".agents/mpi-kanban/tasks/MPI-1302/checklist.md",
+      "validation": ".agents/mpi-kanban/tasks/MPI-1302/validation.md"
+    }
+  },
+  "next_action": {
+    "description": "Fabio is eye-testing D7 (05fd3b1fc): brush feel + Ctrl+Z/redo on the mask brush, paint brush, mask/paint Adjust Apply, Fill holes and Paint Comp cuts. On his '1': tick D7 in AUDIT.md Status + .agents/mpi-kanban/tasks/MPI-1302/checklist.md (AUDIT.md is CRLF - edit via a script that normalises to LF and restores CRLF), commit with research/commit_mine.py, push. On '2': fix what he names. Then D9 (Gallery vs History reuse, drop overlay, model picker, gen ownership): read AUDIT.md D9, re-check locations, claim, extract, desktop-suite proof on your own port, lint + test, commit, push, stop for his eye-test. Then Phase 4.",
+    "command": "mpi-continue"
+  },
+  "context": {
+    "key_decisions": [
+      "D7 is a prototype mixin (Object.assign(X.prototype, ...)) so every call site (InputController, MpiCanvas) is unchanged; Composite keeps its own _recordUndo because it records whole with record()",
+      "Fabio wants MPI-1302 in sequence, one item at a time, a handoff between phases"
+    ],
+    "constraints": [
+      "Shared tree: commit with python .agents/mpi-kanban/tasks/MPI-1302/research/commit_mine.py . <msgfile> MPI-1302 <files...>, push git push origin HEAD:refs/heads/master; claims go in state/files + index active_file_claims before any edit",
+      "pre-push blocks while a PEER's card close waits on CI (gh run watch <id> in the background, then push); a 'cannot lock ref' reject is a concurrent peer push - fetch, check ff, retry",
+      "npm test can show a red in comfy_workflows tests while a peer regenerates workflows; rerun the single test before blaming yourself. Guard-claim misreads '2>&1' with numbers in a Bash line - put such checks in a scratch script"
+    ],
+    "files_to_read_first": [
+      "AUDIT.md",
+      ".agents/mpi-kanban/tasks/MPI-1302/plan.md",
+      "docs/testing.md"
+    ]
+  },
+  "resume_prompt": "Read .agents/mpi-kanban/state/handoffs/1c090b35-e0e9-4261-a856-d049ab82fde2.json and use mpi-continue to continue card MPI-1302 (AUDIT follow-up). D7 is pushed (05fd3b1fc) and waits on Fabio's eye-test; after his OK tick it, then do D9, then Phase 4 (P4-P6, P9-P11), one item at a time with a desktop-suite proof on your own port and Fabio's eye-test on anything visible."
+}
