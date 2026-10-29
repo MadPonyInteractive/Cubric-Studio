@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1339", "at": "2026-10-29T15:35:33+00:00", "actor": "claude", "column": "todo", "title": "Engine diet: port the Impact detailer chain into MpiNodes"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1339", "at": "2026-10-29T16:15:57+00:00", "actor": "Strip Node Packs 2", "from": "todo", "to": "doing", "reason": "Phase 1 port started (MPI-1344 batch)."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1339", "at": "2026-10-29T19:04:28+00:00", "actor": "Strip Node Packs 4", "from": "doing", "to": "done", "reason": "Fixed-seed A/B passed: detail + auto-mask bit-identical, tiles within the cross-process noise floor"}

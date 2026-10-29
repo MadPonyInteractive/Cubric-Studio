@@ -1,0 +1,6 @@
+impact1 vs impact2 Input_Image_0 768x1024: max 0 mean 0.0000 identical YES
+impact1 vs impact2 Output_Image_0 1152x1536: max 0 mean 0.0000 identical YES
+mpi1 vs mpi2 Input_Image_0 768x1024: max 0 mean 0.0000 identical YES
+mpi1 vs mpi2 Output_Image_0 1152x1536: max 0 mean 0.0000 identical YES
+impact1 vs mpi1 Input_Image_0 768x1024: max 0 mean 0.0000 identical YES
+impact1 vs mpi1 Output_Image_0 1152x1536: max 99 mean 1.8689 identical no

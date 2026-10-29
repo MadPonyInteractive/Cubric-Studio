@@ -1,0 +1,16 @@
+detail Input_Image_0 768x1024: max 0 mean 0.0000 identical YES
+detail Input_Mask_0 768x1024: max 0 mean 0.0000 identical YES
+detail Output_Image_0 768x1024: max 0 mean 0.0000 identical YES
+tiles Input_Image_0 768x1024: max 0 mean 0.0000 identical YES
+tiles Output_Image_0 1152x1536: max 102 mean 1.8899 identical no
+mask_box Input_Image_0 768x1024: max 0 mean 0.0000 identical YES
+mask_box Output_Detected_0 520x757: max 0 mean 0.0000 identical YES
+mask_box Output_Detected_1 535x766: max 0 mean 0.0000 identical YES
+mask_box Output_image_0 768x1024: max 0 mean 0.0000 identical YES
+mask_box Output_image_1 768x1024: max 0 mean 0.0000 identical YES
+mask_box SEGSPreview_0 520x757: max 0 mean 0.0000 identical YES
+mask_box SEGSPreview_1 535x766: max 0 mean 0.0000 identical YES
+mask_text Input_Image_0 768x1024: max 0 mean 0.0000 identical YES
+mask_text Output_Detected_0 768x1024: max 0 mean 0.0000 identical YES
+mask_text Output_image_0 768x1024: max 0 mean 0.0000 identical YES
+mask_text SEGSPreview_0 768x1024: max 0 mean 0.0000 identical YES

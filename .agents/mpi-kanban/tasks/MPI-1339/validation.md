@@ -24,5 +24,15 @@
 - Deps: node_lock pin + both Impact entries out, nodesDeps.js note, models.js 16 lines, python_deps.in
   -dill -piexif -segment-anything (compile --check OK, .txt diff = those 3), ultralytics commented.
 - lint OK; npm test 3802 pass / 0 fail. Audit: Impact packs 0 nodes. UNRELEASED.md names the removed classes.
-- PENDING: fixed-seed A/B `research/ab/run_ab.sh <scratch>` under gpu_lease (SDXL detail, SDXL tiles,
-  auto-mask box, auto-mask SAM3 text; before = HEAD graphs in <scratch>/before). Expect identical pixels.
+- Fixed-seed A/B `research/ab/run_ab.sh <scratch>` under gpu_lease (SDXL detail, SDXL tiles,
+  auto-mask box, auto-mask SAM3 text; before = `8528e81fd~1` graphs in <scratch>/before).
+
+## A/B result (2026-10-29, GPU, bench engine on 48199 with both Impact packs + MpiNodes)
+- `research/ab/report.txt`: detail, mask_box (2 detections, 6 images), mask_text (SAM3 "person"): every
+  output BIT-IDENTICAL, Impact graph vs Mpi graph.
+- tiles (MakeTileSEGS + DetailerForEach, 1152x1536): Impact vs Mpi max 102, mean 1.89. Noise floor
+  (`research/ab/noise.py`, `noise_report.txt` + cross-process compare): the SAME Impact graph in two engine
+  processes differs max 84, mean 1.89; Mpi vs itself max 104, mean 1.98. The tiled path is nondeterministic
+  on its own (in-process repeats are cache hits, so only cross-process counts); diff map is fine-edge only
+  (hair, teeth, bokeh), no tile seams. Port is within the noise floor -> PASS.
+- ab.py fix: injected values passed as a dict (tuple keys broke `**kwargs`).

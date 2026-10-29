@@ -62,7 +62,7 @@ def run(graph, label):
     return imgs
 
 
-def sdxl(src, **inject):
+def sdxl(src, inject):
     g = load(src)
     by_title(g, "Input_Seed")["int"] = SEED
     by_title(g, "Input_Positive")["value"] = PROMPT
@@ -71,7 +71,7 @@ def sdxl(src, **inject):
     return g
 
 
-def automask(src, **inject):
+def automask(src, inject):
     g = load(src)
     for (title, field), v in inject.items():
         by_title(g, title)[field] = v
@@ -97,7 +97,7 @@ SDXL_NEW, SDXL_OLD = WF / "t2i_sdxl_realistic.json", BEFORE / "t2i_sdxl_realisti
 AM_NEW, AM_OLD = WF / "img_auto_mask.json", BEFORE / "img_auto_mask.json"
 
 # 0. the source portrait (t2i branch has no detailer node)
-src = run(sdxl(SDXL_NEW, **{("Input_wf_type", "int"): 1}), "t2i")
+src = run(sdxl(SDXL_NEW, {("Input_wf_type", "int"): 1}), "t2i")
 src_img = next(iter(src.values()))
 INPUT.mkdir(parents=True, exist_ok=True)
 Image.fromarray(src_img).save(INPUT / "ab_src.png")
@@ -114,8 +114,8 @@ jobs = [
     ("mask_text", automask, AM_OLD, AM_NEW, {("Input_Text_Mode", "boolean"): True, ("Input_Text_Prompt", "text"): "person", **img_in}),
 ]
 for name, make, old, new, inj in jobs:
-    a = run(make(old, **inj), f"{name}_impact")
-    b = run(make(new, **inj), f"{name}_mpi")
+    a = run(make(old, inj), f"{name}_impact")
+    b = run(make(new, inj), f"{name}_mpi")
     compare(name, a, b)
 
 (HERE / "report.txt").write_text("\n".join(report) + "\n", encoding="utf-8")
