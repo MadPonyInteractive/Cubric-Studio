@@ -10,6 +10,9 @@ Method notes: `research/motion-context-v2-video.md`, `../MPI-1335/research/viggl
   joins, no drift; pixel path drifts -9 % by window 3. `research/bench-2026-10-29-chain.md`.
 - Next: Infinite Video case on Singularity v2 (static talking shot, drift), 22-frame context row,
   2K per window + RAM, resume after cancel. Scripts in `research/bench/`.
+- Video Edit's graph changed after bench 1 (soundtrack into H3 via nodes 300-303, pad up / cut back
+  via 30, 305-314, 123, 130; `../MPI-1335/research/lipbench/P1_padup.json`). Windowed: each window
+  feeds H3 its own audio slice; pad-up on the LAST window only. Re-bench Video Edit on that graph.
 - Peers: Video Edit Flow Issues 3 (MPI-1335) tests the winner; New H3 Upscaler 1 (MPI-1348) refines
   our chained latents to test seams after a 2K refine and has the local GPU now - ask before using it.
 
