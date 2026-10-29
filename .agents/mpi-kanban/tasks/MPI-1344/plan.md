@@ -152,15 +152,14 @@ baseline-vs-now numbers in `validation.md`.
   clown/ (or its replacement) must register it too.
 
 ## Current State
-Phase 2, MPI-1339 (Impact) code is DONE, its fixed-seed A/B is NOT run yet. MpiNodes 5e37b38
-registers detailer/ (pushed); node_lock pins it and drops Impact-Pack/Subpack; 590 class_types
-swapped in 35 comfy_workflows files (shipped, raw/, workflow_generation/); JS name sites, 16
-models.js dep lines, nodesDeps.js, python_deps (-dill -piexif -segment-anything) done; lint +
-npm test green; audit shows 0 Impact nodes. Next: run the A/B
-(`MPI-1339/research/ab/run_ab.sh` under gpu_lease, see MPI-1339 validation.md), then MPI-1342,
-then MPI-1341. Gotcha: the GPU is shared with H3 benches (MPI-1348, MPI-1336) - queue via
-gpu_lease.py with a long --timeout. The user's open app must restart to reinstall MpiNodes at
-the new pin, or detail/upscale/auto-mask fail on its engine (Mpi* nodes missing).
+Phase 2: MPI-1339 CLOSED (16a167f38; A/B identical except tiled detail, which is within its own
+cross-process noise floor). MPI-1342 code pushed (03cde6c1b, MpiNodes e33694d pinned; A/B identical
+for interp, stems, pano; packs-gone proof ALL PRESENT), card in doing/validating: close it once CI
+on 03cde6c1b is green (done gate), commit the close alone. Next: MPI-1341 (KJNodes, its
+validation.md; remember the paid Head Swap Flow uses GrowMaskWithBlur + ImageConcanate). Gotcha:
+the GPU is shared with H3 benches - gpu_lease.py with a long --timeout; check :8189/queue for
+Fabio's own bench runs, which the lease cannot see. The user's open app must restart to reinstall
+MpiNodes at the new pin, or detail/upscale/auto-mask/pano/stems/interpolate fail on its engine.
 
 ## Remaining Work
 - Phase 1, Phase 2, Phase 3 as above. The Pod's lock copy (`mpi-ci`) syncs at the next

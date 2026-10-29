@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1342", "at": "2026-10-29T15:35:36+00:00", "actor": "claude", "column": "todo", "title": "Engine diet: port pano, stems and RIFE nodes into MpiNodes"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1342", "at": "2026-10-29T16:15:58+00:00", "actor": "Strip Node Packs 2", "from": "todo", "to": "doing", "reason": "Phase 1 port started (MPI-1344 batch)."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1342", "at": "2026-10-29T19:26:30+00:00", "actor": "Strip Node Packs 4", "from": "doing", "to": "doing", "reason": "Swap pushed (03cde6c1b), A/B identical; waiting on CI before close"}
