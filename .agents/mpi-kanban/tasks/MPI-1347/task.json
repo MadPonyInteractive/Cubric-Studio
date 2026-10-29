@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1347",
+  "title": "Bench: Singularity H3 turbo LoRA, shipped 8-step v1.0 vs ref2v 4-step v0.1 at 8 steps",
+  "description": "Fabio 2026-10-29: Singularity was reportedly trained with lightx2v's minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16. A/B on the shipped minimax_h3_r2va_singularity.json, local bench under gpu_lease: arm A = shipped (8-step v1.0 768p LoRA, stage 1 10 steps), arm B = 4-step v0.1 LoRA at 8 steps (what users run; 4 steps ruins the audio). 16:9, two speaking characters from reference sheets, camera dollies out from close-up to wide to test face hold at distance. Deliverable: side-by-side (full + face detail), audio heard one panel at a time. Bench only, no app change.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-29T16:24:50+00:00",
+  "updated_at": "2026-10-29T16:24:50+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

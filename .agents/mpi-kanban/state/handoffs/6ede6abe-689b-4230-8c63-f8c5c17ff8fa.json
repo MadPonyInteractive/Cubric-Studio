@@ -1,0 +1,62 @@
+{
+  "schema": "mpi-kanban/handoff/v1",
+  "id": "6ede6abe-689b-4230-8c63-f8c5c17ff8fa",
+  "generated_at": "2026-10-29T17:31:18.750841+00:00",
+  "status": "open",
+  "from_session": ".agents/mpi-kanban/state/sessions/57b54cc6-b92e-4a30-b5d5-7f28081e90f3.json",
+  "session": {
+    "name": "Turbo LoRA comparison test for MiniMax H3",
+    "branch": "master"
+  },
+  "goal": {
+    "original": "Fabio: A/B Singularity H3's shipped ref2v turbo LoRA (8-step v1.0 768p) vs lightx2v minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16 run at 8 steps (users run it at 8; 4 ruins audio), plus (Fabio's add) the shipped LoRA at 8 steps as a steps-matched rival. 16:9, two speakers from reference sheets, camera dollies out from close two-shot to wide. Deliver side-by-sides (full + 2x centre close-up), audio heard ONE panel at a time.",
+    "status": "in_progress",
+    "summary": "5 of 6 clips rendered on the Pod (~3.5 min each) and are in C:/AI/Mpi/_private/mpi1347-clips/. The 6th, ship8_1347002, was lost when Fabio restarted the app and the Pod went away (it is reconnected now, possibly a new pod id). Side-by-sides built for ship_1347001, ship_1347002, steps8_1347001 (+ _close) in <clips>/sbs/. Nothing judged or sent to Fabio yet."
+  },
+  "plan": {
+    "file": null,
+    "completed": [
+      "LoRA downloaded locally (M:/CubricModels/loras/minimax-h3/) and on the Pod volume (/workspace/mpi_models/loras/minimax-h3/)",
+      "graphs built from shipped comfy_workflows/minimax_h3_r2va_singularity.json (research/build.py -> graphs/ Windows paths, graphs_pod/ Linux paths), validated on both",
+      "clips ship/v01/ship8 seed 1347001 and ship/v01 seed 1347002 (render seconds in research/results.md)",
+      "research/build_sbs.sh: two pairs per seed; clip plays twice, once per panel's audio, yellow AUDIO border"
+    ],
+    "pending": [
+      "render ship8_1347002 (Pod, else local bench under gpu_lease)",
+      "bash research/build_sbs.sh to finish steps8_1347002",
+      "watch the side-by-sides, write findings to the card, send the sbs mp4s to Fabio with SendUserFile plus a short verdict (picture, face hold at distance, audio)"
+    ]
+  },
+  "task_card": {
+    "id": "MPI-1347",
+    "title": "Bench: Singularity H3 turbo LoRA, shipped 8-step v1.0 vs ref2v 4-step v0.1 at 8 steps",
+    "column": "doing",
+    "workspace": ".agents/mpi-kanban/tasks/MPI-1347/",
+    "links": {
+      "plan": null,
+      "checklist": ".agents/mpi-kanban/tasks/MPI-1347/checklist.md",
+      "validation": null
+    }
+  },
+  "next_action": {
+    "description": "Render the missing clip ship8_1347002, then build and send the side-by-sides. Pod id: last '[runpod] Pod <id> status=RUNNING' line in %APPDATA%/Cubric Studio/logs/app.log. Check https://<id>-8188.proxy.runpod.net/object_info/LoraLoaderModelOnly lists minimax-h3/minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors and re-upload G:/ComfyUi/ComfyUI/input/mpi1347/ref_087.png + ref_084.png via /upload/image (subfolder mpi1347) if the input folder was reset. Then in research/: MPI1347_BASE=https://<id>-8188.proxy.runpod.net \"C:/Program Files/Python314/python.exe\" -I run.py C:/AI/Mpi/_private/mpi1347-clips graphs_pod/ship8_1347002.json, then bash build_sbs.sh.",
+    "command": "mpi-continue"
+  },
+  "context": {
+    "key_decisions": [
+      "ship arm = shipped graph untouched (#537 LoRA at strength 1, stage-1 BasicScheduler #560 at 10 steps); v01 and ship8 change only #537 lora_name and #560 steps (8). Turbo on, Fast Motion off, 1344x768, 8 s, seeds 1347001/1347002",
+      "Two-panel pairs, not a 3-panel strip (4032 px too wide to judge faces): ship_<seed> = shipped vs v01, steps8_<seed> = shipped@8 vs v01"
+    ],
+    "constraints": [
+      "Pod is shared with the session 'Video Edit Flow Issues 4' (was 3; agreed; they test correctness, not speed). Submit one clip at a time; never /free, /interrupt or restart",
+      "RunPod proxy 403s urllib's default User-Agent (run.py sets a browser UA; use curl -A too). Pod SSH needs a piped PTY: printf 'cmd; exit\\n' | ssh -tt -i ~/.ssh/id_ed25519 <podid>-<n>@ssh.runpod.io (no scp)",
+      "Local fallback: G:/ComfyUi bench, wrapped in gpu_lease.py run --timeout 21600 --poll 2 -- \"C:/Program Files/Python314/python.exe\" -I run.py <clips> graphs/ship8_1347002.json (graphs/, not graphs_pod/)"
+    ],
+    "files_to_read_first": [
+      ".agents/mpi-kanban/tasks/MPI-1347/research/results.md",
+      ".agents/mpi-kanban/tasks/MPI-1347/research/build.py",
+      ".agents/mpi-kanban/tasks/MPI-1347/research/build_sbs.sh"
+    ]
+  },
+  "resume_prompt": "Read .agents/mpi-kanban/state/handoffs/6ede6abe-689b-4230-8c63-f8c5c17ff8fa.json and continue card MPI-1347 (Singularity H3 turbo LoRA A/B bench). 5 of 6 clips are in C:/AI/Mpi/_private/mpi1347-clips/; render the missing ship8_1347002 per next_action, run research/build_sbs.sh, watch the side-by-sides, then send them to Fabio with a short verdict on picture, face hold as the camera dollies out, and audio."
+}

@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1347", "at": "2026-10-29T16:24:50+00:00", "actor": "claude", "column": "doing", "title": "Bench: Singularity H3 turbo LoRA, shipped 8-step v1.0 vs ref2v 4-step v0.1 at 8 steps"}
