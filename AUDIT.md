@@ -7,7 +7,7 @@ ComfyUI workflow JSON, the Pod runtime (`wrapper.py`).
 
 **No files other than this one were edited.**
 
-## Status (updated 2026-10-26, after PR #12)
+## Status (updated 2026-10-29, after PR #12)
 
 **Done in MadPonyInteractive/Cubric-Studio#12:** H1, H2, X3, B1, B5, D2, B2, D4, B3, D5, X1, X2.
 That PR also fixed the smoke script's fallback-GPU record, made the Stop hooks find the repo from
@@ -112,9 +112,12 @@ the 142 violations they had let through). The finding sections below are left as
   every delete caller (one `.meta` listing, one GIF frame sweep), async fs in
   `removeItemThumbs`, `/delete-meta`, `/load-meta`, `/file-exists`. 5,000 sidecars: save
   2,936 -> 62 ms, deleting 50 cards 118 s -> 2.3 s (f6e4fe8f2, Fabio checked).
+  **D7** `managers/layerShared.js` mixin: the stroke box (mask, paint, composite), one-shot undo
+  pair, Adjust session and Fill-hole lookup (mask, paint) live once; Composite keeps its own
+  whole-layer `_recordUndo` (05fd3b1fc, `tests/layer-shared.test.cjs`, Fabio checked).
 
 **Still open, suggested batches:**
-- After the 2.1.3 cut (Fabio, 2026-10-27): **D7**, **D9**, then Phase 4.
+- After the 2.1.3 cut (Fabio, 2026-10-27): **D9**, then Phase 4.
 - Needs a local profile or a Pod: **P4–P6**, **P9–P11**.
 
 **Notes for whoever picks it up:** lint now runs with `--max-warnings=0` and the two path rules

@@ -37,4 +37,5 @@
 - [x] P13 nvidia-smi only on NVIDIA, 1.5 s TTL (5790c89a4): tests/system-vram-stats.test.cjs fails 2/3 on old code; npm test 3756 / 0
 - [x] P1 orphan-sidecar sweep at project open (f6e4fe8f2): 5,000 sidecars, save 2,936 -> 62 ms; race tests drive the sweep
 - [x] P3 delete-batch route + deleteMediaFiles (f6e4fe8f2): 50 cards 118 s -> 2.3 s; desktop History + Gallery delete one request each; Fabio checked
+- [x] D7 layerShared.js mixin: stroke box, undo pair, Adjust session, Fill-hole lookup (05fd3b1fc); Fabio checked
 ## Phase 3–4: see plan.md (D7, D9, Phase 4 after the 2.1.3 cut)
