@@ -1340,8 +1340,11 @@ function createEngine({ engine, alwaysLocal }) {
                 + 'again on your next generation.'
         );
         err.code = 'engine_dropped';
+        // MPI-1330: a remote drop is toasted ONCE, by shell.js's listener on the
+        // event below; commandExecutor reads this flag to stay silent.
+        err.remote = remote;
         clientLogger.warn('comfy', `${remote ? 'Remote' : 'Local'} WS dropped mid-generation — ending pending generations`);
-        if (remote) Events.emit('remote:engine-dropped');
+        if (remote) Events.emit('remote:engine-dropped', { midGeneration: rejectors.length > 0 });
         for (const reject of rejectors) {
             try { reject(err); } catch (_) { /* best-effort */ }
         }

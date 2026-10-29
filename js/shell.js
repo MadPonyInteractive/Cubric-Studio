@@ -1529,16 +1529,17 @@ function _initRemoteConnectionFeed() {
  */
 function _initEngineDropRecovery() {
   // eslint-disable-next-line mpi/require-destroy-on-events -- app-lifetime listener
-  Events.on('remote:engine-dropped', () => {
+  Events.on('remote:engine-dropped', ({ midGeneration } = {}) => {
     // Only meaningful in remote mode; ignore a spurious emit when RunPod is off.
     if (!Storage.getRunpodConfig().enabled) return;
     // Sticky disconnected state + immediate repaint (don't wait for the next 5s
     // feed tick). The explicit phase sets `_remotePhase` so later phase-less feed
     // ticks fold it in instead of painting plain local.
     _emitRemoteConnection({ connected: false, gpuName: null, vramGb: null, ramGb: null, phase: 'disconnected', by: 'engine drop' });
+    // The ONLY toast for a remote drop (MPI-1330): commandExecutor stays silent.
     Events.emit('ui:warning', {
       message: 'Remote engine disconnected — the Pod may have run out of memory and restarted. '
-        + 'Reconnect from Remote to continue.',
+        + (midGeneration ? 'Try a shorter or smaller generation, or reconnect from Remote.' : 'Reconnect from Remote to continue.'),
     });
   });
 }

@@ -3016,11 +3016,16 @@ export function runCommand(payload) {
             // gone, so retrying with smaller media cannot succeed until the user reconnects,
             // which is exactly the step `err.message` carries and the OOM toast dropped.
             if (err?.code === 'engine_dropped') {
-                clientLogger.warn('comfy', `Remote engine dropped — ${workingPayload.operation} / ${workingPayload.modelId}`);
-                Events.emit('ui:warning', {
-                    title: 'Remote engine disconnected',
-                    message: err.message,
-                });
+                clientLogger.warn('comfy', `${err.remote ? 'Remote' : 'Local'} engine dropped — ${workingPayload.operation} / ${workingPayload.modelId}`);
+                // MPI-1330: a remote drop already has its one toast from shell.js's
+                // `remote:engine-dropped` listener; a second here (one per pending
+                // generation) said the same thing twice.
+                if (!err.remote) {
+                    Events.emit('ui:warning', {
+                        title: 'Local engine stopped',
+                        message: err.message,
+                    });
+                }
                 exec.onError?.(err);
                 return;
             }

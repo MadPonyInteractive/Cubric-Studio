@@ -23,8 +23,9 @@ test('the dying socket\'s engine is captured on the FIRST failed reopen', () => 
 
 test('remote:engine-dropped is emitted only for a remote socket', () => {
     assert.match(body, /const remote = this\._droppedEngine === 'remote';/);
-    assert.match(body, /if \(remote\) Events\.emit\('remote:engine-dropped'\);/);
-    assert.doesNotMatch(body.replace("if (remote) Events.emit('remote:engine-dropped');", ''), /remote:engine-dropped/);
+    const EMIT = /if \(remote\) Events\.emit\('remote:engine-dropped'[^;]*\);/;
+    assert.match(body, EMIT);
+    assert.doesNotMatch(body.replace(EMIT, ''), /remote:engine-dropped/);
 });
 
 test('the local message names no Pod', () => {

@@ -57,6 +57,22 @@ test('engine_dropped is classified BEFORE the message-based OOM branch', () => {
     );
 });
 
+// MPI-1330 — one remote drop showed two near-identical toasts: shell.js's
+// `remote:engine-dropped` listener and this branch (plus one per extra pending
+// generation). The shell listener owns the remote toast; this branch toasts only
+// a local crash, which emits no event and so has no other toast.
+test('a remote drop is toasted once, by the shell listener only', () => {
+    assert.match(CONTROLLER, /err\.remote = remote;/);
+    const dropIdx = EXEC.indexOf("err?.code === 'engine_dropped'");
+    const branch = EXEC.slice(dropIdx, EXEC.indexOf('return;', dropIdx));
+    const guard = branch.indexOf('if (!err.remote)');
+    assert.ok(guard > 0, 'engine_dropped toasts without checking err.remote');
+    assert.ok(guard < branch.indexOf("'ui:warning'"), 'the toast is not inside the !err.remote guard');
+    const SHELL = read('js/shell.js');
+    const listener = SHELL.slice(SHELL.indexOf("Events.on('remote:engine-dropped'"));
+    assert.match(listener.slice(0, 1200), /Events\.emit\('ui:warning'/);
+});
+
 test('the OOM branch stays message-based, so genuine ComfyUI OOM still lands', () => {
     // ComfyUI OOM has no err.code; narrowing this branch to a code would silently
     // send real OOMs to the bug-reporter dialog.
