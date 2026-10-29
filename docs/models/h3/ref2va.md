@@ -251,7 +251,8 @@ run 7 -> 12 min. They ride every step, and they are expensive.
 Local is **H3-Base only, 768p short edge**. Two pieces of MiniMax's product are NOT in
 the open weights (MPI-449 § 1):
 
-- **H3-Regenerate-2K** — the 768p→2K second pass. This is what the 2K clips are.
+- **H3-Regenerate-2K** — the 768p→2K second pass. This is what the 2K clips are. NVIDIA's
+  open copy (2026-10) repaints faces: rejected, [performance.md](performance.md).
 - **H3-Context-IR** — the hosted prompt-refinement front end, which MiniMax itself calls
   "critical to quality".
 

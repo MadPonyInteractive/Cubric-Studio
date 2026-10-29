@@ -1,0 +1,3 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1348", "at": "2026-10-29T16:47:08+00:00", "actor": "claude", "column": "todo", "title": "Bench: NVIDIA Open-H3-Regenerate-2K refiner LoRA as our H3 2K stage 2"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1348", "at": "2026-10-29T16:49:55+00:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio: pick up and start; bench prep while GPU is leased by Infinite video 1"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1348", "at": "2026-10-29T19:17:39+00:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Rejected by Fabio's eye test: shipped refine wins; the LoRA repaints faces"}

@@ -92,6 +92,13 @@ and the EasyCache gate that rides with it all live in **`docs/models/h3/turbo.md
 a shipped feature with its own wiring and caveats; this file stays the log of levers we
 tested and mostly rejected.
 
+## Open-H3-Regenerate-2K refiner LoRA — REJECTED by eye (MPI-1348, 2026-10-29)
+
+NVIDIA's open 2K refiner (Kijai rank-384 extraction) on the fl2va refine, 2560x1408, 5 s, 4060 Ti 16 GB: fits
+(15.8 GB peak), same ~12.7 min refine as shipped, much sharper crowds, but it **repaints the subject's face**
+(full strength, NVIDIA's or our sigmas). At 0.5 the face holds and the gain is gone. Fabio: shipped wins every time.
+Do not re-test. Bench + sheets: `.agents/mpi-kanban/tasks/MPI-1348/research/`.
+
 ## SolAttn and SageAttention — rejected as node packs (2026-08-09)
 
 Both need Triton, and that is the end of it for the local engine: `triton` is classified

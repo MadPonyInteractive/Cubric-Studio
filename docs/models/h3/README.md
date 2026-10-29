@@ -366,7 +366,8 @@ frame 0.
   evidence that the canvas is not intrinsically broken, and it is NOT evidence that native
   2K holds at 124 frames — nobody has run that. Do not cite this line for a long clip;
   corrected 2026-09-05 after it was read exactly that way. Do not confuse it with **H3-Regenerate-2K**, the
-  768p→2K second pass, which is API-only and not in these weights ([ref2va.md](ref2va.md)).
+  768p→2K second pass, not in these weights ([ref2va.md](ref2va.md)); NVIDIA's open copy was benched and
+  rejected ([performance.md](performance.md) § Open-H3-Regenerate-2K).
 - **A canvas change is a different latent shape, so the same seed is a DIFFERENT sample.**
   Tier A/B can never be read as "same shot, sharper", and the UI must not imply it.
 - **The two-pass halves the canvas and doubles it back, so the tier number is not what

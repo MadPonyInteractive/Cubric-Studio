@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1348",
+  "title": "Bench: NVIDIA Open-H3-Regenerate-2K refiner LoRA as our H3 2K stage 2",
+  "description": "NVIDIA open-sourced the H3-Regenerate-2K pass (768p draft -> 2560x1440 in 3 Euler steps, cfg 1, sigmas [0.909375,0.857143,0.666667,0]); our docs call it API-only (docs/models/h3/README.md, ref2va.md). Bench Kijai's extracted rank-384 bf16 LoRA (~5GB, huggingface.co/Kijai/MiniMax-H3-experimental loras/minimax_h3_open_regenerate_2k_refiner_rank_384_bf16.safetensors) on the H3 refine model with our latent upsampler, vs our current 15-step refine and vs the native 2k tier. Optional: sharp_curve_branches LoRA. Measure time, VRAM, faces/hands in far shots, clip length beyond 121 frames + stage-2 windowing, turbo LoRA interaction. Native nodes only - no Open-H3-Regenerate custom pack, no Triton/Sage (performance.md). Licence: MiniMax H3 Community License per the HF page - confirm it matches what we ship. Source: Benji's AI Playground video eiJbJMFU52M, project page nvlabs.github.io/Sana/Open-H3-Regenerate-2K. SCOPE ADDED 2026-10-29 (Fabio, via the LTX 2.5 umbrella MPI-1267): once the bench shows it beats our refine, wire it into MiniMax H3 only, dev-gated until the LTX 2.5 release. LTX 2.5 keeps its own upscaler (tiled Native Resolution route, MPI-578).",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-29T16:47:08+00:00",
+  "updated_at": "2026-10-29T19:17:39+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
