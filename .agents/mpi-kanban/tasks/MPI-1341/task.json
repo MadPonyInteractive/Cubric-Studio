@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1341",
+  "title": "Engine diet: port the 10 KJNodes we use into MpiNodes",
+  "description": "ColorMatch, GetImageRangeFromBatch, GrowMaskWithBlur, ImageBatchExtendWithOverlap, ImageBatchMulti, ImageResizeKJv2, LTX2_NAG, LTXVAudioVideoMask, LoraExtractKJ, VAELoaderKJ. Drops color-matcher, mss, matplotlib, opencv. Weigh first: KJ often ships LTX fixes early (LTX2_NAG, VAELoaderKJ), so the LTX nodes may be worth keeping on the pack. Part of the Engine diet umbrella.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-10-29T15:35:35+00:00",
+  "updated_at": "2026-10-29T15:35:35+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1343",
+  "title": "Engine diet: fold the small no-requirement packs into MpiNodes",
+  "description": "LOW PRIORITY - saves no pip installs, only outside repos to pin and upstream breakage: Painter I2V (1 node), Krea2-ControlNet (3), krea2edit (2), Krea2-Ostris-Edit (2), inpaint-cropandstitch (2), MiniMax H3 latent upscaler (1), LanPaint (3), UltimateSDUpscale (1). Licence check each before copying. Part of the Engine diet umbrella.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-10-29T15:35:37+00:00",
+  "updated_at": "2026-10-29T15:35:37+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

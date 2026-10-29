@@ -33,13 +33,6 @@
       "filename": "ComfyUI-PainterI2Vadvanced",
       "installRequirements": false
     },
-    "ComfyUI-VideoHelperSuite": {
-      "source": "git-commit",
-      "repo": "Kosinkadink/ComfyUI-VideoHelperSuite",
-      "commit": "4ee72c065db22c9d96c2427954dc69e7b908444b",
-      "filename": "comfyui-videohelpersuite",
-      "installRequirements": false
-    },
     "ComfyUI-Impact-Pack": {
       "source": "git-commit",
       "repo": "ltdrdata/ComfyUI-Impact-Pack",

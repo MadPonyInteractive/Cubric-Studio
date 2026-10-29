@@ -38,8 +38,9 @@ for (const dep of universal) {
 const codeOnly = remoteModels._universalVolumeNodeDeps();
 const ids = new Set(codeOnly.map((d) => d.id));
 
-// The two packs measured live-broken, plus the one every universal graph uses.
-for (const id of ['ComfyUI-VideoHelperSuite', 'comfyui-inpaint-cropandstitch', 'ComfyUI-MpiNodes']) {
+// The pack measured live-broken, plus the one every universal graph uses. (The other
+// measured pack, VideoHelperSuite, left the engine in MPI-1337: nothing uses it now.)
+for (const id of ['comfyui-inpaint-cropandstitch', 'ComfyUI-MpiNodes']) {
     assert.ok(ids.has(id),
         `${id} is a CODE-ONLY universal pack and must be in the remote ensure set — ` +
         'dropping it is how Resize Video / Head Swap broke on a Pod volume');

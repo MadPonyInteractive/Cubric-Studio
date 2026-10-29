@@ -1,0 +1,12 @@
+{
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-1344/research/",
+    "dev_configs/node_lock.json",
+    "dev_configs/python_deps.in",
+    "dev_configs/python_deps.txt",
+    "js/data/modelConstants/nodesDeps.js",
+    "js/data/modelConstants/models.js",
+    "comfy_workflows/",
+    "c:/AI/Mpi/ComfyUi-MpiNodes/"
+  ]
+}

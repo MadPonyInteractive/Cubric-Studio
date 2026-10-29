@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1344", "at": "2026-10-29T15:35:44+00:00", "actor": "claude", "column": "todo", "title": "UMBRELLA - Engine diet: drop or port custom-node packs into MpiNodes"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1344", "at": "2026-10-29T15:44:44+00:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Umbrella picked up; Phase 0 started."}

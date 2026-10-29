@@ -60,15 +60,12 @@ export const nodesDeps = {
         installRequirements: false,
         size: '144KB',
     },
-    'ComfyUI-VideoHelperSuite': {
-        id: 'ComfyUI-VideoHelperSuite',
-        name: 'ComfyUI-VideoHelperSuite',
-        type: 'custom_nodes',
-        filename: 'comfyui-videohelpersuite',
-        url: lockUrl('ComfyUI-VideoHelperSuite'),
-        installRequirements: false,
-        size: '806KB',
-    },
+    // ComfyUI-VideoHelperSuite is NOT here (MPI-1337): no shipped graph uses a VHS_ node,
+    // Resize Video runs on ffmpeg (routes/toolResize.js), and the `VHS_latentpreview`
+    // clip marker comes from MpiNodes' previewer and KJNodes, not from VHS (its own hook
+    // is off unless a prompt asks for it, which the app never does). imageio-ffmpeg stays
+    // in python_deps.in for MpiSaveVideo. A user's leftover folder keeps loading, harmless,
+    // until the next engine upgrade sets it aside (_findDeprecatedNodes, routes/engine.js).
     'ComfyUI-Impact-Pack': {
         id: 'ComfyUI-Impact-Pack',
         name: 'ComfyUI Impact Pack',

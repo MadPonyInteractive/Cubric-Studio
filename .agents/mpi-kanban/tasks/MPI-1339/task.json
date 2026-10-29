@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1339",
+  "title": "Engine diet: port the Impact detailer chain into MpiNodes",
+  "description": "16 nodes from Impact-Pack + Impact-Subpack: the face-detailer chain in nearly every image model (BboxDetectorSEGS, DetailerForEachPipe, MaskDetailerPipe, SEGS helpers, To/FromBasicPipe, UltralyticsDetectorProvider) plus img_auto_mask (SAMLoader, ImpactSimpleDetectorSEGS, MaskToSEGS...). Drops segment-anything, sam2 (git), ultralytics, scikit-image, matplotlib. Ultralytics is AGPL: the bbox detector needs a licence-clean replacement, not a copy. Part of the Engine diet umbrella.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-10-29T15:35:33+00:00",
+  "updated_at": "2026-10-29T15:35:33+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

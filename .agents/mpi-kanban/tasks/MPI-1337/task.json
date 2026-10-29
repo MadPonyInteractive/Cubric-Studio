@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1337",
+  "title": "Engine diet: drop VideoHelperSuite (no workflow uses it)",
+  "description": "No runtime workflow in comfy_workflows/ uses a VHS_ node, but Wan 2.2 I2V and Wan 5B still list ComfyUI-VideoHelperSuite as a dependency (models.js). Remove the dep + node_lock entry; prove it with one Wan I2V run on an isolated app. Part of the Engine diet umbrella.",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-10-29T15:35:31+00:00",
+  "updated_at": "2026-10-29T15:55:50+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

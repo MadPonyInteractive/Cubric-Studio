@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1338",
+  "title": "Engine diet: port controlnet_aux's 3 preprocessors into MpiNodes",
+  "description": "We use AIO_Preprocessor, DepthAnythingV2Preprocessor and OpenposePreprocessor (Krea2, Qwen Edit, Qwen Image 2.1, SDXL/Illustrious/Pony, Chroma, Klein). The pack is ~99k lines with 25 pip requirements (mediapipe, onnxruntime-gpu, trimesh, albumentations, fvcore, scikit-learn...). Find which annotators AIO actually resolves to, port only those, drop the pack. Biggest single dependency win. Part of the Engine diet umbrella.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-10-29T15:35:32+00:00",
+  "updated_at": "2026-10-29T15:35:32+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
