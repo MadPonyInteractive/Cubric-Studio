@@ -150,7 +150,31 @@ bench builder `tasks/MPI-1036/research/bench/flow_graph.py`, `export_raw.py`, th
 § Traps), `js/data/flowsRegistry.js` (only if step 3 adds a field), the Reuse fix site
 (unknown until step 4), `docs/playbooks/add-flow/existing-flows/video-edit.md`.
 
-## Current State (2026-10-29 ~17:40 UTC, session "Video Edit Flow Issues 3")
+## Current State (2026-10-29, session "Video Edit Flow Issues 4")
+
+**Steps 1 + 2 SHIPPED to the working tree.** `export_raw.py push` -> frontend `loadApiJson` + serialize (152 nodes,
+280 links, every node id and type kept) -> `pull` -> `sync-raw-workflows.mjs`: raw committed `c68d25ac4`, injection
+rules pass, generated `comfy_workflows/flow_video_edit.json` is STAGED, NOT committed (commit it `--only` at
+handoff/end). Synced API vs `fg.graph()`: 0 differences (ids, types, inputs, titles). `npm test` 3802 pass, 0 fail.
+The G:\ComfyUi bench moved back to **:8188** (the :8189 note below is stale); export_raw's 11 "missing titles" are
+nodes whose title is their default display name, not losses.
+API committed `01a21433c`, pushed.
+**Step 4 (Reuse) - NOT reproduced.** Standalone `node server.js` on a spare port + APP_DOCUMENTS copy of "Video edit
+showcase" + browser pane: Reuse -> Flow on flowVideoEdit_013 (saved false) shows "The picture's room" active, fresh
+open AND with a parked (flow:suspend) Flow already showing the video's room. Cosmo's open-flow route keeps `false`
+too. Note `_012` itself saved `true`. **Fabio 2026-10-29: dropped** - reopen only if it happens again.
+Found + fixed on the way (`0dca51d4e`, pushed, test `tests/reuse-no-dialog-opens-flow.test.cjs`): with the Reuse
+dialog OFF in Settings, both blocks passed dest 'app' (renamed to 'flow' elsewhere), so a Flow card fell into the
+prompt box. Verified live with ask off.
+Noticed, not fixed: a closing Flow's `destroy()` flushes a pending 300 ms persist into `s_flowInputs`; and
+`resolveFlowFieldValues` passes the string "false" through unchanged (a radio shows it right, a graph boolean would not).
+**TRAP:** a standalone server's renderer runs the boot node-drift repair on the REAL engine: it swapped
+engine/.../ComfyUI-MpiNodes 291bf3d -> pin 5e37b38 (harmless, it was master's new pin; "Strip Node Packs 3" confirmed).
+Check `node drift` in the log, or the pin vs the engine, before booting any renderer.
+**Next:** flowVideoEdit_012 re-check on the shipped graph when Fabio frees the Pod (one 768p run ~8 min, ask first).
+Step 3 only if Fabio still wants it. Windowing from MPI-1336; seam last.
+
+## Previous state (2026-10-29 ~17:40 UTC, session "Video Edit Flow Issues 3")
 
 **Steps 1 (pad up, cut back) and 2 (soundtrack) PASS on Fabio's Pod and by his eye/ear** on all three clips
 (validation.md § Step 1): the 0.875 s and 2.17 s clips come back at full length and in sync (the man's mouth 0.48 ->
