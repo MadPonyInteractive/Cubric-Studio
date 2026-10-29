@@ -1,0 +1,1 @@
+{"schema":"mpi-kanban/task-files/v1","files":["js/shell.js","js/services/commandExecutor.js","js/services/comfyController.js","tests/engine-dropped-not-oom.test.cjs","tests/comfy-ws-drop-local.test.cjs"]}
