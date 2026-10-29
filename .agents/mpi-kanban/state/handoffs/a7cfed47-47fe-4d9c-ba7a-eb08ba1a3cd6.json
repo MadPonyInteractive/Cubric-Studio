@@ -1,0 +1,58 @@
+{
+  "schema": "mpi-kanban/handoff/v1",
+  "id": "a7cfed47-47fe-4d9c-ba7a-eb08ba1a3cd6",
+  "generated_at": "2026-10-29T21:13:16Z",
+  "status": "open",
+  "from_session": ".agents/mpi-kanban/state/sessions/04cb0fbc-578b-4b61-99da-974bf338d345.json",
+  "session": { "name": "Auto window size for the H3 windowed sampler", "branch": "master" },
+  "goal": {
+    "original": "MpiWindowedSampler picks window_frames from the engine's real memory instead of the 16 GB MpiMath ladder baked into the H3 graphs.",
+    "status": "in_progress",
+    "summary": "Node shipped (MpiNodes d503a6d, window_frames 0 = auto), pinned (98c883f8b) and four graphs switched to 0 (094b1c7d8), all pushed, tests green. Left: flow_video_edit (both files), and measuring one non-16 GB size by capping VRAM on the local 16 GB bench."
+  },
+  "plan": {
+    "file": null,
+    "completed": [
+      "sampler.py: ladder_16gb / memory_scale / auto_window_frames / usable_vram; window_frames min 0, default 0 = auto",
+      "tests/test_windowed_auto.py in MpiNodes: 16 GB parity over every bucket edge via safe_math on the graphs' exact string",
+      "node_lock.json MpiNodes pin -> d503a6d",
+      "Window Frames MpiMath -> \"0\" in minimax_h3_fl2va, minimax_h3_r2va, minimax_h3_r2va_singularity, flow_h3_upscale + raw/API templates; generate_h3.py re-bakes identical",
+      "npm run lint + npm test green (3816 pass)"
+    ],
+    "pending": [
+      "flow_video_edit.json + raw/flow_video_edit.json: same one-scalar edit (ladder string -> \"0\"), once no peer holds uncommitted hunks in them",
+      "Measure one other memory size: local G:\\ComfyUi bench, VRAM capped to ~12 GB, under gpu_lease.py run",
+      "Close the card (validation.md) once both land"
+    ]
+  },
+  "task_card": {
+    "id": "MPI-1350",
+    "title": "MpiWindowedSampler: size window_frames from the engine's real VRAM + RAM, drop the 16 GB ladder from the H3 graphs",
+    "column": "doing",
+    "workspace": ".agents/mpi-kanban/tasks/MPI-1350/",
+    "links": { "checklist": ".agents/mpi-kanban/tasks/MPI-1350/checklist.md" }
+  },
+  "next_action": {
+    "description": "Check flow_video_edit.json + raw/flow_video_edit.json for peer hunks (git diff; claims in state/files/). If clean, run C:/Users/Fabio/AppData/Local/Temp/claude/C--AI-Mpi-Cubric-Vision/04cb0fbc-578b-4b61-99da-974bf338d345/scratchpad/drop_ladder.py-style one-scalar replace on both and commit with --only. Then plan the capped-VRAM measurement: H3 2K refine on the bench with torch.cuda.set_per_process_memory_fraction (or --reserve-vram) giving ~12 GiB, find the largest window_frames that survives, compare with auto's prediction int(90*12/14)=77.",
+    "command": "mpi-continue"
+  },
+  "context": {
+    "key_decisions": [
+      "Fabio 2026-10-29: no Pod. No 12 GB cards to rent in Poland and the Pod minimum is 16 GB, so the second size is measured by CAPPING VRAM on the local 16 GB bench.",
+      "Auto = 16 GB ladder x memory scale: exactly the ladder at 14-16 GiB usable (desktop noise band), linear from the nearer edge outside. Usable = comfy get_free_memory + loaded models' loaded memory on the model's load_device.",
+      "System RAM is NOT used: ComfyUI streams offloaded weights from RAM, so short RAM costs speed, not activation VRAM. Fabio has not ruled on this; raise it if he asks.",
+      "Graphs keep the Window Frames MpiMath node with expression \"0\" (one scalar, per the raw-edit rule) rather than deleting the node."
+    ],
+    "constraints": [
+      "A capped torch fraction must cap what comfy SEES too: get_free_memory reads cuda mem_get_info (hardware), so the auto path would still see 16 GB. Either pass window_frames explicitly per run, or also make comfy plan for the cap (--reserve-vram 4). Measure the OOM edge with explicit values, then check auto's number against it.",
+      "GPU is shared: wrap every bench run in gpu_lease.py run; the bench is G:\\ComfyUi on its own port, never :3000 / :48188. Its MpiNodes is the linked C:/AI/Mpi/ComfyUi-MpiNodes working repo.",
+      "flow_video_edit was being edited by Strip Node Packs 6 (MPI-1343, KJ -> MpiInpaintCrop/Stitch swap) at handoff time; do not commit their hunks."
+    ],
+    "files_to_read_first": [
+      "C:/AI/Mpi/ComfyUi-MpiNodes/sampler.py",
+      "C:/AI/Mpi/ComfyUi-MpiNodes/tests/test_windowed_auto.py",
+      ".agents/mpi-kanban/tasks/MPI-1350/checklist.md"
+    ]
+  },
+  "resume_prompt": "Read .agents/mpi-kanban/state/handoffs/a7cfed47-47fe-4d9c-ba7a-eb08ba1a3cd6.json and continue card MPI-1350 in C:\\AI\\Mpi\\Cubric-Vision with mpi-continue. MpiWindowedSampler (ComfyUi-MpiNodes sampler.py, d503a6d) now treats window_frames 0 as auto: the 16 GB H3 ladder scaled by usable VRAM; pinned and four H3 graphs switched, all pushed. Two things are left: switch flow_video_edit.json and raw/flow_video_edit.json from the ladder string to \"0\" once no peer has uncommitted hunks there, and measure one other memory size by capping VRAM to about 12 GB on the local 16 GB bench (G:\\ComfyUi, under gpu_lease.py run, no Pod: Fabio said there are no 12 GB rentals in Poland)."
+}

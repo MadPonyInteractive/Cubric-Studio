@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1350", "at": "2026-10-29T20:10:02+00:00", "actor": "agent-04cb0fbc", "column": "todo", "title": "MpiWindowedSampler: size window_frames from the engine's real VRAM + RAM, drop the 16 GB ladder from the H3 graphs"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1350", "at": "2026-10-29T20:10:25+00:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started: auto window in MpiWindowedSampler"}

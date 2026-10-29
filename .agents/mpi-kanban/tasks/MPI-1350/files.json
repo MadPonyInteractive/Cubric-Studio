@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "C:/AI/Mpi/ComfyUi-MpiNodes/sampler.py",
+    "C:/AI/Mpi/ComfyUi-MpiNodes/tests/test_windowed_auto.py",
+    "C:/AI/Mpi/ComfyUi-MpiNodes/README.md",
+    "C:/AI/Mpi/ComfyUi-MpiNodes/changelog.md",
+    "comfy_workflows/minimax_h3_fl2va.json",
+    "comfy_workflows/minimax_h3_r2va.json",
+    "comfy_workflows/minimax_h3_r2va_singularity.json",
+    "comfy_workflows/flow_video_edit.json",
+    "comfy_workflows/flow_h3_upscale.json",
+    "comfy_workflows/raw/flow_video_edit.json",
+    "comfy_workflows/raw/minimax_h3_fl2va_template.json",
+    "comfy_workflows/raw/minimax_h3_r2va_template.json",
+    "comfy_workflows/scripts/workflow_generation/minimax_h3_fl2va_template.json",
+    "comfy_workflows/scripts/workflow_generation/minimax_h3_r2va_template.json",
+    "dev_configs/node_lock.json",
+    ".agents/mpi-kanban/tasks/MPI-1350/"
+  ]
+}
