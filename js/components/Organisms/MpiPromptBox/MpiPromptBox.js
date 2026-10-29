@@ -1268,15 +1268,19 @@ export const MpiPromptBox = ComponentFactory.create({
             _picker = MpiMediaPicker.mount(document.createElement('div'), {
                 mediaType: slotType,
                 mediaTypes: slotTypes,
-                // A voice slot gets the voice library and the mic card. The picker is a
-                // Compound and may import neither: the library is this Organism's import,
-                // the recorder a Block's, handed down as `recordAudio`.
-                ...(voice ? {
-                    voiceRoute: voice.voiceLibrary ?? null,
+                // Any `+` that can add audio gets the voice library (MPI-1325): LTX and H3's
+                // audio slot is optional, so gating on the voice slot left a video model with
+                // no way to reach it. Only a voice slot gets the mic card — everywhere else the
+                // top bar's Record already makes a clip to pick. The picker is a Compound and
+                // may import neither: the library is this Organism's import, the recorder a
+                // Block's, handed down as `recordAudio`.
+                ...(slotTypes.includes('audio') ? {
+                    voiceRoute: (voice ?? _mediaSlotsForOperation().find(s => s.mediaType === 'audio'))
+                        ?.voiceLibrary ?? 'character',
                     voicePicker: MpiVoicePicker,
-                    recordAudio: props.recordAudio,
                     openVoiceLibrary,
                 } : {}),
+                ...(voice ? { recordAudio: props.recordAudio } : {}),
                 // MPI-887: the box's own destination is a reference chip, but the
                 // history workspace behind it has a second one — the open card's
                 // history, which is the only place Composite's slot can reach. The

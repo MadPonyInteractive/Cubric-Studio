@@ -728,10 +728,11 @@ export const MpiMediaPicker = ComponentFactory.create({
             // "All media" is the user looking around, not a change of what the slot
             // takes, and a Record card under an image slot would be a dead end.
             if (slotType === 'audio' && props.recordAudio) _cells.push(source(_buildMicCard()));
-            // Same gating, plus the slot's own opt-in. `onImport` is required because that
-            // is the route a picked voice takes — without it the card would open a library
-            // whose selection had nowhere to go.
-            if (slotType === 'audio' && props.voiceRoute && props.onImport && props.voicePicker) {
+            // Gated on every type the slot TAKES, plus the slot's own opt-in: a video
+            // model's `+` opens on images yet takes audio too (MPI-1325). `onImport` is
+            // required because that is the route a picked voice takes — without it the
+            // card would open a library whose selection had nowhere to go.
+            if (slotTypes.includes('audio') && props.voiceRoute && props.onImport && props.voicePicker) {
                 _cells.push(source(_buildVoiceCard()));
             }
 
@@ -772,7 +773,7 @@ export const MpiMediaPicker = ComponentFactory.create({
         // it lands in the library rather than on the grid, one click short of the voices.
         el.show = () => {
             modal.el.show();
-            if (props.openVoiceLibrary && slotType === 'audio' && props.voiceRoute && props.onImport && props.voicePicker) {
+            if (props.openVoiceLibrary && slotTypes.includes('audio') && props.voiceRoute && props.onImport && props.voicePicker) {
                 _openVoiceLibrary();
             }
         };

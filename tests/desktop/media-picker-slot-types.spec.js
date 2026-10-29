@@ -57,9 +57,11 @@ function openedTiles(window, modelId) {
     await new Promise(r => setTimeout(r, 400));
     const titles = [...document.querySelectorAll('.mpi-media-picker__tile-media[title]')].map(b => b.title).sort();
     const accept = document.querySelector('.mpi-media-picker input[type="file"]')?.accept ?? null;
+    const voice = !!document.querySelector('.mpi-media-picker__tile--voice');
+    const mic = !!document.querySelector('.mpi-media-picker__tile--mic');
     document.querySelector('.mpi-media-picker__actions .mpi-btn').click();
     await new Promise(r => setTimeout(r, 200));
-    return { titles, accept, label: add.getAttribute('aria-label') };
+    return { titles, accept, voice, mic, label: add.getAttribute('aria-label') };
   }, modelId);
 }
 
@@ -96,13 +98,18 @@ test('Choose media opens on every type the model takes, and never on 3D Scenes',
     expect(sdxl.titles, 'an image model: images only, no 3D Scene').toEqual(['IMG']);
     expect(sdxl.accept).toBe('image/*');
     expect(sdxl.label).toBe('Add a reference image');
+    expect(sdxl.voice, 'no audio, no voice library').toBe(false);
 
+    // MPI-1325: any model that takes audio offers the voice library; the Record card stays
+    // off, the top bar's Record already makes a clip to pick.
     const ltx = await openedTiles(window, 'ltx-23-balanced');
     expect(ltx.titles, 'LTX takes an audio track').toContain('AUD');
     expect(ltx.titles).not.toContain('SCN');
+    expect({ voice: ltx.voice, mic: ltx.mic }).toEqual({ voice: true, mic: false });
 
     const h3 = await openedTiles(window, 'minimax-h3-ref2va');
     expect(h3.titles, 'H3 references take video and audio too').toEqual(['AUD', 'IMG', 'VID']);
+    expect({ voice: h3.voice, mic: h3.mic }).toEqual({ voice: true, mic: false });
     expect(h3.accept).toBe('image/*,video/*,audio/*');
     expect(h3.label).toBe('Add a reference');
 

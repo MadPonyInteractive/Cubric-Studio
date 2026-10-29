@@ -319,17 +319,21 @@ test('the mic and voice cards render only when the slot hands their components i
 
     // MpiMediaPicker is a Compound and may not import MpiAudioRecorder or
     // MpiVoicePicker (also Compounds), so MpiBaseFlow passes them as props.
-    const open = (withProps) => window.evaluate(async (wp) => {
+    const open = (withProps, mixed = false) => window.evaluate(async ([wp, mx]) => {
       const [{ MpiMediaPicker }, { MpiVoicePicker }, { recordAudioIntoProject }, { state }] = await Promise.all([
         import('/js/components/Compounds/MpiMediaPicker/MpiMediaPicker.js'),
         import('/js/components/Compounds/MpiVoicePicker/MpiVoicePicker.js'),
         import('/js/components/Blocks/MpiAudioRecorder/MpiAudioRecorder.js'),
         import('/js/state.js'),
       ]);
+      // Hide first, as every real opener does: MpiModal's destroy leaves its wrapper in
+      // the DOM, and a stale voice tile ahead of the live one would take the click below.
+      window.__pick?.el?.hide?.();
       window.__pick?.el?.destroy?.();
       state.currentProject = { id: 'e2e-pick', name: 'E2E Pick', itemGroups: [], modelSettings: {} };
       const picker = MpiMediaPicker.mount(document.createElement('div'), {
-        mediaType: 'audio',
+        // `mx`: a video model's `+` — opens on images, takes audio too (MPI-1325).
+        ...(mx ? { mediaType: 'image', mediaTypes: ['image', 'audio'] } : { mediaType: 'audio' }),
         voiceRoute: 'character',
         onImport: () => {},
         ...(wp ? { recordAudio: recordAudioIntoProject, voicePicker: MpiVoicePicker } : {}),
@@ -341,10 +345,13 @@ test('the mic and voice cards render only when the slot hands their components i
         mic: !!document.querySelector('.mpi-media-picker__tile--mic'),
         voice: !!document.querySelector('.mpi-media-picker__tile--voice'),
       };
-    }, withProps);
+    }, [withProps, mixed]);
 
     // Without the props a card would be a dead button, so neither renders.
     expect(await open(false)).toEqual({ mic: false, voice: false });
+    // A slot that takes audio beside images still offers the library; the mic stays
+    // on audio-first slots, the top bar's Record covers the rest.
+    expect(await open(true, true)).toEqual({ mic: false, voice: true });
     expect(await open(true)).toEqual({ mic: true, voice: true });
 
     // The voice card mounts the component it was handed, not an import.
