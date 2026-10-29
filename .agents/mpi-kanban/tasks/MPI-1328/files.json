@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/task-files/v1", "files": ["routes/downloadManager.js", "js/shell/notificationService.js", "js/events.js", "docs/download-manager.md", "tests/install-toast-restart.test.cjs"]}

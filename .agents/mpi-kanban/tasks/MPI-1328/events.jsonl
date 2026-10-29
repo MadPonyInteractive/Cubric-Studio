@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1328", "at": "2026-10-29T01:43:53+00:00", "actor": "opus", "column": "todo", "title": "Installed toast on a CPU Pod offers Restart engine for an engine that does not exist"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1328", "at": "2026-10-29T01:44:12+00:00", "actor": "opus", "from": "todo", "to": "doing"}

@@ -2997,8 +2997,10 @@ function _downloadJobEventPayload(modelJob) {
 // an "installed" toast — a re-verify of a full Pod volume used to announce every
 // model on it (MPI-497).
 // `silent` (MPI-1113) is the internal-heal flag the job was registered with.
+// `engine` (MPI-1328) is where it installed: the toast's Restart offer is for THAT engine,
+// and a Pod install on a download-only Pod has no engine to restart.
 function _broadcastModelComplete(modelJob) {
-    const data = { modelId: modelJob.modelId };
+    const data = { modelId: modelJob.modelId, engine: modelJob.engine };
     if (modelJob.alreadyInstalled) data.alreadyInstalled = true;
     if (modelJob.silent === true) data.silent = true;
     _broadcast('download:complete', data);

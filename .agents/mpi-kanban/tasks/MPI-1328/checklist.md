@@ -1,0 +1,4 @@
+- [ ] Model-level download:complete carries the job's engine
+- [ ] Toast: Pod install on a CPU Pod = plain "installed", no Restart
+- [ ] Local install keeps its Restart offer; GPU Pod install unchanged
+- [ ] Tests + lint green

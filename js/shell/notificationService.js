@@ -266,7 +266,14 @@ export function initNotificationService() {
             // flag is set before this event on both engines (downloadManager.js orders them).
             // MPI-1272: locally only a run that uses the new nodes pays it; the Pod still
             // restarts before its next generation.
-            const remote = remoteEngineClient.isRemote();
+            // MPI-1328: the engine is the JOB's, not "is a Pod connected". A download-only
+            // Pod has no engine, so its installs say "installed" and offer nothing; the
+            // GPU Pod that boots on that volume loads the nodes at start.
+            const remote = data.engine === 'remote';
+            if (remote && remoteEngineClient.isDownloadOnly()) {
+                StatusBar.notify(message, 'success');
+                return;
+            }
             if (remote ? state.remoteComfyNeedsRestart : state.comfyNodesPending) {
                 const when = remote ? 'before your next generation' : 'the first time you use it';
                 StatusBar.notify(`${message} Restart the engine to load it now, or it restarts ${when}.`, 'success', undefined,

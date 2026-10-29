@@ -49,9 +49,9 @@ test('installed toast carries Restart engine only while a restart is pending', a
 
     // MPI-1272: a local node install sets comfyNodesPending, not comfyNeedsRestart.
     state.comfyNodesPending = false;
-    Events.emit('download:complete', { modelId: 'some-model' });
+    Events.emit('download:complete', { modelId: 'some-model', engine: 'local' });
     state.comfyNodesPending = true;
-    Events.emit('download:complete', { modelId: 'some-model' });
+    Events.emit('download:complete', { modelId: 'some-model', engine: 'local' });
     notif.destroyNotificationService();
     state.comfyNodesPending = false;
 
@@ -63,6 +63,53 @@ test('installed toast carries Restart engine only while a restart is pending', a
     toasts[1].opts.action.onClick();
     off();
     assert.strictEqual(restarts, 1);
+});
+
+// MPI-1328 — Fabio, 2026-10-29: a model installed through a CPU (download-only) Pod offered
+// Restart engine, and the Pod has no engine. The toast now follows the job's engine.
+test('a Pod install offers Restart on a GPU Pod, and only says "installed" on a CPU Pod', async () => {
+    const [notif, { Events }, { state }, { StatusBar }, { remoteEngineClient }] = await Promise.all([
+        import(SRC + 'shell/notificationService.js'),
+        import(SRC + 'events.js'),
+        import(SRC + 'state.js'),
+        import(SRC + 'shell/statusBar.js'),
+        import(SRC + 'services/remoteEngineClient.js'),
+    ]);
+    const toasts = [];
+    StatusBar.notify = (message, variant, duration, opts) => toasts.push({ message, opts });
+    const podWith = async (noGpu) => {
+        globalThis.fetch = async (url) => ({ ok: true, json: async () => (url === '/remote/mode' ? { active: true, noGpu } : {}) });
+        await remoteEngineClient.refresh();
+    };
+    notif.destroyNotificationService();
+    notif.initNotificationService();
+    state.remoteComfyNeedsRestart = true;
+
+    await podWith(true);
+    Events.emit('download:complete', { modelId: 'some-model', engine: 'remote' });
+    await podWith(false);
+    Events.emit('download:complete', { modelId: 'some-model', engine: 'remote' });
+
+    // A LOCAL install with a CPU Pod connected still offers the local restart.
+    await podWith(true);
+    state.comfyNodesPending = true;
+    Events.emit('download:complete', { modelId: 'some-model', engine: 'local' });
+
+    notif.destroyNotificationService();
+    state.remoteComfyNeedsRestart = false;
+    state.comfyNodesPending = false;
+    globalThis.fetch = async () => ({ ok: true, json: async () => ({}) });
+
+    assert.strictEqual(toasts.length, 3);
+    assert.strictEqual(toasts[0].opts, undefined, 'CPU Pod: no Restart button');
+    assert.match(toasts[0].message, /installed\.$/);
+    assert.strictEqual(toasts[1].opts.action.text, 'Restart engine', 'GPU Pod keeps the offer');
+    assert.strictEqual(toasts[2].opts.action.text, 'Restart engine', 'a local install keeps the offer');
+});
+
+test('the model-level complete carries the job\'s engine', () => {
+    const src = fs.readFileSync(path.join(repo, 'routes', 'downloadManager.js'), 'utf8');
+    assert.match(src, /const data = \{ modelId: modelJob\.modelId, engine: modelJob\.engine \};/);
 });
 
 test('local install sends the restart flag BEFORE the model-level complete', () => {

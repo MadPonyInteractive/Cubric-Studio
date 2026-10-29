@@ -173,7 +173,7 @@ export const Events = new EventBus();
  * Download & Engine Events (bridged from SSE via downloadService):
  * 'download:started'      { modelId: string, job: DownloadJob }    — download enqueued
  * 'download:progress'     { modelId: string, progress: number, speed: string, downloadedBytes: number, totalBytes: number } — download progress update
- * 'download:complete'     { modelId: string }                      — download succeeded
+ * 'download:complete'     { modelId: string, engine?: 'local'|'remote' } — download succeeded (model-level carries the job's engine, MPI-1328)
  * 'download:failed'       { modelId?: string, depId?: string, error: string, networkBlocked?: boolean, transient?: boolean } — download failed. depId-only (no modelId) is a DEP-level failure and is deliberately silent; the flags pick toast vs error dialog (docs/download-manager.md § Failed is not one thing)
  * 'download:cancelled'    { modelId: string }                      — download cancelled by user
  * 'download:uninstalled'  { modelId, removed, keptUniversal, keptShared, keptModelFiles, keptPipInstalls, sweptOrphans } — model files uninstalled (from the server broadcast only, MPI-1157)

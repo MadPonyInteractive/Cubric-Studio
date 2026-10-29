@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1328",
+  "title": "Installed toast on a CPU Pod offers Restart engine for an engine that does not exist",
+  "description": "A model installed onto the volume through a download-only (CPU) Pod toasted 'Restart the engine to load it now' with a Restart button. The toast picked the engine from isRemote(), not from the job. The model-level download:complete now carries the job's engine; a Pod install on a download-only Pod toasts just 'installed'. A local install keeps its Restart offer.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-29T01:43:53+00:00",
+  "updated_at": "2026-10-29T01:44:12+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
