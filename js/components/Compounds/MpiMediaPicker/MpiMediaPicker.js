@@ -724,14 +724,14 @@ export const MpiMediaPicker = ComponentFactory.create({
             _emptyEl = null;
 
             if (importInput) _cells.push(source(_buildUploadCard()));
-            // Gated on the SLOT's type, not the active filter: widening the filter to
-            // "All media" is the user looking around, not a change of what the slot
-            // takes, and a Record card under an image slot would be a dead end.
-            if (slotType === 'audio' && props.recordAudio) _cells.push(source(_buildMicCard()));
-            // Gated on every type the slot TAKES, plus the slot's own opt-in: a video
-            // model's `+` opens on images yet takes audio too (MPI-1325). `onImport` is
-            // required because that is the route a picked voice takes — without it the
-            // card would open a library whose selection had nowhere to go.
+            // Gated on every type the slot TAKES, not the active filter: widening the filter
+            // to "All media" is the user looking around, not a change of what the slot
+            // takes, and a Record card under an image-only slot would be a dead end. A video
+            // model's `+` opens on images yet takes audio too, so it gets both (MPI-1325).
+            if (slotTypes.includes('audio') && props.recordAudio) _cells.push(source(_buildMicCard()));
+            // Same gating, plus the slot's own opt-in. `onImport` is required because that
+            // is the route a picked voice takes — without it the card would open a library
+            // whose selection had nowhere to go.
             if (slotTypes.includes('audio') && props.voiceRoute && props.onImport && props.voicePicker) {
                 _cells.push(source(_buildVoiceCard()));
             }

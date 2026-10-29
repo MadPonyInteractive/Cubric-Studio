@@ -98,18 +98,17 @@ test('Choose media opens on every type the model takes, and never on 3D Scenes',
     expect(sdxl.titles, 'an image model: images only, no 3D Scene').toEqual(['IMG']);
     expect(sdxl.accept).toBe('image/*');
     expect(sdxl.label).toBe('Add a reference image');
-    expect(sdxl.voice, 'no audio, no voice library').toBe(false);
+    expect({ voice: sdxl.voice, mic: sdxl.mic }, 'no audio, no voice library or Record').toEqual({ voice: false, mic: false });
 
-    // MPI-1325: any model that takes audio offers the voice library; the Record card stays
-    // off, the top bar's Record already makes a clip to pick.
+    // MPI-1325: any model that takes audio offers the voice library and the Record card.
     const ltx = await openedTiles(window, 'ltx-23-balanced');
     expect(ltx.titles, 'LTX takes an audio track').toContain('AUD');
     expect(ltx.titles).not.toContain('SCN');
-    expect({ voice: ltx.voice, mic: ltx.mic }).toEqual({ voice: true, mic: false });
+    expect({ voice: ltx.voice, mic: ltx.mic }).toEqual({ voice: true, mic: true });
 
     const h3 = await openedTiles(window, 'minimax-h3-ref2va');
     expect(h3.titles, 'H3 references take video and audio too').toEqual(['AUD', 'IMG', 'VID']);
-    expect({ voice: h3.voice, mic: h3.mic }).toEqual({ voice: true, mic: false });
+    expect({ voice: h3.voice, mic: h3.mic }).toEqual({ voice: true, mic: true });
     expect(h3.accept).toBe('image/*,video/*,audio/*');
     expect(h3.label).toBe('Add a reference');
 

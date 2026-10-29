@@ -349,9 +349,8 @@ test('the mic and voice cards render only when the slot hands their components i
 
     // Without the props a card would be a dead button, so neither renders.
     expect(await open(false)).toEqual({ mic: false, voice: false });
-    // A slot that takes audio beside images still offers the library; the mic stays
-    // on audio-first slots, the top bar's Record covers the rest.
-    expect(await open(true, true)).toEqual({ mic: false, voice: true });
+    // A slot that takes audio beside images still offers both (MPI-1325).
+    expect(await open(true, true)).toEqual({ mic: true, voice: true });
     expect(await open(true)).toEqual({ mic: true, voice: true });
 
     // The voice card mounts the component it was handed, not an import.
