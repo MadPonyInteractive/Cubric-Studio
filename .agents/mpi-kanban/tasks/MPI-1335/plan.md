@@ -42,6 +42,28 @@ sections, so each fix here must hold for a section of any length.**
    radio branch of `declaredFields._buildField`) all use `??` and compare with `String(v)`, so
    reading the code did not find it. It needs a repro. Check every boolean radio while there.
 
+## Inherited: MPI-1331 (validating), from session "Video editor mask performance", 2026-10-29
+
+Fabio: every Video Edit issue now runs in this session. MPI-1331 shipped `d5b88846e`: the masked
+square is sized from the source (node 230 = square bbox side x1.25, capped at the short edge, /32;
+node 63 = max(512, min(quality size, node 230))), so a small square is no longer upscaled for H3.
+Left to validate: one real masked run at 768p+ on a GPU, and the raw file loaded in a ComfyUI
+frontend once (sync-raw-workflows did not run). Notes: `tasks/MPI-1331/validation.md`.
+Still open, no call from Fabio: the masked route's RAM. SAM3 runs on every frame, and crop,
+MpiGradeMatch and stitch work on full-size frames, so a 13 s clip filled ~81 of 94 GB of pod RAM.
+That is the windowing job (MPI-1336), the same as the RAM item below.
+
+## Masked route seam (Fabio, 2026-10-29, flowVideoEdit_005 + _006 in "MPI-1335 lip bench")
+
+Both hair edits show a seam. Located: a horizontal break across the blouse collar, the lapel edges
+jump sideways, at the BOTTOM EDGE of the still square (node 53, pad 64). H3 redraws everything in
+the square, and what is not masked (collar, neck) comes back slightly moved, so the square's edge
+shows a step; `InpaintCropImproved` blends only 24 px (`mask_blend_pixels`, node 54).
+Pasting the SAM3 shape instead was tried and failed Fabio's eye (ghost round the edit, video-edit.md
+§ Traps), so the square stays. Candidates, cheapest first, each one masked 768p run (~3 min):
+(a) blend 24 -> 64 / 96 px; (b) MpiGradeMatch band 48 wider; (c) paste the square with a falloff that
+is full inside the grown mask and fades to the square's edge. Fabio judges by eye.
+
 ## Not yet investigated
 
 - `flowVideoEdit_012` (video's room + a picture): the person and the background change, then
@@ -117,3 +139,22 @@ bench builder `tasks/MPI-1036/research/bench/flow_graph.py`, `export_raw.py`, th
 `node scripts/sync-raw-workflows.mjs` — see `docs/playbooks/add-flow/existing-flows/video-edit.md`
 § Traps), `js/data/flowsRegistry.js` (only if step 3 adds a field), the Reuse fix site
 (unknown until step 4), `docs/playbooks/add-flow/existing-flows/video-edit.md`.
+
+## Current State (2026-10-29 16:37 UTC, session "Video Edit Flow Issues 2")
+
+**Fabio's RTX PRO 4500 Pod (32 GB VRAM, 62 GB RAM) is LIVE in his app on :3000 and billing.** Use it first.
+Runs go through his app (Fabio said so): `research/lipbench/run_bench.py` / `run_more.py` swap a bench graph
+into `comfy_workflows/flow_video_edit.json` (the app fetches it per run) and restore `V1_shipped.json`
+(== HEAD) after EVERY run. Results land in project "MPI-1335 lip bench", never "Video edit showcase".
+~7.6 min a 5 s whole-frame run at 768p, ~3 min masked, ~24 min at 1080p. Price every batch and ask first.
+
+Done: step 2b. **Cause 1 is THE lip cause**: soundtrack into H3 (nodes 300-303 in `V2_soundtrack.json`,
+silence for the template-6 lead-in, lazy no-lead-in branch) gives corr 0.98, lag 0, mouth shut in pauses,
+on the picture's room (768p and 1080p) and the video's room. Fabio: S2/S3 "spot on". Swap LoRA: no effect
+on lips. MPI-1331 masked run passed (validation there). Masked route: SEAM at the square's edge (section
+above) - next on the Pod. Not shipped: the soundtrack is in bench graphs only; shipping = builder
+`MPI-1036/research/bench/flow_graph.py` + raw + sync (video-edit.md § Traps), plus the template's
+"sound continues unchanged" line.
+
+Next: (1) seam bench on the Pod, Fabio judges by eye; (2) ship the soundtrack via the builder; (3) step 1
+pad-up-cut-back on the 0.875 s / 2.17 s clips; (4) Reuse repro (step 4).

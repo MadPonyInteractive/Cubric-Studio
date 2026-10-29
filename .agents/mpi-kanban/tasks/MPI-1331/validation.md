@@ -25,3 +25,18 @@ the source was upscaled to 768 for H3 to render, with no detail gained.
 ## Not yet checked
 
 - A real masked run at 768p+ on a GPU (the raw file has not been loaded in a ComfyUI frontend either).
+
+## Real masked run (2026-10-29, session "Video Edit Flow Issues 2", Fabio's RTX PRO 4500 Pod)
+
+`ref2v_004` (640x1152, 5.9 s), What to change = 5, target `hair`, "Her hair is bright red.", 768p, SHIPPED graph.
+Card `MPI-1331 masked 768p hair` (flowVideoEdit_005, project "MPI-1335 lip bench"). Script: `research/masked_768.py`.
+
+- Ran clean in 216 s (whole-frame 768p on the same clip: ~456 s). Output 640x1152, 141 frames = the source.
+- Hair red, everything outside the square kept as filmed (frame check).
+- The source's short edge is 640, under the 768p size: node 230 capped the crop, nothing upscaled. Not
+  measured directly (no node read-out), inferred from the output and the run time.
+- Pod RAM read 58.9 of 62 GB (95%), VRAM 97%, mid-run on a 5 s clip: the masked route's RAM is a problem
+  well below 13 s. Goes to windowing (MPI-1336 / MPI-1335).
+- Mouth (the hair square covers the face): corr 0.50 with the source, best lag -8 frames; H3 redraws the
+  mouth without the soundtrack. MPI-1335's soundtrack fix covers this route too (bench S1).
+- Raw LiteGraph file still never loaded in a ComfyUI frontend.

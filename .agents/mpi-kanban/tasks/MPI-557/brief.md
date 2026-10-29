@@ -1256,3 +1256,7 @@ Fabio: "Seed VR2: we dropped that. We decided not to use it." B2 named SeedVR2 t
 B3/B5/B8/B6 sweeps (scripts ready in D:/WORK/MPI-557-phase0/, never run: the weights were already deleted from
 G:/CubricModels) have no model to run on. The card goes back to todo / needs-decision: re-scope on another restore
 model (LTX v2v lost B2) or close as rejected. Fabio's call.
+
+## Noticed
+
+- 2026-10-29 (Fabio, from MPI-1335/MPI-1331): Video Edit's masked route (SAM3 square, InpaintCropImproved, H3 renders the crop, stitch back) is the detailer's mechanism. Video Edit sizes the crop from the source for SPEED (nodes 230/63); a detailer does the opposite, upscaling the crop to the selected resolution to add detail. Build the detailer on that route.
