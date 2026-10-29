@@ -4,7 +4,28 @@ Member of MPI-1134 (Phase 4). Requirements: `research/video-edit-window-needs.md
 Method notes: `research/motion-context-v2-video.md`, `../MPI-1335/research/viggle-animate.md`,
 `../MPI-1134/research/obvpm-bridging.md`.
 
-## Current State (2026-10-29, handoff)
+## Current State (2026-10-29, Infinite video 3)
+
+- **Tail mask SHIPPED in MpiNodes `3ef5c5d`**, pinned via Strip Node Packs 6's pin `4d8b87e` (MPI-1343),
+  which sits on top of it. Optional inputs, so unwired graphs are unchanged.
+  `MpiH3MaskedPrefix` optional `tail_latent` + `tail_frames`: writes the next clip's first steps into the
+  target's end, masked, video + audio. Raises when (total - tail steps) % 5 != 0 (VAE period-5 packing) or
+  the target length is not divisible by 3 (audio clock): bridges must be 39+51k frames, **192 = 8 s** is the
+  first that holds 39 + 39 with room. Test `tests/test_h3_bridge.py` (6 cases). README/changelog rows NOT
+  written: both files claimed by two MpiNodes peers; add the row when they release.
+- **Bridging bench DONE, 2 runs** (`research/bench-2026-10-29-bridging.md`): drift CURED (backdrop 86-99 over
+  25 s, no trend, vs chain 69 + brown + 16x speckle); held ends exact. But roots do not align on Singularity
+  (ref2va pins no frame; openings differ 33-39/255), so every bridge hard-cuts into the next root. A short
+  bridge prompt ALSO cut after the head; the full scene prompt fixed that. **Next action:** pin each root's
+  first frame (video-only 1-step head on MpiH3MaskedPrefix, phase-exact) to one start frame, re-run r1, r2,
+  b0, b1 with the scene prompt. Awaiting Fabio's go.
+- Run detail (`bench/run_bridge.py r1 r2 b0 b1`, log `bench/run_bridge.log`): root 0 =
+  bench 2's `inf_A_w0` (same seed/line), roots r1, r2 at 124 frames, bridges b0, b1 at 192 frames
+  (39 held + 114 new + 39 held), short bridge prompt. Assembly r0 + b0[39:153] + r1 + b1[39:153] + r2 =
+  600 frames (25 s); `bench/bridge_seams.py` measures backdrop corners / speckle on it AND on the
+  6-window chain the same way. Output `input/mpi1336/bridged_inf.mp4`.
+
+## Earlier state (2026-10-29, handoff)
 
 - Bench 1 DONE (Video Edit case, 1344x768, 3 windows): **latent path (arm A) wins** - invisible
   joins, no drift; pixel path drifts -9 % by window 3. `research/bench-2026-10-29-chain.md`.
