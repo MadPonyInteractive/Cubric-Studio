@@ -1430,10 +1430,10 @@ export const MpiGalleryBlock = ComponentFactory.create({
 
             const payload = _resolveReusePayload(bundle, state.promptReuseSource);
             // No-dialog fast path (ask=false): Flow cards reopen the Flow as before.
-            if (payload) _applyPromptReuse(payload, _reuseIncludes(options), 'app');
+            if (payload) _applyPromptReuse(payload, _reuseIncludes(options), 'flow');
         }
 
-        async function _applyPromptReuse(payload = {}, includes = { prompt: true, settings: true, model: true, images: true, video: true, audio: true }, dest = 'app') {
+        async function _applyPromptReuse(payload = {}, includes = { prompt: true, settings: true, model: true, images: true, video: true, audio: true }, dest = 'flow') {
             // Flow cards (MPI-256): Reuse reopens the Flow with its saved inputs
             // restored, NOT the PromptBox. Branch FIRST — above the _pb guard and the
             // cross-mediaType reject — a Flow result whose mediaType differs from the

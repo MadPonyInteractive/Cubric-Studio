@@ -2448,15 +2448,15 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                 return;
             }
             // No-dialog fast path (ask=false): Flow cards reopen the Flow as before.
-            _applyPromptReuse(payload, _reuseIncludes(options), 'app');
+            _applyPromptReuse(payload, _reuseIncludes(options), 'flow');
         }
 
-        async function _applyPromptReuse(payload = {}, includes = { prompt: true, settings: true, model: true, images: true, video: true, audio: true }, dest = 'app') {
+        async function _applyPromptReuse(payload = {}, includes = { prompt: true, settings: true, model: true, images: true, video: true, audio: true }, dest = 'flow') {
             // Flow cards (MPI-256): Reuse reopens the Flow with saved inputs restored,
             // NOT the PromptBox. Branch FIRST — above the cross-mediaType reject guard
             // (a Flow result whose mediaType differs from the reused model would bail
             // there before reaching the Flow branch). MPI-263: only when the user chose
-            // "Apply to App" (dest==='app'); "Apply to Prompt Box" falls through to inject.
+            // "Apply to App" (dest==='flow'); "Apply to Prompt Box" falls through to inject.
             if (dest === 'flow' && openFlowFromReuse(payload.item)) return;
             const use = _reuseIncludes(includes);
             if (!use.prompt && !use.settings && !use.model && !use.images && !use.video && !use.audio) return;
