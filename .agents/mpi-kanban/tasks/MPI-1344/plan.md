@@ -69,6 +69,12 @@ Blind spot: paid Flows (DramaBox, Head Swap) ship workflows outside the repo.
   four dirs) + `research/check_nodes.py 48199` → "ALL PRESENT". An `app:isolated` run
   cannot prove it: it shares the user's 48188 engine, which still has the pack loaded.
 
+## DECIDED 2026-10-29 (Fabio) — commercially restricted packs stay dependencies
+Any pack whose code or weights carry a commercial restriction stays as a plain dependency: no
+port, no clean-room rewrite, no asking the author. RES4LYF (MPI-1340) and comfyui_controlnet_aux
+(MPI-1338, OpenPose CMU + DepthAnything NC) closed rejected; their working ports are shelved,
+never committed. RES4LYF also has other nodes we may use.
+
 ## DECIDED 2026-10-29 (Fabio) — ported nodes get NEW `Mpi*` names
 Third-party Flow packages authored against the old pack nodes will break when a pack
 leaves; accepted. Every Phase 2 swap that drops a pack says so in its release notes,
@@ -118,22 +124,35 @@ baseline-vs-now numbers in `validation.md`.
 - 2026-10-29 Phase 0: `research/licences.md` (3 packs have no licence), `research/baseline.md`
   (191 packages / 5.8 GB site-packages, 23 s warm start, packs ~8.4 s of it, ChatterBox 4.3 s).
 - 2026-10-29 MPI-1337: VideoHelperSuite removed (lock, nodesDeps, two Wan dep lists, one
-  test); every workflow node proven present without it. Card `validating`, NOT committed.
+  test); every workflow node proven present without it. Committed 59dc63cc1, pushed e9b767005.
+- 2026-10-29 Phase 1 (5 workers): MPI-1338 preprocess/, MPI-1339 detailer/, MPI-1340 clown/,
+  MPI-1341 kj/, MPI-1342 pano/ stems/ rife/ in ComfyUi-MpiNodes, each with tests/test_<x>*.py,
+  all green on the bench python (re-run by the orchestrator), bit-equal to the originals on
+  fixed inputs. NOT registered, NOT committed. Per-card detail: each card's validation.md.
 
 ## Plan Drift
 - 2026-10-29: the opencv conflict named in the audit was already fixed by MPI-413; pip
   wins are measured in `python_deps.in` lines, not per-pack requirements.
 - 2026-10-29: startup time is not a goal (see baseline); goals are installs and breakage.
+- 2026-10-29: Phase 0 licence table missed RES4LYF's no-commercial-service preamble (corrected
+  in research/licences.md). clown/ must NOT be committed until Fabio picks: ask the author or
+  clean-room rewrite. Also: OpenPose code+weights are CMU non-commercial; DepthAnything V2
+  Large (AIO depth default) is CC-BY-NC. All other pack LICENSE openings swept clean.
+- 2026-10-29: ultralytics stays (MPI-1339 option a: YOLO .pt are pickled ultralytics objects).
+- 2026-10-29: controlnet_aux ports never download weights -> Phase 2 for MPI-1338 adds weight deps.
+- 2026-10-29: RES4LYF registers bong_tangent globally and Chroma's UltimateSDUpscale uses it;
+  clown/ (or its replacement) must register it too.
 
 ## Current State
-Phase 0 done. MPI-1337 is code-complete and verified, waiting for commit (explicit
-pathspec: `dev_configs/node_lock.json`, `js/data/modelConstants/nodesDeps.js`,
-`js/data/modelConstants/models.js`, `tests/universal-nodes-remote.test.cjs`, plus the
-MPI-1337 / MPI-1344 card folders). Next: answer the OPEN naming question, then the Phase 1
-parallel batch (MPI-1338..1342) via `mpi-execute-parallel`. Gotcha: master's test suite has
-2 failures from the MPI-1335 session's uncommitted `flow_video_edit.json`; not ours.
-Phase 2's before/after renders CAN use `app:isolated` on the shared engine — old pack and
-new Mpi node are both loaded then; only "the pack is gone" needs the scratch engine.
+Phase 1 done. In ComfyUi-MpiNodes, the ports for MPI-1339 (detailer/), MPI-1341 (kj/) and
+MPI-1342 (pano/ stems/ rife/) are on disk with their tests (test_detailer*, test_kj*,
+test_pano/stems/rife), all green, NOT registered. MPI-1338 and MPI-1340 closed rejected
+(packs stay). MPI-1337 done. Next: Phase 2 serially, MPI-1339, MPI-1342, MPI-1341 (per-card
+notes in validation.md): register in __init__.py (from .detailer import ...), add the new tests to
+.comfyignore, /mpi-nodes-sync pin, swap class_types, drop the pack, fixed-seed before/after,
+release note naming the removed classes. MPI-1341 also re-exports the paid Head Swap package.
+Gotcha: MpiNodes tests use sys.path.append (root json.py shadows stdlib json). Before/after
+renders CAN use app:isolated on the shared engine; only "the pack is gone" needs the scratch engine.
 
 ## Remaining Work
 - Phase 1, Phase 2, Phase 3 as above. The Pod's lock copy (`mpi-ci`) syncs at the next

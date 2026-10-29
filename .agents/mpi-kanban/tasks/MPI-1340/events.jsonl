@@ -1,1 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1340", "at": "2026-10-29T15:35:34+00:00", "actor": "claude", "column": "todo", "title": "Engine diet: port RES4LYF's 3 nodes into MpiNodes"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1340", "at": "2026-10-29T16:15:58+00:00", "actor": "Strip Node Packs 2", "from": "todo", "to": "doing", "reason": "Phase 1 port started (MPI-1344 batch)."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1340", "at": "2026-10-29T17:03:14+00:00", "actor": "Strip Node Packs 2", "from": "doing", "to": "done", "reason": "Fabio: commercially restricted pack stays a dependency; port shelved."}

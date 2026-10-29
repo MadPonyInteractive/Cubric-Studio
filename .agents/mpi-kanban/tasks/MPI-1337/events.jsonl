@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1337", "at": "2026-10-29T15:35:31+00:00", "actor": "claude", "column": "todo", "title": "Engine diet: drop VideoHelperSuite (no workflow uses it)"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1337", "at": "2026-10-29T15:44:45+00:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Phase 0 warm-up of MPI-1344: drop VideoHelperSuite."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1337", "at": "2026-10-29T15:55:50+00:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "VHS removed; checks pass; not yet committed."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1337", "at": "2026-10-29T16:56:28+00:00", "actor": "Strip Node Packs 2", "from": "doing", "to": "done", "reason": "Pushed in e9b767005; CI green."}

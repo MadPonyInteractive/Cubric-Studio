@@ -5,10 +5,10 @@ Read 2026-10-29 from `engine/ComfyUI_windows_portable/ComfyUI/custom_nodes/` (ev
 
 | Pack | Licence | Porting into MpiNodes (AGPL-3.0) | Card |
 |---|---|---|---|
-| comfyui_controlnet_aux | Apache-2.0 | copy OK, keep NOTICE/attribution | MPI-1338 |
+| comfyui_controlnet_aux | Apache-2.0 (its vendored OpenPose code is CMU non-commercial research only) | copy OK, keep NOTICE/attribution; OpenPose part carries the CMU restriction | MPI-1338 |
 | ComfyUI-Impact-Pack | GPL-3.0 | copy OK (GPL-3 → AGPL-3 allowed), keep notices | MPI-1339 |
 | ComfyUI-Impact-Subpack | AGPL-3.0 | copy OK | MPI-1339 |
-| RES4LYF | AGPL-3.0 | copy OK | MPI-1340 |
+| **RES4LYF** | **AGPL-3.0 + a no-commercial-service preamble** (corrected 2026-10-29) | **NOT copy OK: the preamble bans any derivative used in a service that charges users directly or indirectly, even inside a larger product. Ask the author or clean-room rewrite** | MPI-1340 |
 | comfyui-kjnodes | GPL-3.0 | copy OK | MPI-1341 |
 | ComfyUI-Mickmumpitz-Nodes | MIT | copy OK, keep MIT notice | MPI-1342 |
 | audio-separation-nodes-comfyui | MIT | copy OK | MPI-1342 |
@@ -30,3 +30,7 @@ Read 2026-10-29 from `engine/ComfyUI_windows_portable/ComfyUI/custom_nodes/` (ev
 Not covered here: **model weights**. The Impact detector chain loads Ultralytics YOLO
 `.pt` files (AGPL); the RIFE and DepthAnything/OpenPose weights carry their own terms.
 Each porting card checks the weights it touches.
+
+Weights found in Phase 1 (2026-10-29): OpenPose body/hand/face = CMU non-commercial research only;
+Depth-Anything-V2 Small = Apache-2.0, Base/Large/Giant = CC-BY-NC-4.0 (AIO depth defaults to Large).
+The Phase 0 read checked only the AGPL text, not preambles: re-read the top of every LICENSE.

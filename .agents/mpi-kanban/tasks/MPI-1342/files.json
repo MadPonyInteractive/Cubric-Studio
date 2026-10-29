@@ -1,0 +1,10 @@
+{
+  "files": [
+    "C:/AI/Mpi/ComfyUi-MpiNodes/pano/**",
+    "C:/AI/Mpi/ComfyUi-MpiNodes/stems/**",
+    "C:/AI/Mpi/ComfyUi-MpiNodes/rife/**",
+    "C:/AI/Mpi/ComfyUi-MpiNodes/tests/test_pano*.py",
+    "C:/AI/Mpi/ComfyUi-MpiNodes/tests/test_stems*.py",
+    "C:/AI/Mpi/ComfyUi-MpiNodes/tests/test_rife*.py"
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "files": [
+    "C:/AI/Mpi/ComfyUi-MpiNodes/preprocess/**",
+    "C:/AI/Mpi/ComfyUi-MpiNodes/tests/test_preprocess*.py"
+  ]
+}
