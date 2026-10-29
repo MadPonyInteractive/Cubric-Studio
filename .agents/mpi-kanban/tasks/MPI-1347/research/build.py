@@ -31,6 +31,15 @@ ARMS = {
     # Fabio, same day: the shipped LoRA at 8 steps too, so v01 has a steps-matched rival.
     "ship8": ("minimax-h3\\minimax_h3_ref2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors", 8),
 }
+# Fabio, same day: Fast Motion OFF draws stage 1 at half size (672x384), so faces at the wide end are a
+# seed lottery. fm_<arm> = Fast Motion ON (stage 1 at full 1344x768), ship and v01 only.
+FM_ARMS = ("ship", "v01", "v10", "v11")
+# Fabio, same day: the shipped one stays (more detail); try lightx2v's other two ref2v 768p LoRAs, Fast Motion only.
+ARMS["v10"] = ("minimax-h3\\minimax_h3_ref2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors", 8)
+ARMS["v11"] = ("minimax-h3\\minimax_h3_ref2v_turbo_8step_v1.1_768p_comfyui_bf16.safetensors", 10)
+# Fabio: shipped beat v1.1 at 10; one more clip, v1.1 at 8 steps (never tested anywhere before).
+ARMS["v11s8"] = (ARMS["v11"][0], 8)
+FM_ARMS += ("v11s8",)
 
 
 def set_input(g, nid, title, key, value):
@@ -45,17 +54,19 @@ def main():
     assert src["560"]["inputs"]["steps"] == ARMS["ship"][1] and src["559"]["inputs"]["true"] == ["560", 0]
     os.makedirs(os.path.join(HERE, "graphs"), exist_ok=True)
     os.makedirs(os.path.join(HERE, "graphs_pod"), exist_ok=True)
-    for arm, (lora, steps) in ARMS.items():
+    runs = [(arm, arm, False) for arm in ARMS if arm not in ("v10", "v11", "v11s8")] +[("fm_" + arm, arm, True) for arm in FM_ARMS]
+    for label, arm, fast in runs:
+        lora, steps = ARMS[arm]
         for seed in SEEDS:
             g = json.loads(json.dumps(src))
-            name = "%s_%d" % (arm, seed)
+            name = "%s_%d" % (label, seed)
             set_input(g, "232", "Input_Positive", "string", PROMPT)
             set_input(g, "195", "Input_seed", "int", seed)
             set_input(g, "212", "Input_Duration", "int", 8)
             set_input(g, "623", "Input_Width", "int", 1344)
             set_input(g, "622", "Input_Height", "int", 768)
             set_input(g, "444", "Input_is_Turbo", "boolean", True)
-            set_input(g, "880", "Input_Fast_Motion", "boolean", False)
+            set_input(g, "880", "Input_Fast_Motion", "boolean", fast)
             set_input(g, "321", "Input_Image", "string", "mpi1347/ref_087.png")
             set_input(g, "329", "Input_Image_2", "string", "mpi1347/ref_084.png")
             g["537"]["inputs"]["lora_name"] = lora

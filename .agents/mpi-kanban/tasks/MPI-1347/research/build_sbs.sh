@@ -32,4 +32,8 @@ sbs() {  # sbs <pair> <seed> <clip a> <label a> <clip b> <label b>
 for seed in 1347001 1347002; do
   sbs ship "$seed" "ship_$seed" "Shipped 8-step v1.0 at 10 steps" "v01_$seed" "4-step v0.1 at 8 steps"
   sbs steps8 "$seed" "ship8_$seed" "Shipped 8-step v1.0 at 8 steps" "v01_$seed" "4-step v0.1 at 8 steps"
+  sbs fm "$seed" "fm_ship_$seed" "Fast Motion  Shipped v1.0 at 10 steps" "fm_v01_$seed" "Fast Motion  v0.1 at 8 steps"
+  sbs fm10 "$seed" "fm_ship_$seed" "Fast Motion  Shipped v1.0 at 10 steps" "fm_v10_$seed" "Fast Motion  4-step v1.0 at 8 steps"
+  sbs fm11 "$seed" "fm_ship_$seed" "Fast Motion  Shipped v1.0 at 10 steps" "fm_v11_$seed" "Fast Motion  8-step v1.1 at 10 steps"
+  sbs fm11s8 "$seed" "fm_ship_$seed" "Fast Motion  Shipped v1.0 at 10 steps" "fm_v11s8_$seed" "Fast Motion  8-step v1.1 at 8 steps"
 done
