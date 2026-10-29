@@ -194,7 +194,7 @@
         0
       ]
     },
-    "class_type": "GrowMaskWithBlur",
+    "class_type": "MpiGrowMaskBlur",
     "_meta": {
       "title": "1. ERODE -4 (kill detached specks)"
     }
@@ -214,7 +214,7 @@
         0
       ]
     },
-    "class_type": "GrowMaskWithBlur",
+    "class_type": "MpiGrowMaskBlur",
     "_meta": {
       "title": "2. DILATE +4 + fill_holes (restore size, close pinholes)"
     }

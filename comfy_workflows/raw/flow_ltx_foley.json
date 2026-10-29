@@ -136,7 +136,7 @@
     },
     {
       "id": 4,
-      "type": "VAELoaderKJ",
+      "type": "MpiVAELoader",
       "pos": [
         -3295.0661357815516,
         263.8114443332115
@@ -193,9 +193,9 @@
       ],
       "title": "VAELoader KJ (audio)",
       "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "997a0dcd82f70c26b90e2bc64c389853da89002f",
-        "Node name for S&R": "VAELoaderKJ",
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "d72ef497241a3dd185e7c12a37f23e9948a184f7",
+        "Node name for S&R": "MpiVAELoader",
         "ue_properties": {
           "widget_ue_connectable": {},
           "version": "7.8",
@@ -1255,7 +1255,7 @@
     },
     {
       "id": 105,
-      "type": "GetImageRangeFromBatch",
+      "type": "MpiImageRange",
       "pos": [
         -1914.1168628791145,
         519.1706280621797
@@ -1326,9 +1326,9 @@
       ],
       "title": "Foley Window",
       "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "35e5956193769d18a13136cdedb73a36a05c73e6",
-        "Node name for S&R": "GetImageRangeFromBatch",
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "d72ef497241a3dd185e7c12a37f23e9948a184f7",
+        "Node name for S&R": "MpiImageRange",
         "widget_ue_connectable": {}
       },
       "widgets_values": [
@@ -3695,7 +3695,7 @@
     },
     {
       "id": 28,
-      "type": "ImageResizeKJv2",
+      "type": "MpiImageResize",
       "pos": [
         -842.7598268200632,
         1341.6066381152882
@@ -3839,9 +3839,9 @@
       ],
       "title": "Resize To Target",
       "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "35e5956193769d18a13136cdedb73a36a05c73e6",
-        "Node name for S&R": "ImageResizeKJv2",
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "d72ef497241a3dd185e7c12a37f23e9948a184f7",
+        "Node name for S&R": "MpiImageResize",
         "widget_ue_connectable": {}
       },
       "widgets_values": [

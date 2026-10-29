@@ -71,17 +71,13 @@ export const nodesDeps = {
     // graph names those. ultralytics stays in python_deps.in for MpiUltralyticsDetectorProvider.
     // A user's leftover folders keep loading, harmless, until the next engine upgrade sets
     // them aside (_findDeprecatedNodes, routes/engine.js).
-    'comfyui-kjnodes': {
-        id: 'comfyui-kjnodes',
-        name: 'ComfyUI KJNodes',
-        type: 'custom_nodes',
-        filename: 'comfyui-kjnodes',
-        url: lockUrl('comfyui-kjnodes'),
-        installRequirements: true,
-        // Unpinned reqs (pillow, color-matcher, matplotlib, mss, opencv-python-headless)
-        // — all pinned in the curated dev_configs/python_deps.in set.
-        size: '28MB',
-    },
+    // ComfyUI-KJNodes is NOT here (MPI-1341): the 11 nodes we used are ported into MpiNodes
+    // as Mpi* (kj/, licences there) and every shipped graph names those; color-matcher and
+    // mss left python_deps.in with it. The `raw/` authoring templates still carry KJ's
+    // SetNode/GetNode (the API export resolves them away), muted helpers, and one live
+    // GetImageSizeAndCount in the unshipped lipdub template. A user's
+    // leftover folder keeps loading, harmless, until the next engine upgrade sets it aside
+    // (_findDeprecatedNodes, routes/engine.js).
     // MPI-623: back after MPI-190 removed it (it then loaded only LTX's Q8_0 transformer).
     // The 3D Scene's camera-path video runs Wan 2.1 I2V 720P as a Q4_K_M GGUF: 11.3 GB
     // against 16.4 GB fp8, the quality measured equal on hole-filling (MPI-623 amendment

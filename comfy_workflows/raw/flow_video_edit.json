@@ -1193,7 +1193,7 @@
     },
     {
       "id": 28,
-      "type": "ImageResizeKJv2",
+      "type": "MpiImageResize",
       "pos": [
         5659.7056640625,
         1658
@@ -1323,9 +1323,9 @@
       ],
       "title": "Picture cropped to the render's shape",
       "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "35e5956193769d18a13136cdedb73a36a05c73e6",
-        "Node name for S&R": "ImageResizeKJv2"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "d72ef497241a3dd185e7c12a37f23e9948a184f7",
+        "Node name for S&R": "MpiImageResize"
       },
       "widgets_values": [
         512,
@@ -1482,7 +1482,7 @@
     },
     {
       "id": 31,
-      "type": "GetImageRangeFromBatch",
+      "type": "MpiImageRange",
       "pos": [
         2970,
         366
@@ -1550,9 +1550,9 @@
       ],
       "title": "Source on the grid",
       "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "35e5956193769d18a13136cdedb73a36a05c73e6",
-        "Node name for S&R": "GetImageRangeFromBatch"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "d72ef497241a3dd185e7c12a37f23e9948a184f7",
+        "Node name for S&R": "MpiImageRange"
       },
       "widgets_values": [
         0,
@@ -2216,7 +2216,7 @@
     },
     {
       "id": 42,
-      "type": "ImageResizeKJv2",
+      "type": "MpiImageResize",
       "pos": [
         6659.7056640625,
         338
@@ -2346,9 +2346,9 @@
       ],
       "title": "Whole frame at 0.75 of the render size",
       "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "35e5956193769d18a13136cdedb73a36a05c73e6",
-        "Node name for S&R": "ImageResizeKJv2"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "d72ef497241a3dd185e7c12a37f23e9948a184f7",
+        "Node name for S&R": "MpiImageResize"
       },
       "widgets_values": [
         512,
@@ -6464,7 +6464,7 @@
     },
     {
       "id": 123,
-      "type": "GetImageRangeFromBatch",
+      "type": "MpiImageRange",
       "pos": [
         14899.633398437498,
         130
@@ -6528,9 +6528,9 @@
       ],
       "title": "Drop the lead-in and the pad",
       "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "35e5956193769d18a13136cdedb73a36a05c73e6",
-        "Node name for S&R": "GetImageRangeFromBatch"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "d72ef497241a3dd185e7c12a37f23e9948a184f7",
+        "Node name for S&R": "MpiImageRange"
       },
       "widgets_values": [
         0,
@@ -8304,7 +8304,7 @@
     },
     {
       "id": 208,
-      "type": "ImageResizeKJv2",
+      "type": "MpiImageResize",
       "pos": [
         8159.7056640625,
         904
@@ -8434,9 +8434,9 @@
       ],
       "title": "Whole frame at 0.75 of stage 1",
       "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "35e5956193769d18a13136cdedb73a36a05c73e6",
-        "Node name for S&R": "ImageResizeKJv2"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "d72ef497241a3dd185e7c12a37f23e9948a184f7",
+        "Node name for S&R": "MpiImageResize"
       },
       "widgets_values": [
         512,
@@ -8461,7 +8461,7 @@
     },
     {
       "id": 209,
-      "type": "ImageResizeKJv2",
+      "type": "MpiImageResize",
       "pos": [
         7159.7056640625,
         2048
@@ -8591,9 +8591,9 @@
       ],
       "title": "Crop at stage 1",
       "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "35e5956193769d18a13136cdedb73a36a05c73e6",
-        "Node name for S&R": "ImageResizeKJv2"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "d72ef497241a3dd185e7c12a37f23e9948a184f7",
+        "Node name for S&R": "MpiImageResize"
       },
       "widgets_values": [
         512,

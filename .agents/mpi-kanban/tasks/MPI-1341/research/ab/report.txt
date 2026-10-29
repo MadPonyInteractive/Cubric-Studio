@@ -1,0 +1,20 @@
+mini (12 cases) 0_0_images0.png: bytes differ, decoded max 0 mean 0 identical YES
+mini (12 cases) 0_3_images0.png: bytes differ, decoded max 0 mean 0 identical YES
+mini (12 cases) 11_0_images0.png: bytes differ, decoded max 0 mean 0 identical YES
+mini (12 cases) 11_1_images0.png: bytes differ, decoded max 0 mean 0 identical YES
+mini (12 cases) 1_0_images0.png: bytes differ, decoded max 0 mean 0 identical YES
+mini (12 cases) 2_0_images0.png: bytes differ, decoded max 0 mean 0 identical YES
+mini (12 cases) 2_3_images0.png: bytes differ, decoded max 0 mean 0 identical YES
+mini (12 cases) 3_0_images0.png: bytes differ, decoded max 0 mean 0 identical YES
+mini (12 cases) 3_0_images1.png: bytes differ, decoded max 0 mean 0 identical YES
+mini (12 cases) 4_0_images0.png: bytes differ, decoded max 0 mean 0 identical YES
+mini (12 cases) 4_3_images0.png: bytes differ, decoded max 0 mean 0 identical YES
+mini (12 cases) 5_0_images0.png: bytes differ, decoded max 0 mean 0 identical YES
+mini (12 cases) 5_3_images0.png: bytes differ, decoded max 0 mean 0 identical YES
+mini (12 cases) 6_0_images0.png: bytes differ, decoded max 0 mean 0 identical YES
+mini (12 cases) 6_1_images0.png: bytes differ, decoded max 0 mean 0 identical YES
+mini (12 cases) 7_0_images0.png: bytes differ, decoded max 0 mean 0 identical YES
+mini (12 cases) 7_1_images0.png: bytes differ, decoded max 0 mean 0 identical YES
+mini (12 cases) 8_0_images0.png: bytes differ, decoded max 0 mean 0 identical YES
+mini (12 cases) 8_3_images0.png: bytes differ, decoded max 0 mean 0 identical YES
+ltx_extend Output_Video_videos0.mp4: bytes IDENTICAL

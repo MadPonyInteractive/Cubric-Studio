@@ -36,7 +36,7 @@
       "device": "main_device",
       "weight_dtype": "bf16"
     },
-    "class_type": "VAELoaderKJ",
+    "class_type": "MpiVAELoader",
     "_meta": {
       "title": "VAELoader KJ (audio)"
     }
@@ -293,7 +293,7 @@
         0
       ]
     },
-    "class_type": "ImageResizeKJv2",
+    "class_type": "MpiImageResize",
     "_meta": {
       "title": "Resize To Target"
     }
@@ -516,7 +516,7 @@
         0
       ]
     },
-    "class_type": "GetImageRangeFromBatch",
+    "class_type": "MpiImageRange",
     "_meta": {
       "title": "Foley Window"
     }

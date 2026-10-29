@@ -83,13 +83,13 @@ transformers[timm]==5.13.0
 # ultralytics — MpiNodes' MpiUltralyticsDetectorProvider loads the YOLO .pt detectors with it
 # (pickled ultralytics model objects); MpiNodes declares no requirements, so keep it here (MPI-1339).
 ultralytics==8.4.78
-color-matcher==0.6.0
-mss==10.2.0
+# color-matcher and mss were KJNodes' alone; the pack left in MPI-1341 (MpiColorMatch carries
+# its own MKL transfer, and no shipped node ever used mss).
 
 # opencv — ONE variant, deliberately.
 # Three nodes declared three different distributions that all install into the same
 # `cv2` namespace: opencv-python (comfyui_controlnet_aux, RES4LYF),
-# opencv-python-headless (kjnodes; Impact-Pack and Impact-Subpack until MPI-1339) and
+# opencv-python-headless (kjnodes until MPI-1341; Impact-Pack and Impact-Subpack until MPI-1339) and
 # opencv-contrib-python (Frame-Interpolation until MPI-1342). pipPins forced TWO of them at once, so
 # which cv2 an engine ended up with was last-writer-wins. The contrib+headless build is
 # a superset of all three and is the right choice for a non-GUI engine.

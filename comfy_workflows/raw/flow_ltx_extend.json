@@ -188,7 +188,7 @@
     },
     {
       "id": 29,
-      "type": "GetImageRangeFromBatch",
+      "type": "MpiImageRange",
       "pos": [
         1240,
         620
@@ -258,9 +258,9 @@
       ],
       "title": "Reference Tail",
       "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "35e5956193769d18a13136cdedb73a36a05c73e6",
-        "Node name for S&R": "GetImageRangeFromBatch",
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "d72ef497241a3dd185e7c12a37f23e9948a184f7",
+        "Node name for S&R": "MpiImageRange",
         "widget_ue_connectable": {}
       },
       "widgets_values": [
@@ -365,7 +365,7 @@
     },
     {
       "id": 33,
-      "type": "LTXVAudioVideoMask",
+      "type": "MpiLTXAudioVideoMask",
       "pos": [
         1620,
         780
@@ -488,9 +488,9 @@
       ],
       "title": "Extend Mask (pad)",
       "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "35e5956193769d18a13136cdedb73a36a05c73e6",
-        "Node name for S&R": "LTXVAudioVideoMask",
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "d72ef497241a3dd185e7c12a37f23e9948a184f7",
+        "Node name for S&R": "MpiLTXAudioVideoMask",
         "widget_ue_connectable": {}
       },
       "widgets_values": [
@@ -1730,7 +1730,7 @@
     },
     {
       "id": 43,
-      "type": "ImageBatchExtendWithOverlap",
+      "type": "MpiImageBatchExtend",
       "pos": [
         2579.755481182976,
         647.3205382146026
@@ -1816,9 +1816,9 @@
       ],
       "title": "Stitch (crossfade the reference)",
       "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "79f529a84a8c20fe5dcdfa984c6be7a94102c014",
-        "Node name for S&R": "ImageBatchExtendWithOverlap",
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "d72ef497241a3dd185e7c12a37f23e9948a184f7",
+        "Node name for S&R": "MpiImageBatchExtend",
         "widget_ue_connectable": {}
       },
       "widgets_values": [
@@ -2880,7 +2880,7 @@
     },
     {
       "id": 28,
-      "type": "ImageResizeKJv2",
+      "type": "MpiImageResize",
       "pos": [
         900,
         648.5623808607214
@@ -3025,9 +3025,9 @@
       ],
       "title": "Resize To Target",
       "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "35e5956193769d18a13136cdedb73a36a05c73e6",
-        "Node name for S&R": "ImageResizeKJv2",
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "d72ef497241a3dd185e7c12a37f23e9948a184f7",
+        "Node name for S&R": "MpiImageResize",
         "widget_ue_connectable": {}
       },
       "widgets_values": [
@@ -3415,7 +3415,7 @@
     },
     {
       "id": 4,
-      "type": "VAELoaderKJ",
+      "type": "MpiVAELoader",
       "pos": [
         0,
         420
@@ -3470,9 +3470,9 @@
       ],
       "title": "VAELoader KJ (audio)",
       "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "997a0dcd82f70c26b90e2bc64c389853da89002f",
-        "Node name for S&R": "VAELoaderKJ",
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "d72ef497241a3dd185e7c12a37f23e9948a184f7",
+        "Node name for S&R": "MpiVAELoader",
         "ue_properties": {
           "widget_ue_connectable": {},
           "version": "7.8",

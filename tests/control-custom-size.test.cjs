@@ -68,7 +68,7 @@ test('every local control graph pads behind ONE Input_custom_size, so every cont
         const graph = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'comfy_workflows', m.workflows.control), 'utf8'));
         const nodes = Object.values(graph);
         assert.equal(nodes.filter((n) => n._meta?.title === 'Input_custom_size').length, 1, m.id);
-        assert.ok(nodes.some((n) => n.class_type === 'ImageResizeKJv2' && n.inputs.keep_proportion === 'pad'), m.id);
+        assert.ok(nodes.some((n) => n.class_type === 'MpiImageResize' && n.inputs.keep_proportion === 'pad'), m.id);
         assert.ok(optedIn(m), `${m.id}: the graph pads, so customSizeOps must name control`);
     }
 });

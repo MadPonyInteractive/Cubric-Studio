@@ -2204,7 +2204,7 @@
     },
     {
       "id": 192,
-      "type": "ColorMatch",
+      "type": "MpiColorMatch",
       "pos": [
         3060,
         1000
@@ -2239,8 +2239,8 @@
       ],
       "title": "Match The Photo Grade",
       "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "Node name for S&R": "ColorMatch"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiColorMatch"
       },
       "widgets_values": [
         "mkl",

@@ -12,3 +12,27 @@
 - Re-export the paid Head Swap package (nodes 116/117 ImageConcanate, GrowMaskWithBlur).
 - `.comfyignore`: add `tests/test_kj*.py` (and the other new tests).
 - LTX keep-or-port: worker's pick is port all three and drop the pack; NAG is the fragile one (patches attn2 forwards; core attention already drifting).
+
+## Phase 2 (2026-10-29) - swap, verified
+- MpiNodes d72ef49 (pushed): kj/ mappings merged in __init__.py, README section, changelog line; test_kj_image +
+  test_kj_ltx re-run green. Vision pins d503a6d (= d72ef49 + MpiWindowedSampler auto window, pinned by MPI-1350
+  in 98c883f8b).
+- Audit beyond the card: shipped API graphs use only the 10 + ImageConcanate (Head Swap). raw/ templates also
+  carry SetNode/GetNode (resolved by the API export), muted LTXVImgToVideoInplaceKJ/DrawMaskOnImage, a live
+  GetImageSizeAndCount in the unshipped lipdub template, and ModelSaveKJ in the Model Merger script. Left as is:
+  authoring-only, the bench keeps KJNodes.
+- Swap: 137 nodes in 61 files (API + raw + scripts/workflow_generation + generate_flux3.py), text-level so
+  formatting is untouched, each file proven equal to the intended JSON mutation; raw provenance -> ComfyUi-MpiNodes
+  d72ef49. node_lock: kjnodes out. nodesDeps.js: entry out (one note). models.js: 19 dep lines out.
+  python_deps.in: color-matcher, mss out; python_deps.txt regenerated (color-matcher, ddt, docutils, mss gone,
+  nothing else moved); --check OK.
+- Tests: control-custom-size, flux3-edit-size, inject-params-titles -> Mpi names. lint OK; npm test 3816 / 0 fail.
+- Packs gone (`research/run_nokj.sh`): CPU bench engine without kjnodes -> every shipped graph node present, no
+  IMPORT FAILED; the only misses were the installed paid Head Swap 1.0.0 (GrowMaskWithBlur, ImageConcanate).
+- Fixed-seed A/B (`research/ab/run_ab.sh` under gpu_lease, report.txt): flow_ltx_extend (NAG, AV mask, VAE loader,
+  batch extend, image range, resize) mp4 bytes IDENTICAL; 12 mini cases (every shipped ColorMatch,
+  GrowMaskWithBlur, ImageBatchMulti, ImageResizeKJv2, ImageConcanate setting, Head Swap included) decoded
+  IDENTICAL. LoraExtract only unit-tested (dev Model Merger script, not a user path).
+- Head Swap package (c:\AI\Mpi\Cubric-Flows): 3 nodes swapped, version 1.1.0, minAppVersion 2.1.4 (1.0.0 got
+  KJNodes through klein-9b's deps and breaks once this ships); checks.test 7/7; zip rebuilt. Gumroad re-upload
+  is Fabio's.

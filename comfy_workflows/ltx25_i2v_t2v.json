@@ -5,7 +5,7 @@
       "device": "main_device",
       "weight_dtype": "bf16"
     },
-    "class_type": "VAELoaderKJ",
+    "class_type": "MpiVAELoader",
     "_meta": {
       "title": "VAELoader KJ"
     }
@@ -1382,7 +1382,7 @@
         0
       ]
     },
-    "class_type": "LTX2_NAG",
+    "class_type": "MpiLTX2NAG",
     "_meta": {
       "title": "LTX2 NAG"
     }
@@ -1519,7 +1519,7 @@
         0
       ]
     },
-    "class_type": "ImageResizeKJv2",
+    "class_type": "MpiImageResize",
     "_meta": {
       "title": "Resize Image v2"
     }
@@ -1545,7 +1545,7 @@
         0
       ]
     },
-    "class_type": "ImageResizeKJv2",
+    "class_type": "MpiImageResize",
     "_meta": {
       "title": "Resize Image v2"
     }
@@ -2113,7 +2113,7 @@
         0
       ]
     },
-    "class_type": "ImageResizeKJv2",
+    "class_type": "MpiImageResize",
     "_meta": {
       "title": "Reference Sheet Fit"
     }

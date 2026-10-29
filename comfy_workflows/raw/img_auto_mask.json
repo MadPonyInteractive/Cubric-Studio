@@ -702,7 +702,7 @@
     },
     {
       "id": 1654,
-      "type": "GrowMaskWithBlur",
+      "type": "MpiGrowMaskBlur",
       "pos": [
         4110,
         7600
@@ -737,9 +737,9 @@
       ],
       "title": "1. ERODE -4 (kill detached specks)",
       "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "1.1.5",
-        "Node name for S&R": "GrowMaskWithBlur"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "d72ef497241a3dd185e7c12a37f23e9948a184f7",
+        "Node name for S&R": "MpiGrowMaskBlur"
       },
       "widgets_values": [
         -4,
@@ -754,7 +754,7 @@
     },
     {
       "id": 1655,
-      "type": "GrowMaskWithBlur",
+      "type": "MpiGrowMaskBlur",
       "pos": [
         4110,
         7860
@@ -789,9 +789,9 @@
       ],
       "title": "2. DILATE +4 + fill_holes (restore size, close pinholes)",
       "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "1.1.5",
-        "Node name for S&R": "GrowMaskWithBlur"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "d72ef497241a3dd185e7c12a37f23e9948a184f7",
+        "Node name for S&R": "MpiGrowMaskBlur"
       },
       "widgets_values": [
         4,

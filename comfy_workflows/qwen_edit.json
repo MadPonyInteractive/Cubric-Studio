@@ -1026,7 +1026,7 @@
         0
       ]
     },
-    "class_type": "ImageResizeKJv2",
+    "class_type": "MpiImageResize",
     "_meta": {
       "title": "Resize Image v2"
     }

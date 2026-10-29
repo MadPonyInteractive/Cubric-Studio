@@ -485,7 +485,7 @@ test('the Draw It In Flow carries its I/O, its model arm and its box (MPI-567)',
     const graph = JSON.parse(fs.readFileSync(path.join(WORKFLOWS, file), 'utf8'));
     const [matchId, match] = Object.entries(graph)
         .find(([, n]) => n?._meta?.title === 'Match The Photo Grade') || [];
-    assert.ok(match && match.class_type === 'ColorMatch',
+    assert.ok(match && match.class_type === 'MpiColorMatch',
         `${file} must carry a ColorMatch titled "Match The Photo Grade"`);
     const [, stitch] = Object.entries(graph)
         .find(([, n]) => n?.class_type === 'InpaintStitchImproved');

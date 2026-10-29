@@ -84,7 +84,7 @@ const ALL_MODELS = [
         // Same graph change, same class of lie on the other axis: control scales the
         // INPUT image to a megapixel target (ImageScaleToTotalPixels) instead of reading
         // Input_Width/Height, so the ratio picker cannot describe its output. i2i still
-        // resizes to our dimensions (ImageResizeKJv2) and keeps the picker.
+        // resizes to our dimensions (MpiImageResize) and keeps the picker.
         imageSizedOps: ['control', 'detail', 'upscale'],
         // Control the same (MPI-1271): on, image 1 is padded to the picked size and the output follows.
         customSizeOps: ['control'],
@@ -130,7 +130,6 @@ const ALL_MODELS = [
             // MPI-365: MaskDetailerPipe/To-FromBasicPipe were always needed by the detail
             // op and were never declared — latent until the master template made every
             // node submit-validated on EVERY run, which turns the gap fatal.
-            'comfyui-kjnodes',          // ImageResizeKJv2 — the i2i resize
             // AIO_Preprocessor x4: DepthAnythingV2 / Openpose / Scribble / CannyEdge.
             // Canny and Scribble are weightless filters; OpenPose auto-downloads its
             // body/hand/face annotators on first use, DepthAnythingV2 its own.
@@ -162,7 +161,7 @@ const ALL_MODELS = [
         // Same graph change, same class of lie on the other axis: control scales the
         // INPUT image to a megapixel target (ImageScaleToTotalPixels) instead of reading
         // Input_Width/Height, so the ratio picker cannot describe its output. i2i still
-        // resizes to our dimensions (ImageResizeKJv2) and keeps the picker.
+        // resizes to our dimensions (MpiImageResize) and keeps the picker.
         imageSizedOps: ['control', 'detail', 'upscale'],
         // Control the same (MPI-1271): on, image 1 is padded to the picked size and the output follows.
         customSizeOps: ['control'],
@@ -207,7 +206,6 @@ const ALL_MODELS = [
             // MPI-365: MaskDetailerPipe/To-FromBasicPipe were always needed by the detail
             // op and were never declared — latent until the master template made every
             // node submit-validated on EVERY run, which turns the gap fatal.
-            'comfyui-kjnodes',          // ImageResizeKJv2 — the i2i resize
             // AIO_Preprocessor x4: DepthAnythingV2 / Openpose / Scribble / CannyEdge.
             // Canny and Scribble are weightless filters; OpenPose auto-downloads its
             // body/hand/face annotators on first use, DepthAnythingV2 its own.
@@ -243,7 +241,7 @@ const ALL_MODELS = [
         // Same graph change, same class of lie on the other axis: control scales the
         // INPUT image to a megapixel target (ImageScaleToTotalPixels) instead of reading
         // Input_Width/Height, so the ratio picker cannot describe its output. i2i still
-        // resizes to our dimensions (ImageResizeKJv2) and keeps the picker.
+        // resizes to our dimensions (MpiImageResize) and keeps the picker.
         imageSizedOps: ['control', 'detail', 'upscale'],
         // Control the same (MPI-1271): on, image 1 is padded to the picked size and the output follows.
         customSizeOps: ['control'],
@@ -288,7 +286,6 @@ const ALL_MODELS = [
             // MPI-365: MaskDetailerPipe/To-FromBasicPipe were always needed by the detail
             // op and were never declared — latent until the master template made every
             // node submit-validated on EVERY run, which turns the gap fatal.
-            'comfyui-kjnodes',          // ImageResizeKJv2 — the i2i resize
             // AIO_Preprocessor x4: DepthAnythingV2 / Openpose / Scribble / CannyEdge.
             // Canny and Scribble are weightless filters; OpenPose auto-downloads its
             // body/hand/face annotators on first use, DepthAnythingV2 its own.
@@ -324,7 +321,7 @@ const ALL_MODELS = [
         // Same graph change, same class of lie on the other axis: control scales the
         // INPUT image to a megapixel target (ImageScaleToTotalPixels) instead of reading
         // Input_Width/Height, so the ratio picker cannot describe its output. i2i still
-        // resizes to our dimensions (ImageResizeKJv2) and keeps the picker.
+        // resizes to our dimensions (MpiImageResize) and keeps the picker.
         imageSizedOps: ['control', 'detail', 'upscale'],
         // Control the same (MPI-1271): on, image 1 is padded to the picked size and the output follows.
         customSizeOps: ['control'],
@@ -369,7 +366,6 @@ const ALL_MODELS = [
             // MPI-365: MaskDetailerPipe/To-FromBasicPipe were always needed by the detail
             // op and were never declared — latent until the master template made every
             // node submit-validated on EVERY run, which turns the gap fatal.
-            'comfyui-kjnodes',          // ImageResizeKJv2 — the i2i resize
             // AIO_Preprocessor x4: DepthAnythingV2 / Openpose / Scribble / CannyEdge.
             // Canny and Scribble are weightless filters; OpenPose auto-downloads its
             // body/hand/face annotators on first use, DepthAnythingV2 its own.
@@ -405,7 +401,7 @@ const ALL_MODELS = [
         // Same graph change, same class of lie on the other axis: control scales the
         // INPUT image to a megapixel target (ImageScaleToTotalPixels) instead of reading
         // Input_Width/Height, so the ratio picker cannot describe its output. i2i still
-        // resizes to our dimensions (ImageResizeKJv2) and keeps the picker.
+        // resizes to our dimensions (MpiImageResize) and keeps the picker.
         imageSizedOps: ['control', 'detail', 'upscale'],
         // Control the same (MPI-1271): on, image 1 is padded to the picked size and the output follows.
         customSizeOps: ['control'],
@@ -451,7 +447,6 @@ const ALL_MODELS = [
             // MPI-365: MaskDetailerPipe/To-FromBasicPipe were always needed by the detail
             // op and were never declared — latent until the master template made every
             // node submit-validated on EVERY run, which turns the gap fatal.
-            'comfyui-kjnodes',          // ImageResizeKJv2 — the i2i resize
             // AIO_Preprocessor x4: DepthAnythingV2 / Openpose / Scribble / CannyEdge.
             // Canny and Scribble are weightless filters; OpenPose auto-downloads its
             // body/hand/face annotators on first use, DepthAnythingV2 its own.
@@ -803,7 +798,6 @@ const ALL_MODELS = [
             '4x-NMKD-Siax',
             'RES4LYF',                   // ClownsharKSampler_Beta (both stages)
             'ComfyUI-MpiNodes',
-            'comfyui-kjnodes',           // ImageResizeKJv2, ResizeImageMaskNode
             'ComfyUI-UltimateSDUpscale',
             'ComfyUI-Krea2-ControlNet',
             'comfyui_controlnet_aux',
@@ -934,7 +928,6 @@ const ALL_MODELS = [
             '4x-NMKD-Siax',
             'RES4LYF',
             'ComfyUI-MpiNodes',
-            'comfyui-kjnodes',
             'ComfyUI-UltimateSDUpscale',
             'ComfyUI-Krea2-ControlNet',
             'comfyui_controlnet_aux',
@@ -977,7 +970,6 @@ const ALL_MODELS = [
             'vae-flux-ae', 'vae-sdxl', 'vae-sd3', 'vae-qwen-image',
             'pid-gemma',
             'ComfyUI-MpiNodes',
-            'comfyui-kjnodes',
         ],
     },
     // ── FLUX.2 Klein 4B (MPI-354) ──────────────────────────────────────────────
@@ -1117,7 +1109,6 @@ const ALL_MODELS = [
             'klein-style-aesthetic',
             '4x-NMKD-Siax',                  // shared engineAsset (upscale op)
             'ComfyUI-MpiNodes',              // 20 Mpi* classes incl. MpiStyleSelector/Loras
-            'comfyui-kjnodes',               // ImageResizeKJv2, GrowMaskWithBlur
             'ComfyUI-UltimateSDUpscale',     // UltimateSDUpscale (upscale op)
             'comfyui-inpaint-cropandstitch', // InpaintCropImproved/StitchImproved (still one pair)
             'comfyui_controlnet_aux',        // DepthAnythingV2Preprocessor (+ its own weight)
@@ -1250,7 +1241,6 @@ const ALL_MODELS = [
             'klein-9b-style-watercolour',
             '4x-NMKD-Siax',                  // shared engineAsset (upscale op)
             'ComfyUI-MpiNodes',
-            'comfyui-kjnodes',
             'ComfyUI-UltimateSDUpscale',
             'comfyui-inpaint-cropandstitch',
             'comfyui_controlnet_aux',
@@ -1299,7 +1289,6 @@ const ALL_MODELS = [
             'qwen3vl-8b-int8-clip',
             'vae-flux-ae',            // shared — already on R2, zero upload
             'ComfyUI-MpiNodes',
-            'comfyui-kjnodes',        // SetNode/GetNode
             'comfyui-inpaint-cropandstitch', // InpaintCropImproved/StitchImproved (localised edit)
         ],
     },
@@ -1335,7 +1324,6 @@ const ALL_MODELS = [
             'qwen3vl-8b-int8-clip',
             'vae-flux-ae',
             'ComfyUI-MpiNodes',
-            'comfyui-kjnodes',
             'comfyui-inpaint-cropandstitch', // localised edit — MPI-428
         ],
     },
@@ -1395,7 +1383,6 @@ const ALL_MODELS = [
             'wan_2.1_vae',
             'umt5_xxl_fp8_e4m3fn_scaled',
             'ComfyUI-MpiNodes',
-            'comfyui-kjnodes',
             'wan-22-i2v-high',
             'wan-22-i2v-low',
             'ComfyUI-PainterI2Vadvanced',
@@ -1467,7 +1454,6 @@ const ALL_MODELS = [
             'ltx23-lora-foley',
             'ComfyUI-LTXVideo',
             'ComfyUI-MpiNodes',
-            'comfyui-kjnodes',
         ],
     },
     {
@@ -1517,7 +1503,6 @@ const ALL_MODELS = [
             'ltx25-lora-ingredients',
             'ComfyUI-LTXVideo',
             'ComfyUI-MpiNodes',
-            'comfyui-kjnodes',
         ],
     },
     {
@@ -1814,7 +1799,6 @@ const ALL_MODELS = [
             'wan2.2_vae',
             'umt5_xxl_fp8_e4m3fn_scaled',
             'ComfyUI-MpiNodes',
-            'comfyui-kjnodes',
         ],
     },
     // Qwen-Image-Edit-2511 (MPI-300) — ONE card, not three.
@@ -2097,7 +2081,6 @@ const ALL_MODELS = [
             'qwen-image-21-style-clay',
             '4x-NMKD-Siax',               // shared engineAsset (upscale op)
             'ComfyUI-MpiNodes',
-            'comfyui-kjnodes',            // ImageResizeKJv2 - the i2i resize
             'ComfyUI-UltimateSDUpscale',
             'comfyui_controlnet_aux',     // AIO_Preprocessor x4, as SDXL's
             'comfyui-inpaint-cropandstitch', // masked edit, inpaint, detail
@@ -2240,7 +2223,6 @@ const ALL_MODELS = [
             'vae-flux2',
             '4x-NMKD-Siax',
             'ComfyUI-MpiNodes',              // MpiFlux3References (ten reference slots)
-            'comfyui-kjnodes',               // ImageResizeKJv2
             'ComfyUI-UltimateSDUpscale',
             'comfyui-inpaint-cropandstitch', // masked edit, inpaint, detail
             'LanPaint',                      // inpaint
@@ -2343,7 +2325,6 @@ const ALL_MODELS = [
             // validated by ComfyUI), so their packs and the upscaler must be present.
             '4x-NMKD-Siax',
             'ComfyUI-MpiNodes',
-            'comfyui-kjnodes',
             'ComfyUI-UltimateSDUpscale',
             'comfyui-inpaint-cropandstitch',
             'LanPaint',

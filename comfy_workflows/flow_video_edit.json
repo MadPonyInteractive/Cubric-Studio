@@ -242,7 +242,7 @@
         0
       ]
     },
-    "class_type": "ImageResizeKJv2",
+    "class_type": "MpiImageResize",
     "_meta": {
       "title": "Picture cropped to the render's shape"
     }
@@ -292,7 +292,7 @@
         0
       ]
     },
-    "class_type": "GetImageRangeFromBatch",
+    "class_type": "MpiImageRange",
     "_meta": {
       "title": "Source on the grid"
     }
@@ -488,7 +488,7 @@
         0
       ]
     },
-    "class_type": "ImageResizeKJv2",
+    "class_type": "MpiImageResize",
     "_meta": {
       "title": "Whole frame at 0.75 of the render size"
     }
@@ -1460,7 +1460,7 @@
         3
       ]
     },
-    "class_type": "GetImageRangeFromBatch",
+    "class_type": "MpiImageRange",
     "_meta": {
       "title": "Drop the lead-in and the pad"
     }
@@ -1878,7 +1878,7 @@
         0
       ]
     },
-    "class_type": "ImageResizeKJv2",
+    "class_type": "MpiImageResize",
     "_meta": {
       "title": "Whole frame at 0.75 of stage 1"
     }
@@ -1904,7 +1904,7 @@
         0
       ]
     },
-    "class_type": "ImageResizeKJv2",
+    "class_type": "MpiImageResize",
     "_meta": {
       "title": "Crop at stage 1"
     }

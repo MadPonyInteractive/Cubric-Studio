@@ -480,7 +480,7 @@
         6
       ]
     },
-    "class_type": "ImageResizeKJv2",
+    "class_type": "MpiImageResize",
     "_meta": {
       "title": "Resize To Target (32-divisible)"
     }
@@ -497,7 +497,7 @@
         1
       ]
     },
-    "class_type": "GetImageRangeFromBatch",
+    "class_type": "MpiImageRange",
     "_meta": {
       "title": "New Frames (after the context)"
     }
@@ -795,7 +795,7 @@
         0
       ]
     },
-    "class_type": "GetImageRangeFromBatch",
+    "class_type": "MpiImageRange",
     "_meta": {
       "title": "Source Tail on the H3 Grid"
     }
@@ -833,7 +833,7 @@
         0
       ]
     },
-    "class_type": "ImageBatchMulti",
+    "class_type": "MpiImageBatchMulti",
     "_meta": {
       "title": "Stitch (hard join)"
     }

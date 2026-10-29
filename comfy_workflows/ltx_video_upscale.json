@@ -14,7 +14,7 @@
       "device": "main_device",
       "weight_dtype": "bf16"
     },
-    "class_type": "VAELoaderKJ",
+    "class_type": "MpiVAELoader",
     "_meta": {
       "title": "Load Audio VAE"
     }
@@ -112,7 +112,7 @@
       "divisible_by": 32,
       "device": "cpu"
     },
-    "class_type": "ImageResizeKJv2",
+    "class_type": "MpiImageResize",
     "_meta": {
       "title": "Fit Source To /32"
     }

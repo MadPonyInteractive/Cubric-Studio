@@ -33,13 +33,6 @@
       "filename": "ComfyUI-PainterI2Vadvanced",
       "installRequirements": false
     },
-    "comfyui-kjnodes": {
-      "source": "git-commit",
-      "repo": "kijai/ComfyUI-KJNodes",
-      "commit": "35e5956193769d18a13136cdedb73a36a05c73e6",
-      "filename": "comfyui-kjnodes",
-      "installRequirements": true
-    },
     "ComfyUI-GGUF": {
       "source": "git-commit",
       "repo": "city96/ComfyUI-GGUF",

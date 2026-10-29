@@ -136,7 +136,7 @@ def _ref_matches_frame(workflow: dict) -> None:
                                 "pad_color": "0, 0, 0", "crop_position": "center", "divisible_by": 16,
                                 "device": "cpu", "image": [ids["Input_Image"], 0],
                                 "width": [fw, 0], "height": [fh, 0]},
-                     "class_type": "ImageResizeKJv2", "_meta": {"title": "Edit frame: picture 1 at frame size"}}
+                     "class_type": "MpiImageResize", "_meta": {"title": "Edit frame: picture 1 at frame size"}}
     # A Custom size frame of ANOTHER ratio is a reframe: cropping picture 1 to it would cut the
     # scene, so that one run keeps the old 1 MP reference and the model re-lays the frame.
     image = [ids["Input_Image"], 0]

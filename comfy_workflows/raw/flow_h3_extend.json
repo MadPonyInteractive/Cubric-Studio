@@ -994,7 +994,7 @@
     },
     {
       "id": 916,
-      "type": "ImageResizeKJv2",
+      "type": "MpiImageResize",
       "pos": [
         420,
         720
@@ -1129,9 +1129,9 @@
       ],
       "title": "Resize To Target (32-divisible)",
       "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "35e5956193769d18a13136cdedb73a36a05c73e6",
-        "Node name for S&R": "ImageResizeKJv2",
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "d72ef497241a3dd185e7c12a37f23e9948a184f7",
+        "Node name for S&R": "MpiImageResize",
         "widget_ue_connectable": {}
       },
       "widgets_values": [
@@ -1516,7 +1516,7 @@
     },
     {
       "id": 941,
-      "type": "GetImageRangeFromBatch",
+      "type": "MpiImageRange",
       "pos": [
         3360,
         1200
@@ -1576,9 +1576,9 @@
       ],
       "title": "New Frames (after the context)",
       "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "35e5956193769d18a13136cdedb73a36a05c73e6",
-        "Node name for S&R": "GetImageRangeFromBatch"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "d72ef497241a3dd185e7c12a37f23e9948a184f7",
+        "Node name for S&R": "MpiImageRange"
       },
       "widgets_values": [
         39,
@@ -2924,7 +2924,7 @@
     },
     {
       "id": 977,
-      "type": "GetImageRangeFromBatch",
+      "type": "MpiImageRange",
       "pos": [
         1260,
         1250
@@ -2984,9 +2984,9 @@
       ],
       "title": "Source Tail on the H3 Grid",
       "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "35e5956193769d18a13136cdedb73a36a05c73e6",
-        "Node name for S&R": "GetImageRangeFromBatch"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "d72ef497241a3dd185e7c12a37f23e9948a184f7",
+        "Node name for S&R": "MpiImageRange"
       },
       "widgets_values": [
         0,
@@ -3063,7 +3063,7 @@
     },
     {
       "id": 979,
-      "type": "ImageBatchMulti",
+      "type": "MpiImageBatchMulti",
       "pos": [
         3780,
         0
@@ -3111,9 +3111,9 @@
       ],
       "title": "Stitch (hard join)",
       "properties": {
-        "Node name for S&R": "ImageBatchMulti",
+        "Node name for S&R": "MpiImageBatchMulti",
         "widget_ue_connectable": {},
-        "cnr_id": "comfyui-kjnodes"
+        "cnr_id": "ComfyUi-MpiNodes"
       },
       "widgets_values": [
         2

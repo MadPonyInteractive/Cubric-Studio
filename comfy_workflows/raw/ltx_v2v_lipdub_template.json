@@ -1325,7 +1325,7 @@
     },
     {
       "id": 5031,
-      "type": "VAELoaderKJ",
+      "type": "MpiVAELoader",
       "pos": [
         -4560,
         2850
@@ -1363,9 +1363,9 @@
         }
       ],
       "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "997a0dcd82f70c26b90e2bc64c389853da89002f",
-        "Node name for S&R": "VAELoaderKJ"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "d72ef497241a3dd185e7c12a37f23e9948a184f7",
+        "Node name for S&R": "MpiVAELoader"
       },
       "widgets_values": [
         "LTX23_audio_vae_bf16.safetensors",

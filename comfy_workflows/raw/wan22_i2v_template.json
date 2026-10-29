@@ -4629,7 +4629,7 @@
     },
     {
       "id": 947,
-      "type": "ImageResizeKJv2",
+      "type": "MpiImageResize",
       "pos": [
         -760.5656729405015,
         -738.9610369372053
@@ -4697,9 +4697,9 @@
         }
       ],
       "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "7f43f2ce910a27971bdbbf3fb5a52081457f32e2",
-        "Node name for S&R": "ImageResizeKJv2"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "d72ef497241a3dd185e7c12a37f23e9948a184f7",
+        "Node name for S&R": "MpiImageResize"
       },
       "widgets_values": [
         512,
@@ -4714,7 +4714,7 @@
     },
     {
       "id": 948,
-      "type": "ImageResizeKJv2",
+      "type": "MpiImageResize",
       "pos": [
         447.6728486501256,
         -721.3408918306762
@@ -4782,9 +4782,9 @@
         }
       ],
       "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "7f43f2ce910a27971bdbbf3fb5a52081457f32e2",
-        "Node name for S&R": "ImageResizeKJv2"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "d72ef497241a3dd185e7c12a37f23e9948a184f7",
+        "Node name for S&R": "MpiImageResize"
       },
       "widgets_values": [
         512,

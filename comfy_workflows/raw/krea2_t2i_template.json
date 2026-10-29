@@ -14529,7 +14529,7 @@
     },
     {
       "id": 772,
-      "type": "ImageResizeKJv2",
+      "type": "MpiImageResize",
       "pos": [
         -808.3604813218145,
         4566.17173188998
@@ -14595,9 +14595,9 @@
         }
       ],
       "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "35e5956193769d18a13136cdedb73a36a05c73e6",
-        "Node name for S&R": "ImageResizeKJv2"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "d72ef497241a3dd185e7c12a37f23e9948a184f7",
+        "Node name for S&R": "MpiImageResize"
       },
       "widgets_values": [
         512,

@@ -6,7 +6,7 @@
   "nodes": [
     {
       "id": 1,
-      "type": "ImageResizeKJv2",
+      "type": "MpiImageResize",
       "pos": [
         -425.9402793931211,
         31.209376885922875
@@ -59,9 +59,9 @@
         }
       ],
       "properties": {
-        "Node name for S&R": "ImageResizeKJv2",
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "1.1.4",
+        "Node name for S&R": "MpiImageResize",
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "d72ef497241a3dd185e7c12a37f23e9948a184f7",
         "ue_properties": {
           "widget_ue_connectable": {
             "width": true,

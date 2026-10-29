@@ -3373,7 +3373,7 @@
     },
     {
       "id": 2,
-      "type": "VAELoaderKJ",
+      "type": "MpiVAELoader",
       "pos": [
         -6424.078257279357,
         4628.322698874727
@@ -3396,9 +3396,9 @@
         }
       ],
       "properties": {
-        "Node name for S&R": "VAELoaderKJ",
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "997a0dcd82f70c26b90e2bc64c389853da89002f",
+        "Node name for S&R": "MpiVAELoader",
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "d72ef497241a3dd185e7c12a37f23e9948a184f7",
         "ue_properties": {
           "widget_ue_connectable": {},
           "version": "7.8",
@@ -8337,7 +8337,7 @@
     },
     {
       "id": 517,
-      "type": "ImageResizeKJv2",
+      "type": "MpiImageResize",
       "pos": [
         -6778.604282111516,
         6153.417495807111
@@ -8405,9 +8405,9 @@
         }
       ],
       "properties": {
-        "Node name for S&R": "ImageResizeKJv2",
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "7f43f2ce910a27971bdbbf3fb5a52081457f32e2"
+        "Node name for S&R": "MpiImageResize",
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "d72ef497241a3dd185e7c12a37f23e9948a184f7"
       },
       "widgets_values": [
         512,
@@ -10211,7 +10211,7 @@
     },
     {
       "id": 426,
-      "type": "LTX2_NAG",
+      "type": "MpiLTX2NAG",
       "pos": [
         -3162.6062388876585,
         4673.208093682678
@@ -10254,9 +10254,9 @@
         }
       ],
       "properties": {
-        "Node name for S&R": "LTX2_NAG",
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "7f43f2ce910a27971bdbbf3fb5a52081457f32e2"
+        "Node name for S&R": "MpiLTX2NAG",
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "d72ef497241a3dd185e7c12a37f23e9948a184f7"
       },
       "widgets_values": [
         11,
@@ -11013,7 +11013,7 @@
     },
     {
       "id": 516,
-      "type": "ImageResizeKJv2",
+      "type": "MpiImageResize",
       "pos": [
         -7988.668819000699,
         6146.568862341213
@@ -11081,9 +11081,9 @@
         }
       ],
       "properties": {
-        "Node name for S&R": "ImageResizeKJv2",
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "7f43f2ce910a27971bdbbf3fb5a52081457f32e2"
+        "Node name for S&R": "MpiImageResize",
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "d72ef497241a3dd185e7c12a37f23e9948a184f7"
       },
       "widgets_values": [
         512,
@@ -11613,7 +11613,7 @@
     },
     {
       "id": 903,
-      "type": "ImageResizeKJv2",
+      "type": "MpiImageResize",
       "pos": [
         -8743.823516858896,
         9587.820933142335
@@ -11757,9 +11757,9 @@
       ],
       "title": "Reference Sheet Fit",
       "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "35e5956193769d18a13136cdedb73a36a05c73e6",
-        "Node name for S&R": "ImageResizeKJv2",
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "d72ef497241a3dd185e7c12a37f23e9948a184f7",
+        "Node name for S&R": "MpiImageResize",
         "widget_ue_connectable": {}
       },
       "widgets_values": [

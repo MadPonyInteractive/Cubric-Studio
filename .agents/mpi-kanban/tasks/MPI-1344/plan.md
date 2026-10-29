@@ -148,15 +148,19 @@ baseline-vs-now numbers in `validation.md`.
   at `custom_nodes/comfyui-frame-interpolation/ckpts/rife` (Dockerfile RIFE_DIR) and still clones
   the three packs; MpiRifeVFI reads that old dir too, so today's image works. The rebuild that
   drops the three clones MUST move RIFE_DIR to /opt/ComfyUI/models/rife in the same change.
+- 2026-10-29: MPI-1341: paid Flow packages get KJNodes through a MODEL's dependency list, not their
+  own requiredDeps (Head Swap listed only the LoRA + inpaint-cropandstitch). Dropping a pack from
+  models.js breaks the old package, so its re-export bumps compat.minAppVersion to the release that
+  ships the swap. raw/ templates keep a few KJ authoring nodes (SetNode/GetNode etc.): bench-only.
 - 2026-10-29: RES4LYF registers bong_tangent globally and Chroma's UltimateSDUpscale uses it;
   clown/ (or its replacement) must register it too.
 
 ## Current State
-Phase 2: MPI-1339 CLOSED (16a167f38; A/B identical except tiled detail, which is within its own
-cross-process noise floor). MPI-1342 code pushed (03cde6c1b, MpiNodes e33694d pinned; A/B identical
-for interp, stems, pano; packs-gone proof ALL PRESENT), card in doing/validating: close it once CI
-on 03cde6c1b is green (done gate), commit the close alone. Next: MPI-1341 (KJNodes, its
-validation.md; remember the paid Head Swap Flow uses GrowMaskWithBlur + ImageConcanate). Gotcha:
+Phase 2: MPI-1339 and MPI-1342 CLOSED. MPI-1341 (KJNodes) swapped and pushed (see its validation.md:
+LTX Extend mp4 bytes identical, 12 mini cases identical, packs-gone OK), card doing/validating: close it
+once CI on its code commit is green, commit the close alone. Head Swap 1.1.0 committed in Cubric-Flows
+(minAppVersion 2.1.4); Fabio re-uploads the zip to Gumroad. Phase 2 is then complete (MPI-1343 low
+priority, optional); next is Phase 3 (RunPod smoke via /mpi-bump-engine --plan, costs money: ask). Gotcha:
 the GPU is shared with H3 benches - gpu_lease.py with a long --timeout; check :8189/queue for
 Fabio's own bench runs, which the lease cannot see. The user's open app must restart to reinstall
 MpiNodes at the new pin, or detail/upscale/auto-mask/pano/stems/interpolate fail on its engine.

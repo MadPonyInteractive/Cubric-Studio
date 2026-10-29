@@ -96,7 +96,7 @@ test('unmasked picture 1 is resized to the frame the latent is built from', () =
     const sw = src(refs.inputs.ref_image_0);
     assert.equal(sw.class_type, 'MpiIfElse');
     const fit = src(src(sw.inputs.false).inputs.false);
-    assert.equal(fit.class_type, 'ImageResizeKJv2');
+    assert.equal(fit.class_type, 'MpiImageResize');
     assert.deepEqual(fit.inputs.image, [byTitle('Input_Image'), 0]);
     assert.equal(fit.inputs.divisible_by, 16);
     const { sel } = editLatent();

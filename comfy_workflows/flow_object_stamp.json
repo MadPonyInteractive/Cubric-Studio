@@ -520,7 +520,7 @@
         0
       ]
     },
-    "class_type": "ColorMatch",
+    "class_type": "MpiColorMatch",
     "_meta": {
       "title": "Match The Photo Grade"
     }

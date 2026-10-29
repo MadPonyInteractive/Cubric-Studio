@@ -36,7 +36,7 @@
       "device": "main_device",
       "weight_dtype": "bf16"
     },
-    "class_type": "VAELoaderKJ",
+    "class_type": "MpiVAELoader",
     "_meta": {
       "title": "VAELoader KJ (audio)"
     }
@@ -373,7 +373,7 @@
         6
       ]
     },
-    "class_type": "ImageResizeKJv2",
+    "class_type": "MpiImageResize",
     "_meta": {
       "title": "Resize To Target"
     }
@@ -390,7 +390,7 @@
         0
       ]
     },
-    "class_type": "GetImageRangeFromBatch",
+    "class_type": "MpiImageRange",
     "_meta": {
       "title": "Reference Tail"
     }
@@ -484,7 +484,7 @@
         0
       ]
     },
-    "class_type": "LTXVAudioVideoMask",
+    "class_type": "MpiLTXAudioVideoMask",
     "_meta": {
       "title": "Extend Mask (pad)"
     }
@@ -649,7 +649,7 @@
         0
       ]
     },
-    "class_type": "ImageBatchExtendWithOverlap",
+    "class_type": "MpiImageBatchExtend",
     "_meta": {
       "title": "Stitch (crossfade the reference)"
     }
