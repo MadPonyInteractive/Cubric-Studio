@@ -159,11 +159,13 @@ baseline-vs-now numbers in `validation.md`.
 Phases 1-2 COMPLETE, MPI-1343 included: MPI-1339, MPI-1341, MPI-1342, MPI-1343 CLOSED (1337 too; 1338 and
 1340 rejected, commercially restricted). MPI-1343 = Vision 382e20a90 on MpiNodes 4d8b87e, GPU A/B
 identical; Painter I2V, Krea2-ControlNet and the MiniMax H3 latent upscaler stay (no licence). The
-engine now ships 10 packs. Head Swap 1.1.1 (Cubric-Flows) supersedes 1.1.0: Fabio uploads that zip to
-Gumroad. NEXT: Phase 3 = ComfyUI bump to v0.43.0 (researched 2026-10-29: MOSS-Image fixes, H3 PDD-bank
-LoRA fix, Flux2/Klein VAE fuse, Qwen 2.1 cache; adds comfy-aimdo 0.6.0 + comfy-kitchen 0.2.40 pins; open
-issues cluster on Dynamic VRAM OOM when switching workflows) + RunPod smoke via /mpi-bump-engine --plan
-(costs money: state price, ask Fabio first). ComfyUI master has a native MiniMax H3 latent upscaler, not
+engine now ships 10 packs. Head Swap 1.1.1 (Cubric-Flows) supersedes 1.1.0; it needs app 2.1.4, so its
+Gumroad upload goes with the 2.1.4 release, not before (installed Flows never auto-update; buyers
+re-download). DECIDED 2026-10-29 (Fabio): STAY on ComfyUI v0.42.1. v0.43.0 was researched (MOSS-Image
+fixes, H3 PDD-bank LoRA fix, Flux2/Klein VAE fuse, Qwen 2.1 cache; adds comfy-aimdo 0.6.0 + comfy-kitchen
+0.2.40 pins; open issues cluster on Dynamic VRAM OOM when switching workflows) and not taken. NEXT: Phase
+3 = RunPod smoke of the current engine via /mpi-bump-engine --plan (costs money: state price, ask Fabio
+first). ComfyUI master has a native MiniMax H3 latent upscaler, not
 in a tag yet: a later swap for the unlicensed pack. Gotcha: the GPU is shared with H3 benches -
 gpu_lease.py with a long --timeout; check :8189/queue for Fabio's own bench runs, which the lease cannot
 see. The user's open app must restart to reinstall MpiNodes at the new pin.
