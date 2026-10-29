@@ -150,6 +150,8 @@ async function makeLoop({ engineResponses = [], toolOpts = {}, resolveEndpointOv
     });
     // MPI-1053: upscale is the batch tests' sample op; the app:upscaling gate has its own test.
     loop._readIds.add('app:upscaling');
+    // MPI-1334: every Flow waits on app:flows; the gate has its own test.
+    loop._readIds.add('app:flows');
 
     // Patch: inject fake engine so the loop uses it instead of DeepInfraEngine
     loop._fakeEngine = engine;
@@ -1825,6 +1827,8 @@ describe('(h) notes, results, names, guides', () => {
         const rule = (await loop._buildSystemPrompt('auto')).split('\n').find((l) => l.startsWith('Memory rule:'));
         assert.match(rule, /per project and global/);
         assert.match(rule, /only when asked/, 'global is the user\'s call, never the agent\'s judgement');
+        // MPI-1334: 1080p asked once was noted, and every later Video Edit ran at 1080p.
+        assert.match(rule, /one run .* is that run's only/);
     });
 
     test('the tools say global is only for what the user asks to keep for every project', async () => {
@@ -2169,6 +2173,25 @@ describe('(h) notes, results, names, guides', () => {
         assert.match(first.error.message, /app:upscaling/);
         assert.equal(tools.calls.generate.length, 1, 'only the call after the read reached the app');
         assert.equal(tools.calls.generate[0].operation, 'upscale');
+    });
+
+    // MPI-1334: live, Video Edit ran unread and its look box got the whole edit prompt.
+    test('a Flow waits until app:flows is read', async () => {
+        const flow = (id) => call(id, 'generate', { flowId: 'head-swap', fields: { positive: 'a calm smile' } });
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            flow('g1'),
+            call('k1', 'read_knowledge', { id: 'app:flows' }),
+            flow('g2'),
+            { text: 'Started.' },
+        ] });
+        loop._readIds.delete('app:flows');
+        await loop.runTurn('swap the head', [], project, 'auto', 'deepinfra', 't-flow');
+        const [first, read] = toolResults(loop);
+        assert.equal(first.error.code, 'KNOWLEDGE_NOT_READ');
+        assert.match(first.error.message, /app:flows/);
+        assert.match(read.next, /has NOT run/);
+        assert.equal(tools.calls.generate.length, 1, 'only the call after the read reached the app');
+        assert.equal(tools.calls.generate[0].flowId, 'head-swap');
     });
 
     test('with a mask painted, a masked op waits until app:masking is read', async () => {

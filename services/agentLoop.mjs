@@ -2309,7 +2309,7 @@ Cards rule: the App state line lists only what this conversation touched; list_c
 
 Repeat rule: to repeat a card, read it in full first (list_cards with its groupId) and follow what it says.
 
-Memory rule: your notes survive a restart, per project and global (all projects, only when asked); the first message lists them, and read_memory reads one before you rely on it. The moment the user states a goal, names or describes a character, settles a look, decides something, or a model or setting works or fails, call write_memory that turn, without asking, in the same message as any job you start: a turn ending without the note loses it. Say in one line what you noted. One note per thing: update it, never add a second. Never save keys, passwords or personal data.
+Memory rule: your notes survive a restart, per project and global (all projects, only when asked); the first message lists them, and read_memory reads one before you rely on it. The moment the user states a goal, names or describes a character, settles a look, decides something, or a model or setting works or fails, call write_memory that turn, without asking, in the same message as any job you start: a turn ending without the note loses it. Say in one line what you noted. One note per thing: update it, never add a second. A setting asked for on one run (a resolution, a length) is that run's only: never note it as the one to use, and later runs keep the default unless they ask again. Never save keys, passwords or personal data.
 
 Naming rule: a finished generation reports its card id. When a result is worth referring to later, name its card with rename_card, or pass cardName with generate.
 
@@ -2466,6 +2466,14 @@ ${knowledgeIndex}`.trim();
                 if (!args.flowId && UPSCALE_OPS.has(args.operation) && !this._readIds.has('app:upscaling')) {
                     this._gateWaiting = 'app:upscaling';
                     return JSON.stringify({ ok: false, error: { code: 'KNOWLEDGE_NOT_READ', message: 'Nothing was generated: read read_knowledge "app:upscaling" first, then send the route it gives for what the user asked.' } });
+                }
+                // MPI-1334: the Flow rule alone did not do it. Live, Video Edit ran unread: the
+                // whole edit, "<image1>" and an H3 speech line went in "Describe the new look",
+                // which with a picture holds only corrections. A Flow has no model guide, so this
+                // read is its gate, before a batch or a review card is offered.
+                if (args.flowId && !this._readIds.has('app:flows')) {
+                    this._gateWaiting = 'app:flows';
+                    return JSON.stringify({ ok: false, error: { code: 'KNOWLEDGE_NOT_READ', message: 'Nothing was generated: read read_knowledge "app:flows" first, then send this Flow again with its fields filled the way it says.' } });
                 }
                 const fanned = Array.isArray(args.cards) && args.cards.length;
                 if (!args.flowId && args.modelId) {

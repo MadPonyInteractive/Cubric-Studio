@@ -7,8 +7,8 @@ fields, its media roles, and any boxes or frame it takes.
 
 ## Fields hold only what their names say
 
-A field is a value, never an instruction to the Flow. Head Swap's `positive` is the expression
-the new head ends with, not a description of the swap.
+A field is a value, never an instruction to the Flow or a model prompt (no `<image1>`, no speech lines). Head Swap's `positive` is
+the expression the new head ends with, not a description of the swap. A field the user did not name stays out of `fields` (its default); one named for a run is for that run only.
 
 - Right: `positive: "a calm smile"`
 - Wrong: `positive: "swap the woman's head onto the man's body, keep the lighting"`
@@ -103,7 +103,7 @@ Changes a clip the user gives you (`video1`), from a picture of the new characte
 place (`image1`, optional) or from words. `Input_Operation` picks the change.
 
 - `Input_Who`: the person as the clip shows them ("the blonde woman dancing"), never a name.
-- `positive`: only the new thing, never the edit. With a picture it can stay empty.
+- `positive`: only the new thing, never the edit. With a picture, empty (the app puts it into words), or a few words it gets wrong: `"shorter horns"`. `Input_Quality`: out unless asked.
   - Right: `positive: "two small glossy red demon horns"`
   - Wrong: `positive: "replace her cat ears with horns, keep everything else"`
 - `Input_Target`: the small things to change, comma-separated, as they appear in the clip

@@ -299,7 +299,8 @@ Every event but `agent:session` also carries `session`, the key of its conversat
 - **Gates** (a rule alone did not do it; a compaction clears them): a model op's `generate` answers `GUIDE_NOT_READ` until this context
   read its router guide, the first of its `guides` (a guide names the mode of any default: a bare one skipped Ask first), and the
   `read_knowledge` that unlocks a refused call says in `next` that the call has NOT run (MPI-916: a model read the guide and ended
-  the turn); a Flow `params` box answers `BOX_NOT_MEASURED` until a `look` with `box` measured the image of its role (live, the model
+  the turn); any Flow's `generate` answers `KNOWLEDGE_NOT_READ` until `app:flows` is read (MPI-1334: the Flow rule alone, and Video
+  Edit's look box got the whole edit prompt), refused before a batch or review card; a Flow `params` box answers `BOX_NOT_MEASURED` until a `look` with `box` measured the image of its role (live, the model
   guessed 512 px boxes), and so does a box Flow sent with NONE of its boxes, which would run on the graph's baked defaults; an op with a
   required media slot answers `MEDIA_REQUIRED` in-turn, naming the slot and every role the op takes, when the call fills none of it.
   That last one is a gate and not the app's own check because `generate` is fired and not awaited: the renderer's identical refusal
