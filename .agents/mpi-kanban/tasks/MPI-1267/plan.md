@@ -13,7 +13,7 @@ together. Rewritten short 2026-10-29 (Fabio): Storyboard and Multi-angle are out
 | MPI-1335 | Video Edit: lip sync (soundtrack into H3), short clips, lost tails | Video Edit Flow Issues 3 |
 | MPI-1331 | Video Edit: the masked square never upscales the source (masking goes last) | Video Edit Flow Issues 3 |
 | MPI-1348 | New H3 upscaler: NVIDIA Open-H3-Regenerate-2K. Bench, then wire into MiniMax H3 (Fabio expects it beats ours). H3 only | New H3 Upscaler 1 |
-| MPI-578 | LTX 2.5's own upscaler: the Upscale Video Flow on 2.5 (tiled Native Resolution, Refine + Restore). Joined 2026-10-29 from MPI-1179 | not started |
+| MPI-578 | Upscale Video Flow: test LTX 2.5 tile upscale (Refine + Restore, tiled Native Resolution), add it + the MiniMax H3 upscaler. Joined 2026-10-29 from MPI-1179; MPI-688 (H3) merged in 2026-10-29 | doing |
 | MPI-1266 | LTX 2.5 Stage 2: 2.5 in the LTX Flows, then `devOnly` off on `ltx-25` | not started |
 | MPI-1185 | PiD 1.5: replaces `nvidia-pid` if it wins its bench | not started |
 | MPI-1299 | Draw It In: fix the seams, bench FLUX.3 / Qwen-Image 2.1 vs Klein 9B (2.1.3 is out: unblocked) | not started |

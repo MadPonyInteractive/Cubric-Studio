@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["comfy_workflows/ltx_video_upscale.json", "js/data/flowsRegistry.js", "js/data/modelConstants/universal_workflows.js", ".agents/mpi-kanban/tasks/MPI-578/research/"] }

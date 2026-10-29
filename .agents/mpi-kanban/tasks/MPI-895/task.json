@@ -2,7 +2,7 @@
   "schema": "mpi-kanban/task-card/v1",
   "id": "MPI-895",
   "title": "UMBRELLA: Upscale and refine evaluation: what actually improves a finished frame",
-  "description": "Five uncovered todo cards that are all the same open question - which final-pass route is worth shipping - and today each would be evaluated separately against the same models. Grouped by refresh 2026-09-22. Members: MPI-707, MPI-477, MPI-688 (MPI-478 declined 2026-10-18). MPI-578 and MPI-343 moved to MPI-1179 (New Models to Test), 2026-10-18.",
+  "description": "Five uncovered todo cards that are all the same open question - which final-pass route is worth shipping - and today each would be evaluated separately against the same models. Grouped by refresh 2026-09-22. Members: MPI-707, MPI-477 (MPI-688 merged into MPI-578 2026-10-29; MPI-478 declined 2026-10-18). MPI-578 and MPI-343 moved to MPI-1179 (New Models to Test), 2026-10-18.",
   "column": "todo",
   "maturity": "research",
   "status": "active",

@@ -14,7 +14,7 @@
 | MPI-477 | H3 refiner: the PIXEL-space route, after latent upscaling was disproven | `todo` / `research` |
 | ~~MPI-478~~ | --lowvram on the local engine - DECLINED by Fabio 2026-10-18 (disproven, inert) | - |
 | ~~MPI-343~~ | Model upgrade evaluation queue - MERGED into MPI-1179 (New Models to Test), 2026-10-18; PiD 1.5 is MPI-1185 | - |
-| MPI-688 | Video Upscale: add H3 alongside LTX | `todo` / `planned` (added 2026-09-29, umbrella sweep, Fabio's yes) |
+| ~~MPI-688~~ | Video Upscale: add H3 alongside LTX - MERGED into MPI-578 (Upscale Video Flow, LTX 2.5 + H3), Fabio 2026-10-29 | - |
 
 ## Why these belong together
 
@@ -45,7 +45,7 @@ in this batch.
 - **MPI-477** - the H3 PIXEL-space refiner route.
 - **MPI-478** - whether the local engine's `--lowvram` still costs anything (inert today).
 
-## The one BUILD member: MPI-688
+## The one BUILD member: MPI-688 (MERGED into MPI-578, 2026-10-29)
 
 MPI-688 is not an evaluation - it adds H3 to the shipped Upscale Video Flow (`ltx-upscale`,
 MPI-584) with H3's own latent upscaler (`MinimaxH3LatentUpscaler3D`) in the upsampler slot. It
