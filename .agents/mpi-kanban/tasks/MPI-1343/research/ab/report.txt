@@ -1,0 +1,11 @@
+krea2_edit Input_Image_images0: bytes IDENTICAL
+krea2_edit Output_Image_images0: bytes differ, decoded max 0 mean 0 identical YES
+krea2_inpaint Input_Image_images0: bytes IDENTICAL
+krea2_inpaint Input_Mask_images0: bytes IDENTICAL
+krea2_inpaint Output_Image_images0: bytes differ, decoded max 0 mean 0 identical YES
+krea2_upscale Input_Image_images0: bytes IDENTICAL
+krea2_upscale Output_Image_images0: bytes differ, decoded max 0 mean 0 identical YES
+krea2_upscale_tile Input_Image_images0: bytes IDENTICAL
+krea2_upscale_tile Output_Image_images0: bytes differ, decoded max 0 mean 0 identical YES
+pano360 Input_Image_images0: bytes IDENTICAL
+pano360 Output_Image_images0: bytes differ, decoded max 0 mean 0 identical YES

@@ -156,14 +156,17 @@ baseline-vs-now numbers in `validation.md`.
   clown/ (or its replacement) must register it too.
 
 ## Current State
-Phase 2: MPI-1339 and MPI-1342 CLOSED. MPI-1341 (KJNodes) swapped and pushed (see its validation.md:
-LTX Extend mp4 bytes identical, 12 mini cases identical, packs-gone OK), card doing/validating: close it
-once CI on its code commit is green, commit the close alone. Head Swap 1.1.0 committed in Cubric-Flows
-(minAppVersion 2.1.4); Fabio re-uploads the zip to Gumroad. Phase 2 is then complete (MPI-1343 low
-priority, optional); next is Phase 3 (RunPod smoke via /mpi-bump-engine --plan, costs money: ask). Gotcha:
-the GPU is shared with H3 benches - gpu_lease.py with a long --timeout; check :8189/queue for
-Fabio's own bench runs, which the lease cannot see. The user's open app must restart to reinstall
-MpiNodes at the new pin, or detail/upscale/auto-mask/pano/stems/interpolate fail on its engine.
+Phases 1-2 COMPLETE, MPI-1343 included: MPI-1339, MPI-1341, MPI-1342, MPI-1343 CLOSED (1337 too; 1338 and
+1340 rejected, commercially restricted). MPI-1343 = Vision 382e20a90 on MpiNodes 4d8b87e, GPU A/B
+identical; Painter I2V, Krea2-ControlNet and the MiniMax H3 latent upscaler stay (no licence). The
+engine now ships 10 packs. Head Swap 1.1.1 (Cubric-Flows) supersedes 1.1.0: Fabio uploads that zip to
+Gumroad. NEXT: Phase 3 = ComfyUI bump to v0.43.0 (researched 2026-10-29: MOSS-Image fixes, H3 PDD-bank
+LoRA fix, Flux2/Klein VAE fuse, Qwen 2.1 cache; adds comfy-aimdo 0.6.0 + comfy-kitchen 0.2.40 pins; open
+issues cluster on Dynamic VRAM OOM when switching workflows) + RunPod smoke via /mpi-bump-engine --plan
+(costs money: state price, ask Fabio first). ComfyUI master has a native MiniMax H3 latent upscaler, not
+in a tag yet: a later swap for the unlicensed pack. Gotcha: the GPU is shared with H3 benches -
+gpu_lease.py with a long --timeout; check :8189/queue for Fabio's own bench runs, which the lease cannot
+see. The user's open app must restart to reinstall MpiNodes at the new pin.
 
 ## Remaining Work
 - Phase 1, Phase 2, Phase 3 as above. The Pod's lock copy (`mpi-ci`) syncs at the next

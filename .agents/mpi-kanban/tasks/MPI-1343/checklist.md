@@ -10,5 +10,5 @@
 - [x] Head Swap paid Flow re-export (1.1.1, Cubric-Flows)
 - [x] lint + npm test green
 - [x] Packs-gone scratch engine: all nodes present
-- [ ] Fixed-seed A/B identical per node family (krea2 edit/inpaint/upscale x2, pano360)
+- [x] Fixed-seed A/B identical per node family (krea2 edit/inpaint/upscale x2, pano360)
 - [x] Release note names removed classes
