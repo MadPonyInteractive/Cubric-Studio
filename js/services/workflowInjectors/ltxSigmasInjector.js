@@ -12,7 +12,18 @@
  *   0.750 -> 0.7500, 0.6397, 0.3723, 0
  *   0.850 -> 0.8500, 0.7250, 0.4219, 0   (LTX's own shipped schedule)
  *
- * So the shape is fixed and the slider only moves the start. The alternative —
+ * So the shape is fixed and the slider only moves the start.
+ *
+ * MPI-578: the Upscale Video Flow gained a MiniMax H3 arm (`flow_h3_upscale.json`),
+ * whose measured refine schedule is a DIFFERENT shape (0.9035, 0.6316, 0.3158, 0 —
+ * the refine pass of our shipped H3 workflows). So the shape now comes from the
+ * GRAPH: each arm bakes its own default schedule into `Input_Sigmas`, and the slider
+ * scales it — the default start (UI 0.5) runs the baked schedule as is. The LTX
+ * graph bakes the 0.675 rung, so its default is unchanged; the other rungs move by
+ * at most 0.0001 from the SHAPE constants this file used to hold. A sigma above 1 is
+ * past pure noise on a flow model, so the top of the H3 range stops at 1.
+ *
+ * The alternative —
  * building the string inside the graph with MpiMath -> MpiConvert — is not an
  * option: `MpiConvert.round` defaults to true/"up", which would flatten
  * `0.675, 0.5757, 0.3350, 0` to `1, 1, 1, 0` with no error and produce a
@@ -24,10 +35,8 @@
 const SIGMAS_TITLE = 'input_sigmas';
 const DENOISE_KEY = 'Input_Denoise';
 
-/** Ratios of the shipped LTX 2.3 refine schedule to its own first step. */
-const SHAPE = Object.freeze([1, 0.7250 / 0.85, 0.4219 / 0.85, 0]);
-
-/** Fabio's default, 2026-08-19 — UI 0.5, exactly mid-range of 0.50–0.85. */
+/** Fabio's default, 2026-08-19 — UI 0.5, exactly mid-range of 0.50–0.85. The
+ *  start sigma at which a graph's BAKED schedule runs unscaled. */
 const DEFAULT_START = 0.675;
 
 /**
@@ -48,7 +57,6 @@ export function injectLtxSigmas(workflow, params = {}) {
     // straight off the latent upsampler, which MPI-568's no-sample control proved
     // looks like mush and is worse than plain lanczos.
     const start = Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_START;
-    const schedule = SHAPE.map(r => (start * r).toFixed(4)).join(', ');
 
     const node = Object.values(workflow || {}).find(
         n => n?._meta?.title?.toLowerCase() === SIGMAS_TITLE
@@ -56,5 +64,10 @@ export function injectLtxSigmas(workflow, params = {}) {
     if (!node) {
         throw new Error(`LTX upscale workflow is missing node titled "${SIGMAS_TITLE}"`);
     }
-    node.inputs.sigmas = schedule;
+    const baked = String(node.inputs.sigmas).split(',').map(Number);
+    if (baked.length < 2 || baked.some(v => !Number.isFinite(v))) {
+        throw new Error(`"${SIGMAS_TITLE}" bakes no usable schedule: "${node.inputs.sigmas}"`);
+    }
+    const scale = start / DEFAULT_START;
+    node.inputs.sigmas = baked.map(v => Math.min(1, v * scale).toFixed(4)).join(', ');
 }

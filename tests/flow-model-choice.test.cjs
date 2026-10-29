@@ -668,6 +668,9 @@ test('the Extend Video pick selects the GRAPH, not just params (MPI-591)', async
     const { getUniversalWorkflow, getModelDependencies } = await import('../js/data/modelRegistry.js');
     const { UNIVERSAL_WORKFLOWS } = await import('../js/data/modelConstants/universal_workflows.js');
     const { flowControlFieldIds } = await import('../js/utils/declaredFields.js');
+    const { COMMANDS } = await import('../js/data/commandRegistry.js');
+    const { INJECTORS } = await import('../js/services/workflowInjectors/index.js');
+    const consumedBy = op => new Set(INJECTORS[COMMANDS[op]?.injector]?.consumes || []);
 
     const flow = registry.getFlowById('ltx-extend');
     assert.deepEqual(
@@ -715,6 +718,12 @@ test('the Extend Video pick selects the GRAPH, not just params (MPI-591)', async
                 // A field the engine reads (a leg's `when`, the `operationBy` field) is never a
                 // graph node (MPI-997, MPI-1041).
                 if (!/^Input_/.test(f.id) || flowControlFieldIds(owner).has(f.id)) continue;
+                // An injector-consumed key never reaches a node by its own title, and a
+                // field its model rule takes off screen on THIS arm has nothing to drive
+                // there (Upscale Video's H3 arm: no CFG, so no Prompt strength, MPI-578).
+                if (consumedBy(op).has(f.id)) continue;
+                const hw = f.hiddenWhen || {};
+                if (hw.model === modelId || (hw.modelNot && hw.modelNot !== modelId)) continue;
                 assert.ok(titles.has(f.id),
                     `${owner.id}: field "${f.id}" names no node in the ${modelId} arm (${file}) — ` +
                     'injection matches titles and skips a miss in SILENCE');

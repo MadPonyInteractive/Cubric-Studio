@@ -1,0 +1,6 @@
+mpi-kanban: GPU 0 leased
+status success in 65 s
+40 {"videos": [{"filename": "MpiVideo_00001.mp4", "subfolder": "", "type": "output", "format": "video/mp4", "metadata": {"kind": "video", "width": 576, "height": 1024, "duration": 1.625, "fps": 24.0, "frame_count": 39}, "id": "6bf9c63b-d5ba-4614-a34e-ff57cd07b584"}]}
+memory.used [MiB], memory.total [MiB]
+1460 MiB, 16380 MiB
+

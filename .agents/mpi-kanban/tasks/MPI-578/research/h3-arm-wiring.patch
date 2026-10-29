@@ -1,0 +1,80 @@
+diff --git a/docs/playbooks/add-flow/existing-flows/ltx-upscale.md b/docs/playbooks/add-flow/existing-flows/ltx-upscale.md
+index c95039e0e..308c33073 100644
+--- a/docs/playbooks/add-flow/existing-flows/ltx-upscale.md
++++ b/docs/playbooks/add-flow/existing-flows/ltx-upscale.md
+@@ -9,7 +9,7 @@
+ | | |
+ |---|---|
+ | id / title | `ltx-upscale` / **Upscale Video** |
+-| requiredModels | `[{ label: 'Model', models: ['ltx-23-balanced'], loras: true }]` (the user's LoRA rack, `Input_Lora_Phase1_1..6` loader -> guider, MPI-1036: an NSFW upscale needs its LoRA) — the graph bakes the **int8** transformer, so the High tier's bf16 weight cannot run it |
++| requiredModels | `[{ label: 'Model', models: ['ltx-23-balanced', 'minimax-h3'], loras: true }]` (the user's LoRA rack, `Input_Lora_Phase1_1..6` loader -> guider, MPI-1036: an NSFW upscale needs its LoRA) — the LTX graph bakes the **int8** transformer, so the High tier's bf16 weight cannot run it. The H3 arm is its own graph: § The MiniMax H3 arm |
+ | requiredDeps | **absent.** It owns no weight: `ltx23-spatial-upscaler` is already in both LTX tiers' `dependencies` |
+ | operation | `ltxVideoUpscale` — **reused**, not new. Universal, `injector: 'ltxSigmas'` |
+ | workflow | `ltx_video_upscale.json` (29 nodes) — **reused** |
+diff --git a/js/data/flowsRegistry.js b/js/data/flowsRegistry.js
+index d92efe475..8765ccf05 100644
+--- a/js/data/flowsRegistry.js
++++ b/js/data/flowsRegistry.js
+@@ -865,9 +865,13 @@ const ALL_FLOWS = [
+         preview: 'flow-ltx-upscale.webp',
+         video: 'flow-ltx-upscale.mp4',
+         description: '**Double a video’s resolution and rebuild its detail.**\n\n'
+-            + 'Drop a clip and LTX 2.3 re-renders it at 2x. The audio comes through untouched.\n\n'
++            + 'Drop a clip and LTX 2.3 or MiniMax H3 re-renders it at 2x. The audio comes through untouched.\n\n'
+             + '**Short clips first:** cost grows with length, and a long one can exhaust the GPU.',
+-        requiredModels: [{ label: 'Model', models: ['ltx-23-balanced'], loras: true }],
++        // MPI-578: MiniMax H3 is a second candidate on its OWN graph (`byModel` in
++        // universal_workflows.js -> flow_h3_upscale.json): H3's latent upscaler, then a
++        // 3-step refine with the fl2v turbo LoRA, the refine pass our H3 workflows ship.
++        // LTX stays first, the recommended candidate and what every upscale ran on.
++        requiredModels: [{ label: 'Model', models: ['ltx-23-balanced', 'minimax-h3'], loras: true }],
+         operation: 'ltxVideoUpscale',
+         workflow: 'ltx_video_upscale.json',
+         mediaType: 'video',
+@@ -919,6 +923,9 @@ const ALL_FLOWS = [
+                 // range, not the default. Do not re-argue it.
+                 mapTo: [1, 3],
+                 note: 'Only has an effect once you write a prompt.',
++                // MPI-578: H3 takes no CFG (BasicGuider, no negative), so the H3 arm has
++                // no node for this — off screen there rather than a dead slider.
++                hiddenWhen: { model: 'minimax-h3' },
+             },
+         ],
+     },
+diff --git a/js/data/modelConstants/universal_workflows.js b/js/data/modelConstants/universal_workflows.js
+index 6c9f68b4d..1d9ab39c9 100644
+--- a/js/data/modelConstants/universal_workflows.js
++++ b/js/data/modelConstants/universal_workflows.js
+@@ -32,6 +32,13 @@ export const UNIVERSAL_WORKFLOWS = {
+     // stack, not the universal DEPS set — the plugin's availability gate owns that.
+     ltxVideoUpscale: {
+         workflow: 'ltx_video_upscale.json',
++        // MPI-578: the Upscale Video Flow's H3 arm. The fl2va id, as on Extend Video:
++        // the graph loads the fl2va DiT and its fl2v turbo LoRA, and only this model's
++        // dep set supplies both (plus the H3 latent upscaler). The plugin passes no
++        // flowModelIds, so it keeps resolving to the LTX graph.
++        byModel: {
++            'minimax-h3': 'flow_h3_upscale.json',
++        },
+     },
+     removeBackground: {
+         workflow: 'remove_background.json',
+diff --git a/tests/flow-legs.test.cjs b/tests/flow-legs.test.cjs
+index 841cca286..49abcbf99 100644
+--- a/tests/flow-legs.test.cjs
++++ b/tests/flow-legs.test.cjs
+@@ -472,7 +472,7 @@ const BEFORE = {
+         op: 'ltxVideoUpscale', chain: [],
+         none: { ids: ['ltx-23-balanced'], graph: 'ltx_video_upscale.json', chainGraph: [], available: false, missing: ['ltx-23-balanced'] },
+         all: { ids: ['ltx-23-balanced'], graph: 'ltx_video_upscale.json', chainGraph: [], available: true, missing: [] },
+-        last: { ids: ['ltx-23-balanced'], graph: 'ltx_video_upscale.json', chainGraph: [], available: true, missing: [] },
++        last: { ids: ['minimax-h3'], graph: 'flow_h3_upscale.json', chainGraph: [], available: true, missing: [] },
+     },
+     'video-edit': {
+         op: 'flowVideoEdit', chain: [],
+
+# ALSO re-add to tests/flow-model-choice.test.cjs, after the notAnOperation assert:
+#    // MPI-578: Upscale Video's H3 arm. No ids is the History Upscale PLUGIN, which shares
+#    // the op and must keep running the LTX graph.
+#    assert.equal(getUniversalWorkflow('ltxVideoUpscale'), 'ltx_video_upscale.json');
+#    assert.equal(getUniversalWorkflow('ltxVideoUpscale', ['minimax-h3']), 'flow_h3_upscale.json');
