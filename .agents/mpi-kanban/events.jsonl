@@ -7460,3 +7460,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1329", "at": "2026-10-29T02:11:49+00:00", "actor": "7c3ace7d-5aae-4070-b301-b546fcefb195", "from": "doing", "to": "done", "reason": "agent-loop tests 230 pass; validation.md"}
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1330", "at": "2026-10-29T02:24:24+00:00", "actor": "1da8833f-f7a2-42d3-a9d5-acedb87f9281", "column": "doing", "title": "A remote engine drop shows one toast, not two"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1330", "at": "2026-10-29T02:26:35+00:00", "actor": "claude", "from": "doing", "to": "done", "reason": "One toast per remote drop; tests + lint green"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1331", "at": "2026-10-29T02:37:22+00:00", "actor": "claude", "column": "doing", "title": "Video Edit: the masked square never upscales the source"}

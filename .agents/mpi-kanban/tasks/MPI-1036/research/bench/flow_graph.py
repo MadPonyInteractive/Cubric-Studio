@@ -368,9 +368,14 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
 
     # ---- what H3 sees
     g['60'] = node('MpiIfElse', 'masked ? crop : whole frame', boolean=['24', 0], true=['54', 1], false=['42', 0])
-    # The crop is the quality's short edge (768 / 960 / 1088), except 576p keeps the benched 512.
-    g['63'] = node('MpiMath', 'Crop size (by quality)', a=['26', 0],
-                   math_expression=f'{CROP} if a == {AREA} else floor(sqrt(a * 9 / 16) / 32 + 0.5) * 32')
+    # The crop is the quality's short edge (768 / 960 / 1088), except 576p keeps the benched 512 - but never more
+    # than the source pixels it covers (the square grown 1.25x by node 54, inside the frame): a 768 crop of a
+    # ~600 px area only upscaled the source for H3 to render (MPI-1331). Never below the benched 512.
+    g['230'] = node('MpiMath', 'Source side the crop covers', a=['53', 3], b=['10', 5], c=['10', 6],
+                    math_expression='floor((1.25 * a if 1.25 * a < (b if b < c else c) else (b if b < c else c)) / 32 + 0.5) * 32')
+    quality = f'({CROP} if a == {AREA} else floor(sqrt(a * 9 / 16) / 32 + 0.5) * 32)'
+    g['63'] = node('MpiMath', 'Crop size (by quality, never above the source)', a=['26', 0], b=['230', 0],
+                   math_expression=f'{CROP} if b < {CROP} else ({quality} if {quality} < b else b)')
     g['61'] = node('MpiIfElse', 'masked ? crop width : render width', boolean=['24', 0], true=['63', 0], false=['40', 0])
     g['62'] = node('MpiIfElse', 'masked ? crop height : render height', boolean=['24', 0], true=['63', 0], false=['41', 0])
     # Template 6 rebuilds the PICTURE's whole room inside the render's canvas: a picture of another shape came out

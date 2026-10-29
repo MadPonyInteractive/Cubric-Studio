@@ -21,7 +21,9 @@
 
 `Input_Target` typed (and the op is not Change the background) = **masked**: SAM3 finds the things in
 every frame (a comma list is one search per item, masks unioned: comfy `sam3_clip.py`) -> `MpiMaskSquareBbox` pad 64 (ONE still square, the union of every frame) ->
-`InpaintCropImproved` (512 at 576p, else the Resolution's short edge) -> H3 single pass + swap LoRA ->
+`InpaintCropImproved` (512 at 576p, else the Resolution's short edge, but never above the source side the crop
+covers, the square x1.25 inside the frame, node 230, and never below 512: MPI-1331, a 768 crop of a ~600 px area only
+upscaled the source) -> H3 single pass + swap LoRA ->
 `MpiGradeMatch` band 48 -> `InpaintStitchImproved`; the crop goes into H3 1:1. Empty = **whole frame**:
 rendered at the **Resolution** field's area (`Input_Quality`, node 26: 576p 0.59 MP default, 768p,
 960p, 1080p, 2K, 4K = ratios.js's H3 medium / high / very_high / 2k / 4k areas; aspect kept, /32;

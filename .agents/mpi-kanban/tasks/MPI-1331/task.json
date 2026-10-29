@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1331",
+  "title": "Video Edit: the masked square never upscales the source",
+  "description": "At 768p and above the masked route rendered the crop at the Resolution's short edge (768/960/1088) even when the square on the source was smaller, so H3 worked on an upscaled crop. The crop size is now capped at the source pixels the crop covers (the square grown 1.25x, inside the frame), never below the benched 512.",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-10-29T02:37:22+00:00",
+  "updated_at": "2026-10-29T02:45:00+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

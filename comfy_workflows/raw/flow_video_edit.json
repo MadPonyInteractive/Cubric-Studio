@@ -1,8 +1,8 @@
 {
   "id": "ee251067-95b5-4464-85fc-2ed959fde840",
   "revision": 0,
-  "last_node_id": 229,
-  "last_link_id": 248,
+  "last_node_id": 230,
+  "last_link_id": 252,
   "nodes": [
     {
       "id": 10,
@@ -115,7 +115,8 @@
           "links": [
             38,
             42,
-            69
+            69,
+            250
           ]
         },
         {
@@ -125,7 +126,8 @@
           "links": [
             39,
             41,
-            70
+            70,
+            251
           ]
         },
         {
@@ -2901,7 +2903,8 @@
           "name": "size",
           "type": "INT",
           "links": [
-            68
+            68,
+            249
           ]
         }
       ],
@@ -3534,7 +3537,7 @@
           "name": "b",
           "shape": 7,
           "type": "*",
-          "link": null
+          "link": 252
         },
         {
           "localized_name": "c",
@@ -3566,15 +3569,15 @@
           ]
         }
       ],
-      "title": "Crop size (by quality)",
+      "title": "Crop size (by quality, never above the source)",
       "properties": {
         "Node name for S&R": "MpiMath"
       },
       "widgets_values": [
-        "512 if a == 589824 else floor(sqrt(a * 9 / 16) / 32 + 0.5) * 32"
+        "512 if b < 512 else ((512 if a == 589824 else floor(sqrt(a * 9 / 16) / 32 + 0.5) * 32) if (512 if a == 589824 else floor(sqrt(a * 9 / 16) / 32 + 0.5) * 32) < b else b)"
       ],
       "widgets_values_named": {
-        "math_expression": "512 if a == 589824 else floor(sqrt(a * 9 / 16) / 32 + 0.5) * 32"
+        "math_expression": "512 if b < 512 else ((512 if a == 589824 else floor(sqrt(a * 9 / 16) / 32 + 0.5) * 32) if (512 if a == 589824 else floor(sqrt(a * 9 / 16) / 32 + 0.5) * 32) < b else b)"
       }
     },
     {
@@ -9988,6 +9991,72 @@
       "widgets_values_named": {
         "boolean": true
       }
+    },
+    {
+      "id": 230,
+      "type": "MpiMath",
+      "pos": [
+        600,
+        2144
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 44,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "a",
+          "name": "a",
+          "type": "*",
+          "link": 249
+        },
+        {
+          "localized_name": "b",
+          "name": "b",
+          "shape": 7,
+          "type": "*",
+          "link": 250
+        },
+        {
+          "localized_name": "c",
+          "name": "c",
+          "shape": 7,
+          "type": "*",
+          "link": 251
+        },
+        {
+          "localized_name": "math_expression",
+          "name": "math_expression",
+          "type": "STRING",
+          "widget": {
+            "name": "math_expression"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "result",
+          "name": "result",
+          "type": "*",
+          "links": [
+            252
+          ]
+        }
+      ],
+      "title": "Source side the crop covers",
+      "properties": {
+        "Node name for S&R": "MpiMath"
+      },
+      "widgets_values": [
+        "floor((1.25 * a if 1.25 * a < (b if b < c else c) else (b if b < c else c)) / 32 + 0.5) * 32"
+      ],
+      "widgets_values_named": {
+        "math_expression": "floor((1.25 * a if 1.25 * a < (b if b < c else c) else (b if b < c else c)) / 32 + 0.5) * 32"
+      }
     }
   ],
   "links": [
@@ -11974,6 +12043,38 @@
       217,
       4,
       "INT"
+    ],
+    [
+      249,
+      53,
+      3,
+      230,
+      0,
+      "INT"
+    ],
+    [
+      250,
+      10,
+      5,
+      230,
+      1,
+      "INT"
+    ],
+    [
+      251,
+      10,
+      6,
+      230,
+      2,
+      "INT"
+    ],
+    [
+      252,
+      230,
+      0,
+      63,
+      1,
+      "*"
     ]
   ],
   "groups": [],

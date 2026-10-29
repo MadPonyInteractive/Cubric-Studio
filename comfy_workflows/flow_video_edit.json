@@ -771,15 +771,19 @@
   },
   "63": {
     "inputs": {
-      "math_expression": "512 if a == 589824 else floor(sqrt(a * 9 / 16) / 32 + 0.5) * 32",
+      "math_expression": "512 if b < 512 else ((512 if a == 589824 else floor(sqrt(a * 9 / 16) / 32 + 0.5) * 32) if (512 if a == 589824 else floor(sqrt(a * 9 / 16) / 32 + 0.5) * 32) < b else b)",
       "a": [
         "26",
+        0
+      ],
+      "b": [
+        "230",
         0
       ]
     },
     "class_type": "MpiMath",
     "_meta": {
-      "title": "Crop size (by quality)"
+      "title": "Crop size (by quality, never above the source)"
     }
   },
   "71": {
@@ -2289,6 +2293,27 @@
     "class_type": "MpiIfElse",
     "_meta": {
       "title": "one pass ? stage 1 : refined"
+    }
+  },
+  "230": {
+    "inputs": {
+      "math_expression": "floor((1.25 * a if 1.25 * a < (b if b < c else c) else (b if b < c else c)) / 32 + 0.5) * 32",
+      "a": [
+        "53",
+        3
+      ],
+      "b": [
+        "10",
+        5
+      ],
+      "c": [
+        "10",
+        6
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Source side the crop covers"
     }
   }
 }
