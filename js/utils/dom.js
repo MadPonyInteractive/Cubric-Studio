@@ -59,6 +59,40 @@ export const off = (el, event, fn, opts) => {
 };
 
 /**
+ * Show a drop overlay while files are dragged over `target`, hide it on leave or drop.
+ * dragenter/leave fire per child element, so a depth counter tracks the real leave. The
+ * drop reset is CAPTURE (MPI-532): every drop overlay stops the drop's bubble, so on that
+ * phase the reset never ran, the counter stranded above zero, and the next drag left the
+ * overlay stuck visible.
+ * @param {EventTarget} target
+ * @param {{ show: Function, hide: Function }} overlay  the overlay's el
+ * @param {Object} [opts]
+ * @param {boolean} [opts.ignoreInternal]  skip the app's own card drags (`application/mpi-media`)
+ * @param {() => boolean} [opts.canShow]   gate on dragenter (a project is open, ...)
+ * @param {() => boolean} [opts.paused]    while true, enter/leave/over are ignored
+ * @returns {Function} cleanup — removes every listener
+ */
+export const wireFileDragOverlay = (target, overlay, { ignoreInternal = false, canShow = () => true, paused = () => false } = {}) => {
+    let depth = 0;
+    const isFileDrag = (e) => !!e.dataTransfer?.types?.includes('Files')
+        && !(ignoreInternal && e.dataTransfer.types.includes('application/mpi-media'));
+    const offs = [
+        on(target, 'dragenter', (e) => {
+            if (paused() || !isFileDrag(e) || !canShow()) return;
+            depth++;
+            overlay.show();
+        }),
+        on(target, 'dragleave', (e) => {
+            if (paused() || !isFileDrag(e)) return;
+            if (depth > 0 && --depth === 0) overlay.hide();
+        }),
+        on(target, 'dragover', (e) => { if (!paused() && isFileDrag(e)) e.preventDefault(); }),
+        on(target, 'drop', () => { depth = 0; overlay.hide(); }, { capture: true }),
+    ];
+    return () => offs.forEach(fn => fn());
+};
+
+/**
  * Shorthand for document.createElement with optional properties and children.
  * @param {string} tag
  * @param {Object} [props] - Properties to assign (e.g. { className, id, onclick })

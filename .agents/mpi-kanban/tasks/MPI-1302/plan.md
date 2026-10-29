@@ -2,6 +2,17 @@
 
 ## Current State
 
+- **2026-10-29 (session 9):** D7 ticked (Fabio checked, 0b7fb4c43). **D9 code committed + pushed,
+  waiting on the desktop suite's tail and Fabio's eye-test.** Four extractions:
+  `js/utils/promptReuseApply.js` (`askPromptReuse`, `applyReuseToPromptBox`, `reuseIncludes`;
+  model/op choice stays per Block), `wireFileDragOverlay` in `utils/dom.js` (Gallery, History,
+  landing `projectUI.js`, Flow Library), `mountBlockModelPicker` in `MpiModelPicker.js`,
+  `js/utils/genOwnership.js` (`createGenOwnership`, test `tests/gen-ownership.test.cjs`).
+  B6 toasts were already done in Phase 1. `tests/reuse-no-dialog-opens-flow.test.cjs` now also
+  reads promptReuseApply.js; `flux3-boxes.test.cjs` pins the Gallery's `if (targetOperation === 't2i'`
+  Layout_Guide line, so it stays inside an `if (use.settings) {}` block. Lint + `npm test` green
+  (3826); desktop suite was 119/252 green, 0 failed when handed off. Next: check the full desktop
+  result, Fabio's eye-test, tick D9, then Phase 4.
 - **Where it stands (2026-10-27):** Phases 1a-1d, D1, D3, D10's GIF card tail and D10's scratch
   sweeps (`services/scratchSweep.js`, e6a14214b) and ffmpeg plumbing (`runFfmpeg`/`runFfprobe`/
   `trimArgs` in `services/ffmpegBinary.js`) done and pushed.

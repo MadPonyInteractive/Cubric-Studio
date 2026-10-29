@@ -20,7 +20,7 @@ import { remoteEngineClient } from '../../../services/remoteEngineClient.js';
 import { formatBytes } from '../../../utils/formatBytes.js';
 import { DEPS } from '../../../data/modelConstants/dependencies.js';
 import { PAGE_LANDING, PAGE_GALLERY, PAGE_GROUP_HISTORY, PAGE_SCENE } from '../../../router.js';
-import { qs, ce, on } from '../../../utils/dom.js';
+import { qs, ce, on, wireFileDragOverlay } from '../../../utils/dom.js';
 import { mascotLoop } from '../../../utils/mascotLoop.js';
 import { openExternal } from '../../../utils/openExternal.js';
 import { renderMarkdown } from '../../../utils/markdown.js';
@@ -1201,21 +1201,7 @@ export const MpiFlowLibrary = ComponentFactory.create({
                 onDropPath: ({ path }) => { _installPackage(path); },
             });
             el.appendChild(dropOverlay.el);
-            // Same counter the landing page uses: dragenter/leave fire per child element.
-            let _dragDepth = 0;
-            const _isFileDrag = (e) => e.dataTransfer?.types?.includes('Files');
-            _unsubs.push(on(el, 'dragenter', (e) => {
-                if (!_isFileDrag(e)) return;
-                _dragDepth++;
-                dropOverlay.el.show();
-            }));
-            _unsubs.push(on(el, 'dragleave', (e) => {
-                if (_isFileDrag(e) && _dragDepth > 0 && --_dragDepth === 0) dropOverlay.el.hide();
-            }));
-            _unsubs.push(on(el, 'dragover', (e) => { if (_isFileDrag(e)) e.preventDefault(); }));
-            // Capture: the overlay stops the drop's bubble, and a stale depth would keep
-            // it from ever hiding on the next drag-out.
-            _unsubs.push(on(el, 'drop', () => { _dragDepth = 0; dropOverlay.el.hide(); }, { capture: true }));
+            _unsubs.push(wireFileDragOverlay(el, dropOverlay.el));
             _unsubs.push(() => dropOverlay.el.destroy?.());
         }
 

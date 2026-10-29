@@ -57,13 +57,13 @@ import { createPreviewClipPlayer } from '../../../services/previewClipPlayer.js'
 import { openFlowFromReuse } from '../../../services/flowService.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { hasNoEngine } from '../../../services/engineGate.js';
-import { qs, gid, on } from '../../../utils/dom.js';
+import { qs, gid, wireFileDragOverlay } from '../../../utils/dom.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
 import { extractFilenameFromPath, extractAbsPath, resolveMediaUrl, downloadMediaFiles, deleteMediaFiles } from '../../../utils/mediaActions.js';
 import { describeItem } from '../../../utils/describeAction.js';
 import { resolveActiveModel, setSelectedModelId, getSelectedOp, setSelectedOp } from '../../../utils/modelHelpers.js';
-import { updateGroup, addGroup, removeGroup, applyPromptReuseSettings, removeFromStack, reorderStack, stepStackVersions, stackGroups } from '../../../services/projectService.js';
-import { buildPromptReuseSettings, resolvePromptReuseMediaItems, payloadHasReusableImages, payloadHasReusableVideos, payloadHasReusableAudio, isFlowCardItem } from '../../../utils/promptReuse.js';
+import { updateGroup, addGroup, removeGroup, removeFromStack, reorderStack, stepStackVersions, stackGroups } from '../../../services/projectService.js';
+import { askPromptReuse, applyReuseToPromptBox, reuseIncludes } from '../../../utils/promptReuseApply.js';
 import {
     promoteHistoryEntry,
     appendToHistory,
@@ -81,13 +81,13 @@ import { nearestNamedRatio } from '../../../utils/ratios.js';
 import { trackConcatJob } from '../../../services/concatProgress.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiModelSettings } from '../../Compounds/MpiModelSettings/MpiModelSettings.js';
-import { MpiModelPicker } from '../../Compounds/MpiModelPicker/MpiModelPicker.js';
+import { createGenOwnership } from '../../../utils/genOwnership.js';
+import { mountBlockModelPicker } from '../../Compounds/MpiModelPicker/MpiModelPicker.js';
 import { MpiMediaDropOverlay } from '../../Primitives/MpiMediaDropOverlay/MpiMediaDropOverlay.js';
 import { uploadMediaFile, prepareImageImport } from '../../../services/mediaUploadService.js';
 import { MpiCompareOverlay } from '../../Organisms/MpiCompareOverlay/MpiCompareOverlay.js';
 import { MpiContextMenu } from '../../Compounds/MpiContextMenu/MpiContextMenu.js';
 import { MpiOkCancel } from '../../Compounds/MpiOkCancel/MpiOkCancel.js';
-import { MpiReusePromptDialog } from '../../Compounds/MpiReusePromptDialog/MpiReusePromptDialog.js';
 import { getPlugin, pluginAvailability } from '../../../data/pluginsRegistry.js';
 import { splitDeclaredValues } from '../../../utils/declaredFields.js';
 import { setMaskReader, clearMaskReader } from '../../../shell/activeMask.js';
@@ -1336,14 +1336,8 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
 
         // ── Active-generation registry / spinner ──────────────────────────────
 
-        const _myGenIds = new Set();
-        // Ids Stopped by the user whose gen may still finish with real output —
-        // ComfyUI /interrupt is advisory, so an LTX inter-stage Stop runs to
-        // completion. Stop removes the id from _myGenIds synchronously, so the
-        // late generation:complete would otherwise be dropped and the finished
-        // item never repaints the viewer (MPI-195). Bridge our own stopped ids
-        // only; a concurrent local/remote lane (MPI-74 P6) is never affected.
-        const _stoppedPendingComplete = new Set();
+        // Our own generations, with the Stop bridge (MPI-195): see genOwnership.js.
+        const _gens = createGenOwnership();
         let _mascotLingerTimer = null;
 
         const _mascotShow = (src) => {
@@ -1398,7 +1392,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         function _adoptRunningGens() {
             for (const entry of activeGenerations.listFor('groupHistory', _group.id)) {
                 if (entry.status !== 'running') continue;
-                _myGenIds.add(entry.id);
+                _gens.add(entry.id);
                 const _isResize = entry.operation === 'resize' || entry.operation === 'resizeVideo';
                 if (_isResize) _setBusy(true);
                 else _setGenerating(true, entry.operation);
@@ -1473,7 +1467,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
 
         _unsubs.push(Events.on('generation:started', ({ id, scope, groupId, operation }) => {
             if (scope !== 'groupHistory' || groupId !== _group.id) return;
-            _myGenIds.add(id);
+            _gens.add(id);
             // Tool-only transforms (resize) skip the mascot — model ops only.
             if (operation === 'resize' || operation === 'resizeVideo') {
                 _setBusy(true);
@@ -1488,7 +1482,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         _unsubs.push(Events.on('preview:frame', ({ promptId, url }) => {
             if (!url) return;
             const entry = activeGenerations.byPromptId(promptId);
-            if (!entry || !_myGenIds.has(entry.id)) return;
+            if (!entry || !_gens.has(entry.id)) return;
             viewer.el.setGenerating?.(false);
             // keep mascot visible — generation still running (latents incoming)
             // The run's clip state rides along with EVERY frame (MPI-535): re-read,
@@ -1500,7 +1494,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         // A new sampler stage = a fresh preview window, so stages don't concatenate
         // into one growing loop. MPI-167.
         _unsubs.push(Events.on('generation:preview-reset', ({ id, clip }) => {
-            if (!_myGenIds.has(id)) return;
+            if (!_gens.has(id)) return;
             _previewPlayer.reset(clip);
         }));
 
@@ -1553,9 +1547,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
 
         _unsubs.push(Events.on('generation:complete', ({ id, item, group }) => {
             // Accept our own ids AND ids we Stopped that finished anyway (bridge).
-            if (!_myGenIds.has(id) && !_stoppedPendingComplete.has(id)) return;
-            _myGenIds.delete(id);
-            _stoppedPendingComplete.delete(id);
+            if (!_gens.complete(id)) return;
             _endPreviewPlayback();
             viewer.el.setGenerating?.(false);
             // Result paint overlaps the mascot on complete, so no happy flash here —
@@ -1583,7 +1575,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         }));
 
         // In-place Finish (preview→final) is dispatched scope:'gallery', so its
-        // generation:complete is not in _myGenIds and the handler above skips it.
+        // generation:complete is not one of _gens and the handler above skips it.
         // When that replace lands on the group this viewer is currently showing,
         // the open viewer would keep painting the stale preview frame until a
         // re-nav. Bridge it: on gallery:item-updated for the current group,
@@ -1603,8 +1595,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         }));
 
         _unsubs.push(Events.on('generation:error',     ({ id }) => {
-            _stoppedPendingComplete.delete(id);
-            if (_myGenIds.delete(id)) {
+            if (_gens.error(id).owned) {
                 _endPreviewPlayback();
                 viewer.el.setGenerating?.(false);
                 _mascotHide(0);
@@ -1613,19 +1604,14 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             _syncPbGenerating();
         }));
         _unsubs.push(Events.on('generation:cancelled', ({ id }) => {
-            if (_myGenIds.delete(id)) {
-                // The gen may still finish with real output after this Stop —
-                // remember the id so the late generation:complete repaints the
+            if (_gens.cancelled(id)) {
+                // The gen may still finish with real output after this Stop: the
+                // tracker bridges the id so the late generation:complete repaints the
                 // viewer (MPI-195).
-                _stoppedPendingComplete.add(id);
                 _endPreviewPlayback();
                 viewer.el.setGenerating?.(false);
                 _mascotHide(0);
                 _restoreCurrentEntryAfterCancel();
-            } else {
-                // Second cancelled for an already-forgotten id = interrupted gen
-                // returned EMPTY; no late complete is coming — drop the bridge.
-                _stoppedPendingComplete.delete(id);
             }
             _syncPbGenerating();
         }));
@@ -1679,8 +1665,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             }
             if (switching) {
                 // The outgoing member's jobs keep running; this viewer stops drawing them.
-                _myGenIds.clear();
-                _stoppedPendingComplete.clear();
+                _gens.clear();
                 _endPreviewPlayback();
                 viewer.el.setGenerating?.(false);
                 _mascotHide(0);
@@ -2097,40 +2082,14 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         });
         el.appendChild(_dropOverlay.el);
 
-        let _histDragCounter = 0;
-        const _isFileDrag = (e) =>
-            e.dataTransfer?.types?.includes('Files') &&
-            !e.dataTransfer.types.includes('application/mpi-media');
         const _isVideoPromptToolActive = () =>
             isVideo && historyTools?.el?.getActiveMode?.() === 'prompt';
-
-        const _onHistDragEnter = (e) => {
-            if (_isVideoPromptToolActive()) return;
-            if (isGif) return; // no drop target in gif mode yet — see onDrop guard above
-            if (!_isFileDrag(e) || !state.currentProject) return;
-            _histDragCounter++;
-            _dropOverlay.el.show();
-        };
-        const _onHistDragLeave = (e) => {
-            if (_isVideoPromptToolActive()) return;
-            if (!_isFileDrag(e)) return;
-            if (_histDragCounter > 0 && --_histDragCounter === 0) _dropOverlay.el.hide();
-        };
-        const _onHistDrop = () => {
-            _histDragCounter = 0;
-            _dropOverlay.el.hide();
-        };
-        const _onHistDragOver = (e) => {
-            if (_isVideoPromptToolActive()) return;
-            if (_isFileDrag(e)) e.preventDefault();
-        };
-
-        on(window, 'dragenter', _onHistDragEnter);
-        on(window, 'dragleave', _onHistDragLeave);
-        on(window, 'dragover',  _onHistDragOver);
-        // CAPTURE — a drop overlay stops the bubble, so on that phase this reset never ran
-        // and the counter stranded. Same fix as MpiGalleryBlock (MPI-532).
-        on(window, 'drop',      _onHistDrop, { capture: true });
+        const _offDropOverlay = wireFileDragOverlay(window, _dropOverlay.el, {
+            ignoreInternal: true,
+            // no drop target in gif mode yet (see the onDrop guard above)
+            canShow: () => !isGif && !!state.currentProject,
+            paused: _isVideoPromptToolActive,
+        });
 
         // ── PromptBox ─────────────────────────────────────────────────────────
 
@@ -2222,21 +2181,18 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         // MPI-356: the model overlay, opened by the prompt box's model button (and
         // the radial). Video history stays i2v-only — the picker gets the same
         // filtered list the prompt box does, recomputed live so an install lands.
-        const _modelPicker = MpiModelPicker.mount(document.createElement('div'));
-        _unsubs.push(Events.on('ui:open-model-picker', () => {
-            _modelPicker.el.open({
-                models: getModelsByType(modeKind).filter(isModelUsable).filter(_promptModelFilter),
-                modelId: activeModelId,
-            });
-        }));
-        _modelPicker.on('settings', ({ model }) => _settingsOverlay.el.open({ modelId: model.id }));
-        _modelPicker.on('select', ({ model }) => {
-            if (!model || model.id === activeModelId) return;
-            // setModel picks the op that fits the staged frames, then Block-side
-            // UI follows — same order as the PromptBox-driven path above.
-            _pb?.el?.setModel(model);
-            _adoptModel(model);
+        const { picker: _modelPicker, off: _offModelPicker } = mountBlockModelPicker({
+            models: () => getModelsByType(modeKind).filter(isModelUsable).filter(_promptModelFilter),
+            activeModelId: () => activeModelId,
+            settingsOverlay: _settingsOverlay,
+            onSelect: (model) => {
+                // setModel picks the op that fits the staged frames, then Block-side
+                // UI follows — same order as the PromptBox-driven path above.
+                _pb?.el?.setModel(model);
+                _adoptModel(model);
+            },
         });
+        _unsubs.push(_offModelPicker);
 
         // A reused card's text-only op (t2v_ms) is not offered here, so Reuse maps it
         // to the model's first i2v* op; falls back to the given op if none exists.
@@ -2413,42 +2369,8 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             return true;
         }
 
-        function _reuseIncludes(value = {}) {
-            return {
-                prompt: value.prompt === true,
-                settings: value.settings === true,
-                model: value.model === true,
-                images: value.images === true,
-                video: value.video === true,
-                audio: value.audio === true,
-            };
-        }
-
         function _handlePromptReuse(payload = {}) {
-            const options = state.promptReuseOptions || {};
-            if (options.ask === true) {
-                const dialog = MpiReusePromptDialog.mount(document.createElement('div'), {
-                    includes: options,
-                    showSource: false,
-                    // App cards (MPI-263) split Apply into "to Prompt Box" vs "to App".
-                    isFlowCard: isFlowCardItem(payload.item),
-                    // Single-source dialog (no Original/Current toggle) → the
-                    // dialog defaults source to 'original'; gate each Use … toggle on
-                    // whether THIS payload carries that input (MPI-212/227).
-                    imageAvailability: { original: payloadHasReusableImages(payload) },
-                    videoAvailability: { original: payloadHasReusableVideos(payload) },
-                    audioAvailability: { original: payloadHasReusableAudio(payload) },
-                });
-                dialog.on('apply', async ({ includes, dest }) => {
-                    await _applyPromptReuse(payload, _reuseIncludes(includes), dest);
-                    dialog.destroy?.();
-                });
-                dialog.on('cancel', () => dialog.destroy?.());
-                dialog.el.show?.();
-                return;
-            }
-            // No-dialog fast path (ask=false): Flow cards reopen the Flow as before.
-            _applyPromptReuse(payload, _reuseIncludes(options), 'flow');
+            askPromptReuse({ original: payload }, _applyPromptReuse);
         }
 
         async function _applyPromptReuse(payload = {}, includes = { prompt: true, settings: true, model: true, images: true, video: true, audio: true }, dest = 'flow') {
@@ -2458,7 +2380,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             // there before reaching the Flow branch). MPI-263: only when the user chose
             // "Apply to App" (dest==='flow'); "Apply to Prompt Box" falls through to inject.
             if (dest === 'flow' && openFlowFromReuse(payload.item)) return;
-            const use = _reuseIncludes(includes);
+            const use = reuseIncludes(includes);
             if (!use.prompt && !use.settings && !use.model && !use.images && !use.video && !use.audio) return;
 
             let targetModel = activeModel;
@@ -2511,55 +2433,14 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             if (use.model) _pb.el.setModel?.(targetModel);
             _setPromptOperation(targetOperation, { remember: true });
 
-            if (use.prompt) {
-                _pb.el.injectPrompts?.({ positive: payload.positive || '', negative: payload.negative || '', negativeAudio: payload.negativeAudio || '', enhanced: payload.enhanced });
-            }
-            // Reuse the media the user opted into, gated per-type by what the source
-            // carries (MPI-212 image → MPI-227 video/audio). A source lacking a type
-            // injects nothing but a warning + an empty required slot, so skip it — the
-            // dialog greys those toggles; this mirrors the gate for the ask-disabled
-            // path. Resolve ONCE (all types), inject the enabled subset.
-            // MPI-351: an image History group always generates from its SELECTED
-            // entry, so a reused source image would land as an inert chip that only
-            // confuses (and used to hijack Input_Image). Video still restores its
-            // start/end frames — those are a real input there.
-            const _wantImages = isVideo && use.images && payloadHasReusableImages(payload);
-            const _wantVideo = use.video && payloadHasReusableVideos(payload);
-            const _wantAudio = use.audio && payloadHasReusableAudio(payload);
-            if (_wantImages || _wantVideo || _wantAudio) {
-                _pb.el.clearMedia?.();
-                const resolved = await resolvePromptReuseMediaItems(payload);
-                const wantType = (t) => (t === 'image' && _wantImages) || (t === 'video' && _wantVideo) || (t === 'audio' && _wantAudio);
-                const mediaItems = resolved.filter(m => wantType(m.mediaType || m.type));
-                // resolvePromptReuseMediaItems drops files that no longer exist on
-                // disk (Cleanup wiped them, or the history media was deleted). If a
-                // type the source declared resolved to nothing, the file is gone —
-                // warn instead of silently injecting an empty chip that only fails
-                // at generate time.
-                const _has = (t) => mediaItems.some(m => (m.mediaType || m.type) === t);
-                if ((_wantImages && !_has('image')) || (_wantVideo && !_has('video')) || (_wantAudio && !_has('audio'))) {
-                    _showToast('Some input media is missing and was not re-added.', 'warning');
-                }
-                for (const item of mediaItems) {
-                    _pb.el.injectMedia?.({ url: item.url || item.filePath, mediaType: item.mediaType || item.type, role: item.role });
-                }
-            }
-            _syncBaseCtxFromPromptBox();
-
-            if (use.settings) {
-                const settings = buildPromptReuseSettings(payload, targetModel);
-                applyPromptReuseSettings({
-                    modelId: targetModel.id,
-                    mediaType: targetModel.mediaType,
-                    operation: targetOperation,
-                    ...settings,
-                });
-                // Settings were written AFTER the controls mounted (via setModel/
-                // setOperation above), so the live controls still show the old
-                // values. Re-mount them to re-read the recalled ratio/quality/
-                // duration. Without this the PromptBox only updates on next nav.
-                _pb.el.refreshControls?.();
-            }
+            // MPI-351: an image History group always generates from its SELECTED entry, so a
+            // reused source image would land as an inert chip that only confuses (and used to
+            // hijack Input_Image). Video still restores its start/end frames: a real input there.
+            await applyReuseToPromptBox(_pb.el, payload, { ...use, images: isVideo && use.images }, {
+                model: targetModel,
+                operation: targetOperation,
+                afterMedia: _syncBaseCtxFromPromptBox,
+            });
             _refreshOpOptions();
             historyTools.el.setMode?.('prompt');
         }
@@ -4140,11 +4021,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             }
 
             _unsubs.forEach(fn => fn?.());
-            window.removeEventListener('dragenter', _onHistDragEnter);
-            window.removeEventListener('dragleave', _onHistDragLeave);
-            window.removeEventListener('dragover',  _onHistDragOver);
-            // The flag must match the one it was added with, or the listener outlives the block.
-            window.removeEventListener('drop',      _onHistDrop, { capture: true });
+            _offDropOverlay();
             _dropOverlay.el.destroy?.();
             _dropOverlay.el.remove();
             historyList.destroy?.();

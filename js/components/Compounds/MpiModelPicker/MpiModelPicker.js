@@ -7,6 +7,7 @@ import { renderIcon } from '../../../utils/icons.js';
 import { modelQuote } from '../../../data/modelConstants/deepinfraPricing.js';
 import { ASSET_KINDS } from '../../../utils/assetKinds.js';
 import { Storage } from '../../../core/storage.js';
+import { Events } from '../../../events.js';
 
 const _mediaLabel = (media) => ASSET_KINDS.find(k => k.kind === media)?.singular || media;
 
@@ -230,3 +231,23 @@ export const MpiModelPicker = ComponentFactory.create({
         void props;
     },
 });
+
+/**
+ * The opener's side, shared by the Gallery and History Blocks (AUDIT D9): mount the picker,
+ * open it on `ui:open-model-picker` (the prompt box's model button and the radial) with the
+ * Block's own list, route LoRA & Upscale to the Block's settings overlay, and hand a CHANGED
+ * pick to `onSelect`. The Block keeps the model logic.
+ * @param {{ models: () => Object[], activeModelId: () => string, settingsOverlay: Object, onSelect: (model: Object) => void }} opts
+ * @returns {{ picker: Object, off: Function }} `off` drops the open listener
+ */
+export function mountBlockModelPicker({ models, activeModelId, settingsOverlay, onSelect }) {
+    const picker = MpiModelPicker.mount(document.createElement('div'));
+    const off = Events.on('ui:open-model-picker', () => {
+        picker.el.open({ models: models(), modelId: activeModelId() });
+    });
+    picker.on('settings', ({ model }) => settingsOverlay.el.open({ modelId: model.id }));
+    picker.on('select', ({ model }) => {
+        if (model && model.id !== activeModelId()) onSelect(model);
+    });
+    return { picker, off };
+}

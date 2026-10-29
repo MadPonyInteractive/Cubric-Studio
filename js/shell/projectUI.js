@@ -13,7 +13,7 @@ import { state } from '../state.js';
 import { clientLogger } from '../services/clientLogger.js';
 import { runCpuJob } from '../services/cpuJobs.js';
 import { formatBytes } from '../utils/formatBytes.js';
-import { gid, on } from '../utils/dom.js';
+import { gid, on, wireFileDragOverlay } from '../utils/dom.js';
 import { mascotLoop } from '../utils/mascotLoop.js';
 import { APP_VERSION } from '../core/appVersion.js';
 import { MpiOkCancel } from '../components/Compounds/MpiOkCancel/MpiOkCancel.js';
@@ -179,26 +179,7 @@ export function initProjectUI() {
 
       // Scope drag listeners to #page-landing — navigation toggles its
       // display, so events only fire while the landing page is visible.
-      let _dragCounter = 0;
-      const _isFileDrag = (e) => e.dataTransfer?.types?.includes('Files');
-
-      landingEl.addEventListener('dragenter', (e) => {
-        if (!_isFileDrag(e)) return;
-        _dragCounter++;
-        dropOverlay.el.show();
-      });
-      landingEl.addEventListener('dragleave', (e) => {
-        if (!_isFileDrag(e)) return;
-        if (_dragCounter > 0 && --_dragCounter === 0) dropOverlay.el.hide();
-      });
-      landingEl.addEventListener('dragover', (e) => { if (_isFileDrag(e)) e.preventDefault(); });
-      // CAPTURE — the overlay's own drop handler stops the bubble, so on that phase this
-      // reset never ran and `_dragCounter` stranded above zero. Same fix as the gallery
-      // and group-history blocks (MPI-532).
-      landingEl.addEventListener('drop', () => {
-        _dragCounter = 0;
-        dropOverlay.el.hide();
-      }, { capture: true });
+      wireFileDragOverlay(landingEl, dropOverlay.el);
       // initProjectUI runs once at boot — no teardown needed.
     }
   }
