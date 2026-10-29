@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1336",
+  "title": "Infinite Video: chain MiniMax H3 windows past one clip's length (long video, and the windowing Video Edit and other video jobs reuse)",
+  "description": "UMBRELLA: MPI-1134 - Story and Infinite Video (Phase 4). Picked up 2026-10-29 (Fabio). Two consumers: the Infinite Video Flow (long take from one prompt) and the windowed edit pass for Video Edit MPI-1335 (Fabio 2026-10-29: everything that copies a video is windowed; foley and other video jobs reuse it). Research: research/ (Motion Context V2 workflow notes, Video Edit's window requirements). Method not picked yet: our MpiWindowedSampler vs Viggle five_frame_anchor vs the Motion Context latent-context approach.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-29T04:35:12+00:00",
+  "updated_at": "2026-10-29T04:35:43+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

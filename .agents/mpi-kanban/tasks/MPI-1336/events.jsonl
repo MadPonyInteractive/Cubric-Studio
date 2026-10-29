@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1336", "at": "2026-10-29T04:35:12+00:00", "actor": "Infinite video 1", "column": "todo", "title": "Infinite Video: chain MiniMax H3 windows past one clip's length (long video, and the windowing Video Edit and other video jobs reuse)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1336", "at": "2026-10-29T04:35:43+00:00", "actor": "Infinite video 1", "from": "todo", "to": "doing"}
