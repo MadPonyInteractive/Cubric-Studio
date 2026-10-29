@@ -65,7 +65,10 @@ If you write code that mutates `manualCanvas`, `subtractCanvas` or the RGBA `pai
 
 `mgr` is whichever manager owns the destination — `MaskManager` or `PaintManager`; both expose
 `undoLayers()` / `takeStrokeBox()` / `_recordUndo()` with the same meanings, which is what lets
-the one stack serve both. The paint brush's gesture is closed by `InputController._endPaintStroke()`,
+the one stack serve both. Those are ONE copy: `managers/layerShared.js` (AUDIT D7) holds the stroke
+box (all three layers), the `_recordUndo()`/`_commitUndo()` pair and the Adjust session + Fill
+lookup (mask and paint), mixed into each prototype; `tests/layer-shared.test.cjs` runs them on a
+fake 2D context. A layer gets its own copy only where it genuinely differs (Composite's `record()`). The paint brush's gesture is closed by `InputController._endPaintStroke()`,
 the mask brush's by `_endMaskStroke()`; they are separate only because a mask stroke publishes
 mask state to the op strip and a paint stroke does not.
 

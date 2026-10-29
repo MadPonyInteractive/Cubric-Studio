@@ -25,8 +25,9 @@
 
 import { alphaStencil } from '../../../../utils/maskUtils.js';
 import { stampDab, strokeDabs, strokeBox, dabExtent, DEFAULT_BRUSH_PRESET } from './brushDab.js';
-import { fieldOverContent, rangeFor, writeRange } from './distanceField.js';
-import { holeFlood, regionCanvas } from './holeFlood.js';
+import { rangeFor, writeRange } from './distanceField.js';
+import { regionCanvas } from './holeFlood.js';
+import { strokeBoxMethods, oneShotUndoMethods, adjustMethods } from './layerShared.js';
 
 /**
  * Paint is capped at 4096 (the mask too, since MPI-961) because it becomes REAL PIXELS
@@ -148,47 +149,8 @@ export class PaintManager {
         return [{ canvas: this.paintCanvas, ctx: this.paintCtx }];
     }
 
-    /** Open a capture of the layer before a layer-wide mutation; `_commitUndo()`
-     *  closes it once the mutation is done. */
-    _recordUndo() {
-        const layers = this.undoLayers();
-        if (layers.length) this.undo?.begin(layers);
-    }
-
-    /** Keep only the box the one-shot changed (MPI-961): a whole 4096^2 layer is 64 MB,
-     *  two thirds of the stack's budget, so one Fill evicted most strokes before it. */
-    _commitUndo() {
-        this.undo?.commitChanged();
-    }
-
-    /**
-     * Take the dirty box the stroke in flight accumulated and reset it. Padded by
-     * 1px because the dab arc is antialiased past its own radius.
-     * @returns {{x:number,y:number,w:number,h:number}|null} null when nothing was painted
-     */
-    takeStrokeBox() {
-        const b = this._strokeBox;
-        this._strokeBox = null;
-        // Stroke boundary, so the interpolator's previous sample dies here too —
-        // carrying it across strokes would draw a line from the end of one to the
-        // start of the next.
-        this._lastDab = null;
-        if (!b) return null;
-        return { x: b.x0 - 1, y: b.y0 - 1, w: (b.x1 - b.x0) + 2, h: (b.y1 - b.y0) + 2 };
-    }
-
-    /** Grow the in-flight stroke box to cover a dab of radius r at (x, y), all paint-px. */
-    _growStrokeBox(x, y, r) {
-        const b = this._strokeBox;
-        if (!b) {
-            this._strokeBox = { x0: x - r, y0: y - r, x1: x + r, y1: y + r };
-            return;
-        }
-        b.x0 = Math.min(b.x0, x - r);
-        b.y0 = Math.min(b.y0, y - r);
-        b.x1 = Math.max(b.x1, x + r);
-        b.y1 = Math.max(b.y1, y + r);
-    }
+    // `_recordUndo()` / `_commitUndo()` and `takeStrokeBox()` / `_growStrokeBox()` are
+    // mixed in from `layerShared.js` (bottom of this file), shared with MaskManager.
 
     /**
      * Lay down (or erase) one sample of a stroke. Coords arrive in image-px and are
@@ -266,82 +228,15 @@ export class PaintManager {
     // alpha — which is what makes shrink lossless in the interior and grow's ring the
     // only flat part.
 
-    /**
-     * Enter Adjust: snapshot the layer so every preview frame derives from tool-entry
-     * state rather than from the frame before it (the MPI-351 double-scale bug).
-     *
-     * The distance field is INVALIDATED here, not built. It describes this snapshot,
-     * so an eager build would charge its cost to entering the tool and to every Apply
-     * even for a user who never moves a slider; the first `previewAdjust()` that needs
-     * one builds it.
-     */
-    beginAdjust() {
-        const w = this.paintCanvas.width;
-        const h = this.paintCanvas.height;
-        if (!w || !h) return;
-
-        if (!this._adjustPristine) this._adjustPristine = document.createElement('canvas');
-        this._adjustPristine.width = w;
-        this._adjustPristine.height = h;
-        this._adjustPristine.getContext('2d', { willReadFrequently: true })
-            .drawImage(this.paintCanvas, 0, 0);
-        this._adjustField = null;
-        this._adjustBox = null;
-        this._adjustPad = 0;
-        this._adjustImg = null;
-
-        if (!this.adjustCanvas) {
-            this.adjustCanvas = document.createElement('canvas');
-            this.adjustCtx = this.adjustCanvas.getContext('2d', { willReadFrequently: true });
-        }
-        this.adjustCanvas.width = w;
-        this.adjustCanvas.height = h;
-        this.hasAdjustPreview = false;
-    }
-
-    /**
-     * Derive the field and the reused preview buffer from the pristine snapshot, once
-     * per snapshot. Reads `_adjustPristine`, NEVER `adjustCanvas` — sourcing it from
-     * its own output is how the adjustment starts compounding frame over frame.
-     *
-     * Built over the PAINTED CONTENT's bounding box, not the whole layer (MPI-445).
-     * The field's cost is quadratic in the pixel count and this layer runs at up to
-     * PAINT_MAX_EDGE: a full-layer field at 4096² measured 1563 ms on the first slider
-     * move and 64 ms per frame after it, i.e. a visible freeze and then a ~15fps drag.
-     * A scribble covers a fraction of the layer, so bounding the field to it cuts BOTH
-     * numbers by the same factor — and unlike capping the field's resolution (the
-     * upgrade path this comment used to name) it is exact, so MPI-441's radius
-     * precision survives intact. The box is padded, never clamped to the content: the
-     * primitive reads outside-the-box as background, so an unpadded box would erode
-     * the layer from a border that is not there.
-     *
-     * ponytail: what is left is the box's own worst case — paint covering the WHOLE
-     * 4096 layer is still 1.6 s to enter and 65 ms a frame, because that field really
-     * is 16.7M px. The remaining lever is capping the field's resolution at 1536
-     * and upscaling the region, which costs the radius precision MPI-441 bought
-     * (~2.7 layer px of quantisation) — a deliberate trade, not a tidy-up. A scribble,
-     * which is what the report was, now costs 70 ms then 0.4 ms.
-     *
-     * @param {number} maxR the largest radius this preview will ask for, in LAYER px —
-     *   the field is rebuilt if the current one was not padded that far
-     * @returns {boolean} false when there is nothing to build from
-     */
-    _ensureAdjustField(maxR = 0) {
-        const pad = Math.max(ADJUST_PAD, Math.ceil(maxR) + 2);
-        if (this._adjustField && this._adjustImg && this._adjustPad >= pad) return true;
-        const src = this._adjustPristine;
-        if (!src?.width || !src?.height || !this.adjustCtx) return false;
-        const w = src.width;
-        const h = src.height;
-        const data = src.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, w, h).data;
-        const built = fieldOverContent(data, w, h, pad);
-        if (!built) return false; // nothing painted — no shape to grow or shrink
-        this._adjustField = built.field;
-        this._adjustBox = built.box;
-        this._adjustPad = pad;
-        this._adjustImg = this.adjustCtx.createImageData(built.box.w, built.box.h);
-        return true;
-    }
+    // `beginAdjust()` / `_ensureAdjustField()` / `endAdjust()` are the shared session in
+    // `layerShared.js`, snapshotting `paintCanvas`.
+    //
+    // ponytail: the field's box (MPI-445) has its own worst case — paint covering the
+    // WHOLE 4096 layer is still 1.6 s to enter and 65 ms a frame, because that field
+    // really is 16.7M px. The remaining lever is capping the field's resolution at 1536
+    // and upscaling the region, which costs the radius precision MPI-441 bought
+    // (~2.7 layer px of quantisation) — a deliberate trade, not a tidy-up. A scribble,
+    // which is what the report was, costs 70 ms then 0.4 ms.
 
     /**
      * Recompute the preview from the pristine copy. Radii arrive in IMAGE px, like
@@ -477,14 +372,11 @@ export class PaintManager {
      */
     fillHoles() {
         if (!this.paintCtx) return false;
-        const src = (this.hasAdjustPreview && this.adjustCanvas) ? this.adjustCanvas : this.paintCanvas;
-        if (!src?.width || !src?.height) return false;
-
+        const holes = this._findHoles();
+        if (!holes) return false;   // no-op must not push an empty undo entry
+        const { src, region } = holes;
         const w = src.width;
         const h = src.height;
-        const ctx = src.getContext('2d', { willReadFrequently: true });
-        const region = holeFlood(ctx.getImageData(0, 0, w, h).data, w, h);
-        if (!region) return false;   // no-op must not push an empty undo entry
 
         this._recordUndo();
 
@@ -513,27 +405,6 @@ export class PaintManager {
         this.hasAdjustPreview = false;
         if (this._adjustPristine) this.beginAdjust();
         return true;
-    }
-
-    /**
-     * Drop the preview and its buffers. Called by Reset and by leaving the tool
-     * through the shared `discardPreview()` seam. Idempotent.
-     * @returns {boolean} true when a preview was discarded
-     */
-    endAdjust() {
-        const had = this.hasAdjustPreview;
-        this.hasAdjustPreview = false;
-        for (const c of [this.adjustCanvas, this._adjustPristine]) {
-            if (c) { c.width = 0; c.height = 0; }
-        }
-        this.adjustCanvas = null;
-        this.adjustCtx = null;
-        this._adjustPristine = null;
-        this._adjustField = null;
-        this._adjustBox = null;
-        this._adjustPad = 0;
-        this._adjustImg = null;
-        return had;
     }
 
     /**
@@ -630,3 +501,10 @@ export class PaintManager {
         });
     }
 }
+
+Object.assign(
+    PaintManager.prototype,
+    strokeBoxMethods,
+    oneShotUndoMethods,
+    adjustMethods({ pad: ADJUST_PAD, source: (m) => m.paintCanvas }),
+);

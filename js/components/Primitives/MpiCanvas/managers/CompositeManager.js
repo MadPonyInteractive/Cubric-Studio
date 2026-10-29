@@ -35,6 +35,7 @@
  */
 
 import { stampDab, strokeDabs, strokeBox } from './brushDab.js';
+import { strokeBoxMethods } from './layerShared.js';
 
 /**
  * Same cap as MaskManager's, and for the same reason: this layer is CONSUMED as a
@@ -153,26 +154,8 @@ export class CompositeManager {
         if (layers.length) this.undo?.record(layers);
     }
 
-    /** @returns {{x:number,y:number,w:number,h:number}|null} */
-    takeStrokeBox() {
-        const b = this._strokeBox;
-        this._strokeBox = null;
-        this._lastDab = null;
-        if (!b) return null;
-        return { x: b.x0 - 1, y: b.y0 - 1, w: (b.x1 - b.x0) + 2, h: (b.y1 - b.y0) + 2 };
-    }
-
-    _growStrokeBox(x, y, r) {
-        const b = this._strokeBox;
-        if (!b) {
-            this._strokeBox = { x0: x - r, y0: y - r, x1: x + r, y1: y + r };
-            return;
-        }
-        b.x0 = Math.min(b.x0, x - r);
-        b.y0 = Math.min(b.y0, y - r);
-        b.x1 = Math.max(b.x1, x + r);
-        b.y1 = Math.max(b.y1, y + r);
-    }
+    // `takeStrokeBox()` / `_growStrokeBox()` are mixed in from `layerShared.js`
+    // (bottom of this file), shared with the mask and paint layers.
 
     /**
      * One sample of a stroke, in image-px. INVERTED against every other brush in the
@@ -411,3 +394,5 @@ export class CompositeManager {
         this._strokeBox = null;
     }
 }
+
+Object.assign(CompositeManager.prototype, strokeBoxMethods);

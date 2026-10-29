@@ -43,10 +43,17 @@ test('ONE primitive drives both layers — paint imports it, it does not reimple
     // MPI-445 moved the call one level up: paint asks for `fieldOverContent`, which is
     // `signedSquaredDistanceField` over the content box. Still one module, still no
     // second morphology here.
+    // AUDIT D7 moved that call once more, into the Adjust session paint shares with the
+    // mask (layerShared.js); paint keeps only the range test and the fills.
     assert.match(
         SRC,
-        /import \{[^}]*fieldOverContent[^}]*\} from '\.\/distanceField\.js'/,
+        /import \{[^}]*rangeFor[^}]*\} from '\.\/distanceField\.js'/,
         'PaintManager does not import the shared primitive',
+    );
+    assert.match(
+        SRC,
+        /adjustMethods\(\{ pad: ADJUST_PAD, source: \(m\) => m\.paintCanvas \}\)/,
+        'PaintManager does not mix in the shared Adjust session over paintCanvas',
     );
     for (const banned of [/function\s+\w*[Dd]istance/, /_morph\s*\(/]) {
         assert.doesNotMatch(SRC, banned, 'PaintManager carries its own morphology — the reuse regressed');
@@ -68,25 +75,15 @@ test('radii are scaled to the layer, not passed through in image px', () => {
 test('every preview frame derives from the pristine copy, never from the last one', () => {
     // Feeding each frame back in means grow-3 applied three times, which eats detail
     // exactly like the MPI-351 double-scale bug. The guard is on the FIELD and on the
-    // fills: both must read `_adjustPristine`.
-    const build = methodBody('_ensureAdjustField');
-    assert.match(build, /_adjustPristine/, '_ensureAdjustField does not build from the pristine snapshot');
-    assert.doesNotMatch(build, /adjustCanvas/, '_ensureAdjustField sources the field from its own output');
-
+    // fills: both must read `_adjustPristine`. The field half (and beginAdjust dropping
+    // a stale field) is the shared session since AUDIT D7 — run for real in
+    // layer-shared.test.cjs; the fills are paint's own and are checked here.
     const body = methodBody('previewAdjust');
     assert.match(body, /const src = this\._adjustPristine/, 'previewAdjust does not read the pristine snapshot');
     assert.doesNotMatch(
         body,
         /fieldOverContent|signedSquaredDistanceField/,
         'previewAdjust builds the field itself — that belongs in _ensureAdjustField, off the pristine snapshot',
-    );
-
-    // Lazily built, so beginAdjust must DROP the previous one: a stale field would
-    // describe the pre-Apply shape while the pristine snapshot describes the new one.
-    assert.match(
-        methodBody('beginAdjust'),
-        /_adjustField\s*=\s*null/,
-        'beginAdjust does not invalidate the distance field — the next preview would use the previous snapshot',
     );
 });
 
@@ -95,11 +92,8 @@ test('the field covers the content box, and the preview is drawn at its offset (
     // field is now built over the painted content padded by the largest radius asked
     // for. Two ways that goes silently wrong: drawing the smaller buffer at 0,0 puts
     // the whole preview in the top-left corner, and reusing a field that was padded
-    // for a smaller radius lets the region run off its own box.
-    const build = methodBody('_ensureAdjustField');
-    assert.match(build, /fieldOverContent\(data, w, h, pad\)/, '_ensureAdjustField builds over the whole layer');
-    assert.match(build, /_adjustPad\s*>=\s*pad/, 'a field built with a smaller pad is reused — the region runs off its own box');
-
+    // for a smaller radius lets the region run off its own box. The second is the
+    // shared `_ensureAdjustField()` (AUDIT D7), proved in layer-shared.test.cjs.
     const body = methodBody('previewAdjust');
     assert.match(body, /_ensureAdjustField\(maxR\)/, 'previewAdjust does not tell the field how far it will reach');
     assert.match(body, /ctx\.rect\(box\.x, box\.y, box\.w, box\.h\);\s*\n\s*ctx\.clip\(\)/, 'the frame is not clipped to the field box');
@@ -221,10 +215,10 @@ test('ONE flood drives both layers — paint imports it, it does not reimplement
     // Exactly the constraint the distance field is already under. `MaskManager` held
     // the only copy until MPI-566; a paint-side flood would work and would silently
     // fork the two layers' definition of "enclosed" the next time either is touched.
-    assert.match(SRC, /import \{[^}]*holeFlood[^}]*\} from '\.\/holeFlood\.js'/,
-        'PaintManager does not import the shared flood');
+    // Since AUDIT D7 the lookup (`_findHoles()`, which calls `holeFlood`) is shared in
+    // layerShared.js and runs for real in layer-shared.test.cjs.
     const body = methodBody('fillHoles');
-    assert.match(body, /holeFlood\(/, 'fillHoles does not call the shared flood');
+    assert.match(body, /this\._findHoles\(\)/, 'fillHoles does not use the shared hole lookup');
     assert.doesNotMatch(body, /new Uint8Array|new Int32Array/,
         'fillHoles builds its own flood buffers — that is a second implementation');
 });
@@ -245,10 +239,11 @@ test('Fill takes what is ON SCREEN, and the fill is the current colour under the
     // Same rule as the mask's: a live preview is baked WITH the fill as one entry
     // rather than silently dropped. And the composite is Adjust's grow row — region
     // flat in the colour, original back on top — which is what keeps every existing
-    // stroke's own colour and alpha.
+    // stroke's own colour and alpha. The on-screen half is the shared `_findHoles()`
+    // (AUDIT D7, layer-shared.test.cjs); `src` here is what it read.
     const body = methodBody('fillHoles');
-    assert.match(body, /hasAdjustPreview && this\.adjustCanvas\s*\)\s*\?/,
-        'fillHoles ignores a live preview — pressing Fill mid-adjustment would drop it');
+    assert.match(body, /const \{ src, region \} = holes/,
+        'fillHoles does not composite over what the hole lookup read');
     assert.match(body, /source-in[\s\S]*fillStyle = this\.color/,
         'the filled region is not clipped to the hole in the current colour');
     const fillAt = body.indexOf('fillRect');

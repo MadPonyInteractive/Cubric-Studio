@@ -103,6 +103,21 @@
     "routes/gifMake.js",
     "routes/gifMaker.js",
     "routes/gifCutout.js",
-    "routes/gifTransform.js"
+    "routes/gifTransform.js",
+    "js/components/Primitives/MpiCanvas/managers/layerShared.js",
+    "js/components/Primitives/MpiCanvas/managers/MaskManager.js",
+    "js/components/Primitives/MpiCanvas/managers/PaintManager.js",
+    "js/components/Primitives/MpiCanvas/managers/CompositeManager.js",
+    "tests/layer-shared.test.cjs",
+    "tests/mask-adjust.test.cjs",
+    "tests/paint-adjust.test.cjs",
+    "tests/undo-stack.test.cjs",
+    "tests/layer-convert.test.cjs",
+    "tests/mask-tool-registry.test.cjs",
+    "docs/masking-undo.md",
+    ".agents/mpi-kanban/tasks/MPI-1302/plan.md",
+    ".agents/mpi-kanban/tasks/MPI-1302/checklist.md",
+    ".agents/mpi-kanban/tasks/MPI-1302/validation.md",
+    "tests/desktop/d7-layer-shared.spec.js"
   ]
 }

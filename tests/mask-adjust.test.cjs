@@ -61,20 +61,13 @@ test('every preview frame derives from the pristine copy, never from the last on
         'previewAdjust builds the field itself — that belongs in _ensureAdjustField, off the pristine snapshot',
     );
 
-    const build = methodBody('_ensureAdjustField');
-    assert.match(build, /_adjustPristine/, '_ensureAdjustField does not build from the pristine snapshot');
-    assert.doesNotMatch(
-        build,
-        /adjustCanvas/,
-        '_ensureAdjustField sources the field from its own output — the adjustment compounds',
-    );
-
-    // Lazily built, so beginAdjust must DROP the previous one: a stale field would
-    // describe the pre-Apply shape while the pristine snapshot describes the new one.
+    // The field itself (built from `_adjustPristine`, dropped by `beginAdjust`) is the
+    // shared session in layerShared.js since AUDIT D7, and runs for real against the
+    // mask's own source canvas and pad in layer-shared.test.cjs.
     assert.match(
-        methodBody('beginAdjust'),
-        /_adjustField\s*=\s*null/,
-        'beginAdjust does not invalidate the distance field — the next preview would use the previous snapshot',
+        SRC,
+        /adjustMethods\(\{ pad: ADJUST_PAD, source: \(m\) => m\.maskCanvas \}\)/,
+        'MaskManager does not mix in the shared Adjust session over maskCanvas',
     );
 });
 
@@ -86,7 +79,7 @@ test('every preview frame derives from the pristine copy, never from the last on
 
 test('Fill records ONE undo entry, after the guard and before it mutates', () => {
     const body = methodBody('fillHoles');
-    const guard  = body.indexOf('if (!region) return false');
+    const guard  = body.indexOf('if (!holes) return false');
     const record = body.indexOf('_recordUndo()');
     const write  = body.indexOf('this.manualCtx.drawImage');
 
@@ -117,30 +110,17 @@ test('ONE flood drives both layers — the mask calls it, it does not own it', (
     // The geometry the two share (border seeding, the rim pass, the `=== 255` wall,
     // the padded box) is proved for real in mask-hole-flood.test.cjs — that test only
     // exists because the extraction made the flood pure.
-    const src = fs.readFileSync(
-        path.join(__dirname, '..', 'js/components/Primitives/MpiCanvas/managers/MaskManager.js'),
-        'utf8',
-    );
-    assert.match(src, /import \{[^}]*holeFlood[^}]*\} from '\.\/holeFlood\.js'/,
-        'MaskManager does not import the shared flood');
+    //
+    // Since AUDIT D7 the lookup (`_findHoles()`, which calls `holeFlood`) is shared in
+    // layerShared.js and runs for real in layer-shared.test.cjs.
     const body = methodBody('fillHoles');
-    assert.match(body, /holeFlood\(/, 'fillHoles does not call the shared flood');
+    assert.match(body, /this\._findHoles\(\)/, 'fillHoles does not use the shared hole lookup');
     assert.doesNotMatch(body, /new Uint8Array|new Int32Array/,
         'fillHoles builds its own flood buffers — that is a second implementation');
     // putImageData ignores compositing, so writing the region straight in would blank
     // every mask pixel inside the box that is not hole.
     assert.match(body, /drawImage\(regionCanvas\(region\)/,
         'the region is not composited onto the mask — putImageData would erase the box');
-});
-
-test('Fill bakes a live preview instead of silently dropping it', () => {
-    // Pressing Fill mid-adjustment must fill what is ON SCREEN. Reading maskCanvas
-    // unconditionally would throw the preview away and fill the pre-adjust mask.
-    assert.match(
-        methodBody('fillHoles'),
-        /hasAdjustPreview && this\.adjustCanvas\)\s*\?\s*this\.adjustCanvas/,
-        'fillHoles ignores the live preview — an adjustment in flight is silently discarded',
-    );
 });
 
 test('fillMaskHoles is on the MpiCanvas method allowlist', () => {

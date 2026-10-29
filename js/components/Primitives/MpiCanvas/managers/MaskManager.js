@@ -40,8 +40,9 @@
 
 import { alphaStencil } from '../../../../utils/maskUtils.js';
 import { stampDab, strokeDabs, strokeBox, dabExtent, DEFAULT_BRUSH_PRESET } from './brushDab.js';
-import { fieldOverContent, rangeFor, writeRangeSoft } from './distanceField.js';
-import { holeFlood, regionCanvas } from './holeFlood.js';
+import { rangeFor, writeRangeSoft } from './distanceField.js';
+import { regionCanvas } from './holeFlood.js';
+import { strokeBoxMethods, oneShotUndoMethods, adjustMethods } from './layerShared.js';
 
 const MASK_MAX_EDGE = 4096;
 
@@ -207,52 +208,11 @@ export class MaskManager {
         ];
     }
 
-    /** Open a capture of both layers before a layer-wide mutation; `_commitUndo()`
-     *  closes it once the mutation is done. */
-    _recordUndo() {
-        const layers = this.undoLayers();
-        if (layers.length) this.undo?.begin(layers);
-    }
-
-    /** Keep only the box the one-shot changed (MPI-961): both layers whole at 4096^2
-     *  are 128 MB, over the stack's budget, so one Fill evicted every stroke before it. */
-    _commitUndo() {
-        this.undo?.commitChanged();
-    }
+    // `_recordUndo()` / `_commitUndo()` and `takeStrokeBox()` / `_growStrokeBox()` are
+    // mixed in from `layerShared.js` (bottom of this file), shared with PaintManager.
 
     /** Re-derive maskCanvas + autoCanvas after an undo/redo swapped the source layers. */
     refresh() { this._recomposite(); }
-
-    /**
-     * Take the dirty box the stroke in flight accumulated and reset it. Padded by
-     * 1px because the brush arc is antialiased past its own radius.
-     * @returns {{x:number,y:number,w:number,h:number}|null} null when nothing was painted
-     */
-    takeStrokeBox() {
-        const b = this._strokeBox;
-        this._strokeBox = null;
-        // This is the stroke BOUNDARY — InputController calls it at mousedown and
-        // again at mouseup/interrupt, and nowhere else. So it is also where the
-        // interpolator's previous sample dies: carrying `_lastDab` across strokes
-        // would draw a line from wherever the last one ended to wherever the next
-        // one starts (MPI-375).
-        this._lastDab = null;
-        if (!b) return null;
-        return { x: b.x0 - 1, y: b.y0 - 1, w: (b.x1 - b.x0) + 2, h: (b.y1 - b.y0) + 2 };
-    }
-
-    /** Grow the in-flight stroke box to cover a dab of radius r at (x, y), all mask-px. */
-    _growStrokeBox(x, y, r) {
-        const b = this._strokeBox;
-        if (!b) {
-            this._strokeBox = { x0: x - r, y0: y - r, x1: x + r, y1: y + r };
-            return;
-        }
-        b.x0 = Math.min(b.x0, x - r);
-        b.y0 = Math.min(b.y0, y - r);
-        b.x1 = Math.max(b.x1, x + r);
-        b.y1 = Math.max(b.y1, y + r);
-    }
 
     /**
      * @param {boolean} [record] false skips the undo snapshot — for a LOAD (init),
@@ -689,79 +649,11 @@ export class MaskManager {
 
     // ── Adjust — grow / shrink / edge band (MPI-382) ─────────────────────────
 
-    /**
-     * Enter the Adjust tool: snapshot the composed mask so every preview frame
-     * derives from drag-start state.
-     *
-     * ONE snapshot is enough, and it is the DERIVED maskCanvas rather than the two
-     * source layers: the preview contract guarantees no auto picks survive into
-     * this tool, so `maskCanvas === manual AND NOT subtract` here and Apply writes
-     * the result straight back as the new manual layer.
-     *
-     * The distance field is INVALIDATED here, not built (MPI-441). It costs up to 1.7 s at
-     * the 4096 working size and describes this snapshot, so building it eagerly would
-     * charge that to entering the tool AND to every Apply — including the user who
-     * only came in to press Fill, or who never moves a slider at all. The first
-     * `previewAdjust()` that actually needs it builds it; see `_ensureAdjustField()`.
-     */
-    beginAdjust() {
-        if (!this.maskCanvas) return;
-        const w = this.maskCanvas.width;
-        const h = this.maskCanvas.height;
-        if (!w || !h) return;
-
-        if (!this._adjustPristine) this._adjustPristine = document.createElement('canvas');
-        this._adjustPristine.width = w;
-        this._adjustPristine.height = h;
-        this._adjustPristine.getContext('2d', { willReadFrequently: true })
-            .drawImage(this.maskCanvas, 0, 0);
-        this._adjustField = null;
-        this._adjustImg = null;
-        this._adjustBox = null;
-        this._adjustPad = 0;
-
-        if (!this.adjustCanvas) {
-            this.adjustCanvas = document.createElement('canvas');
-            this.adjustCtx = this.adjustCanvas.getContext('2d', { willReadFrequently: true });
-        }
-        this.adjustCanvas.width = w;
-        this.adjustCanvas.height = h;
-        this.hasAdjustPreview = false;
-    }
-
-    /**
-     * Build the distance field and the preview buffer from the pristine snapshot, once
-     * per snapshot. Both are dropped by `beginAdjust()`, so this is what re-derives
-     * them — and it reads `_adjustPristine`, never `adjustCanvas`, or the adjustment
-     * would compound frame over frame like the MPI-351 double-scale bug.
-     *
-     * The `ImageData` is cached alongside it because a fresh one per slider tick is a
-     * 64 MB allocation at the working size — GC churn during a drag for nothing.
-     *
-     * Built over the MASK's bounding box padded by the largest radius asked for, not the
-     * whole layer — `PaintManager._ensureAdjustField()`'s MPI-445 box, exact for the same
-     * reason. At the 4096 working size (MPI-961) a whole-layer field is 16.7 M px: 1.7 s
-     * before the first slider move shows anything, then 27 fps. A subject that fills the
-     * frame still pays that; an eye or a face pays its box.
-     * @param {number} maxR the largest radius this preview asks for, in mask px
-     * @returns {boolean} false when there is nothing to build from
-     */
-    _ensureAdjustField(maxR = 0) {
-        const pad = Math.max(ADJUST_PAD, Math.ceil(maxR) + 2);
-        if (this._adjustField && this._adjustImg && this._adjustPad >= pad) return true;
-        const src = this._adjustPristine;
-        if (!src?.width || !src?.height || !this.adjustCtx) return false;
-        const w = src.width;
-        const h = src.height;
-        const data = src.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, w, h).data;
-        const built = fieldOverContent(data, w, h, pad);
-        if (!built) return false; // no mask — nothing to grow or shrink
-        this._adjustField = built.field;
-        this._adjustBox = built.box;
-        this._adjustPad = pad;
-        this._adjustImg = this.adjustCtx.createImageData(built.box.w, built.box.h);
-        return true;
-    }
+    // `beginAdjust()` / `_ensureAdjustField()` / `endAdjust()` are the shared session in
+    // `layerShared.js`. The mask's snapshot is the DERIVED maskCanvas rather than the two
+    // source layers, and ONE is enough: the preview contract guarantees no auto picks
+    // survive into this tool, so `maskCanvas === manual AND NOT subtract` here and Apply
+    // writes the result straight back as the new manual layer.
 
     /**
      * Recompute the preview from the pristine copy — never from the last frame.
@@ -851,14 +743,11 @@ export class MaskManager {
      */
     fillHoles() {
         if (!this.manualCtx || !this.subtractCtx) return false;
-        const src = (this.hasAdjustPreview && this.adjustCanvas) ? this.adjustCanvas : this.maskCanvas;
-        if (!src?.width || !src?.height) return false;
-
+        const holes = this._findHoles();
+        if (!holes) return false;   // no-op must not push an empty undo entry
+        const { src, region } = holes;
         const w = src.width;
         const h = src.height;
-        const ctx = src.getContext('2d', { willReadFrequently: true });
-        const region = holeFlood(ctx.getImageData(0, 0, w, h).data, w, h);
-        if (!region) return false;   // no-op must not push an empty undo entry
 
         this._recordUndo();
 
@@ -884,27 +773,6 @@ export class MaskManager {
         this.hasAdjustPreview = false;
         if (this._adjustPristine) this.beginAdjust();
         return true;
-    }
-
-    /**
-     * Drop the preview and its buffers. Called by Reset, by leaving the tool
-     * (through the shared discardPreview seam) and by a new image load.
-     * @returns {boolean} true when a preview was discarded
-     */
-    endAdjust() {
-        const had = this.hasAdjustPreview;
-        this.hasAdjustPreview = false;
-        for (const c of [this.adjustCanvas, this._adjustPristine]) {
-            if (c) { c.width = 0; c.height = 0; }
-        }
-        this.adjustCanvas = null;
-        this.adjustCtx = null;
-        this._adjustPristine = null;
-        this._adjustField = null;
-        this._adjustImg = null;
-        this._adjustBox = null;
-        this._adjustPad = 0;
-        return had;
     }
 
     getManualURL() {
@@ -1031,3 +899,10 @@ export class MaskManager {
         return tempCanvas;
     }
 }
+
+Object.assign(
+    MaskManager.prototype,
+    strokeBoxMethods,
+    oneShotUndoMethods,
+    adjustMethods({ pad: ADJUST_PAD, source: (m) => m.maskCanvas }),
+);
