@@ -1,0 +1,2395 @@
+{
+  "10": {
+    "inputs": {
+      "video": "None",
+      "block_if_empty": true,
+      "force_rate": 24,
+      "string": ""
+    },
+    "class_type": "MpiLoadVideoUpload",
+    "_meta": {
+      "title": "Input_Video"
+    }
+  },
+  "11": {
+    "inputs": {
+      "image": "None",
+      "channel": "alpha",
+      "block_if_empty": false,
+      "string": ""
+    },
+    "class_type": "MpiLoadImage",
+    "_meta": {
+      "title": "Input_Image"
+    }
+  },
+  "12": {
+    "inputs": {
+      "string": ""
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Input_Positive"
+    }
+  },
+  "13": {
+    "inputs": {
+      "int": 1
+    },
+    "class_type": "MpiInt",
+    "_meta": {
+      "title": "Input_Operation"
+    }
+  },
+  "14": {
+    "inputs": {
+      "boolean": true
+    },
+    "class_type": "MpiSimpleBoolean",
+    "_meta": {
+      "title": "Input_Keep_Background"
+    }
+  },
+  "15": {
+    "inputs": {
+      "string": "the person"
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Input_Who"
+    }
+  },
+  "16": {
+    "inputs": {
+      "string": ""
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Input_Target"
+    }
+  },
+  "17": {
+    "inputs": {
+      "int": 3362804242
+    },
+    "class_type": "MpiInt",
+    "_meta": {
+      "title": "Bench_Seed"
+    }
+  },
+  "18": {
+    "inputs": {
+      "string": ""
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Input_Look"
+    }
+  },
+  "19": {
+    "inputs": {
+      "string": ""
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Input_Kept"
+    }
+  },
+  "20": {
+    "inputs": {
+      "any": [
+        "16",
+        0
+      ]
+    },
+    "class_type": "MpiAnyChecker",
+    "_meta": {
+      "title": "Masked? (a \"what to change\" was typed)"
+    }
+  },
+  "21": {
+    "inputs": {
+      "math_expression": "(a + (b == 1) * c) > 0",
+      "a": [
+        "24",
+        0
+      ],
+      "b": [
+        "13",
+        0
+      ],
+      "c": [
+        "14",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Swap LoRA on? (masked, or Swap the person in the video room)"
+    }
+  },
+  "22": {
+    "inputs": {
+      "math_expression": "6 if (a == 1) * b * (1 - c) > 0 else a",
+      "a": [
+        "13",
+        0
+      ],
+      "b": [
+        "11",
+        4
+      ],
+      "c": [
+        "14",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Template (6 = the person into the picture room)"
+    }
+  },
+  "23": {
+    "inputs": {
+      "math_expression": "(a * (b != 4)) > 0",
+      "a": [
+        "20",
+        1
+      ],
+      "b": [
+        "13",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Masked? (typed, and not Change the background)"
+    }
+  },
+  "24": {
+    "inputs": {
+      "true": [
+        "55",
+        0
+      ],
+      "false": [
+        "23",
+        0
+      ],
+      "boolean": [
+        "23",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Masked? (and the square holds it)"
+    }
+  },
+  "25": {
+    "inputs": {
+      "math_expression": "a == 2",
+      "a": [
+        "13",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Swap the head? (Faceswap LoRA + trigger)"
+    }
+  },
+  "26": {
+    "inputs": {
+      "int": 589824
+    },
+    "class_type": "MpiInt",
+    "_meta": {
+      "title": "Input_Quality"
+    }
+  },
+  "27": {
+    "inputs": {
+      "math_expression": "a == 6",
+      "a": [
+        "22",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Picture's room? (template 6)"
+    }
+  },
+  "28": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "keep_proportion": "crop",
+      "pad_color": "0, 0, 0",
+      "crop_position": "center",
+      "divisible_by": 32,
+      "device": "cpu",
+      "image": [
+        "11",
+        0
+      ],
+      "width": [
+        "61",
+        0
+      ],
+      "height": [
+        "62",
+        0
+      ]
+    },
+    "class_type": "ImageResizeKJv2",
+    "_meta": {
+      "title": "Picture cropped to the render's shape"
+    }
+  },
+  "29": {
+    "inputs": {
+      "true": [
+        "28",
+        0
+      ],
+      "false": [
+        "11",
+        0
+      ],
+      "boolean": [
+        "27",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "picture's room ? cropped : whole picture"
+    }
+  },
+  "30": {
+    "inputs": {
+      "math_expression": "floor((a - 5) / 17) * 17 + 5",
+      "a": [
+        "10",
+        3
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Frames on the H3 grid (17k+5)"
+    }
+  },
+  "31": {
+    "inputs": {
+      "start_index": 0,
+      "images": [
+        "10",
+        0
+      ],
+      "num_frames": [
+        "30",
+        0
+      ]
+    },
+    "class_type": "GetImageRangeFromBatch",
+    "_meta": {
+      "title": "Source on the grid"
+    }
+  },
+  "32": {
+    "inputs": {
+      "sample_rate": 44100,
+      "channels": 2,
+      "duration": [
+        "10",
+        4
+      ]
+    },
+    "class_type": "EmptyAudio",
+    "_meta": {
+      "title": "Silence (source has no audio)"
+    }
+  },
+  "33": {
+    "inputs": {
+      "true": [
+        "10",
+        1
+      ],
+      "false": [
+        "32",
+        0
+      ],
+      "boolean": [
+        "10",
+        7
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "has_audio ? source audio : silence"
+    }
+  },
+  "34": {
+    "inputs": {
+      "math_expression": "a - 1",
+      "a": [
+        "30",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Last frame"
+    }
+  },
+  "35": {
+    "inputs": {
+      "start": 0,
+      "audio": [
+        "33",
+        0
+      ],
+      "fps": [
+        "10",
+        2
+      ],
+      "end": [
+        "34",
+        0
+      ]
+    },
+    "class_type": "MpiAudioRange",
+    "_meta": {
+      "title": "Source audio on the grid"
+    }
+  },
+  "36": {
+    "inputs": {
+      "math_expression": "17 * a * (1 - b)",
+      "a": [
+        "27",
+        0
+      ],
+      "b": [
+        "24",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Lead-in frames (template 6, whole frame)"
+    }
+  },
+  "37": {
+    "inputs": {
+      "batch_index": 0,
+      "length": 1,
+      "image": [
+        "31",
+        0
+      ]
+    },
+    "class_type": "ImageFromBatch",
+    "_meta": {
+      "title": "Clip frame 0"
+    }
+  },
+  "38": {
+    "inputs": {
+      "amount": 17,
+      "image": [
+        "37",
+        0
+      ]
+    },
+    "class_type": "RepeatImageBatch",
+    "_meta": {
+      "title": "Frame 0, held 17 frames"
+    }
+  },
+  "39": {
+    "inputs": {
+      "image1": [
+        "38",
+        0
+      ],
+      "image2": [
+        "31",
+        0
+      ]
+    },
+    "class_type": "ImageBatch",
+    "_meta": {
+      "title": "Still lead-in + clip"
+    }
+  },
+  "40": {
+    "inputs": {
+      "math_expression": "floor(sqrt(c * a / b) / 32 + 0.5) * 32",
+      "a": [
+        "10",
+        5
+      ],
+      "b": [
+        "10",
+        6
+      ],
+      "c": [
+        "26",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Render width"
+    }
+  },
+  "41": {
+    "inputs": {
+      "math_expression": "floor(sqrt(c * a / b) / 32 + 0.5) * 32",
+      "a": [
+        "10",
+        6
+      ],
+      "b": [
+        "10",
+        5
+      ],
+      "c": [
+        "26",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Render height"
+    }
+  },
+  "42": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "keep_proportion": "crop",
+      "pad_color": "0, 0, 0",
+      "crop_position": "center",
+      "divisible_by": 32,
+      "device": "cpu",
+      "image": [
+        "46",
+        0
+      ],
+      "width": [
+        "43",
+        0
+      ],
+      "height": [
+        "44",
+        0
+      ]
+    },
+    "class_type": "ImageResizeKJv2",
+    "_meta": {
+      "title": "Whole frame at 0.75 of the render size"
+    }
+  },
+  "43": {
+    "inputs": {
+      "math_expression": "floor(c * a / b / 32 + 0.5) * 32",
+      "a": [
+        "40",
+        0
+      ],
+      "b": [
+        "41",
+        0
+      ],
+      "c": [
+        "44",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Clip width (follows the height)"
+    }
+  },
+  "44": {
+    "inputs": {
+      "math_expression": "(floor(0.75 * b / 32 + 0.5) + 0) * 32 if fabs(floor((floor(0.75 * b / 32 + 0.5) + 0) * 32 * a / b / 32 + 0.5) * 32 * b - (floor(0.75 * b / 32 + 0.5) + 0) * 32 * a) <= 0.01 * (floor(0.75 * b / 32 + 0.5) + 0) * 32 * a else ((floor(0.75 * b / 32 + 0.5) + 1) * 32 if fabs(floor((floor(0.75 * b / 32 + 0.5) + 1) * 32 * a / b / 32 + 0.5) * 32 * b - (floor(0.75 * b / 32 + 0.5) + 1) * 32 * a) <= 0.01 * (floor(0.75 * b / 32 + 0.5) + 1) * 32 * a else ((floor(0.75 * b / 32 + 0.5) + 2) * 32 if fabs(floor((floor(0.75 * b / 32 + 0.5) + 2) * 32 * a / b / 32 + 0.5) * 32 * b - (floor(0.75 * b / 32 + 0.5) + 2) * 32 * a) <= 0.01 * (floor(0.75 * b / 32 + 0.5) + 2) * 32 * a else (b)))",
+      "a": [
+        "40",
+        0
+      ],
+      "b": [
+        "41",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Clip height (~0.75, the render's shape)"
+    }
+  },
+  "45": {
+    "inputs": {
+      "math_expression": "a > 0",
+      "a": [
+        "36",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Lead-in?"
+    }
+  },
+  "46": {
+    "inputs": {
+      "true": [
+        "39",
+        0
+      ],
+      "false": [
+        "31",
+        0
+      ],
+      "boolean": [
+        "45",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "lead-in ? padded clip : clip"
+    }
+  },
+  "47": {
+    "inputs": {
+      "math_expression": "a + b",
+      "a": [
+        "30",
+        0
+      ],
+      "b": [
+        "36",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "H3 length (clip + lead-in)"
+    }
+  },
+  "50": {
+    "inputs": {
+      "ckpt_name": "sam3.1_multiplex_fp16.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "SAM3"
+    }
+  },
+  "51": {
+    "inputs": {
+      "clip": [
+        "50",
+        1
+      ],
+      "text": [
+        "16",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "What to find"
+    }
+  },
+  "52": {
+    "inputs": {
+      "threshold": 0.5,
+      "refine_iterations": 2,
+      "individual_masks": false,
+      "model": [
+        "50",
+        0
+      ],
+      "image": [
+        "31",
+        0
+      ],
+      "conditioning": [
+        "51",
+        0
+      ]
+    },
+    "class_type": "SAM3_Detect",
+    "_meta": {
+      "title": "Find it in every frame"
+    }
+  },
+  "53": {
+    "inputs": {
+      "padding": 64,
+      "mask": [
+        "52",
+        0
+      ]
+    },
+    "class_type": "MpiMaskSquareBbox",
+    "_meta": {
+      "title": "One still square round it (pad 64)"
+    }
+  },
+  "54": {
+    "inputs": {
+      "downscale_algorithm": "bilinear",
+      "upscale_algorithm": "bicubic",
+      "preresize": false,
+      "preresize_mode": "ensure minimum resolution",
+      "preresize_min_width": 1024,
+      "preresize_min_height": 1024,
+      "preresize_max_width": 16384,
+      "preresize_max_height": 16384,
+      "mask_fill_holes": false,
+      "mask_expand_pixels": 0,
+      "mask_invert": false,
+      "mask_blend_pixels": 64,
+      "mask_hipass_filter": 0.1,
+      "extend_for_outpainting": false,
+      "extend_up_factor": 1,
+      "extend_down_factor": 1,
+      "extend_left_factor": 1,
+      "extend_right_factor": 1,
+      "context_from_mask_extend_factor": 1.25,
+      "output_resize_to_target_size": true,
+      "output_padding": "32",
+      "device_mode": "cpu (compatible)",
+      "image": [
+        "31",
+        0
+      ],
+      "mask": [
+        "53",
+        0
+      ],
+      "output_target_width": [
+        "63",
+        0
+      ],
+      "output_target_height": [
+        "63",
+        0
+      ]
+    },
+    "class_type": "InpaintCropImproved",
+    "_meta": {
+      "title": "Crop the square"
+    }
+  },
+  "55": {
+    "inputs": {
+      "math_expression": "(a < b) * (a < c) > 0",
+      "a": [
+        "53",
+        3
+      ],
+      "b": [
+        "10",
+        5
+      ],
+      "c": [
+        "10",
+        6
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Square holds the whole mask?"
+    }
+  },
+  "60": {
+    "inputs": {
+      "true": [
+        "54",
+        1
+      ],
+      "false": [
+        "42",
+        0
+      ],
+      "boolean": [
+        "24",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "masked ? crop : whole frame"
+    }
+  },
+  "61": {
+    "inputs": {
+      "true": [
+        "63",
+        0
+      ],
+      "false": [
+        "40",
+        0
+      ],
+      "boolean": [
+        "24",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "masked ? crop width : render width"
+    }
+  },
+  "62": {
+    "inputs": {
+      "true": [
+        "63",
+        0
+      ],
+      "false": [
+        "41",
+        0
+      ],
+      "boolean": [
+        "24",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "masked ? crop height : render height"
+    }
+  },
+  "63": {
+    "inputs": {
+      "math_expression": "512 if b < 512 else ((512 if a == 589824 else floor(sqrt(a * 9 / 16) / 32 + 0.5) * 32) if (512 if a == 589824 else floor(sqrt(a * 9 / 16) / 32 + 0.5) * 32) < b else b)",
+      "a": [
+        "26",
+        0
+      ],
+      "b": [
+        "230",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Crop size (by quality, never above the source)"
+    }
+  },
+  "71": {
+    "inputs": {
+      "string": "subject_definitions:\n<Video 1> is the source video for the target video edit.\n<Subject 1> is the character in <Picture 1>. {look}\n<Subject 2> is {who} in <Video 1>.\n<Subject 3> is the location of <Video 1>: {kept}\n\nsummary:\n[video editing] The target video is an edited version of <Video 1>. <Subject 1> takes the place of <Subject 2> and performs every move of <Subject 2> in <Subject 3>, with the camera, light and timing of <Video 1>.\n\nretention_analysis:\n<Video 1> (whole video): partially_preserved - the camera framing and movement, the light, the colour grade and the timing of every move are kept; only the look of <Subject 2> changes.\n<Subject 1> (appears in [Shot 1]): attribute_transfer - the face, skin, hair, outfit and accessories of the character in <Picture 1> are transferred onto <Subject 2>.\n<Subject 2> (appears in [Shot 1]): partially_preserved - the position, scale, pose, every movement, expression and mouth movement are kept; the face, hair and clothes are those of <Subject 1>.\n<Subject 3> (appears in [Shot 1]): fully_preserved - the room, its furniture, walls, objects and light stay exactly as in <Video 1>.\n\ndetailed_description:\nThe target video keeps the look of <Video 1>: its lighting, colour grade and camera framing.\n[Shot 1] In <Subject 3>, <Subject 1> performs exactly what <Subject 2> does in <Video 1>, move for move from the first frame, at the same place in the frame and the same size, with the face, hair, outfit and accessories of <Picture 1> from every angle. {words}\nThe camera frames the shot exactly as <Video 1> does.{masked}\n\noverall_soundscape: The sound of <Video 1> continues unchanged.\nnon_diegetic_music: N/A"
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Instruction 1 (picture)"
+    }
+  },
+  "72": {
+    "inputs": {
+      "string": "subject_definitions:\n<Video 1> is the source video for the target video edit.\n<Subject 1> is the head of the person in <Picture 1>. {look}\n<Subject 2> is {who} in <Video 1>.\n<Subject 3> is the location of <Video 1>.\n\nsummary:\n[video editing] The target video is an edited version of <Video 1>. <Subject 2> has the head of <Subject 1> and keeps their own body, clothes and hands and every move, in <Subject 3>, with the camera, light and timing of <Video 1>.\n\nretention_analysis:\n<Video 1> (whole video): partially_preserved - the camera framing and movement, the light, the colour grade and the timing of every move are kept; only the head of <Subject 2> changes.\n<Subject 1> (appears in [Shot 1]): attribute_transfer - the face, skin, eyes, features and whole hairstyle of <Picture 1>, and anything worn on the head, are transferred onto <Subject 2>.\n<Subject 2> (appears in [Shot 1]): partially_preserved - the body, clothes, hands, position, scale, pose, every movement, the head's angle, expression and mouth movement are kept; the head, the face and all of the hair, its lengths over the shoulders and down the back included, are those of <Subject 1>.\n<Subject 3> (appears in [Shot 1]): fully_preserved - the room, its furniture, walls, objects and light stay exactly as in <Video 1>.\n\ndetailed_description:\nThe target video keeps the look of <Video 1>: its lighting, colour grade and camera framing.\n[Shot 1] In <Subject 3>, <Subject 2> performs exactly as in <Video 1>, move for move from the first frame, at the same place in the frame and the same size, with the head of <Subject 1> from every angle: its face, skin and features, and its hairstyle, the back of the head showing whenever <Subject 2> turns away. All of <Subject 2>'s own hair goes, the lengths over the shoulders and down the back too; the hairstyle is the one in <Picture 1>. {words}\nThe camera frames the shot exactly as <Video 1> does.{masked}\n\noverall_soundscape: The sound of <Video 1> continues unchanged.\nnon_diegetic_music: N/A"
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Instruction 2 (picture)"
+    }
+  },
+  "73": {
+    "inputs": {
+      "string": "subject_definitions:\n<Video 1> is the source video for the target video edit.\n<Subject 1> is the outfit worn in <Picture 1>. {look}\n<Subject 2> is {who} in <Video 1>.\n<Subject 3> is the location of <Video 1>.\n\nsummary:\n[video editing] The target video is an edited version of <Video 1>. <Subject 2> wears <Subject 1> and keeps their own face, hair and body and every move, in <Subject 3>, with the camera, light and timing of <Video 1>.\n\nretention_analysis:\n<Video 1> (whole video): partially_preserved - the camera framing and movement, the light, the colour grade and the timing of every move are kept; only what <Subject 2> wears changes.\n<Subject 1> (appears in [Shot 1]): attribute_transfer - every garment and accessory of <Picture 1>, with its colour, pattern and material, or the bare skin it shows, is transferred onto <Subject 2>.\n<Subject 2> (appears in [Shot 1]): partially_preserved - the face, hair, body, position, scale, pose, every movement, expression and mouth movement are kept; what they wear is <Subject 1>.\n<Subject 3> (appears in [Shot 1]): fully_preserved - the room, its furniture, walls, objects and light stay exactly as in <Video 1>.\n\ndetailed_description:\nThe target video keeps the look of <Video 1>: its lighting, colour grade and camera framing.\n[Shot 1] In <Subject 3>, <Subject 2> performs exactly as in <Video 1>, move for move from the first frame, at the same place in the frame and the same size, wearing <Subject 1>; the clothes move and fold with the body from every angle, the back of the outfit showing whenever <Subject 2> turns away. {words}\nThe camera frames the shot exactly as <Video 1> does.{masked}\n\noverall_soundscape: The sound of <Video 1> continues unchanged.\nnon_diegetic_music: N/A"
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Instruction 3 (picture)"
+    }
+  },
+  "74": {
+    "inputs": {
+      "string": "subject_definitions:\n<Video 1> is the source video for the target video edit.\n<Subject 1> is the place in <Picture 1>. {look}\n<Subject 2> is {who} in <Video 1>, who stays exactly as filmed: {kept}\n<Subject 3> is everything around <Subject 2> in <Video 1>: the ground, the sky and all of the background.\n\nsummary:\n[video editing] The target video is an edited version of <Video 1>. <Subject 3> becomes <Subject 1>, laid out as in <Picture 1>: {look} <Subject 2> performs every move of <Video 1> exactly as filmed, with the camera framing and timing of <Video 1>.\n\nretention_analysis:\n<Video 1> (whole video): partially_preserved - the camera framing and movement and the timing of every move are kept; only <Subject 3> changes.\n<Subject 1> (appears in [Shot 1]): attribute_transfer - the place of <Picture 1>, everything in it in the same places as in <Picture 1>, with its colours and light, is transferred onto <Subject 3>.\n<Subject 2> (appears in [Shot 1]): fully_preserved - the face, hair, body, position, scale, pose, every movement and expression stay exactly as in <Video 1>.\n<Subject 3> (appears in [Shot 1]): partially_preserved - only its place in the frame is kept; what it shows is <Subject 1>.\n\ndetailed_description:\nThe target video has the camera framing of <Video 1> and the light of <Subject 1>.\n[Shot 1] <Subject 2> moves exactly as in <Video 1>, move for move from the first frame, at the same place in the frame and the same size, in front of <Subject 1>: {look} Its light falls on them. {words}\nThe camera frames the shot exactly as <Video 1> does.{masked}\n\noverall_soundscape: The sound of <Video 1> continues unchanged.\nnon_diegetic_music: N/A"
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Instruction 4 (picture)"
+    }
+  },
+  "75": {
+    "inputs": {
+      "string": "subject_definitions:\n<Video 1> is the source video for the target video edit.\n<Subject 1> is the main subject of <Picture 1>, the reference for this change. {look}\n\nsummary:\n[video editing] The target video is an edited version of <Video 1>. It makes the change described in [Shot 1], with <Subject 1> as its reference, and everything else plays exactly as filmed.\n\nretention_analysis:\n<Video 1> (whole video): partially_preserved - everything outside the change is kept exactly as filmed: every person, their performance, every move and its timing, the camera framing, the location and the light.\n<Subject 1> (appears in [Shot 1]): attribute_transfer - what the change asks for is taken from <Picture 1>.\n\ndetailed_description:\nThe target video keeps the look of <Video 1>: its lighting, colour grade and camera framing.\n[Shot 1] <Video 1> plays exactly as filmed, move for move from the first frame, at the same place in the frame and the same size, with this change, following <Subject 1>: {words}\nThe camera frames the shot exactly as <Video 1> does.{masked}\n\noverall_soundscape: The sound of <Video 1> continues unchanged.\nnon_diegetic_music: N/A"
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Instruction 5 (picture)"
+    }
+  },
+  "76": {
+    "inputs": {
+      "string": "subject_definitions:\n<Video 1> is the reference for the performance, the camera framing and the timing of the target video.\n<Subject 1> is the character whose appearance comes from <Picture 1> and whose every move, expression and mouth movement come from {who} in <Video 1>.\n<Subject 2> is the location of <Picture 1>, with its light. {look}\n\nsummary:\n[reference generation] <Subject 1> performs every move of {who} in <Video 1> in <Subject 2>, with the camera framing and timing of <Video 1> and the picture quality of <Picture 1>.\n\nretention_analysis:\n<Video 1> (performance, camera framing and timing): fully_preserved - every move, expression, mouth movement and its timing, and the camera framing and movement, are kept.\n<Subject 1> (appears in [Shot 1]): fully_preserved - the face, skin, hair, outfit, accessories and art style of <Picture 1> are kept from every angle.\n<Subject 2> (appears in [Shot 1]): fully_preserved - the place, its furniture, surfaces, colours and light, seen from the camera of <Video 1>.\n\ndetailed_description:\nThe target video has the picture quality, light and colour of <Picture 1>.\n[Shot 1] In <Subject 2>, <Subject 1> performs exactly what {who} does in <Video 1>, move for move from the first frame, at the same place in the frame and the same size, with the face, hair, outfit and accessories of <Picture 1> from every angle. {words}\nThe camera frames the shot exactly as <Video 1> does.{masked}\n\noverall_soundscape: The sound of <Video 1> continues unchanged.\nnon_diegetic_music: N/A"
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Instruction 6 (picture)"
+    }
+  },
+  "77": {
+    "inputs": {
+      "any_1": [
+        "71",
+        0
+      ],
+      "any_2": [
+        "72",
+        0
+      ],
+      "any_3": [
+        "73",
+        0
+      ],
+      "any_4": [
+        "74",
+        0
+      ],
+      "any_5": [
+        "75",
+        0
+      ],
+      "any_6": [
+        "76",
+        0
+      ],
+      "select": [
+        "22",
+        0
+      ]
+    },
+    "class_type": "MpiAnySwitch10",
+    "_meta": {
+      "title": "Instruction (picture)"
+    }
+  },
+  "81": {
+    "inputs": {
+      "string": "subject_definitions:\n<Video 1> is the source video for the target video edit.\n<Subject 1> is {who} in <Video 1>.\n<Subject 2> is the location of <Video 1>.\n\nsummary:\n[video editing] The target video is an edited version of <Video 1>. A new character, described in [Shot 1], takes the place of <Subject 1> and performs every move of <Subject 1> in <Subject 2>, with the camera, light and timing of <Video 1>.\n\nretention_analysis:\n<Video 1> (whole video): partially_preserved - the camera framing and movement, the light, the colour grade and the timing of every move are kept; only the look of <Subject 1> changes.\n<Subject 1> (appears in [Shot 1]): partially_preserved - the position, scale, pose, every movement, expression and mouth movement are kept; the face, hair and clothes are those of the new character.\n<Subject 2> (appears in [Shot 1]): fully_preserved - the room, its furniture, walls, objects and light stay exactly as in <Video 1>.\n\ndetailed_description:\nThe target video keeps the look of <Video 1>: its lighting, colour grade and camera framing.\n[Shot 1] In <Subject 2>, the new character performs exactly what <Subject 1> does in <Video 1>, move for move from the first frame, at the same place in the frame and the same size, their face, hair and outfit holding from every angle. The new character: {words}\nThe camera frames the shot exactly as <Video 1> does.{masked}\n\noverall_soundscape: The sound of <Video 1> continues unchanged.\nnon_diegetic_music: N/A"
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Instruction 1 (no picture)"
+    }
+  },
+  "82": {
+    "inputs": {
+      "string": "subject_definitions:\n<Video 1> is the source video for the target video edit.\n<Subject 1> is {who} in <Video 1>.\n<Subject 2> is the location of <Video 1>.\n\nsummary:\n[video editing] The target video is an edited version of <Video 1>. <Subject 1> has a new head, described in [Shot 1], and keeps their own body, clothes and hands and every move, in <Subject 2>, with the camera, light and timing of <Video 1>.\n\nretention_analysis:\n<Video 1> (whole video): partially_preserved - the camera framing and movement, the light, the colour grade and the timing of every move are kept; only the head of <Subject 1> changes.\n<Subject 1> (appears in [Shot 1]): partially_preserved - the body, clothes, hands, position, scale, pose, every movement, the head's angle, expression and mouth movement are kept; the head, the face and all of the hair, its lengths over the shoulders and down the back included, are the new ones.\n<Subject 2> (appears in [Shot 1]): fully_preserved - the room, its furniture, walls, objects and light stay exactly as in <Video 1>.\n\ndetailed_description:\nThe target video keeps the look of <Video 1>: its lighting, colour grade and camera framing.\n[Shot 1] In <Subject 2>, <Subject 1> performs exactly as in <Video 1>, move for move from the first frame, at the same place in the frame and the same size, with the new head from every angle, the back of the head showing whenever <Subject 1> turns away. All of <Subject 1>'s own hair goes, the lengths over the shoulders and down the back too; the hairstyle is the new one. The new head: {words}\nThe camera frames the shot exactly as <Video 1> does.{masked}\n\noverall_soundscape: The sound of <Video 1> continues unchanged.\nnon_diegetic_music: N/A"
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Instruction 2 (no picture)"
+    }
+  },
+  "83": {
+    "inputs": {
+      "string": "subject_definitions:\n<Video 1> is the source video for the target video edit.\n<Subject 1> is {who} in <Video 1>.\n<Subject 2> is the location of <Video 1>.\n\nsummary:\n[video editing] The target video is an edited version of <Video 1>. <Subject 1> wears a new outfit, described in [Shot 1], and keeps their own face, hair and body and every move, in <Subject 2>, with the camera, light and timing of <Video 1>.\n\nretention_analysis:\n<Video 1> (whole video): partially_preserved - the camera framing and movement, the light, the colour grade and the timing of every move are kept; only what <Subject 1> wears changes.\n<Subject 1> (appears in [Shot 1]): partially_preserved - the face, hair, body, position, scale, pose, every movement, expression and mouth movement are kept; what they wear is the new outfit.\n<Subject 2> (appears in [Shot 1]): fully_preserved - the room, its furniture, walls, objects and light stay exactly as in <Video 1>.\n\ndetailed_description:\nThe target video keeps the look of <Video 1>: its lighting, colour grade and camera framing.\n[Shot 1] In <Subject 2>, <Subject 1> performs exactly as in <Video 1>, move for move from the first frame, at the same place in the frame and the same size, wearing the new outfit; the clothes move and fold with the body from every angle, the back of the outfit showing whenever <Subject 1> turns away. The new outfit: {words}\nThe camera frames the shot exactly as <Video 1> does.{masked}\n\noverall_soundscape: The sound of <Video 1> continues unchanged.\nnon_diegetic_music: N/A"
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Instruction 3 (no picture)"
+    }
+  },
+  "84": {
+    "inputs": {
+      "string": "subject_definitions:\n<Video 1> is the source video for the target video edit.\n<Subject 1> is {who} in <Video 1>, who stays exactly as filmed.\n\nsummary:\n[video editing] The target video is an edited version of <Video 1>. <Subject 1> performs every move of <Video 1> exactly as filmed, now in a new place, described in [Shot 1], its light falling on them, with the camera framing and timing of <Video 1>.\n\nretention_analysis:\n<Video 1> (whole video): partially_preserved - the camera framing and movement and the timing of every move are kept; only the place around <Subject 1> changes.\n<Subject 1> (appears in [Shot 1]): fully_preserved - the face, hair, body, clothes, position, scale, pose, every movement, expression and mouth movement stay exactly as in <Video 1>.\n\ndetailed_description:\nThe target video has the camera framing of <Video 1> and the light of the new place.\n[Shot 1] <Subject 1> moves exactly as in <Video 1>, move for move from the first frame, at the same place in the frame and the same size, and the place around them is new, its light falling on them. The new place: {words}\nThe camera frames the shot exactly as <Video 1> does.{masked}\n\noverall_soundscape: The sound of <Video 1> continues unchanged.\nnon_diegetic_music: N/A"
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Instruction 4 (no picture)"
+    }
+  },
+  "85": {
+    "inputs": {
+      "string": "subject_definitions:\n<Video 1> is the source video for the target video edit.\n\nsummary:\n[video editing] The target video is an edited version of <Video 1>. It makes the change described in [Shot 1], and everything else plays exactly as filmed.\n\nretention_analysis:\n<Video 1> (whole video): partially_preserved - everything outside the change is kept exactly as filmed: every person, their performance, every move and its timing, the camera framing, the location and the light.\n\ndetailed_description:\nThe target video keeps the look of <Video 1>: its lighting, colour grade and camera framing.\n[Shot 1] <Video 1> plays exactly as filmed, move for move from the first frame, at the same place in the frame and the same size, with this change: {words}\nThe camera frames the shot exactly as <Video 1> does.{masked}\n\noverall_soundscape: The sound of <Video 1> continues unchanged.\nnon_diegetic_music: N/A"
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Instruction 5 (no picture)"
+    }
+  },
+  "86": {
+    "inputs": {
+      "string": "subject_definitions:\n<Video 1> is the source video for the target video edit.\n<Subject 1> is {who} in <Video 1>.\n<Subject 2> is the location of <Video 1>.\n\nsummary:\n[video editing] The target video is an edited version of <Video 1>. A new character, described in [Shot 1], takes the place of <Subject 1> and performs every move of <Subject 1> in <Subject 2>, with the camera, light and timing of <Video 1>.\n\nretention_analysis:\n<Video 1> (whole video): partially_preserved - the camera framing and movement, the light, the colour grade and the timing of every move are kept; only the look of <Subject 1> changes.\n<Subject 1> (appears in [Shot 1]): partially_preserved - the position, scale, pose, every movement, expression and mouth movement are kept; the face, hair and clothes are those of the new character.\n<Subject 2> (appears in [Shot 1]): fully_preserved - the room, its furniture, walls, objects and light stay exactly as in <Video 1>.\n\ndetailed_description:\nThe target video keeps the look of <Video 1>: its lighting, colour grade and camera framing.\n[Shot 1] In <Subject 2>, the new character performs exactly what <Subject 1> does in <Video 1>, move for move from the first frame, at the same place in the frame and the same size, their face, hair and outfit holding from every angle. The new character: {words}\nThe camera frames the shot exactly as <Video 1> does.{masked}\n\noverall_soundscape: The sound of <Video 1> continues unchanged.\nnon_diegetic_music: N/A"
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Instruction 6 (no picture)"
+    }
+  },
+  "87": {
+    "inputs": {
+      "any_1": [
+        "81",
+        0
+      ],
+      "any_2": [
+        "82",
+        0
+      ],
+      "any_3": [
+        "83",
+        0
+      ],
+      "any_4": [
+        "84",
+        0
+      ],
+      "any_5": [
+        "85",
+        0
+      ],
+      "any_6": [
+        "86",
+        0
+      ],
+      "select": [
+        "22",
+        0
+      ]
+    },
+    "class_type": "MpiAnySwitch10",
+    "_meta": {
+      "title": "Instruction (no picture)"
+    }
+  },
+  "90": {
+    "inputs": {
+      "true": [
+        "77",
+        0
+      ],
+      "false": [
+        "87",
+        0
+      ],
+      "boolean": [
+        "11",
+        4
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "picture ? : no picture"
+    }
+  },
+  "91": {
+    "inputs": {
+      "string": "\nOnly {target} changes; everything else stays exactly as it is in <Video 1>, and the framing follows <Video 1> exactly, frame for frame."
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Masked line"
+    }
+  },
+  "92": {
+    "inputs": {
+      "string": ""
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "No masked line"
+    }
+  },
+  "93": {
+    "inputs": {
+      "true": [
+        "91",
+        0
+      ],
+      "false": [
+        "92",
+        0
+      ],
+      "boolean": [
+        "24",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "masked ? line : none"
+    }
+  },
+  "94": {
+    "inputs": {
+      "delimiter": "\n",
+      "string_a": [
+        "90",
+        0
+      ],
+      "string_b": [
+        "98",
+        0
+      ]
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Instruction + constraint line"
+    }
+  },
+  "95": {
+    "inputs": {
+      "find": "{who}",
+      "string": [
+        "99",
+        0
+      ],
+      "replace": [
+        "15",
+        0
+      ]
+    },
+    "class_type": "StringReplace",
+    "_meta": {
+      "title": "{who}"
+    }
+  },
+  "96": {
+    "inputs": {
+      "find": "{target}",
+      "string": [
+        "95",
+        0
+      ],
+      "replace": [
+        "16",
+        0
+      ]
+    },
+    "class_type": "StringReplace",
+    "_meta": {
+      "title": "{target}"
+    }
+  },
+  "97": {
+    "inputs": {
+      "find": "{words}",
+      "string": [
+        "96",
+        0
+      ],
+      "replace": [
+        "12",
+        0
+      ]
+    },
+    "class_type": "StringReplace",
+    "_meta": {
+      "title": "{words}"
+    }
+  },
+  "98": {
+    "inputs": {
+      "string": "No text, subtitles, captions, usernames, logos or watermarks, no blur, no compression artefacts, no warped anatomy, no flicker."
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Constraint line"
+    }
+  },
+  "99": {
+    "inputs": {
+      "find": "{masked}",
+      "string": [
+        "94",
+        0
+      ],
+      "replace": [
+        "93",
+        0
+      ]
+    },
+    "class_type": "StringReplace",
+    "_meta": {
+      "title": "{masked}"
+    }
+  },
+  "100": {
+    "inputs": {
+      "unet_name": "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "Input_Base_Model"
+    }
+  },
+  "101": {
+    "inputs": {
+      "clip_name": "qwen3vl_32b_h3_ultra_uncensored_heretic_int8_convrot.safetensors",
+      "type": "minimax",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "102": {
+    "inputs": {
+      "vae_name": "minimax_h3_video_vae_int8_convrot.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "103": {
+    "inputs": {
+      "vae_name": "minimax_h3_audio_vae_fp32.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load Audio VAE"
+    }
+  },
+  "104": {
+    "inputs": {
+      "lora_name": "minimax-h3\\h3_character_swap_pro4500_1000.safetensors",
+      "strength_model": 1,
+      "model": [
+        "185",
+        0
+      ]
+    },
+    "class_type": "MpiLoraModel",
+    "_meta": {
+      "title": "Character Swap LoRA"
+    }
+  },
+  "105": {
+    "inputs": {
+      "true": [
+        "104",
+        0
+      ],
+      "false": [
+        "185",
+        0
+      ],
+      "boolean": [
+        "21",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "swap LoRA ? : base"
+    }
+  },
+  "106": {
+    "inputs": {
+      "lora_name": "minimax-h3\\minimax_h3_ref2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors",
+      "strength_model": 1,
+      "model": [
+        "148",
+        0
+      ]
+    },
+    "class_type": "MpiLoraModel",
+    "_meta": {
+      "title": "Turbo LoRA (8-step)"
+    }
+  },
+  "107": {
+    "inputs": {
+      "vae_name": "taeh3.safetensors"
+    },
+    "class_type": "MpiTinyVaeLoader",
+    "_meta": {
+      "title": "Mpi Tiny Vae Loader"
+    }
+  },
+  "108": {
+    "inputs": {
+      "preview_rate": 24,
+      "model": [
+        "211",
+        0
+      ],
+      "vae": [
+        "107",
+        0
+      ]
+    },
+    "class_type": "MpiVideoSamplingPreview",
+    "_meta": {
+      "title": "Mpi Video Sampling Preview"
+    }
+  },
+  "110": {
+    "inputs": {
+      "ref_image_size": "match",
+      "clip": [
+        "185",
+        1
+      ],
+      "vae": [
+        "102",
+        0
+      ],
+      "audio_vae": [
+        "103",
+        0
+      ],
+      "ref_image_1": [
+        "29",
+        0
+      ],
+      "ref_video_1": [
+        "210",
+        0
+      ],
+      "prompt": [
+        "149",
+        0
+      ],
+      "width": [
+        "203",
+        0
+      ],
+      "height": [
+        "204",
+        0
+      ],
+      "length": [
+        "47",
+        0
+      ],
+      "ref_video_audio_1": [
+        "303",
+        0
+      ]
+    },
+    "class_type": "MpiH3References",
+    "_meta": {
+      "title": "H3 references (<Video 1> the clip, <Picture 1> the picture)"
+    }
+  },
+  "111": {
+    "inputs": {
+      "noise_seed": [
+        "17",
+        0
+      ]
+    },
+    "class_type": "RandomNoise",
+    "_meta": {
+      "title": "RandomNoise"
+    }
+  },
+  "112": {
+    "inputs": {
+      "sampler_name": "res_multistep"
+    },
+    "class_type": "KSamplerSelect",
+    "_meta": {
+      "title": "KSamplerSelect"
+    }
+  },
+  "113": {
+    "inputs": {
+      "scheduler": "simple",
+      "steps": 8,
+      "denoise": 1,
+      "model": [
+        "211",
+        0
+      ]
+    },
+    "class_type": "BasicScheduler",
+    "_meta": {
+      "title": "BasicScheduler"
+    }
+  },
+  "114": {
+    "inputs": {
+      "model": [
+        "108",
+        0
+      ],
+      "conditioning": [
+        "110",
+        0
+      ]
+    },
+    "class_type": "BasicGuider",
+    "_meta": {
+      "title": "Basic Guider"
+    }
+  },
+  "115": {
+    "inputs": {
+      "noise": [
+        "111",
+        0
+      ],
+      "guider": [
+        "114",
+        0
+      ],
+      "sampler": [
+        "112",
+        0
+      ],
+      "sigmas": [
+        "113",
+        0
+      ],
+      "latent_image": [
+        "110",
+        1
+      ]
+    },
+    "class_type": "SamplerCustomAdvanced",
+    "_meta": {
+      "title": "SamplerCustomAdvanced"
+    }
+  },
+  "116": {
+    "inputs": {
+      "samples": [
+        "229",
+        0
+      ],
+      "vae": [
+        "102",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "117": {
+    "inputs": {
+      "passthrough": [
+        "116",
+        0
+      ]
+    },
+    "class_type": "MpiClearVram",
+    "_meta": {
+      "title": "Mpi Clear Vram"
+    }
+  },
+  "120": {
+    "inputs": {
+      "band": 48,
+      "destination": [
+        "54",
+        1
+      ],
+      "source": [
+        "117",
+        0
+      ],
+      "mask": [
+        "54",
+        2
+      ]
+    },
+    "class_type": "MpiGradeMatch",
+    "_meta": {
+      "title": "Grade match on the band round the box"
+    }
+  },
+  "121": {
+    "inputs": {
+      "stitcher": [
+        "54",
+        0
+      ],
+      "inpainted_image": [
+        "120",
+        0
+      ]
+    },
+    "class_type": "InpaintStitchImproved",
+    "_meta": {
+      "title": "Stitch back into the source"
+    }
+  },
+  "122": {
+    "inputs": {
+      "true": [
+        "121",
+        0
+      ],
+      "false": [
+        "117",
+        0
+      ],
+      "boolean": [
+        "24",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "masked ? stitched : whole frame"
+    }
+  },
+  "123": {
+    "inputs": {
+      "images": [
+        "122",
+        0
+      ],
+      "start_index": [
+        "36",
+        0
+      ],
+      "num_frames": [
+        "30",
+        0
+      ]
+    },
+    "class_type": "GetImageRangeFromBatch",
+    "_meta": {
+      "title": "Drop the lead-in"
+    }
+  },
+  "130": {
+    "inputs": {
+      "fps": 24,
+      "filename_prefix": "MpiVideo_Edit",
+      "use_audio": true,
+      "truncate_to_audio": false,
+      "images": [
+        "123",
+        0
+      ],
+      "audio": [
+        "35",
+        0
+      ]
+    },
+    "class_type": "MpiSaveVideo",
+    "_meta": {
+      "title": "Output_Video"
+    }
+  },
+  "145": {
+    "inputs": {
+      "lora_name": "minimax-h3\\SS_FaceSwap_MiniMax_H3_REF2VA.safetensors",
+      "strength_model": 1,
+      "model": [
+        "105",
+        0
+      ]
+    },
+    "class_type": "MpiLoraModel",
+    "_meta": {
+      "title": "Faceswap LoRA"
+    }
+  },
+  "146": {
+    "inputs": {
+      "string": "Faceswap"
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Faceswap trigger"
+    }
+  },
+  "147": {
+    "inputs": {
+      "delimiter": "\n",
+      "string_a": [
+        "146",
+        0
+      ],
+      "string_b": [
+        "172",
+        0
+      ]
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Trigger + prompt"
+    }
+  },
+  "148": {
+    "inputs": {
+      "true": [
+        "145",
+        0
+      ],
+      "false": [
+        "105",
+        0
+      ],
+      "boolean": [
+        "25",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "head ? Faceswap : as is"
+    }
+  },
+  "149": {
+    "inputs": {
+      "true": [
+        "147",
+        0
+      ],
+      "false": [
+        "172",
+        0
+      ],
+      "boolean": [
+        "25",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "head ? trigger + prompt : prompt"
+    }
+  },
+  "162": {
+    "inputs": {
+      "find": "{look}",
+      "string": [
+        "97",
+        0
+      ],
+      "replace": [
+        "18",
+        0
+      ]
+    },
+    "class_type": "StringReplace",
+    "_meta": {
+      "title": "{look}"
+    }
+  },
+  "172": {
+    "inputs": {
+      "find": "{kept}",
+      "string": [
+        "162",
+        0
+      ],
+      "replace": [
+        "19",
+        0
+      ]
+    },
+    "class_type": "StringReplace",
+    "_meta": {
+      "title": "{kept}"
+    }
+  },
+  "180": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "100",
+        0
+      ],
+      "clip": [
+        "101",
+        0
+      ]
+    },
+    "class_type": "MpiLoraModelClip",
+    "_meta": {
+      "title": "Input_Lora_Phase1_1"
+    }
+  },
+  "181": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "180",
+        0
+      ],
+      "clip": [
+        "180",
+        1
+      ]
+    },
+    "class_type": "MpiLoraModelClip",
+    "_meta": {
+      "title": "Input_Lora_Phase1_2"
+    }
+  },
+  "182": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "181",
+        0
+      ],
+      "clip": [
+        "181",
+        1
+      ]
+    },
+    "class_type": "MpiLoraModelClip",
+    "_meta": {
+      "title": "Input_Lora_Phase1_3"
+    }
+  },
+  "183": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "182",
+        0
+      ],
+      "clip": [
+        "182",
+        1
+      ]
+    },
+    "class_type": "MpiLoraModelClip",
+    "_meta": {
+      "title": "Input_Lora_Phase1_4"
+    }
+  },
+  "184": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "183",
+        0
+      ],
+      "clip": [
+        "183",
+        1
+      ]
+    },
+    "class_type": "MpiLoraModelClip",
+    "_meta": {
+      "title": "Input_Lora_Phase1_5"
+    }
+  },
+  "185": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "184",
+        0
+      ],
+      "clip": [
+        "184",
+        1
+      ]
+    },
+    "class_type": "MpiLoraModelClip",
+    "_meta": {
+      "title": "Input_Lora_Phase1_6"
+    }
+  },
+  "200": {
+    "inputs": {
+      "math_expression": "floor(sqrt(1032192 * a / b) / 32 + 0.5) * 32",
+      "a": [
+        "61",
+        0
+      ],
+      "b": [
+        "62",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Base width (768p area, render shape)"
+    }
+  },
+  "201": {
+    "inputs": {
+      "math_expression": "floor(sqrt(1032192 * a / b) / 32 + 0.5) * 32",
+      "a": [
+        "62",
+        0
+      ],
+      "b": [
+        "61",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Base height (768p area, render shape)"
+    }
+  },
+  "202": {
+    "inputs": {
+      "math_expression": "0 if a <= b else (1 if a <= 2 * b else 2)",
+      "a": [
+        "61",
+        0
+      ],
+      "b": [
+        "200",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Fast Motion Mode"
+    }
+  },
+  "203": {
+    "inputs": {
+      "math_expression": "a if c == 0 else b",
+      "a": [
+        "61",
+        0
+      ],
+      "b": [
+        "200",
+        0
+      ],
+      "c": [
+        "202",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Stage 1 width"
+    }
+  },
+  "204": {
+    "inputs": {
+      "math_expression": "a if c == 0 else b",
+      "a": [
+        "62",
+        0
+      ],
+      "b": [
+        "201",
+        0
+      ],
+      "c": [
+        "202",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Stage 1 height"
+    }
+  },
+  "205": {
+    "inputs": {
+      "math_expression": "a == 0",
+      "a": [
+        "202",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "One Pass"
+    }
+  },
+  "206": {
+    "inputs": {
+      "math_expression": "(floor(0.75 * b / 32 + 0.5) + 0) * 32 if fabs(floor((floor(0.75 * b / 32 + 0.5) + 0) * 32 * a / b / 32 + 0.5) * 32 * b - (floor(0.75 * b / 32 + 0.5) + 0) * 32 * a) <= 0.01 * (floor(0.75 * b / 32 + 0.5) + 0) * 32 * a else ((floor(0.75 * b / 32 + 0.5) + 1) * 32 if fabs(floor((floor(0.75 * b / 32 + 0.5) + 1) * 32 * a / b / 32 + 0.5) * 32 * b - (floor(0.75 * b / 32 + 0.5) + 1) * 32 * a) <= 0.01 * (floor(0.75 * b / 32 + 0.5) + 1) * 32 * a else ((floor(0.75 * b / 32 + 0.5) + 2) * 32 if fabs(floor((floor(0.75 * b / 32 + 0.5) + 2) * 32 * a / b / 32 + 0.5) * 32 * b - (floor(0.75 * b / 32 + 0.5) + 2) * 32 * a) <= 0.01 * (floor(0.75 * b / 32 + 0.5) + 2) * 32 * a else (b)))",
+      "a": [
+        "203",
+        0
+      ],
+      "b": [
+        "204",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Stage 1 clip height (~0.75 of stage 1)"
+    }
+  },
+  "207": {
+    "inputs": {
+      "math_expression": "floor(c * a / b / 32 + 0.5) * 32",
+      "a": [
+        "203",
+        0
+      ],
+      "b": [
+        "204",
+        0
+      ],
+      "c": [
+        "206",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Stage 1 clip width"
+    }
+  },
+  "208": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "keep_proportion": "crop",
+      "pad_color": "0, 0, 0",
+      "crop_position": "center",
+      "divisible_by": 32,
+      "device": "cpu",
+      "image": [
+        "46",
+        0
+      ],
+      "width": [
+        "207",
+        0
+      ],
+      "height": [
+        "206",
+        0
+      ]
+    },
+    "class_type": "ImageResizeKJv2",
+    "_meta": {
+      "title": "Whole frame at 0.75 of stage 1"
+    }
+  },
+  "209": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "keep_proportion": "crop",
+      "pad_color": "0, 0, 0",
+      "crop_position": "center",
+      "divisible_by": 32,
+      "device": "cpu",
+      "image": [
+        "54",
+        1
+      ],
+      "width": [
+        "203",
+        0
+      ],
+      "height": [
+        "204",
+        0
+      ]
+    },
+    "class_type": "ImageResizeKJv2",
+    "_meta": {
+      "title": "Crop at stage 1"
+    }
+  },
+  "210": {
+    "inputs": {
+      "true": [
+        "209",
+        0
+      ],
+      "false": [
+        "208",
+        0
+      ],
+      "boolean": [
+        "24",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "masked ? crop : whole frame (stage 1)"
+    }
+  },
+  "211": {
+    "inputs": {
+      "selection": "sol-attn",
+      "selection.tau": 1.3,
+      "start_percent": 0.2,
+      "end_percent": 1,
+      "dense_blocks": "",
+      "min_tokens": 12288,
+      "extra_tokens": 256,
+      "sink_conditioning": "exact_kv_and_rows",
+      "verbose": false,
+      "model": [
+        "106",
+        0
+      ]
+    },
+    "class_type": "BlockSparseAttention",
+    "_meta": {
+      "title": "sol-attn"
+    }
+  },
+  "212": {
+    "inputs": {
+      "passthrough": [
+        "115",
+        0
+      ]
+    },
+    "class_type": "MpiClearVram",
+    "_meta": {
+      "title": "Free stage 1"
+    }
+  },
+  "213": {
+    "inputs": {
+      "av_latent": [
+        "212",
+        0
+      ]
+    },
+    "class_type": "LTXVSeparateAVLatent",
+    "_meta": {
+      "title": "Separate AV Latent"
+    }
+  },
+  "214": {
+    "inputs": {
+      "math_expression": "a if c < 2 else 2 * b",
+      "a": [
+        "61",
+        0
+      ],
+      "b": [
+        "203",
+        0
+      ],
+      "c": [
+        "202",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Hop 1 width"
+    }
+  },
+  "215": {
+    "inputs": {
+      "math_expression": "a if c < 2 else 2 * b",
+      "a": [
+        "62",
+        0
+      ],
+      "b": [
+        "204",
+        0
+      ],
+      "c": [
+        "202",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Hop 1 height"
+    }
+  },
+  "216": {
+    "inputs": {
+      "model_name": "minimax_h3_latent_upscaler_3d_bf16.safetensors",
+      "mode": "target dimensions",
+      "align": 32,
+      "enable_temporal_chunking": true,
+      "force_unload": true,
+      "device": "cuda",
+      "precision": "bf16",
+      "latent": [
+        "213",
+        0
+      ],
+      "mode.width": [
+        "214",
+        0
+      ],
+      "mode.height": [
+        "215",
+        0
+      ]
+    },
+    "class_type": "MinimaxH3LatentUpscaler3D",
+    "_meta": {
+      "title": "Minimax H3 Latent Upscaler (3D)"
+    }
+  },
+  "217": {
+    "inputs": {
+      "model_name": "minimax_h3_latent_upscaler_3d_bf16.safetensors",
+      "mode": "target dimensions",
+      "align": 32,
+      "enable_temporal_chunking": true,
+      "force_unload": true,
+      "device": "cuda",
+      "precision": "bf16",
+      "latent": [
+        "216",
+        0
+      ],
+      "mode.width": [
+        "61",
+        0
+      ],
+      "mode.height": [
+        "62",
+        0
+      ]
+    },
+    "class_type": "MinimaxH3LatentUpscaler3D",
+    "_meta": {
+      "title": "Hop 2 Upscaler"
+    }
+  },
+  "218": {
+    "inputs": {
+      "math_expression": "a == 2",
+      "a": [
+        "202",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Needs Hop 2"
+    }
+  },
+  "219": {
+    "inputs": {
+      "true": [
+        "217",
+        0
+      ],
+      "false": [
+        "216",
+        0
+      ],
+      "boolean": [
+        "218",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "hop 2 ? : hop 1"
+    }
+  },
+  "220": {
+    "inputs": {
+      "video_latent": [
+        "219",
+        0
+      ],
+      "audio_latent": [
+        "213",
+        1
+      ]
+    },
+    "class_type": "LTXVConcatAVLatent",
+    "_meta": {
+      "title": "Concat AV Latent"
+    }
+  },
+  "221": {
+    "inputs": {
+      "reuse_threshold": 0.2,
+      "start_percent": 0.15,
+      "end_percent": 0.95,
+      "verbose": true,
+      "model": [
+        "148",
+        0
+      ]
+    },
+    "class_type": "EasyCache",
+    "_meta": {
+      "title": "EasyCache"
+    }
+  },
+  "222": {
+    "inputs": {
+      "shift_video": 12,
+      "shift_audio": 0.5,
+      "model": [
+        "221",
+        0
+      ]
+    },
+    "class_type": "MiniMaxH3SigmaShift",
+    "_meta": {
+      "title": "ModelSamplingMiniMaxH3 (refine)"
+    }
+  },
+  "223": {
+    "inputs": {
+      "ref_image_size": "max",
+      "clip": [
+        "185",
+        1
+      ],
+      "vae": [
+        "102",
+        0
+      ],
+      "audio_vae": [
+        "103",
+        0
+      ],
+      "ref_image_1": [
+        "29",
+        0
+      ],
+      "ref_video_1": [
+        "60",
+        0
+      ],
+      "prompt": [
+        "149",
+        0
+      ],
+      "width": [
+        "61",
+        0
+      ],
+      "height": [
+        "62",
+        0
+      ],
+      "length": [
+        "47",
+        0
+      ],
+      "ref_video_audio_1": [
+        "303",
+        0
+      ]
+    },
+    "class_type": "MpiH3References",
+    "_meta": {
+      "title": "Refine_Refs"
+    }
+  },
+  "224": {
+    "inputs": {
+      "model": [
+        "222",
+        0
+      ],
+      "conditioning": [
+        "223",
+        0
+      ]
+    },
+    "class_type": "BasicGuider",
+    "_meta": {
+      "title": "Basic Guider (refine)"
+    }
+  },
+  "225": {
+    "inputs": {
+      "sigmas": "0.9035, 0.6316, 0.3158, 0.0000"
+    },
+    "class_type": "ManualSigmas",
+    "_meta": {
+      "title": "3 step Sigmas"
+    }
+  },
+  "226": {
+    "inputs": {
+      "sampler_name": "euler"
+    },
+    "class_type": "KSamplerSelect",
+    "_meta": {
+      "title": "KSamplerSelect (refine)"
+    }
+  },
+  "227": {
+    "inputs": {
+      "math_expression": "100000 if a * b < 850000 else (243 if a * b < 1100000 else (90 if a * b < 6000000 else 39))",
+      "a": [
+        "61",
+        0
+      ],
+      "b": [
+        "62",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Window Frames"
+    }
+  },
+  "228": {
+    "inputs": {
+      "overlap_frames": 17,
+      "frame_grid": 5,
+      "noise": [
+        "111",
+        0
+      ],
+      "guider": [
+        "224",
+        0
+      ],
+      "sampler": [
+        "226",
+        0
+      ],
+      "sigmas": [
+        "225",
+        0
+      ],
+      "latent_image": [
+        "220",
+        0
+      ],
+      "window_frames": [
+        "227",
+        0
+      ]
+    },
+    "class_type": "MpiWindowedSampler",
+    "_meta": {
+      "title": "Mpi Windowed Sampler"
+    }
+  },
+  "229": {
+    "inputs": {
+      "true": [
+        "212",
+        0
+      ],
+      "false": [
+        "228",
+        0
+      ],
+      "boolean": [
+        "205",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "one pass ? stage 1 : refined"
+    }
+  },
+  "230": {
+    "inputs": {
+      "math_expression": "floor((1.25 * a if 1.25 * a < (b if b < c else c) else (b if b < c else c)) / 32 + 0.5) * 32",
+      "a": [
+        "53",
+        3
+      ],
+      "b": [
+        "10",
+        5
+      ],
+      "c": [
+        "10",
+        6
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Source side the crop covers"
+    }
+  },
+  "300": {
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Lead-in seconds"
+    },
+    "inputs": {
+      "math_expression": "a / b",
+      "a": [
+        "36",
+        0
+      ],
+      "b": [
+        "10",
+        2
+      ]
+    }
+  },
+  "301": {
+    "class_type": "EmptyAudio",
+    "_meta": {
+      "title": "Lead-in silence"
+    },
+    "inputs": {
+      "sample_rate": 44100,
+      "channels": 2,
+      "duration": [
+        "300",
+        0
+      ]
+    }
+  },
+  "302": {
+    "class_type": "AudioConcat",
+    "_meta": {
+      "title": "Silence + clip audio"
+    },
+    "inputs": {
+      "direction": "after",
+      "audio1": [
+        "301",
+        0
+      ],
+      "audio2": [
+        "35",
+        0
+      ]
+    }
+  },
+  "303": {
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "lead-in ? silence + clip audio : clip audio"
+    },
+    "inputs": {
+      "true": [
+        "302",
+        0
+      ],
+      "false": [
+        "35",
+        0
+      ],
+      "boolean": [
+        "45",
+        0
+      ]
+    }
+  }
+}

@@ -46,3 +46,39 @@ Masked: the soundtrack raises the mouth from 0.50 to 0.73 at zero lag, but both 
 (plan.md § Masked route seam). 1080p on a 5 s window fits a 32 GB card but RAM peaked at 61.1 of 62 GB:
 5 s at 1080p is about the ceiling for 62 GB of system RAM. Fabio's latent preview looked short on S3; the
 output was full length (preview only).
+
+## Masked-route seam bench (2026-10-29, same Pod, `research/lipbench/run_seam.py`, graphs B64_blend / B96_blend)
+
+| Run | Card | Time | Peak RAM / VRAM | Result |
+|---|---|---|---|---|
+| S1 blend 24 (baseline) | flowVideoEdit_006 | 168 s | 58.6 / 33.4 GB | seam: lapel and collar step at the square's bottom edge |
+| blend 64 | flowVideoEdit_009 | 229 s | 58.7 / 33.3 GB | seam softened into a smear, lapel still jumps: NOT fixed |
+| blend 96 | - | - | - | refused: InpaintCropImproved caps mask_blend_pixels at 64 |
+
+Candidate (a) is exhausted at the node's ceiling. The step is geometry (the redrawn collar comes back moved),
+not colour, so (b) MpiGradeMatch cannot fix it either. Next: (c) the falloff paste.
+
+## Step 1 pad up, cut back (2026-10-29, same Pod, `research/lipbench/run_short.py`)
+
+Before (V2 soundtrack graph, still floored onto the grid), the showcase's own fields:
+
+| Clip | Source | Card | Time | Result |
+|---|---|---|---|---|
+| resizeVideo_010 | 21 frames, 0.875 s | flowVideoEdit_010 | 64 s | 5 frames, 0.21 s (tail lost) |
+| resizeVideo_005 | 52 frames, 2.17 s | flowVideoEdit_011 | 100 s | 39 frames, 1.63 s (tail lost) |
+
+After: builder `MPI-1036/research/bench/flow_graph.py` now carries the soundtrack (300-303) and the pad
+(30 = ceil onto the grid, min 22; 305-311 hold the last frame; 312-314 pad the audio with silence + 1 s; 123
+cuts back to the source count; 130 saves the source audio whole). Bench graph `P1_padup.json` (build_padup.py).
+
+Results on P1_padup (timings skewed: the Pod was shared with session "Turbo LoRA comparison test for MiniMax H3"):
+
+| Clip | Card | Result | Mouth (mouth.py) | Fabio |
+|---|---|---|---|---|
+| resizeVideo_010, 21 fr | flowVideoEdit_012 | 21 frames, 0.875 s, audio 0.875 s | - | "now in sync" |
+| resizeVideo_005, 52 fr | flowVideoEdit_013 | 52 frames, 2.167 s, audio 2.167 s | corr 0.92, lag 0 (V2 before: 0.48) | "nice, sync is good", whole line heard |
+
+The man's weak lips on V2 were the cut tail too, not the swap LoRA being off for Change the background.
+| ref2v_004, 141 fr (on the grid, no pad) | flowVideoEdit_014 | 141 frames, 5.875 s, audio 5.875 s | corr 0.97, lag 0 (V2: 0.98) | "spot on, really good" |
+
+**Step 1 + step 2 pass on all three clips.** Left: export the builder to raw/ and sync to the shipped graph.

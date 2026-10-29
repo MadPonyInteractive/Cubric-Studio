@@ -63,11 +63,18 @@ Pasting the SAM3 shape instead was tried and failed Fabio's eye (ghost round the
 § Traps), so the square stays. Candidates, cheapest first, each one masked 768p run (~3 min):
 (a) blend 24 -> 64 / 96 px; (b) MpiGradeMatch band 48 wider; (c) paste the square with a falloff that
 is full inside the grown mask and fades to the square's edge. Fabio judges by eye.
+**2026-10-29 result:** (a) failed: 64 px only smears the step (flowVideoEdit_009), and 64 is the node's max
+(96 refused). (b) skipped: the step is moved geometry, not colour. Next is (c), a new bench variant.
 
 ## Not yet investigated
 
 - `flowVideoEdit_012` (video's room + a picture): the person and the background change, then
   switch back to the original. Watch it frame by frame before guessing.
+  **Watched 2026-10-29:** 141 frames, video's room 768p, no soundtrack (shipped graph), Look empty. Starts in the
+  PICTURE's room, dissolves to the office by ~1.2 s, then the person dissolves back to the original woman from
+  ~4.5 s. The S2 run (flowVideoEdit_007 in the lip bench: same clip, picture and fields, soundtrack on, pinned
+  seed) holds the swap and the office for all 5 s. One run each, so seed luck is not ruled out: re-check on the
+  shipped soundtrack graph before opening anything.
 - System RAM on clips over ~10 s. Unmeasured guess: `MpiLoadVideoUpload` decodes every frame
   at source size (about 25 MB a frame at 1088x1920, float) and the graph copies the batch
   several times (grid cut, lead-in, resize, crop). Measure peak RAM by node before changing
@@ -86,7 +93,10 @@ Steps below keep their numbers.
 windowing bench three ways: MpiWindowedSampler vs Viggle five_frame_anchor vs Motion Context V2
 (each segment continues from ~1 s of the previous one's video AND audio latents), judged on
 this card's grid / audio / timing-lock / RAM rules (`MPI-1336/research/video-edit-window-needs.md`).
-Step 7 here is folded into that bench; Video Edit tests the winner. **Watch:** Motion Context's
+Step 7 here is folded into that bench; Video Edit tests the winner. **2026-10-29 first result (session "Infinite video 1"):** the latent-path chain
+(MpiSaveLatent/MpiLoadLatent, MpiH3MaskedPrefix context 39 before node 115) wins on Video Edit's graph: joins
+invisible, no drift over 3 x 124-frame windows; the pixel path is 9% darker by window 3. Lip lag, 2K, RAM and
+resume per window not measured. MPI-1336/research/bench-2026-10-29-chain.md. **Watch:** Motion Context's
 author says single pass only (a latent upscale or a second stage shows the seams), but Video Edit
 runs Fast Motion (base pass + latent upscale + refine) above 768p. If Motion Context wins, Video
 Edit's above-768p route needs rethinking.
@@ -140,7 +150,24 @@ bench builder `tasks/MPI-1036/research/bench/flow_graph.py`, `export_raw.py`, th
 § Traps), `js/data/flowsRegistry.js` (only if step 3 adds a field), the Reuse fix site
 (unknown until step 4), `docs/playbooks/add-flow/existing-flows/video-edit.md`.
 
-## Current State (2026-10-29 16:37 UTC, session "Video Edit Flow Issues 2")
+## Current State (2026-10-29 ~17:40 UTC, session "Video Edit Flow Issues 3")
+
+**Steps 1 (pad up, cut back) and 2 (soundtrack) PASS on Fabio's Pod and by his eye/ear** on all three clips
+(validation.md § Step 1): the 0.875 s and 2.17 s clips come back at full length and in sync (the man's mouth 0.48 ->
+0.92), the 5 s clip corr 0.97, "spot on". Both live ONLY in the builder `MPI-1036/research/bench/flow_graph.py`
+(+ bench graph `research/lipbench/P1_padup.json`); the shipped `comfy_workflows/flow_video_edit.json` is still HEAD.
+**ONE next action: ship it.** `export_raw.py push` -> load each in a ComfyUI frontend tab (`app.loadApiJson`, then
+POST `app.graph.serialize()`) -> `pull` -> `node scripts/sync-raw-workflows.mjs` (it COMMITS raw itself) -> diff the
+synced API against `fg.graph()` (only injected widget values may differ) -> `npm test`.
+Gotcha: export_raw and the sync default to :8188, where nothing runs. The `G:\ComfyUi` bench is up on **:8189**
+(set COMFY_URL and the URL in export_raw; read-only, queue nothing). The Pod wrapper has no /object_info.
+Template line "The sound of <Video 1> continues unchanged" KEPT: with the soundtrack wired it is true, and it is
+the wording every passing run used.
+Masking seam: blend 64 failed (64 is the node's max), parked LAST by Fabio. Showcase flowVideoEdit_012 drift: S2
+with the soundtrack held - re-check after shipping. The Pod is shared with session "Turbo LoRA comparison test for
+MiniMax H3"; timings since ~17:02 are skewed.
+
+## Previous state (2026-10-29 16:37 UTC, session "Video Edit Flow Issues 2")
 
 **Fabio's RTX PRO 4500 Pod (32 GB VRAM, 62 GB RAM) is LIVE in his app on :3000 and billing.** Use it first.
 Runs go through his app (Fabio said so): `research/lipbench/run_bench.py` / `run_more.py` swap a bench graph
@@ -156,5 +183,8 @@ above) - next on the Pod. Not shipped: the soundtrack is in bench graphs only; s
 `MPI-1036/research/bench/flow_graph.py` + raw + sync (video-edit.md § Traps), plus the template's
 "sound continues unchanged" line.
 
-Next: (1) seam bench on the Pod, Fabio judges by eye; (2) ship the soundtrack via the builder; (3) step 1
+**Fabio, 2026-10-29 (session "Video Edit Flow Issues 3"): masking goes LAST**, since other changes may affect it.
+New order: ship the soundtrack (step 2) + pad-up-cut-back (step 1) in one graph pass, then one Pod round on the
+5 s, 0.875 s and 2.17 s clips (step 5); Reuse repro (step 4) and flowVideoEdit_012 locally meanwhile.
+Was: (1) seam bench on the Pod, Fabio judges by eye; (2) ship the soundtrack via the builder; (3) step 1
 pad-up-cut-back on the 0.875 s / 2.17 s clips; (4) Reuse repro (step 4).

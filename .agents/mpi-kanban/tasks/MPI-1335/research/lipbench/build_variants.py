@@ -36,7 +36,15 @@ def pin_seed(w):
     w['17']['inputs']['int'] = 3362804242
 
 
-VARIANTS = {'V1_shipped': [], 'V2_soundtrack': [soundtrack], 'V3_lora': [lora_on], 'V4_both': [soundtrack, lora_on]}
+def blend(px):
+    # Masked-route seam bench (plan.md § Masked route seam): InpaintCropImproved's blend, 24 px as shipped.
+    def patch(w):
+        w['54']['inputs']['mask_blend_pixels'] = px
+    return patch
+
+
+VARIANTS = {'V1_shipped': [], 'V2_soundtrack': [soundtrack], 'V3_lora': [lora_on], 'V4_both': [soundtrack, lora_on],
+            'B64_blend': [soundtrack, blend(64)], 'B96_blend': [soundtrack, blend(96)]}
 for name, patches in VARIANTS.items():
     w = copy.deepcopy(base)
     for p in patches + ([pin_seed] if patches else []):  # V1 stays byte-identical: it is also the restore copy

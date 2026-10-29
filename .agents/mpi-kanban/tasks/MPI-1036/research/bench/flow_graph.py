@@ -297,12 +297,30 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
                    a=['13', 0], b=['11', 4], c=['14', 0], math_expression='6 if (a == 1) * b * (1 - c) > 0 else a')
 
     # ---- the clip on H3's 17k+5 grid, and its soundtrack
-    g['30'] = node('MpiMath', 'Frames on the H3 grid (17k+5)', a=['10', 3], math_expression='floor((a - 5) / 17) * 17 + 5')
-    g['31'] = node('GetImageRangeFromBatch', 'Source on the grid', images=['10', 0], start_index=0, num_frames=['30', 0])
+    # Pad up, cut back (MPI-1335): flooring onto the grid cut up to 16 frames off every tail, and a 21-frame clip ran
+    # as 5. The clip goes UP to the grid (at least 22 frames) with its last frame held, H3 hears the soundtrack padded
+    # with silence to match, and node 123 cuts the result back to the source's own frame count.
+    g['30'] = node('MpiMath', 'Frames on the H3 grid (17k+5, at least 22)', a=['10', 3],
+                   math_expression='22 if a <= 22 else ceil((a - 5) / 17) * 17 + 5')
+    g['305'] = node('MpiMath', 'Pad frames', a=['30', 0], b=['10', 3], math_expression='a - b')
+    g['306'] = node('MpiMath', 'Pad?', a=['305', 0], math_expression='a > 0')
+    g['307'] = node('MpiMath', 'Clip last frame index', a=['10', 3], math_expression='a - 1')
+    g['308'] = node('ImageFromBatch', 'Clip last frame', image=['10', 0], batch_index=['307', 0], length=1)
+    g['309'] = node('RepeatImageBatch', 'Last frame, held to the grid', image=['308', 0], amount=['305', 0])
+    g['310'] = node('ImageBatch', 'Clip + held last frame', image1=['10', 0], image2=['309', 0])
+    # Lazy: RepeatImageBatch never runs with 0 when the clip already sits on the grid.
+    g['311'] = node('MpiIfElse', 'pad ? clip + held frame : clip', boolean=['306', 0], true=['310', 0],
+                    false=['10', 0])
+    g['31'] = node('GetImageRangeFromBatch', 'Source on the grid', images=['311', 0], start_index=0, num_frames=['30', 0])
     g['32'] = node('EmptyAudio', 'Silence (source has no audio)', duration=['10', 4], sample_rate=44100, channels=2)
     g['33'] = node('MpiIfElse', 'has_audio ? source audio : silence', boolean=['10', 7], true=['10', 1], false=['32', 0])
+    # The pad's silence runs 1 s past the grid so a soundtrack shorter than its picture is covered too; node 35 cuts
+    # it exact, and EmptyAudio is never asked for 0 s.
+    g['312'] = node('MpiMath', 'Pad seconds (+1 s)', a=['305', 0], b=['10', 2], math_expression='a / b + 1')
+    g['313'] = node('EmptyAudio', 'Pad silence', duration=['312', 0], sample_rate=44100, channels=2)
+    g['314'] = node('AudioConcat', 'Clip audio + pad silence', audio1=['33', 0], audio2=['313', 0], direction='after')
     g['34'] = node('MpiMath', 'Last frame', a=['30', 0], math_expression='a - 1')
-    g['35'] = node('MpiAudioRange', 'Source audio on the grid', audio=['33', 0], fps=['10', 2], start=0, end=['34', 0])
+    g['35'] = node('MpiAudioRange', 'Source audio on the grid', audio=['314', 0], fps=['10', 2], start=0, end=['34', 0])
     # Template 6 holds the picture's own pose ~0.5-0.7 s, then plays the whole performance from its first move, so
     # every move landed late against the music and the clip's last moves never came (MPI-1197: 12-16 frames on real
     # footage and on a re-fed result alike; not the swap LoRA, grain or the background). 17 stills of frame 0 in front
@@ -316,6 +334,14 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
     g['45'] = node('MpiMath', 'Lead-in?', a=['36', 0], math_expression='a > 0')
     g['46'] = node('MpiIfElse', 'lead-in ? padded clip : clip', boolean=['45', 0], true=['39', 0], false=['31', 0])
     g['47'] = node('MpiMath', 'H3 length (clip + lead-in)', a=['30', 0], b=['36', 0], math_expression='a + b')
+    # H3 hears the clip (MPI-1335): without its soundtrack H3 invented speech and moved the mouth to it (corr 0.50 ->
+    # 0.98, lag 0, mouth shut in pauses). Silence under the still lead-in, so the speech lands on its own frames; the
+    # lazy MpiIfElse keeps a 0 s EmptyAudio from ever running on the no-lead-in routes. MpiMath has ONE output.
+    g['300'] = node('MpiMath', 'Lead-in seconds', a=['36', 0], b=['10', 2], math_expression='a / b')
+    g['301'] = node('EmptyAudio', 'Lead-in silence', duration=['300', 0], sample_rate=44100, channels=2)
+    g['302'] = node('AudioConcat', 'Silence + clip audio', audio1=['301', 0], audio2=['35', 0], direction='after')
+    g['303'] = node('MpiIfElse', 'lead-in ? silence + clip audio : clip audio', boolean=['45', 0], true=['302', 0],
+                    false=['35', 0])
 
     # ---- whole frame: resized to the render area, aspect kept, 32-divisible
     g['40'] = node('MpiMath', 'Render width', a=['10', 5], b=['10', 6], c=['26', 0],
@@ -477,7 +503,7 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
     g['110'] = node('MpiH3References', 'H3 references (<Video 1> the clip, <Picture 1> the picture)',
                     clip=base[1], vae=['102', 0], audio_vae=['103', 0], prompt=prompt, width=['61', 0],
                     height=['62', 0], length=['47', 0], ref_image_size='match', ref_image_1=['29', 0],
-                    ref_video_1=['60', 0])
+                    ref_video_1=['60', 0], ref_video_audio_1=['303', 0])
     g['111'] = node('RandomNoise', 'RandomNoise', noise_seed=['17', 0])
     g['112'] = node('KSamplerSelect', 'KSamplerSelect', sampler_name='res_multistep')
     g['113'] = node('BasicScheduler', 'BasicScheduler', model=['105', 0], scheduler='simple', steps=8, denoise=1.0)
@@ -492,9 +518,9 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
                     mask=['54', 2], band=48)
     g['121'] = node('InpaintStitchImproved', 'Stitch back into the source', stitcher=['54', 0], inpainted_image=['120', 0])
     g['122'] = node('MpiIfElse', 'masked ? stitched : whole frame', boolean=['24', 0], true=['121', 0], false=['117', 0])
-    g['123'] = node('GetImageRangeFromBatch', 'Drop the lead-in', images=['122', 0], start_index=['36', 0],
-                    num_frames=['30', 0])
-    g['130'] = node('MpiSaveVideo', 'Output_Video', images=['123', 0], audio=['35', 0], fps=24, filename_prefix=prefix,
+    g['123'] = node('GetImageRangeFromBatch', 'Drop the lead-in and the pad', images=['122', 0], start_index=['36', 0],
+                    num_frames=['10', 3])
+    g['130'] = node('MpiSaveVideo', 'Output_Video', images=['123', 0], audio=['33', 0], fps=24, filename_prefix=prefix,
                     use_audio=True, truncate_to_audio=False)
     _fast_motion(g)
     return g
@@ -575,7 +601,8 @@ def _fast_motion(g):
                     shift_audio=0.5)
     g['223'] = node('MpiH3References', 'Refine_Refs', clip=g['110']['inputs']['clip'], vae=['102', 0],
                     audio_vae=['103', 0], prompt=g['110']['inputs']['prompt'], width=['61', 0], height=['62', 0],
-                    length=['47', 0], ref_image_size='max', ref_image_1=['29', 0], ref_video_1=['60', 0])
+                    length=['47', 0], ref_image_size='max', ref_image_1=['29', 0], ref_video_1=['60', 0],
+                    ref_video_audio_1=['303', 0])
     g['224'] = node('BasicGuider', 'Basic Guider (refine)', model=['222', 0], conditioning=['223', 0])
     g['225'] = node('ManualSigmas', '3 step Sigmas', sigmas='0.9035, 0.6316, 0.3158, 0.0000')
     g['226'] = node('KSamplerSelect', 'KSamplerSelect (refine)', sampler_name='euler')
