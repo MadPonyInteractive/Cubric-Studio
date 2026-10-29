@@ -68,8 +68,10 @@ const _progress = new Map();   // genId -> whole percent
 
 function sendProgress(genId) {
   if (!windowOpen || !_progress.has(genId)) return;
+  const lane = laneFor(genId);
+  if (!lane) return; // a cloud/tool job has no tile
   ipcRenderer.send('float-latent:progress', {
-    lane: laneFor(genId), genId, value: _progress.get(genId) / 100,
+    lane, genId, value: _progress.get(genId) / 100,
   });
 }
 
@@ -90,6 +92,7 @@ function stopLane(lane) {
   _players.delete(lane);
   _lastSent.delete(lane);
   _encoding.delete(lane);
+  _laneGen.delete(lane);
 }
 
 function titleFor(entry) {
@@ -104,18 +107,30 @@ function runningGens() {
 // and a gen's lane = its engine and NEVER changes. Frames route by their own
 // engine tag (see preview:frame). started/complete/cancel carry no engine tag,
 // so resolve from the store job by genId (store.genId === the activeGenerations
-// id, set at dispatch — an exact match) and cache it. `generation:started`
-// seeds the cache while the store job is live, so a later `complete` still
-// resolves after the job is gone.
+// id, set at dispatch — an exact match) and cache it. The first frame seeds the
+// cache, so a later `complete` still resolves after the job is gone.
 const _laneOf = new Map(); // genId -> 'local' | 'remote'
 
-/** Lane for a gen with no engine tag (started/complete/cancel) — store lookup. */
+// The gen each lane's tile is showing, taken from the FRAME's own promptId — the
+// resolution every other consumer of the bus uses. It used to be read back from
+// `generationStore.activeGenId(lane)`, which answers a different question ("what
+// is the store running on this lane") and on a busy queue answered null: the tile
+// then lost the run's clip meta, dropped to still mode and froze on the first
+// frame of each burst, captioned "Generating" because it had no model to name.
+const _laneGen = new Map(); // lane -> genId
+
+/**
+ * Lane for a gen with no engine tag (started/complete/cancel) — store lookup.
+ * null for a gen that never reaches a ComfyUI engine: the 'cloud' and 'tool'
+ * lanes have no preview socket and no tile. Folding them onto 'local' let a
+ * Describe or a cloud edit finishing mid-render stop the local video's loop.
+ */
 function laneFor(genId) {
   if (_laneOf.has(genId)) return _laneOf.get(genId);
   const job = generationStore.list().find((j) => j.genId === genId);
-  const lane = job?.lane === 'remote' ? 'remote' : 'local';
-  _laneOf.set(genId, lane);
-  return lane;
+  if (job?.lane !== 'local' && job?.lane !== 'remote') return null;
+  _laneOf.set(genId, job.lane);
+  return job.lane;
 }
 
 /** blob: URL → data URL (per-document blobs don't cross the IPC boundary). */
@@ -152,7 +167,7 @@ async function sendFrame(lane, url) {
   try { dataUrl = await blobUrlToDataUrl(url); } finally { _encoding.delete(lane); }
   if (!dataUrl || !windowOpen) return; // window may have closed mid-encode
   _lastSent.set(lane, Date.now());
-  const genId = generationStore.activeGenId(lane);
+  const genId = _laneGen.get(lane) ?? null;
   const title = genId ? titleFor(activeGenerations.get(genId) || {}) : '';
   const seq = (_outSeq.get(lane) || 0) + 1;
   _outSeq.set(lane, seq);
@@ -169,7 +184,9 @@ async function openTiles() {
     // Seed the cache from the engine-tagged held latent when we have it (exact),
     // else fall back to the store lookup.
     const lane = last?.engine ? (last.engine === 'remote' ? 'remote' : 'local') : laneFor(entry.id);
+    if (!lane) continue; // cloud/tool run: nothing to preview
     _laneOf.set(entry.id, lane);
+    _laneGen.set(lane, entry.id);
     ipcRenderer.send('float-latent:add-tile', { lane, genId: entry.id, title: titleFor(entry) });
     if (last?.url) {
       const dataUrl = await blobUrlToDataUrl(last.url);
@@ -212,22 +229,21 @@ export function initFloatLatentBridge() {
   // as activeGenerations.js's bus listener. No cleanup array needed.
   // Live frames — forward only while the window is open.
   // eslint-disable-next-line mpi/require-destroy-on-events
-  Events.on('preview:frame', ({ engine, url }) => {
+  Events.on('preview:frame', ({ engine, promptId, url }) => {
     if (!windowOpen || !url) return;
-    // Route STRICTLY by the engine tag → lane. The engine tag is the ONLY reliable
-    // lane source: the two engines have independent promptId spaces (byPromptId can
-    // collide) AND the store job isn't registered yet at generation:started time
-    // (an await gap), so neither a promptId lookup nor a started-time store lookup
-    // can be trusted. The lane IS the engine. The frame also OWNS tile creation and
-    // labelling: the store is populated by the time frames flow, so we resolve this
-    // lane's active gen (title + ownership) from it here — correct by construction.
+    // The TILE is keyed by the engine tag → lane: one tile per engine, and a gen's
+    // engine never changes. The GENERATION is the frame's own — byPromptId, as every
+    // other consumer resolves it (docs/preview-bus.md § Subscribe). An unresolved
+    // promptId (before the /prompt ack) is skipped there too.
+    const entry = activeGenerations.byPromptId(promptId);
+    if (!entry) return;
     const lane = engine === 'remote' ? 'remote' : 'local';
-    const genId = generationStore.activeGenId(lane);
-    if (genId) _laneOf.set(genId, lane); // seed for complete/cancel (no engine tag there)
+    _laneOf.set(entry.id, lane); // seed for complete/cancel (no engine tag there)
+    _laneGen.set(lane, entry.id);
     // The run's clip state rides along with EVERY frame (MPI-535) — re-read here
     // rather than latched, because the marker that declares a run "clip" fires once
     // and the float window is usually not even open when it lands.
-    playerFor(lane).push(url, genId ? activeGenerations.getPreviewClip(genId) : null);
+    playerFor(lane).push(url, activeGenerations.getPreviewClip(entry.id));
   });
 
   // Footer fill. Forwarded only when the whole percent moves — the aggregator ticks
@@ -253,7 +269,8 @@ export function initFloatLatentBridge() {
   // URLs until enough new frames push them out of its ring.
   // eslint-disable-next-line mpi/require-destroy-on-events
   Events.on('generation:preview-reset', ({ id, clip }) => {
-    _players.get(laneFor(id))?.reset(clip);
+    const lane = laneFor(id);
+    if (lane) _players.get(lane)?.reset(clip);
   });
 
   // A gen COMPLETED → keep its tile, freeze it on the final result so the user can
@@ -264,9 +281,13 @@ export function initFloatLatentBridge() {
   // eslint-disable-next-line mpi/require-destroy-on-events
   Events.on('generation:complete', async ({ id, item }) => {
     const lane = laneFor(id);
-    stopLane(lane); // loop + throttle/encode maps are all lane-keyed
     _laneOf.delete(id);
     _progress.delete(id);
+    if (!lane) return; // a cloud/tool job never had a tile
+    // Stop the lane's loop only if it is still THIS gen's: a sequential queue has
+    // usually started the successor's frames already, and stopping its player here
+    // froze it until the next sampler burst.
+    if (_laneGen.get(lane) === id || !_laneGen.has(lane)) stopLane(lane);
     if (!windowOpen) return;
     // PER-LANE completion: the mascot "Done" cue fires when THIS lane's batch is
     // empty — independent of the other lane. Local finishing while remote runs must
@@ -292,9 +313,10 @@ export function initFloatLatentBridge() {
   // when the last tile goes.
   const drop = ({ id }) => {
     const lane = laneFor(id);
-    stopLane(lane);
     _laneOf.delete(id);
     _progress.delete(id);
+    if (!lane) return; // a cloud/tool job never had a tile
+    if (_laneGen.get(lane) === id || !_laneGen.has(lane)) stopLane(lane);
     if (windowOpen) ipcRenderer.send('float-latent:tile-remove', { lane, genId: id });
   };
   /* eslint-disable mpi/require-destroy-on-events */

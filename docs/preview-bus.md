@@ -167,17 +167,19 @@ window where an early frame of a new gen was attributed to the previous gen. Bot
 - **Both-engine rule.** `engine` distinguishes local vs remote and the bus emits for both,
   but a local-only test does **not** verify remote — remote previews arrive over the
   renderer-direct WSS proxy. Verify a remote-connected gen too.
-- **Route a multi-engine consumer by `engine`, NOT `byPromptId`.** The two engines are
-  independent ComfyUI instances with **independent `promptId` spaces** — a local and a
-  remote promptId can collide, so `byPromptId(promptId)` may return the wrong engine's gen.
-  A consumer that shows local + remote side by side (the OS float window,
-  `floatLatentBridge.js`) keys tiles by **engine lane** (`local`/`remote`) taken straight
-  off the frame's `engine` tag. It does NOT derive lane from a promptId or genId lookup.
-  It also can't resolve lane at `generation:started` — the store job registers only after
-  an `await` inside `runCommand`, so the store is empty then. So the **first frame** owns
-  tile creation: by then the store is populated and `generationStore.activeGenId(lane)`
-  gives the correct gen (title/ownership). Per-lane "batch done" uses
-  `generationStore.laneDepth(lane, excludeGenId)`.
+- **A multi-engine consumer keys its SLOT by `engine`, its GENERATION by `byPromptId`.**
+  The OS float window (`floatLatentBridge.js`) shows local + remote side by side, one tile
+  per **engine lane** (`local`/`remote`) taken straight off the frame's `engine` tag. The
+  gen a frame belongs to is the frame's own `promptId` (server-minted uuid4s, so the two
+  engines cannot collide), exactly as every other consumer resolves it. It was once read
+  back from `generationStore.activeGenId(lane)` instead — a different question that a busy
+  MCP queue answered null, so the tile lost its clip meta, dropped to still mode and froze
+  on one frame per step, captioned "Generating" (MPI-1345). The **first frame** owns tile
+  creation (the store job registers only after an `await` inside `runCommand`, so nothing
+  is known at `generation:started`). `complete`/`cancel` carry no engine tag: their lane
+  comes from the first frame's cache, else the store job, and a `cloud`/`tool` job has
+  none — folding it onto `local` let a Describe ending mid-render stop the video's loop.
+  Per-lane "batch done" uses `generationStore.laneDepth(lane, excludeGenId)`.
 - **Two onmessage closures.** `comfyController.connect()` has a reuse-path and a fresh-path
   onmessage handler — both must honor the `_stripPreviewHeader` null-skip. (A fix that
   updated only one shipped a broken frame on the fresh path; MPI-269 caught it in review.)

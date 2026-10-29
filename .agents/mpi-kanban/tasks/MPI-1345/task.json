@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1345",
+  "title": "Floating Latents window: video latents stop looping after the first step",
+  "description": "The minimised-app Latents window resolves a frame's generation from whatever the store says is active on the lane, not from the frame's own promptId, so the tile loses the run's clip meta (caption reads 'Generating') and drops to still mode; and a cloud/tool gen finishing maps onto the local lane and kills the video's loop. Fix in js/shell/floatLatentBridge.js.",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-10-29T15:59:25+00:00",
+  "updated_at": "2026-10-29T16:05:11+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
