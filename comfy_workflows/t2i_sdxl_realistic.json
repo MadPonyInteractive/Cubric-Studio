@@ -1248,7 +1248,7 @@
         1
       ]
     },
-    "class_type": "UltimateSDUpscale",
+    "class_type": "MpiUltimateSDUpscale",
     "_meta": {
       "title": "Ultimate SD Upscale"
     }
@@ -1285,7 +1285,7 @@
         2
       ]
     },
-    "class_type": "LanPaint_ImageDecode",
+    "class_type": "MpiLanPaintImageDecode",
     "_meta": {
       "title": "LanPaint Image Decode"
     }
@@ -1322,7 +1322,7 @@
         0
       ]
     },
-    "class_type": "LanPaint_KSampler",
+    "class_type": "MpiLanPaintKSampler",
     "_meta": {
       "title": "LanPaint KSampler"
     }
@@ -1342,7 +1342,7 @@
         2
       ]
     },
-    "class_type": "LanPaint_ImageEncode",
+    "class_type": "MpiLanPaintImageEncode",
     "_meta": {
       "title": "LanPaint Image Encode"
     }
@@ -1370,7 +1370,7 @@
         0
       ]
     },
-    "class_type": "InpaintStitchImproved",
+    "class_type": "MpiInpaintStitch",
     "_meta": {
       "title": "\u2702\ufe0f Inpaint Stitch"
     }
@@ -1414,7 +1414,7 @@
         0
       ]
     },
-    "class_type": "InpaintCropImproved",
+    "class_type": "MpiInpaintCrop",
     "_meta": {
       "title": "\u2702\ufe0f Inpaint Crop"
     }

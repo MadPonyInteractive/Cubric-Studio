@@ -603,7 +603,7 @@
         0
       ]
     },
-    "class_type": "Krea2EditGroundedEncode",
+    "class_type": "MpiKrea2EditGroundedEncode",
     "_meta": {
       "title": "Krea2 Edit (grounded encode)"
     }
@@ -629,7 +629,7 @@
         0
       ]
     },
-    "class_type": "Krea2EditGroundedEncode",
+    "class_type": "MpiKrea2EditGroundedEncode",
     "_meta": {
       "title": "Krea2 Edit (grounded encode)"
     }
@@ -704,7 +704,7 @@
         0
       ]
     },
-    "class_type": "Krea2EditModelPatch",
+    "class_type": "MpiKrea2EditModelPatch",
     "_meta": {
       "title": "Krea2 Edit (source patch)"
     }
@@ -863,7 +863,7 @@
         0
       ]
     },
-    "class_type": "Krea2EditModelPatch",
+    "class_type": "MpiKrea2EditModelPatch",
     "_meta": {
       "title": "Krea2 Edit (source patch)"
     }
@@ -1390,7 +1390,7 @@
         0
       ]
     },
-    "class_type": "InpaintStitchImproved",
+    "class_type": "MpiInpaintStitch",
     "_meta": {
       "title": "✂️ Inpaint Stitch"
     }
@@ -1459,7 +1459,7 @@
         0
       ]
     },
-    "class_type": "InpaintCropImproved",
+    "class_type": "MpiInpaintCrop",
     "_meta": {
       "title": "✂️ Inpaint Crop"
     }
@@ -1920,7 +1920,7 @@
         1
       ]
     },
-    "class_type": "UltimateSDUpscale",
+    "class_type": "MpiUltimateSDUpscale",
     "_meta": {
       "title": "Upscaling..."
     }
@@ -1969,7 +1969,7 @@
         2
       ]
     },
-    "class_type": "LanPaint_ImageEncode",
+    "class_type": "MpiLanPaintImageEncode",
     "_meta": {
       "title": "LanPaint Image Encode"
     }
@@ -2012,7 +2012,7 @@
         0
       ]
     },
-    "class_type": "LanPaint_KSampler",
+    "class_type": "MpiLanPaintKSampler",
     "_meta": {
       "title": "LanPaint KSampler"
     }
@@ -2037,7 +2037,7 @@
         2
       ]
     },
-    "class_type": "LanPaint_ImageDecode",
+    "class_type": "MpiLanPaintImageDecode",
     "_meta": {
       "title": "LanPaint Image Decode"
     }

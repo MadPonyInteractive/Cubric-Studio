@@ -185,7 +185,7 @@
         0
       ]
     },
-    "class_type": "InpaintCropImproved",
+    "class_type": "MpiInpaintCrop",
     "_meta": {
       "title": "Inpaint Crop (the band)"
     }
@@ -301,7 +301,7 @@
         0
       ]
     },
-    "class_type": "LanPaint_KSampler",
+    "class_type": "MpiLanPaintKSampler",
     "_meta": {
       "title": "LanPaint KSampler"
     }
@@ -333,7 +333,7 @@
         0
       ]
     },
-    "class_type": "InpaintStitchImproved",
+    "class_type": "MpiInpaintStitch",
     "_meta": {
       "title": "Inpaint Stitch"
     }

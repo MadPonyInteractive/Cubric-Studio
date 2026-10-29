@@ -21,6 +21,20 @@ require.cache[require.resolve('../routes/remoteEngine')].exports = {
 
 const { remoteInstallDep } = require('../routes/remoteModels');
 const nodeLock = require('../dev_configs/node_lock.json');
+// MPI-1343 dropped the pack, so no locked node has a submodule today: put USDU's last pin back
+// into the cached lock the route reads, so the field stays covered for the next one.
+nodeLock.nodes['ComfyUI-UltimateSDUpscale'] ??= {
+    source: 'git-commit', repo: 'ssitu/ComfyUI_UltimateSDUpscale',
+    commit: 'bebd5696fddd61cb0d08949a222c508898ab5577', filename: 'comfyui_ultimatesdupscale',
+    installRequirements: false,
+    submodules: {
+        'repositories/ultimate_sd_upscale': {
+            repo: 'Coyote-A/ultimate-upscale-for-automatic1111',
+            commit: '2322caa480535b1011a1f9c18126d85ea444f146',
+            sha256: '0797d41bad17b4bd9c41fae0ff4ea110cc364c1d2a06e13b27ca78fd0d4c57d7',
+        },
+    },
+};
 
 let sent;
 globalThis.fetch = async (_url, opts) => {

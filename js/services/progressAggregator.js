@@ -57,7 +57,7 @@ export function buildWeightMap(workflow) {
         let weight = DEFAULT_NODE_WEIGHT;
         let kind   = 'default';
 
-        if (classType === 'UltimateSDUpscale') {
+        if (classType === 'MpiUltimateSDUpscale') {
             const steps = parseInt(inputs.steps, 10) || DEFAULT_SAMPLER_STEPS;
             weight = steps * ULTIMATE_TILE_ESTIMATE;
             kind   = 'ultimateSDUpscale';

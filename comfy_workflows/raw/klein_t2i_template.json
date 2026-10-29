@@ -8227,7 +8227,7 @@
     },
     {
       "id": 582,
-      "type": "InpaintStitchImproved",
+      "type": "MpiInpaintStitch",
       "pos": [
         5890.005377141213,
         752.6924917590936
@@ -8263,9 +8263,9 @@
         }
       ],
       "properties": {
-        "cnr_id": "comfyui-inpaint-cropandstitch",
-        "ver": "3.0.12",
-        "Node name for S&R": "InpaintStitchImproved"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "4d8b87eb63148b36333b848a6ae10c06751193c3",
+        "Node name for S&R": "MpiInpaintStitch"
       }
     },
     {
@@ -9154,7 +9154,7 @@
     },
     {
       "id": 581,
-      "type": "InpaintCropImproved",
+      "type": "MpiInpaintCrop",
       "pos": [
         4940.984275434262,
         750.7444465108388
@@ -9212,9 +9212,9 @@
         }
       ],
       "properties": {
-        "cnr_id": "comfyui-inpaint-cropandstitch",
-        "ver": "3.0.12",
-        "Node name for S&R": "InpaintCropImproved"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "4d8b87eb63148b36333b848a6ae10c06751193c3",
+        "Node name for S&R": "MpiInpaintCrop"
       },
       "widgets_values": [
         "bilinear",
@@ -10068,7 +10068,7 @@
     },
     {
       "id": 405,
-      "type": "UltimateSDUpscale",
+      "type": "MpiUltimateSDUpscale",
       "pos": [
         5373.954176245566,
         4356.266541295082
@@ -10167,9 +10167,9 @@
       ],
       "title": "Upscaling...",
       "properties": {
-        "cnr_id": "comfyui_ultimatesdupscale",
-        "ver": "eba8e381597f5b4abe93518c7b94c878fadca48f",
-        "Node name for S&R": "UltimateSDUpscale",
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "4d8b87eb63148b36333b848a6ae10c06751193c3",
+        "Node name for S&R": "MpiUltimateSDUpscale",
         "ue_properties": {
           "version": "7.1",
           "widget_ue_connectable": {
@@ -10717,7 +10717,7 @@
     },
     {
       "id": 652,
-      "type": "LanPaint_KSampler",
+      "type": "MpiLanPaintKSampler",
       "pos": [
         5458.002292124174,
         1580.6476059605382
@@ -10787,7 +10787,7 @@
       "properties": {
         "cnr_id": "lanpaint",
         "ver": "1.4.10",
-        "Node name for S&R": "LanPaint_KSampler"
+        "Node name for S&R": "MpiLanPaintKSampler"
       },
       "widgets_values": [
         134002004938138,

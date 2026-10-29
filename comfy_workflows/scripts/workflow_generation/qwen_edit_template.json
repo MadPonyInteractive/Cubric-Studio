@@ -725,7 +725,7 @@
         0
       ]
     },
-    "class_type": "InpaintCropImproved",
+    "class_type": "MpiInpaintCrop",
     "_meta": {
       "title": "✂️ Inpaint Crop"
     }
@@ -741,7 +741,7 @@
         0
       ]
     },
-    "class_type": "InpaintStitchImproved",
+    "class_type": "MpiInpaintStitch",
     "_meta": {
       "title": "✂️ Inpaint Stitch"
     }

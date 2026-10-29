@@ -1164,7 +1164,7 @@
     },
     {
       "id": 35,
-      "type": "Krea2OstrisEditModelPatch",
+      "type": "MpiKrea2OstrisEditModelPatch",
       "pos": [
         1120,
         940
@@ -1194,7 +1194,7 @@
       ],
       "title": "Ostris Edit Patch",
       "properties": {
-        "Node name for S&R": "Krea2OstrisEditModelPatch"
+        "Node name for S&R": "MpiKrea2OstrisEditModelPatch"
       },
       "widgets_values": [
         true
@@ -1366,7 +1366,7 @@
     },
     {
       "id": 40,
-      "type": "TextEncodeKrea2OstrisEdit",
+      "type": "MpiKrea2OstrisEditTextEncode",
       "pos": [
         100,
         1220
@@ -1424,7 +1424,7 @@
       ],
       "title": "Outpaint Encode",
       "properties": {
-        "Node name for S&R": "TextEncodeKrea2OstrisEdit"
+        "Node name for S&R": "MpiKrea2OstrisEditTextEncode"
       },
       "widgets_values": [
         ""
@@ -1519,7 +1519,7 @@
     },
     {
       "id": 43,
-      "type": "TextEncodeKrea2OstrisEdit",
+      "type": "MpiKrea2OstrisEditTextEncode",
       "pos": [
         1120,
         1220
@@ -1569,7 +1569,7 @@
       ],
       "title": "Negative Encode",
       "properties": {
-        "Node name for S&R": "TextEncodeKrea2OstrisEdit"
+        "Node name for S&R": "MpiKrea2OstrisEditTextEncode"
       },
       "widgets_values": [
         "ugly, low quality"

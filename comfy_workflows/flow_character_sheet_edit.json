@@ -601,7 +601,7 @@
         3
       ]
     },
-    "class_type": "InpaintCropImproved",
+    "class_type": "MpiInpaintCrop",
     "_meta": {
       "title": "Inpaint Crop (the part the lock leaves open)"
     }
@@ -876,7 +876,7 @@
         0
       ]
     },
-    "class_type": "LanPaint_KSampler",
+    "class_type": "MpiLanPaintKSampler",
     "_meta": {
       "title": "LanPaint KSampler (locked)"
     }
@@ -928,7 +928,7 @@
         0
       ]
     },
-    "class_type": "InpaintStitchImproved",
+    "class_type": "MpiInpaintStitch",
     "_meta": {
       "title": "Inpaint Stitch (locked: the sheet's own size)"
     }

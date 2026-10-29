@@ -2120,7 +2120,7 @@
     },
     {
       "id": 210,
-      "type": "InpaintStitchImproved",
+      "type": "MpiInpaintStitch",
       "pos": [
         2330.06858687301,
         6243.377300152919
@@ -2155,9 +2155,9 @@
         }
       ],
       "properties": {
-        "Node name for S&R": "InpaintStitchImproved",
-        "cnr_id": "comfyui-inpaint-cropandstitch",
-        "ver": "3.0.12"
+        "Node name for S&R": "MpiInpaintStitch",
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "4d8b87eb63148b36333b848a6ae10c06751193c3"
       },
       "widgets_values": []
     },
@@ -3182,7 +3182,7 @@
     },
     {
       "id": 221,
-      "type": "InpaintCropImproved",
+      "type": "MpiInpaintCrop",
       "pos": [
         1381.047485166057,
         6241.429254904664
@@ -3238,9 +3238,9 @@
         }
       ],
       "properties": {
-        "Node name for S&R": "InpaintCropImproved",
-        "cnr_id": "comfyui-inpaint-cropandstitch",
-        "ver": "3.0.12"
+        "Node name for S&R": "MpiInpaintCrop",
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "4d8b87eb63148b36333b848a6ae10c06751193c3"
       },
       "widgets_values": [
         "bilinear",

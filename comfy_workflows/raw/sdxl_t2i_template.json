@@ -5762,7 +5762,7 @@
     },
     {
       "id": 1702,
-      "type": "UltimateSDUpscale",
+      "type": "MpiUltimateSDUpscale",
       "pos": [
         5991.332864001857,
         3359.5466358663352
@@ -5848,9 +5848,9 @@
         }
       ],
       "properties": {
-        "cnr_id": "comfyui_ultimatesdupscale",
-        "ver": "1.7.1",
-        "Node name for S&R": "UltimateSDUpscale",
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "4d8b87eb63148b36333b848a6ae10c06751193c3",
+        "Node name for S&R": "MpiUltimateSDUpscale",
         "ue_properties": {
           "widget_ue_connectable": {},
           "input_ue_unconnectable": {},
@@ -6129,7 +6129,7 @@
     },
     {
       "id": 1710,
-      "type": "LanPaint_ImageEncode",
+      "type": "MpiLanPaintImageEncode",
       "pos": [
         6548.249051572535,
         594.153896423025
@@ -6169,9 +6169,9 @@
         }
       ],
       "properties": {
-        "cnr_id": "LanPaint",
-        "ver": "2.1.0",
-        "Node name for S&R": "LanPaint_ImageEncode"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "4d8b87eb63148b36333b848a6ae10c06751193c3",
+        "Node name for S&R": "MpiLanPaintImageEncode"
       }
     },
     {
@@ -6483,7 +6483,7 @@
     },
     {
       "id": 1721,
-      "type": "InpaintStitchImproved",
+      "type": "MpiInpaintStitch",
       "pos": [
         8083.373342108464,
         -242.4155120339705
@@ -6518,9 +6518,9 @@
         }
       ],
       "properties": {
-        "cnr_id": "comfyui-inpaint-cropandstitch",
-        "ver": "3.0.12",
-        "Node name for S&R": "InpaintStitchImproved"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "4d8b87eb63148b36333b848a6ae10c06751193c3",
+        "Node name for S&R": "MpiInpaintStitch"
       }
     },
     {
@@ -6838,7 +6838,7 @@
     },
     {
       "id": 1707,
-      "type": "LanPaint_ImageDecode",
+      "type": "MpiLanPaintImageDecode",
       "pos": [
         8039.950954503044,
         656.9484487955968
@@ -6884,9 +6884,9 @@
         }
       ],
       "properties": {
-        "cnr_id": "LanPaint",
-        "ver": "2.1.0",
-        "Node name for S&R": "LanPaint_ImageDecode"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "4d8b87eb63148b36333b848a6ae10c06751193c3",
+        "Node name for S&R": "MpiLanPaintImageDecode"
       },
       "widgets_values": [
         9
@@ -6897,7 +6897,7 @@
     },
     {
       "id": 1726,
-      "type": "InpaintCropImproved",
+      "type": "MpiInpaintCrop",
       "pos": [
         7134.352240401514,
         -244.36355728222532
@@ -6959,9 +6959,9 @@
         }
       ],
       "properties": {
-        "cnr_id": "comfyui-inpaint-cropandstitch",
-        "ver": "3.0.12",
-        "Node name for S&R": "InpaintCropImproved"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "4d8b87eb63148b36333b848a6ae10c06751193c3",
+        "Node name for S&R": "MpiInpaintCrop"
       },
       "widgets_values": [
         "bilinear",
@@ -7299,7 +7299,7 @@
     },
     {
       "id": 1708,
-      "type": "LanPaint_KSampler",
+      "type": "MpiLanPaintKSampler",
       "pos": [
         6898.305001411236,
         526.5097765932514
@@ -7352,8 +7352,8 @@
         }
       ],
       "properties": {
-        "cnr_id": "LanPaint",
-        "ver": "0.25.0",
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "4d8b87eb63148b36333b848a6ae10c06751193c3",
         "Node name for S&R": "KSampler"
       },
       "widgets_values": [

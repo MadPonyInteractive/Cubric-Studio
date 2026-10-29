@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1343", "at": "2026-10-29T15:35:37+00:00", "actor": "claude", "column": "todo", "title": "Engine diet: fold the small no-requirement packs into MpiNodes"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1343", "at": "2026-10-29T20:59:49+00:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio: do 1343 first; port the 5 licensed packs, the 3 unlicensed stay deps"}

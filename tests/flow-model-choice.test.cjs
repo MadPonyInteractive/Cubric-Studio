@@ -418,7 +418,7 @@ test('the Character Sheet fills its ONE LoRA rack, and no flat or phase-2 rack s
     // Editor's last leg, and the result-pane toggle on an old sheet), so both are held to it.
     const headless = readJson('comfy_workflows/flow_character_sheet_headless.json');
     for (const g of [sheet, headless]) {
-        assert.ok(!Object.values(g).some(n => n.class_type === 'LanPaint_KSampler'),
+        assert.ok(!Object.values(g).some(n => n.class_type === 'MpiLanPaintKSampler'),
             'the LanPaint head-removal pass should be gone — MPI-628 replaced it with a matte');
     }
 

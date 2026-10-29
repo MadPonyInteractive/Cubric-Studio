@@ -2782,7 +2782,7 @@
     },
     {
       "id": 42,
-      "type": "InpaintCropImproved",
+      "type": "MpiInpaintCrop",
       "pos": [
         1100,
         1922
@@ -3062,9 +3062,9 @@
       ],
       "title": "Inpaint Crop",
       "properties": {
-        "cnr_id": "comfyui-inpaint-cropandstitch",
-        "ver": "3.0.12",
-        "Node name for S&R": "InpaintCropImproved"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "4d8b87eb63148b36333b848a6ae10c06751193c3",
+        "Node name for S&R": "MpiInpaintCrop"
       },
       "widgets_values": [
         "bilinear",
@@ -3181,7 +3181,7 @@
     },
     {
       "id": 44,
-      "type": "InpaintStitchImproved",
+      "type": "MpiInpaintStitch",
       "pos": [
         4946.533007812499,
         130
@@ -3219,9 +3219,9 @@
       ],
       "title": "Inpaint Stitch",
       "properties": {
-        "cnr_id": "comfyui-inpaint-cropandstitch",
-        "ver": "3.0.12",
-        "Node name for S&R": "InpaintStitchImproved"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "4d8b87eb63148b36333b848a6ae10c06751193c3",
+        "Node name for S&R": "MpiInpaintStitch"
       }
     },
     {
@@ -3422,7 +3422,7 @@
     },
     {
       "id": 49,
-      "type": "LanPaint_KSampler",
+      "type": "MpiLanPaintKSampler",
       "pos": [
         3537.44140625,
         522
@@ -3563,7 +3563,7 @@
       "properties": {
         "cnr_id": "lanpaint",
         "ver": "2.1.0",
-        "Node name for S&R": "LanPaint_KSampler"
+        "Node name for S&R": "MpiLanPaintKSampler"
       },
       "widgets_values": [
         0,
@@ -4806,7 +4806,7 @@
     },
     {
       "id": 84,
-      "type": "InpaintStitchImproved",
+      "type": "MpiInpaintStitch",
       "pos": [
         4659.803906249999,
         306
@@ -4844,9 +4844,9 @@
       ],
       "title": "Inpaint Stitch (detail)",
       "properties": {
-        "cnr_id": "comfyui-inpaint-cropandstitch",
-        "ver": "3.0.12",
-        "Node name for S&R": "InpaintStitchImproved"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "4d8b87eb63148b36333b848a6ae10c06751193c3",
+        "Node name for S&R": "MpiInpaintStitch"
       }
     },
     {
@@ -5275,7 +5275,7 @@
     },
     {
       "id": 97,
-      "type": "UltimateSDUpscale",
+      "type": "MpiUltimateSDUpscale",
       "pos": [
         3537.44140625,
         1818
@@ -5517,9 +5517,9 @@
       ],
       "title": "Upscaling...",
       "properties": {
-        "cnr_id": "comfyui_ultimatesdupscale",
-        "ver": "bebd5696fddd61cb0d08949a222c508898ab5577",
-        "Node name for S&R": "UltimateSDUpscale"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "4d8b87eb63148b36333b848a6ae10c06751193c3",
+        "Node name for S&R": "MpiUltimateSDUpscale"
       },
       "widgets_values": [
         2,

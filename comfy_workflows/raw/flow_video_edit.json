@@ -3016,7 +3016,7 @@
     },
     {
       "id": 54,
-      "type": "InpaintCropImproved",
+      "type": "MpiInpaintCrop",
       "pos": [
         5159.7056640625,
         998
@@ -3296,9 +3296,9 @@
       ],
       "title": "Crop the square",
       "properties": {
-        "cnr_id": "comfyui-inpaint-cropandstitch",
-        "ver": "3.0.12",
-        "Node name for S&R": "InpaintCropImproved"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "4d8b87eb63148b36333b848a6ae10c06751193c3",
+        "Node name for S&R": "MpiInpaintCrop"
       },
       "widgets_values": [
         "bilinear",
@@ -6359,7 +6359,7 @@
     },
     {
       "id": 121,
-      "type": "InpaintStitchImproved",
+      "type": "MpiInpaintStitch",
       "pos": [
         14257.385351562498,
         130
@@ -6397,9 +6397,9 @@
       ],
       "title": "Stitch back into the source",
       "properties": {
-        "cnr_id": "comfyui-inpaint-cropandstitch",
-        "ver": "3.0.12",
-        "Node name for S&R": "InpaintStitchImproved"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "4d8b87eb63148b36333b848a6ae10c06751193c3",
+        "Node name for S&R": "MpiInpaintStitch"
       }
     },
     {

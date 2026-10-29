@@ -488,7 +488,7 @@ test('the Draw It In Flow carries its I/O, its model arm and its box (MPI-567)',
     assert.ok(match && match.class_type === 'MpiColorMatch',
         `${file} must carry a ColorMatch titled "Match The Photo Grade"`);
     const [, stitch] = Object.entries(graph)
-        .find(([, n]) => n?.class_type === 'InpaintStitchImproved');
+        .find(([, n]) => n?.class_type === 'MpiInpaintStitch');
     assert.deepEqual(stitch.inputs.inpainted_image, [matchId, 0],
         'the stitch must take the GRADE-MATCHED patch, or the vintage-plate seam returns');
     assert.ok(Array.isArray(match.inputs.image_ref), 'ColorMatch image_ref must be wired');
@@ -1328,7 +1328,7 @@ test('the Object Stamp Flow carries its I/O, its model arm, its box and its mode
     // BOTH CROPS MUST SHARE ONE REGION. Law 7: the two references are only comparable
     // because they are framed identically, and a run with mismatched framing returns a
     // doll's-house composite rather than an error.
-    const crops = Object.entries(graph).filter(([, n]) => n?.class_type === 'InpaintCropImproved');
+    const crops = Object.entries(graph).filter(([, n]) => n?.class_type === 'MpiInpaintCrop');
     assert.strictEqual(crops.length, 2, `${file} must carry exactly 2 InpaintCropImproved nodes`);
     const [maskA, maskB] = crops.map(([, n]) => JSON.stringify(n.inputs.mask));
     assert.strictEqual(maskA, maskB, `${file}: both crops must read the same box mask (law 7)`);
@@ -1367,7 +1367,7 @@ test('the Make seamless Flow carries its window I/O, the joined prompt and NO re
     // seam included. Pinned so a re-export from the Character Sheet branch cannot bring it back.
     assert.ok(!Object.values(graph).some(n => n.class_type === 'ReferenceLatent'),
         `${file} must carry no ReferenceLatent`);
-    const lan = Object.values(graph).find(n => n.class_type === 'LanPaint_KSampler');
+    const lan = Object.values(graph).find(n => n.class_type === 'MpiLanPaintKSampler');
     assert.ok(lan, `${file} repaints with LanPaint`);
     // The window's mask ramps from 0 at the band edges (seamlessOps.windowCut); only DifferentialDiffusion
     // turns that ramp into per-pixel strength. Without it the band's edges showed as lines (MPI-1101 eye test).

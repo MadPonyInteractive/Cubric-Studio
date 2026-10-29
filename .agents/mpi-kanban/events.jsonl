@@ -7494,3 +7494,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1341", "at": "2026-10-29T16:30:41+00:00", "actor": "Strip Node Packs 2", "from": "todo", "to": "doing", "reason": "Phase 1 port started (MPI-1344 batch, wave 2)."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1341", "at": "2026-10-29T20:27:01+00:00", "actor": "claude", "from": "doing", "to": "doing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1341", "at": "2026-10-29T20:43:55+00:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on be78fb41d"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1343", "at": "2026-10-29T20:59:49+00:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio: do 1343 first; port the 5 licensed packs, the 3 unlicensed stay deps"}

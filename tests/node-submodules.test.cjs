@@ -35,6 +35,28 @@ after(() => fs.removeSync(SCRATCH));
 const USDU = 'ComfyUI-UltimateSDUpscale';
 const SUB = 'repositories/ultimate_sd_upscale';
 
+// MPI-1343 dropped the pack (ported into MpiNodes), so no locked node has a submodule today.
+// The machinery stays for the next one: the test puts USDU's last pin back into the cached
+// lock and DEPS, which are the same objects the routes read.
+nodeLock.nodes[USDU] ??= {
+    source: 'git-commit',
+    repo: 'ssitu/ComfyUI_UltimateSDUpscale',
+    commit: 'bebd5696fddd61cb0d08949a222c508898ab5577',
+    filename: 'comfyui_ultimatesdupscale',
+    installRequirements: false,
+    submodules: {
+        [SUB]: {
+            repo: 'Coyote-A/ultimate-upscale-for-automatic1111',
+            commit: '2322caa480535b1011a1f9c18126d85ea444f146',
+            sha256: '0797d41bad17b4bd9c41fae0ff4ea110cc364c1d2a06e13b27ca78fd0d4c57d7',
+        },
+    },
+};
+DEPS[USDU] ??= {
+    id: USDU, name: 'ComfyUI Ultimate SD Upscale', type: 'custom_nodes',
+    filename: 'comfyui_ultimatesdupscale', url: 'https://x', installRequirements: false, size: '940KB',
+};
+
 // Minimal STORED zip (no compression) — enough for bsdtar and extract-zip alike.
 function makeZip(files) {
     const locals = [];

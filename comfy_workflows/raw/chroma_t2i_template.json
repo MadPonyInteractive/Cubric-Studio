@@ -5458,7 +5458,7 @@
     },
     {
       "id": 2753,
-      "type": "UltimateSDUpscale",
+      "type": "MpiUltimateSDUpscale",
       "pos": [
         1354.35985263435,
         1644.5133285190445
@@ -5565,9 +5565,9 @@
       ],
       "title": "Upscaling...",
       "properties": {
-        "cnr_id": "comfyui_ultimatesdupscale",
-        "ver": "eba8e381597f5b4abe93518c7b94c878fadca48f",
-        "Node name for S&R": "UltimateSDUpscale",
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "4d8b87eb63148b36333b848a6ae10c06751193c3",
+        "Node name for S&R": "MpiUltimateSDUpscale",
         "ue_properties": {
           "version": "7.1",
           "widget_ue_connectable": {

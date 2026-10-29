@@ -78,6 +78,14 @@ export const nodesDeps = {
     // GetImageSizeAndCount in the unshipped lipdub template. A user's
     // leftover folder keeps loading, harmless, until the next engine upgrade sets it aside
     // (_findDeprecatedNodes, routes/engine.js).
+    // ComfyUI-UltimateSDUpscale, comfyui-inpaint-cropandstitch, LanPaint, comfyui-krea2edit
+    // and ComfyUI-Krea2-Ostris-Edit are NOT here (MPI-1343): the nodes we used are ported into
+    // MpiNodes as MpiUltimateSDUpscale, MpiInpaintCrop/Stitch, MpiLanPaint*, MpiKrea2Edit* and
+    // MpiKrea2OstrisEdit* (usdu/, cropstitch/, lanpaint/, krea2edit/, licences there) and every
+    // shipped graph names those. Head Swap 1.0.0/1.1.0 still name the crop/stitch id in
+    // requiredDeps; an unknown id is skipped, which is why its next package needs this app.
+    // Leftover folders keep loading, harmless, until the next engine upgrade sets them aside
+    // (_findDeprecatedNodes, routes/engine.js).
     // MPI-623: back after MPI-190 removed it (it then loaded only LTX's Q8_0 transformer).
     // The 3D Scene's camera-path video runs Wan 2.1 I2V 720P as a Q4_K_M GGUF: 11.3 GB
     // against 16.4 GB fp8, the quality measured equal on hole-filling (MPI-623 amendment
@@ -91,20 +99,6 @@ export const nodesDeps = {
         url: lockUrl('ComfyUI-GGUF'),
         installRequirements: true,
         size: '120KB',
-    },
-    // Carries a git SUBMODULE (repositories/ultimate_sd_upscale) that the GitHub archive
-    // leaves empty. node_lock `submodules` pins it and the installer fills it (MPI-1213);
-    // left empty, the pack's __init__.py fetches Coyote-A master with Python at import.
-    // A bump of this node's commit must re-read the submodule commit its tree records
-    // and re-pin `submodules` (commit + archive sha256) with it.
-    'ComfyUI-UltimateSDUpscale': {
-        id: 'ComfyUI-UltimateSDUpscale',
-        name: 'ComfyUI Ultimate SD Upscale',
-        type: 'custom_nodes',
-        filename: 'comfyui_ultimatesdupscale',
-        url: lockUrl('ComfyUI-UltimateSDUpscale'),
-        installRequirements: false,
-        size: '940KB',
     },
     // ComfyUI-Frame-Interpolation, audio-separation-nodes-comfyui and ComfyUI-Mickmumpitz-Nodes
     // are NOT here (MPI-1342): the nodes we used (RIFE VFI, AudioSeparation, five MickmumpitzPano*)
@@ -142,72 +136,6 @@ export const nodesDeps = {
         url: lockUrl('ComfyUI-Krea2-ControlNet'),
         installRequirements: false,
         size: '52KB',
-    },
-    // Krea2 identity-edit nodes (MPI-282) — Krea2EditModelPatch (in-context source
-    // latent as frame=1 RoPE tokens) + Krea2EditGroundedEncode (Qwen3-VL image-grounded
-    // instruction). Single __init__.py, imports only torch/einops/comfy — NO
-    // requirements.txt ⇒ installRequirements:false (rides the volume, not the Pod bake).
-    // Pinned at v1.2.2 (MPI-346) — matches the v1.2 weights we already ship. Adds the
-    // pixel-space source path (vae + source_image), fit_mode, ref_boost/ref_boost_mask,
-    // and the ComfyUI ref_latents wrapper-arg tolerance that ComfyUI 0.29 will require.
-    'comfyui-krea2edit': {
-        id: 'comfyui-krea2edit',
-        name: 'ComfyUI Krea2 Edit',
-        type: 'custom_nodes',
-        filename: 'comfyui-krea2edit',
-        url: lockUrl('comfyui-krea2edit'),
-        installRequirements: false,
-        size: '45KB',
-    },
-    // Inpaint Crop & Stitch (MPI-282) — InpaintCropImproved (✂️ Inpaint Crop) crops the
-    // masked region to a fixed working size, InpaintStitchImproved (✂️ Inpaint Stitch)
-    // pastes it back. Pure-python (torch/numpy/opencv, all already present) — NO
-    // requirements.txt ⇒ installRequirements:false (rides the volume, no Pod rebuild).
-    // SOLE CONSUMER = the Head Swap Flow (`flow_head_swap.json`), declared on the Flow's
-    // `requiredDeps` in flowsRegistry.js. It used to be listed on the Krea2 cards for
-    // their masked-crop edit path; `b3f9a018` removed that path from the Krea2 graphs
-    // and the listing outlived it, which is what kept the pack installing for Head Swap
-    // (whose own declaration was missing). Both sides fixed — do not re-add it to a
-    // model card unless that model's graph actually references the classes.
-    'comfyui-inpaint-cropandstitch': {
-        id: 'comfyui-inpaint-cropandstitch',
-        name: 'ComfyUI Inpaint Crop and Stitch',
-        type: 'custom_nodes',
-        filename: 'comfyui-inpaint-cropandstitch',
-        url: lockUrl('comfyui-inpaint-cropandstitch'),
-        installRequirements: false,
-        size: '200KB',
-    },
-    // LanPaint (MPI-598) — `LanPaint_KSampler` + `SetLatentNoiseMask` give Klein REAL
-    // mask-conditioned sampling. It replaced the fake-inpaint workaround the Klein graph
-    // used to carry (regenerate the whole crop via InpaintCrop → sample → InpaintStitch),
-    // which is why the template lost ~78 nodes: duplicated per-branch sampler chains
-    // collapsed into one. Proven on Klein 4B DISTILLED — the checkpoint we actually ship —
-    // so the README's distillation caveat did not bite.
-    // Declared on Klein 4B AND 9B, and expected to spread: any model adopting mask-
-    // conditioned inpainting lists it. `comfyui-inpaint-cropandstitch` STAYS — the graph
-    // still uses one InpaintCropImproved/StitchImproved pair.
-    //
-    // GPL-3.0, pinned UPSTREAM at tag v2.1.0, deliberately NOT forked and NOT vendored.
-    // Vendoring would relicence a first-party repo permanently; a fork earns its keep only
-    // when we need to change the code. The bench copy was verified identical to this exact
-    // commit (git blob SHA-1 on pyproject.toml + __init__.py) before pinning, so the pin is
-    // the thing that was proven, not a near-neighbour.
-    //
-    // SIZE IS THE WHOLE REPO, and it is nearly all `examples/` (177MB of media against
-    // ~200KB of actual code). LanPaint IS on the Comfy registry as scraed/LanPaint 2.1.0,
-    // whose MANIFEST.in excludes `examples/` — but `source: 'registry'` is UNREACHABLE in
-    // this app today: _runCustomNodeInstall scans for a GitHub-shaped `<name>-<branch>/`
-    // folder and `continue`s on any directory with no dash, so a flat registry node.zip
-    // fails as "extracted folder not found". Fixing that is its own card, not this one.
-    'LanPaint': {
-        id: 'LanPaint',
-        name: 'LanPaint',
-        type: 'custom_nodes',
-        filename: 'LanPaint',
-        url: lockUrl('LanPaint'),
-        installRequirements: false,
-        size: '186MB',
     },
     // Preprocessors (DepthAnythingV2Preprocessor via AIO_Preprocessor) for the Krea2
     // depth ControlNet (MPI-242). HAS a requirements.txt ⇒ installRequirements:true
@@ -300,20 +228,6 @@ export const nodesDeps = {
         url: lockUrl('ComfyUI-MelodramaBox'),
         installRequirements: true,
         size: '0.3MB',
-    },
-
-    // MIT (Ostris, LLC), pinned by git commit, one nodes.py, no requirements. Runs the 360
-    // outpaint LoRA, an ai-toolkit "Ostris edit" LoRA: lbouaraba's Krea2EditModelPatch
-    // (comfyui-krea2edit) fills NOTHING with it (bench `lb_fast`, MPI-623 validation.md
-    // § Phase 4 bench test), so the Panorama Flow's picture branch needs this pack.
-    'ComfyUI-Krea2-Ostris-Edit': {
-        id: 'ComfyUI-Krea2-Ostris-Edit',
-        name: 'Krea 2 Ostris Edit',
-        type: 'custom_nodes',
-        filename: 'ComfyUI-Krea2-Ostris-Edit',
-        url: lockUrl('ComfyUI-Krea2-Ostris-Edit'),
-        installRequirements: false,
-        size: '0.06MB',
     },
 
     // Supplies `MinimaxH3LatentUpscaler3D`, the node the H3 two-pass shape is built on:

@@ -126,7 +126,6 @@ const ALL_MODELS = [
             '4x-NMKD-Siax',
             'controlnet-union-sdxl',   // the ONE ControlNet behind all four control types
             'ComfyUI-MpiNodes',
-            'ComfyUI-UltimateSDUpscale',
             // MPI-365: MaskDetailerPipe/To-FromBasicPipe were always needed by the detail
             // op and were never declared — latent until the master template made every
             // node submit-validated on EVERY run, which turns the gap fatal.
@@ -138,8 +137,6 @@ const ALL_MODELS = [
             // mask, LanPaint over the crop, stitched back. Both packs are custom_nodes,
             // so the engine installs them either way — declared so the graph's needs are
             // readable here and the uninstall sweep never strands them.
-            'comfyui-inpaint-cropandstitch', // InpaintCropImproved/StitchImproved
-            'LanPaint',                      // LanPaint_KSampler — mask-conditioned sampling
         ],
     },
     {
@@ -202,7 +199,6 @@ const ALL_MODELS = [
             '4x-NMKD-Siax',
             'controlnet-union-sdxl',   // the ONE ControlNet behind all four control types
             'ComfyUI-MpiNodes',
-            'ComfyUI-UltimateSDUpscale',
             // MPI-365: MaskDetailerPipe/To-FromBasicPipe were always needed by the detail
             // op and were never declared — latent until the master template made every
             // node submit-validated on EVERY run, which turns the gap fatal.
@@ -214,8 +210,6 @@ const ALL_MODELS = [
             // mask, LanPaint over the crop, stitched back. Both packs are custom_nodes,
             // so the engine installs them either way — declared so the graph's needs are
             // readable here and the uninstall sweep never strands them.
-            'comfyui-inpaint-cropandstitch', // InpaintCropImproved/StitchImproved
-            'LanPaint',                      // LanPaint_KSampler — mask-conditioned sampling
         ],
     },
     {
@@ -282,7 +276,6 @@ const ALL_MODELS = [
             '4x-AnimeSharp',
             'controlnet-union-sdxl',   // the ONE ControlNet behind all four control types
             'ComfyUI-MpiNodes',
-            'ComfyUI-UltimateSDUpscale',
             // MPI-365: MaskDetailerPipe/To-FromBasicPipe were always needed by the detail
             // op and were never declared — latent until the master template made every
             // node submit-validated on EVERY run, which turns the gap fatal.
@@ -294,8 +287,6 @@ const ALL_MODELS = [
             // mask, LanPaint over the crop, stitched back. Both packs are custom_nodes,
             // so the engine installs them either way — declared so the graph's needs are
             // readable here and the uninstall sweep never strands them.
-            'comfyui-inpaint-cropandstitch', // InpaintCropImproved/StitchImproved
-            'LanPaint',                      // LanPaint_KSampler — mask-conditioned sampling
         ],
     },
     {
@@ -362,7 +353,6 @@ const ALL_MODELS = [
             '4x-AnimeSharp',
             'controlnet-union-sdxl',   // the ONE ControlNet behind all four control types
             'ComfyUI-MpiNodes',
-            'ComfyUI-UltimateSDUpscale',
             // MPI-365: MaskDetailerPipe/To-FromBasicPipe were always needed by the detail
             // op and were never declared — latent until the master template made every
             // node submit-validated on EVERY run, which turns the gap fatal.
@@ -374,8 +364,6 @@ const ALL_MODELS = [
             // mask, LanPaint over the crop, stitched back. Both packs are custom_nodes,
             // so the engine installs them either way — declared so the graph's needs are
             // readable here and the uninstall sweep never strands them.
-            'comfyui-inpaint-cropandstitch', // InpaintCropImproved/StitchImproved
-            'LanPaint',                      // LanPaint_KSampler — mask-conditioned sampling
         ],
     },
     {
@@ -443,7 +431,6 @@ const ALL_MODELS = [
             '4x-AnimeSharp',
             'controlnet-union-sdxl',   // the ONE ControlNet behind all four control types
             'ComfyUI-MpiNodes',
-            'ComfyUI-UltimateSDUpscale',
             // MPI-365: MaskDetailerPipe/To-FromBasicPipe were always needed by the detail
             // op and were never declared — latent until the master template made every
             // node submit-validated on EVERY run, which turns the gap fatal.
@@ -455,8 +442,6 @@ const ALL_MODELS = [
             // mask, LanPaint over the crop, stitched back. Both packs are custom_nodes,
             // so the engine installs them either way — declared so the graph's needs are
             // readable here and the uninstall sweep never strands them.
-            'comfyui-inpaint-cropandstitch', // InpaintCropImproved/StitchImproved
-            'LanPaint',                      // LanPaint_KSampler — mask-conditioned sampling
         ],
     },
     {
@@ -567,7 +552,6 @@ const ALL_MODELS = [
             'chroma-style-anime',
             'RES4LYF',
             'ComfyUI-MpiNodes',
-            'ComfyUI-UltimateSDUpscale',
             'comfyui_controlnet_aux',        // DepthAnythingV2Preprocessor (+ its own weight)
         ],
     },
@@ -650,7 +634,6 @@ const ALL_MODELS = [
             'chroma-style-anime',
             'RES4LYF',
             'ComfyUI-MpiNodes',
-            'ComfyUI-UltimateSDUpscale',
             'comfyui_controlnet_aux',        // DepthAnythingV2Preprocessor (+ its own weight)
         ],
     },
@@ -798,16 +781,12 @@ const ALL_MODELS = [
             '4x-NMKD-Siax',
             'RES4LYF',                   // ClownsharKSampler_Beta (both stages)
             'ComfyUI-MpiNodes',
-            'ComfyUI-UltimateSDUpscale',
             'ComfyUI-Krea2-ControlNet',
             'comfyui_controlnet_aux',
             // MPI-615, the inpaint branch (wf_type 5). InpaintCropImproved was already
             // in the graph on the edit path and had never been declared; LanPaint is new
             // with the branch. Both are custom_nodes, so the engine installs them either
             // way — declared so the graph's needs are readable here.
-            'comfyui-inpaint-cropandstitch', // InpaintCropImproved/StitchImproved
-            'LanPaint',                      // LanPaint_KSampler — mask-conditioned sampling
-            'comfyui-krea2edit',         // dual-conditioning edit nodes (Krea2EditModelPatch + GroundedEncode)
         ],
     },
     {
@@ -928,16 +907,12 @@ const ALL_MODELS = [
             '4x-NMKD-Siax',
             'RES4LYF',
             'ComfyUI-MpiNodes',
-            'ComfyUI-UltimateSDUpscale',
             'ComfyUI-Krea2-ControlNet',
             'comfyui_controlnet_aux',
             // MPI-615, the inpaint branch (wf_type 5). InpaintCropImproved was already
             // in the graph on the edit path and had never been declared; LanPaint is new
             // with the branch. Both are custom_nodes, so the engine installs them either
             // way — declared so the graph's needs are readable here.
-            'comfyui-inpaint-cropandstitch', // InpaintCropImproved/StitchImproved
-            'LanPaint',                      // LanPaint_KSampler — mask-conditioned sampling
-            'comfyui-krea2edit',
         ],
     },
     {
@@ -1109,10 +1084,7 @@ const ALL_MODELS = [
             'klein-style-aesthetic',
             '4x-NMKD-Siax',                  // shared engineAsset (upscale op)
             'ComfyUI-MpiNodes',              // 20 Mpi* classes incl. MpiStyleSelector/Loras
-            'ComfyUI-UltimateSDUpscale',     // UltimateSDUpscale (upscale op)
-            'comfyui-inpaint-cropandstitch', // InpaintCropImproved/StitchImproved (still one pair)
             'comfyui_controlnet_aux',        // DepthAnythingV2Preprocessor (+ its own weight)
-            'LanPaint',                      // LanPaint_KSampler — REAL mask-conditioned inpaint (MPI-598)
         ],
     },
     // ── FLUX.2 Klein 9B (MPI-598) ──────────────────────────────────────────
@@ -1241,10 +1213,7 @@ const ALL_MODELS = [
             'klein-9b-style-watercolour',
             '4x-NMKD-Siax',                  // shared engineAsset (upscale op)
             'ComfyUI-MpiNodes',
-            'ComfyUI-UltimateSDUpscale',
-            'comfyui-inpaint-cropandstitch',
             'comfyui_controlnet_aux',
-            'LanPaint',                      // LanPaint_KSampler — REAL mask-conditioned inpaint
         ],
     },
     // ── Boogu-Image-Edit (MPI-257) ─────────────────────────────────────────
@@ -1289,7 +1258,6 @@ const ALL_MODELS = [
             'qwen3vl-8b-int8-clip',
             'vae-flux-ae',            // shared — already on R2, zero upload
             'ComfyUI-MpiNodes',
-            'comfyui-inpaint-cropandstitch', // InpaintCropImproved/StitchImproved (localised edit)
         ],
     },
     // Balanced = turbo int8_convrot (promoted from 'low'). fp8_scaled Balanced tier DROPPED
@@ -1324,7 +1292,6 @@ const ALL_MODELS = [
             'qwen3vl-8b-int8-clip',
             'vae-flux-ae',
             'ComfyUI-MpiNodes',
-            'comfyui-inpaint-cropandstitch', // localised edit — MPI-428
         ],
     },
     // ── Video Models ───────────────────────────────────────────────────
@@ -2081,10 +2048,7 @@ const ALL_MODELS = [
             'qwen-image-21-style-clay',
             '4x-NMKD-Siax',               // shared engineAsset (upscale op)
             'ComfyUI-MpiNodes',
-            'ComfyUI-UltimateSDUpscale',
             'comfyui_controlnet_aux',     // AIO_Preprocessor x4, as SDXL's
-            'comfyui-inpaint-cropandstitch', // masked edit, inpaint, detail
-            'LanPaint',                   // LanPaint_KSampler - masked edit + inpaint
         ],
     },
 
@@ -2223,9 +2187,6 @@ const ALL_MODELS = [
             'vae-flux2',
             '4x-NMKD-Siax',
             'ComfyUI-MpiNodes',              // MpiFlux3References (ten reference slots)
-            'ComfyUI-UltimateSDUpscale',
-            'comfyui-inpaint-cropandstitch', // masked edit, inpaint, detail
-            'LanPaint',                      // inpaint
         ],
     },
 
@@ -2325,9 +2286,6 @@ const ALL_MODELS = [
             // validated by ComfyUI), so their packs and the upscaler must be present.
             '4x-NMKD-Siax',
             'ComfyUI-MpiNodes',
-            'ComfyUI-UltimateSDUpscale',
-            'comfyui-inpaint-cropandstitch',
-            'LanPaint',
         ],
     },
 

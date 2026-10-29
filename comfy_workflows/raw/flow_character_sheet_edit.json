@@ -1937,7 +1937,7 @@
     },
     {
       "id": 39,
-      "type": "InpaintCropImproved",
+      "type": "MpiInpaintCrop",
       "pos": [
         1160,
         1200
@@ -2009,8 +2009,8 @@
         }
       ],
       "properties": {
-        "cnr_id": "comfyui-inpaint-cropandstitch",
-        "Node name for S&R": "InpaintCropImproved"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiInpaintCrop"
       },
       "widgets_values": [
         "bilinear",
@@ -2726,7 +2726,7 @@
     },
     {
       "id": 54,
-      "type": "LanPaint_KSampler",
+      "type": "MpiLanPaintKSampler",
       "pos": [
         2660,
         1500
@@ -2795,8 +2795,8 @@
         }
       ],
       "properties": {
-        "cnr_id": "LanPaint",
-        "Node name for S&R": "LanPaint_KSampler"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiLanPaintKSampler"
       },
       "widgets_values": [
         0,
@@ -2912,7 +2912,7 @@
     },
     {
       "id": 57,
-      "type": "InpaintStitchImproved",
+      "type": "MpiInpaintStitch",
       "pos": [
         3060,
         1420
@@ -2947,8 +2947,8 @@
         }
       ],
       "properties": {
-        "cnr_id": "comfyui-inpaint-cropandstitch",
-        "Node name for S&R": "InpaintStitchImproved"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiInpaintStitch"
       },
       "widgets_values": null,
       "title": "Inpaint Stitch (locked: the sheet's own size)"

@@ -1298,7 +1298,7 @@
     },
     {
       "id": 163,
-      "type": "InpaintCropImproved",
+      "type": "MpiInpaintCrop",
       "pos": [
         6350,
         640
@@ -1576,7 +1576,7 @@
       ],
       "title": "Crop To Box",
       "properties": {
-        "Node name for S&R": "InpaintCropImproved"
+        "Node name for S&R": "MpiInpaintCrop"
       },
       "widgets_values": [
         "bilinear",
@@ -1651,7 +1651,7 @@
     },
     {
       "id": 169,
-      "type": "InpaintStitchImproved",
+      "type": "MpiInpaintStitch",
       "pos": [
         8000,
         400
@@ -1689,7 +1689,7 @@
       ],
       "title": "Stitch Back",
       "properties": {
-        "Node name for S&R": "InpaintStitchImproved"
+        "Node name for S&R": "MpiInpaintStitch"
       },
       "widgets_values": []
     },
@@ -2708,7 +2708,7 @@
     },
     {
       "id": 210,
-      "type": "InpaintCropImproved",
+      "type": "MpiInpaintCrop",
       "pos": [
         6350,
         1400
@@ -2983,7 +2983,7 @@
       ],
       "title": "Crop Clean Scene",
       "properties": {
-        "Node name for S&R": "InpaintCropImproved"
+        "Node name for S&R": "MpiInpaintCrop"
       },
       "widgets_values": [
         "bilinear",
