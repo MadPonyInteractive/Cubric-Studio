@@ -4760,10 +4760,10 @@
         "Node name for S&R": "MpiMath"
       },
       "widgets_values": [
-        "100000 if a * b < 850000 else (243 if a * b < 1100000 else (90 if a * b < 6000000 else 39))"
+        "0"
       ],
       "widgets_values_named": {
-        "math_expression": "100000 if a * b < 850000 else (243 if a * b < 1100000 else (90 if a * b < 6000000 else 39))"
+        "math_expression": "0"
       }
     },
     {
