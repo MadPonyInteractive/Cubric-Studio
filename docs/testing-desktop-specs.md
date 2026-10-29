@@ -135,7 +135,7 @@ notices). Use `--from-file` when the snippet contains backticks or quotes — Gi
 mangles those inline, and this repo's guard hooks block the heredoc workaround.
 `--self-check` proves the harness itself on a temp file.
 
-## Seven traps these specs paid for
+## Eight traps these specs paid for
 
 1. **Assert the trigger toggled (`is-open`) BEFORE asserting the popup.** In the real
    bug the trigger toggled — the chevron flipped — while the popup was invisible.
@@ -192,6 +192,12 @@ mangles those inline, and this repo's guard hooks block the heredoc workaround.
 
 7. **Never click at a fixed screen position.** The CI runner's window is shorter than 800 px, so a click at
    `y: 790` misses the body and waits out the test; to drop focus, `document.activeElement?.blur?.()` (2026-10-12).
+
+8. **No `app.evaluate` between `electron.launch` and `shellWindow`.** launch() returns while `main.js` is
+   still in its synchronous top-level load; V8 holds the evaluate's result promise weakly, a GC in that
+   load collects it, and Playwright reports "Execution context was destroyed", every run (MPI-1351). A
+   main-process hook that must exist before the window goes in a preload: `electron.launch({ args: ['-r',
+   hookPath, '.'] })`, as `tests/desktop/holdLandingReady.cjs` does.
 
 ## A save that takes SECONDS is a queued request, not a slow route (MPI-786)
 

@@ -1,0 +1,9 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "tests/desktop/shell-window-no-late-resize.spec.js",
+    ".agents/mpi-kanban/tasks/MPI-1351/",
+    "tests/desktop/holdLandingReady.cjs",
+    "docs/testing-desktop-specs.md"
+  ]
+}

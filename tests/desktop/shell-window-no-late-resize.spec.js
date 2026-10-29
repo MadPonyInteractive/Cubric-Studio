@@ -11,6 +11,7 @@
 // holding main's `shell:landing-ready` listener for 3s.
 
 const fs = require('fs');
+const path = require('path');
 const { test, expect, _electron: electron } = require('@playwright/test');
 const { shellWindow } = require('./shellWindow');
 
@@ -23,23 +24,11 @@ test('shellWindow leaves no late resize to close a dropdown the spec opens', asy
   const env = { ...process.env, CUBRIC_E2E: '1', CUBRIC_E2E_USER_DATA: userDataDir, APP_DOCUMENTS: documentsDir };
   delete env.ELECTRON_RUN_AS_NODE;
 
-  const app = await electron.launch({ args: ['.'], env });
+  // The hold is a main-process preload, not an `app.evaluate` after launch: that evaluate
+  // raced main.js's synchronous load and died with "Execution context was destroyed"
+  // (MPI-1351, the why is in holdLandingReady.cjs).
+  const app = await electron.launch({ args: ['-r', path.join(__dirname, 'holdLandingReady.cjs'), '.'], env });
   try {
-    // The main window does not exist yet when launch() returns (main waits for Express),
-    // and createWindow() registers its listener synchronously after `new BrowserWindow`,
-    // so it is there one tick after creation.
-    await app.evaluate(({ app: electronApp }) => {
-      globalThis.__heldLandingReady = 0;
-      electronApp.on('browser-window-created', (_e, win) => setImmediate(() => {
-        const ipc = win.webContents.ipc;
-        const listeners = ipc.listeners('shell:landing-ready');
-        if (!listeners.length) return;
-        globalThis.__heldLandingReady += listeners.length;
-        ipc.removeAllListeners('shell:landing-ready');
-        ipc.once('shell:landing-ready', (...args) => setTimeout(() => listeners.forEach(l => l(...args)), 3000));
-      }));
-    });
-
     const window = await shellWindow(app);
     await window.evaluate(() => { window.__resizes = 0; window.addEventListener('resize', () => { window.__resizes++; }); });
     // Without the hold this spec proves nothing on a fast machine.

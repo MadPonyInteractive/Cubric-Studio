@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1351",
+  "title": "Desktop spec red: shell-window-no-late-resize dies on its first main-process evaluate",
+  "description": "tests/desktop/shell-window-no-late-resize.spec.js (MPI-1230) fails every run on master: electronApplication.evaluate 'Execution context was destroyed' at its first app.evaluate right after electron.launch. Only red in the desktop suite (251/252). Find why the main-process context goes away and fix app or spec.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-29T23:12:19+00:00",
+  "updated_at": "2026-10-29T23:52:49+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
