@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1329",
+  "title": "Cosmo: a started install asks the user to say when it finishes, never promises to carry on",
+  "description": "Cosmo's install_model answer said 'downloading now, tell them so', and Cosmo then promised to run the job once the download finished. Nothing wakes Cosmo when a download ends, so it sat idle. The answer now tells Cosmo to ask the user to let it know when it finishes. Fabio picked this over a wake (2026-10-29).",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-29T02:09:55+00:00",
+  "updated_at": "2026-10-29T02:11:49+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
