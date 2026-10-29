@@ -2,6 +2,7 @@
 
 ## Current State
 
+- **2026-10-29 (session 10):** Desktop suite on D9 251/252; the one red (`shell-window-no-late-resize.spec.js`) predates D9 and now has its own session. Fabio checked D9, ticked (840b82167). **Phase 3 done. Next: Phase 4.** Stop is right as it is (Fabio): a result already made or past stopping still lands, a stopped engine gives none, a Flow keeps its finished stages and just stops.
 - **2026-10-29 (session 9):** D7 ticked (Fabio checked, 0b7fb4c43). **D9 code committed + pushed,
   waiting on the desktop suite's tail and Fabio's eye-test.** Four extractions:
   `js/utils/promptReuseApply.js` (`askPromptReuse`, `applyReuseToPromptBox`, `reuseIncludes`;
