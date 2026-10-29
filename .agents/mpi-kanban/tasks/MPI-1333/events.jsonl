@@ -1,0 +1,3 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1333", "at": "2026-10-29T03:06:12+00:00", "actor": "claude", "column": "todo", "title": "H3 guide: how to write a pause in speech"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1333", "at": "2026-10-29T03:07:20+00:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Writing the measured H3 pause rule into the agent guide"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1333", "at": "2026-10-29T03:08:24+00:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Pause rule is in the H3 guide, corpus test passes"}

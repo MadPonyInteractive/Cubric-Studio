@@ -18,8 +18,7 @@ guide:
 - The clip needs sound, and the user wants it in one pass.
 - Words only, no `t2v_ms` installed: `ref2v_ms` with no references is plain text to video on
   either reference model. Run it there; never offer the MiniMax H3 download for it.
-- A character or place must stay the same across clips: use `ref2v_ms` with their
-  reference pictures.
+- A character or place must stay the same across clips: use `ref2v_ms` with their reference pictures.
 - A still should come alive: `i2v_ms` with that still as the first frame. No `i2v_ms`
   installed, or the user names the reference op: `ref2v_ms` can try it, but it often misses,
   see "A first or last frame on ref2v_ms" below.
@@ -107,13 +106,15 @@ camera, the sound of the place, the constraint line. Then check the action again
   hooves: ..."). For new words, a voice reference gives the timbre and the prompt gives the
   delivery. Quote the clip's own words and it comes back as that recorded line, timing kept
   and the lips moving to it: a talking portrait. Expect the scene sound to dip while someone
-  speaks.
+  speaks. A pause has no marker: end the sentence, give the silence its own beat with a
+  length and a face ("falls silent for two full seconds, holding a slow smile, saying
+  nothing"), then the next quote. A pause inside a sentence fails however it is written:
+  gibberish, or a made-up word in the gap (measured 2026-10-29, one take per wording).
 - Cite each reference inside the sentence that uses it ("the rider from <Picture 1>
   pulls up"), never as a tag after the sentence.
 - `ref2v_ms` has no negative field. Neither does any other op here: see "Say what is
   there" below, which holds on all of them.
-- For `i2v_ms`, the picture is already the first frame: describe what happens next, not
-  what the picture shows.
+- For `i2v_ms`, the picture is already the first frame: describe what happens next, not what the picture shows.
 
 ### A first or last frame on ref2v_ms
 
@@ -165,8 +166,7 @@ arc travels around the subject, a roll turns the camera about the axis it is poi
 A user saying "rotate around him" means the arc. Never pass the user's word "rotate"
 through to the camera line: choose one of the vocabulary words and write that.
 
-Example. The user asks: "a short video of a paper boat drifting down a flooded gutter after
-rain".
+Example. The user asks: "a short video of a paper boat drifting down a flooded gutter after rain".
 
 ```text
 Rainy city street look: low to the ground, wet asphalt mirroring a grey sky, muted blues around one bright white paper boat, mood small and hopeful.
