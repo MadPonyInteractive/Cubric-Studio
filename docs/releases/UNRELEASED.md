@@ -60,3 +60,5 @@
 - **Dev updates reach you mid-session.** A new post pops up as a notice while you work, and View changes opens it, with the Update button there when a new version is out. (MPI-1321)
 - **A project an agent makes shows on the home screen at once.** A project created by an agent, or a picture it adds to a project you have closed, now appears in the home list straight away, without leaving and coming back. (MPI-1323)
 - **Video models reach the voice library.** On any model that takes a sound, such as LTX or MiniMax H3, the + in the prompt box now offers the Voice library next to your own media. (MPI-1325)
+- **Cosmo makes a words-only clip with the H3 you have.** With only H3 Reference or Singularity H3 installed, a text-to-video ask now runs on it instead of offering the 21 GB MiniMax H3 download. (MPI-1327)
+- **Cosmo uses the models you have before offering a download.** It no longer offers to install a model you didn't ask for when one you have does the same job; name the model and it still offers. For pictures, Qwen-Image 2.1 and FLUX.3 Klein now come right after Krea 2. (MPI-1332)

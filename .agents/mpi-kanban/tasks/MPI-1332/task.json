@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1332",
+  "title": "Cosmo offers an install when an installed model already does the job",
+  "description": "Live 2026-10-29: asked for a picture from a video frame with Klein 9B and Qwen-Image 2.1 installed, Cosmo put up an Install Krea 2 card (19.5 GB). install_model refuses when the user never named the model and an installed, free, runnable op already covers every task the model is ranked for. Also re-ranks image tasks: Krea 2, Qwen-Image 2.1, FLUX.3 Klein, then the rest (Fabio 2026-10-29).",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-29T02:48:54+00:00",
+  "updated_at": "2026-10-29T02:57:46+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
