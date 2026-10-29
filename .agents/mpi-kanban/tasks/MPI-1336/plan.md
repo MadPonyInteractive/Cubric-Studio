@@ -8,8 +8,20 @@ Method notes: `research/motion-context-v2-video.md`, `../MPI-1335/research/viggl
 
 - Bench 1 DONE (Video Edit case, 1344x768, 3 windows): **latent path (arm A) wins** - invisible
   joins, no drift; pixel path drifts -9 % by window 3. `research/bench-2026-10-29-chain.md`.
-- Next: Infinite Video case on Singularity v2 (static talking shot, drift), 22-frame context row,
-  2K per window + RAM, resume after cancel. Scripts in `research/bench/`.
+- Bench 2 DONE (Infinite Video, Singularity v2, static sheriff, 3 windows, arm A): joins invisible, but
+  the backdrop steps ~3.5 % darker at EACH join (-6 % over 3 windows); nothing pins a ref2v chain.
+  Long Infinite Video needs a colour anchor or bridging. `research/bench-2026-10-29-infinite.md`.
+- 6-window chain DONE: drift compounds and speeds up (backdrop -27 %, brown, speckled noise by window
+  6 ~23 s) while every join stays clean and the face holds. Plain chaining is good for ~3 windows
+  (~13 s) on a static shot. The reference image was in every window and did not stop it. Next bench:
+  re-anchoring - grade-match to window 1, and bridging (roots from the reference).
+- 2K per window, partial answer from New H3 Upscaler 1 (MPI-1348, closed): a 124-frame window refined to
+  2560x1408 through the shipped fl2va stage 2 FITS the 4060 Ti 16 GB (peak 15.6-16.0 GB whole card,
+  MpiWindowedSampler 2 x 73 frames, refine ~12.7 min + stage 1 at 1280x704 ~4.5 min).
+  `../MPI-1348/research/results.md`. Still open: a chained window (prefix held) through that refine,
+  and RAM.
+- Next: 22-frame context row (node change first), 2K per window + RAM (local 16 GB only), resume
+  after cancel, longer chain (6+ windows) to see if drift keeps compounding. Scripts in `research/bench/`.
 - Video Edit's graph changed after bench 1 (soundtrack into H3 via nodes 300-303, pad up / cut back
   via 30, 305-314, 123, 130; `../MPI-1335/research/lipbench/P1_padup.json`). Windowed: each window
   feeds H3 its own audio slice; pad-up on the LAST window only. Re-bench Video Edit on that graph.
@@ -62,6 +74,49 @@ Build the window loop (window plan, per-window source + audio slice, prefix, che
 pad-and-cut on the last window) as one shared primitive. Video Edit (MPI-1335) uses it first;
 the Infinite Video Flow next. Lip sync on ONE window (MPI-1335 step 2b) runs before any of this
 ships, because windows repeat whatever one pass gets wrong.
+
+## Next: bridging bench (Fabio's go, 2026-10-29; colour match REJECTED)
+
+Fabio by eye: the chain broke at the END of window 3 with JPEG-like artefacts, and every window after
+inherited and amplified them. Colour matching cannot fix texture, so it is dropped. Method source:
+`../MPI-1134/research/obvpm-bridging.md` (technique 2).
+
+- **Shape:** roots = independent windows from the reference, SAME seed + duration + canvas (same
+  noise gives the same framing); bridges = windows whose HEAD is the previous root's tail and whose
+  TAIL is the next root's head, both masked, so only the middle is sampled. No frame is ever more
+  than one hop from a clean root, so an artefact cannot spread past its two bridges, and one bad
+  root is redone alone.
+- **Engine gap:** `MpiH3MaskedPrefix` only masks the HEAD. A bridge needs a head AND tail mask
+  (the noise mask is per frame, so a tail option on our own node is the likely route, in
+  ComfyUi-MpiNodes via /mpi-nodes-sync). `ComfyUI-H3-Motion-Context` on the bench is GPL-3: ideas
+  only, never copied.
+- **Where it can break the flow (Fabio's question):** (1) roots all restart from the reference
+  pose and framing, so a shot where the subject MOVES through space (walks off, camera travels)
+  gives bridges two very different states to join: a teleport or hard cut. Bridging is for
+  held/static shots; moving shots drift less and suit plain chaining (the "static shot" switch).
+  (2) A detailed bridge prompt makes H3 hard-cut at the start; too little room makes it hard-cut at
+  the end (OBVPM: a 6-8 s beat needed a 12 s bridge). Keep bridge prompts short ("single
+  continuous shot, no cuts; he says: <line>"). (3) Roots render first, so the video does not grow
+  in time order while it runs. (4) With one user prompt, roots repeat the same action; each root
+  needs its own beat (an LLM split of the prompt).
+- **Bench:** sheriff, 3 roots + 2 bridges, Singularity, same settings as bench 2; compare the backdrop
+  per window against the 6-window chain, and the joins by eye. Window sizing per bridge (124 vs
+  more frames) to be set after reading the masking code.
+
+## Fabio's decision (2026-10-29, later): a generation setting, never a Flow; NO upscale phase
+
+Infinite Video is NOT a Flow. It is part of generation: a prompt-box toggle plus a number input for how long the video should be (it REPLACES the duration
+slider while on; the slider itself caps at 15 s for every video model, Fabio 2026-10-29 - H3's
+trained range tops out at 15.1 s, MpiH3Length),
+adopted by every model and Flow that runs MiniMax H3, so no job in the app is time-limited. UI and
+wiring to be brainstormed with Fabio later; "the Infinite Video Flow" elsewhere in this plan means this.
+Every finding goes to research here AND to `docs/models/h3/windowing.md`, written so it carries over to
+making LTX 2.5 infinite later.
+
+Infinite Video generates its windows at the base size and stops. Upscaling is the Upscaler Flow's job
+(H3 upscaler coming there, already windowed, so any length works on small cards, just slowly). Reason:
+an upscale pass is one more place to drift and to show seams. So "2K per window" and "a chained window
+through the refine" are NOT Infinite Video questions; they matter only for Video Edit (MPI-1335).
 
 ## Fabio's direction (2026-10-29)
 
