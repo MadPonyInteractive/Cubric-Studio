@@ -84,19 +84,20 @@ const imp = (p) => import(pathToFileURL(path.resolve(p)).href);
     }
 
     // (5) The exclusion is exactly "this flow's own deps that nobody else claims" —
-    //     never wider. stems owns its separator pack and no other flow wants it.
+    //     never wider. minimax-music owns its four weights and no other flow wants them.
     //     (head-swap held this case with 2 exclusive deps; it left the app as a Flow
     //     package — MPI-781 — and its deps stay declared in the registries with nothing
-    //     in FLOWS naming them, which is exactly why this check reads FLOWS, not DEPS.)
-    const hs = ownDeps('stems');
-    const afterHs = dm._flowRequiredDepIds(reg.flowDepKey('stems'));
-    const others = new Set(reg.FLOWS.filter(f => f.id !== 'stems')
+    //     in FLOWS naming them, which is exactly why this check reads FLOWS, not DEPS.
+    //     stems held it next, until MPI-1342 moved its separator node into MpiNodes.)
+    const hs = ownDeps('minimax-music');
+    const afterHs = dm._flowRequiredDepIds(reg.flowDepKey('minimax-music'));
+    const others = new Set(reg.FLOWS.filter(f => f.id !== 'minimax-music')
         .flatMap(f => f.requiredDeps || []));
     for (const id of everything) {
         assert.strictEqual(afterHs.has(id), others.has(id),
-            `${id} released by stems' uninstall but another flow still needs it`);
+            `${id} released by minimax-music's uninstall but another flow still needs it`);
     }
-    assert.ok(hs.some(id => !afterHs.has(id)), 'stems must free at least one own dep');
+    assert.ok(hs.some(id => !afterHs.has(id)), 'minimax-music must free at least one own dep');
 
     console.log(`ok — flow uninstall guard (${everything.size} flow deps protected by default)`);
 })();

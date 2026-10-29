@@ -22,7 +22,7 @@
     "ComfyUI-MpiNodes": {
       "source": "git-commit",
       "repo": "MadPonyInteractive/ComfyUi-MpiNodes",
-      "commit": "5e37b3831a578d7327402ed2a737caa51a631b68",
+      "commit": "e33694d02ddb40698cc402e172500ba016fb3e7d",
       "filename": "ComfyUI-MpiNodes",
       "installRequirements": false
     },
@@ -60,13 +60,6 @@
           "sha256": "0797d41bad17b4bd9c41fae0ff4ea110cc364c1d2a06e13b27ca78fd0d4c57d7"
         }
       }
-    },
-    "ComfyUI-Frame-Interpolation": {
-      "source": "git-commit",
-      "repo": "Fannovel16/ComfyUI-Frame-Interpolation",
-      "commit": "26545cc2dd95bc3d27f056016300673bdeee78f5",
-      "filename": "comfyui-frame-interpolation",
-      "installRequirements": true
     },
     "RES4LYF": {
       "source": "git-commit",
@@ -117,26 +110,12 @@
       "filename": "ComfyUI_Fill-ChatterBox",
       "installRequirements": true
     },
-    "audio-separation-nodes-comfyui": {
-      "source": "git-commit",
-      "repo": "christian-byrne/audio-separation-nodes-comfyui",
-      "commit": "ac339561973f0c1e56db2f9d40f11b0fddda6763",
-      "filename": "audio-separation-nodes-comfyui",
-      "installRequirements": false
-    },
     "ComfyUI-MelodramaBox": {
       "source": "git-commit",
       "repo": "MadPonyInteractive/ComfyUI-MelodramaBox",
       "commit": "529c4be4c5406d375f2b962e31c05efd762cf260",
       "filename": "ComfyUI-MelodramaBox",
       "installRequirements": true
-    },
-    "ComfyUI-Mickmumpitz-Nodes": {
-      "source": "git-commit",
-      "repo": "mickmumpitz/ComfyUI-Mickmumpitz-Nodes",
-      "commit": "4d5ff7c433884631599c3b2d82011a2cbbeea37e",
-      "filename": "ComfyUI-Mickmumpitz-Nodes",
-      "installRequirements": false
     },
     "ComfyUI-Krea2-Ostris-Edit": {
       "source": "git-commit",

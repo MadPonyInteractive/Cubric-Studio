@@ -105,7 +105,7 @@
     },
     {
       "id": 349,
-      "type": "RIFE VFI",
+      "type": "MpiRifeVFI",
       "pos": [
         1997.587520167488,
         725.2467230663298
@@ -158,9 +158,9 @@
         }
       ],
       "properties": {
-        "cnr_id": "comfyui-frame-interpolation",
-        "ver": "1.0.7",
-        "Node name for S&R": "RIFE VFI",
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "e33694d02ddb40698cc402e172500ba016fb3e7d",
+        "Node name for S&R": "MpiRifeVFI",
         "ue_properties": {
           "widget_ue_connectable": {
             "clear_cache_after_n_frames": true,

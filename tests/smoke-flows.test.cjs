@@ -224,10 +224,10 @@ test('resolveFlowSmokeSet: voice-changer has non-empty flowDepIds', async () => 
     assert.ok(entry.flowDepIds.length > 0, `voice-changer must have flowDepIds, got empty`);
 });
 
-test('resolveFlowSmokeSet: stems has non-empty flowDepIds', async () => {
+test('resolveFlowSmokeSet: stems has empty flowDepIds (separator is in MpiNodes, MPI-1342)', async () => {
     const reg = await loadRegistry();
     const [entry] = resolveFlowSmokeSet(reg, ['stems']);
-    assert.ok(entry.flowDepIds.length > 0, `stems must have flowDepIds, got empty`);
+    assert.deepStrictEqual(entry.flowDepIds, [], 'stems declares no deps of its own');
 });
 
 test('resolveFlowSmokeSet: ltx-foley has empty flowDepIds (no requiredDeps)', async () => {

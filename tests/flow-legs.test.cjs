@@ -519,9 +519,10 @@ const BEFORE = {
     },
     'stems': {
         op: 'flowStems', chain: [],
-        none: { ids: [], graph: 'flow_stems.json', chainGraph: [], available: false, missing: [] },
-        all: { ids: [], graph: 'flow_stems.json', chainGraph: [], available: false, missing: [] },
-        last: { ids: [], graph: 'flow_stems.json', chainGraph: [], available: false, missing: [] },
+        // available from MPI-1342: its separator is MpiAudioSeparation, so nothing to install.
+        none: { ids: [], graph: 'flow_stems.json', chainGraph: [], available: true, missing: [] },
+        all: { ids: [], graph: 'flow_stems.json', chainGraph: [], available: true, missing: [] },
+        last: { ids: [], graph: 'flow_stems.json', chainGraph: [], available: true, missing: [] },
     },
     'object-stamp': {
         op: 'flowObjectStamp', chain: [],

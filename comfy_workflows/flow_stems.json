@@ -9,7 +9,7 @@
         0
       ]
     },
-    "class_type": "AudioSeparation",
+    "class_type": "MpiAudioSeparation",
     "_meta": {
       "title": "AudioSeparation"
     }

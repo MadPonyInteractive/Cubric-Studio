@@ -21,7 +21,7 @@
         1
       ]
     },
-    "class_type": "RIFE VFI",
+    "class_type": "MpiRifeVFI",
     "_meta": {
       "title": "RIFE VFI (recommend rife4.25+)"
     }

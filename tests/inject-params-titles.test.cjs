@@ -418,7 +418,7 @@ test('the Outpaint Flow carries its I/O and declared control titles (MPI-594)', 
     const fed = graph[out.inputs.images[0]];
     const last = fed.class_type === 'MpiClearVram' ? graph[fed.inputs.passthrough[0]] : fed;
     assert.equal(last?.class_type, 'VAEDecode', 'Output_Image must read Klein\'s decode, with no paste-back');
-    for (const cls of ['ComposeColorMatch', 'MickmumpitzPanoHarmonizeBoundary']) {
+    for (const cls of ['ComposeColorMatch', 'MickmumpitzPanoHarmonizeBoundary', 'MpiPanoHarmonizeBoundary']) {
         assert.ok(!Object.values(graph).some(n => n.class_type === cls), `${file} still carries ${cls}`);
     }
 });

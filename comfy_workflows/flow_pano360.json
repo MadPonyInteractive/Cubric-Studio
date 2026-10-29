@@ -209,7 +209,7 @@
         0
       ]
     },
-    "class_type": "MickmumpitzPanoRollHorizontal",
+    "class_type": "MpiPanoRollHorizontal",
     "_meta": {
       "title": "T2I Roll Seam To Centre"
     }
@@ -221,7 +221,7 @@
       "seam_width": 160,
       "feather": 32
     },
-    "class_type": "MickmumpitzPanoSeamMask",
+    "class_type": "MpiPanoSeamMask",
     "_meta": {
       "title": "T2I Seam Mask"
     }
@@ -315,7 +315,7 @@
         0
       ]
     },
-    "class_type": "MickmumpitzPanoRollHorizontal",
+    "class_type": "MpiPanoRollHorizontal",
     "_meta": {
       "title": "T2I Roll Back"
     }
@@ -338,7 +338,7 @@
         0
       ]
     },
-    "class_type": "MickmumpitzPanoWarp",
+    "class_type": "MpiPanoWarp",
     "_meta": {
       "title": "Place Picture"
     }
@@ -398,7 +398,7 @@
         0
       ]
     },
-    "class_type": "MickmumpitzPanoRollHorizontal",
+    "class_type": "MpiPanoRollHorizontal",
     "_meta": {
       "title": "Canvas Rolled"
     }
@@ -504,7 +504,7 @@
         0
       ]
     },
-    "class_type": "MickmumpitzPanoKrea2Reference",
+    "class_type": "MpiPanoKrea2Reference",
     "_meta": {
       "title": "Pos Reference"
     }
@@ -555,7 +555,7 @@
         0
       ]
     },
-    "class_type": "MickmumpitzPanoKrea2Reference",
+    "class_type": "MpiPanoKrea2Reference",
     "_meta": {
       "title": "Neg Reference"
     }
@@ -589,7 +589,7 @@
         0
       ]
     },
-    "class_type": "MickmumpitzPanoKrea2Reference",
+    "class_type": "MpiPanoKrea2Reference",
     "_meta": {
       "title": "Seam Pos Reference"
     }
@@ -610,7 +610,7 @@
         0
       ]
     },
-    "class_type": "MickmumpitzPanoKrea2Reference",
+    "class_type": "MpiPanoKrea2Reference",
     "_meta": {
       "title": "Seam Neg Reference"
     }
@@ -694,7 +694,7 @@
         2
       ]
     },
-    "class_type": "MickmumpitzPanoHarmonizeBoundary",
+    "class_type": "MpiPanoHarmonizeBoundary",
     "_meta": {
       "title": "Harmonize Boundary"
     }
@@ -745,7 +745,7 @@
         0
       ]
     },
-    "class_type": "MickmumpitzPanoRollHorizontal",
+    "class_type": "MpiPanoRollHorizontal",
     "_meta": {
       "title": "Roll Seam To Centre"
     }
@@ -757,7 +757,7 @@
       "seam_width": 96,
       "feather": 24
     },
-    "class_type": "MickmumpitzPanoSeamMask",
+    "class_type": "MpiPanoSeamMask",
     "_meta": {
       "title": "Seam Mask"
     }
@@ -851,7 +851,7 @@
         0
       ]
     },
-    "class_type": "MickmumpitzPanoRollHorizontal",
+    "class_type": "MpiPanoRollHorizontal",
     "_meta": {
       "title": "Roll Back"
     }

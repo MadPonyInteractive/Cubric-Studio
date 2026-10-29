@@ -1,0 +1,7 @@
+interp Output_Video_videos0.mp4: bytes IDENTICAL
+stems Output_Audio_1_audio0.flac: bytes differ, decoded max 0 mean 0 identical YES
+stems Output_Audio_2_audio0.flac: bytes differ, decoded max 0 mean 0 identical YES
+stems Output_Audio_3_audio0.flac: bytes differ, decoded max 0 mean 0 identical YES
+stems Output_Audio_4_audio0.flac: bytes differ, decoded max 0 mean 0 identical YES
+pano Input_Image_images0.png: bytes IDENTICAL
+pano Output_Image_images0.png: bytes differ, decoded max 0 mean 0 identical YES

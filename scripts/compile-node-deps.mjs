@@ -76,17 +76,9 @@ function removalReason(name) {
 // re-declares one. Full rationale lives in python_deps.in.
 const DROPPED = {
     'sam2': 'needs `git clone`, which no portable engine has (MPI-387); Impact-Pack nodes we never exercise',
-    'cupy': 'unreachable from the one FI node we ship (RIFE VFI); absent from every engine today',
+    'cupy': 'was declared by ComfyUI-Frame-Interpolation (left in MPI-1342); MpiRifeVFI never needs it',
     'cupy-wheel': 'source-only shim whose setup.py imports pkg_resources — fails to build on every platform',
-    'moviepy': 'costs exactly one audio-separation node we never use (AudioVideoCombine); that pack try/excepts each import, so the other 6 register regardless (MPI-663)',
-};
-
-// Every node in node_lock declares its deps in `requirements.txt` except this one:
-// ComfyUI-Frame-Interpolation has no requirements.txt at all. Its install.py loops
-// requirements-no-cupy.txt one `os.system` pip per line, then tries to install cupy.
-// We take the file and drop the cupy step.
-const REQUIREMENTS_FILE = {
-    'ComfyUI-Frame-Interpolation': 'requirements-no-cupy.txt',
+    'moviepy': 'was declared by audio-separation-nodes-comfyui (left in MPI-1342) for a node we never used; MpiAudioSeparation does not need it',
 };
 
 /** PEP 503 normalisation — `Pillow`, `pillow` and `importlib_metadata` must compare equal. */
@@ -142,7 +134,7 @@ async function fetchNodeRequirements(lock) {
         if (node.source !== 'git-commit') {
             throw new Error(`${id}: only git-commit nodes can be fetched, got source="${node.source}"`);
         }
-        const file = REQUIREMENTS_FILE[id] || 'requirements.txt';
+        const file = 'requirements.txt';
         const url = rawUrl(node.repo, node.commit, file);
         const res = await fetch(url);
         if (res.status === 404) return null;

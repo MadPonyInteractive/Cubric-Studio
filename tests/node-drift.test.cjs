@@ -335,12 +335,13 @@ function isImageResident(dep) {
     return !!dep.targetPath; // (node-type packs also qualify; not under test here)
 }
 
-test('targetPath weight resolves INSIDE the node folder, not mpi_models', () => {
+test('targetPath weight resolves under the engine (models/rife), not mpi_models', () => {
     const rife = DEPS['rife47'];
     assert.ok(rife, 'rife47 dep exists');
     const rel = resolveRel(rife);
-    assert.ok(rel.startsWith('<comfy>/custom_nodes/comfyui-frame-interpolation/ckpts/rife/'),
-        `rife resolves in-node: ${rel}`);
+    // MPI-1342: models/rife, never custom_nodes/ (a weight-only node folder fails to import).
+    assert.ok(rel.startsWith('<comfy>/models/rife/'),
+        `rife resolves under the engine: ${rel}`);
     assert.ok(rel.endsWith('/rife47.pth'), 'ends at the weight file');
     assert.ok(!rel.includes('mpi_models'), 'never lands under mpi_models');
 });
@@ -377,7 +378,7 @@ test('download call-site forwards targetPath (regression: RIFE → mpi_models)',
     // only fired when a customRoot (G:\CubricModels) was set.
     for (const customRoot of ['G:/CubricModels', null]) {
         const rel = downloadCallSiteResolvesInNode(rife, { customRoot });
-        assert.ok(rel.startsWith('<comfy>/custom_nodes/comfyui-frame-interpolation/ckpts/rife/'),
+        assert.ok(rel.startsWith('<comfy>/models/rife/'),
             `customRoot=${customRoot}: ${rel}`);
         assert.ok(!rel.includes('models>'), `must NOT fall to the models root (customRoot=${customRoot})`);
     }

@@ -264,7 +264,7 @@
     },
     {
       "id": 11,
-      "type": "AudioSeparation",
+      "type": "MpiAudioSeparation",
       "pos": [
         -340.16719897896587,
         530.8168190777377
@@ -353,9 +353,9 @@
         }
       ],
       "properties": {
-        "aux_id": "christian-byrne/audio-separation-nodes-comfyui",
-        "ver": "ac339561973f0c1e56db2f9d40f11b0fddda6763",
-        "Node name for S&R": "AudioSeparation"
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "e33694d02ddb40698cc402e172500ba016fb3e7d",
+        "Node name for S&R": "MpiAudioSeparation"
       },
       "widgets_values": [
         "half_sine",

@@ -631,7 +631,7 @@
     },
     {
       "id": 18,
-      "type": "MickmumpitzPanoRollHorizontal",
+      "type": "MpiPanoRollHorizontal",
       "pos": [
         2480,
         380
@@ -661,7 +661,7 @@
       ],
       "title": "T2I Roll Seam To Centre",
       "properties": {
-        "Node name for S&R": "MickmumpitzPanoRollHorizontal"
+        "Node name for S&R": "MpiPanoRollHorizontal"
       },
       "widgets_values": [
         0.5
@@ -669,7 +669,7 @@
     },
     {
       "id": 19,
-      "type": "MickmumpitzPanoSeamMask",
+      "type": "MpiPanoSeamMask",
       "pos": [
         100,
         660
@@ -693,7 +693,7 @@
       ],
       "title": "T2I Seam Mask",
       "properties": {
-        "Node name for S&R": "MickmumpitzPanoSeamMask"
+        "Node name for S&R": "MpiPanoSeamMask"
       },
       "widgets_values": [
         2048,
@@ -894,7 +894,7 @@
     },
     {
       "id": 24,
-      "type": "MickmumpitzPanoRollHorizontal",
+      "type": "MpiPanoRollHorizontal",
       "pos": [
         1800,
         660
@@ -924,7 +924,7 @@
       ],
       "title": "T2I Roll Back",
       "properties": {
-        "Node name for S&R": "MickmumpitzPanoRollHorizontal"
+        "Node name for S&R": "MpiPanoRollHorizontal"
       },
       "widgets_values": [
         0.5
@@ -932,7 +932,7 @@
     },
     {
       "id": 30,
-      "type": "MickmumpitzPanoWarp",
+      "type": "MpiPanoWarp",
       "pos": [
         2140,
         660
@@ -981,7 +981,7 @@
       ],
       "title": "Place Picture",
       "properties": {
-        "Node name for S&R": "MickmumpitzPanoWarp"
+        "Node name for S&R": "MpiPanoWarp"
       },
       "widgets_values": [
         2048,
@@ -1125,7 +1125,7 @@
     },
     {
       "id": 34,
-      "type": "MickmumpitzPanoRollHorizontal",
+      "type": "MpiPanoRollHorizontal",
       "pos": [
         780,
         940
@@ -1156,7 +1156,7 @@
       ],
       "title": "Canvas Rolled",
       "properties": {
-        "Node name for S&R": "MickmumpitzPanoRollHorizontal"
+        "Node name for S&R": "MpiPanoRollHorizontal"
       },
       "widgets_values": [
         0.5
@@ -1432,7 +1432,7 @@
     },
     {
       "id": 41,
-      "type": "MickmumpitzPanoKrea2Reference",
+      "type": "MpiPanoKrea2Reference",
       "pos": [
         440,
         1220
@@ -1472,7 +1472,7 @@
       ],
       "title": "Pos Reference",
       "properties": {
-        "Node name for S&R": "MickmumpitzPanoKrea2Reference"
+        "Node name for S&R": "MpiPanoKrea2Reference"
       },
       "widgets_values": [
         8
@@ -1577,7 +1577,7 @@
     },
     {
       "id": 44,
-      "type": "MickmumpitzPanoKrea2Reference",
+      "type": "MpiPanoKrea2Reference",
       "pos": [
         1460,
         1220
@@ -1617,7 +1617,7 @@
       ],
       "title": "Neg Reference",
       "properties": {
-        "Node name for S&R": "MickmumpitzPanoKrea2Reference"
+        "Node name for S&R": "MpiPanoKrea2Reference"
       },
       "widgets_values": [
         8
@@ -1664,7 +1664,7 @@
     },
     {
       "id": 46,
-      "type": "MickmumpitzPanoKrea2Reference",
+      "type": "MpiPanoKrea2Reference",
       "pos": [
         2140,
         1220
@@ -1704,7 +1704,7 @@
       ],
       "title": "Seam Pos Reference",
       "properties": {
-        "Node name for S&R": "MickmumpitzPanoKrea2Reference"
+        "Node name for S&R": "MpiPanoKrea2Reference"
       },
       "widgets_values": [
         8
@@ -1712,7 +1712,7 @@
     },
     {
       "id": 47,
-      "type": "MickmumpitzPanoKrea2Reference",
+      "type": "MpiPanoKrea2Reference",
       "pos": [
         2480,
         1220
@@ -1752,7 +1752,7 @@
       ],
       "title": "Seam Neg Reference",
       "properties": {
-        "Node name for S&R": "MickmumpitzPanoKrea2Reference"
+        "Node name for S&R": "MpiPanoKrea2Reference"
       },
       "widgets_values": [
         8
@@ -1902,7 +1902,7 @@
     },
     {
       "id": 51,
-      "type": "MickmumpitzPanoHarmonizeBoundary",
+      "type": "MpiPanoHarmonizeBoundary",
       "pos": [
         1120,
         1500
@@ -1947,7 +1947,7 @@
       ],
       "title": "Harmonize Boundary",
       "properties": {
-        "Node name for S&R": "MickmumpitzPanoHarmonizeBoundary"
+        "Node name for S&R": "MpiPanoHarmonizeBoundary"
       },
       "widgets_values": [
         1,
@@ -2048,7 +2048,7 @@
     },
     {
       "id": 54,
-      "type": "MickmumpitzPanoRollHorizontal",
+      "type": "MpiPanoRollHorizontal",
       "pos": [
         2140,
         1500
@@ -2078,7 +2078,7 @@
       ],
       "title": "Roll Seam To Centre",
       "properties": {
-        "Node name for S&R": "MickmumpitzPanoRollHorizontal"
+        "Node name for S&R": "MpiPanoRollHorizontal"
       },
       "widgets_values": [
         0.5
@@ -2086,7 +2086,7 @@
     },
     {
       "id": 55,
-      "type": "MickmumpitzPanoSeamMask",
+      "type": "MpiPanoSeamMask",
       "pos": [
         2480,
         1500
@@ -2110,7 +2110,7 @@
       ],
       "title": "Seam Mask",
       "properties": {
-        "Node name for S&R": "MickmumpitzPanoSeamMask"
+        "Node name for S&R": "MpiPanoSeamMask"
       },
       "widgets_values": [
         2048,
@@ -2311,7 +2311,7 @@
     },
     {
       "id": 60,
-      "type": "MickmumpitzPanoRollHorizontal",
+      "type": "MpiPanoRollHorizontal",
       "pos": [
         1460,
         1780
@@ -2341,7 +2341,7 @@
       ],
       "title": "Roll Back",
       "properties": {
-        "Node name for S&R": "MickmumpitzPanoRollHorizontal"
+        "Node name for S&R": "MpiPanoRollHorizontal"
       },
       "widgets_values": [
         0.5

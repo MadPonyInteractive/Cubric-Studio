@@ -110,26 +110,12 @@ export const nodesDeps = {
         installRequirements: false,
         size: '940KB',
     },
-    'ComfyUI-Frame-Interpolation': {
-        id: 'ComfyUI-Frame-Interpolation',
-        name: 'ComfyUI Frame Interpolation',
-        type: 'custom_nodes',
-        filename: 'comfyui-frame-interpolation',
-        url: lockUrl('ComfyUI-Frame-Interpolation'),
-        installRequirements: true,
-        // This entry carried `installRequirementsCommand: 'python install.py'` until
-        // MPI-646 deleted it as dead data — since MPI-413 neither engine resolves a
-        // pack's requirements, so nothing ever ran it. install.py was also the thing
-        // that NAMED requirements-no-cupy.txt; `scripts/compile-node-deps.mjs` names
-        // that file itself now (its REQUIREMENTS_FILE map), so the drift check still
-        // reads this pack's declared deps.
-        //
-        // The shared libs it declares — numpy, kornia, scipy, Pillow, opencv-contrib —
-        // are pinned in the curated dev_configs/python_deps.in set, opencv as the single
-        // contrib+headless build. torch/torchvision/einops/tqdm are engine-managed or
-        // baked. cupy is dropped on purpose; python_deps.in carries the measurement.
-        size: '37.4MB',
-    },
+    // ComfyUI-Frame-Interpolation, audio-separation-nodes-comfyui and ComfyUI-Mickmumpitz-Nodes
+    // are NOT here (MPI-1342): the nodes we used (RIFE VFI, AudioSeparation, five MickmumpitzPano*)
+    // are ported into MpiNodes as MpiRifeVFI, MpiAudioSeparation and MpiPano* (pano/, stems/, rife/
+    // there) and every shipped graph names those. rife47.pth moved to models/rife (assetDeps.js).
+    // A user's leftover folders keep loading, harmless, until the next engine upgrade sets
+    // them aside (_findDeprecatedNodes, routes/engine.js).
     // RES4LYF (ClownShark sampler family + ReChromaPatcher). Used by Chroma. All
     // custom_nodes are now universal (MPI-222) — installs with the engine and never
     // GC'd with a model; baked into the Pod image because it has pip requirements.
@@ -227,40 +213,6 @@ export const nodesDeps = {
         installRequirements: false,
         size: '186MB',
     },
-    // MPI-663 — `AudioSeparation` (Hybrid Demucs v3) for the Stems flow. MIT, pinned
-    // upstream at christian-byrne/audio-separation-nodes-comfyui. Flow-only: no model
-    // declares it, same reasoning as head-swap declaring comfyui-inpaint-cropandstitch.
-    //
-    // 🔴 `installRequirements: false` DESPITE having a requirements.txt, and every one of
-    // its four lines is why:
-    //   librosa>=0.10.2,<1  — a stale cap. The engine runs librosa 1.0.0 (curated in
-    //                         python_deps.in), so installing this would DOWNGRADE it for
-    //                         every other pack. Separation never touches librosa anyway —
-    //                         only AudioGetTempo / AudioTempoMatch do (src/utils.py:77,83),
-    //                         and both were tested working on 1.0.0.
-    //   torchaudio>=2.3.0   — engine-owned, never ours to move.
-    //   numpy               — already curated (2.5.1).
-    //   moviepy             — deliberately NOT installed. It costs exactly one node:
-    //                         `AudioVideoCombine`, which we do not use. Every import in
-    //                         the pack's __init__.py is individually try/except-wrapped,
-    //                         so 6 of its 7 nodes register regardless.
-    // There is no source-patch mechanism (routes/engine.js "patching" only rewrites .bat
-    // flags), so pin-around is the answer, not patch.
-    //
-    // FIRST RUN DOWNLOADS ~320MB — `hdemucs_high_trained.pt` into the torch hub cache, by
-    // torchaudio, outside the download manager (no progress, no sha, no GC). Same class as
-    // RIFE (MPI-222) and Chatterbox, and NOT fixable with `targetPath`: the path comes from
-    // torch.hub, which reads no ComfyUI config. An interrupted download raises BadZipFile
-    // and the node's own error names the cache dir to delete.
-    'audio-separation-nodes-comfyui': {
-        id: 'audio-separation-nodes-comfyui',
-        name: 'Audio Separation Nodes (stem splitting)',
-        type: 'custom_nodes',
-        filename: 'audio-separation-nodes-comfyui',
-        url: lockUrl('audio-separation-nodes-comfyui'),
-        installRequirements: false,
-        size: '1.6MB',
-    },
     // Preprocessors (DepthAnythingV2Preprocessor via AIO_Preprocessor) for the Krea2
     // depth ControlNet (MPI-242). HAS a requirements.txt ⇒ installRequirements:true
     // ⇒ BAKED into the Pod image (needs POD_IMAGE_VERSION bump + rebuild).
@@ -352,26 +304,6 @@ export const nodesDeps = {
         url: lockUrl('ComfyUI-MelodramaBox'),
         installRequirements: true,
         size: '0.3MB',
-    },
-
-    // MIT, pinned by git commit. BACK for the 360 Panorama Flow (MPI-623, 2.1): its
-    // MickmumpitzPano* nodes place a picture on the sphere, roll the wrap seam to the centre,
-    // mask it and harmonise the outpaint boundary (flow_pano360.json). It left at the 2.0 cut
-    // (MPI-595) when no shipped graph loaded it; re-added BY HAND, not by reverting edff37f2a.
-    // CODE-ONLY now (`installRequirements: false`, was true): its requirements.txt (numpy,
-    // Pillow, opencv-python, ultralytics) is covered by the curated dev_configs/python_deps.in
-    // set both engines install, and installing that file would add a SECOND cv2 next to the
-    // curated opencv-contrib-python-headless. Code-only also means a Pod installs it onto the
-    // volume at connect - no image rebuild. ComfyUI-SplatKit stays out: the scene runs on
-    // MpiNodes' vendored MoGe (MPI-623 A4).
-    'ComfyUI-Mickmumpitz-Nodes': {
-        id: 'ComfyUI-Mickmumpitz-Nodes',
-        name: 'ComfyUI Mickmumpitz Nodes',
-        type: 'custom_nodes',
-        filename: 'ComfyUI-Mickmumpitz-Nodes',
-        url: lockUrl('ComfyUI-Mickmumpitz-Nodes'),
-        installRequirements: false,
-        size: '0.18MB',
     },
 
     // MIT (Ostris, LLC), pinned by git commit, one nodes.py, no requirements. Runs the 360

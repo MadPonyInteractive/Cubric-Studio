@@ -156,7 +156,7 @@ export const UNIVERSAL_WORKFLOWS = {
         workflow: 'flow_transcribe.json',
     },
     // MPI-663 — Stems. Seven nodes, no model loader: an MpiLoadAudio path into
-    // AudioSeparation (Hybrid Demucs v3), out through four SaveAudioAdvanced saves.
+    // MpiAudioSeparation (Hybrid Demucs v3), out through four SaveAudioAdvanced saves.
     flowStems: {
         workflow: 'flow_stems.json',
     },

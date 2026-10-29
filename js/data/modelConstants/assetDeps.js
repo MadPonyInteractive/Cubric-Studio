@@ -529,20 +529,21 @@ export const assetDeps = {
         bakedOnPod: true,
     },
     // Frame interpolation weight (engine asset) ----------------------------
-    // RIFE 4.7 weight for ComfyUI-Frame-Interpolation (MPI-222). The node HARD-CODES
-    // its scan dir to <node>/ckpts/rife/ (vfi_utils config.yaml + MODEL_TYPE) and does
-    // NOT read extra_model_paths.yaml, so this weight can't live in mpi_models/ like
-    // the other engine assets — it MUST land inside the node folder. `targetPath` pins
-    // it there. Without this, the weight was an untracked lazy GitHub fetch on first
-    // node execution (fragile: stalls/fails if GH is down) AND was silently deleted by
-    // the node-drift pre-wipe. As a tracked engineAsset it now boot-installs when
-    // missing + self-heals (node re-clone wipes it → this dep re-installs it). Source =
-    // R2 (the same proven copy the Pod bakes from marduk191/rife). sha verified.
+    // RIFE 4.7 weight for MpiRifeVFI (MPI-222, moved by MPI-1342). The node scans two fixed
+    // dirs and does NOT read extra_model_paths.yaml, so this weight can't live in mpi_models/
+    // like the other engine assets: `targetPath` pins it to <ComfyUI>/models/rife. Until
+    // MPI-1342 it sat in the ComfyUI-Frame-Interpolation folder (custom_nodes/
+    // comfyui-frame-interpolation/ckpts/rife), the port's second scan dir, so an engine or
+    // Pod image that still holds it there keeps working. It must NOT stay under custom_nodes/
+    // now the pack is gone: a folder with no __init__.py is an IMPORT FAILED at every boot.
+    // As a tracked engineAsset it boot-installs when missing (an existing user re-fetches
+    // these 20 MB once, into the new dir). Source = R2 (the same proven copy the Pod bakes
+    // from marduk191/rife). sha verified.
     'rife47': {
         id: 'rife47',
         name: 'RIFE 4.7',
         filename: 'rife47.pth',
-        targetPath: 'custom_nodes/comfyui-frame-interpolation/ckpts/rife',
+        targetPath: 'models/rife',
         url: 'https://models.cubric.studio/vision/models/frame_interpolation/rife/rife47.pth',
         size: '20.36MB',
         bytes: 21344827,

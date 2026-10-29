@@ -2274,13 +2274,10 @@ const ALL_FLOWS = [
         description: '**Pull a track apart.**\n\n'
             + 'Drop in a song, one you made here or one you brought, and get **bass, drums, vocals and everything else** back as four separate files, ready to take into a DAW and mix properly.',
         requiredModels: [],
-        // Flow-only node pack: no model declares it, same reasoning as head-swap and
-        // `comfyui-inpaint-cropandstitch`. `ComfyUI-MpiNodes` stays OUT even though the
-        // graph runs MpiLoadAudio and MpiClearVram — see voice-changer above for why
-        // declaring a registry-wide dep on a flow breaks the MPI-258 B1 invariant.
-        requiredDeps: [
-            'audio-separation-nodes-comfyui',   // AudioSeparation (Hybrid Demucs)
-        ],
+        // No node pack of its own since MPI-1342: the separation node is MpiAudioSeparation.
+        // `ComfyUI-MpiNodes` stays OUT even though the graph runs it — see voice-changer
+        // above for why declaring a registry-wide dep on a flow breaks the MPI-258 B1 invariant.
+        requiredDeps: [],
         operation: 'flowStems',
         workflow: 'flow_stems.json',
         mediaType: 'audio',

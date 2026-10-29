@@ -31,11 +31,11 @@
 #   `git clone` for it and no portable engine ships git. We ship SAM 1 (`sam-vit-b`) as the
 #   segment refiner (MPI-380), vendored in MpiNodes detailer/ — so no segment-anything pip.
 #
-# cupy / cupy-wheel — declared by ComfyUI-Frame-Interpolation's install.py. Dropped.
+# cupy / cupy-wheel — were declared by ComfyUI-Frame-Interpolation's install.py; the pack
+#   left the engine in MPI-1342 (RIFE runs as MpiRifeVFI, torch only). Dropped.
 #   Measured 2026-08-04: cupy is ABSENT from the live engine, taichi too, and the node
-#   loads fine — it is reachable only through vfi_models/ops, which none of the eagerly
-#   imported model __init__ files touch. We ship exactly one FI node, `RIFE VFI`
-#   (comfy_workflows/video_interpolate.json), and RIFE never uses ops. `cupy-wheel` in
+#   loaded fine — it is reachable only through vfi_models/ops, which none of the eagerly
+#   imported model __init__ files touch, and RIFE never uses ops. `cupy-wheel` in
 #   particular is a 2.9 kB source shim whose setup.py imports pkg_resources, which modern
 #   setuptools no longer ships — so it fails to build on EVERY platform on EVERY fresh
 #   install, silently (MPI-413 Evidence C). Its only job is runtime CUDA detection, which
@@ -90,7 +90,7 @@ mss==10.2.0
 # Three nodes declared three different distributions that all install into the same
 # `cv2` namespace: opencv-python (comfyui_controlnet_aux, RES4LYF),
 # opencv-python-headless (kjnodes; Impact-Pack and Impact-Subpack until MPI-1339) and
-# opencv-contrib-python (Frame-Interpolation). pipPins forced TWO of them at once, so
+# opencv-contrib-python (Frame-Interpolation until MPI-1342). pipPins forced TWO of them at once, so
 # which cv2 an engine ended up with was last-writer-wins. The contrib+headless build is
 # a superset of all three and is the right choice for a non-GUI engine.
 opencv-contrib-python-headless==5.0.0.93

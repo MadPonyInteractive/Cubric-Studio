@@ -143,6 +143,11 @@ baseline-vs-now numbers in `validation.md`.
   Large (AIO depth default) is CC-BY-NC. All other pack LICENSE openings swept clean.
 - 2026-10-29: ultralytics stays (MPI-1339 option a: YOLO .pt are pickled ultralytics objects).
 - 2026-10-29: controlnet_aux ports never download weights -> Phase 2 for MPI-1338 adds weight deps.
+- 2026-10-29: MPI-1342 moved `rife47` targetPath to `models/rife`: a weight-only folder under
+  custom_nodes/ is an IMPORT FAILED (ComfyUI imports every dir there). The Pod image still bakes it
+  at `custom_nodes/comfyui-frame-interpolation/ckpts/rife` (Dockerfile RIFE_DIR) and still clones
+  the three packs; MpiRifeVFI reads that old dir too, so today's image works. The rebuild that
+  drops the three clones MUST move RIFE_DIR to /opt/ComfyUI/models/rife in the same change.
 - 2026-10-29: RES4LYF registers bong_tangent globally and Chroma's UltimateSDUpscale uses it;
   clown/ (or its replacement) must register it too.
 
