@@ -7491,3 +7491,6 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1349", "at": "2026-10-29T19:40:28+00:00", "actor": "claude", "column": "todo", "title": "Video duration slider stops at 15 s for every model"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1349", "at": "2026-10-29T19:41:07+00:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "starting the 15 s cap"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1349", "at": "2026-10-29T19:45:45+00:00", "actor": "claude", "from": "doing", "to": "done", "reason": "15 s cap shipped; lint+tests green, verified in isolated app"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1341", "at": "2026-10-29T16:30:41+00:00", "actor": "Strip Node Packs 2", "from": "todo", "to": "doing", "reason": "Phase 1 port started (MPI-1344 batch, wave 2)."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1341", "at": "2026-10-29T20:27:01+00:00", "actor": "claude", "from": "doing", "to": "doing"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1341", "at": "2026-10-29T20:43:55+00:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on be78fb41d"}

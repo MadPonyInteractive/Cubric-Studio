@@ -36,3 +36,4 @@
 - Head Swap package (c:\AI\Mpi\Cubric-Flows): 3 nodes swapped, version 1.1.0, minAppVersion 2.1.4 (1.0.0 got
   KJNodes through klein-9b's deps and breaks once this ships); checks.test 7/7; zip rebuilt. Gumroad re-upload
   is Fabio's.
+- CI on be78fb41d (run 40949065013): unit + 4 desktop shards green, 2026-10-29. Closed.
