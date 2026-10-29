@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/task-files/v1", "files": ["js/components/Organisms/MpiPromptBox/PromptBoxControls.js", "js/data/generationControls.js", "js/utils/promptReuse.js", "js/data/modelConstants/models.js", "tests/cloud-duration-bounds.test.cjs", "tests/agent-duration.test.cjs", "docs/releases/UNRELEASED.md", ".agents/mpi-kanban/tasks/MPI-1349/"]}

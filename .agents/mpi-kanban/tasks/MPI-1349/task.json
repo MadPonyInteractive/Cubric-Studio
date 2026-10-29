@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1349",
+  "title": "Video duration slider stops at 15 s for every model",
+  "description": "Prompt-box duration slider, agent duration range and prompt reuse cap at 15 s (Fabio 2026-10-29); Infinite Video (MPI-1336) covers longer clips.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-29T19:40:28+00:00",
+  "updated_at": "2026-10-29T19:45:45+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
