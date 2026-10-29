@@ -7467,3 +7467,7 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1333", "at": "2026-10-29T03:06:12+00:00", "actor": "claude", "column": "todo", "title": "H3 guide: how to write a pause in speech"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1333", "at": "2026-10-29T03:07:20+00:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Writing the measured H3 pause rule into the agent guide"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1333", "at": "2026-10-29T03:08:24+00:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Pause rule is in the H3 guide, corpus test passes"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1334", "at": "2026-10-29T03:19:44+00:00", "actor": "claude", "column": "todo", "title": "Cosmo: a Flow run waits on the Flows guide, and a one-off setting stays one-off"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1334", "at": "2026-10-29T03:19:56+00:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1334", "at": "2026-10-29T03:26:51+00:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Flow gate + one-run setting rule shipped; lint and 3801 tests green."}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1335", "at": "2026-10-29T03:33:01+00:00", "actor": "claude", "column": "todo", "title": "Video Edit: lip sync, short clips and lost tails (soundtrack + frame grid)"}
