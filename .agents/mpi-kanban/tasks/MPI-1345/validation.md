@@ -37,3 +37,8 @@ current clip. Evidence: tests/float-latent-bridge.test.cjs green; driving the re
 float-latent.html in Electron with an 8-frame burst cycled 8 distinct frames in 2s, caption
 Singularity H3, frozen after finalize. Related suites 19/19, eslint clean.
 Remaining: Fabio restarts the app (main-process change) and minimises during a video run.
+
+## Eye-test PASSED (2026-10-29)
+
+Fabio, after a full app restart, minimised during an H3 video run: "finally, we have a
+floating window with proper latents from video." The tile loops every step. Card closed.
