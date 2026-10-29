@@ -67,7 +67,12 @@ const MODELS = {
     // Flow's picture went in under a guessed role: Character Sheet Editor's sheet as `source`).
     flows: [...CAPTURED.flows.map(withFrame), ...['video-edit', 'character-sheet-from-images', 'character-sheet-editor'].map((id) => flowRow(getFlowById(id)))]
         .map((f) => ({ ...f, media: mediaRolesFor(commandRegistry, f.operation, null) })),
-    models: CAPTURED.models.map((m) => ({
+    // MPI-1327: Singularity H3 came after the capture: H3 Reference's row under its id, NOT
+    // installed, so every older case sees it as a user without it does.
+    models: [...CAPTURED.models, ...CAPTURED.models.filter((m) => m.id === 'minimax-h3-ref2va').map((m) => ({
+        ...m, id: 'minimax-h3-singularity', name: 'Singularity H3', installed: false, missingDownloadGb: 20,
+        ops: m.ops.map((o) => ({ ...o, installed: false })),
+    }))].map((m) => ({
         ...m,
         ops: m.ops.map((o) => ({
             ...o,
@@ -172,6 +177,8 @@ function setInstalled(pred, installed, base = MODELS) {
 const NO_IMAGE_MODELS = setInstalled((m) => m.type === 'image', false);
 const NO_VIDEO_MODELS = setInstalled((m) => m.type === 'video', false);
 const LTX_BALANCED_INSTALLED = setInstalled((m) => m.id === 'ltx-23-balanced', true);
+// MPI-1327, live 2026-10-29: a Pod holding Singularity H3 and no other video model.
+const SINGULARITY_ONLY = setInstalled((m) => m.id === 'minimax-h3-singularity', true, NO_VIDEO_MODELS);
 // MPI-774 Phase 5 fix 1: two editors installed, and the ranking says which one to reach for.
 const OTHER_EDITORS = ['boogu-edit-high', 'boogu-edit-balanced', 'klein-4b', 'qwen-edit', 'krea2-nsfw'];
 const KLEIN_AND_KREA = setInstalled((m) => ['klein-9b', 'krea2'].includes(m.id), true,
@@ -578,6 +585,23 @@ const CASES = [
             if (run.record.generates.length) f.push(`generated with no video model installed (${run.record.generates.map((g) => g.modelId).join(', ')})`);
             const asked = calledAll(run, 'install_model').some((c) => modelById(c.args.modelId)?.type === 'video');
             if (!asked && !/install|download/i.test(run.lastReply)) f.push('neither offered a video model install nor said one is needed');
+            return f;
+        },
+    },
+    {
+        // MPI-1327: a words-only talking head got the 21 GB MiniMax H3 offer with Singularity
+        // H3 installed. ref2v_ms with no references is a plain text-to-video run.
+        id: 'words-only-on-reference-h3',
+        title: 'a words-only clip runs on the installed H3 reference model, not an install',
+        setup: { models: SINGULARITY_ONLY, turns: ['Make a 10 second 9:16 talking-head video of a woman saying: "This is Cubric Studio. One of the cool things that it can do is it can replace an object, background and even a person in a video."'], confirm: false },
+        flip: { models: setInstalled((m) => m.id === 'minimax-h3-singularity', false, SINGULARITY_ONLY) },
+        check(run) {
+            const f = [];
+            if (calledAll(run, 'install_model').length) f.push(`offered an install (${calledAll(run, 'install_model').map((c) => c.args.modelId).join(', ')})`);
+            const gens = calledAll(run, 'generate');
+            if (!gens.length) return [...f, 'no generate call'];
+            const { modelId, operation } = gens[0].args;
+            if (modelId !== 'minimax-h3-singularity' || operation !== 'ref2v_ms') f.push(`ran ${modelId}/${operation}, not minimax-h3-singularity/ref2v_ms`);
             return f;
         },
     },
