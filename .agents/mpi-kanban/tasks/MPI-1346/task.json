@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1346",
+  "title": "MOSS Image ranks 4th for pictures, before Klein 9B",
+  "description": "Fabio 2026-10-29: MOSS is quite good; image order becomes Krea 2, Qwen-Image 2.1, FLUX.3 Klein, MOSS, Klein 9B, then the rest. Proven with a scratch agent-test run of Cosmo picking an installed model with Krea 2 missing (follow-up to MPI-1332).",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-29T16:09:25+00:00",
+  "updated_at": "2026-10-29T16:28:58+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

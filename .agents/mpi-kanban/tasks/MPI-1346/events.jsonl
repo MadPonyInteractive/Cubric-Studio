@@ -1,0 +1,3 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1346", "at": "2026-10-29T16:09:25+00:00", "actor": "claude", "column": "todo", "title": "MOSS Image ranks 4th for pictures, before Klein 9B"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1346", "at": "2026-10-29T16:09:59+00:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio: MOSS 4th"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1346", "at": "2026-10-29T16:28:58+00:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Ranking tests green, live model check 6/6, pushed e9b767005"}
