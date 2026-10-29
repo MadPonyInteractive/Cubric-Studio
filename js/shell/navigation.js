@@ -382,10 +382,20 @@ Events.on('state:changed', ({ key, value }) => {
 // install gate, so it would have failed deep inside ComfyUI once the weight became
 // optional. See js/utils/describeAction.js.
 
+/**
+ * MPI-1326: restart the engine generations run on, by `getEngine`'s rule. A download-only
+ * (CPU) Pod is connected but is never that engine and has no ComfyUI: asked to restart,
+ * its wrapper answers 409, which surfaced as a "Restart failed" dialog. Generations run
+ * locally then, so the local engine is the one to restart.
+ */
+function _restartsPod() {
+    return remoteEngineClient.isRemote() && !remoteEngineClient.isDownloadOnly();
+}
+
 async function _restartEngine() {
     // MPI-856: no engine and no Pod = nothing to restart; say so instead of "Restart failed".
     if (await blockedByNoEngine()) return;
-    const remote = remoteEngineClient.isRemote();
+    const remote = _restartsPod();
     const engine = getEngine(!remote);
     // MPI-501: a restart terminates ComfyUI — on a running queue that destroys the
     // in-flight prompt with no error anywhere. Same guard as the generation gate.
@@ -442,7 +452,7 @@ async function _restartEngine() {
  */
 async function _restartEngineNow() {
     if (await blockedByNoEngine()) return;
-    const remote = remoteEngineClient.isRemote();
+    const remote = _restartsPod();
     await _performRestart(remote, () => cancelRunningOnLane(remote ? 'remote' : 'local'));
 }
 
@@ -454,7 +464,11 @@ async function _restartEngineNow() {
  *   a stopped engine, which the generation gate starts, not the dying one.
  */
 async function _performRestart(remote, onStopped) {
-    Events.emit('ui:info', { message: 'Restarting the engine…' });
+    Events.emit('ui:info', {
+        message: remoteEngineClient.isDownloadOnly()
+            ? 'Restarting your local engine. The CPU Pod only downloads, so it has no engine to restart.'
+            : 'Restarting the engine…',
+    });
     try {
         if (remote) {
             onStopped?.();

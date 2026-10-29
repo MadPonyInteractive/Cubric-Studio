@@ -1,0 +1,3 @@
+- [ ] Restart on a download-only Pod targets the local engine, toast says why
+- [ ] Test covers it
+- [ ] lint + tests green

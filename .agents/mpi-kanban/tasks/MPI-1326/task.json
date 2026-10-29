@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1326",
+  "title": "Restart engine on a CPU Pod: 409 error dialog instead of restarting the engine generations use",
+  "description": "With a download-only (CPU) Pod connected, generations run on the local engine, but the restart action picked the Pod (isRemote) and the Pod, having no ComfyUI, answered restart-comfy 409 - a Restart failed dialog. Restart must target the engine generations actually use (getEngine's download-only rule) and say so in a toast.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-29T01:26:50+00:00",
+  "updated_at": "2026-10-29T01:27:16+00:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
