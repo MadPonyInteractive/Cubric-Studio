@@ -1,0 +1,44 @@
+[
+ {
+  "before_ballast_used_mib": 1188,
+  "shared_baseline_gib": 0.16,
+  "engine_vram_free_gib_at_start": 14.88
+ },
+ {
+  "tag": "auto_124",
+  "clip": "src_124.mp4",
+  "window_expr": "0",
+  "ok": true,
+  "error": "",
+  "seconds": 597,
+  "peak_used_mib": 15621,
+  "peak_shared_gib": 26.84
+ },
+ {
+  "tag": "p90",
+  "clip": "src_90.mp4",
+  "window_expr": "100000",
+  "ok": true,
+  "error": "",
+  "seconds": 386,
+  "peak_used_mib": 15662,
+  "peak_shared_gib": 26.79
+ },
+ {
+  "tag": "p107",
+  "clip": "src_107.mp4",
+  "window_expr": "100000",
+  "ok": true,
+  "error": "",
+  "seconds": 481,
+  "peak_used_mib": 15616,
+  "peak_shared_gib": 26.79
+ },
+ {
+  "sampler_lines": [
+   "[MpiWindowedSampler] 3 windows of 56 video frames (17 latent), sharing 22 video frames (7 latent). Clip is 124 video frames (37 latent). Ceiling 64 frames (auto: 10.0 GiB usable VRAM = x0.71 the 16 GB ladder at 2359296 px), 17 frames of overlap asked; grid 5, 4 video frames per latent frame. spans=[(0, 17), (10, 27), (20, 37)]",
+   "[MpiWindowedSampler] single pass: 27 latent frames (90 video), at or under the 100000-frame ceiling (set on the widget), so nothing was windowed",
+   "[MpiWindowedSampler] single pass: 32 latent frames (107 video), at or under the 100000-frame ceiling (set on the widget), so nothing was windowed"
+  ]
+ }
+]
