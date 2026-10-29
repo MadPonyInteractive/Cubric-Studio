@@ -4,6 +4,15 @@ Member of MPI-1134 (Phase 4). Requirements: `research/video-edit-window-needs.md
 Method notes: `research/motion-context-v2-video.md`, `../MPI-1335/research/viggle-animate.md`,
 `../MPI-1134/research/obvpm-bridging.md`.
 
+## Current State (2026-10-29, handoff)
+
+- Bench 1 DONE (Video Edit case, 1344x768, 3 windows): **latent path (arm A) wins** - invisible
+  joins, no drift; pixel path drifts -9 % by window 3. `research/bench-2026-10-29-chain.md`.
+- Next: Infinite Video case on Singularity v2 (static talking shot, drift), 22-frame context row,
+  2K per window + RAM, resume after cancel. Scripts in `research/bench/`.
+- Peers: Video Edit Flow Issues 3 (MPI-1335) tests the winner; New H3 Upscaler 1 (MPI-1348) refines
+  our chained latents to test seams after a 2K refine and has the local GPU now - ask before using it.
+
 ## What the research already settles (2026-10-29)
 
 - **Motion Context V2 is what we already own.** `MpiH3MaskedPrefix` (ComfyUi-MpiNodes `h3.py`)
@@ -50,6 +59,16 @@ Build the window loop (window plan, per-window source + audio slice, prefix, che
 pad-and-cut on the last window) as one shared primitive. Video Edit (MPI-1335) uses it first;
 the Infinite Video Flow next. Lip sync on ONE window (MPI-1335 step 2b) runs before any of this
 ships, because windows repeat whatever one pass gets wrong.
+
+## Fabio's direction (2026-10-29)
+
+- Static camera + still character is where chained extends drift (OBVPM research). The fix we
+  already have on paper is **bridging** (`../MPI-1134/research/obvpm-bridging.md` technique 2:
+  render roots, then fill the clips in between from both neighbours' context). Possibly a user
+  switch ("static shot" boolean) that picks bridging over plain chaining; best approach TBD
+  after the bench.
+- The Infinite Video case runs on Singularity v2 (what ships), not 1.3 as in the video.
+- Add a 22-frame context row (the video's value) next to our 39: does the off-step audio drift?
 
 ## Open questions (not blockers)
 

@@ -34,6 +34,28 @@ downloaded or run (it sits behind a Gumroad pack / RunningHub).
   each naming "picture 1" for the subject. Took the author three renders to get one right.
 - Advice: start at 0.5 MP and 5-8 s segments.
 
+## The workflow itself (Fabio downloaded the pack, 2026-10-29; read, not installed or run)
+
+- Chaining lives in **ComfyUI-Easy-Media** (yolain, **GPL-3.0**): `easy multiTrackEditor` +
+  `easy multitrackProject` (`sampling_mode` single|dual, `segment_start_number`, `segment_count`,
+  project folder) + `easy multitrackProjectVideoCombine`. Plus KJNodes (preview, Sage patch).
+  Ideas only, nothing copied, same rule as OBVPM. The separate pack on our bench,
+  ComfyUI-H3-Motion-Context (NikoDemon80), is also GPL-3.0.
+- **Context = the last 22 frames, video AND audio latent**, of the previous segment (not 1 s).
+  Those 22 frames are trimmed from the final video. Our `MpiH3MaskedPrefix` refuses 22: it is on the
+  video grid but 22 x 40/24 = 36.7 audio steps, so the audio seam would sit off a whole step; our
+  minimum is 39 (1.625 s). Worth a bench row: does 22 drift the audio in practice?
+- Each segment's video AND latent are saved to `output/easy_media/projects/<name>/`; re-render
+  segment N from the saved latent of N-1 (that is the resume design). An MP4 cannot be extended;
+  it needs the saved latent (= our arm A, latent path, not arm B).
+- Defaults: 1216x672 (~0.82 MP), 8 steps beta + euler, LoRA 1.0. **VRAM rule: frames x MP <= ~540
+  per segment**, a cliff (grey frames or a failed job), measured on 24-32 GB cards.
+  A 124-frame window is 128 at 1.03 MP and 259 at 2K (2.09 MP), well under it.
+- Prompt rules for context segments: open with continuation only (same pace, camera, light, no
+  scenery nouns); joins mid-action, never on an arrival or mid-sentence; no camera move across a
+  join; no new scene image on a later segment; ~one short line of dialogue per 2.5 s.
+  The LLM prompt-writer file is in the pack (not copied here).
+
 ## What it means for us
 
 - Third candidate method next to MpiWindowedSampler (overlap 17, grid 5) and Viggle
