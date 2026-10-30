@@ -1,0 +1,46 @@
+frames 294  out diff median 3.65 p95 6.99  ratio median 1.08 p95 1.23 max 1.47 @ 126
+  frame   41  out  3.61  src  2.82  ratio 1.28
+  frame   78  out  3.13  src  3.02  ratio 1.04  <- edge
+  frame   79  out  2.93  src  3.00  ratio 0.98  <- edge
+  frame   80  out  3.75  src  3.33  ratio 1.13  <- edge
+  frame   81  out  4.70  src  4.15  ratio 1.13  <- edge
+  frame   82  out  4.70  src  4.13  ratio 1.14  <- edge
+  frame   96  out  4.76  src  3.65  ratio 1.30
+  frame  106  out  2.06  src  2.47  ratio 0.84  <- edge
+  frame  107  out  3.76  src  3.68  ratio 1.02  <- edge
+  frame  108  out  4.70  src  4.32  ratio 1.09  <- edge
+  frame  109  out  5.24  src  4.66  ratio 1.12  <- edge
+  frame  110  out  5.13  src  4.52  ratio 1.13  <- edge
+  frame  122  out  3.83  src  2.95  ratio 1.30
+  frame  126  out  1.07  src  0.73  ratio 1.47
+  frame  129  out  1.06  src  0.73  ratio 1.46
+  frame  130  out  1.11  src  0.79  ratio 1.39
+  frame  140  out  2.54  src  2.06  ratio 1.23
+  frame  158  out  3.06  src  2.78  ratio 1.10  <- edge
+  frame  159  out  2.40  src  2.11  ratio 1.14  <- edge
+  frame  160  out  2.05  src  1.78  ratio 1.16  <- edge
+  frame  161  out  3.23  src  2.78  ratio 1.16  <- edge
+  frame  162  out  4.65  src  4.22  ratio 1.10  <- edge
+  frame  186  out  5.25  src  5.02  ratio 1.05  <- edge
+  frame  187  out  4.73  src  4.70  ratio 1.01  <- edge
+  frame  188  out  4.15  src  3.82  ratio 1.08  <- edge
+  frame  189  out  3.91  src  3.51  ratio 1.11  <- edge
+  frame  190  out  4.56  src  4.13  ratio 1.10  <- edge
+  frame  238  out  1.69  src  1.68  ratio 1.00  <- edge
+  frame  239  out  1.55  src  1.69  ratio 0.91  <- edge
+  frame  240  out  1.82  src  1.95  ratio 0.93  <- edge
+  frame  241  out  2.80  src  2.63  ratio 1.06  <- edge
+  frame  242  out  4.09  src  3.85  ratio 1.06  <- edge
+  frame  246  out  5.53  src  4.25  ratio 1.30
+  frame  251  out  5.11  src  3.87  ratio 1.32
+  frame  255  out  4.00  src  3.19  ratio 1.25
+  frame  266  out  5.78  src  5.19  ratio 1.11  <- edge
+  frame  267  out  5.79  src  5.51  ratio 1.05  <- edge
+  frame  268  out  5.30  src  5.10  ratio 1.04  <- edge
+  frame  269  out  5.11  src  4.63  ratio 1.11  <- edge
+  frame  270  out  4.98  src  4.33  ratio 1.15  <- edge
+  frame  276  out  1.24  src  1.01  ratio 1.23
+  frame  277  out  1.73  src  1.40  ratio 1.24
+  frame  278  out  1.85  src  1.47  ratio 1.26
+  frame  279  out  1.92  src  1.38  ratio 1.39
+  frame  280  out  1.54  src  1.19  ratio 1.29

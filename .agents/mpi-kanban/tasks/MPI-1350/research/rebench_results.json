@@ -1,0 +1,60 @@
+[
+ {
+  "card_gib": 12,
+  "runs": [
+   {
+    "tag": "rb_12_old64",
+    "clip": "2k_294.mp4",
+    "window_expr": "64",
+    "ok": true,
+    "error": "",
+    "seconds": 1438,
+    "peak_used_mib": 15704,
+    "peak_shared_gib": 26.79
+   },
+   {
+    "tag": "rb_12_new",
+    "clip": "2k_294.mp4",
+    "window_expr": "0",
+    "ok": true,
+    "error": "",
+    "seconds": 1279,
+    "peak_used_mib": 15615,
+    "peak_shared_gib": 25.87
+   }
+  ],
+  "sampler_lines": [
+   "[MpiWindowedSampler] 8 windows of 56 video frames (17 latent), sharing 22 video frames (7 latent). Clip is 294 video frames (87 latent). Ceiling 64 frames (set on the widget), 17 frames of overlap asked; grid 5, 4 video frames per latent frame. spans=[(0, 17), (10, 27), (20, 37), (30, 47), (40, 57), (50, 67), (60, 77), (70, 87)]",
+   "[MpiWindowedSampler] 4 windows of 90 video frames (27 latent), sharing 22 video frames (7 latent). Clip is 294 video frames (87 latent). Ceiling 105 frames (auto: 10.3 GiB usable VRAM at 2359296 px), 17 frames of overlap asked; grid 5, 4 video frames per latent frame. spans=[(0, 27), (20, 47), (40, 67), (60, 87)]"
+  ]
+ },
+ {
+  "card_gib": 16,
+  "runs": [
+   {
+    "tag": "rb_16_old90",
+    "clip": "2k_294.mp4",
+    "window_expr": "90",
+    "ok": true,
+    "error": "",
+    "seconds": 1301,
+    "peak_used_mib": 15660,
+    "peak_shared_gib": 26.7
+   },
+   {
+    "tag": "rb_16_new",
+    "clip": "2k_294.mp4",
+    "window_expr": "0",
+    "ok": true,
+    "error": "",
+    "seconds": 1158,
+    "peak_used_mib": 15730,
+    "peak_shared_gib": 20.82
+   }
+  ],
+  "sampler_lines": [
+   "[MpiWindowedSampler] 4 windows of 90 video frames (27 latent), sharing 22 video frames (7 latent). Clip is 294 video frames (87 latent). Ceiling 90 frames (set on the widget), 17 frames of overlap asked; grid 5, 4 video frames per latent frame. spans=[(0, 27), (20, 47), (40, 67), (60, 87)]",
+   "[MpiWindowedSampler] 4 windows of 90 video frames (27 latent), sharing 22 video frames (7 latent). Clip is 294 video frames (87 latent). Ceiling 105 frames (auto: 10.3 GiB usable VRAM at 2359296 px), 17 frames of overlap asked; grid 5, 4 video frames per latent frame. spans=[(0, 27), (20, 47), (40, 67), (60, 87)]"
+  ]
+ }
+]

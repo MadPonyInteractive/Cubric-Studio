@@ -7,4 +7,5 @@
 - [x] `flow_video_edit.json` + `raw/flow_video_edit.json`: Window Frames = 0 (the peer's hunks landed in 382e20a90 first; this commit is the 3 ladder strings only)
 - [x] `npm run lint` + `npm test` green (3816 pass, 0 fail; pre-push gate passed)
 - [x] One other memory size measured: 12 GB simulated on the 16 GB bench by a VRAM ballast process (`research/capped_bench.py`, H3 2K refine via `flow_h3_upscale`). Auto picked 64 frames and survived; a 107-frame single pass also survived, so auto is safe but conservative at 2K (`validation.md`)
+- [x] Speed probe at 12 and 16 GB; auto re-sized to the measured pixel-frames limits (MpiNodes 5000dc1, pinned a2ab9e956); re-bench no slower, seams clean (`validation.md`)
 - Not used: system RAM. ComfyUI streams offloaded weights from RAM, so short RAM costs speed, not activation VRAM; nothing measured ties it to the window.

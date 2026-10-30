@@ -1,0 +1,263 @@
+[
+ {
+  "size": "2k",
+  "card_gib": 12,
+  "runs": [],
+  "usable": {
+   "tag": "usable_2k_12",
+   "clip": "1m_73.mp4",
+   "window_expr": "0",
+   "ok": true,
+   "error": "",
+   "seconds": 130,
+   "peak_used_mib": 15619,
+   "peak_shared_gib": 26.69
+  },
+  "sampler_lines": [
+   "[MpiWindowedSampler] single pass: 22 latent frames (73 video), at or under the 183-frame ceiling (auto: 10.5 GiB usable VRAM = x0.75 the 16 GB ladder at 1032192 px), so nothing was windowed"
+  ]
+ },
+ {
+  "size": "2k",
+  "card_gib": 16,
+  "runs": [],
+  "usable": {
+   "tag": "usable_2k_16",
+   "clip": "1m_73.mp4",
+   "window_expr": "0",
+   "ok": true,
+   "error": "",
+   "seconds": 120,
+   "peak_used_mib": 15619,
+   "peak_shared_gib": 22.35
+  },
+  "sampler_lines": [
+   "[MpiWindowedSampler] single pass: 22 latent frames (73 video), at or under the 243-frame ceiling (auto: 14.6 GiB usable VRAM = x1.00 the 16 GB ladder at 1032192 px), so nothing was windowed"
+  ]
+ },
+ {
+  "size": "1m",
+  "card_gib": 16,
+  "runs": [],
+  "usable": {
+   "tag": "usable_1m_16",
+   "clip": "1m_73.mp4",
+   "window_expr": "0",
+   "ok": true,
+   "error": "",
+   "seconds": 115,
+   "peak_used_mib": 15597,
+   "peak_shared_gib": 22.34
+  },
+  "sampler_lines": [
+   "[MpiWindowedSampler] single pass: 22 latent frames (73 video), at or under the 243-frame ceiling (auto: 14.7 GiB usable VRAM = x1.00 the 16 GB ladder at 1032192 px), so nothing was windowed"
+  ]
+ },
+ {
+  "size": "2k",
+  "card_gib": 12,
+  "runs": [
+   {
+    "size": "2k",
+    "card_gib": 12,
+    "frames": 107,
+    "step1_s": 128,
+    "step2_s": 122,
+    "past_cliff": false,
+    "peak_used_mib": 15611,
+    "error": ""
+   },
+   {
+    "size": "2k",
+    "card_gib": 12,
+    "frames": 124,
+    "step1_s": 158,
+    "step2_s": 157,
+    "past_cliff": false,
+    "peak_used_mib": 15802,
+    "error": ""
+   },
+   {
+    "size": "2k",
+    "card_gib": 12,
+    "frames": 141,
+    "step1_s": 327,
+    "step2_s": 401,
+    "past_cliff": false,
+    "peak_used_mib": 15930,
+    "error": ""
+   }
+  ],
+  "usable": {
+   "tag": "usable_2k_12",
+   "clip": "1m_73.mp4",
+   "window_expr": "0",
+   "ok": true,
+   "error": "",
+   "seconds": 125,
+   "peak_used_mib": 15609,
+   "peak_shared_gib": 26.66
+  },
+  "sampler_lines": [
+   "[MpiWindowedSampler] single pass: 22 latent frames (73 video), at or under the 182-frame ceiling (auto: 10.5 GiB usable VRAM = x0.75 the 16 GB ladder at 1032192 px), so nothing was windowed"
+  ]
+ },
+ {
+  "size": "2k",
+  "card_gib": 16,
+  "runs": [
+   {
+    "size": "2k",
+    "card_gib": 16,
+    "frames": 124,
+    "step1_s": 139,
+    "step2_s": 135,
+    "past_cliff": false,
+    "peak_used_mib": 15694,
+    "error": ""
+   },
+   {
+    "size": "2k",
+    "card_gib": 16,
+    "frames": 141,
+    "step1_s": 170,
+    "step2_s": 167,
+    "past_cliff": false,
+    "peak_used_mib": 15584,
+    "error": ""
+   },
+   {
+    "size": "2k",
+    "card_gib": 16,
+    "frames": 158,
+    "step1_s": 205,
+    "step2_s": 201,
+    "past_cliff": false,
+    "peak_used_mib": 15624,
+    "error": ""
+   },
+   {
+    "size": "2k",
+    "card_gib": 16,
+    "frames": 175,
+    "step1_s": 241,
+    "step2_s": 240,
+    "past_cliff": false,
+    "peak_used_mib": 15592,
+    "error": ""
+   },
+   {
+    "size": "2k",
+    "card_gib": 16,
+    "frames": 192,
+    "step1_s": 284,
+    "step2_s": 282,
+    "past_cliff": false,
+    "peak_used_mib": 15768,
+    "error": ""
+   },
+   {
+    "size": "2k",
+    "card_gib": 16,
+    "frames": 209,
+    "step1_s": null,
+    "step2_s": null,
+    "past_cliff": false,
+    "peak_used_mib": 15164,
+    "error": "Allocation on device 0 would exceed allowed memory. (out of memory)\nCurrently allocated     : 13.21 GiB\nRequested               : 1.44 GiB\nDevice limit            : 16.00 GiB\nFree (according to CUDA): 0 bytes\nPyTorch limit (set by user-supplied memory fraction)\n                        : 17179869184."
+   }
+  ],
+  "usable": {
+   "tag": "usable_2k_16",
+   "clip": "1m_73.mp4",
+   "window_expr": "0",
+   "ok": true,
+   "error": "",
+   "seconds": 110,
+   "peak_used_mib": 15584,
+   "peak_shared_gib": 21.35
+  },
+  "sampler_lines": [
+   "[MpiWindowedSampler] single pass: 22 latent frames (73 video), at or under the 243-frame ceiling (auto: 14.7 GiB usable VRAM = x1.00 the 16 GB ladder at 1032192 px), so nothing was windowed"
+  ]
+ },
+ {
+  "size": "1m",
+  "card_gib": 16,
+  "runs": [
+   {
+    "size": "1m",
+    "card_gib": 16,
+    "frames": 277,
+    "step1_s": 136,
+    "step2_s": 132,
+    "past_cliff": false,
+    "peak_used_mib": 15588,
+    "error": ""
+   },
+   {
+    "size": "1m",
+    "card_gib": 16,
+    "frames": 311,
+    "step1_s": 163,
+    "step2_s": 159,
+    "past_cliff": false,
+    "peak_used_mib": 15564,
+    "error": ""
+   },
+   {
+    "size": "1m",
+    "card_gib": 16,
+    "frames": 345,
+    "step1_s": 193,
+    "step2_s": 188,
+    "past_cliff": false,
+    "peak_used_mib": 15540,
+    "error": ""
+   },
+   {
+    "size": "1m",
+    "card_gib": 16,
+    "frames": 379,
+    "step1_s": 224,
+    "step2_s": 222,
+    "past_cliff": false,
+    "peak_used_mib": 15540,
+    "error": ""
+   },
+   {
+    "size": "1m",
+    "card_gib": 16,
+    "frames": 413,
+    "step1_s": 259,
+    "step2_s": 258,
+    "past_cliff": false,
+    "peak_used_mib": 15460,
+    "error": ""
+   },
+   {
+    "size": "1m",
+    "card_gib": 16,
+    "frames": 447,
+    "step1_s": 299,
+    "step2_s": 296,
+    "past_cliff": false,
+    "peak_used_mib": 15708,
+    "error": ""
+   }
+  ],
+  "usable": {
+   "tag": "usable_1m_16",
+   "clip": "1m_73.mp4",
+   "window_expr": "0",
+   "ok": true,
+   "error": "",
+   "seconds": 107,
+   "peak_used_mib": 15577,
+   "peak_shared_gib": 20.88
+  },
+  "sampler_lines": [
+   "[MpiWindowedSampler] single pass: 22 latent frames (73 video), at or under the 243-frame ceiling (auto: 14.7 GiB usable VRAM = x1.00 the 16 GB ladder at 1032192 px), so nothing was windowed"
+  ]
+ }
+]
