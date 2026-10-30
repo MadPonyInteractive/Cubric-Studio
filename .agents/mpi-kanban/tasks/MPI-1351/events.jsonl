@@ -2,3 +2,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1351", "at": "2026-10-29T23:12:46+00:00", "actor": "a97f7cfa-adba-4f30-9502-1324aba7ae71", "from": "todo", "to": "doing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1351", "at": "2026-10-29T23:52:49+00:00", "actor": "a97f7cfa-adba-4f30-9502-1324aba7ae71", "from": "doing", "to": "done", "reason": "spec green 3/3, suite no new reds, lint+npm test green"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1351", "at": "2026-10-29T23:54:13+00:00", "actor": "a97f7cfa-adba-4f30-9502-1324aba7ae71", "from": "done", "to": "doing", "reason": "reopened: code commit must be judged by CI before the close (done gate)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1351", "at": "2026-10-30T00:10:28+00:00", "actor": "a97f7cfa-adba-4f30-9502-1324aba7ae71", "from": "doing", "to": "done", "reason": "CI 40976385646 green on the code commit"}

@@ -27,3 +27,4 @@ with `electron -r` (Electron's default_app `--require`), so it is installed befo
   assertion proves the preload's hold is live.
 - `npm run lint` green; `npm test` 3824 pass, 0 fail, 2 skipped.
 - Full desktop suite: 251/252; ours green; the one red, cancelled-mascot.spec.js (expect.poll 1500ms on the mascot list), passed 3/3 alone with --repeat-each=3 and was green on the baseline run: a timing flake, not this change.
+- CI run 40976385646 on a94877af0 (contains code commit 8d6100c73): unit + desktop shards 1-4 all success.
