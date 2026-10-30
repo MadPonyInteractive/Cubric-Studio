@@ -211,9 +211,16 @@ The full user guide lives at [docs.cubric.studio](https://docs.cubric.studio):
 ## Community and support
 
 - [**Discord**](https://discord.gg/WX7tDFSVmY): questions, feedback, feature
-  requests and build announcements.
-- [**GitHub Issues**](https://github.com/MadPonyInteractive/Cubric-Studio/issues):
-  bug reports.
+  requests, build announcements and **bug reports**. All bug reports go to
+  Discord now: post in the `#bug-reports` forum under Cubric Studio with your
+  app version, what you did, what you expected, what happened instead, any
+  error text, and your GPU and OS.
+- **In-app bug reports:** from version 2.2, the app's bug report button sends
+  your report straight to our private bug report centre, error details
+  included, so nothing has to be posted in public. Add your Discord name if
+  you'd like us to get back to you. On older versions the error dialog's
+  **Report on GitHub** button no longer works, since GitHub Issues are closed:
+  post on Discord instead.
 - [**PayPal**](https://www.paypal.com/donate/?hosted_button_id=LLBTJZRT6465N):
   donate any amount, once or monthly, with PayPal or a card.
 - [**Patreon**](https://www.patreon.com/madponyinteractive): three monthly tiers
