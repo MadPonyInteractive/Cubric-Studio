@@ -2,6 +2,8 @@
 
 ## 16 GB: auto == the old ladder
 
+> Superseded 2026-10-30: this describes d503a6d. MpiNodes 5000dc1 replaced the ladder-scaled rule with the pixel-frames rule (section "Speed probe and the pixel-frames auto"); auto no longer equals the 16 GB ladder.
+
 `tests/test_windowed_auto.py` (MpiNodes d503a6d): every ladder bucket edge at 14-16 GiB usable
 gives the graphs' MpiMath number, evaluated through `safe_math` on their exact string. All six
 H3 graphs carry Window Frames "0" (094b1c7d8, eab7cc055). `npm run lint` + `npm test` green.
