@@ -205,7 +205,7 @@ signals* are suppressed. Rule + rationale: memory `feedback_no_toast_user_stop`.
 | `commandExecutor.js:1449` | Media slot assigned but stranded (upload/resolve) | Could not load the input ${type}… | warning | eligible |
 | `commandExecutor.js:1466` | "Run locally" on, model not installed locally | "…" is not installed on your local engine… | warning | eligible |
 | `commandExecutor.js:2091` | `engine_restarting` (remote OOM self-restart) | Remote engine is restarting after a memory spike… | warning | eligible |
-| `commandExecutor.js:2102` | 409 `pod_incompatible` | (backend message) | warning | eligible |
+| `commandExecutor.js:2102` | 409 `pod_incompatible` | not a toast in 2.1.4: the error dialog ("Get the latest version", MPI-1355) | - | - |
 | `commandExecutor.js` `too_big_for_gpu` | A LoRA/upscaler over 1 GB, generate on a GPU Pod (MPI-1057) | (server message) + button **Upload models** (opens the overlay on that tab) | warning | eligible |
 | `commandExecutor.js:2112` | `lora_missing_remote` | "…" isn't installed on the remote Pod… | warning | eligible |
 | `commandExecutor.js:2128` | `lora_missing_local` | "…" was not found in your LoRA/upscale folders… | warning | eligible |

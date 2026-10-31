@@ -2900,11 +2900,13 @@ export function runCommand(payload) {
                 return;
             }
             // MPI-90: the Pod failed the pre-generation compatibility pre-check
-            // (409). Expected + user-actionable — a warning toast with the backend's
-            // own guidance, not the bug-reporter dialog.
+            // (409) — a newer Pod runtime than this app understands. MPI-1355: 2.1.4
+            // gets no more updates, so "update the app" means the paid version: the
+            // error dialog, whose "Get the latest version" opens it. A toast was a dead end.
+            // An agent's run gets no dialog: the agent is told through onError.
             if (err?.code === 'pod_incompatible') {
                 clientLogger.warn('comfy', `Pod incompatible — generation blocked: ${err.message}`);
-                Events.emit('ui:warning', { title: 'Pod not compatible', message: err.message });
+                if (!payload.byAgent) Events.emit('ui:error', { title: 'Pod not compatible', message: err.message });
                 exec.onError?.(err);
                 return;
             }
