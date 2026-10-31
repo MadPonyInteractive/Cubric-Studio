@@ -1,10 +1,13 @@
 /**
  * updateChecker.js — MPI-334 in-app update prompt (PORTABLE builds only).
  *
- * On boot (called from init.js) we ask main whether a newer GitHub release exists.
+ * On boot (called from init.js) we ask main whether a newer version exists.
  * Main gates on the portable root and does the fetch; here we do the semver compare
  * (reusing compareSemVer), honour the mute, and drive the MpiOkCancel dialog.
- * OK → main launches the existing updater script + quits.
+ *
+ * MPI-1355: 2.1.4 is the last free release. Main asks the Licence Worker, and the newer
+ * version is the PAID one: OK opens its Gumroad page (with the founder code applied
+ * while any are left) instead of running the updater. Nothing downloads.
  *
  * MPI-629 changed WHAT mutes it. It used to count dismissals and go quiet after 3,
  * which left a user who pressed Later three times with no route back to that update
@@ -20,17 +23,27 @@
  *
  * Dev note: in a dev/browser build the portable gate returns portable:false, so
  * nothing is ever due. Set localStorage 'mpi_dev_force_update' to a fake latest
- * version (e.g. "9.9.9") to drive both surfaces — the updater itself will report
- * that it is not available rather than silently doing nothing.
+ * version (e.g. "9.9.9") to drive both surfaces, with a sample founder line.
  */
 import { compareSemVer } from '../managers/versioningManager.js';
 import { APP_VERSION } from '../core/appVersion.js';
 import { Storage } from '../core/storage.js';
 import { MpiOkCancel } from '../components/Compounds/MpiOkCancel/MpiOkCancel.js';
 import { clientLogger } from './clientLogger.js';
+import { openExternal } from '../utils/openExternal.js';
 
-/** Promise<{current, latest}|null> — the boot check, resolved once and shared. */
+/** Used until the Worker has answered, and when it cannot be reached. */
+const STORE_URL_FALLBACK = 'https://mad-pony-interactive.gumroad.com/l/ubqygr';
+
+/** Promise<{current, latest, url, founder}|null> — the boot check, resolved once and shared. */
 let _pending = null;
+/** The store link the Worker last gave; the error dialog's button reads it. */
+let _storeUrl = STORE_URL_FALLBACK;
+
+/** Where "Get the latest version" goes: the paid version's Gumroad page. */
+export function getStoreUrl() {
+    return _storeUrl;
+}
 
 function getIpc() {
     try {
@@ -77,11 +90,11 @@ async function _checkForUpdate() {
     }
 
     clientLogger.info('update', `update available: v${info.current} -> v${info.latest}, prompting`);
-    promptUpdate(info.current, info.latest);
+    promptUpdate(info);
     return info;
 }
 
-/** The fetch + semver compare. `{current, latest}` when newer, else null. */
+/** The fetch + semver compare. `{current, latest, url, founder}` when newer, else null. */
 async function _resolveUpdate(ipc) {
     // ponytail: dev-only escape hatch to exercise the real dialog + mute in a build
     // where the portable gate would skip the fetch. Never set in prod. It flows through
@@ -89,10 +102,11 @@ async function _resolveUpdate(ipc) {
     let devForce = null;
     try { devForce = localStorage.getItem('mpi_dev_force_update'); } catch { /* ignore */ }
 
-    let current, latest;
+    let current, latest, founder = null;
     if (devForce) {
         current = APP_VERSION;
         latest = devForce;
+        founder = { code: 'FOUNDER100', left: 63, url: `${STORE_URL_FALLBACK}/FOUNDER100` };
         clientLogger.info('update', `DEV force-update flag set — simulating latest=${latest}`);
     } else {
         if (!ipc) { clientLogger.info('update', 'no IPC (browser) — update check skipped'); return null; }
@@ -104,16 +118,18 @@ async function _resolveUpdate(ipc) {
             return null;
         }
         if (!result?.portable) return null;          // dev/non-portable — main already logged
-        if (!result.ok || !result.latest) return null; // fetch failed — main already logged
+        if (result.ok && result.url) _storeUrl = result.url;
+        if (!result.ok || !result.latest) return null; // fetch failed or no paid build yet — main already logged
         current = result.current;
         latest = result.latest;
+        founder = result.founder || null;
     }
 
     if (compareSemVer(latest, current) <= 0) {
         clientLogger.info('update', `up to date (current=${current} latest=${latest})`);
         return null;
     }
-    return { current, latest };
+    return { current, latest, url: _storeUrl, founder };
 }
 
 // MPI-422: an update runs with the app closed, so a failure has no window to land in.
@@ -143,32 +159,14 @@ async function reportFailedUpdate(ipc) {
 }
 
 /**
- * Launch the updater. Shared by the boot popup and the Settings row so there is one
- * path, and so a failure is reported the same way from both. On success the app
- * closes — nothing after this runs.
- *
- * The dismissal record is deliberately NOT cleared here: it is keyed by version, so
- * once the update lands it no longer matches anything and is inert.
+ * Open the paid version's Gumroad page in the browser — with the founder code applied
+ * while any are left. Shared by the boot popup, the Settings row and the bell, so there
+ * is one path. Nothing downloads: 2.1.4 gets no more updates (MPI-1355).
  */
-export async function runUpdate(latest) {
-    clientLogger.info('update', `user accepted update to v${latest} — launching updater`);
-    const ipc = getIpc();
-    if (!ipc) {
-        await showUpdateError('Update unavailable',
-            'This build cannot update itself — the in-app updater only runs in the portable desktop build. '
-            + 'Download the latest build from GitHub instead.');
-        return false;
-    }
-    try {
-        const r = await ipc.invoke('run-update');
-        if (r?.ok) return true;
-        clientLogger.warn('update', `run-update failed: ${r?.error || 'unknown'}`);
-        await showUpdateError('Update could not start', r?.error || 'No reason was recorded.');
-    } catch (err) {
-        clientLogger.warn('update', `run-update IPC failed: ${err.message}`);
-        await showUpdateError('Update could not start', err.message);
-    }
-    return false;
+export function openLatestVersion(info) {
+    const url = info?.founder?.url || info?.url || _storeUrl;
+    clientLogger.info('update', `user opened the store for v${info?.latest}: ${url}`);
+    openExternal(url);
 }
 
 // shell.js is imported lazily: it pulls in the whole component tree, and this module
@@ -178,21 +176,24 @@ async function showUpdateError(title, text) {
     showError(title, text);
 }
 
-function promptUpdate(current, latest) {
+function promptUpdate(info) {
+    const { current, latest, founder } = info;
+    const founderLine = founder
+        ? `\n\nFounder code ${founder.code} makes it free for the first users: ${founder.left} left. `
+            + `The button below applies it for you.`
+        : '';
     const dialog = MpiOkCancel.mount(document.createElement('div'), {
         mascot: { key: 'studio', clip: 'update-ready' },
-        title: 'Update available',
-        text: `A new version of Cubric Studio is available.\n\n`
-            + `You have v${current}. Latest is v${latest}.\n\n`
-            + `Update now? The app will close, update, and reopen. `
-            + `You can also update later from Settings, where an available update is `
-            + `always listed at the top.`,
-        okLabel: 'Update now',
+        title: `Cubric Studio v${latest} is out`,
+        text: `There are no more updates for this version (v${current}).\n\n`
+            + `Cubric Studio v${latest} is the new paid version, on Gumroad.`
+            + founderLine,
+        okLabel: 'Open Gumroad',
         cancelLabel: 'Later',
         checkbox: { label: "Don't ask again", checked: false },
     });
 
-    dialog.on('ok', () => runUpdate(latest));
+    dialog.on('ok', () => openLatestVersion(info));
 
     dialog.on('cancel', ({ checkboxChecked }) => {
         const muted = checkboxChecked === true;

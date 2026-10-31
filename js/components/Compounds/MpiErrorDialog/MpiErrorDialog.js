@@ -2,22 +2,20 @@ import { ComponentFactory } from '../../factory.js';
 import { MpiModal } from '../../Primitives/MpiModal/MpiModal.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiIcon } from '../../Primitives/MpiIcon/MpiIcon.js';
-import { MpiInput } from '../../Primitives/MpiInput/MpiInput.js';
 import { qs } from '../../../utils/dom.js';
 import { clientLogger } from '../../../services/clientLogger.js';
-import { APP_VERSION } from '../../../core/appVersion.js';
-import { APP_STAGE } from '../../../core/appStage.js';
-import { BUILD_HASH } from '../../../core/buildInfo.js';
+import { getStoreUrl } from '../../../services/updateChecker.js';
 
 /**
  * MpiErrorDialog — Global Error Notification Dialog (Compound)
  *
  * A self-contained blocking modal that surfaces actionable error messages to
- * the user, and lets them turn one into a bug report we can actually act on:
- * a prefilled GitHub issue form plus the log file itself, revealed in the OS
- * file manager so they can attach it. Both paths are credential-free — the
- * predecessor auto-filed through the GitHub API with a token the portable
- * build strips, so the button was dead in every release (MPI-675).
+ * the user.
+ *
+ * MPI-1355: 2.1.4 is the last free release and gets no support, so the report and
+ * log buttons are gone (GitHub Issues are closed). Under the error a line says this
+ * version is no longer supported, and "Get the latest version" opens the paid
+ * version's Gumroad page — the same page as the update prompt.
  *
  * Designed to be used as a singleton via `showError()` in shell.js.
  * Callers never mount this directly — they call:
@@ -33,8 +31,7 @@ import { BUILD_HASH } from '../../../core/buildInfo.js';
  *
  * Emits:
  * 'dismiss'   {} — Dismiss button clicked
- * 'report'    {} — Report on GitHub button clicked
- * 'showLog'   {} — Show log file button clicked
+ * 'latest'    {} — Get the latest version button clicked
  */
 export const MpiErrorDialog = ComponentFactory.create({
     name: 'MpiErrorDialog',
@@ -47,7 +44,7 @@ export const MpiErrorDialog = ComponentFactory.create({
                 <div class="mpi-error-dialog__title" id="title-slot"></div>
             </div>
             <div class="mpi-error-dialog__message" id="message-slot"></div>
-            <div class="mpi-error-dialog__summary" id="summary-slot" autoHeight: true></div>
+            <div class="mpi-error-dialog__notice">Sorry, this version is no longer supported. To get the latest version, visit Gumroad.</div>
             <div class="mpi-error-dialog__status" id="status-slot" hidden></div>
             <div class="mpi-error-dialog__actions" id="actions-slot"></div>
         </div>
@@ -56,8 +53,6 @@ export const MpiErrorDialog = ComponentFactory.create({
     setup: (el, props, emit) => {
         // ── Modal primitive — owns backdrop, portal, Overlays, Events ────────
         const modal = MpiModal.mount(document.createElement('div'), {
-            // 560, not 480: the row now carries two report affordances beside
-            // Dismiss, and at 480 it wrapped Dismiss onto its own line.
             width: 'min(560px, 90vw)',
             backdropClose: false,
         });
@@ -82,21 +77,8 @@ export const MpiErrorDialog = ComponentFactory.create({
         const messageSlot = qs('#message-slot', el);
         messageSlot.textContent = props.message || '';
 
-        // ── Summary Input ────────────────────────────────────────────────────
-        const summarySlot = qs('#summary-slot', el);
-        const summaryInput = MpiInput.mount(document.createElement('div'), {
-            type: 'textarea',
-            placeholder: 'Briefly describe what you were doing when this error occurred...',
-            label: 'Error Summary (optional)',
-        });
-        summaryInput.el.style.width = '100%';
-        summarySlot.appendChild(summaryInput.el);
-        const summaryField = qs('.mpi-input__field', summaryInput.el);
-
         // ── Status line ──────────────────────────────────────────────────────
-        // Every failure below lands here. A report path that fails silently is
-        // the defect this dialog was rebuilt to remove, so no branch may end in
-        // a log line the user cannot see.
+        // A browser that will not open lands here, never only in the log.
         const statusSlot = qs('#status-slot', el);
         const setStatus = (text) => {
             statusSlot.textContent = text || '';
@@ -125,71 +107,20 @@ export const MpiErrorDialog = ComponentFactory.create({
         // ── Actions ──────────────────────────────────────────────────────────
         const actionsSlot = qs('#actions-slot', el);
 
-        // With `icon` set MpiButton renders `label`, not `text` — `info` is the tooltip.
-        const logBtn = MpiButton.mount(document.createElement('div'), {
+        const latestBtn = MpiButton.mount(document.createElement('div'), {
+            text: 'Get the latest version',
             variant: 'outline',
             size: 'md',
-            icon: 'folder',
-            label: 'Show log file',
-            info: 'Open the app log in your file manager so you can attach it',
         });
-        logBtn.on('click', async () => {
-            emit('showLog', {});
+        latestBtn.on('click', async () => {
+            emit('latest', {});
             setStatus('');
-            try {
-                const res = await fetch('/logs/reveal', { method: 'POST' });
-                const data = await res.json();
-                if (!data.success) throw new Error(data.error || `HTTP ${res.status}`);
-                setStatus(`Log file: ${data.logPath}`);
-            } catch (err) {
-                clientLogger.error('error-dialog', 'Could not reveal the log file', err);
-                // "Cubric Vision" here is the real userData folder name, pinned by
-                // app.setName() in main.js so an upgrade keeps the user's settings.
-                // It does not follow the Cubric Studio display rename.
-                setStatus(`Could not open the log folder (${err.message}). Look for app.log under the Cubric Vision logs folder in your user data directory.`);
-            }
-        });
-        actionsSlot.appendChild(logBtn.el);
-
-        const reportBtn = MpiButton.mount(document.createElement('div'), {
-            variant: 'outline',
-            size: 'md',
-            icon: 'chat',
-            label: 'Report on GitHub',
-            info: 'Open a prefilled bug report in your browser',
-        });
-        reportBtn.on('click', async () => {
-            emit('report', {});
-            setStatus('');
-
-            let url;
-            try {
-                // The server builds the URL: it owns the log path, the OS
-                // details and secret redaction. Build metadata is advisory.
-                const res = await fetch('/github/issue-url', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        title: titleSlot.textContent,
-                        message: messageSlot.textContent,
-                        summary: summaryField.value.trim(),
-                        build: { appVersion: APP_VERSION, stage: APP_STAGE, hash: BUILD_HASH },
-                    }),
-                });
-                const data = await res.json();
-                if (!data.success || !data.url) throw new Error(data.error || `HTTP ${res.status}`);
-                url = data.url;
-            } catch (err) {
-                clientLogger.error('error-dialog', 'Could not build the report URL', err);
-                setStatus(`Could not prepare the report (${err.message}). File it by hand at https://github.com/MadPonyInteractive/Cubric-Vision/issues and attach the log with the button above.`);
-                return;
-            }
-
+            const url = getStoreUrl();
             if (!await openExternal(url)) {
                 setStatus(`Could not open your browser. Copy this address into it:\n${url}`);
             }
         });
-        actionsSlot.appendChild(reportBtn.el);
+        actionsSlot.appendChild(latestBtn.el);
 
         const dismissBtn = MpiButton.mount(document.createElement('div'), {
             text: 'Dismiss',
@@ -206,7 +137,6 @@ export const MpiErrorDialog = ComponentFactory.create({
         el.setError = (title, message) => {
             titleSlot.textContent = title || 'An error occurred';
             messageSlot.textContent = message || '';
-            summaryField.value = '';
             setStatus('');
         };
     }

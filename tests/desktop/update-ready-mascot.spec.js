@@ -2,7 +2,7 @@ const { test, expect } = require('@playwright/test');
 const { launchApp, closeApp } = require('./launch');
 
 /**
- * MPI-908 — the "Update available" dialog heads with Studio's `update-ready` clip instead of
+ * MPI-908 — the update dialog (2.1.4: "Cubric Studio vX is out", MPI-1355) heads with Studio's `update-ready` clip instead of
  * an icon (MpiOkCancel `mascot` prop), played ONCE and held on its last frame, the rest pose
  * (Fabio 2026-09-25). The prompt is the real one, reached through updateChecker's dev force flag.
  */
@@ -37,7 +37,7 @@ test('update dialog: Studio update-ready plays once when the dialog shows, then 
       return v && { t: v.currentTime, paused: v.paused, ended: v.ended, loop: v.loop };
     });
 
-    await expect(window.locator('.mpi-ok-cancel__title', { hasText: 'Update available' })).toBeVisible();
+    await expect(window.locator('.mpi-ok-cancel__title', { hasText: 'v99.0.0 is out' })).toBeVisible();
     await expect(clip).toHaveAttribute('src', 'assets/mascot/studio/update-ready.webm');
     expect((await state()).loop).toBe(false);
     // Plays...

@@ -52,15 +52,14 @@ const WS_HANDSHAKE_MS = 10000;
 // The copy carries NO internal identifiers — not the packs that failed, not the
 // packages behind them, not our vocabulary for either. This is an artist's app: the
 // user needs to know something broke, that it is not their models, and which button
-// fixes it. What actually failed is in app.log, which "Show log file" reaches and
-// MPI-675 made sendable. (User call, 2026-09-01.)
+// fixes it. What actually failed is in app.log. (User call, 2026-09-01.) 2.1.4 has no
+// support path, so the last line no longer asks for the log (MPI-1355).
 export const DEPS_BROKEN_MESSAGE =
     'Part of the local engine did not install, so some models will fail to generate.\n\n'
     + 'Open Settings and press "Repair engine" under Engine health. It reinstalls the '
     + 'missing part and restarts the engine — a few minutes, and your models are '
     + 'untouched.\n\n'
-    + 'If it keeps failing, check your internet connection or proxy, then use '
-    + '"Show log file" below and send us the log.';
+    + 'If it keeps failing, check your internet connection or proxy.';
 
 // Binary WS frames carry a 4-byte big-endian event-type header. Only event type 1
 // (PREVIEW_IMAGE) is an image; ComfyUI also sends OTHER binary event types on the

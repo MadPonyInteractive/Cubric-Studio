@@ -1336,10 +1336,12 @@ app.on('ready', () => {
   });
 
   // MPI-334: in-app update prompt (PORTABLE builds only).
-  // check-for-update: gate on portable root, fetch GitHub releases/latest, return
-  // {portable, current, latest}. The renderer does the semver compare (compareSemVer
-  // is ESM; main is CJS) and owns the dialog + dismiss logic. Version comes from
-  // package.json (bumped in lockstep with APP_VERSION by mpi-version-bump).
+  // MPI-1355: 2.1.4 is the last free release, so there is nothing left to download. The
+  // check asks the Licence Worker's bridge route whether the paid version is out, where
+  // to buy it, and which founder code to show; it returns {portable, current, latest,
+  // url, founder}. latest is null until a paid build is published (no prompt then). The
+  // renderer does the semver compare (compareSemVer is ESM; main is CJS) and owns the
+  // dialog + dismiss logic. Version comes from package.json.
   ipcMain.handle('check-for-update', async () => {
     const portableRoot = resolveMainPortableRoot();
     const current = require('./package.json').version;
@@ -1348,16 +1350,14 @@ app.on('ready', () => {
       return { ok: true, portable: false, current };
     }
     try {
-      const res = await fetch(
-        'https://api.github.com/repos/MadPonyInteractive/Cubric-Studio/releases/latest',
-        { headers: { 'User-Agent': 'CubricStudio-Updater', Accept: 'application/vnd.github+json' } },
-      );
-      if (!res.ok) throw new Error(`GitHub API ${res.status}`);
-      const rel = await res.json();
-      const latest = String(rel.tag_name || '').replace(/^v/i, '');
-      if (!latest) throw new Error('release has no tag_name');
-      logger.info('update', `portable check — current=${current} latest=${latest}`);
-      return { ok: true, portable: true, current, latest };
+      const res = await fetch('https://licence.cubric.studio/v1/bridge', {
+        headers: { 'User-Agent': 'CubricStudio-Updater', Accept: 'application/json' },
+      });
+      if (!res.ok) throw new Error(`Licence Worker ${res.status}`);
+      const bridge = await res.json();
+      const latest = typeof bridge.version === 'string' ? bridge.version : null;
+      logger.info('update', `portable check — current=${current} paid=${latest || 'not out yet'}`);
+      return { ok: true, portable: true, current, latest, url: bridge.url || null, founder: bridge.founder || null };
     } catch (err) {
       logger.warn('update', `check failed: ${err.message}`);
       return { ok: false, portable: true, current, error: err.message };

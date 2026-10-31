@@ -42,14 +42,15 @@
     white-space: pre-wrap;
 }
 
-/* Summary */
-.mpi-error-dialog__summary {
-    display: flex;
-    flex-direction: column;
+/* Notice — 2.1.4 is no longer supported (MPI-1355) */
+.mpi-error-dialog__notice {
+    font-size: var(--t-sm);
+    color: var(--ink-2);
+    line-height: 1.5;
 }
 
-/* Status — where a failed report path says so, and hands over the raw
-   URL / log path as selectable text. Never hidden behind a log line. */
+/* Status — where a browser that will not open says so, and hands over the
+   raw URL as selectable text. Never hidden behind a log line. */
 .mpi-error-dialog__status {
     font-size: var(--t-sm);
     color: var(--ink-2);

@@ -11,7 +11,7 @@ import {
     acknowledgeAllDevUpdates,
     acknowledgeDevUpdate,
 } from '../../../services/devUpdatesService.js';
-import { getPendingUpdate, runUpdate } from '../../../services/updateChecker.js';
+import { getPendingUpdate, openLatestVersion } from '../../../services/updateChecker.js';
 
 /**
  * MpiDevUpdates — the dev-updates list for the MpiSlideOver panel (MPI-1115).
@@ -24,7 +24,7 @@ import { getPendingUpdate, runUpdate } from '../../../services/updateChecker.js'
  *
  * MPI-1242: when the boot check found a newer version, an "Update to vX.Y.Z" button
  * sits at the top. Posts announce what is "Coming in 2.1.2", so the button naming
- * the same version is what joins the post to the install. Same runUpdate as Settings.
+ * the same version is what joins the post to the install. Same openLatestVersion as Settings (2.1.4: opens Gumroad, MPI-1355).
  *
  * Usage (via slide-over event, from the landing bell in js/shell/projectUI.js):
  *   Events.emit('slide-over:open', { title: 'Dev updates', component: MpiDevUpdates });
@@ -58,8 +58,8 @@ export const MpiDevUpdates = ComponentFactory.create({
         const updateEl = qs('.mpi-dev-updates__update', el);
         getPendingUpdate().then((info) => {
             if (!info) return;
-            const btn = mountButton({ text: `Update to v${info.latest}`, variant: 'primary', size: 'md' });
-            _unsubs.push(on(btn, 'click', () => runUpdate(info.latest)));
+            const btn = mountButton({ text: `Get v${info.latest}`, variant: 'primary', size: 'md' });
+            _unsubs.push(on(btn, 'click', () => openLatestVersion(info)));
             updateEl.appendChild(btn);
             updateEl.hidden = false;
         });

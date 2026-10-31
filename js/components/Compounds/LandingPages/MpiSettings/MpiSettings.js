@@ -13,7 +13,7 @@ import { Storage } from '../../../../core/storage.js';
 import { clientLogger } from '../../../../services/clientLogger.js';
 import { loadAll as loadAssets } from '../../../../services/assetService.js';
 import { reSyncInstalledModels } from '../../../../data/modelRegistry.js';
-import { getPendingUpdate, runUpdate } from '../../../../services/updateChecker.js';
+import { getPendingUpdate, openLatestVersion } from '../../../../services/updateChecker.js';
 import { localEngine } from '../../../../services/comfyController.js';
 import { secretsClient } from '../../../../core/secretsClient.js';
 import { ce, qs } from '../../../../utils/dom.js';
@@ -666,16 +666,16 @@ export const MpiSettings = ComponentFactory.create({
 
             const desc = qs('#mpiSettingsUpdateDesc', root);
             if (desc) {
-                desc.textContent = `You have v${info.current}, and v${info.latest} is out. `
-                    + `The app will close, update, and reopen.`;
+                desc.textContent = `You have v${info.current}, the last free version. v${info.latest} is the new `
+                    + `paid version, on Gumroad.`;
             }
             slot.innerHTML = '';
             const btn = MpiButton.mount(slot, {
-                text: `Update to v${info.latest}`,
+                text: `Get v${info.latest}`,
                 variant: 'primary',
                 size: 'sm',
             });
-            btn.on('click', () => runUpdate(info.latest));
+            btn.on('click', () => openLatestVersion(info));
             section.hidden = false;
         }
 
