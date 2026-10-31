@@ -9,7 +9,7 @@
 
 **ComfyUI's engine without the engine room. AI images, video and sound, made easy, free and open source.**
 
-[![Latest release](https://img.shields.io/github/v/release/MadPonyInteractive/Cubric-Studio?label=download&color=e84a8a)](https://github.com/MadPonyInteractive/Cubric-Studio/releases/latest)
+[![Latest version](https://img.shields.io/badge/latest-v2.1.3-e84a8a)](CHANGELOG.md)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
 [![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20Linux%20%7C%20macOS-555)](https://github.com/MadPonyInteractive/Cubric-Studio/releases/latest)
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/WX7tDFSVmY)
@@ -18,6 +18,8 @@
 [![Patreon](https://img.shields.io/badge/Patreon-support-FF424D?logo=patreon&logoColor=white)](https://www.patreon.com/madponyinteractive)
 
 [Website](https://cubric.studio) · [Documentation](https://docs.cubric.studio) · [Download](https://github.com/MadPonyInteractive/Cubric-Studio/releases/latest) · [Discord](https://discord.gg/WX7tDFSVmY) · [Roadmap](https://trello.com/b/wg1r5aYz/cubric-vision) · [Donate](https://www.paypal.com/donate/?hosted_button_id=LLBTJZRT6465N) · [Patreon](https://www.patreon.com/madponyinteractive)
+
+<!-- latest-version -->Latest version: **v2.1.3** (2026-10-27) - see what changed in the [changelog](CHANGELOG.md).<!-- /latest-version -->
 
 </div>
 
