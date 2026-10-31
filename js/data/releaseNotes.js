@@ -38,6 +38,20 @@
  * @type {Record<string, ReleaseNotes>}
  */
 export const RELEASE_NOTES = {
+  '2.1.4': {
+    version: '2.1.4',
+    whatIsNew: [],
+    fixes: [
+      '**A remote GPU on a newer version than this app** now opens the error window with the way to the latest version, instead of a short message.',
+    ],
+    breakingChanges: [],
+    importantChanges: [
+      '**This is the last free version of Cubric Studio.** From 2.2 Cubric Studio is a paid app, sold on Gumroad. This version keeps working as it is, but gets no more updates or fixes.',
+      '**Update now opens Gumroad.** When a newer version is out, the update window, the Update row in Settings and the bell open its Gumroad page. Nothing downloads. While founder codes are left, the page opens with one applied.',
+      '**The error window points to the latest version.** It says this version is no longer supported and has a Get the latest version button. Report on GitHub and Show log file are gone.',
+    ],
+    engineNotes: [],
+  },
   '2.1.3': {
     version: '2.1.3',
     whatIsNew: [
