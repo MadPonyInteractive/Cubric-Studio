@@ -1,3 +1,14 @@
+> [!IMPORTANT]
+> **Cubric Studio is now a paid app, and this repository is no longer maintained.**
+>
+> From version 2.2 (released 1 November 2026) Cubric Studio is closed source and sold on
+> [**Gumroad**](https://mad-pony-interactive.gumroad.com/l/ubqygr): one payment, every 2.x update, one licence key for up to 3 computers.
+> [Why it went paid](https://cubric.studio/paid/).
+>
+> The code in this repository stops at **2.1.4**, the last free and open-source version. It stays
+> available under AGPL-3.0 from [Releases](https://github.com/MadPonyInteractive/Cubric-Studio/releases/tag/v2.1.4), but it gets no more updates, fixes or support.
+> If something doesn't work in 2.1, update to the paid version.
+
 > [!NOTE]
 > This repository was formerly **Cubric-Vision** (`MadPonyInteractive/Cubric-Vision`). Cubric Vision
 > became Cubric Studio at version 2.0. Old links, clones and in-app update checks redirect here
@@ -7,19 +18,19 @@
 
 # Cubric Studio
 
-**ComfyUI's engine without the engine room. AI images, video and sound, made easy, free and open source.**
+**ComfyUI's engine without the engine room. AI images, video and sound, made easy.**
 
 [![Latest version](https://img.shields.io/badge/latest-v2.2.0-e84a8a)](CHANGELOG.md)
-[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
+[![This repo: not maintained](https://img.shields.io/badge/this%20repo-not%20maintained-lightgrey)](https://cubric.studio/paid/)
+[![Buy on Gumroad](https://img.shields.io/badge/Gumroad-buy%20Cubric%20Studio-FF90E8?logo=gumroad&logoColor=black)](https://mad-pony-interactive.gumroad.com/l/ubqygr)
+[![2.1 code: AGPL-3.0](https://img.shields.io/badge/2.1%20code-AGPL--3.0-blue)](LICENSE)
 [![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20Linux%20%7C%20macOS-555)](https://github.com/MadPonyInteractive/Cubric-Studio/releases/latest)
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/WX7tDFSVmY)
 [![Roadmap](https://img.shields.io/badge/Roadmap-Trello-0079BF?logo=trello&logoColor=white)](https://trello.com/b/wg1r5aYz/cubric-vision)
-[![PayPal](https://img.shields.io/badge/PayPal-donate-003087?logo=paypal&logoColor=white)](https://www.paypal.com/donate/?hosted_button_id=LLBTJZRT6465N)
-[![Patreon](https://img.shields.io/badge/Patreon-support-FF424D?logo=patreon&logoColor=white)](https://www.patreon.com/madponyinteractive)
 
-[Website](https://cubric.studio) · [Documentation](https://docs.cubric.studio) · [Download](https://github.com/MadPonyInteractive/Cubric-Studio/releases/latest) · [Discord](https://discord.gg/WX7tDFSVmY) · [Roadmap](https://trello.com/b/wg1r5aYz/cubric-vision) · [Donate](https://www.paypal.com/donate/?hosted_button_id=LLBTJZRT6465N) · [Patreon](https://www.patreon.com/madponyinteractive)
+[Website](https://cubric.studio) · [Buy Cubric Studio](https://mad-pony-interactive.gumroad.com/l/ubqygr) · [Why it's paid](https://cubric.studio/paid/) · [Documentation](https://docs.cubric.studio) · [Free 2.1.4 (unmaintained)](https://github.com/MadPonyInteractive/Cubric-Studio/releases/tag/v2.1.4) · [Discord](https://discord.gg/WX7tDFSVmY) · [Roadmap](https://trello.com/b/wg1r5aYz/cubric-vision)
 
-<!-- latest-version -->Latest version: **v2.2.0** (2026-11-01) - see what changed in the [changelog](CHANGELOG.md).<!-- /latest-version -->
+<!-- latest-version -->Latest version: <b>v2.2.0</b> (2026-11-01, on Gumroad) - see what changed in the <a href="CHANGELOG.md">changelog</a>.<!-- /latest-version -->
 
 </div>
 
@@ -32,9 +43,9 @@ and press **Cue**, or ask the built-in agent in plain words. Then refine the
 result with masking, editing, upscaling, video and GIF tools. Your prompts,
 pictures, videos and project files stay on your disk.
 
-Free, open source, and made by [Mad Pony Interactive](https://madponyinteractive.com).
-No account and no subscription. Local generation costs nothing; cloud models and
-rented GPUs are optional and billed to your own account.
+Made by [Mad Pony Interactive](https://madponyinteractive.com). One payment, no
+subscription. Local generation costs nothing; cloud models and rented GPUs are
+optional and billed to your own account.
 
 ![Cubric Studio landing page with the five mascots and recent projects](.github/readme/landing.webp)
 
@@ -141,8 +152,9 @@ https://github.com/user-attachments/assets/dd4c46e8-6941-49a2-b279-949fa1815aae
 
 ## Download and install
 
-Grab the portable build for your platform from
-[**GitHub Releases**](https://github.com/MadPonyInteractive/Cubric-Studio/releases/latest).
+Buy Cubric Studio on [**Gumroad**](https://mad-pony-interactive.gumroad.com/l/ubqygr) and download the portable build for
+your platform from there. The free builds up to 2.1.4 stay on
+[GitHub Releases](https://github.com/MadPonyInteractive/Cubric-Studio/releases/tag/v2.1.4), but they are no longer updated or supported.
 There is no installer: extract and launch. On first run the app sets up its
 ComfyUI engine and asks where to store models.
 
@@ -168,13 +180,6 @@ in Terminal, let the download finish, then press **Retry**.
 
 Step-by-step instructions are in the
 [installation guide](https://docs.cubric.studio/installation/).
-
-Every build is free and public on GitHub Releases. If Cubric Studio is useful to
-you, you can fund its development with a
-[PayPal donation](https://www.paypal.com/donate/?hosted_button_id=LLBTJZRT6465N)
-(any amount, once or monthly) or on
-[Patreon](https://www.patreon.com/madponyinteractive) (monthly tiers). That is
-support, not a paywall.
 
 ### What you'll need
 
@@ -210,38 +215,22 @@ The full user guide lives at [docs.cubric.studio](https://docs.cubric.studio):
 [remote GPU](https://docs.cubric.studio/remote/), and
 [hotkeys](https://docs.cubric.studio/hotkeys/).
 
-## Community and support
+## Help and community
+
+Version 2.1 gets no more fixes. If something doesn't work, update to the paid
+version on [Gumroad](https://mad-pony-interactive.gumroad.com/l/ubqygr): every fix lands there.
 
 - [**Discord**](https://discord.gg/WX7tDFSVmY): questions, feedback, feature
-  requests, build announcements and **bug reports**. All bug reports go to
-  Discord now: post in the `#bug-reports` forum under Cubric Studio with your
-  app version, what you did, what you expected, what happened instead, any
-  error text, and your GPU and OS.
-- **In-app bug reports:** from version 2.2, the app's bug report button sends
-  your report straight to our private bug report centre, error details
-  included, so nothing has to be posted in public. Add your Discord name if
-  you'd like us to get back to you. On older versions the error dialog's
-  **Report on GitHub** button no longer works, since GitHub Issues are closed:
-  post on Discord instead.
-- [**PayPal**](https://www.paypal.com/donate/?hosted_button_id=LLBTJZRT6465N):
-  donate any amount, once or monthly, with PayPal or a card.
-- [**Patreon**](https://www.patreon.com/madponyinteractive): three monthly tiers
-  that all get the same thing, dev posts and the Supporter role on Discord. You
-  choose the amount. Funds ongoing development.
+  requests and build announcements.
 
 This app started as the first of several planned Cubric apps. They've since
 folded into one, which now carries the [Cubric Studio](https://cubric.studio)
-name: all local, all open source.
-
-## For developers
-
-Want to run from source or contribute? Start with
-[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md), then read
-[CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR. For
-security-sensitive reports, see [SECURITY.md](SECURITY.md).
+name. It was open source up to 2.1.4 and is a paid,
+closed-source app from 2.2.
 
 ## License
 
-Cubric Studio is licensed under [AGPL-3.0-only](LICENSE). Portable builds ship
-with readable app source: open source isn't a marketing line here, it's how
-the app is distributed.
+The code in this repository (Cubric Studio up to 2.1.4) is licensed under
+[AGPL-3.0-only](LICENSE), and that licence stays in force for it. Cubric Studio
+2.2 and later are closed source and sold under their own licence on
+[Gumroad](https://mad-pony-interactive.gumroad.com/l/ubqygr).
