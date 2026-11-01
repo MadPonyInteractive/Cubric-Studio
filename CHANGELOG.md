@@ -2,6 +2,66 @@
 
 Every Cubric Studio release, newest first.
 
+## Cubric Studio v2.2.0 (2026-11-01)
+
+### Changelog
+
+The LTX 2.5 video model, a Windows installer, updates that show themselves, a lighter engine, and a list of fixes.
+
+#### Important
+
+- **Local video models stop at 15 seconds,** not 30. That is as long as MiniMax H3 is trained to go. A saved length above 15 opens at 15. Cloud models keep their own lengths. (MPI-1349)
+- **The child-safety check reads your words only.** It still refuses a prompt that puts someone under 18 in a nude, sexual or suggestive picture, but it no longer looks at your pictures and clips, so runs start at once and an adult photo is no longer refused for looking young. The Character Sheet Editor no longer refuses an undressed sheet. (MPI-1359)
+
+#### What's new
+
+- **LTX 2.5.** A new video model next to LTX 2.3 in the Model Library: actors move and react far more naturally, and clips finish faster. (MPI-1095, MPI-1266)
+- **A Windows installer.** A signed setup asks where the app and your models go, and adds Start menu and desktop shortcuts. Running it again keeps your engine, models, licence and settings. (MPI-1357)
+- **Updates show themselves.** Update opens a window with the download's progress, and a window stays up while the app installs and relaunches, instead of the app vanishing for a minute. (MPI-1367)
+- **A lighter, steadier engine.** It now leans on far fewer outside add-ons: a quicker install, fewer things that break when the engine updates, the same results. Krea 2 and Chroma pictures generate faster. (MPI-1339, MPI-1341, MPI-1342, MPI-1343, MPI-1344, MPI-1372)
+- **Better turbo for H3 Reference, Singularity H3 and Video Edit.** Turbo uses the newer 8-step speed-up, and H3 Reference and Singularity H3 run 8 steps instead of 10. A 1.8 GB download the first time you use it. (MPI-1347)
+- **Long and large clips fit your graphics card.** Video Edit and H3 refines now size their windows to your card's free memory instead of a fixed table made for 16 GB cards. (MPI-1350)
+- **Video Edit keeps your clip's sound,** and clips shorter than the model needs are padded instead of losing their end. (MPI-1335)
+- **The queue docks beside the gallery** as a right-hand panel with a toggle in the gallery toolbar, instead of covering it. (MPI-1320)
+- **Video models reach the voice library.** On LTX, MiniMax H3 and any model that takes a sound, the + in the prompt box offers the Voice library. (MPI-1325)
+- **The floating Latents window plays video runs,** looping each step's latent clip instead of freezing on one frame. (MPI-1345)
+- **Cosmo uses what you have.** It no longer offers a download when a model you have does the job, and runs a words-only clip on H3 Reference or Singularity H3 if that is the H3 you have. For pictures, Qwen-Image 2.1, FLUX.3 Klein and MOSS Image now come right after Krea 2. (MPI-1327, MPI-1332, MPI-1346)
+- **Send report comes to us privately.** The error window's button sends the report straight to us, instead of opening a public GitHub issue. (MPI-1360)
+- **Small helpers.** A project an agent creates shows on the home screen at once. Dev posts pop up while you work, and View changes opens them. (MPI-1323, MPI-1321)
+
+#### Fixes
+
+- **A dropped download no longer spoils the file.** A model download that lost its connection could end up too big and fail its check. Retries now start clean. (MPI-1373)
+- **A cut-short model file no longer counts as installed.** The app offers to download it again instead of failing when you generate. (MPI-1371)
+- **A moved portable install downloads into its new folder,** not the old one. (MPI-1366)
+- **Video Edit's masked square no longer upscales a small source.** (MPI-1331)
+- **Reuse on a Flow card reopens the Flow** when the Reuse dialog is off, instead of dropping you into the prompt box. (MPI-1335)
+- **A download-only (CPU) Pod no longer offers Restart engine,** and Restart on one restarts your own engine instead of showing an error. A remote engine that drops shows one notice, not two. (MPI-1326, MPI-1328, MPI-1330)
+- **Cosmo behaves better.** His words no longer vanish when he also takes a note or looks at a picture. A one-off setting such as 1080p stays one-off. After you agree to a download he asks you to say when it is done, instead of promising to carry on and going quiet. (MPI-1375, MPI-1334, MPI-1329)
+- **Masking big photos is faster,** and Colour key works on very large photos where it said "could not load". (MPI-1302)
+
+#### ComfyUI Engine
+
+ComfyUI version unchanged (0.42.1).
+## Cubric Studio v2.1.4 (2026-11-01)
+
+### Changelog
+
+The last free version of Cubric Studio. From 2.2 it is a paid app, sold on Gumroad, and this version points you there.
+
+#### Important
+
+- **This is the last free version of Cubric Studio.** From 2.2 Cubric Studio is a paid app, sold on Gumroad. This version keeps working as it is, but gets no more updates or fixes. (MPI-1355)
+- **Update now opens Gumroad.** When a newer version is out, the update window, the Update row in Settings and the bell open its Gumroad page. Nothing downloads. While founder codes are left, the page opens with one applied. (MPI-1355)
+- **The error window points to the latest version.** It says this version is no longer supported and has a Get the latest version button. Report on GitHub and Show log file are gone. (MPI-1355)
+
+#### Fixes
+
+- **A remote GPU on a newer version than this app** now opens the error window with the way to the latest version, instead of a short message. (MPI-1355)
+
+#### ComfyUI Engine
+
+Unchanged.
 ## Cubric Studio v2.1.3 (2026-10-27)
 
 ### Changelog
