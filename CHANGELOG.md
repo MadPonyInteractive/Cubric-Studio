@@ -2,6 +2,34 @@
 
 Every Cubric Studio release, newest first.
 
+## Cubric Studio v2.2.1 (2026-11-02)
+
+### Changelog
+
+Head Swap and DramaBox come with the app, new library cards, and a round of fixes.
+
+#### What's new
+
+- **Head Swap and DramaBox come with the app.** Both are in the Flow Library for everyone. If you bought either as a Flow package, the built-in one takes its place, and your old cards still reopen. (MPI-1382)
+- **Head Swap takes the same picture in both slots,** so you can put one face onto another head in the same photo, or make twins. (MPI-1388)
+- **New library cards.** In the Model Library, the model picker and the Flow Library the picture is the whole card, with the name on it. Models you have not installed show in grey. (MPI-1395)
+- **Video clips in Dev updates** play right in the panel behind the bell. (MPI-1390)
+- **Bug reports carry the app log,** with keys, tokens, your home folder and account name taken out first. The error dialog says so under the button. (MPI-1398)
+
+#### Fixes
+
+- **Your projects show up again.** A project made in your own folder stays on the home list. If Windows blocks the app in Documents (Controlled folder access, OneDrive), a message names the folder to allow. (MPI-1368)
+- **A disconnected network drive no longer freezes your project list.** The list opens within a few seconds and names the folder that did not answer. (MPI-1383)
+- **Typing in Chinese, Japanese or Korean no longer sends half a message** when you press Enter to pick a word. (MPI-1387)
+- **Brush strokes start straight away on big pictures,** and Ctrl+Z on a big mask is quicker. (MPI-1302)
+- **Zoom stays put in the image workspace** when you switch tools, pick another version or go in and out of Compare. (MPI-1393, MPI-1394)
+- **Detail on a big photo is quicker and cleaner,** with no more out-of-memory errors or SDXL marks in the detailed area. (MPI-1392)
+- **Interpolate works on long videos.** It no longer runs out of memory on longer or bigger clips. (MPI-1397)
+- **A bug report that was slow to confirm** no longer says you are offline. (MPI-1398)
+
+#### ComfyUI Engine
+
+ComfyUI version unchanged (0.42.1).
 ## Cubric Studio v2.2.0 (2026-11-01)
 
 ### Changelog
