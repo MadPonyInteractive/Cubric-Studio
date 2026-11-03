@@ -2,6 +2,35 @@
 
 Every Cubric Studio release, newest first.
 
+## Cubric Studio v2.2.2 (2026-11-03)
+
+### Changelog
+
+Undo last update, Trim video, a faster H3 turbo, AMD fixes, and licence version 2.
+
+#### Important
+
+- **Older AMD cards are told up front.** The local engine needs a Radeon RX 7000 or 9000, an AI PRO R9700 or a Ryzen AI Max. An older card is told before anything downloads, and pointed to Remote GPU. (MPI-1408)
+- **No more silent processor mode.** With no supported graphics card the engine runs on your processor, where one picture can take half an hour. The app now says so. (MPI-1408)
+- **Licence version 2.** The refund promise now names the supported graphics cards at cubric.studio/requirements/. You accept it once; your key stays the same. (MPI-1409)
+
+#### What's new
+
+- **Undo last update.** If an update gives you trouble, Settings can put you back on the version you had before. It works offline and leaves your projects and models alone. (MPI-1401)
+- **Trim a video from its right-click menu.** Set the trim handles on the timeline, right-click and choose Trim video: the part between the handles becomes a new entry, sound included. (MPI-1411)
+- **Faster MiniMax H3 turbo.** Every H3 model and Flow uses a new turbo LoRA: about 10-17% faster (Video Edit about a third, with better lip sync), slightly clearer voices, and no brightness flash after the start frame in First/Last. A 1.8 GB download per H3 model. (MPI-1402)
+- **Hear back on your bug reports.** The bell on the home screen tells you when a report you sent is fixed, and in which version. Nothing about you is sent. (MPI-1404)
+- **The bug report dialog remembers your Discord name,** so we can reply to you personally. (MPI-1404)
+
+#### Fixes
+
+- **Faster prompt reading on AMD cards.** The engine read your prompt and reference pictures on the processor instead of the graphics card. Edits with reference pictures were hit hardest. (MPI-1412)
+- **LTX 2.5 on 16 GB cards.** After running out of memory partway through a video, the engine now restarts in its safer memory mode, so the next try can finish. (MPI-1403)
+- **The VRAM meter works on AMD cards,** instead of reading 0 / 0 GB. (MPI-1408)
+
+#### ComfyUI Engine
+
+ComfyUI version unchanged (0.42.1).
 ## Cubric Studio v2.2.1 (2026-11-02)
 
 ### Changelog
