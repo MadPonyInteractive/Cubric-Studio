@@ -2,6 +2,57 @@
 
 Every Cubric Studio release, newest first.
 
+## Cubric Studio v2.2.3 (2026-11-07)
+
+### Changelog
+
+Video upscale in the prompt box, H3 Low models for 32 GB PCs, video lengths that fit your computer, and a cloud upscaler.
+
+#### What's new
+
+- **Upscale video from the prompt box.** Upscale is now an operation on LTX 2.3, LTX 2.5 and every MiniMax H3 model: drop a clip in, pick 720p, 1080p or 2K, and go. It replaces the Upscale Video Flow. (MPI-1449, MPI-578, MPI-1450)
+- **Pick the upscaler for the job.** LTX 2.5 keeps faces and the look and changes little: Refine Details for AI-made or clean clips, Restore for old footage (a 2.8 GB download if you already have LTX 2.5). MiniMax H3 can improve the picture a lot, most at a high Denoise, but like an image upscaler it can change faces. (MPI-578)
+- **MiniMax H3 Low and Singularity H3 Low.** They fit PCs with 32 GB of RAM and run faster, with a lighter text encoder that follows your prompt less closely than the standard versions. Singularity H3 Low has Fast Motion and is in the Video Edit Flow too. (MPI-1425, MPI-1459)
+- **Video lengths that fit your computer.** Press Benchmark on a video model in the Model Library and the length slider stops at the longest clip your PC can make, so a long clip no longer runs out of memory halfway. Cosmo keeps to it too. (MPI-1448, MPI-1464)
+- **Clarity Crystal, a cloud upscaler on your DeepInfra key.** Enlarges a picture 2, 3 or 4 times without redrawing it, lettering included, and shows the price first. (MPI-1416)
+- **Connect and stop your RunPod GPU from the gallery.** A new cloud button turns green when connected; press it again to stop the Pod. (MPI-1451)
+- **Flows show what your PC needs** before you install them: the graphics memory and RAM for the model you pick. (MPI-1433)
+- **Lighter FLUX.2 Klein 4B.** A text encoder half the size (3.85 GB instead of 8 GB) makes the same pictures with less memory. Press Install on Klein 4B once to get it. (MPI-1442)
+- **Nano Banana gets its own prompt help.** The Enhancer and Cosmo now write Nano Banana prompts as JSON, the format it follows most closely. (MPI-1414)
+- **Extend Video now recommends MiniMax H3,** which continues a clip better than LTX 2.3. (MPI-1439)
+- **Compare two videos** from a button at the top right of the player, as for pictures. (MPI-1460)
+- **The card info pop-up shows the size in pixels and the quality tier.** (MPI-1415)
+- **H3 Reference and Singularity H3 show Text to Video,** which they always could do. (MPI-1461)
+- **A failed generation says what went wrong in its title,** like "Upscale Video failed: out of RAM". (MPI-1427)
+- **Agent apps do more.** Claude, Codex and Antigravity can run a job on your GPU or on the Pod, see models installed on either, choose a Flow's model, and find the app even when it moved off port 3000. (MPI-1422, MPI-1424, MPI-1444, MPI-1420)
+- **Discord links open in the Discord app.** (MPI-1445)
+
+#### Fixes
+
+- **MiniMax H3 runs again on AMD cards with 32 GB of RAM.** Since 2.2.2 it could run out of memory and close the engine; it now reads your prompt on the processor on those PCs. (MPI-1431)
+- **Upscaling a long video no longer runs out of memory.** A 10-second 1080p clip used to need about 99 GB of RAM. (MPI-1418)
+- **The app starts even when another program is using port 3000.** (MPI-1419)
+- **Reconnecting to RunPod keeps your network volume,** and the app notices a Pod stopped from anywhere. (MPI-1417)
+- **Cosmo's videos come out at the size the prompt box would use.** Video models now open on 16:9 when no ratio was picked. (MPI-1457)
+- **Cosmo keeps the backstory out of the shot,** so the clip shows only what it is about. (MPI-1458)
+- **A DeepInfra key that does not work now says so,** instead of "No DeepInfra key is saved". (MPI-1465)
+- **A clear message when Windows Smart App Control blocks the engine,** instead of "DLL load failed". (MPI-1311)
+- **A "bad allocation" error switches the engine to its safer memory mode** for the next try. (MPI-1440)
+- **A project name ending in a full stop no longer breaks the project.** (MPI-1446)
+- **Flow size pickers are buttons,** not drop-down lists. (MPI-1432)
+
+#### New Operations
+
+- **cloudUpscale** (Clarity cloud upscale): image, 1 input image.
+- **upscaleVideo** (Upscale): video, 1 input clip, on LTX 2.3, LTX 2.5 and the MiniMax H3 models.
+
+#### Breaking Changes
+
+None.
+
+#### ComfyUI Engine
+
+ComfyUI version unchanged (0.42.1). ComfyUI-LTXVideo and ComfyUI-MpiNodes moved to newer commits.
 ## Cubric Studio v2.2.2 (2026-11-03)
 
 ### Changelog
