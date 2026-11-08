@@ -2,6 +2,43 @@
 
 Every Cubric Studio release, newest first.
 
+## Cubric Studio v2.2.4 (2026-11-08)
+
+### Changelog
+
+A new picture model, P-H3 Image, a choice of where each job runs, and ComfyUI 0.44.0.
+
+#### What's new
+
+- **New image model: P-H3 Image.** Pruna AI's picture model on MiniMax H3 makes and edits images, with up to eight reference pictures or a painted mask, and Enhance uses its own prompt writer. Turn Turbo off for the best skin and hands.
+- **Choose where each job runs: this computer, your RunPod Pod or the cloud.** The model list, the Model Library and the Flows page open on a Local / RunPod / Cloud choice that lists what each place has. A button next to Cue switches where the job runs in one press, and if that place does not have your model, Cue says so instead of quietly running a different one.
+- **Stop stops the job on the engine you picked,** this computer or your Pod. During a cloud model's 3-2-1 countdown it cancels that one instead.
+- **Clear one model's benchmark.** A video model's panel in the Model Library has Clear benchmark under Uninstall, so a length limit learned while another app was using your RAM can be reset for that model alone.
+- **Control says which picture is the control.** The first picture in an image Control job now carries a CONTROL strip. It is still image 1 in your prompt.
+- **Local video models go up to 30 seconds again.** Press Benchmark on a video model in the Model Library and the slider stops at the longest clip your PC can make.
+
+#### Fixes
+
+- **LTX 2.5 no longer crashes the engine on AMD cards with under 48 GB of RAM.** Its text encoder now runs on the processor there, as MiniMax H3's already does.
+- **MiniMax H3 videos no longer fail on a shared ComfyUI models folder** that holds another taeh3 preview file.
+- **A busy DeepInfra no longer stops a job.** The app waits a few seconds and tries twice more.
+- **An unsupported AMD card is named correctly,** not the Ryzen's built-in graphics next to it.
+- **An update that went through no longer says "Update failed".**
+- **Enhance no longer turns a long prompt into a cat.** Smaller language models such as Gemma 3 12B sometimes dropped your text and wrote about the cat in Enhance's own instructions; that example is gone. MiniMax H3's Enhance also keeps a prompt that is already written for H3, where it used to write a different scene.
+- **A slow PC's engine is no longer called "failed to start" after 4 minutes** while it is still starting. The app keeps waiting and says it is still working.
+- **Stable Audio 3's Length slider reads in minutes past a minute,** so 80 seconds shows as 1:20 min.
+
+#### New Operations
+
+- **promptUpsample** (a model's own prompt writer): used by Enhance on P-H3 Image, with the prompt box's pictures.
+
+#### Breaking Changes
+
+None.
+
+#### ComfyUI Engine
+
+- **ComfyUI 0.44.0 (was 0.42.1).** The engine updates itself in place on first launch: no full re-download and no PyTorch reinstall, and custom nodes you added yourself stay.
 ## Cubric Studio v2.2.3 (2026-11-07)
 
 ### Changelog
