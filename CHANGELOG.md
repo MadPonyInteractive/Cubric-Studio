@@ -2,6 +2,36 @@
 
 Every Cubric Studio release, newest first.
 
+## Cubric Studio v2.2.5 (2026-11-09)
+
+### Changelog
+
+Bug fixes: cloud models, Cosmo, Enhance, the engine and the gallery.
+
+#### Fixes
+
+- **Cloud models no longer refuse a reused seed.** Seedream, Seedance, Nano Banana and Wan failed with "The provider could not complete this generation" when you reused a large seed, such as a local model's.
+- **Seedream 4.5 edits very wide or very tall pictures** instead of failing with the same message.
+- **Veo 3.1's negative prompt reaches the model.** It was quietly left out.
+- **Cosmo's Start over stops what he was doing,** so an old request no longer starts a picture in the cleared chat or moves you to another screen.
+- **Cancel in the Enhance Prompt window stops the enhance,** with nothing left to Stop in the queue.
+- **An engine left half-updated repairs itself on the next start,** where ComfyUI used to fail with "Unable to compare versions for numpy".
+- **Linux (NVIDIA): speech, DramaBox and Chatterbox load on a fresh install.** On an engine already affected, press Repair engine in Settings.
+- **The gallery's RunPod button no longer says connected while the Pod is still connecting,** when you come back to the gallery mid-connect.
+- **The status bar's time no longer goes blank in the middle of a job.**
+- **The cloud models' "Sending in 3, 2, 1" countdown shows on the card with card information turned off.**
+
+#### New Operations
+
+None.
+
+#### Breaking Changes
+
+None.
+
+#### ComfyUI Engine
+
+ComfyUI version unchanged (0.44.0).
 ## Cubric Studio v2.2.4 (2026-11-08)
 
 ### Changelog
