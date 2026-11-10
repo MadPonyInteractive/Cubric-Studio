@@ -2,6 +2,29 @@
 
 Every Cubric Studio release, newest first.
 
+## Cubric Studio v2.2.6 (2026-11-10)
+
+### Changelog
+
+Bug fixes: Linux image saving, moved projects, engine crash messages.
+
+#### Fixes
+
+- **Linux: saving a picture no longer crashes the app.** Every finished image left the window stuck on "Failed to fetch". If the app's server ever does stop, a message now says so.
+- **Opening a project you moved to another folder works the first time,** and its cards keep their prompts and settings.
+- **When the engine crashes while starting, the message names the part that failed** instead of the last line of a crash dump.
+
+#### New Operations
+
+None.
+
+#### Breaking Changes
+
+None.
+
+#### ComfyUI Engine
+
+ComfyUI version unchanged (0.44.0).
 ## Cubric Studio v2.2.5 (2026-11-09)
 
 ### Changelog
