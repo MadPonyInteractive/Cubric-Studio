@@ -2,6 +2,40 @@
 
 Every Cubric Studio release, newest first.
 
+## Cubric Studio v2.2.7 (2026-11-12)
+
+### Changelog
+
+Box pictures in FLUX.3 Klein Edit, Enhance on Nano Banana edits, and fixes.
+
+#### What's new
+
+- **FLUX.3 Klein Edit: one box per picture.** Every picture you add gets its own named box, so several character sheets in one edit draw each character once, in its place. A picture's button makes it the background.
+- **Enhance Prompt works on Nano Banana edits.** It writes the change you asked for and what to keep.
+
+#### Fixes
+
+- **AMD and Intel cards: the VRAM bar shows what the card really holds,** like Task Manager. It read far too low during a generation.
+- **Qwen-Image 2.1 Detail works on each mask on its own,** instead of repainting two masks together in one blurry pass.
+- **Character Sheet Editor: an edited sheet lands as new versions of its own card,** so Composite can take back anything the edit added.
+- **Character Sheet Editor, Clothes: taking off or adding one piece leaves the rest of the outfit alone.**
+- **Boxes: click a name to select its box, double-click to rename it,** and a new box's name no longer stays stuck open.
+- **Unstacking a marked stack keeps the mark on every card,** and stacking cards that share a mark gives the stack that mark.
+- **Enhance Prompt: the window is bigger and a long prompt is no longer cut off.** You can drag the prompt box taller, and dragging any text box now follows the mouse.
+- **Cloud models say why a reference picture could not be read,** instead of only that it failed.
+- **Notes keep their size when you switch to editing.**
+
+#### New Operations
+
+None.
+
+#### Breaking Changes
+
+None.
+
+#### ComfyUI Engine
+
+ComfyUI version unchanged (0.44.0).
 ## Cubric Studio v2.2.6 (2026-11-10)
 
 ### Changelog

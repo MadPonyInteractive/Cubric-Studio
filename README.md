@@ -20,7 +20,7 @@
 
 **ComfyUI's engine without the engine room. AI images, video and sound, made easy.**
 
-[![Latest version](https://img.shields.io/badge/latest-v2.2.6-e84a8a)](CHANGELOG.md)
+[![Latest version](https://img.shields.io/badge/latest-v2.2.7-e84a8a)](CHANGELOG.md)
 [![This repo: not maintained](https://img.shields.io/badge/this%20repo-not%20maintained-lightgrey)](https://cubric.studio/paid/)
 [![Buy on Gumroad](https://img.shields.io/badge/Gumroad-buy%20Cubric%20Studio-FF90E8?logo=gumroad&logoColor=black)](https://mad-pony-interactive.gumroad.com/l/ubqygr)
 [![2.1 code: AGPL-3.0](https://img.shields.io/badge/2.1%20code-AGPL--3.0-blue)](LICENSE)
@@ -30,7 +30,7 @@
 
 [Website](https://cubric.studio) · [Buy Cubric Studio](https://mad-pony-interactive.gumroad.com/l/ubqygr) · [Why it's paid](https://cubric.studio/paid/) · [Documentation](https://docs.cubric.studio) · [Free 2.1.4 (unmaintained)](https://github.com/MadPonyInteractive/Cubric-Studio/releases/tag/v2.1.4) · [Discord](https://discord.gg/WX7tDFSVmY) · [Roadmap](https://trello.com/b/wg1r5aYz/cubric-vision)
 
-<!-- latest-version -->Latest version: <b>v2.2.6</b> (2026-11-10, on Gumroad) - see what changed in the <a href="CHANGELOG.md">changelog</a>.<!-- /latest-version -->
+<!-- latest-version -->Latest version: <b>v2.2.7</b> (2026-11-12, on Gumroad) - see what changed in the <a href="CHANGELOG.md">changelog</a>.<!-- /latest-version -->
 
 </div>
 
