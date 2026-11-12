@@ -18,7 +18,7 @@ Box pictures in FLUX.3 Klein Edit, Enhance on Nano Banana edits, and fixes.
 - **AMD and Intel cards: the VRAM bar shows what the card really holds,** like Task Manager. It read far too low during a generation.
 - **Qwen-Image 2.1 Detail works on each mask on its own,** instead of repainting two masks together in one blurry pass.
 - **Character Sheet Editor: an edited sheet lands as new versions of its own card,** so Composite can take back anything the edit added.
-- **Character Sheet Editor, Clothes: taking off or adding one piece leaves the rest of the outfit alone.**
+- **Character Sheet Editor, Clothes: taking off one piece keeps the rest on,** and adding bottoms no longer adds a top to go with them.
 - **Boxes: click a name to select its box, double-click to rename it,** and a new box's name no longer stays stuck open.
 - **Unstacking a marked stack keeps the mark on every card,** and stacking cards that share a mark gives the stack that mark.
 - **Enhance Prompt: the window is bigger and a long prompt is no longer cut off.** You can drag the prompt box taller, and dragging any text box now follows the mouse.
