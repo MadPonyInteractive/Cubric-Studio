@@ -2,6 +2,49 @@
 
 Every Cubric Studio release, newest first.
 
+## Cubric Studio v2.2.8 (2026-11-14)
+
+### Changelog
+
+Draw It In on FLUX.3, Looks for Enhance, P-H3 Image on one faster setting, and fixes.
+
+#### Important
+
+- **P-H3 Image has no Turbo button any more.** One setting now looks close to the old Turbo off at about Turbo on speed: a 16 MP picture takes about 3 minutes instead of 5-6.
+- **Detail, Upscale and Inpaint have no Enhance button.** They work on a picture you already have, and a rewritten prompt only pulled them away from it.
+
+#### What's new
+
+- **Draw It In runs on FLUX.3.** Pick it in the model list and draw: only the area around your drawing changes, and the rest of the photo comes back untouched.
+- **Enhance: pick a Look.** Choose Auto, Candid, Editorial, Cinematic or Stylized before you enhance an image prompt. Candid writes an everyday snapshot with real skin; Stylized an illustration in the medium you name.
+- **Draw It In has one step less.** There is no Blend area box to draw: the app works the area out from your drawing.
+
+#### Fixes
+
+- **Video tools keep your clip's colour.** Extend Video, Video Upscale, Video Edit and the others made a clip about 1.5 % darker each time it went through.
+- **Video tools need half the computer memory to load a clip:** 10 seconds of 1080p peaked near 14 GB, now under 7 GB.
+- **The engine starts on computers that also have their own Python 3.13.** It stopped with "Torch not compiled with CUDA enabled"; the first start after updating installs anything it was missing.
+- **Opening the app after an update no longer covers it with "Starting ComfyUI Engine".** The update shows as a row in the queue panel and you can keep working.
+- **Changing the models folder while the engine installs is refused with a message,** instead of looking accepted and then going back to the old folder.
+- **Downloading several cards no longer freezes the app.** The copy shows its progress in the queue panel, and a message says how many files were saved.
+- **Scribble no longer turns a landscape drawing into legs, hands and jeans.**
+- **Reuse on a Flow card opens the Flow on the model the card was made with,** not the one you picked last.
+- **Draw It In no longer tints the picture with the colour you drew in.**
+- **Painting or erasing in a Flow starts straight away on big pictures.**
+- **Beta testers see the beta features on the first launch after their app turns beta,** not one launch later.
+- **Settings no longer shows an empty "Beta updates" row** to everyone with a licence.
+
+#### New Operations
+
+None.
+
+#### Breaking Changes
+
+None.
+
+#### ComfyUI Engine
+
+ComfyUI version unchanged (0.44.0).
 ## Cubric Studio v2.2.7 (2026-11-12)
 
 ### Changelog
