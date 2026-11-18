@@ -2,6 +2,59 @@
 
 Every Cubric Studio release, newest first.
 
+## Cubric Studio v2.2.10 (2026-11-17)
+
+### Changelog
+
+Fixes that unblock long videos, engine restarts and RunPod, plus LTX video in the cloud, Ctrl+Z for deletes, and AMD Low memory mode for everyone.
+
+#### Important
+
+- **Video Edit: "Only change" is gone; every edit redraws the whole frame.** Changing one part left a visible seam. Old cards reopen as whole-frame edits.
+- **LTX 2.5 no longer takes an audio clip.** It never matched the lips to a supplied voice. It still makes its own sound; for your own voice or recording, pick LTX 2.3.
+
+#### What's new
+
+- **LTX video in the cloud: LTX 2.3 Fast and Pro, LTX 2.5 Fast and Pro, and LTX Upscale.** Clips from words or a picture, 720p up to 4K, with sound, on your own DeepInfra key. LTX Upscale takes any clip to 1080p, 4K or 8K.
+- **Deleted something by mistake? Press Ctrl+Z.** Deleted cards and history versions come back where they were. A deleted project comes back too, until you close the app.
+- **Low memory mode for AMD graphics cards.** A switch in Settings starts the engine in a slower mode that uses less graphics memory, so a 16 GB AMD card has room for longer video clips.
+- **Object Stamp can run on FLUX.3.** The object is redrawn into the scene so it blends in, and an optional "Where does it sit?" box takes things like "behind the woman".
+- **Text boxes, number boxes and dropdowns have a new look** and line up with the buttons beside them. Clicking a box's label lets you type in it.
+- **Cosmo works better with llama.cpp and LM Studio.** No made-up API key, faster replies, and if the server's context is too small he says how to give it more.
+- **When we fix a bug you reported, your bell tells you straight away,** with the version that brings the fix.
+
+#### Fixes
+
+- **Your PC no longer goes to sleep in the middle of a generation.** The screen can still turn off.
+- **A job no longer hangs forever after a graphics card error.** It ends with a message, and the next job starts the engine fresh.
+- **Describe Image and other jobs work again after the engine restarts itself** after a crash.
+- **Continue and Finish on a video preview work again after the engine restarts itself.**
+- **Fewer crashes on long videos on NVIDIA PCs with 32 GB of RAM or less,** at the same speed.
+- **A video upscale too long for your PC's memory is refused before it starts,** and says how long a clip fits.
+- **RunPod: jobs keep working after a Pod with no storage volume is stopped and reconnected, or restarted by RunPod.** They failed with "Node 'Input_seed' not found".
+- **RunPod: the first Auto Mask after connecting is faster.**
+- **RunPod: a model download cut off by stopping the Pod no longer leaves gigabytes on your storage volume.** It is cleared the next time you uninstall a model with "delete files" ticked.
+- **Video Edit: Swap the person into the picture's room keeps the new person** the whole way through. It uses a new swap LoRA (81 MB), downloaded the first time you run Video Edit.
+- **H3 Reference works with a reference video that has no sound.**
+- **Cosmo no longer makes a scene that won't meet your clip** when MiniMax H3 is not installed: he uses LTX 2.3 or Wan 2.2 instead, or offers the install.
+- **Cosmo on a local model through a Custom connection gets 10 minutes to answer,** and says so when the model sends back an empty answer.
+- **A failed update now says why,** suggests checking your VPN, firewall or antivirus, and has an Open download page button.
+- **The progress bar shows SDXL's two stages and no longer sticks near 10%.**
+- **The graphics memory bar works on AMD and Intel cards** while only Cosmo's local model is running.
+- **Deleting or renaming a project keeps the Projects list where it was.**
+- **An install or uninstall that would do nothing now says so** instead of reporting success.
+
+#### New Operations
+
+None.
+
+#### Breaking Changes
+
+None.
+
+#### ComfyUI Engine
+
+ComfyUI version unchanged (0.44.0).
 ## Cubric Studio v2.2.8 (2026-11-14)
 
 ### Changelog
