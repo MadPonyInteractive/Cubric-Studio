@@ -16,7 +16,7 @@ Fixes that unblock long videos, engine restarts and RunPod, plus LTX video in th
 #### What's new
 
 - **LTX video in the cloud: LTX 2.3 Fast and Pro, LTX 2.5 Fast and Pro, and LTX Upscale.** Clips from words or a picture, 720p up to 4K, with sound, on your own DeepInfra key. LTX Upscale takes any clip to 1080p, 4K or 8K.
-- **Deleted something by mistake? Press Ctrl+Z.** Deleted cards and history versions come back where they were. A deleted project comes back too, until you close the app.
+- **Deleted something by mistake? Press Ctrl+Z.** Deleted cards and history versions come back where they were, while the project stays open. A deleted project comes back too, until you close the app.
 - **Low memory mode for AMD graphics cards.** A switch in Settings starts the engine in a slower mode that uses less graphics memory, so a 16 GB AMD card has room for longer video clips.
 - **Object Stamp can run on FLUX.3.** The object is redrawn into the scene so it blends in, and an optional "Where does it sit?" box takes things like "behind the woman".
 - **Text boxes, number boxes and dropdowns have a new look** and line up with the buttons beside them. Clicking a box's label lets you type in it.
