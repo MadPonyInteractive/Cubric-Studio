@@ -2,6 +2,45 @@
 
 Every Cubric Studio release, newest first.
 
+## Cubric Studio v2.2.11 (2026-11-23)
+
+### Changelog
+
+Extract Depth, the app in your language, Cubric Studio on your phone, and faster video on almost every model.
+
+#### Important
+
+- **Wan 2.2 5B gives a slightly different result for the same seed.** It is faster now (about 75 seconds instead of 90 for a 5 second clip), and with only four steps that changes the result, most of all from text.
+- **MiniMax H3 clips may look a touch brighter.** They now start from your picture's exact brightness; before, they came out slightly darker than the picture or the keyframes.
+
+#### What's new
+
+- **Extract Depth.** Right-click an image or a video card and choose Extract Depth: a new grey card shows what is near in white and far in black. A video keeps its length, frame rate and sound.
+- **The app speaks your language.** English, Portuguese (Portugal or Brazil), Spanish, French, Italian, German or Turkish, from the top right of the home screen. French, Italian, German and Turkish are machine-translated for now.
+- **Cubric Studio on your phone.** Turn on Phone access in Settings and scan the code to chat with Cosmo, browse your gallery, watch the queue and send photos, at home or anywhere through Tailscale.
+- **Faster video on almost every model.** Upscale takes about half the time on LTX 2.5, about 40 % less on LTX 2.3 and about a third less on MiniMax H3. Wan 2.2 Smooth and Extend Video on LTX 2.3 are about 40 % faster, and Render path in the 3D scene takes about a third of the time.
+- **Video Edit is about twice as fast above 768p,** and long, large MiniMax H3 and Video Edit clips show much less ghosting where their pieces join.
+- **Image to Video on Singularity H3 and H3 Reference.** Give them a start frame, an end frame, or both.
+- **Ctrl+Z takes a bad generation away.** In the gallery or the history workspace, Ctrl+Z removes the result that just came in, and Ctrl+Shift+Z brings it back.
+- **Renaming a project renames its folder** on disk too, with everything inside it.
+- **Hear the sound when you compare two videos.** A speaker button sits under each video's name, off to start with.
+- **Enhance Prompt shows your references,** each with the label it has in the prompt box.
+- **Flow previews play in the Library,** the same way models do.
+- **Reporting a bug we already fixed tells you which version has the fix,** with an Update button when your waiting update carries it.
+
+#### Fixes
+
+- **Stopping a job gives its memory back,** so stopping job after job no longer fills your computer's memory until it slows down or crashes.
+- **Sound stays clear through Interpolate and Upscale,** and generated videos save their sound at higher quality.
+- **A big LoRA or upscaler no longer stops a generation on a GPU Pod.** The app asks whether to upload it now or later, on the cheaper "No GPU - download only" Pod.
+- **A Pod job no longer fails as "engine restarting" while the Pod keeps making it.** The result now reaches your gallery.
+- **Jobs no longer wait forever after you connect a Pod.**
+- **Extend Video no longer freezes when the Pod stops answering for a while.**
+- **Two jobs at once, one on your Pod and one on your own GPU, each get their own card** with a live preview.
+- **Jobs keep their pace with the app minimised,** and the floating Latents window plays straight away.
+- **The start screen's mascots stop moving while the app is minimised,** so they no longer use your graphics card.
+- **Dictation keeps working when DeepInfra's speech model is slow:** after 20 seconds it asks Whisper turbo instead.
+- **Cosmo keeps a try a try in MiniMax H3 clips:** someone trying to catch a dog keeps missing it.
 ## Cubric Studio v2.2.10 (2026-11-17)
 
 ### Changelog
