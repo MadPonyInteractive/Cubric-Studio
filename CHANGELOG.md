@@ -2,6 +2,23 @@
 
 Every Cubric Studio release, newest first.
 
+## Cubric Studio v2.2.12 (2026-11-24)
+
+### Changelog
+
+A reset link for a key that says it is in use on too many computers.
+
+#### What's new
+
+- **Key in use on too many computers after a reinstall?** The key screen now has a "Reset your key on our website" link: paste your key there and it signs out of every computer, then enter it again. Works once a week per key.
+
+#### Breaking Changes
+
+None
+
+#### ComfyUI Engine
+
+ComfyUI version unchanged.
 ## Cubric Studio v2.2.11 (2026-11-23)
 
 ### Changelog
