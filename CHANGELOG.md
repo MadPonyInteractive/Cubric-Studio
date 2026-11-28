@@ -2,6 +2,41 @@
 
 Every Cubric Studio release, newest first.
 
+## Cubric Studio v2.2.13 (2026-11-28)
+
+### Changelog
+
+Video Edit takes long clips, a Low version of MiniMax H3 Reference, faster FLUX.3 Klein 2K and 4K edits, and Cosmo keeps your chat.
+
+#### Important
+
+- **Video Edit runs on MiniMax H3 Reference only.** Singularity H3 made the person move their own way instead of following your video. Reusing a Video Edit made with Singularity runs it on H3 Reference.
+- **Seedance 1.5 Pro is gone from the cloud models.** DeepInfra stopped offering it. Seedance 2.0 is still there.
+
+#### What's new
+
+- **Video Edit takes long clips.** A clip longer than about 5 seconds is edited in overlapping windows and joined back into one video with its own sound. Stopping keeps the windows already finished, and on a remote GPU they stay on the Pod until one download at the end.
+- **MiniMax H3 Reference for 32 GB of memory.** A Low version with a lighter text encoder, always in Turbo. Video Edit offers it as a second model choice.
+- **FLUX.3 Klein edits at 2K and 4K run up to twice as fast.** A 4K edit with Turbo off takes about 15 minutes instead of 32 on a 16 GB card. The picture stays the same, the skin a little finer and less red.
+- **Use Tiles: "Redraw faces and people" is now a checkbox.** Turn it off to keep only the tiles. On by default.
+- **Cosmo keeps your chat when you close the app.** Each project's conversation, and the start page's, comes back where you left it. Start over clears it for good.
+- **The video player remembers your volume, loop and seconds-or-frames counter** across videos, workspaces and restarts.
+
+#### Fixes
+
+- **Extend Video on MiniMax H3 no longer fails at the end with "runs 237 samples past the end of the track"** on videos whose sound stops just before the last frame.
+- **Cosmo forgets a note when you ask him to.** He could answer "Done" and keep it, so it came back in the next chat.
+- **A Flow you reopen while it runs picks its run back up:** preview, result and Stop all work again. A Flow that runs in several steps no longer shows a broken picture when you come back mid-run, and its card shows each step's preview.
+- **Video Edit's first page says which choice to pick:** Change the outfit for everything the person wears, Anything else for one item, like a hat.
+- **Security fix:** the app's internal file routes only touch files inside your projects and its own folders. Importing from anywhere still works.
+
+#### Breaking Changes
+
+None
+
+#### ComfyUI Engine
+
+ComfyUI version unchanged. The first-party node pack moves to 3a616dd (the Extend sound fix).
 ## Cubric Studio v2.2.12 (2026-11-24)
 
 ### Changelog
